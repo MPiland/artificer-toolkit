@@ -1,6 +1,8 @@
 import { z, lazySchema } from '../zod.js'
 import { activeRuleEffectRecordSchema } from '../projections/activeRuleEffectPersistence.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from './activeRuleEffects.js'
+import { MAX_D20_ADDED_DICE } from './d20AddedDice.js'
+import { d20RolledCheckDtoSchema, d20WindowOptionDtoSchema } from './ruleExecutionD20WindowOffer.js'
 import { frozenCheckD20DtoSchema } from './ruleExecutionEvidence.js'
 import { ruleCheckD20EvidenceDtoSchema } from './ruleExecutionEncounterApplications.js'
 import { targetOutcomeTransitionDtoSchema } from './ruleExecutionMechanics.js'
@@ -42,6 +44,30 @@ export const encounterCheckActionContextDtoSchema = lazySchema(() =>
 )
 
 export type EncounterCheckActionContextDto = z.infer<typeof encounterCheckActionContextDtoSchema>
+
+/**
+ * A check action waiting on its roller (D173): its `CHECK` d20, or, once that reached the DC, its
+ * `OUTCOME` dice. `commandJson` is the root command the outcome is re-prepared from; an outcome
+ * phase keeps the rolled d20, its app roll and the held dice a d20 window added to it.
+ */
+export const encounterCheckActionPendingContextDtoSchema = lazySchema(() =>
+  z.extend(encounterCheckActionContextDtoSchema, {
+    commandJson: z.string(),
+    phase: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('CHECK') }),
+      z.strictObject({
+        kind: z.literal('OUTCOME'),
+        rolled: d20RolledCheckDtoSchema,
+        appRollId: z.nullable(uuidSchema),
+        windowDice: z.array(d20WindowOptionDtoSchema).check(z.maxLength(MAX_D20_ADDED_DICE))
+      })
+    ])
+  })
+)
+
+export type EncounterCheckActionPendingContextDto = z.infer<
+  typeof encounterCheckActionPendingContextDtoSchema
+>
 
 /**
  * A settled fixed-DC check action (D173): the actor's d20 against the DC, and on success the outcome

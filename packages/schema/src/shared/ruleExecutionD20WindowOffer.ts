@@ -32,15 +32,20 @@ export function d20WindowUseOptionId(input: {
   return checksumRuleDocument({ kind: 'D20_WINDOW_USE', ...input })
 }
 
+/** A d20 the roller rolled and a later pause settles: its kernel result, facts and evidence. */
+export const d20RolledCheckDtoSchema = lazySchema(() =>
+  z.strictObject({
+    execution: serverCompletedRuleExecutionDtoSchema,
+    initialFactsChecksum: checksumSchema,
+    d20: ruleCheckRollEvidenceDtoSchema
+  })
+)
+
 /** What a d20 window pauses on: the rolled d20 it settles and the held dice offered after it. */
 export const d20WindowPausePayloadDtoSchema = lazySchema(() =>
   z.strictObject({
     /** The d20 the roller rolled; the window settles it. */
-    rolled: z.strictObject({
-      execution: serverCompletedRuleExecutionDtoSchema,
-      initialFactsChecksum: checksumSchema,
-      d20: ruleCheckRollEvidenceDtoSchema
-    }),
+    rolled: d20RolledCheckDtoSchema,
     /** The recorded app roll the d20 settled with, whose card exists; null for an entered die. */
     appRollId: z.nullable(uuidSchema),
     offer: z.strictObject({

@@ -2449,9 +2449,15 @@ the d20 check graph (`createDnd5eCheckDefinition`) as its test. The room freezes
 success runs the same `planNativeTargetOutcome` (its test roll mode is the check's). It commits one `CHECK_ACTION`
 output (`check`, `d20`, `outcome` SUCCESS or FAILURE, and a `TARGET_OUTCOME` or `NONE` `stateTransition`) in a
 `CheckActionSettlement`, and Convex settles it through `settleEncounterCheckAction`, which re-applies a success through
-`settleTargetOutcome` and lands its pushes like an action's. Until the check can pend (RULES-2.T6e3b1b), a roller whose
-preference does not roll for them, or who holds after-roll check dice, is refused. Undo returns a failed check's
-economy and grants and refuses a success's outcome.
+`settleTargetOutcome` and lands its pushes like an action's. A roller whose preference does not roll for them, or who
+holds after-roll check dice, gets a pending `ENCOUNTER_CHECK_ACTION` occurrence (RULES-2.T6e3b1b) in its `CHECK` phase,
+which carries the root command (`commandJson`). Their d20 opens a d20 window (`CHECK_ACTION` source) on held dice or
+settles the check; a success re-prepares the action from the root command on the room's current inputs
+(`prepareNativeLiveRootActionMechanics`) and runs its outcome, which pauses in the `OUTCOME` phase on its dice
+(`ACTION_OUTCOME_EVIDENCE`) unless the roller's preference rolls them. The room plans each answer
+(`planNativeLiveCheckActionResponse`); Convex records a pause through `persistEncounterCheckActionPause` and the settled
+check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Undo returns a failed
+check's economy and grants and refuses a success's outcome.
 
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no

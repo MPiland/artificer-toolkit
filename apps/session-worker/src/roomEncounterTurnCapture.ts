@@ -358,7 +358,12 @@ export async function readRoomEncounterTurnCapture(
                 command: admission.response,
                 fingerprint: admission.fingerprint,
                 initiatorUserId: admission.initiatorUserId,
-                autoRollByActorId: {},
+                // A check action's outcome dice roll on the roller's preference when its d20 settles.
+                autoRollByActorId: await readEncounterAutoRollByActorId(ctx, {
+                  campaign: admission.campaign,
+                  initiatorUserId: admission.initiatorUserId,
+                  actors: await readRunActors(ctx, admission.state)
+                }),
                 appRoll: admission.appRoll,
                 snapshot: admission.pending.snapshot,
                 occurrenceVersion: admission.occurrence.version

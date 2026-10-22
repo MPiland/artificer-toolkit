@@ -45,6 +45,11 @@ const basicActionScope = lazySchema(() =>
   })
 )
 
+/** The roller's held die a d20 window answer spent (null when declined), which the commit ends. */
+const d20WindowSpendSchema = lazySchema(() =>
+  z.strictObject({ spentEffect: z.nullable(activeRuleEffectRecordSchema) })
+)
+
 /** A settled stabilizing check (First Aid): the frozen check, its stored result and the app roll it used. */
 const stabilizeCheckSettlementSchema = lazySchema(() =>
   z.strictObject({
@@ -52,11 +57,8 @@ const stabilizeCheckSettlementSchema = lazySchema(() =>
     execution: storedRuleExecutionResultDtoSchema,
     /** The recorded app roll the d20 settled with, whose card exists; null for an entered or auto-rolled die. */
     appRollId: z.nullable(postgresUuidSchema),
-    /**
-     * Present when the check settles a d20 window: the roller's held die the answer spent (null when
-     * declined), which the commit ends with the check.
-     */
-    window: z.optional(z.strictObject({ spentEffect: z.nullable(activeRuleEffectRecordSchema) }))
+    /** Present when the check settles a d20 window. */
+    window: z.optional(d20WindowSpendSchema)
   })
 )
 
@@ -84,12 +86,14 @@ const concealmentCheckSettlementSchema: z.ZodMiniType<ConcealmentCheckSettlement
 /**
  * A settled fixed-DC check action whose success runs an authored outcome (D173): the frozen check,
  * its stored result, the app roll it used and the pushes a success lands on the Scene (D157).
+ * `window` is present when the d20 settled through a d20 window, as on a stabilizing check.
  */
 export type CheckActionSettlement = {
   context: EncounterCheckActionContextDto
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   appRollId: z.infer<typeof postgresUuidSchema> | null
   forcedMovements: LiveSessionForcedMovement[]
+  window?: { spentEffect: ActiveRuleEffectRecord | null }
 }
 
 const checkActionSettlementSchema: z.ZodMiniType<CheckActionSettlement> = lazySchema(() =>
@@ -97,7 +101,8 @@ const checkActionSettlementSchema: z.ZodMiniType<CheckActionSettlement> = lazySc
     context: encounterCheckActionContextDtoSchema,
     execution: storedRuleExecutionResultDtoSchema,
     appRollId: z.nullable(postgresUuidSchema),
-    forcedMovements: liveSessionForcedMovementsSchema
+    forcedMovements: liveSessionForcedMovementsSchema,
+    window: z.optional(d20WindowSpendSchema)
   })
 )
 
@@ -158,16 +163,18 @@ export const liveSessionEncounterBasicActionResponseCommitInputSchema = lazySche
 )
 
 /**
- * A room-planned pause on a rolled d20 whose roller holds an after-roll die: the sealed window the
- * roller answers. Convex checks the d20 as it would at settlement, then records the window as the
- * occurrence's next pending state instead of completing it.
+ * A room-planned pause on a rolled check: the d20 window its roller answers when they hold an
+ * after-roll die, or a won check action's outcome dice (D173). Convex checks the d20 as it would at
+ * settlement, then records the pause as the occurrence's next pending state instead of completing
+ * it. `window` is present when the pause follows a d20 window's answer: the held die it spent.
  */
-export const liveSessionEncounterD20WindowOpenCommitInputSchema = lazySchema(() =>
+export const liveSessionEncounterCheckPauseCommitInputSchema = lazySchema(() =>
   z.extend(basicActionScope, {
     command: resolveRuleOccurrenceInputDtoSchema,
     revisions: liveSessionRulesRevisionsSchema,
     occurredAt: z.iso.datetime(),
     snapshot: serverKernelRuleExecutionPendingSnapshotDtoSchema,
+    window: z.optional(d20WindowSpendSchema),
     rules: encounterActorRuleOutputSchema
   })
 )
@@ -287,6 +294,6 @@ export type LiveSessionEncounterBasicActionCommitInput = z.infer<
 export type LiveSessionEncounterBasicActionResponseCommitInput = z.infer<
   typeof liveSessionEncounterBasicActionResponseCommitInputSchema
 >
-export type LiveSessionEncounterD20WindowOpenCommitInput = z.infer<
-  typeof liveSessionEncounterD20WindowOpenCommitInputSchema
+export type LiveSessionEncounterCheckPauseCommitInput = z.infer<
+  typeof liveSessionEncounterCheckPauseCommitInputSchema
 >

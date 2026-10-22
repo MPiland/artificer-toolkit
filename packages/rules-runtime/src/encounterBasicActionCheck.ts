@@ -19,6 +19,7 @@ import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema,
   type ServerKernelRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import type { EncounterCheckActionPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionCheckAction'
 import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
@@ -215,6 +216,7 @@ export function encounterBasicActionCheckPendingSnapshot(input: {
     | EncounterBasicActionCheckPendingContextDto
     | EncounterEscapeCheckPendingContextDto
     | EncounterConcealmentCheckPendingContextDto
+    | EncounterCheckActionPendingContextDto
   optionalCombatSnapshotChecksum: string | null
 }): ServerKernelRuleExecutionPendingSnapshotDto {
   return serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({

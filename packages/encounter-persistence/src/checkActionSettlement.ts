@@ -37,6 +37,8 @@ export async function settleEncounterCheckAction(
       checkDefinitionIds: readonly string[]
       dc: number | null
     }
+    /** The held dice the d20 window added, in the order they were used. */
+    windowDice?: Parameters<typeof settledCheckD20MatchesFrozen>[2]
     rootCommandId: string
     initiatorUserId: string
     occurredAt: string
@@ -75,7 +77,7 @@ export async function settleEncounterCheckAction(
     context.check.dc !== admitted.dc ||
     output.check.checkDefinitionId !== context.check.checkDefinitionId ||
     output.check.dc !== context.check.dc ||
-    !settledCheckD20MatchesFrozen(output.d20, context.d20) ||
+    !settledCheckD20MatchesFrozen(output.d20, context.d20, input.windowDice) ||
     (output.stateTransition.kind === 'NONE' && settlement.forcedMovements.length > 0)
   )
     throw new Error('Live Session check action scope mismatch.')

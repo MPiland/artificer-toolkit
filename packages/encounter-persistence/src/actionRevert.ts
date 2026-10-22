@@ -215,14 +215,16 @@ export async function revertLastEncounterAction(
   const root = recent[rootIndex]
   if (root?.commandType === 'REVERT_LAST_ACTION') unavailable('The last action was already undone.')
   const scope = { run, state, campaign, input, fingerprint, userId }
-  // A check the helper's roll settled is the one command after its action.
+  // Only the check's own answers follow its action: its d20, a d20 window's choice, its outcome dice.
   const requireCheckAnswerScan = (checkOccurrenceId: string | null) => {
-    const answer = recent[0]
     if (
-      rootIndex > 1 ||
-      (rootIndex === 1 &&
-        (answer?.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
-          answer.ruleOccurrenceId !== checkOccurrenceId))
+      recent
+        .slice(0, rootIndex)
+        .some(
+          (answer) =>
+            answer.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
+            answer.ruleOccurrenceId !== checkOccurrenceId
+        )
     )
       throw new Error('Stored Encounter command scan is invalid.')
   }
