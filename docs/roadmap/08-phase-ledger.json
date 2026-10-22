@@ -3301,7 +3301,8 @@
                 "size": 3,
                 "after": ["RULES-2.T5a", "RULES-2.T6f"]
               },
-              "text": "Generic event hooks (split 2026-10-21): zone interactions (enter, leave, start and end of turn in a zone) through the event table."
+              "text": "Generic event hooks (split 2026-10-21): zone interactions (enter, leave, start and end of turn in a zone) through the event table.",
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             },
             {
               "id": "RULES-2.T6a",
@@ -5837,7 +5838,7 @@
             {
               "id": "SCENE-4.T2",
               "text": "Encounter creature placement loot tables, reusing the T1 contract and editor; saved, reopened and refused on overlap. Closes SCENE-4.1 with T1.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SCENE-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -5846,7 +5847,7 @@
                 "size": 2,
                 "after": ["SCENE-4.T1"]
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "note": "Merged m334 (f7eccae56)."
             },
             {
               "id": "SCENE-4.T3",
@@ -5859,7 +5860,8 @@
                 "rr": 1,
                 "size": 3,
                 "after": ["SCENE-4.T2"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             }
           ]
         },
@@ -9608,7 +9610,34 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Ending active effects or conditions by type, level or check. Converts DISPEL_MAGIC, LESSER_RESTORATION, GREATER_RESTORATION, REMOVE_CURSE, PROTECTION_FROM_POISON, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B; ruled D174): END_EFFECTS ends held effects or conditions by condition id or System-vocabulary tag, ALL or a cast-time pick. Converts LESSER_RESTORATION, GREATER_RESTORATION, REMOVE_CURSE, PROTECTION_FROM_POISON, with parity proofs; each kind deleted. Dispel Magic moved to T2f1 (2026-10-22).",
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+            },
+            {
+              "id": "SPELLS-4.T2f1",
+              "text": "Dispel Magic (D174, split from T2f 2026-10-22): SPELL_LEVEL selector with stored originLevel, a levelCheck with the TARGET_EFFECT_LEVEL DC kind, and the check flow widened to spell sources and ordered per-candidate checks in one action through the single d20 settlement. Converts DISPEL_MAGIC on a creature or object target with a parity proof and room journey; kind deleted.",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2f", "RULES-2.T6e3b2"]
+              }
+            },
+            {
+              "id": "SPELLS-4.T2f2",
+              "text": "Dispel Magic on a placed zone (D174, 2026-10-22): a magical zone within range is a dispel candidate by its originLevel, ended through the existing zone removal path with its linked dependents; room journey.",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2f1"]
+              }
             },
             {
               "status": "TODO",
@@ -13346,7 +13375,8 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (ruling at start): spell slot costs and class spell lists; the six pact-slot invocations, Primeval Awareness, Expanded Spell List. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): spell slot costs and class spell lists; the six pact-slot invocations, Primeval Awareness, Expanded Spell List. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             },
             {
               "id": "SPELLS-31.T5q",
