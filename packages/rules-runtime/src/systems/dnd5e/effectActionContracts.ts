@@ -25,7 +25,6 @@ export const DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY = 'dnd5e.scalar-reduc
 export const DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY = 'dnd5e.forced-movement-proposal'
 export const DND5E_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.damage-total'
 export const DND5E_DAMAGE_REDUCTION_OPERATION_KEY = 'dnd5e.damage-reduction'
-export const DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.save-damage-total'
 export const DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY = 'dnd5e.damage-multiplier'
 export const DND5E_HEAL_TOTAL_OPERATION_KEY = 'dnd5e.heal-total'
 export const DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY = 'dnd5e.condition-apply-proposal'

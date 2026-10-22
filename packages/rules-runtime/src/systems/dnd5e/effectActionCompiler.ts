@@ -128,7 +128,6 @@ import {
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
-  DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
   DND5E_HEAL_TOTAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
@@ -207,7 +206,8 @@ import {
   dnd5eOutcomeDefinition,
   dnd5eTargetOnlyOutcome,
   dnd5eTestPathTargetOnlyOutcome,
-  dnd5eUnsupportedPlanUnderTest
+  dnd5eUnsupportedPlanUnderTest,
+  type Dnd5eAuthoredOutcome
 } from './effectActionOutcomes.js'
 import {
   hitPointMaximumReductionProposalNode,
@@ -227,7 +227,6 @@ import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence
 import { isSupportedArea, isSupportedTestTargetPolicy } from './effectActionTargetPolicy.js'
 import {
   boundedDiceTerm,
-  boundedSingleDiceCount,
   dnd5eEffectScalingFacts,
   parseBoundedDiceConfiguration,
   scalingLevel,
@@ -1121,9 +1120,34 @@ function damageMultiplier(outcome: {
   return (outcome.multiplier ?? 1) * kind
 }
 
+/** `amount` times an authored damage multiplier, rounded down (SRD); no node when it is 1. */
+function multipliedDamage(id: string, amount: RuleInputBinding, multiplier: number) {
+  return multiplier === 1
+    ? { nodes: [], amount }
+    : {
+        nodes: [
+          {
+            id,
+            operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
+            inputs: { amount, multiplier: { kind: 'LITERAL' as const, value: multiplier } }
+          }
+        ],
+        amount: { kind: 'NODE_OUTPUT' as const, nodeId: id, port: 'value' }
+      }
+}
+
 function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
-  const outcome = entry.outcome
+  // An instant kill is admitted only as a hit-point tier's result or behind a reduced-to-0 gate,
+  // never on a save alone.
+  const killAdmitted = Boolean(
+    ('hitPointTier' in entry && entry.hitPointTier) ||
+    ('gate' in entry && entry.gate?.kind === 'REDUCED_TO_ZERO_BY')
+  )
+  return boundedOutcome(entry.outcome, killAdmitted)
+}
+
+function boundedOutcome(outcome: Dnd5eAuthoredOutcome, killAdmitted: boolean): Outcome {
   if (outcome.effectKind === 'CONDITION') {
     uuid(outcome.conditionId, 'D&D condition definition identity')
     return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
@@ -1143,14 +1167,7 @@ function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outc
       settledForcedMovement(outcome) ??
       unsupported('D&D forced movement must move its target a distance in feet, at no cost to it.')
     )
-  // An instant kill is admitted only as a hit-point tier's result or behind a reduced-to-0 gate,
-  // never on a save alone.
-  if (
-    outcome.effectKind === 'KILL' &&
-    (('hitPointTier' in entry && entry.hitPointTier) ||
-      ('gate' in entry && entry.gate?.kind === 'REDUCED_TO_ZERO_BY'))
-  )
-    return { kind: 'KILL' }
+  if (outcome.effectKind === 'KILL' && killAdmitted) return { kind: 'KILL' }
   const targetOnly = dnd5eTestPathTargetOnlyOutcome(outcome)
   if (targetOnly) return targetOnly
   if (outcome.effectKind !== 'HEAL' && outcome.effectKind !== 'DAMAGE')
@@ -1370,21 +1387,6 @@ function specializedTestOutcome(entry: CompiledEffectGroup['entries'][number]): 
   return boundedTestOutcome(entry)
 }
 
-/**
- * The only nested save admitted by this direct-action compiler. It stays in
- * the selected attack OUTCOME so it cannot become an independently invoked
- * action or a delayed workflow.
- */
-type ImmediateFollowUpSaveShape =
-  | 'FULL_OR_HALF_DAMAGE'
-  | 'STATE_ONLY_REDUCTION'
-  | 'FORCED_MOVEMENT_ONLY'
-  | 'FORCED_MOVEMENT_THEN_CONDITION'
-  | 'CONDITION_ON_FAILURE'
-  | 'DAMAGE_ON_FAILURE'
-  | 'REPEATING_CONDITION'
-  | 'ESCALATING_CONDITION'
-
 type ImmediatePrimaryDamageEntry = CompiledEffectGroup['entries'][number] & {
   resultBlockId: string
   outcome: Extract<
@@ -1404,6 +1406,26 @@ type FollowUpSaveConditionOutcome = Extract<
   Extract<FollowUpSaveOutcome['onFailure'], { kind: 'OUTCOMES' }>['outcomes'][number],
   { effectKind: 'CONDITION' }
 >
+
+/**
+ * A save a hit calls for at once, settled inside the hit's OUTCOME so it cannot become an
+ * independently invoked action or a delayed workflow: one roll against a fixed DC, whose failure
+ * has outcomes and whose success ends it or has outcomes of its own.
+ */
+function isImmediateFollowUpSave(save: FollowUpSaveOutcome): save is FollowUpSaveOutcome & {
+  attempts: Extract<FollowUpSaveOutcome['attempts'], { kind: 'ONCE' }>
+  savingThrow: Extract<FollowUpSaveOutcome['savingThrow'], { dcMethod: 'FIXED_DC' }>
+} {
+  return (
+    save.timing === 'IMMEDIATE' &&
+    save.attempts.kind === 'ONCE' &&
+    save.savingThrow.dcMethod === 'FIXED_DC' &&
+    UUID.test(save.savingThrow.abilityDefinitionId) &&
+    Number.isSafeInteger(save.savingThrow.baseDc) &&
+    save.onFailure.kind === 'OUTCOMES' &&
+    (save.onSuccess.kind === 'END' || save.onSuccess.kind === 'OUTCOMES')
+  )
+}
 
 /**
  * The second condition a repeated save leaves in place of the held one when it fails ("restrained,
@@ -1593,18 +1615,26 @@ function timedImmediateConditionPlan(
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const duration = immediateFollowUpSaveDuration(action)
   const resolved = immediateFollowUpSaveEntries(action.compiledEffect.entries)
+  const save = resolved?.saveEntry.outcome
   if (
     !duration ||
     !resolved ||
-    exactImmediateFollowUpSaveShape(action.compiledEffect.entries) !== 'CONDITION_ON_FAILURE'
+    !save ||
+    !isImmediateFollowUpSave(save) ||
+    save.onSuccess.kind !== 'END' ||
+    save.attempts.repeatOnFailure === true ||
+    save.onDurationComplete
   )
     return null
-  const failure = resolved.saveEntry.outcome.onFailure
+  const failure = save.onFailure
   const condition = failure.kind === 'OUTCOMES' ? failure.outcomes[0] : undefined
   const initialRemaining = conditionDurationTurns(duration)
-  const rider = resolved.saveEntry.outcome.failureMarginRider
+  const rider = save.failureMarginRider
   const knownConditionIds = action.conditionDefinitionIds ?? []
+  // The duration times the failed save's one condition; any other failure has nothing to time.
   if (
+    failure.kind !== 'OUTCOMES' ||
+    failure.outcomes.length !== 1 ||
     condition?.effectKind !== 'CONDITION' ||
     initialRemaining === null ||
     !knownConditionIds.includes(condition.conditionId) ||
@@ -3486,196 +3516,6 @@ function repeatFollowUpSavePublishedGraph(input: {
   })
 }
 
-function exactImmediateFollowUpSaveShape(
-  entries: readonly CompiledEffectGroup['entries'][number][]
-): ImmediateFollowUpSaveShape | null {
-  const resolved = immediateFollowUpSaveEntries(entries)
-  if (!resolved) return null
-  const { primaryDamageEntries, saveEntry } = resolved
-  const damageEntry = primaryDamageEntries[0]
-  const save = saveEntry.outcome
-  const failed = save.onFailure
-  const succeeded = save.onSuccess
-  if (
-    save.timing !== 'IMMEDIATE' ||
-    save.attempts.kind !== 'ONCE' ||
-    save.savingThrow.dcMethod !== 'FIXED_DC' ||
-    !UUID.test(save.savingThrow.abilityDefinitionId) ||
-    !Number.isSafeInteger(save.savingThrow.baseDc) ||
-    failed.kind !== 'OUTCOMES'
-  ) {
-    return null
-  }
-  const failure = failed.outcomes[0]
-  const primaryDiceCount = primaryDamageEntries.reduce<number | null>((total, entry) => {
-    const count = primaryDamageDiceCount(entry.outcome)
-    return total === null || count === null ? null : total + count
-  }, 0)
-  const commonBoundedSave =
-    primaryDiceCount !== null &&
-    1 + primaryDiceCount * 2 + 1 <= MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS
-  const conditionOnFailure =
-    succeeded.kind === 'END' &&
-    failed.outcomes.length === 1 &&
-    failure?.effectKind === 'CONDITION' &&
-    UUID.test(failure.id) &&
-    UUID.test(failure.conditionId) &&
-    commonBoundedSave
-  // A margin rider is planned only beside one failed-save condition; any other shape fails closed.
-  if (save.failureMarginRider)
-    return conditionOnFailure &&
-      save.attempts.repeatOnFailure !== true &&
-      !save.onDurationComplete &&
-      exactFailureMarginRider(save.failureMarginRider)
-      ? 'CONDITION_ON_FAILURE'
-      : null
-  if (escalatingImmediateSave(save) && succeeded.kind === 'END' && commonBoundedSave)
-    return 'ESCALATING_CONDITION'
-  const repeatingCondition =
-    failed.outcomes.length === 1 && failed.outcomes[0]?.effectKind === 'CONDITION'
-      ? failed.outcomes[0]
-      : failed.outcomes.length === 2 && failed.outcomes[1]?.effectKind === 'CONDITION'
-        ? failed.outcomes[1]
-        : null
-  const repeatingDamage =
-    failed.outcomes.length === 2 && failed.outcomes[0]?.effectKind === 'DAMAGE'
-      ? failed.outcomes[0]
-      : null
-  const repeatingDamageDiceCount =
-    repeatingDamage?.valueKind === 'DICE' && typeof repeatingDamage.dice === 'string'
-      ? boundedSingleDiceCount(repeatingDamage.dice)
-      : null
-  if (
-    save.attempts.repeatOnFailure === true &&
-    save.repeatTiming === 'TARGET_TURN_END' &&
-    (failed.resultKind === 'SINGLE' || failed.resultKind === 'SEQUENCE') &&
-    (save.onDurationComplete === undefined || save.onDurationComplete.kind === 'END') &&
-    succeeded.kind === 'END' &&
-    repeatingCondition &&
-    UUID.test(repeatingCondition.conditionId) &&
-    (repeatingDamage === null ||
-      (repeatingDamage.valueKind === 'DICE' &&
-        repeatingDamage.scalingKind === 'NONE' &&
-        typeof repeatingDamage.dice === 'string' &&
-        repeatingDamageDiceCount !== null &&
-        isUuid(repeatingDamage.damageTypeId) &&
-        damageMultiplier(repeatingDamage) === 1 &&
-        !repeatingDamage.bonuses?.length &&
-        primaryDiceCount !== null &&
-        1 + primaryDiceCount * 2 + 1 + repeatingDamageDiceCount <=
-          MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS)) &&
-    commonBoundedSave
-  ) {
-    return 'REPEATING_CONDITION'
-  }
-  if (save.attempts.repeatOnFailure === true || save.onDurationComplete) return null
-  const failureDiceCount =
-    failure?.effectKind === 'DAMAGE' && failure.valueKind === 'DICE'
-      ? boundedSingleDiceCount(failure.dice)
-      : null
-  if (
-    succeeded.kind === 'END' &&
-    failed.outcomes.length === 1 &&
-    failure?.effectKind === 'DAMAGE' &&
-    failure.valueKind === 'DICE' &&
-    failure.scalingKind === 'NONE' &&
-    failureDiceCount !== null &&
-    isUuid(failure.damageTypeId) &&
-    damageMultiplier(failure) === 1 &&
-    !failure.bonuses?.length &&
-    commonBoundedSave &&
-    1 + primaryDiceCount! * 2 + 1 + failureDiceCount <=
-      MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS
-  ) {
-    return 'DAMAGE_ON_FAILURE'
-  }
-  if (conditionOnFailure) return 'CONDITION_ON_FAILURE'
-  if (
-    succeeded.kind === 'END' &&
-    failed.outcomes.length === 1 &&
-    failure?.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
-    UUID.test(failure.id) &&
-    failure.amountSource.kind === 'DAMAGE_TAKEN' &&
-    failure.amountSource.damageOutcomeId === damageEntry?.outcome.id &&
-    UUID.test(failure.amountSource.damageOutcomeId) &&
-    hitPointMaximumReductionRecoveryTagsSchema.safeParse(failure.recoveryTags).success &&
-    commonBoundedSave
-  ) {
-    return 'STATE_ONLY_REDUCTION'
-  }
-  if (
-    succeeded.kind === 'END' &&
-    failed.outcomes.length === 1 &&
-    failure?.effectKind === 'FORCED_MOVEMENT' &&
-    UUID.test(failure.id) &&
-    settledForcedMovement(failure) &&
-    commonBoundedSave
-  ) {
-    return 'FORCED_MOVEMENT_ONLY'
-  }
-  const movedThenConditioned = failed.outcomes[1]
-  if (
-    succeeded.kind === 'END' &&
-    failed.outcomes.length === 2 &&
-    failure?.effectKind === 'FORCED_MOVEMENT' &&
-    UUID.test(failure.id) &&
-    settledForcedMovement(failure) &&
-    movedThenConditioned?.effectKind === 'CONDITION' &&
-    UUID.test(movedThenConditioned.id) &&
-    UUID.test(movedThenConditioned.conditionId) &&
-    commonBoundedSave
-  ) {
-    return 'FORCED_MOVEMENT_THEN_CONDITION'
-  }
-  if (
-    succeeded.kind !== 'OUTCOMES' ||
-    succeeded.resultKind !== 'SINGLE' ||
-    failed.outcomes.length < 1 ||
-    failed.outcomes.length > 2 ||
-    succeeded.outcomes.length !== 1
-  ) {
-    return null
-  }
-  const reduction = failed.outcomes[1]
-  const success = succeeded.outcomes[0]
-  const nestedDiceCount =
-    failure && 'dice' in failure && typeof failure.dice === 'string'
-      ? boundedSingleDiceCount(failure.dice)
-      : null
-  if (
-    failure?.effectKind === 'DAMAGE' &&
-    success?.effectKind === 'DAMAGE' &&
-    failure.valueKind === 'DICE' &&
-    success.valueKind === 'DICE' &&
-    failure.scalingKind === 'NONE' &&
-    success.scalingKind === 'NONE' &&
-    typeof failure.dice === 'string' &&
-    failure.dice === success.dice &&
-    nestedDiceCount !== null &&
-    isUuid(failure.damageTypeId) &&
-    failure.damageTypeId === success.damageTypeId &&
-    damageMultiplier(failure) === 1 &&
-    damageMultiplier(success) === 0.5 &&
-    !failure.bonuses?.length &&
-    !success.bonuses?.length &&
-    (reduction === undefined ||
-      (reduction.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
-        UUID.test(reduction.id) &&
-        reduction.amountSource.kind === 'DAMAGE_TAKEN' &&
-        reduction.amountSource.damageOutcomeId === damageEntry?.outcome.id &&
-        UUID.test(reduction.amountSource.damageOutcomeId) &&
-        hitPointMaximumReductionRecoveryTagsSchema.safeParse(reduction.recoveryTags).success)) &&
-    commonBoundedSave &&
-    // One TEST d20, doubled primary critical dice, one nested save d20, and
-    // the selected nested damage dice must fit the coordinator-wide bound.
-    1 + primaryDiceCount! * 2 + 1 + nestedDiceCount <=
-      MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS
-  ) {
-    return 'FULL_OR_HALF_DAMAGE'
-  }
-  return null
-}
-
 /**
  * A margin rider the nested save can gate: a bounded margin and identified conditions, which share
  * the failed-save path's immunity facts after the failure's own condition.
@@ -3720,45 +3560,32 @@ function primaryDamageDiceCount(outcome: ImmediatePrimaryDamageEntry['outcome'])
   }
 }
 
-function immediateFollowUpSaveMaximumReduction(
-  action: Dnd5eCompiledEffectActionSource
-): HitPointMaximumReductionAuthored | null {
-  const saveEntry = action.compiledEffect.entries.at(-1)
-  if (!saveEntry || !('outcome' in saveEntry) || saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE')
-    return null
-  const failure = saveEntry.outcome.onFailure
-  if (failure.kind !== 'OUTCOMES') return null
-  const reductions = failure.outcomes.filter(
-    (outcome): outcome is HitPointMaximumReductionAuthored =>
-      outcome.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION'
-  )
-  return reductions.length === 1 ? reductions[0]! : null
-}
-
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
-  const failure = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry.outcome
-    .onFailure
-  const shape = exactImmediateFollowUpSaveShape(action.compiledEffect.entries)
+  const save = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry.outcome
+  if (!save || !isImmediateFollowUpSave(save) || testPhaseKindOrNull(action) !== 'ATTACK')
+    return false
   // A repeating save runs only with its active-effect plan; without one the condition would
   // never be saved against again. A duration belongs to the repeating save's condition or to a
   // one-time save's condition (D62.2), which its own active effect times.
   const entries = action.compiledEffect.entries
   const lifecycle = entries.some((entry) => 'lifecycle' in entry && entry.lifecycle)
   const timed = entries.some((entry) => 'duration' in entry && entry.duration)
+  const repeats = save.attempts.repeatOnFailure === true || escalatingImmediateSave(save) !== null
+  const bandOutcomes = [
+    ...(save.onFailure.kind === 'OUTCOMES' ? save.onFailure.outcomes : []),
+    ...(save.onSuccess.kind === 'OUTCOMES' ? save.onSuccess.outcomes : [])
+  ]
   return (
-    testPhaseKindOrNull(action) === 'ATTACK' &&
-    ((shape !== null &&
-      shape !== 'REPEATING_CONDITION' &&
-      shape !== 'ESCALATING_CONDITION' &&
-      !lifecycle &&
-      (!timed || timedImmediateConditionPlan(action) !== null)) ||
-      repeatingImmediateFollowUpSavePlan(action) !== null) &&
-    (failure?.kind !== 'OUTCOMES' ||
-      failure.outcomes.every(
-        (outcome) =>
-          outcome.effectKind !== 'CONDITION' ||
-          (action.conditionDefinitionIds ?? []).includes(outcome.conditionId)
-      ))
+    (repeats
+      ? repeatingImmediateFollowUpSavePlan(action) !== null
+      : !lifecycle &&
+        !save.onDurationComplete &&
+        (!timed || timedImmediateConditionPlan(action) !== null)) &&
+    bandOutcomes.every(
+      (outcome) =>
+        outcome.effectKind !== 'CONDITION' ||
+        (action.conditionDefinitionIds ?? []).includes(outcome.conditionId)
+    )
   )
 }
 
@@ -4383,28 +4210,46 @@ function supported(
 
 /** A result path's outcome inside a test graph: proposed only when the test resolves to that path. */
 function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcome, suffix = '') {
+  return pathGatedProposalNode({
+    id: `proposal-${pathCode.toLowerCase()}${suffix}`,
+    pathCode,
+    testNodeId: 'test',
+    outcome,
+    conditionImmuneFactKey:
+      DND5E_CONDITION_IMMUNE_FACT_KEYS[pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS],
+    amount:
+      outcome.kind === 'ENTRY_DICE_DAMAGE'
+        ? entryDiceDamageGraph(pathCode, outcome).amount
+        : undefined
+  })
+}
+
+/** An outcome from the registry gated on a test node's result path, with the amount its own dice rolled. */
+function pathGatedProposalNode(input: {
+  id: string
+  pathCode: string
+  testNodeId: string
+  outcome: Outcome | EntryDiceDamageOutcome
+  conditionImmuneFactKey: string | undefined
+  amount?: RuleInputBinding
+}) {
+  const { outcome } = input
   if (outcome.kind === 'FORCED_MOVEMENT')
     unsupported('D&D forced movement resolves only in its selected outcome phase.')
   const definition = dnd5eOutcomeDefinition(outcome.kind)
   if (definition.pathGatedOperationKey === null) dnd5eUnsupportedPlanUnderTest(outcome.kind)
   return effectOutcomeProposalNode({
-    id: `proposal-${pathCode.toLowerCase()}${suffix}`,
+    id: input.id,
     definition,
     outcome,
-    context: {
-      conditionImmuneFactKey:
-        DND5E_CONDITION_IMMUNE_FACT_KEYS[pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS]
-    },
+    context: { conditionImmuneFactKey: input.conditionImmuneFactKey },
     target: DND5E_OUTCOME_TARGET,
     phase: {
       kind: 'PATH_GATED',
-      resolvedPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
-      authoredPath: pathCode
+      resolvedPath: { kind: 'NODE_OUTPUT', nodeId: input.testNodeId, port: 'resultPath' },
+      authoredPath: input.pathCode
     },
-    extraInputs:
-      outcome.kind === 'ENTRY_DICE_DAMAGE'
-        ? { amount: entryDiceDamageGraph(pathCode, outcome).amount }
-        : {}
+    extraInputs: input.amount ? { amount: input.amount } : {}
   })
 }
 
@@ -4420,7 +4265,7 @@ function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceDamageOutcome)
     nodeId: enabledNodeId,
     port: 'authorized'
   })
-  const multipliedNodeId = `${prefix}multiplied`
+  const multiplied = multipliedDamage(`${prefix}multiplied`, dice.subtotal, outcome.multiplier)
   const nodes: RuleGraphDefinition['nodes'] = [
     {
       id: enabledNodeId,
@@ -4434,26 +4279,9 @@ function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceDamageOutcome)
       }
     },
     ...dice.nodes,
-    ...(outcome.multiplier === 1
-      ? []
-      : [
-          {
-            id: multipliedNodeId,
-            operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
-            inputs: {
-              amount: dice.subtotal,
-              multiplier: { kind: 'LITERAL' as const, value: outcome.multiplier }
-            }
-          }
-        ])
+    ...multiplied.nodes
   ]
-  return {
-    nodes,
-    amount:
-      outcome.multiplier === 1
-        ? dice.subtotal
-        : { kind: 'NODE_OUTPUT' as const, nodeId: multipliedNodeId, port: 'value' }
-  }
+  return { nodes, amount: multiplied.amount }
 }
 
 function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceDamageOutcome) {
@@ -4588,7 +4416,11 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
   ) {
     unsupported('D&D test action has an unsupported bounded shape.')
   }
-  if (isExactImmediateFollowUpSaveAction(action)) return 'ATTACK'
+  if (isExactImmediateFollowUpSaveAction(action)) {
+    // A band the registry cannot compose is refused here, before the hit is ever rolled.
+    immediateFollowUpSaveGraphDefinition(action)
+    return 'ATTACK'
+  }
   if (repeatingDirectFollowUpSavePlan(action)) return 'SAVE'
   const relationshipEntries = action.compiledEffect.entries.filter(
     (entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
@@ -4984,28 +4816,11 @@ function diceGraphDefinition(input: {
   const total = !needsTotal
     ? rolledSubtotal
     : { kind: 'NODE_OUTPUT' as const, nodeId: totalNodeId, port: 'value' }
-  const multiplier =
-    outcome.effectKind === 'DAMAGE' && damageMultiplier(outcome) !== 1
-      ? damageMultiplier(outcome)
-      : null
-  const multipliedNodeId = `${prefix}damage-multiplied`
-  const multiplierNode =
-    multiplier === null
-      ? []
-      : [
-          {
-            id: multipliedNodeId,
-            operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
-            inputs: {
-              amount: total,
-              multiplier: { kind: 'LITERAL' as const, value: multiplier }
-            }
-          }
-        ]
-  const amount =
-    multiplier === null
-      ? total
-      : { kind: 'NODE_OUTPUT' as const, nodeId: multipliedNodeId, port: 'value' }
+  const { nodes: multiplierNode, amount } = multipliedDamage(
+    `${prefix}damage-multiplied`,
+    total,
+    outcome.effectKind === 'DAMAGE' ? damageMultiplier(outcome) : 1
+  )
   const proposalId =
     input.recurring?.frozenGraphNodeId ?? `${prefix}proposal-${input.entry.pathCode.toLowerCase()}`
   const sourceEntryId = input.recurring?.compiledEntryId ?? input.entry.entryId
@@ -5081,115 +4896,140 @@ function diceGraphDefinition(input: {
 }
 
 /**
- * The exact immediate/once nested save admitted by isExactImmediateFollowUpSaveAction.
- * It either selects full or floor-half nested damage, or applies a state-only
- * maximum-hit-point reduction from the already-resolved primary damage.
+ * The save a hit calls for at once (isExactImmediateFollowUpSaveAction): one d20 against the fixed
+ * DC, then each band's outcomes from the outcome registry, gated on the save's own result path. The
+ * bands' damage shares one roll, as "half as much damage on a successful one" does.
  */
-function immediateFollowUpSaveDamageGraphDefinition(input: {
+function immediateFollowUpSaveGraphDefinition(
   action: Dnd5eCompiledEffectActionSource
-}): RuleGraphDefinition {
-  const resolved = immediateFollowUpSaveEntries(input.action.compiledEffect.entries)
-  const saveEntry = resolved?.saveEntry
-  if (
-    !saveEntry ||
-    !('outcome' in saveEntry) ||
-    saveEntry.outcome.effectKind !== 'FOLLOW_UP_SAVE'
-  ) {
+): RuleGraphDefinition {
+  const resolved = immediateFollowUpSaveEntries(action.compiledEffect.entries)
+  const save = resolved?.saveEntry.outcome
+  if (!resolved || !save || !isImmediateFollowUpSave(save) || save.onFailure.kind !== 'OUTCOMES')
     unsupported('D&D immediate follow-up save source is unavailable.')
-  }
-  const save = saveEntry.outcome
-  if (save.onFailure.kind !== 'OUTCOMES' || save.savingThrow.dcMethod !== 'FIXED_DC')
-    unsupported('D&D immediate follow-up save branches are unavailable.')
-  const shape = exactImmediateFollowUpSaveShape(input.action.compiledEffect.entries)
-  if (!shape) unsupported('D&D immediate follow-up save shape is unavailable.')
-  const failure = save.onFailure.outcomes[0]
-  const reduction = immediateFollowUpSaveMaximumReduction(input.action)
-  const forcedMovementOutcome =
-    (shape === 'FORCED_MOVEMENT_ONLY' || shape === 'FORCED_MOVEMENT_THEN_CONDITION') &&
-    failure?.effectKind === 'FORCED_MOVEMENT'
-      ? settledForcedMovement(failure)
-      : null
-  const forcedMovement =
-    forcedMovementOutcome && failure ? { id: failure.id, outcome: forcedMovementOutcome } : null
-  // Damage only on a failed save is proposed against the save's own result path.
-  const failureOnlyDamage = shape === 'REPEATING_CONDITION' || shape === 'DAMAGE_ON_FAILURE'
-  const nestedDamage =
-    (shape === 'FULL_OR_HALF_DAMAGE' || failureOnlyDamage) &&
-    failure &&
-    failure.effectKind === 'DAMAGE' &&
-    failure.valueKind === 'DICE' &&
-    typeof failure.dice === 'string'
-      ? failure
-      : null
-  const rider = shape === 'CONDITION_ON_FAILURE' ? (save.failureMarginRider ?? null) : null
-  const failureCondition =
-    shape === 'REPEATING_CONDITION' ||
-    shape === 'ESCALATING_CONDITION' ||
-    shape === 'FORCED_MOVEMENT_THEN_CONDITION' ||
-    shape === 'CONDITION_ON_FAILURE'
-      ? save.onFailure.outcomes.find(
-          (outcome): outcome is Extract<typeof outcome, { effectKind: 'CONDITION' }> =>
-            outcome.effectKind === 'CONDITION'
-        )
-      : null
-  if (shape === 'FULL_OR_HALF_DAMAGE' && !nestedDamage)
-    unsupported('D&D immediate follow-up save damage is unavailable.')
-  const parsed = nestedDamage ? parseBoundedDiceConfiguration(nestedDamage.dice) : null
-  const term = parsed?.term
-  if (parsed && parsed.modifier !== 0) {
-    unsupported('D&D immediate follow-up save dice exceed the exact bounded contract.')
-  }
-  const dieId = (index: number) => `nested-save-die-${index + 1}`
-  const sumId = (index: number) => `nested-save-sum-${index + 1}`
-  const diceNodes = term
-    ? Array.from({ length: term.count }, (_, index) => ({
-        id: dieId(index),
-        operation: { key: 'evidence.integer-range', contractVersion: 1 },
-        inputs: {
-          min: { kind: 'LITERAL' as const, value: 1 },
-          max: { kind: 'LITERAL' as const, value: term.die }
-        }
-      }))
-    : []
-  const sumNodes = Array.from({ length: Math.max(0, (term?.count ?? 0) - 1) }, (_, index) => ({
-    id: sumId(index),
-    operation: {
-      key: addNumbersRuleOperation.key,
-      contractVersion: addNumbersRuleOperation.contractVersion
-    },
-    inputs: {
-      left:
-        index === 0
-          ? { kind: 'NODE_OUTPUT' as const, nodeId: dieId(0), port: 'value' }
-          : {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: sumId(index - 1),
-              port: 'value'
-            },
-      right: {
-        kind: 'NODE_OUTPUT' as const,
-        nodeId: dieId(index + 1),
-        port: 'value'
-      }
-    }
-  }))
-  const subtotal =
-    term?.count === 1
-      ? { kind: 'NODE_OUTPUT' as const, nodeId: dieId(0), port: 'value' }
-      : term
-        ? {
-            kind: 'NODE_OUTPUT' as const,
-            nodeId: sumId(term.count - 2),
-            port: 'value'
-          }
-        : null
-  const abilityDefinitionId = save.savingThrow.abilityDefinitionId
   const dc = save.savingThrow.baseDc
-  if (!UUID.test(abilityDefinitionId) || !Number.isSafeInteger(dc))
-    unsupported('D&D immediate follow-up save policy is unavailable.')
+  // An escalating save's repeat is held by its active effect, not proposed by the hit.
+  const repeat = escalatingImmediateSave(save)?.repeat
+  const bands = [
+    ['ON_SAVE_FAIL', save.onFailure.outcomes.filter((outcome) => outcome !== repeat)],
+    ['ON_SAVE_SUCCESS', save.onSuccess.kind === 'OUTCOMES' ? save.onSuccess.outcomes : []]
+  ] as const
+  const outcomes = bands.flatMap(([, band]) => band)
+  const diceConfigs = new Set(
+    outcomes.flatMap((outcome) =>
+      outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE' ? [outcome.dice] : []
+    )
+  )
+  if (diceConfigs.size > 1)
+    unsupported('D&D immediate follow-up save damage must share one roll across its results.')
+  const [diceConfig] = diceConfigs
+  const dice = diceConfig === undefined ? null : boundedDiceTerm(diceConfig)
+  if (dice && dice.modifier !== 0)
+    unsupported('D&D immediate follow-up save dice exceed the exact bounded contract.')
+  const primaryDiceCount = resolved.primaryDamageEntries.reduce(
+    (total, entry) => total + (primaryDamageDiceCount(entry.outcome) ?? 0),
+    0
+  )
+  // One TEST d20, doubled primary critical dice, one nested save d20, and the nested damage dice
+  // must fit the coordinator-wide bound.
+  if (
+    1 + primaryDiceCount * 2 + 1 + (dice?.term.count ?? 0) >
+    MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS
+  )
+    unsupported('D&D immediate follow-up save dice exceed the coordinator-wide evidence bound.')
+  if (outcomes.filter((outcome) => outcome.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION').length > 1)
+    unsupported('D&D immediate follow-up save reduces hit point maximum more than once.')
+  const roll = dice ? rolledDiceNodes(dice.term, 'nested-save-') : null
+  const resultPath = {
+    kind: 'NODE_OUTPUT',
+    nodeId: 'nested-save-test',
+    port: 'resultPath'
+  } as const
+  const bandOutcomeNodes = bands.flatMap(([pathCode, band]) =>
+    band.map((outcome, index) => {
+      uuid(outcome.id, 'D&D immediate follow-up save outcome identity')
+      const id = `nested-save-${pathCode.toLowerCase()}-${index + 1}`
+      if (outcome.effectKind === 'HIT_POINT_MAXIMUM_REDUCTION') {
+        const source = outcome.amountSource
+        if (
+          source.kind !== 'DAMAGE_TAKEN' ||
+          source.damageOutcomeId !== resolved.primaryDamageEntries[0]?.outcome.id ||
+          !UUID.test(source.damageOutcomeId) ||
+          !hitPointMaximumReductionRecoveryTagsSchema.safeParse(outcome.recoveryTags).success
+        )
+          unsupported('D&D hit point maximum reduction must reduce by the damage the hit dealt.')
+        const node = hitPointMaximumReductionProposalNode({
+          id,
+          resultPath,
+          authorizedPath: pathCode,
+          sourceDamageNodeId: 'proposal-on_hit',
+          reduction: outcome
+        })
+        return { sourceEntryId: outcome.id, id, nodes: [node] }
+      }
+      if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE') {
+        if (!roll || outcome.scalingKind !== 'NONE' || outcome.bonuses?.length)
+          unsupported('D&D immediate follow-up save damage must be one unscaled roll.')
+        const multiplier = damageMultiplier(outcome)
+        const multiplied = multipliedDamage(`${id}-multiplied`, roll.subtotal, multiplier)
+        const node = pathGatedProposalNode({
+          id,
+          pathCode,
+          testNodeId: 'nested-save-test',
+          outcome: {
+            kind: 'ENTRY_DICE_DAMAGE',
+            diceConfig: outcome.dice,
+            damageTypeId: damageTypeIdentity(outcome.damageTypeId),
+            entryId: outcome.id,
+            multiplier
+          },
+          conditionImmuneFactKey: undefined,
+          amount: multiplied.amount
+        })
+        return { sourceEntryId: outcome.id, id, nodes: [...multiplied.nodes, node] }
+      }
+      const bounded = boundedOutcome(outcome, false)
+      const node =
+        bounded.kind === 'FORCED_MOVEMENT'
+          ? forcedMovementProposalNode({
+              id,
+              sourceEntryId: outcome.id,
+              resultPath,
+              authoredPath: pathCode,
+              outcome: bounded
+            })
+          : pathGatedProposalNode({
+              id,
+              pathCode,
+              testNodeId: 'nested-save-test',
+              outcome: bounded,
+              // Each of a band's conditions reads its own immunity fact, in authored order.
+              conditionImmuneFactKey: conditionImmuneFactKey(
+                pathCode,
+                band.slice(0, index + 1).filter((prior) => prior.effectKind === 'CONDITION').length
+              )
+            })
+      return { sourceEntryId: outcome.id, id, nodes: [node] }
+    })
+  )
+  const rider = save.failureMarginRider
+  if (
+    rider &&
+    (save.attempts.repeatOnFailure === true ||
+      repeat ||
+      save.onDurationComplete ||
+      !exactFailureMarginRider(rider))
+  )
+    unsupported(
+      'D&D failure-margin rider must add bounded conditions to a save that does not repeat.'
+    )
+  // The failed save's own conditions hold the path's first immunity facts.
+  const failureConditionCount = bands[0][1].filter(
+    (outcome) => outcome.effectKind === 'CONDITION'
+  ).length
   return {
     schemaVersion: 1,
-    id: input.action.effectId,
+    id: action.effectId,
     gameSystemId: DND5E_SYSTEM_ID,
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
@@ -5226,134 +5066,8 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
           outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
       },
-      ...(nestedDamage && subtotal
-        ? [
-            ...diceNodes,
-            ...sumNodes,
-            ...(failureOnlyDamage
-              ? []
-              : [
-                  {
-                    id: 'nested-save-damage-total',
-                    operation: {
-                      key: DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY,
-                      contractVersion: 1
-                    },
-                    inputs: {
-                      subtotal,
-                      resultPath: {
-                        kind: 'NODE_OUTPUT' as const,
-                        nodeId: 'nested-save-test',
-                        port: 'resultPath'
-                      }
-                    }
-                  }
-                ]),
-            {
-              id: 'nested-save-proposal',
-              operation: {
-                key: failureOnlyDamage
-                  ? DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
-                  : DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-                contractVersion: 1
-              },
-              inputs: {
-                targetActorId: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_ACTOR_FACT_KEY
-                },
-                targetStateChecksum: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-                },
-                amount: failureOnlyDamage
-                  ? subtotal
-                  : {
-                      kind: 'NODE_OUTPUT' as const,
-                      nodeId: 'nested-save-damage-total',
-                      port: 'value'
-                    },
-                ...(failureOnlyDamage
-                  ? {
-                      resolvedPath: {
-                        kind: 'NODE_OUTPUT' as const,
-                        nodeId: 'nested-save-test',
-                        port: 'resultPath'
-                      },
-                      authoredPath: {
-                        kind: 'LITERAL' as const,
-                        value: 'ON_SAVE_FAIL'
-                      }
-                    }
-                  : {}),
-                damageTypeId: {
-                  kind: 'LITERAL' as const,
-                  value: damageTypeIdentity(nestedDamage.damageTypeId)
-                }
-              }
-            }
-          ]
-        : []),
-      ...(reduction
-        ? [
-            hitPointMaximumReductionProposalNode({
-              id: 'nested-save-hit-point-maximum-reduction',
-              resultPath: { kind: 'NODE_OUTPUT', nodeId: 'nested-save-test', port: 'resultPath' },
-              authorizedPath: 'ON_SAVE_FAIL',
-              sourceDamageNodeId: 'proposal-on_hit',
-              reduction
-            })
-          ]
-        : []),
-      ...(forcedMovement
-        ? [
-            forcedMovementProposalNode({
-              id: 'nested-save-forced-movement',
-              sourceEntryId: forcedMovement.id,
-              resultPath: { kind: 'NODE_OUTPUT', nodeId: 'nested-save-test', port: 'resultPath' },
-              authoredPath: 'ON_SAVE_FAIL',
-              outcome: forcedMovement.outcome
-            })
-          ]
-        : []),
-      ...(failureCondition
-        ? [
-            {
-              id: 'nested-save-condition',
-              operation: {
-                key: DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
-                contractVersion: 1
-              },
-              inputs: {
-                targetActorId: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_ACTOR_FACT_KEY
-                },
-                resolvedPath: {
-                  kind: 'NODE_OUTPUT' as const,
-                  nodeId: 'nested-save-test',
-                  port: 'resultPath'
-                },
-                authoredPath: {
-                  kind: 'LITERAL' as const,
-                  value: 'ON_SAVE_FAIL'
-                },
-                conditionId: {
-                  kind: 'LITERAL' as const,
-                  value: failureCondition.conditionId
-                },
-                conditionImmune: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_CONDITION_IMMUNE_FACT_KEYS.ON_SAVE_FAIL
-                },
-                targetStateChecksum: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-                }
-              }
-            }
-          ]
-        : []),
+      ...(roll?.nodes ?? []),
+      ...bandOutcomeNodes.flatMap(({ nodes }) => nodes),
       ...(rider
         ? [
             {
@@ -5373,17 +5087,14 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
               },
               inputs: {
                 targetActorId: { kind: 'FACT' as const, factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-                resolvedPath: {
-                  kind: 'NODE_OUTPUT' as const,
-                  nodeId: 'nested-save-test',
-                  port: 'resultPath'
-                },
+                resolvedPath: resultPath,
                 authoredPath: { kind: 'LITERAL' as const, value: 'ON_SAVE_FAIL' },
                 conditionId: { kind: 'LITERAL' as const, value: outcome.conditionId },
-                // The failure's own condition holds the path's first immunity fact.
                 conditionImmune: {
                   kind: 'FACT' as const,
-                  factKey: conditionImmuneFactKey('ON_SAVE_FAIL', index + 2)!
+                  factKey:
+                    conditionImmuneFactKey('ON_SAVE_FAIL', failureConditionCount + index + 1) ??
+                    unsupported('D&D result path applies too many conditions.')
                 },
                 marginCleared: {
                   kind: 'NODE_OUTPUT' as const,
@@ -5400,59 +5111,14 @@ function immediateFollowUpSaveDamageGraphDefinition(input: {
         : [])
     ],
     outputs: {
-      ...(nestedDamage
-        ? {
-            targetActorId: {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: 'nested-save-proposal',
-              port: 'targetActorId'
-            },
-            amount: {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: 'nested-save-proposal',
-              port: 'amount'
-            },
-            damageTypeId: {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: 'nested-save-proposal',
-              port: 'damageTypeId'
-            }
-          }
-        : {}),
       nestedSaveAbilityDefinitionId: {
         kind: 'LITERAL',
-        value: abilityDefinitionId
+        value: save.savingThrow.abilityDefinitionId
       }
     },
     sourceEntryBindings: [
-      {
-        sourceEntryId: saveEntry.entryId,
-        nodeId: nestedDamage ? 'nested-save-proposal' : 'nested-save-test'
-      },
-      ...(reduction
-        ? [
-            {
-              sourceEntryId: reduction.id,
-              nodeId: 'nested-save-hit-point-maximum-reduction'
-            }
-          ]
-        : []),
-      ...(forcedMovement
-        ? [
-            {
-              sourceEntryId: forcedMovement.id,
-              nodeId: 'nested-save-forced-movement'
-            }
-          ]
-        : []),
-      ...(failureCondition
-        ? [
-            {
-              sourceEntryId: failureCondition.id,
-              nodeId: 'nested-save-condition'
-            }
-          ]
-        : []),
+      { sourceEntryId: resolved.saveEntry.entryId, nodeId: 'nested-save-test' },
+      ...bandOutcomeNodes.map(({ sourceEntryId, id }) => ({ sourceEntryId, nodeId: id })),
       ...(rider?.outcomes.map((outcome, index) => ({
         sourceEntryId: outcome.id,
         nodeId: nestedSaveRiderConditionNodeId(index)
@@ -5678,7 +5344,11 @@ function addedDamageDieGraphDefinition(input: {
   multiplier: number
 }): RuleGraphDefinition {
   const { nodes: rolledNodes, subtotal } = rolledDiceNodes(input.term, input.prefix)
-  const multipliedNodeId = `${input.prefix}damage-multiplied`
+  const multiplied = multipliedDamage(
+    `${input.prefix}damage-multiplied`,
+    subtotal,
+    input.multiplier
+  )
   const proposalId = `${input.prefix}proposal`
   return {
     schemaVersion: 1,
@@ -5687,28 +5357,14 @@ function addedDamageDieGraphDefinition(input: {
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
       ...rolledNodes,
-      ...(input.multiplier === 1
-        ? []
-        : [
-            {
-              id: multipliedNodeId,
-              operation: { key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY, contractVersion: 1 },
-              inputs: {
-                amount: subtotal,
-                multiplier: { kind: 'LITERAL' as const, value: input.multiplier }
-              }
-            }
-          ]),
+      ...multiplied.nodes,
       {
         id: proposalId,
         operation: { key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
         inputs: {
           targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
           targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
-          amount:
-            input.multiplier === 1
-              ? subtotal
-              : { kind: 'NODE_OUTPUT', nodeId: multipliedNodeId, port: 'value' },
+          amount: multiplied.amount,
           damageTypeId: { kind: 'LITERAL', value: input.damageTypeId }
         }
       }
@@ -5878,10 +5534,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     })
     const definition = mergedOutcomeGraphDefinition({
       action: input.action,
-      definitions: [
-        ...primaryDefinitions,
-        immediateFollowUpSaveDamageGraphDefinition({ action: input.action })
-      ]
+      definitions: [...primaryDefinitions, immediateFollowUpSaveGraphDefinition(input.action)]
     })
     const published = serverPublishedRuleDefinitionDtoSchema.parse({
       id: definition.id,

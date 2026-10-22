@@ -674,6 +674,22 @@ const effectOfferChoices = validated(encounterActionChoicesDtoSchema.shape.effec
   }
 ])
 
+const repeatOfferChoices = validated(encounterActionChoicesDtoSchema.shape.effectOffers)([
+  {
+    effectId: '00000000-0000-4000-8000-000000000f22',
+    offerIndex: 0,
+    kind: 'REPEAT_SOURCE_PATH',
+    holderActorId: '99999999-9999-4999-8999-999999999902',
+    activation: 'BONUS_ACTION',
+    actionId:
+      '99999999-9999-4999-8999-999999999901:REPEAT_PATH:00000000-0000-4000-8000-000000000f22:0',
+    label: 'Heat Metal',
+    castLevel: 3,
+    dc: 15,
+    warnings: []
+  }
+])
+
 describe('CampaignTabletopActionDrawer effect offers', () => {
   it('lists an offer with its cost and reach, then sends the pick of a new holder', async () => {
     const user = userEvent.setup()
@@ -706,6 +722,31 @@ describe('CampaignTabletopActionDrawer effect offers', () => {
       })
     )
     expect(await screen.findByText('Effect moved.')).toBeVisible()
+  })
+
+  it('lists a repeat offer with its cast level and frozen DC, then resolves its action against the holder', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    renderDrawer(onResolve, { effectOffers: repeatOfferChoices })
+
+    const section = await screen.findByRole('region', { name: 'Effect choices' })
+    expect(within(section).getByText(/Repeat Heat Metal on Vault Warden/)).toBeVisible()
+    expect(within(section).getByText(/Bonus Action · cast at level 3 · DC 15/i)).toBeVisible()
+
+    await user.click(within(section).getByRole('button', { name: /Repeat Heat Metal on/ }))
+
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_ACTION',
+        encounterId: tabletopGmEncounter.id,
+        expectedVersion: tabletopGmEncounter.version,
+        actorId: tabletopGmEncounter.currentActorId,
+        actionId: repeatOfferChoices[0].actionId,
+        target: { kind: 'ACTOR', actorId: repeatOfferChoices[0].holderActorId },
+        acknowledgedWarnings: []
+      })
+    )
+    expect(await screen.findByText('Repeated.')).toBeVisible()
   })
 
   it('never offers the current holder as the new one', async () => {

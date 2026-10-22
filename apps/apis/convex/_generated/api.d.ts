@@ -127715,9 +127715,12 @@ export declare const api: {
             | {
                 actionId: string;
                 activation: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+                castLevel?: number;
+                dc?: number;
                 effectId: string;
                 holderActorId: string;
                 kind: "REPEAT_SOURCE_PATH";
+                label: string;
                 offerIndex: number;
                 warnings: Array<{
                   code:
