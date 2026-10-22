@@ -133,6 +133,7 @@ export function sourceCreatureTypeRestriction(
             id: makeId(2),
             order: 0,
             subject: 'CREATURE',
+            authoringModeKind: 'ALL',
             conditions: [
               {
                 id: makeId(3),
