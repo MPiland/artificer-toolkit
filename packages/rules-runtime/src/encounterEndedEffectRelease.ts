@@ -7,6 +7,7 @@ import type {
   CharacterEndedEffectReleaseApplication,
   CharacterRuleActionApplication
 } from './characterRuleActionSystemAdapter.js'
+import { withLinkedDependents } from './activeEffectLinks.js'
 import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type { prepareRecurringActiveEffect } from './encounterActionEffectPlans.js'
@@ -264,6 +265,40 @@ export function actionUsedOnHolderEndedEffects(input: {
             }
           ]
         }).ended
+  return {
+    endedEffects,
+    releases: endedEffectReleases({
+      holderActorId: input.holderActorId,
+      held: input.held,
+      ended: endedEffects
+    })
+  }
+}
+
+/**
+ * What an authored END_EFFECTS outcome ends on its target: the held effects owning a condition a
+ * selector names (all of them, or only the chosen one), the effects linked to those (D172), and
+ * the conditions only they held. The holder's own mechanics batch applies the releases in the same
+ * transaction as the effects' deletion.
+ */
+export function selectedEndedEffects(input: {
+  holderActorId: string
+  held: readonly ActiveRuleEffectRecord[]
+  selectors: readonly { kind: 'CONDITION'; conditionIds: readonly string[] }[]
+  scope: 'ALL' | 'ONE_CHOSEN'
+  /** The effect the cast picked; only `ONE_CHOSEN` reads it. */
+  chosenEffectId?: string
+}) {
+  const named = new Set(input.selectors.flatMap(({ conditionIds }) => conditionIds))
+  const matching = input.held.filter(({ definition }) =>
+    definition.stateContributions.some(
+      (contribution) =>
+        contribution.kind === 'CONDITION_OWNERSHIP' && named.has(contribution.conditionId)
+    )
+  )
+  const selected =
+    input.scope === 'ALL' ? matching : matching.filter(({ id }) => id === input.chosenEffectId)
+  const endedEffects = withLinkedDependents(selected, input.held)
   return {
     endedEffects,
     releases: endedEffectReleases({
