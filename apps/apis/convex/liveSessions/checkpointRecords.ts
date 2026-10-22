@@ -17,6 +17,7 @@ import {
   encodeCheckpointRecord
 } from '@artificer-toolkit/encounter-persistence/checkpointRecords'
 import { changedFields, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import { removeActorLoot } from '../loot/ownerRows'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
 import { readStoredSpellPin } from '@artificer-toolkit/encounter-persistence/spellPins'
@@ -435,7 +436,13 @@ export async function applyCheckpointRecords(
     const row = currentRows.get(identity)
     const next = nextRows.get(identity)
     if (!next) {
-      if (row) await ctx.db.delete(row._id)
+      if (row) {
+        await ctx.db.delete(row._id)
+        if (change.table === 'encounterRunActors') {
+          const actor = row as Doc<'encounterRunActors'>
+          await removeActorLoot(ctx, actor.encounterId, actor.id)
+        }
+      }
       continue
     }
     const encoded = encodeCheckpointRecord(change.table, next)

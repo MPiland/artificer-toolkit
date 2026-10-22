@@ -1,6 +1,7 @@
 import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
+import { spellComponentsLabel } from './spellCastCandidates.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
@@ -391,14 +392,23 @@ export function buildMovementTarget<
               spellId,
               spell.magicSchoolId
             ])
-          )
+          ),
+          componentsLabelBySpellId: new Map(
+            [...(characterFacts.prepared.context.spellsById ?? [])].flatMap(([spellId, spell]) => {
+              const label = spellComponentsLabel(spell)
+              return label ? [[spellId, label] as const] : []
+            })
+          ),
+          unavailable: spellCast.unavailable
         }
       : input.includeReactionSources
         ? {
             candidates: [],
             decisions: [],
             compiledActionEntryPoints: [],
-            magicSchoolIdBySpellId: new Map()
+            magicSchoolIdBySpellId: new Map(),
+            componentsLabelBySpellId: new Map(),
+            unavailable: []
           }
         : null
     return {

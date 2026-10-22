@@ -148,7 +148,7 @@ it('loot is deleted with its Scene', async () => {
     base.t.run((ctx) =>
       ctx.db
         .query('lootTables')
-        .withIndex('by_owner', (q) =>
+        .withIndex('by_scene', (q) =>
           q.eq('owner.kind', 'SCENE').eq('owner.sceneDefinitionId', sceneId)
         )
         .collect()
