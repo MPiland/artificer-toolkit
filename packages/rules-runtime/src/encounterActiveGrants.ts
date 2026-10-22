@@ -452,7 +452,7 @@ function attacksAgainstEntry(
   contributor: (
     influence: EncounterRelationshipD20Contributor['influence']
   ) => EncounterRelationshipD20Contributor
-): Omit<EncounterAttackAgainstContributor, 'eventScope'> | null {
+): Omit<EncounterAttackAgainstContributor, 'eventScope' | 'sourceQualifier'> | null {
   const { attackDomain, requiresHolderSeesAttacker, exemptAttackerSenseDefinitionIds } =
     modifier.domain
   const influence = modifierRollInfluence(modifier)
