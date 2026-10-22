@@ -302,6 +302,7 @@ export function assembleCharacterRuleSnapshot(
       }
     ]
   })
+  const classRitualSources = assembleClassRitualSources(character, registry, context.catalog.spells)
   const snapshot: CharacterBuildSnapshot = {
     characterId: character.id,
     systemId: character.systemId,
@@ -327,7 +328,7 @@ export function assembleCharacterRuleSnapshot(
     features: grantedFeatures,
     equipmentItems,
     spellSources: assembleSpellSources(character),
-    classRitualSources: assembleClassRitualSources(character, registry, context.catalog.spells),
+    ...(classRitualSources.length > 0 ? { classRitualSources } : {}),
     companions: input.companions
       ? input.companions.map((companion) => ({
           ...companion,
