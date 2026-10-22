@@ -169,7 +169,7 @@ export function mergeDirectResultGraphs(
   const nodes = definitions.flatMap((definition) => definition.nodes)
   if (new Set(nodes.map(({ id }) => id)).size !== nodes.length)
     unsupported('D&D direct results of one kind cannot share a cast.')
-  const outputs: RuleGraphDefinition['outputs'] = {}
+  const outputs: Record<string, RuleGraphDefinition['outputs'][string]> = {}
   for (const definition of definitions) {
     for (const [port, binding] of Object.entries(definition.outputs)) {
       // Every result lands on the one target: the first result's binding stands for all of them.
