@@ -4232,7 +4232,8 @@
               },
               "text": "SRD import adapter (importedEquipmentTerms) maps GP, Walk, Stealth and Dwarven to their source-data definition IDs instead of code constants; it stays in the importer.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845550346"
             },
             {
               "id": "RULES-2.T9o",
@@ -10034,7 +10035,7 @@
               },
               "text": "New generic option (D156 T2 split, class B; ruled D174): END_EFFECTS ends held effects or conditions by condition id, ALL or a cast-time pick. Converts LESSER_RESTORATION, GREATER_RESTORATION (condition clauses) and PROTECTION_FROM_POISON, with parity proofs; each kind deleted. Dispel Magic moved to T2f1, tags and Remove Curse to T2f3 (2026-10-22).",
               "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845386289"
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845178824"
             },
             {
               "id": "SPELLS-4.T2f3",
@@ -10512,7 +10513,7 @@
               "text": "Damage repeat save for the remaining damage sources (area one per holder, turn effects, cleaving, legendary; movement moved to T2m1b2c); the shared damage-save reader contract for T2m3 and SPELLS-33.T6e2/T4m; parity proof, area journey and HIDEOUS_LAUGHTER remnant check (D167).",
               "note": "Split from T2m1b2 2026-10-20 (D167 amendment). Held 2026-10-20 behind RULES-2.T3a and T6d (one d20 settlement, one repeat-save model). Movement damage split to T2m1b2c (2026-10-22): movement settles through its own per-step Concentration stack.",
               "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845386289"
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845178824"
             },
             {
               "id": "SPELLS-4.T2m1b2c",
@@ -15433,7 +15434,7 @@
                 "after": ["RULES-2.T6e"]
               },
               "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845386289"
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845550346"
             },
             {
               "id": "SPELLS-33.T4i3e",
