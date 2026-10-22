@@ -761,6 +761,15 @@ describe('Character rule contracts', () => {
           initiative: [{ ...contributor, influence: 'NORMAL' }]
         }
       }).success
+    ).toBe(true)
+    expect(
+      characterRulePolicyOutputSchema.safeParse({
+        ...output,
+        rollContributorEvidence: {
+          ...output.rollContributorEvidence,
+          initiative: [{ ...contributor, influence: 'normal' }]
+        }
+      }).success
     ).toBe(false)
 
     const outputWithClosedCodes = {

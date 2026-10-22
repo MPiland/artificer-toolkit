@@ -1401,6 +1401,7 @@ describe('what a saving throw ends for its holder (SPELLS-4.T2c2b)', () => {
   const saveEvidence = (ability: string | undefined, resultPath = 'ON_SAVE_FAIL') => ({
     requestId: 'save-request',
     rollMode: 'NORMAL' as const,
+    keep: 'FIRST' as const,
     derivedRollMode: 'NORMAL' as const,
     rawFaces: [9],
     selectedNatural: 9,

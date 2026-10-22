@@ -13,9 +13,8 @@ import {
   INITIATIVE_POLICY_DEFINITION_FAMILY_KEY,
   RULE_RUNTIME_GRAPH_FAMILY_KEY
 } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
-import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
-import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
+import { dnd5eRollModeCapabilityAdapter } from './rollModePolicy.js'
 
 const DND5E_SPEED_FACTOR_INITIATIVE_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000eb'
 
@@ -299,10 +298,10 @@ export function createDnd5eSpeedFactorInitiativeDefinition() {
  * The facts the declared initiative graph rolls its d20s by: a second d20 and the face kept. The
  * settled evidence records only these, so a reader recovers the roll mode from the kept face.
  */
-export function dnd5eDeclaredInitiativeRollFacts(rollMode: RollMode) {
+export function dnd5eDeclaredInitiativeRollFacts(rollMode: string) {
   return {
     [DND5E_INITIATIVE_FACT_KEYS.extraD20]: rollMode !== 'NORMAL',
-    [DND5E_INITIATIVE_FACT_KEYS.keep]: DND5E_KEEP_BY_ROLL_MODE[rollMode]
+    [DND5E_INITIATIVE_FACT_KEYS.keep]: dnd5eRollModeCapabilityAdapter.keepFor(rollMode)
   }
 }
 

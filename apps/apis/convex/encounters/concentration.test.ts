@@ -57,6 +57,7 @@ function response(
     request: {
       requestId: string
       rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+      keep: 'FIRST' | 'HIGHER' | 'LOWER'
     }
   },
   answer: number | { rollId: string }

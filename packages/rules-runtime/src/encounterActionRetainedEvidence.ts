@@ -7,14 +7,13 @@ import type {
   ServerRuleExecutionD20EvidenceDto
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import type { z } from 'zod'
 
 import type { PendingNativeActionGraphs } from './encounterActionExecution.js'
+import { requireDerivedD20Mode } from './encounterD20ModeValidation.js'
 import { isEncounterSightGovernedD20 } from './encounterAttackBelief.js'
-import {
-  selectEncounterActionD20Natural,
-  type EncounterEvidenceAnswer
-} from './encounterEvidenceAnswer.js'
+import { type EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 
 /** A settled action's retained evidence: its phases, terminal execution and application dice. */
 type RetainedActionReceipt = {
@@ -25,7 +24,13 @@ type RetainedActionReceipt = {
 
 type RetainedD20Evidence = Pick<
   ServerRuleExecutionD20EvidenceDto,
-  'requestId' | 'rollMode' | 'derivedRollMode' | 'rawFaces' | 'selectedNatural' | 'modeAdjustment'
+  | 'requestId'
+  | 'rollMode'
+  | 'keep'
+  | 'derivedRollMode'
+  | 'rawFaces'
+  | 'selectedNatural'
+  | 'modeAdjustment'
 >
 
 function same(left: unknown, right: unknown) {
@@ -81,6 +86,7 @@ export function retainedD20Evidence(input: {
             requestId: pending.testRollEvidence.requestId,
             rawFaces: pending.testRollEvidence.rawFaces,
             rollMode: pending.testRollEvidence.rollMode,
+            keep: pending.testRollEvidence.keep,
             derivedRollMode: pending.testRollEvidence.derivedRollMode,
             selectedNatural: pending.testRollEvidence.selectedNatural,
             ...(pending.testRollEvidence.modeAdjustment
@@ -107,6 +113,7 @@ export function retainedD20Evidence(input: {
 
 /** Answers one paused request with the dice it already rolled; nothing rolls again. */
 export function resolutionForRetainedEvidence(input: {
+  gameSystemId: string
   pending: PendingNativeActionGraphs
   integers: ReadonlyMap<string, number>
   d20: ReadonlyMap<string, RetainedD20Evidence>
@@ -116,12 +123,14 @@ export function resolutionForRetainedEvidence(input: {
   if (request.kind !== 'INTEGER_RANGE')
     throw new Error('The action requested unsupported evidence.')
   if (input.pending.d20Policy) {
+    requireDerivedD20Mode({ gameSystemId: input.gameSystemId, ...input.pending.d20Policy })
+    if (input.pending.d20Belief)
+      requireDerivedD20Mode({ gameSystemId: input.gameSystemId, ...input.pending.d20Belief })
     const evidence = input.d20.get(request.requestId)
     if (
       !evidence ||
       evidence.derivedRollMode !== input.pending.d20Policy.rollMode ||
-      selectEncounterActionD20Natural(evidence.rollMode, evidence.rawFaces) !==
-        evidence.selectedNatural ||
+      rollModeKeptFace(evidence.keep, evidence.rawFaces) !== evidence.selectedNatural ||
       // A roll sight decides is settled in the rules-derived mode; a chosen mode never replaces it.
       (isEncounterSightGovernedD20({
         policy: input.pending.d20Policy,

@@ -60,7 +60,7 @@ export type ContestFacts = {
   controllerCharacterId: string | null
   contributors: ServerContestCheckPendingApplicationContextDto['initiator']['contributors']
   modifier: number | null
-  rollMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
+  rollMode: string
   size: string | null
   /** The dice the actor's active effects add to this check (D156). */
   addedDice: D20AddedDieDto[]
@@ -484,6 +484,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
       actorId: source.actor.id,
       requestNodeId: 'initiator_d20',
       ...freezeD20Context({
+        gameSystemId: input.state.gameSystemId,
         rollMode: initiatorRollMode,
         contributors: initiatorContributors,
         modifier: initiator.modifier
@@ -497,6 +498,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
           checkDefinitionId: proposal.contest.targetCheckDefinitionId,
           label: encounterBasicActionCheckLabel(system, proposal.contest.targetCheckDefinitionId),
           ...freezeD20Context({
+            gameSystemId: input.state.gameSystemId,
             rollMode: defender.rollMode,
             contributors: defender.contributors,
             modifier: defender.modifier

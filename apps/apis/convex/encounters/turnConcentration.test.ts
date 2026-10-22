@@ -110,7 +110,11 @@ function response(
     encounterVersion: number
     occurrenceId: string
     occurrenceVersion: number
-    request: { requestId: string; rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' }
+    request: {
+      requestId: string
+      rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+      keep: 'FIRST' | 'HIGHER' | 'LOWER'
+    }
   },
   face: number,
   appRollId?: string

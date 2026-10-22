@@ -220,6 +220,7 @@ export async function persistEncounterTurnPending(
       status: 'PENDING',
       pending: turnPending
         ? projectNativeTurnPending({
+            gameSystemId: state.gameSystemId,
             snapshot,
             occurrenceId: snapshot.occurrenceId,
             occurrenceVersion,

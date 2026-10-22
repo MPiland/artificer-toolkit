@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 
 import { EncounterConflictError } from './encounterErrors.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 import { contestCheckMovementContinuation } from './encounterMovementPendingContext.js'
 import { spatialPendingRollerActorId } from './encounterSpatialPendingRoller.js'
 import { contestDefenderPolicy } from './encounterOptionalContestActionExecution.js'
@@ -73,6 +74,9 @@ export function projectEncounterSpatialOccurrenceSummary(
     throw new EncounterConflictError('The spatial occurrence has no resolvable evidence request.')
   }
   const context = pendingSnapshot.applicationContext
+  const rollModes = rollModeCapabilityRegistry.offeredRollModes(
+    pendingSnapshot.graph.source.gameSystemId
+  )
   if (
     context.kind === 'ENCOUNTER_MOVEMENT_REACTION' &&
     context.phase.kind === 'CONCENTRATION_EVIDENCE'
@@ -95,6 +99,8 @@ export function projectEncounterSpatialOccurrenceSummary(
               min: 1,
               max: 20,
               rollMode: context.phase.concentration.save.rollMode,
+              keep: context.phase.concentration.save.keep,
+              rollModes,
               derivedRollModeReasons: reasons({
                 rollMode: context.phase.concentration.save.rollMode,
                 contributors: context.phase.concentration.save.contributors
@@ -140,6 +146,8 @@ export function projectEncounterSpatialOccurrenceSummary(
           min: 1,
           max: 20,
           rollMode: policy.rollMode,
+          keep: policy.keep,
+          rollModes,
           derivedRollModeReasons: reasons({
             rollMode: policy.rollMode,
             contributors: policy.contributors
@@ -229,11 +237,16 @@ export function projectEncounterSpatialOccurrenceSummary(
                   requestId: pendingSnapshot.request.requestId,
                   min: 1,
                   max: 20,
+                  rollModes,
                   // The roller rolls the test's added dice with the d20 that settles it (D156).
                   ...(d20Policy?.addedDice?.length ? { addedDice: d20Policy.addedDice } : {}),
                   ...(heldD20
                     ? {
                         rollMode: 'NORMAL' as const,
+                        keep: rollModeCapabilityRegistry.rollModeKeep({
+                          gameSystemId: pendingSnapshot.graph.source.gameSystemId,
+                          rollMode: 'NORMAL'
+                        }),
                         derivedRollModeReasons: [],
                         heldD20: {
                           faces: heldD20.faces,
@@ -242,6 +255,7 @@ export function projectEncounterSpatialOccurrenceSummary(
                       }
                     : {
                         rollMode: shown.rollMode,
+                        keep: shown.keep,
                         derivedRollModeReasons: reasons({
                           rollMode: shown.rollMode,
                           contributors: shown.contributors
@@ -333,6 +347,8 @@ export function projectEncounterSpatialOccurrenceSummary(
         min: 1,
         max: 20,
         rollMode: spatialCandidate.d20Policy.rollMode,
+        keep: spatialCandidate.d20Policy.keep,
+        rollModes,
         derivedRollModeReasons: reasons({
           rollMode: spatialCandidate.d20Policy.rollMode,
           contributors: spatialCandidate.d20Policy.contributors

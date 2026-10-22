@@ -17,6 +17,7 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
 import { facetDtoSchema } from '../shared/facet.js'
+import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
 
 const stringSchema = lazySchema(() => z.string())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -397,7 +398,7 @@ export const characterResolvedActionMechanicSchema = lazySchema(() =>
     // The ability the attack is made with, which an ability-scoped attack grant is read against.
     attackAbility: z.nullable(abilityCodeSchema),
     attackBonus: z.nullable(integerSchema),
-    attackRollMode: z.nullable(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
+    attackRollMode: z.nullable(systemVocabularyCodeSchema),
     save: z.nullable(
       z.strictObject({
         ability: abilityCodeSchema,

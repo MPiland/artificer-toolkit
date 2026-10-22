@@ -167,6 +167,7 @@ export async function planNativeLiveEscape(
     }
   else {
     const evaluated = await evaluateEncounterBasicActionCheck({
+      gameSystemId: state.gameSystemId,
       runtime: executionOptions.runtime,
       context,
       continuation,

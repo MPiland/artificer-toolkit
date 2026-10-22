@@ -23,6 +23,12 @@ import {
   ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
+import {
+  rollModeKeepFaceCount,
+  rollModeKeepSchema,
+  rollModeKeptFace,
+  systemVocabularyCodeSchema
+} from './systemVocabularyCode.js'
 
 const spatialTargetCurrentnessPinDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -70,7 +76,8 @@ const spatialCandidateEvidenceFields = lazySchemaParts(() => ({
   /** The resolved d20 of a candidate now answering its damage dice (a placed zone's failed entry save). */
   diceStage: z.nullable(
     z.strictObject({
-      rollMode: z.enum(['ADVANTAGE', 'DISADVANTAGE', 'NORMAL']),
+      rollMode: systemVocabularyCodeSchema,
+      keep: rollModeKeepSchema,
       rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
       addedDice: d20RolledAddedDiceDtoSchema
     })
@@ -139,7 +146,8 @@ export const pendingD20FaceSchema = lazySchema(() => integerSchema.check(z.gte(1
 const movementPassageContestParticipantReceiptDtoSchema = lazySchema(() =>
   z
     .strictObject({
-      rollMode: z.enum(['ADVANTAGE', 'DISADVANTAGE', 'NORMAL']),
+      rollMode: systemVocabularyCodeSchema,
+      keep: rollModeKeepSchema,
       rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
       selectedNatural: pendingD20FaceSchema,
       modifier: integerSchema,
@@ -147,16 +155,9 @@ const movementPassageContestParticipantReceiptDtoSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((value, context) => {
-        const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
-        const expectedNatural =
-          value.rollMode === 'ADVANTAGE'
-            ? Math.max(...value.rawFaces)
-            : value.rollMode === 'DISADVANTAGE'
-              ? Math.min(...value.rawFaces)
-              : value.rawFaces[0]
         if (
-          value.rawFaces.length !== expectedFaces ||
-          value.selectedNatural !== expectedNatural ||
+          value.rawFaces.length !== rollModeKeepFaceCount(value.keep) ||
+          value.selectedNatural !== rollModeKeptFace(value.keep, value.rawFaces) ||
           value.total !== value.selectedNatural + value.modifier
         ) {
           context.addIssue({

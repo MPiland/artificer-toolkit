@@ -479,7 +479,10 @@ export async function verifyEncounterPlayer({
       const sheet = await player.query(api.characters.sheet.get, { id: characterId })
       assert.ok(sheet)
       assert.deepEqual(
-        { successes: sheet.overview.deathSaves.successes, failures: sheet.overview.deathSaves.failures },
+        {
+          successes: sheet.overview.deathSaves.successes,
+          failures: sheet.overview.deathSaves.failures
+        },
         { successes: 1, failures: 0 }
       )
       const timeline = await readTimeline()

@@ -2,6 +2,7 @@ import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
+import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { concentrationRollTrigger } from '@artificer-toolkit/rules-runtime/encounterConcentration'
@@ -58,6 +59,7 @@ export function projectNativeConcentrationPending(
       ? context.save
       : {
           rollMode: context.d20Policy.rollMode,
+          keep: context.d20Policy.keep,
           contributors: context.d20Policy.contributors,
           addedDice: context.d20Policy.addedDice
         }
@@ -77,6 +79,8 @@ export function projectNativeConcentrationPending(
       min: 1,
       max: 20,
       rollMode: save.rollMode,
+      keep: save.keep,
+      rollModes: rollModeCapabilityRegistry.offeredRollModes(snapshot.graph.source.gameSystemId),
       derivedRollModeReasons: reasons({
         rollMode: save.rollMode,
         contributors: save.contributors

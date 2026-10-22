@@ -8,6 +8,7 @@ import type {
   VoidRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { offeredRollModes } from '../../../test/offeredRollModes'
 import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
@@ -28,6 +29,8 @@ const d20Pending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
     min: 1,
     max: 20,
     rollMode: 'ADVANTAGE',
+    keep: 'HIGHER',
+    rollModes: offeredRollModes,
     derivedRollModeReasons: ['Flanking']
   },
   allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
@@ -49,6 +52,8 @@ const areaPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
       min: 1 as const,
       max: 20 as const,
       rollMode: 'NORMAL' as const,
+      keep: 'FIRST' as const,
+      rollModes: offeredRollModes,
       derivedRollModeReasons: []
     }
   })),
@@ -157,6 +162,7 @@ async function resolveDecisionCommand(
         faces: [14],
         value: 14,
         rollMode: command.rollMode,
+        keep: offeredRollModes.find(({ code }) => code === command.rollMode)?.keep ?? null,
         derivedRollMode: command.rollMode
       }
     }

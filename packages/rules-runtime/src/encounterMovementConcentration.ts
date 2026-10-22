@@ -383,6 +383,7 @@ export async function prepareEncounterMovementConcentration<
           requestId: started.continuation.request.requestId
         })
     const evidence = await evaluateNativeConcentrationEvidence({
+      gameSystemId: input.state.gameSystemId,
       context,
       continuation: started.continuation,
       resolution,

@@ -4,7 +4,7 @@ import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { normalizeCharacterGrantRestrictions } from '../../character/characterGrantFoldRestrictionFacts.js'
 import { dnd5eItemRequirementsMet, type Dnd5eAttackingItem } from './modifierApplicability.js'
 
-export type Dnd5eAttackRollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+export type Dnd5eAttackRollMode = string
 
 /**
  * Who stands near an attack's target, from the Scene: the distance in feet to the nearest creature

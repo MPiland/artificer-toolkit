@@ -14,6 +14,7 @@ import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/sha
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
+import { requireDerivedD20Mode } from './encounterD20ModeValidation.js'
 import { settleEncounterD20Answer, settleEncounterD20Test } from './encounterD20Settlement.js'
 import { derivedAddedDice } from './systems/dnd5e/d20AddedDiceGraph.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
@@ -211,6 +212,7 @@ export function createNativeConcentrationContext(input: {
       savingThrowAbilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
       modifier: facts.modifier,
       rollMode: facts.rollMode,
+      keep: facts.keep,
       contributors: [...facts.contributors],
       contributorChecksum: facts.contributorChecksum,
       ...saveAddedDice
@@ -220,6 +222,7 @@ export function createNativeConcentrationContext(input: {
       savingThrowAbilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
       modifier: facts.modifier,
       rollMode: facts.rollMode,
+      keep: facts.keep,
       contributors: [...facts.contributors],
       contributorChecksum: facts.contributorChecksum,
       ...saveAddedDice,
@@ -248,6 +251,7 @@ export function concentrationRollTrigger(
 }
 
 export async function evaluateNativeConcentrationEvidence(input: {
+  gameSystemId: string
   runtime: RulesRuntimeService
   random: (maximum: number) => number
   context: NativeConcentrationContext
@@ -264,7 +268,9 @@ export async function evaluateNativeConcentrationEvidence(input: {
     continuation.occurrenceId !== input.expectedOccurrenceId
   )
     throw new Error('The concentration evidence request is unavailable.')
+  requireDerivedD20Mode({ gameSystemId: input.gameSystemId, ...context.save })
   const roll = settleEncounterD20Answer({
+    gameSystemId: input.gameSystemId,
     d20: context.save,
     answer: resolution,
     rollD20: () => input.random(20) + 1,
@@ -292,6 +298,7 @@ export async function evaluateNativeConcentrationEvidence(input: {
     execution,
     rawFaces: roll.rawFaces,
     rollMode: roll.rollMode,
+    keep: roll.keep,
     selectedNatural: roll.natural,
     addedDice: roll.addedDice,
     failed: execution.outputs.resultPath === 'ON_SAVE_FAIL'
@@ -306,6 +313,7 @@ export function completeNativeConcentrationResult(input: {
   execution: NativeConcentrationEvidence['execution']
   rawFaces: NativeConcentrationEvidence['rawFaces']
   rollMode: NativeConcentrationEvidence['rollMode']
+  keep: NativeConcentrationEvidence['keep']
   selectedNatural: NativeConcentrationEvidence['selectedNatural']
   addedDice: NativeConcentrationEvidence['addedDice']
   failed: NativeConcentrationEvidence['failed']
@@ -319,6 +327,7 @@ export function completeNativeConcentrationResult(input: {
     execution,
     rawFaces,
     rollMode,
+    keep,
     selectedNatural,
     addedDice,
     failed
@@ -344,6 +353,7 @@ export function completeNativeConcentrationResult(input: {
     d20: {
       requestId: continuation.request.requestId,
       rollMode,
+      keep,
       derivedRollMode: context.save.rollMode,
       rawFaces,
       selectedNatural,

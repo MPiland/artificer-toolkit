@@ -86,9 +86,9 @@ function resolveRollMode(
   return resolveDnd5eRollMode(contributors).rollMode
 }
 
-function resolveRollModeRecord<
-  T extends Record<string, readonly { influence: 'ADVANTAGE' | 'DISADVANTAGE' }[]>
->(contributors: T): { [Key in keyof T]: CharacterRollMode } {
+function resolveRollModeRecord<T extends Record<string, readonly { influence: string }[]>>(
+  contributors: T
+): { [Key in keyof T]: CharacterRollMode } {
   return Object.fromEntries(
     Object.entries(contributors).map(([key, values]) => [
       key,

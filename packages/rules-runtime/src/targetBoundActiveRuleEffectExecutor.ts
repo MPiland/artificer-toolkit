@@ -28,12 +28,16 @@ import type {
 } from './characterRuleActionSystemAdapter.js'
 import type { CharacterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
+import {
+  rollModeKeepFaceCount,
+  rollModeKeptFace,
+  type RollModeKeep
+} from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import { EncounterConflictError } from './encounterErrors.js'
 import { withOwnedTemporaryHitPoints } from './encounterEndedEffectRelease.js'
 import {
   resolveEncounterIntegerAnswer,
   savingThrowAbility,
-  selectEncounterActionD20Natural,
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
@@ -393,6 +397,7 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
 type D20Roll = {
   rawFaces: number[]
   rollMode: EncounterD20RollMode
+  keep: RollModeKeep
   addedDice: D20RolledAddedDieDto[]
 }
 
@@ -480,9 +485,9 @@ function d20EvidenceForCompletion(input: {
       'The active-effect completion does not bind its exact d20 evidence request.'
     )
   }
-  const { rawFaces, rollMode, addedDice } = roll
+  const { rawFaces, rollMode, keep, addedDice } = roll
   if (
-    rawFaces.length !== (rollMode === 'NORMAL' ? 1 : 2) ||
+    rawFaces.length !== rollModeKeepFaceCount(keep) ||
     rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20) ||
     checksumRuleDocument(addedDice.map(({ count, faces, sign }) => ({ count, faces, sign }))) !==
       checksumRuleDocument(policy.addedDice ?? [])
@@ -490,7 +495,7 @@ function d20EvidenceForCompletion(input: {
     throw new CharacterActiveRuleEffectExecutionError(
       'The active-effect d20 raw faces are invalid.'
     )
-  const selectedNatural = selectEncounterActionD20Natural(rollMode, rawFaces)
+  const selectedNatural = rollModeKeptFace(keep, rawFaces)
   if (
     selectedNatural !== entry.evidence.value ||
     execution.outputs.total !== selectedNatural + policy.modifier + d20AddedDiceTotal(addedDice)
@@ -502,6 +507,7 @@ function d20EvidenceForCompletion(input: {
   return {
     requestId: entry.evidence.requestId,
     rollMode,
+    keep,
     derivedRollMode: policy.rollMode,
     rawFaces: [...rawFaces],
     selectedNatural,
@@ -646,6 +652,7 @@ export function reconstructTargetBoundActiveRuleEffectCompletion(input: {
           roll: {
             rawFaces: input.d20Evidence.rawFaces,
             rollMode: input.d20Evidence.rollMode,
+            keep: input.d20Evidence.keep,
             addedDice: input.d20Evidence.addedDice ?? []
           }
         }
@@ -719,11 +726,12 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
     : {
         rawFaces: [...resolution.rawFaces],
         rollMode: resolution.rollMode,
+        keep: resolution.keep,
         addedDice: resolution.addedDice
       }
   if (
     (roll &&
-      (roll.rawFaces.length !== (roll.rollMode === 'NORMAL' ? 1 : 2) ||
+      (roll.rawFaces.length !== rollModeKeepFaceCount(roll.keep) ||
         roll.rawFaces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20))) ||
     (die && !Number.isSafeInteger(resolution.value))
   )
@@ -747,7 +755,7 @@ export async function resumeTargetBoundActiveRuleEffectWithPause(
       })
     : await resumeEncounterD20({
         continuation: input.continuation,
-        natural: selectEncounterActionD20Natural(roll!.rollMode, roll!.rawFaces),
+        natural: rollModeKeptFace(roll!.keep, roll!.rawFaces),
         addedDice: roll!.addedDice,
         resume: resumeStep
       })
@@ -801,6 +809,7 @@ export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
     })
     const d20 = diceStage && {
       rollMode: diceStage.rollMode,
+      keep: diceStage.keep,
       rawFaces: [...diceStage.rawFaces],
       addedDice: diceStage.addedDice
     }
@@ -822,13 +831,14 @@ export async function resumeTargetBoundActiveRuleEffectWithAnswer(input: {
     request.nodeId !== policy.requestNodeId
   )
     throw new EncounterConflictError('The evidence request is stale.')
-  const { rawFaces, rollMode, addedDice } = settleEncounterD20Answer({
+  const { rawFaces, rollMode, keep, addedDice } = settleEncounterD20Answer({
+    gameSystemId: continuation.graph.source.gameSystemId,
     d20: policy,
     answer,
     rollD20: () => input.random(20) + 1,
     random: input.random
   })
-  const d20 = { rollMode, rawFaces, addedDice }
+  const d20 = { rollMode, keep, rawFaces, addedDice }
   return {
     d20,
     result: await resumeTargetBoundActiveRuleEffectWithPause({

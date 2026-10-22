@@ -37,6 +37,7 @@ import { characterResourcePoolIdentitySchema } from '../shared/characterResource
 import { rollModeContributorSourceDtoSchema } from '../shared/ruleExecutionEvidence.js'
 import { unlimitedRangeDtoSchema } from '../shared/range.js'
 import { authoredLengthSchema } from '../shared/authoredLimits.js'
+import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
 
 const finiteNumberSchema = lazySchema(() => z.number())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -1088,7 +1089,6 @@ const characterDerivedProficiencyCalculationSchema = lazySchema(() =>
   })
 )
 
-const characterRollModeSchema = lazySchema(() => z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']))
 /** A Character's resolved reach with a Sense; an unlimited Sense has no distance to calculate. */
 export const characterRuleSenseRangeSchema = lazySchema(() =>
   z.union([
@@ -1110,12 +1110,12 @@ const characterRuleSenseSchema = lazySchema(() =>
 )
 const characterAbilityRollModesSchema = lazySchema(() =>
   z.strictObject({
-    STRENGTH: characterRollModeSchema,
-    DEXTERITY: characterRollModeSchema,
-    CONSTITUTION: characterRollModeSchema,
-    INTELLIGENCE: characterRollModeSchema,
-    WISDOM: characterRollModeSchema,
-    CHARISMA: characterRollModeSchema
+    STRENGTH: systemVocabularyCodeSchema,
+    DEXTERITY: systemVocabularyCodeSchema,
+    CONSTITUTION: systemVocabularyCodeSchema,
+    INTELLIGENCE: systemVocabularyCodeSchema,
+    WISDOM: systemVocabularyCodeSchema,
+    CHARISMA: systemVocabularyCodeSchema
   })
 )
 
@@ -1125,7 +1125,7 @@ const characterRollContributorSchema = lazySchema(() =>
     source: rollModeContributorSourceDtoSchema,
     grantId: boundedIdentitySchema,
     domainKey: boundedIdentitySchema,
-    influence: z.enum(['ADVANTAGE', 'DISADVANTAGE'])
+    influence: systemVocabularyCodeSchema
   })
 )
 
@@ -1241,15 +1241,15 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
       })
     ),
     rollModes: z.strictObject({
-      initiative: characterRollModeSchema,
+      initiative: systemVocabularyCodeSchema,
       abilityChecks: characterAbilityRollModesSchema,
       savingThrows: characterAbilityRollModesSchema,
-      skillChecks: z.record(boundedIdentitySchema, characterRollModeSchema),
+      skillChecks: z.record(boundedIdentitySchema, systemVocabularyCodeSchema),
       attacks: z.strictObject({
-        MELEE: characterRollModeSchema,
-        RANGED: characterRollModeSchema,
-        SPELL: characterRollModeSchema,
-        UNARMED: characterRollModeSchema
+        MELEE: systemVocabularyCodeSchema,
+        RANGED: systemVocabularyCodeSchema,
+        SPELL: systemVocabularyCodeSchema,
+        UNARMED: systemVocabularyCodeSchema
       })
     }),
     rollContributorEvidence: z._default(
@@ -1266,7 +1266,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
             /** Set on a save against a condition, which includes that condition's scoped grants. */
             conditionTypeId: z.optional(serverUuidIdentityDtoSchema),
             modifier: integerSchema,
-            rollMode: characterRollModeSchema,
+            rollMode: systemVocabularyCodeSchema,
             contributors: canonicalCharacterRollContributorsSchema
           })
         )

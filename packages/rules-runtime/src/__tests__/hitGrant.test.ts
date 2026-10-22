@@ -110,6 +110,7 @@ function plannedGrant(
     d20: {
       requestId: testUuid(0xf54),
       rollMode: 'NORMAL',
+      keep: 'FIRST',
       derivedRollMode: 'NORMAL',
       rawFaces: [15],
       selectedNatural: 15,

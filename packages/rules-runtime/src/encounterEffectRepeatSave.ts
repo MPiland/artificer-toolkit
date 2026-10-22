@@ -266,6 +266,7 @@ export function completeEffectRepeatSaveResult(input: {
     d20: {
       requestId: d20.requestId,
       rollMode: d20.rollMode,
+      keep: d20.keep,
       derivedRollMode: d20.derivedRollMode,
       rawFaces: d20.rawFaces,
       selectedNatural: d20.selectedNatural,

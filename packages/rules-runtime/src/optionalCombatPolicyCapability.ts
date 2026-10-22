@@ -28,7 +28,7 @@ export type OptionalCombatEconomy = 'ACTION' | 'BONUS_ACTION'
 
 /** A server-qualified d20 contributor. A policy only appends its own contributors. */
 export interface OptionalMovementContributor {
-  readonly influence: 'ADVANTAGE' | 'DISADVANTAGE'
+  readonly influence: string
   readonly id: string
   readonly reason: 'EXISTING_QUALIFIED_FACT' | 'SHOVE_ASIDE_POLICY' | 'SIZE_RELATION'
 }
@@ -69,7 +69,7 @@ export interface TumbleContestProposal {
 export interface OverrunContestProposal extends TumbleContestProposal {
   readonly contest: TumbleContestProposal['contest'] & {
     readonly initiatorContributors: readonly OptionalMovementContributor[]
-    readonly initiatorMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
+    readonly initiatorMode: string
   }
 }
 

@@ -18,12 +18,12 @@ import { storedCheckResult, type rollEncounterCheck } from './encounterBasicActi
 import {
   concealmentsFoundBy,
   encounterConcealmentOf,
-  encounterPassiveScore,
   observersHiddenFrom,
   passiveSkillDefinitionId,
   type EncounterConcealment
 } from './encounterConcealment.js'
 import { freezeD20Context } from './encounterD20Settlement.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
@@ -130,7 +130,11 @@ export function prepareEncounterConcealmentCheck<
     actionId: input.actionId,
     actorId: roller.actor.id,
     check: { checkDefinitionId: input.check.checkDefinitionId, label: input.checkLabel },
-    d20: freezeD20Context({ ...facts, modifier: facts.modifier }),
+    d20: freezeD20Context({
+      gameSystemId: input.gameSystemId,
+      ...facts,
+      modifier: facts.modifier
+    }),
     resolution,
     consumedGrants: discoverEncounterEventHooks({
       effects: roller.activeEffects,
@@ -183,7 +187,11 @@ function concealmentObservers<TCharacterFacts extends CharacterMovementFacts>(in
       : [
           {
             actorId: observer.actor.id,
-            passiveScore: encounterPassiveScore(facts.modifier, facts.rollMode)
+            passiveScore: rollModeCapabilityRegistry.passiveScore({
+              gameSystemId: input.gameSystemId,
+              skillModifier: facts.modifier,
+              rollMode: facts.rollMode
+            })
           }
         ]
   })

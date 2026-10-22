@@ -470,7 +470,8 @@ async function evaluateEncounterTurnEffects(input: {
             const policy = pending.currentCandidate.d20Policy
             if (resolution.requestId !== continuation.request.requestId || !policy)
               throw new Error('Turn effect d20 request is stale.')
-            const { rawFaces, rollMode, addedDice } = settleEncounterD20Answer({
+            const { rawFaces, rollMode, keep, addedDice } = settleEncounterD20Answer({
+              gameSystemId: input.state.gameSystemId,
               d20: policy,
               answer: resolution,
               rollD20: () => input.random(20) + 1,
@@ -479,7 +480,7 @@ async function evaluateEncounterTurnEffects(input: {
             return resumeTargetBoundActiveRuleEffectWithPause({
               ...effectInput,
               continuation,
-              resolution: { requestId: resolution.requestId, rawFaces, rollMode, addedDice },
+              resolution: { requestId: resolution.requestId, rawFaces, rollMode, keep, addedDice },
               expectedEvidencePolicy: policy
             })
           })()
@@ -490,7 +491,8 @@ async function evaluateEncounterTurnEffects(input: {
         kind: 'AUTO_ROLL' as const,
         requestId: result.continuation.request.requestId
       }
-      const { rawFaces, rollMode, addedDice } = settleEncounterD20Answer({
+      const { rawFaces, rollMode, keep, addedDice } = settleEncounterD20Answer({
+        gameSystemId: input.state.gameSystemId,
         d20: result.evidencePolicy,
         answer,
         rollD20: () => input.random(20) + 1,
@@ -499,7 +501,7 @@ async function evaluateEncounterTurnEffects(input: {
       result = await resumeTargetBoundActiveRuleEffectWithPause({
         ...effectInput,
         continuation: result.continuation,
-        resolution: { requestId: answer.requestId, rawFaces, rollMode, addedDice },
+        resolution: { requestId: answer.requestId, rawFaces, rollMode, keep, addedDice },
         expectedEvidencePolicy: result.evidencePolicy
       })
       if ('continuation' in result) throw new Error('Automatic turn effect did not complete.')

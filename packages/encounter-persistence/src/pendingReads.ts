@@ -160,6 +160,7 @@ export async function readPendingRunDecision(
     if (actorId === null || !controlledActorIds.has(actorId)) return null
     return withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
       projectNativeLegendaryPending({
+        gameSystemId: row.gameSystemId,
         snapshot: pendingSnapshot,
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,
@@ -270,6 +271,7 @@ export async function readPendingRunDecision(
       throw new Error('Stored Encounter turn root is invalid.')
     return withEncounterRollModeReasons(ctx, row, membership, (reasons) =>
       projectNativeTurnPending({
+        gameSystemId: row.gameSystemId,
         snapshot: pendingSnapshot,
         occurrenceId: occurrence.id,
         occurrenceVersion: occurrence.version,

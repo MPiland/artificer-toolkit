@@ -106,6 +106,7 @@ export function incomingGateSaveDc(
  * owner's, as it stands now.
  */
 export function incomingGateOffer(input: {
+  gameSystemId: string
   held: HeldIncomingGate
   holderActorId: string
   owner: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'effectiveScalarValues'>
@@ -134,6 +135,7 @@ export function incomingGateOffer(input: {
     checkDefinitionId: savingThrow.abilityDefinitionId,
     dc,
     d20: freezeD20Context({
+      gameSystemId: input.gameSystemId,
       rollMode: row.rollMode,
       contributors: row.contributors,
       modifier: row.modifier,

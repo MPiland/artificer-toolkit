@@ -191,7 +191,12 @@ export const Targeting: Story = {
         },
         {
           actorId: targetWarden.id,
-          attack: { reasons: ['Long range'], rollMode: 'DISADVANTAGE' },
+          attack: {
+            reasons: ['Long range'],
+            rollMode: 'DISADVANTAGE',
+            rollModeLabel: 'Disadvantage',
+            keep: 'LOWER'
+          },
           band: 'LONG',
           distance: 40,
           distanceLabel: '40 ft',

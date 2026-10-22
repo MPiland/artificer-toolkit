@@ -228,7 +228,13 @@ export async function prepareTurnLegendaryActions<
       for (let count = 0; result.kind === 'PENDING'; count++) {
         if (count >= RULE_GRAPH_LIMITS.NODES)
           throw new Error('Retained Legendary Action evidence is invalid.')
-        const resolution = resolutionForRetainedEvidence({ pending: result, integers, d20, used })
+        const resolution = resolutionForRetainedEvidence({
+          gameSystemId: state.gameSystemId,
+          pending: result,
+          integers,
+          d20,
+          used
+        })
         result = await advanceNativeActionGraphs({
           ...replay,
           resume: { pending: result, resolution }

@@ -24,7 +24,7 @@ import { DND5E_DISARM_POLICY_MODULE } from './policyModuleRegistration.js'
 import { resolveDnd5eRollMode } from './rollModePolicy.js'
 
 type D20Influence = 'ADVANTAGE' | 'DISADVANTAGE'
-type D20Mode = 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
+type D20Mode = string
 
 interface Dnd5eOptionalActionPin {
   readonly definitionChecksum: string

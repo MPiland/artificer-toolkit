@@ -43,7 +43,7 @@ export interface CharacterSheetProjectedMechanic {
   }
   rangeLabel?: string
   attackBonus?: number
-  attackRollMode?: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  attackRollMode?: string
   save?: {
     ability: AbilityCode
     dc?: number

@@ -234,7 +234,8 @@ describe('prepareEncounterTurnInitiative at Encounter start', () => {
           requestId: evidenceRequest(second.result.snapshot).requestId,
           rollId: '00000000-0000-4000-8000-00000000b005',
           faces: [17],
-          rollMode: null
+          rollMode: null,
+          keep: null
         }
       }
     })

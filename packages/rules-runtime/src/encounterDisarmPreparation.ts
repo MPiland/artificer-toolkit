@@ -505,6 +505,7 @@ export function prepareEncounterDisarmContest(input: {
       actorId: actor.id,
       requestNodeId: 'initiator_d20',
       ...freezeD20Context({
+        gameSystemId: state.gameSystemId,
         rollMode: preparation.proposal.contest.initiatorMode,
         contributors: preparation.proposal.contest.initiatorContributors,
         modifier
@@ -517,7 +518,11 @@ export function prepareEncounterDisarmContest(input: {
         {
           checkDefinitionId,
           label: encounterBasicActionCheckLabel(input.system, checkDefinitionId),
-          ...freezeD20Context({ ...defenderRoll, modifier: targetCheckTotal })
+          ...freezeD20Context({
+            gameSystemId: state.gameSystemId,
+            ...defenderRoll,
+            modifier: targetCheckTotal
+          })
         }
       ]
     },

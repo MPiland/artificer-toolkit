@@ -23,6 +23,13 @@ import {
   d20RolledAddedDiceDtoSchema,
   type D20RolledAddedDieDto
 } from './d20AddedDice.js'
+import {
+  rollModeKeepFaceCount,
+  rollModeKeepSchema,
+  rollModeKeptFace,
+  systemVocabularyCodeSchema,
+  type RollModeKeep
+} from './systemVocabularyCode.js'
 
 export const serverRuleEvidenceResponseDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -60,7 +67,7 @@ export const rollModeContributorSourceDtoSchema = lazySchema(() =>
  * A recorded d20 contributor on the wire. The kernel's influence is an opaque System code; the wire
  * still carries the installed System's codes until System-supplied vocabulary lands (RULES-2.T9).
  */
-export type ReceiptD20ContributorDto = D20Contributor<'ADVANTAGE' | 'DISADVANTAGE'>
+export type ReceiptD20ContributorDto = D20Contributor<string>
 
 /** One recorded d20 contributor: its canonical identity and the typed source its reason label reads. */
 export const receiptD20ContributorSchema = lazySchema(() =>
@@ -68,7 +75,7 @@ export const receiptD20ContributorSchema = lazySchema(() =>
     sourceId: identifierSchema,
     grantId: z.nullable(identifierSchema),
     domainKey: z.nullable(identifierSchema),
-    influence: z.enum(['ADVANTAGE', 'DISADVANTAGE']),
+    influence: systemVocabularyCodeSchema,
     source: rollModeContributorSourceDtoSchema
   })
 )
@@ -96,7 +103,8 @@ export const canonicalConcentrationContributorsDtoSchema = lazySchema(() =>
 /** The d20 a single-roll check freezes before it is rolled: the roller's mode, contributors and modifier. */
 export const frozenCheckD20DtoSchema = lazySchema(() =>
   z.strictObject({
-    rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+    rollMode: systemVocabularyCodeSchema,
+    keep: rollModeKeepSchema,
     contributors: canonicalConcentrationContributorsDtoSchema,
     contributorChecksum: checksumSchema,
     modifier: integerSchema,
@@ -112,7 +120,8 @@ export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
   z
     .strictObject({
       requestNodeId: localNodeIdSchema,
-      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      rollMode: systemVocabularyCodeSchema,
+      keep: rollModeKeepSchema,
       contributors: z
         .array(receiptD20ContributorSchema)
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
@@ -143,19 +152,11 @@ export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
     )
 )
 
-const d20RollModeSchema = lazySchema(() => z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']))
+const d20RollModeSchema = lazySchema(() => systemVocabularyCodeSchema)
 
 const d20CaptionSchema = lazySchema(() =>
   z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))
 )
-
-/** The mode a contributor set derives, as its owning resolver does: mixed or empty is Normal. */
-function contributorRollMode(
-  contributors: readonly { influence: 'ADVANTAGE' | 'DISADVANTAGE' }[]
-): 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE' {
-  const influences = new Set(contributors.map((contributor) => contributor.influence))
-  return influences.size === 1 ? [...influences][0]! : 'NORMAL'
-}
 
 /**
  * The roll mode a roller's own facts imply (ATTACK-10.1): what the roll prompt shows before the
@@ -164,7 +165,8 @@ function contributorRollMode(
 // Explicitly typed: inferred, these shapes repeat through every pending-state declaration that
 // embeds a d20 policy or receipt and overflow the compiler's declaration size (TS7056).
 export type ServerRuleExecutionD20BeliefDto = {
-  rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  rollMode: string
+  keep: RollModeKeep
   contributors: ReceiptD20ContributorDto[]
   contributorChecksum: string
 }
@@ -174,6 +176,7 @@ export const serverRuleExecutionD20BeliefDtoSchema: z.ZodMiniType<ServerRuleExec
     z
       .strictObject({
         rollMode: d20RollModeSchema,
+        keep: rollModeKeepSchema,
         contributors: z
           .array(receiptD20ContributorSchema)
           .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
@@ -199,12 +202,6 @@ export const serverRuleExecutionD20BeliefDtoSchema: z.ZodMiniType<ServerRuleExec
               path: ['contributorChecksum'],
               message: 'd20 belief contributor checksum is invalid.'
             })
-          if (contributorRollMode(value.contributors) !== value.rollMode)
-            context.addIssue({
-              code: 'custom',
-              path: ['rollMode'],
-              message: 'd20 belief roll mode must match its contributors.'
-            })
         })
       )
   )
@@ -215,7 +212,8 @@ export const serverRuleExecutionD20BeliefDtoSchema: z.ZodMiniType<ServerRuleExec
  * `rawFaces` of the evidence stay the applied faces, so a reader needs no adjustment logic.
  */
 export type ServerRuleExecutionD20ModeAdjustmentDto = {
-  rolledMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  rolledMode: string
+  rolledKeep: RollModeKeep
   rolledFaces: number[]
   addedFaces: number[]
   cancelledRollIndexes: number[]
@@ -228,6 +226,7 @@ export const serverRuleExecutionD20ModeAdjustmentDtoSchema: z.ZodMiniType<Server
   lazySchema(() =>
     z.strictObject({
       rolledMode: d20RollModeSchema,
+      rolledKeep: rollModeKeepSchema,
       rolledFaces: z.array(receiptD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
       addedFaces: z.array(receiptD20FaceSchema).check(z.maxLength(1)),
       cancelledRollIndexes: z.array(z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))),
@@ -247,7 +246,12 @@ const serverRuleExecutionD20EvidenceShape = lazySchema(() =>
      * rolled with (the roller may change the recommended mode).
      */
     rollMode: d20RollModeSchema,
-    /** The rules-derived mode the roll prompt recommended. */
+    /** Which of `rawFaces` the roll counts; the System derives it from `rollMode`. */
+    keep: rollModeKeepSchema,
+    /**
+     * The rules-derived mode the roll prompt recommended. It carries no keep: the faces follow
+     * `rollMode` alone.
+     */
     derivedRollMode: d20RollModeSchema,
     rawFaces: z.array(receiptD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
     selectedNatural: receiptD20FaceSchema,
@@ -272,8 +276,7 @@ function validateServerRuleExecutionD20Evidence(
   value: z.infer<typeof serverRuleExecutionD20EvidenceShape>,
   context: z.core.$RefinementCtx
 ): void {
-  const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
-  if (value.rawFaces.length !== expectedFaces)
+  if (value.rawFaces.length !== rollModeKeepFaceCount(value.keep))
     context.addIssue({
       code: 'custom',
       path: ['rawFaces'],
@@ -289,13 +292,7 @@ function validateServerRuleExecutionD20Evidence(
       path: ['savingThrowAbilityDefinitionId'],
       message: 'Only saving-throw d20 evidence names an ability.'
     })
-  const expectedSelected =
-    value.rollMode === 'ADVANTAGE'
-      ? Math.max(...value.rawFaces)
-      : value.rollMode === 'DISADVANTAGE'
-        ? Math.min(...value.rawFaces)
-        : value.rawFaces[0]
-  if (value.selectedNatural !== expectedSelected)
+  if (value.selectedNatural !== rollModeKeptFace(value.keep, value.rawFaces))
     context.addIssue({
       code: 'custom',
       path: ['selectedNatural'],
@@ -330,7 +327,7 @@ function validateServerRuleExecutionD20Evidence(
     const dice = [...adjustment.rolledFaces, ...adjustment.addedFaces]
     const cancelled = adjustment.cancelledRollIndexes
     const consistent =
-      adjustment.rolledFaces.length === (adjustment.rolledMode === 'NORMAL' ? 1 : 2) &&
+      adjustment.rolledFaces.length === rollModeKeepFaceCount(adjustment.rolledKeep) &&
       cancelled.every(
         (index, position) =>
           index < adjustment.rolledFaces.length &&
@@ -357,8 +354,9 @@ function validateServerRuleExecutionD20Evidence(
 // pending-state declaration that embeds it and overflows the declaration size (TS7056).
 export type ServerRuleExecutionD20EvidenceDto = {
   requestId: string
-  rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-  derivedRollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  rollMode: string
+  keep: RollModeKeep
+  derivedRollMode: string
   rawFaces: number[]
   selectedNatural: number
   contributors: ServerRuleExecutionD20BeliefDto['contributors']
@@ -386,23 +384,6 @@ export const serverRuleExecutionNestedD20EvidenceDtoSchema: z.ZodMiniType<Server
     z
       .extend(serverRuleExecutionD20EvidenceShape, { requestNodeId: localNodeIdSchema })
       .check(z.superRefine(validateServerRuleExecutionD20Evidence))
-      .check(
-        z.superRefine((value, context) => {
-          const influences = new Set(value.contributors.map((contributor) => contributor.influence))
-          const expectedRollMode =
-            influences.size === 1
-              ? [...influences][0] === 'ADVANTAGE'
-                ? 'ADVANTAGE'
-                : 'DISADVANTAGE'
-              : 'NORMAL'
-          if (value.derivedRollMode !== expectedRollMode)
-            context.addIssue({
-              code: 'custom',
-              path: ['derivedRollMode'],
-              message: 'Nested d20 evidence roll mode must match its contributors.'
-            })
-        })
-      )
   )
 
 export type ServerRuleExecutionD20PolicyDto = z.infer<typeof serverRuleExecutionD20PolicyDtoSchema>

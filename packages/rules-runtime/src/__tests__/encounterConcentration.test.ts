@@ -160,6 +160,7 @@ describe('resolveDnd5eConcentrationSaveFacts', () => {
         ...dnd5eAddedDiceFacts([])
       },
       rollMode: 'NORMAL',
+      keep: 'FIRST',
       modifier: 4,
       contributors: [],
       contributorChecksum: checksumRuleDocument([])
@@ -366,6 +367,7 @@ async function startCheck(input: {
     ) => {
       const queue = [...faces]
       return evaluateNativeConcentrationEvidence({
+        gameSystemId: published.gameSystemId,
         runtime,
         random: (maximum) => {
           expect(maximum).toBe(20)
@@ -400,6 +402,7 @@ describe('native Concentration evidence', () => {
       savingThrowAbilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
       modifier: 4,
       rollMode: 'NORMAL',
+      keep: 'FIRST',
       contributors: [],
       contributorChecksum: checksumRuleDocument([])
     })
@@ -476,7 +479,8 @@ describe('native Concentration evidence', () => {
       rulePolicyOutput: withSaves([
         constitutionSave({
           ruleDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
-          rollMode: 'ADVANTAGE'
+          rollMode: 'ADVANTAGE',
+          contributors: [contributor({ sourceId: 'bless-like', influence: 'ADVANTAGE' })]
         })
       ])
     })
@@ -502,6 +506,7 @@ describe('native Concentration evidence', () => {
     ).rejects.toThrow('The concentration evidence request is unavailable.')
     await expect(
       evaluateNativeConcentrationEvidence({
+        gameSystemId: srdSystemRecord.id,
         runtime: check.runtime,
         random: () => 9,
         context: check.context,
@@ -512,6 +517,7 @@ describe('native Concentration evidence', () => {
     ).rejects.toThrow('The concentration evidence request is unavailable.')
     await expect(
       evaluateNativeConcentrationEvidence({
+        gameSystemId: srdSystemRecord.id,
         runtime: check.runtime,
         random: () => 9,
         context: { ...check.context, save: { ...check.context.save, modifier: 5 } },
@@ -569,6 +575,7 @@ describe('completeNativeConcentrationResult', () => {
     expect(result.applicationOutputs.d20).toEqual({
       requestId,
       rollMode: 'NORMAL',
+      keep: 'FIRST',
       derivedRollMode: 'NORMAL',
       rawFaces: [15],
       selectedNatural: 15,
@@ -917,6 +924,7 @@ describe('Concentration held by a Creature', () => {
     const requestId = check.continuation.request.requestId
     const roll = (face: number) =>
       evaluateNativeConcentrationEvidence({
+        gameSystemId: srdSystemRecord.id,
         runtime: check.runtime,
         random: () => face - 1,
         context: check.context,

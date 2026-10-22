@@ -133,6 +133,7 @@ export async function planNativeLiveBasicActionResponse(
       context,
       continuation,
       evaluated: await rollEncounterCheck({
+        gameSystemId: state.gameSystemId,
         runtime: executionOptions.runtime,
         context,
         continuation,
@@ -203,6 +204,7 @@ export async function planNativeLiveBasicActionResponse(
       refusal: 'A basic action check requires d20 evidence.'
     })
     rolled = await rollEncounterCheck({
+      gameSystemId: state.gameSystemId,
       runtime: executionOptions.runtime,
       context,
       continuation,

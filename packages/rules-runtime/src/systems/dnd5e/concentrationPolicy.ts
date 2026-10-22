@@ -20,6 +20,8 @@ import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 
 const DND5E_CONCENTRATION_CHECK_DEFINITION_ID = '00000000-0000-4000-8000-0000000000c2'
@@ -100,13 +102,13 @@ const creatureSaveRowsSchema = z.array(
     ruleDefinitionId: z.optional(z.string()),
     conditionTypeId: z.optional(z.string()),
     modifier: z.number(),
-    rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+    rollMode: z.string(),
     contributors: z.array(
       z.looseObject({
         sourceId: z.string(),
         grantId: z.nullable(z.string()),
         domainKey: z.nullable(z.string()),
-        influence: z.enum(['ADVANTAGE', 'DISADVANTAGE']),
+        influence: z.string(),
         source: rollModeContributorSourceDtoSchema
       })
     )
@@ -147,7 +149,7 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
       ruleDefinitionId?: string
       conditionTypeId?: string
       modifier: number
-      rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+      rollMode: string
       contributors: readonly ReceiptD20ContributorDto[]
     }[]
   }
@@ -155,7 +157,8 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
   addedDice: readonly D20AddedDieDto[]
 }): {
   facts: Record<string, string | number | boolean>
-  rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  rollMode: string
+  keep: RollModeKeep
   modifier: number
   contributors: ReadonlyArray<ReceiptD20ContributorDto>
   contributorChecksum: string
@@ -202,6 +205,7 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
       ...dnd5eAddedDiceFacts(input.addedDice)
     },
     rollMode,
+    keep: DND5E_KEEP_BY_ROLL_MODE[rollMode],
     modifier: savingThrow[0]!.modifier,
     contributors: normalizedContributors,
     contributorChecksum

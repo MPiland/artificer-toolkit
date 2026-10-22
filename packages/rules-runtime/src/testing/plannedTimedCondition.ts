@@ -1,3 +1,4 @@
+import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
 import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
@@ -210,6 +211,10 @@ export function plannedCastEffects(input: {
         ? {
             requestId: testUuid(0xc312),
             rollMode: 'NORMAL',
+            keep: rollModeCapabilityRegistry.rollModeKeep({
+              gameSystemId: published.gameSystemId,
+              rollMode: 'NORMAL'
+            }),
             derivedRollMode: 'NORMAL',
             rawFaces: [10],
             selectedNatural: 10,

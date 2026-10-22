@@ -90,6 +90,7 @@ export async function advanceNativeIncomingGate(input: {
   const owner = await input.owner(held.ownerActorId)
   if (!owner) throw new Error('The owner of the incoming gate is no longer in the encounter.')
   const offer = incomingGateOffer({
+    gameSystemId: input.gameSystemId,
     held,
     holderActorId: input.holderActorId,
     owner,
@@ -114,6 +115,7 @@ export async function advanceNativeIncomingGate(input: {
     }
   const random = input.random ?? nextRollInt
   const evaluated = await evaluateEncounterBasicActionCheck({
+    gameSystemId: input.gameSystemId,
     runtime: input.runtime,
     context: { d20: offer.d20, check: { dc: offer.dc } },
     continuation,
