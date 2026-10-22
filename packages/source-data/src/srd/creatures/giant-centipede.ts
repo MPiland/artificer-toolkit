@@ -75,7 +75,7 @@ export const giantCentipede: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(117, 3) + '__result',
+                id: S.actionId(117, 12),
                 resultKind: 'SEQUENCE' as const,
                 outcomes: [
                   {
@@ -123,12 +123,23 @@ export const giantCentipede: CreatureAuthored = {
                         {
                           id: S.actionId(117, 8),
                           effectKind: S.EFFECT_KIND.CONDITION,
-                          conditionId: conditionTypeId('POISONED')
+                          conditionId: conditionTypeId('POISONED'),
+                          duration: {
+                            id: S.actionId(117, 10),
+                            durationKind: 'HOUR' as const,
+                            amount: 1
+                          }
                         },
                         {
                           id: S.actionId(117, 9),
                           effectKind: S.EFFECT_KIND.CONDITION,
-                          conditionId: conditionTypeId('PARALYZED')
+                          conditionId: conditionTypeId('PARALYZED'),
+                          duration: {
+                            id: S.actionId(117, 11),
+                            durationKind: 'HOUR' as const,
+                            amount: 1
+                          },
+                          endsWithOutcomeId: S.actionId(117, 8)
                         }
                       ]
                     }

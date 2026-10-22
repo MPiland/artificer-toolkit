@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
+import { linkedRiderPlan } from '../encounterActionEffectPlans.js'
+import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { creatureFeature, srdCreatureActor, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
@@ -34,10 +36,20 @@ async function bite(saveFace: number, hitPoints: number, centipede: CreatureAuth
     featureId: creatureFeature(centipede, 'Bite').id,
     overridable: true
   })
-  return settleCreatureAction({
+  const settled = await settleCreatureAction({
     prepared,
     rolls: [HIT, BITE_MAX, saveFace, POISON_MAX, POISON_MAX, POISON_MAX]
   })
+  return {
+    ...settled,
+    effects: prepareNativeActionEffectsPlan({
+      prepared,
+      execution: settled.execution,
+      occurrenceId: testUuid(0x2602),
+      commandId: testUuid(0x2603),
+      activeEffectsByActorId: new Map()
+    })
+  }
 }
 
 const kinds = (result: Awaited<ReturnType<typeof bite>>) =>
@@ -52,6 +64,34 @@ describe('the Giant Centipede’s venom (SPELLS-33 T4i3c)', () => {
       'CONDITION_APPLY',
       'CONDITION_APPLY'
     ])
+  })
+
+  it('holds the poison for an hour and the paralysis only while that poison lasts (D172)', async () => {
+    const { effects } = await bite(SAVE_FAILS, 20)
+    const { recurringEffect, riderEffect } = effects
+    if (!recurringEffect || !riderEffect)
+      throw new Error('The venom planned no poison or paralysis.')
+    expect(recurringEffect.definition.linkedEffectId).toBeNull()
+    expect(riderEffect.linksToPrimary).toBe(true)
+    expect(linkedRiderPlan(riderEffect, { id: testUuid(0x2604) })?.definition.linkedEffectId).toBe(
+      testUuid(0x2604)
+    )
+    for (const effect of [recurringEffect, riderEffect]) {
+      expect(effect.definition.recurrence).toMatchObject({
+        expiration: { kind: 'TICKS', initialRemaining: 600 }
+      })
+    }
+  })
+
+  it('plans no timed effect unless the poison took the target to 0, or the save failed', async () => {
+    for (const [saveFace, hitPoints] of [
+      [SAVE_FAILS, OGRE.hitPoints ?? 59],
+      [SAVE_SUCCEEDS, 20]
+    ] as const) {
+      const { effects } = await bite(saveFace, hitPoints)
+      expect(effects.recurringEffect).toBeNull()
+      expect(effects.riderEffect).toBeNull()
+    }
   })
 
   it('only deals the poison damage when it leaves the target standing', async () => {
@@ -102,10 +142,27 @@ describe('the Giant Centipede’s venom (SPELLS-33 T4i3c)', () => {
                                     },
                                     outcomes:
                                       outcome.onFailure.kind === 'OUTCOMES'
-                                        ? outcome.onFailure.outcomes.map((rewritten, index) => ({
-                                            ...rewritten,
-                                            id: index === 0 ? poison : testUuid(0x2612 + index)
-                                          }))
+                                        ? outcome.onFailure.outcomes.map(
+                                            (rewritten, index, original) => {
+                                              const link = original.findIndex(
+                                                ({ id }) =>
+                                                  rewritten.effectKind === 'CONDITION' &&
+                                                  id === rewritten.endsWithOutcomeId
+                                              )
+                                              return {
+                                                ...rewritten,
+                                                id: index === 0 ? poison : testUuid(0x2612 + index),
+                                                ...(link < 0
+                                                  ? {}
+                                                  : {
+                                                      endsWithOutcomeId:
+                                                        link === 0
+                                                          ? poison
+                                                          : testUuid(0x2612 + link)
+                                                    })
+                                              }
+                                            }
+                                          )
                                         : []
                                   }
                                 }

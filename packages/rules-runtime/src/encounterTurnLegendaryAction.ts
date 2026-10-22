@@ -1,5 +1,6 @@
 import { decoyStrikeEffects, withDecoyStrikeApplied } from './encounterAttackDecoys.js'
 import { v5 as uuidv5 } from 'uuid'
+import { linkedRiderPlan } from './encounterActionEffectPlans.js'
 import { stageEncounterLegendaryActionRefreshes } from './encounterLegendaryActionDiscovery.js'
 import { stageEncounterActionEconomyRefreshes } from './encounterActionEconomy.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
@@ -449,7 +450,7 @@ export async function prepareTurnLegendaryActions<
     }
     const stateEffect = createEffect('STATE', effects.stateEffect)
     const recurringEffect = createEffect('RECURRING', effects.recurringEffect)
-    const riderEffect = createEffect('RIDER', effects.riderEffect)
+    const riderEffect = createEffect('RIDER', linkedRiderPlan(effects.riderEffect, recurringEffect))
     // The target's own damage triggers give it timed grants after the option's effects.
     const grantEffects = incomingDamageGrantRecords({
       grants: damageEnded.grants,

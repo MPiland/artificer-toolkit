@@ -86,6 +86,8 @@ export type TurnSaveDamageEffectInput = {
   endOnEvents?: readonly ActiveEffectEndEvent[]
   endOnTriggers?: readonly ActiveRuleEffectDefinitionDto['recurrence']['endOnTriggers'][number][]
   currentEffects?: readonly ActiveRuleEffectRecord[]
+  /** The earlier effect this one ends with (D172); none by default. */
+  linkedEffectId?: string | null
 }
 
 /**
@@ -225,6 +227,7 @@ export async function turnSaveDamageEffect(
     definition: activeRuleEffectDefinitionDtoSchema.parse({
       ...base,
       schemaVersion: 2,
+      linkedEffectId: input.linkedEffectId ?? null,
       stateContributions: (input.conditionOwnership ?? []).map((entry) => ({
         kind: 'CONDITION_OWNERSHIP',
         ...entry
@@ -250,12 +253,15 @@ export function activeEffect(input: {
   holderEnd?: ActiveRuleEffectDefinitionDto['recurrence']['holderEnd']
   /** The Encounter actor that applied the effect; none by default. */
   sourceActorId?: string | null
+  /** The held effect this one ends with (D172); none by default. */
+  linkedEffectId?: string | null
   stateContributions: [StateContribution, ...StateContribution[]]
 }): ActiveRuleEffectRecord {
   const authoredEffectId = '00000000-0000-4000-8000-00000000b004'
   const compiledEntryId = '00000000-0000-4000-8000-00000000b005'
   const definition: ActiveRuleEffectDefinitionDto = {
     schemaVersion: 2,
+    linkedEffectId: input.linkedEffectId ?? null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: ENCOUNTER_ID,

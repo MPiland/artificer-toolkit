@@ -10,6 +10,7 @@ import type { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-run
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import type { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import type { prepareNativeActionEffectsPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { linkedRiderPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { prepareActiveRuleEffectRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import {
@@ -158,7 +159,7 @@ export function planNativeLiveEncounterSettlement(input: {
     input.recurringEffectId
   )
   const riderEffect = create(
-    effects.riderEffect,
+    linkedRiderPlan(effects.riderEffect, recurringEffect),
     effects.riderMaintained ? maintainedState?.id : undefined
   )
   // The effect of the reaction the target used lands on the target after the attack's own effects.

@@ -72,9 +72,11 @@ export function compileEffectGraph(
   return graph.value
 }
 
-type EffectPlan = {
+export type EffectPlan = {
   definition: ReturnType<typeof activeRuleEffectDefinitionDtoSchema.parse>
   lifecycle: ReturnType<typeof activeRuleEffectLifecycleDtoSchema.parse>
+  /** Set on a rider that ends with the recurring effect that created it (D172); `linkedEffectId` is set at creation. */
+  linksToPrimary?: true
 }
 
 /** Builds immutable effect definitions from one already-completed Encounter action. */
@@ -160,21 +162,25 @@ export function prepareEncounterActionEffectPlans(input: {
       : plan?.repeatCarrier
         ? prepareRepeatCarrierEffect(input)
         : plan && rider
-          ? prepareRecurringActiveEffect({
-              ...input,
-              activeEffectPlan: {
-                ...plan,
-                compiledEntryId: rider.compiledEntryId,
-                frozenGraphNodeId: rider.frozenGraphNodeId,
-                conditionContributions: rider.conditionContributions,
-                lifecycle: {
-                  consumeOnFirstEvents: [],
-                  endOnEvents: [],
-                  endOnTriggers: rider.lifecycle.endOnTriggers
-                },
-                marginRider: null
-              }
-            })
+          ? withPrimaryLink(
+              prepareRecurringActiveEffect({
+                ...input,
+                activeEffectPlan: {
+                  ...plan,
+                  compiledEntryId: rider.compiledEntryId,
+                  frozenGraphNodeId: rider.frozenGraphNodeId,
+                  conditionContributions: rider.conditionContributions,
+                  initialRemaining: rider.initialRemaining ?? plan.initialRemaining,
+                  lifecycle: {
+                    consumeOnFirstEvents: [],
+                    endOnEvents: [],
+                    endOnTriggers: rider.lifecycle.endOnTriggers
+                  },
+                  marginRider: null
+                }
+              }),
+              rider.linksToPrimary
+            )
           : null
   const relationshipApplications =
     recurringEffect && input.activeEffectPlan?.actorRelationshipContribution
@@ -190,6 +196,25 @@ export function prepareEncounterActionEffectPlans(input: {
     riderEffect,
     relationshipConditionApplications: relationshipApplications
   }
+}
+
+/**
+ * The rider's plan once the recurring effect it ends with exists (D172): it names that effect, so
+ * whatever ends it ends the rider in the same transaction. Every root that creates both effects
+ * from one action calls this before creating the rider; a rider with no recurring effect to follow
+ * (its target holds none) is created unlinked and lasts its own duration.
+ */
+export function linkedRiderPlan(
+  rider: EffectPlan | null,
+  recurring: { readonly id: string } | null
+): EffectPlan | null {
+  if (!rider?.linksToPrimary || !recurring) return rider
+  const { linksToPrimary: _linked, ...plan } = rider
+  return { ...plan, definition: { ...plan.definition, linkedEffectId: recurring.id } }
+}
+
+function withPrimaryLink(effect: EffectPlan | null, linksToPrimary: boolean) {
+  return effect && linksToPrimary ? { ...effect, linksToPrimary: true as const } : effect
 }
 
 /**
@@ -461,6 +486,7 @@ export function prepareRecurringActiveEffect(
       : plan.initialRemaining
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
+    linkedEffectId: null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,
@@ -753,6 +779,7 @@ export function sourceImmunityEffect(input: {
     throw new EncounterActionEffectPlanError('Encounter source-immunity plan is stale.')
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
+    linkedEffectId: null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: origin.encounterId,
@@ -851,6 +878,7 @@ function prepareTargetStateEffect(
     )
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
+    linkedEffectId: null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,

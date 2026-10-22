@@ -291,6 +291,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
     lifecycle: { schemaVersion: 1, remainingTicks: 3 },
     definition: activeRuleEffectDefinitionDtoSchema.parse({
       schemaVersion: 2,
+      linkedEffectId: null,
       stateContributions: [],
       origin: {
         kind: 'ENCOUNTER',

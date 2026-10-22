@@ -550,7 +550,13 @@ async function evaluateEncounterTurnEffects(input: {
       applications: result.applications,
       dispositions
     })
-    const terminal = result.terminal || damageEnded.has(effect.id)
+    // An effect ends with the one it links to (D172), which an earlier candidate already ended:
+    // effects are made, and so run, in the order they link.
+    const linkedId = effect.definition.linkedEffectId
+    const terminal =
+      result.terminal ||
+      damageEnded.has(effect.id) ||
+      (linkedId !== null && (expired.has(linkedId) || damageEnded.has(linkedId)))
     const settled = {
       ...result,
       terminal,

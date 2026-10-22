@@ -28,8 +28,6 @@ import type {
   ActorRelationshipAuthored,
   HitPointMaximumReductionAuthored,
   OptionalOnHitAuthored,
-  FailureMarginRiderAuthored,
-  PathLifecycleAuthored,
   FollowUpSaveRepeatTriggerAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
@@ -48,7 +46,6 @@ import type {
   CharacterRuleActionPositionalFacts
 } from '../../characterRuleActionSystemAdapter.js'
 import type {
-  ActiveEffectEndTrigger,
   ActiveEffectRepeatTrigger,
   GrantConsumeEvent,
   GrantEndEvent
@@ -164,6 +161,11 @@ import {
   multipliedDamageAmount
 } from './effectActionContracts.js'
 import { repeatSaveConditionIds, conditionImmunityFacts } from './effectActionEvidenceChecks.js'
+import {
+  canonicalEndTriggers,
+  marginRiderPlan,
+  timedBandConditions
+} from './effectActionBandConditions.js'
 import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
 import {
   effectOutcomeProposalNode,
@@ -1251,7 +1253,6 @@ function timedImmediateConditionPlan(
   const resolved = immediateFollowUpSaveEntries(action.compiledEffect.entries)
   const save = resolved?.saveEntry.outcome
   if (
-    !duration ||
     !resolved ||
     !save ||
     !isImmediateFollowUpSave(save) ||
@@ -1260,19 +1261,29 @@ function timedImmediateConditionPlan(
     save.onDurationComplete
   )
     return null
+  // A band that times its own conditions (D172) has no one duration to share.
+  const band = timedBandConditions(save)
+  if (band && duration) unsupported('D&D a timed band takes no duration from its result block.')
   const failure = save.onFailure
-  const condition = failure.kind === 'OUTCOMES' ? failure.outcomes[0] : undefined
-  const initialRemaining = conditionDurationTurns(duration)
+  const condition = band
+    ? band.primary.condition
+    : failure.kind === 'OUTCOMES'
+      ? failure.outcomes[0]
+      : undefined
+  const initialRemaining = band ? band.primary.turns : duration && conditionDurationTurns(duration)
   const rider = save.failureMarginRider
+  if (band && rider) unsupported('D&D a timed band takes no failure-margin rider.')
   const knownConditionIds = action.conditionDefinitionIds ?? []
   // The duration times the failed save's one condition; any other failure has nothing to time.
   if (
     failure.kind !== 'OUTCOMES' ||
-    failure.outcomes.length !== 1 ||
+    (!band && failure.outcomes.length !== 1) ||
     condition?.effectKind !== 'CONDITION' ||
-    initialRemaining === null ||
+    !initialRemaining ||
     !knownConditionIds.includes(condition.conditionId) ||
     !UUID.test(resolved.saveEntry.resultBlockId) ||
+    (band?.rider &&
+      !knownConditionIds.includes(band.rider.conditionContributions[0]!.conditionId)) ||
     rider?.outcomes.some(({ conditionId }) => !knownConditionIds.includes(conditionId))
   )
     return null
@@ -1293,24 +1304,7 @@ function timedImmediateConditionPlan(
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, resolved.saveEntry),
-    marginRider: rider ? marginRiderPlan(rider) : null
-  }
-}
-
-/** The second active effect a failure-margin rider holds its conditions in. */
-function marginRiderPlan(
-  rider: FailureMarginRiderAuthored
-): NonNullable<CharacterRuleActionActiveEffectPlan['marginRider']> {
-  return {
-    compiledEntryId: rider.id,
-    frozenGraphNodeId: 'rider-condition-duration',
-    failedBy: rider.failedBy,
-    conditionContributions: rider.outcomes.map((outcome) => ({
-      conditionId: outcome.conditionId,
-      recordsSource: outcome.recordsSource === true,
-      fleesSource: outcome.fleesSource === true
-    })),
-    lifecycle: { endOnTriggers: canonicalEndTriggers(rider.lifecycle.endOnTriggers ?? []) }
+    marginRider: band ? band.rider : rider ? marginRiderPlan(rider) : null
   }
 }
 
@@ -1568,28 +1562,6 @@ const GRANT_END_TRIGGER_EVENTS: ReadonlySet<string> = new Set([
   'ATTACK_ROLL',
   'SPELL_CAST'
 ])
-
-/** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
-function canonicalEndTriggers(
-  triggers: NonNullable<PathLifecycleAuthored['endOnTriggers']>
-): ActiveEffectEndTrigger[] {
-  const compiled = triggers.map((trigger): ActiveEffectEndTrigger => {
-    if (trigger.event === 'ACTION_USED_ON_HOLDER')
-      return {
-        event: trigger.event,
-        actionDefinitionIds: [...new Set(trigger.actionDefinitionIds)].sort()
-      }
-    if (trigger.event !== 'DAMAGE_TAKEN') return trigger
-    const { event, by, damageTypeIds } = trigger
-    return {
-      event,
-      by,
-      damageTypeIds: damageTypeIds?.length ? [...new Set(damageTypeIds)].sort() : null
-    }
-  })
-  const keyed = new Map(compiled.map((trigger) => [JSON.stringify(trigger), trigger]))
-  return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
-}
 
 /** The authored repeat triggers as the stored effect carries them: filters explicit, canonical order. */
 function canonicalRepeatTriggers(

@@ -1439,8 +1439,29 @@ one more condition applied when the save fails by `failedBy` or more. The compil
 plan carries `marginRider` (required, nullable) with its own `rider-condition-duration` node. The
 encounter planner then creates a second active effect, the rider's, with the parent's duration and the
 rider's own end triggers, so waking (`DAMAGE_TAKEN`, `ACTION_USED_ON_HOLDER`) ends it and leaves the
-parent condition. A receipt may therefore carry two active-effect transitions. The rider is not linked to
-the parent: ending the parent early leaves the rider for the GM to end. A follow-up save takes a rider, and so does the fixed `ON_SAVE_FAIL` result of a direct saving-throw action (SPELLS-33.T7b, D156): `failureMarginRider` on the result block ("fails by 5 or more, also paralyzed"). The TEST total is not in the OUTCOME graph, so the specializer derives `saveFailedBy` (DC minus total) from the TEST outputs (`testOutputs` on `specializeOutcomeTemplate`) and appends one result group per rider outcome only when the margin is met. `marginRiderPlan` builds the rider's second active effect for both the follow-up and the direct-save plans, and the rider applies only when one of its conditions lands. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author the follow-up form; the Mummy and Mummy Lord Dreadful Glare author the direct-save form with SOURCE_IMMUNITY. Limitation: that immunity is per source, so a save against one mummy does not make the target immune to other mummies (SRD text covers all mummies).
+parent condition. A receipt may therefore carry two active-effect transitions. A margin rider is not linked to
+the parent (a timed band's rider is, below). A follow-up save takes a rider, and so does the fixed `ON_SAVE_FAIL` result of a direct saving-throw action (SPELLS-33.T7b, D156): `failureMarginRider` on the result block ("fails by 5 or more, also paralyzed"). The TEST total is not in the OUTCOME graph, so the specializer derives `saveFailedBy` (DC minus total) from the TEST outputs (`testOutputs` on `specializeOutcomeTemplate`) and appends one result group per rider outcome only when the margin is met. `marginRiderPlan` builds the rider's second active effect for both the follow-up and the direct-save plans, and the rider applies only when one of its conditions lands. SRD Drow Hand Crossbow, Pseudodragon Sting and Sprite Shortbow author the follow-up form; the Mummy and Mummy Lord Dreadful Glare author the direct-save form with SOURCE_IMMUNITY. Limitation: that immunity is per source, so a save against one mummy does not make the target immune to other mummies (SRD text covers all mummies).
+
+**Timed conditions in a band (current, SPELLS-33.T4i3e, D172; supersedes D149's no-link note for this form).** A
+gated or plain failure band of an immediate `FOLLOW_UP_SAVE` may time its `CONDITION` outcomes: each carries
+its own `duration`, and one may carry `endsWithOutcomeId` naming a sibling condition of the same band that it
+lasts only while. `timedBandConditions` (`systems/dnd5e/effectActionBandConditions.ts`) validates the band and
+the compiler plans the first condition as the recurring effect and the linked one as `marginRider` with
+`linksToPrimary: true` and its own `initialRemaining`. Compile refuses by name a timing outside the failure
+band, a band half timed, more than two timed conditions, a self-link, a link to anything but a sibling
+condition of the band, and two conditions that end with each other. Roots create the rider through one
+function, `linkedRiderPlan` (`encounterActionEffectPlans.ts`), which sets the required-nullable
+`linkedEffectId` of the stored definition to the recurring effect created beside it (the worker settlement,
+area, legendary and movement-reaction roots; a test reads each root to prove it). Ending an effect ends the
+effects linked to it, transitively, in the same transaction and receipt: `discoverEncounterEventHooks` adds
+them to `ended` (`withLinkedDependents`, `activeEffectLinks.ts`), so every event-hook end seam (damage taken,
+action used on the holder, attack hit, the end of a hold, a spent saving throw, regained hit points) releases
+both conditions, and undo restores the ended records as it does any ended effect. The turn kernel expires a
+linked effect at its own boundary once the effect it links to expired or was ended by damage; effects run in
+`createdOrdinal` order, so the primary runs first. Sheet ends (holder or GM ends of a grant) never link, so they
+need no cascade. Out of scope (future-enhancements): a cure or a GM condition edit that removes the primary
+condition does not end the rider. The SRD Giant Centipede authors poisoned for 1 hour and paralyzed while
+poisoned this way.
 
 **Initiative restores (current, SPELLS-31.T5o).** A PASSIVE effect with `triggerCode: ROLL_INITIATIVE` (path code
 `PASSIVE`) and a `RESTORE_RESOURCE { chargeId, floor, whenAtOrBelow }` outcome raises a feature charge when its
