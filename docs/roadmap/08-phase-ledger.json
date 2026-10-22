@@ -4151,7 +4151,7 @@
             },
             {
               "id": "RULES-2.T9i",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4161,9 +4161,8 @@
                 "after": ["SPELLS-31.T5p"]
               },
               "text": "Rename System-specific core code naming: systemVocabularyRegistry becomes systemCoreCodeRegistry, platformSystemVocabulary becomes platformSystemCoreCodes, and the other names the inventory maps (about 90 files, mechanical). SystemVocabularySnapshot and other true vocabulary names keep \"vocabulary\".",
-              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39852380115"
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343). Merged in m353.",
+              "mergedAt": "2026-10-22T20:51:24Z"
             },
             {
               "id": "RULES-2.T9j",
