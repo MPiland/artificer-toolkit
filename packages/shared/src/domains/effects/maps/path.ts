@@ -1514,10 +1514,9 @@ const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_LIFECYCLE_NODE_MAP =
   followUpSaveFailureMarginRiderLifecycle.define(
     'followUpSaveFailureMarginRiderLifecycle',
     ({ map, nodes }) => {
-      const { groupArray } = nodes
       map.set(
         'endOnTriggers',
-        groupArray(['endOnTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
+        nodes.groupArray(['endOnTriggers'], 'End On', () => PATH_LIFECYCLE_END_TRIGGER_NODE_MAP, {
           presentation: 'inline'
         })
       )
@@ -1527,7 +1526,7 @@ const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_LIFECYCLE_NODE_MAP =
 const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP = followUpSaveFailureMarginRider.define(
   'followUpSaveFailureMarginRider',
   ({ map, nodes }) => {
-    const { number, groupArray, groupObject } = nodes
+    const { number, text, groupArray, groupObject } = nodes
     map
       .set(
         'failedBy',
@@ -1543,6 +1542,7 @@ const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP = followUpSaveFailureMarginRi
           requiredIf: true
         })
       )
+      .set('endsWithOutcomeId', text(['endsWithOutcomeId'], 'Ends With Condition Outcome ID'))
       .set(
         'lifecycle',
         groupObject(

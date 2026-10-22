@@ -4,7 +4,10 @@ import { describe, expect, it } from 'vitest'
 
 import { withLinkedDependents } from '../activeEffectLinks.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
-import { timedBandConditions } from '../systems/dnd5e/effectActionBandConditions.js'
+import {
+  marginRiderPlan,
+  timedBandConditions
+} from '../systems/dnd5e/effectActionBandConditions.js'
 import { ENCOUNTER_ID, srdCondition, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 
@@ -143,6 +146,27 @@ describe('timedBandConditions (SPELLS-33 T4i3e)', () => {
           .onFailure
       })
     ).toThrow(/belong to the band of the save/)
+  })
+})
+
+describe('marginRiderPlan (SPELLS-33 T4i3f)', () => {
+  const rider = (endsWithOutcomeId?: string) => ({
+    id: SECOND,
+    failedBy: 5,
+    ...(endsWithOutcomeId ? { endsWithOutcomeId } : {}),
+    outcomes: [condition(THIRD, PARALYZED, {})],
+    lifecycle: {}
+  })
+
+  it('links a rider to the one condition it names, and leaves any other rider unlinked', () => {
+    expect(marginRiderPlan(rider(FIRST), FIRST).linksToPrimary).toBe(true)
+    expect(marginRiderPlan(rider(), FIRST).linksToPrimary).toBe(false)
+    expect(marginRiderPlan(rider()).linksToPrimary).toBe(false)
+  })
+
+  it('refuses a link to anything but the save’s one condition, by name', () => {
+    expect(() => marginRiderPlan(rider(THIRD), FIRST)).toThrow(/ends with the one condition/)
+    expect(() => marginRiderPlan(rider(FIRST))).toThrow(/ends with the one condition/)
   })
 })
 

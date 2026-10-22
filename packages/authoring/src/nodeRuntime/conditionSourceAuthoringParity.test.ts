@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { adultRedDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-red-dragon.js'
+import { drow } from '@artificer-toolkit/source-data/srd/creatures/drow.js'
 import { giantCentipede } from '@artificer-toolkit/source-data/srd/creatures/giant-centipede.js'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { awaken } from '@artificer-toolkit/source-data/srd/spells/awaken.js'
@@ -179,5 +180,17 @@ describe('a timed condition in a gated band (SPELLS-33 T4i3e, D172)', () => {
         endsWithOutcomeId
       }))
     ).toEqual(timed.map(({ duration, endsWithOutcomeId }) => ({ duration, endsWithOutcomeId })))
+  })
+})
+
+describe('a failure-margin rider that ends with its save’s condition (SPELLS-33 T4i3f, D172)', () => {
+  it('keeps the Drow’s sleep naming the poison it ends with, as authored', async () => {
+    const [save] = outcomesOf(drow, 'FOLLOW_UP_SAVE')
+    expect(save?.failureMarginRider).toMatchObject({ endsWithOutcomeId: expect.any(String) })
+    const result = await normalize('creature', drow)
+    expect(result.clearedPaths).toEqual([])
+    expect(outcomesOf(result.values, 'FOLLOW_UP_SAVE')[0]?.failureMarginRider).toEqual(
+      save?.failureMarginRider
+    )
   })
 })

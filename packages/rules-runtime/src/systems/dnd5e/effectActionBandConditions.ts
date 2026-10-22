@@ -106,16 +106,23 @@ export function canonicalEndTriggers(
   return [...keyed.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, t]) => t)
 }
 
-/** The second active effect a failure-margin rider holds its conditions in. */
+/**
+ * The second active effect a failure-margin rider holds its conditions in. A rider that names the
+ * condition it ends with (`endsWithOutcomeId`, D172) lasts only while that condition, the failed
+ * save's one timed condition, holds; naming anything else is refused.
+ */
 export function marginRiderPlan(
-  rider: FailureMarginRiderAuthored
+  rider: FailureMarginRiderAuthored,
+  primaryOutcomeId?: string
 ): NonNullable<CharacterRuleActionActiveEffectPlan['marginRider']> {
+  if (rider.endsWithOutcomeId !== undefined && rider.endsWithOutcomeId !== primaryOutcomeId)
+    unsupported('D&D a failure-margin rider ends with the one condition its failed save applies.')
   return {
     compiledEntryId: rider.id,
     frozenGraphNodeId: 'rider-condition-duration',
     failedBy: rider.failedBy,
     initialRemaining: null,
-    linksToPrimary: false,
+    linksToPrimary: rider.endsWithOutcomeId !== undefined,
     conditionContributions: rider.outcomes.map((outcome) => ({
       conditionId: outcome.conditionId,
       recordsSource: outcome.recordsSource === true,

@@ -1311,7 +1311,7 @@ function timedImmediateConditionPlan(
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, resolved.saveEntry),
-    marginRider: band ? band.rider : rider ? marginRiderPlan(rider) : null
+    marginRider: band ? band.rider : rider ? marginRiderPlan(rider, condition.id) : null
   }
 }
 
