@@ -364,7 +364,8 @@ function rageEffect(): EffectAuthored {
       id: classRowId(B, 0x84, 7),
       valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
       domain: { ability: ABILITY_CODE.STRENGTH },
-      modifierKind: MODIFIER_KIND.ADVANTAGE,
+      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+      payload: { influence: 'ADVANTAGE' },
       order: 6,
       restrictions: noHeavyArmorRestriction(3)
     },
@@ -373,7 +374,8 @@ function rageEffect(): EffectAuthored {
       id: classRowId(B, 0x84, 8),
       valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
       domain: { ability: ABILITY_CODE.STRENGTH },
-      modifierKind: MODIFIER_KIND.ADVANTAGE,
+      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+      payload: { influence: 'ADVANTAGE' },
       order: 7,
       restrictions: noHeavyArmorRestriction(4)
     }
@@ -780,7 +782,8 @@ export const barbarian: ClassAuthored = {
             grantKind: GRANT_KIND.MODIFIER_GRANT,
             valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
             domain: { ability: ABILITY_CODE.DEXTERITY, requiresHolderSeesSource: true },
-            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+            payload: { influence: 'ADVANTAGE' },
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             order: 0,
@@ -863,7 +866,8 @@ export const barbarian: ClassAuthored = {
             grantKind: GRANT_KIND.MODIFIER_GRANT,
             valueDomainCode: VALUE_DOMAIN_CODE.INITIATIVE,
             domain: {},
-            modifierKind: MODIFIER_KIND.ADVANTAGE,
+            modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+            payload: { influence: 'ADVANTAGE' },
             scope: MODIFIER_SCOPE_KIND.GLOBAL,
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             order: 0

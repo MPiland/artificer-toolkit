@@ -215,7 +215,8 @@ describe('canonical Convex import preparation', () => {
     expect(modifier).toMatchObject({
       valueDomainCode: 'SAVING_THROW_MODIFIER',
       domain: { ability: ABILITY_CODE.DEXTERITY, requiresHolderSeesSource: true },
-      modifierKind: 'ADVANTAGE',
+      modifierKind: 'ROLL_INFLUENCE',
+      payload: { influence: 'ADVANTAGE' },
       scope: 'GLOBAL'
     })
     expect(

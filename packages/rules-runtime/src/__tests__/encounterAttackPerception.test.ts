@@ -56,7 +56,8 @@ const dodgeAgainst = {
   requiresHolderSeesAttacker: true,
   exemptAttackerSenseDefinitionIds: [],
   eventScope: { actorId: null, turnActorId: null },
-  contributor: dodge
+  contributor: dodge,
+  suppressedInfluence: null
 }
 
 /** A +5 ranged Quill Volley from a senseless Wolf-based Creature at another one. */
@@ -268,7 +269,12 @@ describe('encounter attack perception: attack rolls (SRD unseen attacker and tar
  * an attack made on that occasion.
  */
 describe('encounter attacks against: negated advantage and attack occasion', () => {
-  const negateAgainst = { ...dodgeAgainst, requiresHolderSeesAttacker: false, contributor: null }
+  const negateAgainst = {
+    ...dodgeAgainst,
+    requiresHolderSeesAttacker: false,
+    contributor: null,
+    suppressedInfluence: 'ADVANTAGE'
+  }
   const opportunityAgainst = {
     ...dodgeAgainst,
     requiresHolderSeesAttacker: false,

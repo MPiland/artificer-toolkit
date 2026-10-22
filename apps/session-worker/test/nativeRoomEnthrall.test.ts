@@ -61,7 +61,8 @@ describe('room Enthrall (SPELLS-4.T2k1)', () => {
           modifiers: [
             {
               valueDomainCode: 'SKILL_MODIFIER',
-              modifierKind: 'DISADVANTAGE',
+              modifierKind: 'ROLL_INFLUENCE',
+              payload: { influence: 'DISADVANTAGE' },
               domain: { skillId: SRD_PERCEPTION_SKILL_ID }
             }
           ]

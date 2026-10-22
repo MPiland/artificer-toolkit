@@ -9,6 +9,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * SPELLS-33.T7b (D156): a direct saving throw's failed result may carry a failure margin rider
@@ -17,7 +18,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * rules.
  */
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 
 function normalize(mapId: 'equipment' | 'creature', values: unknown) {
   return normalizeNodeRuntimeValues(reader, {

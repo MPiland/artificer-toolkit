@@ -329,11 +329,15 @@ export function evaluateDnd5e2014CharacterGrantFold(
         drawnSourceState(modifier, sourceState)
       )
       if (deferredRequirements === null) continue
-      const domainKey = buildModifierDomainKey(
-        modifier.valueDomainCode,
-        modifier.modifierKind,
-        modifier.domain
-      )
+      // A roll influence's code is part of its group, so advantage and disadvantage never merge.
+      const influence =
+        modifier.payload !== undefined && 'influence' in modifier.payload
+          ? modifier.payload.influence
+          : undefined
+      const domainKey = buildModifierDomainKey(modifier.valueDomainCode, modifier.modifierKind, {
+        ...modifier.domain,
+        influence
+      })
       const accepted: Modifier = {
         domainKey,
         grantId: modifier.grantId,

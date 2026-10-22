@@ -311,6 +311,14 @@ must match the faces the roll mode keeps."). A pending d20 request (`D20_EVIDENC
 its top level) carries `rollModes`, the `{ code, label, keep }` entries of `rollModeCapabilityRegistry.
 offeredRollModes(gameSystemId)` (the System's `rollMode` vocabulary plus the adapter's `keepFor`); the
 web roll picker renders only those entries and keeps no mode table of its own. The D&D passive score (10 plus the modifier, ±5) is the adapter's `passiveScore`.
+Authored roll influence (RULES-2.T9b) is one modifier kind pair: `ROLL_INFLUENCE` and `SUPPRESS_ROLL_INFLUENCE`,
+each with `payload: { influence }` naming a `rollInfluence` code; follow-up saves, active rule effects, actor
+relationships and the `ATTACK_ROLL_MODE` facet (`{ rollMode, negated? }`) carry codes the same way. The node maps
+draw these selects from the `roll_influences` and `roll_modes` sources, which callers inject into
+`createNodeRuntimeSourceReader` from the System's vocabulary, so authoring clears a code outside the list; runtime
+membership is checked where `rollModeCapabilityRegistry` resolves the contributors. A grant's fold group key carries
+its influence (`ATTACK_ROLL:ROLL_INFLUENCE|attackDomain=MELEE|influence=ADVANTAGE`), and a grant's listing polarity
+follows the face the System keeps under its influence.
 **Transitional (until RULES-2.T9a2):** the shared dice evaluator, roll evidence `mode`, manual and
 Campaign roll input, the held d20 and the `D20_MODE_ADJUSTED` record still use the D&D mode codes.
 **System capability registries (RULES-2.T11a–g, current).** Every System capability is one
@@ -1525,10 +1533,10 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (Blur: Blindsight, Truesight). A `TEST` whose only outcome is an `APPLY_GRANT` on its failed-save path compiles a
   result-gated grant plan (`saveFailureGrantPlan`, adapter fact `dnd5e.grant-authored-path`) and no OUTCOME graph, like
   `creatureFormPlan`: each creature that fails holds the grant (Enthrall).
-- **Negated advantage and attack occasions (SPELLS-31.T4k2a, D156).** An `ATTACKS_AGAINST` `NEGATE_ADVANTAGE`
-  modifier (Elusive) carries no contributor: while it holds, the sight contributors drop `ADVANTAGE` and preparation
-  publishes `attackAdvantageNegated`, so the compiler drops every advantage from the final attack roll, the attacker's
-  own grants and flanking included. An optional `attackOccasion` (`OPPORTUNITY`, Escape the Horde) limits a modifier to
+- **Suppressed roll influence and attack occasions (SPELLS-31.T4k2a, D156; RULES-2.T9b).** An `ATTACKS_AGAINST`
+  `SUPPRESS_ROLL_INFLUENCE` modifier (Elusive suppresses `ADVANTAGE`) carries no contributor: while it holds, the sight
+  contributors drop that influence and preparation publishes it in `attackSuppressedInfluences`, so the compiler drops
+  every contributor of it from the final attack roll, the attacker's own grants and flanking included. An optional `attackOccasion` (`OPPORTUNITY`, Escape the Horde) limits a modifier to
   attacks made on that occasion; `prepareEncounterActionMechanics` takes the occasion as input, and a movement reaction
   attack is prepared as `OPPORTUNITY`. A Character holder's feature grants come from its grant fold (holder-state
   restrictions such as `CAN_ACT` apply), beside its active effects.

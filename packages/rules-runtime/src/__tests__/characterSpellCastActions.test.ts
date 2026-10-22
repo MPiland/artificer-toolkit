@@ -1057,7 +1057,8 @@ const advantageOn = (id: number, ability: string) => ({
         grantKind: 'MODIFIER_GRANT',
         valueDomainCode: 'ABILITY_CHECK',
         domain: { ability },
-        modifierKind: 'ADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' },
         scope: 'GLOBAL',
         selectionKind: 'GRANTED',
         order: 1
@@ -1277,7 +1278,8 @@ describe('effect-owned temporary hit points and sequential effects (SPELLS-4.T2t
           modifiers: [
             {
               valueDomainCode: 'ABILITY_CHECK',
-              modifierKind: 'ADVANTAGE',
+              modifierKind: 'ROLL_INFLUENCE',
+              payload: { influence: 'ADVANTAGE' },
               domain: { ability: code }
             }
           ]
@@ -2012,7 +2014,8 @@ describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)',
     ).toEqual(
       Array.from({ length: 4 }, () => ({
         valueDomainCode: 'ATTACKS_AGAINST',
-        modifierKind: 'ADVANTAGE'
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' }
       }))
     )
   })
@@ -2438,7 +2441,8 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
     for (const modifier of plan?.modifierGrantContribution?.modifiers ?? [])
       expect(modifier).toMatchObject({
         valueDomainCode: 'ATTACKS_AGAINST',
-        modifierKind: 'DISADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'DISADVANTAGE' },
         domain: {
           requiresHolderSeesAttacker: false,
           exemptAttackerSenseDefinitionIds: [SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID]
@@ -2456,7 +2460,8 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
         modifiers: [
           {
             valueDomainCode: 'SKILL_MODIFIER',
-            modifierKind: 'DISADVANTAGE',
+            modifierKind: 'ROLL_INFLUENCE',
+            payload: { influence: 'DISADVANTAGE' },
             domain: { skillId: SRD_PERCEPTION_SKILL_ID }
           }
         ]
@@ -2481,7 +2486,8 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
     for (const modifier of plan?.modifierGrantContribution?.modifiers ?? [])
       expect(modifier).toMatchObject({
         valueDomainCode: 'ATTACKS_AGAINST',
-        modifierKind: 'ADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' },
         domain: { requiresHolderSeesAttacker: false }
       })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)

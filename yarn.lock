@@ -49,6 +49,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@artificer-toolkit/authoring@workspace:packages/authoring"
   dependencies:
+    "@artificer-toolkit/rules-runtime": "workspace:^"
     "@artificer-toolkit/schema": "workspace:^"
     "@artificer-toolkit/shared": "workspace:^"
     "@artificer-toolkit/source-data": "workspace:^"

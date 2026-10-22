@@ -66,12 +66,14 @@ export const fleshGolem: CreatureAuthored = {
             ...Object.values(S.ATTACK_DOMAIN_CODE).map((attackDomain) => ({
               valueDomainCode: S.VALUE_DOMAIN_CODE.ATTACK_ROLL,
               domain: { attackDomain },
-              modifierKind: S.MODIFIER_KIND.DISADVANTAGE
+              modifierKind: S.MODIFIER_KIND.ROLL_INFLUENCE,
+              payload: { influence: 'DISADVANTAGE' }
             })),
             {
               valueDomainCode: S.VALUE_DOMAIN_CODE.ABILITY_CHECK,
               domain: {},
-              modifierKind: S.MODIFIER_KIND.DISADVANTAGE
+              modifierKind: S.MODIFIER_KIND.ROLL_INFLUENCE,
+              payload: { influence: 'DISADVANTAGE' }
             }
           ]
         )

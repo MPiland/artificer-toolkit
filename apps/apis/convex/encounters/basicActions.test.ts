@@ -193,13 +193,15 @@ const dodgeGrant = {
       modifiers: [
         ...['MELEE', 'RANGED', 'SPELL', 'UNARMED'].map((attackDomain) => ({
           valueDomainCode: 'ATTACKS_AGAINST',
-          modifierKind: 'DISADVANTAGE',
+          modifierKind: 'ROLL_INFLUENCE',
+          payload: { influence: 'DISADVANTAGE' },
           domain: { attackDomain, requiresHolderSeesAttacker: true },
           conditions: dodgeConditions
         })),
         {
           valueDomainCode: 'SAVING_THROW_MODIFIER',
-          modifierKind: 'ADVANTAGE',
+          modifierKind: 'ROLL_INFLUENCE',
+          payload: { influence: 'ADVANTAGE' },
           domain: { ability: 'DEXTERITY' },
           conditions: dodgeConditions
         }

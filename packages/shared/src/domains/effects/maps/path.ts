@@ -1555,17 +1555,15 @@ const FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP = followUpSaveRepeatPerception.d
 
 const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfluence.define(
   'followUpSaveRepeatRollInfluence',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     const { selectSingle, groupObject } = nodes
+    const { table } = data
     map
       .set(
         'influence',
         selectSingle(['influence'], 'Influence', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ADVANTAGE', label: 'Advantage' },
-            { code: 'DISADVANTAGE', label: 'Disadvantage' }
-          ]
+          kind: 'DATA',
+          relationship: table('roll_influences', { selectColumns: ['id', 'label'] })
         })
       )
       .set(
@@ -1610,11 +1608,8 @@ const FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP = followUpSaveRepeatTrigger.define(
       .set(
         'rollInfluence',
         selectSingle(['rollInfluence'], 'Roll Influence', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ADVANTAGE', label: 'Advantage' },
-            { code: 'DISADVANTAGE', label: 'Disadvantage' }
-          ]
+          kind: 'DATA',
+          relationship: table('roll_influences', { selectColumns: ['id', 'label'] })
         })
       )
   }
@@ -1747,7 +1742,10 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
         selectSingle(
           ['influence'],
           'Influence',
-          { kind: 'INLINE_OPTIONS', options: [{ code: 'ADVANTAGE', label: 'Advantage' }] },
+          {
+            kind: 'DATA',
+            relationship: table('roll_influences', { selectColumns: ['id', 'label'] })
+          },
           { showIf: local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE') }
         )
       )
@@ -1834,7 +1832,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
         selectSingle(
           ['whenResolvedAttackD20Mode'],
           'When Attack Mode Is',
-          { kind: 'INLINE_OPTIONS', options: [{ code: 'ADVANTAGE', label: 'Advantage' }] },
+          { kind: 'DATA', relationship: table('roll_modes', { selectColumns: ['id', 'label'] }) },
           { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
         )
       )

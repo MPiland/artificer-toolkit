@@ -57,7 +57,8 @@ export interface FeatureRollDefinitionAuthored {
   label: string
   kind: 'ATTACK' | 'DAMAGE' | 'HEALING' | 'ABILITY_CHECK' | 'SAVING_THROW'
   expression: DiceExpression
-  rollMode?: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  /** A code from the System's roll-mode vocabulary. */
+  rollMode?: string
   chargeCost?: number | null
   order: number
 }
