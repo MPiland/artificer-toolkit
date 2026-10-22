@@ -195,6 +195,17 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       ordinal: receiptOrdinalSchema,
+      kind: z.literal('REVIVE'),
+      /** The hit points the revive restores to a dead target. */
+      hitPoints: z.enum(['ONE', 'MAXIMUM']),
+      /** True when the target was dead and returned to life; false changes nothing. */
+      applied: z.boolean(),
+      beforeCurrentHitPoints: integerSchema.check(z.gte(0)),
+      afterCurrentHitPoints: integerSchema.check(z.gte(0)),
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
       kind: z.literal('KILL_NEGATED'),
       /** The held effect whose damage interception negated the kill; it spent a use. */
       negatedBy: uuidSchema,

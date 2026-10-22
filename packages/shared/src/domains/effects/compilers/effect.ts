@@ -250,6 +250,7 @@ export type CompiledEffectOutcome =
   | CompiledFollowUpCheck
   | import('#authored').MovementRuleAuthored
   | import('#authored').ActionEconomyRuleAuthored
+  | import('#authored').ReviveAuthored
   | import('#authored').StabilizeAuthored
   | import('#authored').KillAuthored
   | ArmorClassFloorAuthored
@@ -371,6 +372,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.ACTION_ECONOMY_RULE:
     case EFFECT_KIND.STABILIZE:
     case EFFECT_KIND.KILL:
+    case EFFECT_KIND.REVIVE:
     case EFFECT_KIND.ARMOR_CLASS_FLOOR:
     case EFFECT_KIND.RESTORE_RESOURCE:
     case EFFECT_KIND.TELEPATHIC_LINK:

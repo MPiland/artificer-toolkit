@@ -116,3 +116,9 @@ The brief says 5. By my count it is closer to 8: `REVIVE` (registry, fold, recei
 3. Disease and curse clauses wait for T2f3 `TAG` (not done here, registered), poison via the shipped `CONDITION` selector. Agree?
 4. Resurrection's caster cost after a year of death stays description-only; no time-of-death field. Agree?
 5. Reincarnate: revive at 1 hit point with the race swap and table kept as `GM_CHOICE` adjudication. Agree?
+
+## Ruling and split (D177)
+
+Option A approved. **T2g1 (this slice, done):** `REVIVE` plus Revivify, Reincarnate (1 hit point) and True Resurrection (maximum); `deathSavesAfterRevive` beside `deathSavesAfterHealing`; the existing mechanics receipt and Undo seam; no new initiative logic. Poison ends through `END_EFFECTS` `CONDITION`; disease and curse wait for T2f3 `TAG`. Eligibility checks and the year-of-death cost stay description-only.
+
+**Moved to T2g2:** `stepDown`, the penalty effect, `ABILITY_CHECK` `PENALTY`, and the rest step-down in sheetRest (True Resurrection's and Resurrection's penalty clauses). RAISE_DEAD and RESURRECTION stay closed kinds until then.

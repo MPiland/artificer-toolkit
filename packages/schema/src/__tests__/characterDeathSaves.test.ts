@@ -4,11 +4,13 @@ import {
   deathSavesAfterDamage,
   deathSavesAfterDeath,
   deathSavesAfterHealing,
+  deathSavesAfterRevive,
   deathSavesAfterRoll,
   deathSavesAfterSheetEdit,
   deathSavesAfterStabilize,
   isCharacterDead,
-  isCharacterDying
+  isCharacterDying,
+  isTargetDead
 } from '../shared/characterDeathSaves.js'
 import { NO_DEATH_SAVES } from '../subjects/characterState.js'
 
@@ -261,5 +263,19 @@ describe('Character death saves (D96)', () => {
         })
       ).toEqual({ successes: 0, failures: 1, stable: false })
     })
+  })
+})
+
+describe('Revival (SPELLS-4.T2g1)', () => {
+  it('clears every death save, even a dead Character', () => {
+    expect(deathSavesAfterRevive()).toEqual(NO_DEATH_SAVES)
+  })
+
+  it('reads a target as dead at 0 hit points with three failures, or with no death saves at all', () => {
+    expect(isTargetDead({ currentHitPoints: 0, deathSaves: dead })).toBe(true)
+    expect(isTargetDead({ currentHitPoints: 0, deathSaves: null })).toBe(true)
+    expect(isTargetDead({ currentHitPoints: 0, deathSaves: dying })).toBe(false)
+    expect(isTargetDead({ currentHitPoints: 0, deathSaves: stable })).toBe(false)
+    expect(isTargetDead({ currentHitPoints: 4, deathSaves: null })).toBe(false)
   })
 })

@@ -477,6 +477,8 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
                 return trace.outputs.conditionId === application.conditionId
               if (application.kind === 'SCALAR_REDUCTION')
                 return trace.outputs.amount === application.reductionAmount
+              if (application.kind === 'REVIVE')
+                return trace.outputs.hitPoints === application.hitPoints
               if (
                 application.kind === 'STABILIZE' ||
                 application.kind === 'KILL' ||

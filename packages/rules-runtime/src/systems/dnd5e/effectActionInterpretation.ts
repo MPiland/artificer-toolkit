@@ -22,6 +22,7 @@ import {
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
+  DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -511,6 +512,7 @@ export function testApplications(
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
+        application.kind === 'REVIVE' ||
         application.kind === 'KILL_NEGATED' ||
         application.kind === 'DEPART'
       )
@@ -660,6 +662,29 @@ export function interpretDirectProposal(
   }
   if (trace.outputs.authorized !== true)
     throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
+  if (trace.operation.key === DND5E_REVIVE_PROPOSAL_OPERATION_KEY) {
+    if (
+      trace.outputs.targetActorId !== input.targetActorId ||
+      (outputs.hitPoints !== 'ONE' && outputs.hitPoints !== 'MAXIMUM') ||
+      trace.outputs.hitPoints !== outputs.hitPoints ||
+      publishedNode.inputs.hitPoints?.kind !== 'LITERAL' ||
+      publishedNode.inputs.hitPoints.value !== outputs.hitPoints
+    )
+      throw new Dnd5eEffectActionCompilerError(
+        'The committed D&D revive proposal trace is invalid.'
+      )
+    return [
+      {
+        kind: 'REVIVE',
+        hitPoints: outputs.hitPoints,
+        targetActorId: input.targetActorId,
+        sourceNodeId: trace.nodeId,
+        sourceOperationKey: trace.operation.key,
+        authoredPath: null,
+        resolvedPath: null
+      }
+    ]
+  }
   const storedKind =
     trace.operation.key === DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
       ? 'STABILIZE'
@@ -1120,6 +1145,7 @@ export function interpretDirect(
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
+        application.kind === 'REVIVE' ||
         application.kind === 'KILL_NEGATED' ||
         application.kind === 'DEPART'
       )

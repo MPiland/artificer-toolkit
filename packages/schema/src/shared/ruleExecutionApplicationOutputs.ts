@@ -3,9 +3,11 @@ import {
   deathSavesAfterDamage,
   deathSavesAfterDeath,
   deathSavesAfterHealing,
+  deathSavesAfterRevive,
   deathSavesAfterStabilize,
   isCharacterDead,
-  isCharacterDying
+  isCharacterDying,
+  isTargetDead
 } from './characterDeathSaves.js'
 import {
   temporaryHitPointsAfterGrant,
@@ -269,6 +271,25 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             temporary = 0
             temporarySource = null
             if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
+            continue
+          }
+          if (application.kind === 'REVIVE') {
+            const dead = isTargetDead({ currentHitPoints: current, deathSaves })
+            const revivedTo = application.hitPoints === 'ONE' ? Math.min(1, maximum) : maximum
+            if (
+              application.beforeCurrentHitPoints !== current ||
+              application.applied !== dead ||
+              application.afterCurrentHitPoints !== (dead ? revivedTo : current)
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['applications', index],
+                message: 'Revive receipt must restore a dead target only.'
+              })
+            if (application.applied) {
+              current = application.afterCurrentHitPoints
+              if (deathSaves !== null) deathSaves = deathSavesAfterRevive()
+            }
             continue
           }
           if (application.kind === 'KILL_NEGATED' || application.kind === 'DEPART') continue

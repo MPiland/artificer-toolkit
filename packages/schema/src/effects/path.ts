@@ -21,6 +21,7 @@ import { movementRuleDtoSchema } from './movementRule.js'
 import { actionEconomyRuleDtoSchema } from './actionEconomyRule.js'
 import { stabilizeDtoSchema } from './stabilize.js'
 import { killDtoSchema } from './kill.js'
+import { reviveDtoSchema } from './revive.js'
 import { armorClassFloorDtoSchema } from './armorClassFloor.js'
 import { restoreResourceDtoSchema } from './restoreResource.js'
 import { telepathicLinkDtoSchema } from './telepathicLink.js'
@@ -93,6 +94,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actionEconomyRuleDtoSchema,
             stabilizeDtoSchema,
             killDtoSchema,
+            reviveDtoSchema,
             armorClassFloorDtoSchema,
             restoreResourceDtoSchema,
             telepathicLinkDtoSchema,
@@ -126,6 +128,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actionEconomyRuleDtoSchema,
             stabilizeDtoSchema,
             killDtoSchema,
+            reviveDtoSchema,
             armorClassFloorDtoSchema,
             restoreResourceDtoSchema,
             telepathicLinkDtoSchema,

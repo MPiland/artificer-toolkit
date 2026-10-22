@@ -16,6 +16,20 @@ export function isCharacterDead(deathSaves: CharacterDeathSaves): boolean {
   return deathSaves.failures >= DEATH_SAVE_LIMIT
 }
 
+/**
+ * Dead: a Character with three failed death saves at 0 hit points, or any other target (death saves
+ * null) at 0 hit points. The one condition a revive acts on.
+ */
+export function isTargetDead(target: {
+  currentHitPoints: number
+  deathSaves: CharacterDeathSaves | null
+}): boolean {
+  return (
+    target.currentHitPoints === 0 &&
+    (target.deathSaves === null || isCharacterDead(target.deathSaves))
+  )
+}
+
 /** Dying: at 0 hit points, neither stable nor dead. */
 export function isCharacterDying(
   deathSaves: CharacterDeathSaves,
@@ -69,6 +83,11 @@ export function deathSavesAfterHealing(input: {
   return input.appliedAmount > 0 && !isCharacterDead(input.deathSaves)
     ? NO_DEATH_SAVES
     : input.deathSaves
+}
+
+/** A revived Character starts over: the death saves clear, whatever count the death left. */
+export function deathSavesAfterRevive(): CharacterDeathSaves {
+  return NO_DEATH_SAVES
 }
 
 /**

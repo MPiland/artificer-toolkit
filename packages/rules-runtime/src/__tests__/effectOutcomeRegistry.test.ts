@@ -87,6 +87,7 @@ const PATH_GATED_OUTCOMES: readonly [Dnd5eRegisteredOutcome, string | null][] = 
   ],
   [{ kind: 'STABILIZE' }, 'STABILIZE'],
   [{ kind: 'KILL' }, 'KILL'],
+  [{ kind: 'REVIVE', hitPoints: 'ONE' }, 'REVIVE'],
   [{ kind: 'DEPART' }, 'DEPART'],
   [{ kind: 'MANUAL_ADJUDICATION' }, null],
   [{ kind: 'ADD_SPEED_TO_MOVEMENT' }, null],

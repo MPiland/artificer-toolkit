@@ -18,6 +18,7 @@ import {
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
+  DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
   DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
@@ -141,6 +142,15 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
       pathGated: true,
       changesTargetState: true
     }),
+    REVIVE: {
+      ...targetOnly(DND5E_REVIVE_PROPOSAL_OPERATION_KEY, {
+        pathGated: true,
+        changesTargetState: true,
+        targetPrecondition: 'DEAD'
+      }),
+      payloadInputs: (outcome) => ({ hitPoints: literal(outcome.hitPoints) }),
+      payloadOutputs: ['hitPoints']
+    },
     DEPART: targetOnly(DND5E_DEPART_PROPOSAL_OPERATION_KEY, {
       pathGated: true,
       changesTargetState: true
@@ -244,9 +254,10 @@ export function dnd5eTargetOnlyOutcome(
   outcome: Dnd5eAuthoredOutcome
 ): Extract<
   Outcome,
-  { kind: 'STABILIZE' | 'DEPART' | 'MANUAL_ADJUDICATION' | 'ADD_SPEED_TO_MOVEMENT' }
+  { kind: 'STABILIZE' | 'REVIVE' | 'DEPART' | 'MANUAL_ADJUDICATION' | 'ADD_SPEED_TO_MOVEMENT' }
 > | null {
   if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
+  if (outcome.effectKind === 'REVIVE') return { kind: 'REVIVE', hitPoints: outcome.hitPoints }
   // The target leaves the Scene for a place the table does not model; the commit marks it as
   // departed (D128) and a Scene-bound destination waits for the movement service.
   if (

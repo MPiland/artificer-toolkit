@@ -7,10 +7,12 @@ import {
   deathSavesAfterDamage,
   deathSavesAfterDeath,
   deathSavesAfterHealing,
+  deathSavesAfterRevive,
   deathSavesAfterRoll,
   deathSavesAfterStabilize,
   isCharacterDead,
   isCharacterDying,
+  isTargetDead,
   type CharacterDeathSaves
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
@@ -354,6 +356,28 @@ export function foldCharacterMechanicsApplications<
       temporary = 0
       temporarySource = null
       if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
+      continue
+    }
+    if (application.kind === 'REVIVE') {
+      // Only a dead target returns to life; any other target changes nothing.
+      const applied = isTargetDead({ currentHitPoints: current, deathSaves })
+      const beforeCurrentHitPoints = current
+      if (applied) {
+        current = application.hitPoints === 'ONE' ? Math.min(1, maximum) : maximum
+        if (deathSaves !== null) deathSaves = deathSavesAfterRevive()
+      }
+      receipt.push({
+        ordinal,
+        kind: 'REVIVE',
+        hitPoints: application.hitPoints,
+        applied,
+        beforeCurrentHitPoints,
+        afterCurrentHitPoints: current,
+        sourceNodeId: application.sourceNodeId,
+        sourceOperationKey: application.sourceOperationKey,
+        authoredPath: application.authoredPath,
+        resolvedPath: application.resolvedPath
+      })
       continue
     }
     if (application.kind === 'DEPART') {

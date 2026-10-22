@@ -454,6 +454,17 @@ export interface CharacterKillOutcomeApplication {
   targetActorId: string
 }
 
+/** A System-authorized revive: a dead target returns to life with 1 hit point or its maximum; any other target is unchanged. */
+export interface CharacterReviveOutcomeApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'REVIVE'
+  targetActorId: string
+  hitPoints: 'ONE' | 'MAXIMUM'
+}
+
 /** A kill a held damage interception negated: nothing changes, and the interception's use is spent. */
 export interface CharacterKillNegatedOutcomeApplication {
   sourceNodeId: string
@@ -521,6 +532,7 @@ export type CharacterRuleActionApplication =
   | CharacterTemporaryHitPointsReleaseApplication
   | CharacterStabilizeOutcomeApplication
   | CharacterKillOutcomeApplication
+  | CharacterReviveOutcomeApplication
   | CharacterKillNegatedOutcomeApplication
   | CharacterDepartOutcomeApplication
   | CharacterHitPointMaximumReductionApplication

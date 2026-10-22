@@ -65,8 +65,8 @@ export const revivify: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.REVIVIFY, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'REVIVIFY' as const
+                effectKind: EFFECT_KIND.REVIVE,
+                hitPoints: 'ONE' as const
               },
               {
                 id: spellChildId(SPELL_IDS.REVIVIFY, 0x212, 1),

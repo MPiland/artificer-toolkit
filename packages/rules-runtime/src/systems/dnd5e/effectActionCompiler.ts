@@ -2461,6 +2461,7 @@ const DND5E_DIRECT_OUTCOMES: {
   },
   KILL: () => ({ kind: 'KILL' }),
   STABILIZE: targetOnlyDirectOutcome,
+  REVIVE: targetOnlyDirectOutcome,
   MANUAL_ADJUDICATION: targetOnlyDirectOutcome,
   MOVEMENT_RULE: targetOnlyDirectOutcome,
   TELEPORT: (outcome, input) => {
