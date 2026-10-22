@@ -71,3 +71,14 @@ describe('spell slot pool vocabulary', () => {
     ).toThrow('The Game System does not define the spell slot pool "ARCANE_BOON".')
   })
 })
+
+describe('spell slot pool recovery (RULES-2.T9p)', () => {
+  it('names the Pact pool as the one a short rest refills', () => {
+    expect(
+      systemCoreCodeRegistry
+        .entries(DND5E_SYSTEM_ID, 'spellSlotPool')
+        .filter((pool) => pool.recoversOnShortRest)
+        .map(({ code }) => code)
+    ).toEqual(['PACT'])
+  })
+})

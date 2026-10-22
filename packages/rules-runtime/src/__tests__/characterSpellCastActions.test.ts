@@ -661,6 +661,7 @@ describe('what a leveled cast carries into the Encounter action', () => {
         {
           ...policy.spellSlots,
           pactMagic: {
+            poolCode: 'PACT',
             sourceClassId: 'warlock',
             slots: 2,
             level: 3,
@@ -721,6 +722,7 @@ describe('a cast paid from a spell-source pool', () => {
       resourceOwnerKey: poolId
     })
   const pactMagic = {
+    poolCode: 'PACT',
     sourceClassId: 'warlock',
     slots: 2,
     level: 3,

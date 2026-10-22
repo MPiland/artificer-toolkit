@@ -12,7 +12,12 @@ export const DND5E_ROLL_MODES = [
 ] as const
 
 /** The slot pools a spell grant's `slotCost` may name, beside the slot of the cast's own level. */
-export const DND5E_SPELL_SLOT_POOLS = [{ code: 'PACT', label: 'Pact Magic' }] as const
+export const DND5E_SPELL_SLOT_POOLS = [
+  { code: 'PACT', label: 'Pact Magic', recoversOnShortRest: true }
+] as const
+
+/** The pool a Pact caster's slots draw from. */
+export const DND5E_PACT_POOL_CODE = DND5E_SPELL_SLOT_POOLS[0].code
 
 export type Dnd5eRollInfluence = (typeof DND5E_ROLL_INFLUENCES)[number]['code']
 export type Dnd5eRollMode = (typeof DND5E_ROLL_MODES)[number]['code']
