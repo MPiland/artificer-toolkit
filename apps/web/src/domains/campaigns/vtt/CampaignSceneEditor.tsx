@@ -19,7 +19,7 @@ import {
   isFogTool,
   type CampaignVttToolDefinition
 } from './CampaignVttStage.model'
-import { CampaignSceneLootEditor } from './CampaignSceneLootEditor'
+import { CampaignLootEditor } from '../loot/CampaignLootEditor'
 import { CampaignSceneObjectInspector } from './CampaignSceneObjectInspector'
 import { SceneObjectCreator } from './SceneObjectCreator'
 import * as preparationStyles from './CampaignScenePreparation.css'
@@ -362,10 +362,10 @@ export function CampaignSceneEditor({
           onFocus={(point) => renderer.current?.focusPoint(point)}
         />
       </div>
-      <CampaignSceneLootEditor
-        campaignId={campaignId}
+      <CampaignLootEditor
         gameSystemId={gameSystemId}
-        sceneId={scene.id}
+        owner={{ kind: 'SCENE', campaignId, sceneDefinitionId: scene.id }}
+        subject='Scene'
       />
     </section>
   )

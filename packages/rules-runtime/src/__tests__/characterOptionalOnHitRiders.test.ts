@@ -84,10 +84,7 @@ describe('an optional on-hit rider joins the weapon hit only when chosen (D123)'
       rolls: [HIT, 3, ...Array.from({ length: count }, () => 0)],
       smite: { castLevel }
     })
-    expect(outcomeDice(execution).hit).toEqual([
-      'd8',
-      ...Array.from({ length: count }, () => 'd8')
-    ])
+    expect(outcomeDice(execution).hit).toEqual(['d8', ...Array.from({ length: count }, () => 'd8')])
   })
 
   it('doubles the rider dice on a critical hit', async () => {

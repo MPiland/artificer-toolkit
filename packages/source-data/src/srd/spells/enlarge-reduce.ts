@@ -46,14 +46,14 @@ const sizeChanges = [
     description:
       'The target grows one size category, has advantage on Strength checks and Strength saving throws, and its weapon attacks deal 1d4 extra damage.',
     sign: ROLLED_DIE_SIGN.ADD,
-    rollMode: MODIFIER_KIND.ADVANTAGE
+    influence: 'ADVANTAGE'
   },
   {
     label: 'Reduce',
     description:
       'The target shrinks one size category, has disadvantage on Strength checks and Strength saving throws, and its weapon attacks deal 1d4 less damage.',
     sign: ROLLED_DIE_SIGN.SUBTRACT,
-    rollMode: MODIFIER_KIND.DISADVANTAGE
+    influence: 'DISADVANTAGE'
   }
 ] as const
 export const enlargeReduce: SpellAuthored = {
@@ -137,13 +137,15 @@ export const enlargeReduce: SpellAuthored = {
                         ...grant,
                         valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
                         domain: { ability: ABILITY_CODE.STRENGTH },
-                        modifierKind: change.rollMode
+                        modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                        payload: { influence: change.influence }
                       },
                       {
                         ...grant,
                         valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
                         domain: { ability: ABILITY_CODE.STRENGTH },
-                        modifierKind: change.rollMode
+                        modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                        payload: { influence: change.influence }
                       }
                     ].map((modifier, grantIndex) => ({
                       id: spellChildId(SPELL_IDS.ENLARGE_REDUCE, 0x224 + index, grantIndex + 1),

@@ -1283,6 +1283,11 @@ export function CampaignTabletopActionDrawer({
                     : ` · ${selectedAction.attackBonus >= 0 ? '+' : ''}${selectedAction.attackBonus} to hit`}
                 </Text>
               ) : null}
+              {selectedAction?.componentsLabel ? (
+                <Text c='dimmed' size='sm'>
+                  Components: {selectedAction.componentsLabel}
+                </Text>
+              ) : null}
               {selectedAction?.warnings.length ? (
                 <List c='dimmed' size='sm'>
                   {selectedAction.warnings.map((warning) => (

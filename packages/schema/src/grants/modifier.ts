@@ -11,6 +11,7 @@ import {
 import { durationDtoSchema } from '../shared/duration.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
 import { rolledDieShape } from '../shared/d20AddedDice.js'
 import { MAX_ROLLED_DIE_COUNT } from '@artificer-toolkit/shared/core'
 import {
@@ -333,6 +334,11 @@ export const incomingAttackGatePayloadDtoSchema = lazySchema(() =>
   })
 )
 
+/** A code from the Game System's roll-influence vocabulary; the System checks it at ingress. */
+export const rollInfluencePayloadDtoSchema = lazySchema(() =>
+  z.strictObject({ influence: systemVocabularyCodeSchema })
+)
+
 /**
  * Dice rolled with a d20 test and added to or subtracted from its total (Bless, Bane). An
  * `AFTER_ROLL` die is offered in the roll's window once the d20 is seen, never rolled with it.
@@ -489,6 +495,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     incomingAttackGatePayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
+    rollInfluencePayloadDtoSchema,
     rolledDiePayloadDtoSchema,
     damageDiePayloadDtoSchema,
     damageResistancePayloadDtoSchema,
@@ -628,10 +635,18 @@ const buildModifierGrantVariants = () =>
       emptyDomainDtoSchema,
       modifierScalarValueDtoSchema
     ),
-    buildModifierGrantVariant('INITIATIVE', 'ADVANTAGE', emptyDomainDtoSchema),
-    buildModifierGrantVariant('INITIATIVE', 'DISADVANTAGE', emptyDomainDtoSchema),
-    buildModifierGrantVariant('ABILITY_CHECK', 'ADVANTAGE', optionalAbilityParamDtoSchema),
-    buildModifierGrantVariant('ABILITY_CHECK', 'DISADVANTAGE', optionalAbilityParamDtoSchema),
+    buildModifierGrantVariant(
+      'INITIATIVE',
+      'ROLL_INFLUENCE',
+      emptyDomainDtoSchema,
+      rollInfluencePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'ABILITY_CHECK',
+      'ROLL_INFLUENCE',
+      optionalAbilityParamDtoSchema,
+      rollInfluencePayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'ABILITY_CHECK',
       'MINIMUM_ROLL',
@@ -669,8 +684,12 @@ const buildModifierGrantVariants = () =>
       savingThrowParamDtoSchema,
       modifierScalarValueDtoSchema
     ),
-    buildModifierGrantVariant('SAVING_THROW_MODIFIER', 'ADVANTAGE', savingThrowParamDtoSchema),
-    buildModifierGrantVariant('SAVING_THROW_MODIFIER', 'DISADVANTAGE', savingThrowParamDtoSchema),
+    buildModifierGrantVariant(
+      'SAVING_THROW_MODIFIER',
+      'ROLL_INFLUENCE',
+      savingThrowParamDtoSchema,
+      rollInfluencePayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'SAVING_THROW_MODIFIER',
       'ADD_BONUS_DIE',
@@ -701,8 +720,12 @@ const buildModifierGrantVariants = () =>
       attackDomainParamDtoSchema,
       optionalAbilityModifierBonusPayloadDtoSchema
     ),
-    buildModifierGrantVariant('ATTACK_ROLL', 'ADVANTAGE', attackRollRollModeParamDtoSchema),
-    buildModifierGrantVariant('ATTACK_ROLL', 'DISADVANTAGE', attackRollRollModeParamDtoSchema),
+    buildModifierGrantVariant(
+      'ATTACK_ROLL',
+      'ROLL_INFLUENCE',
+      attackRollRollModeParamDtoSchema,
+      rollInfluencePayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'ATTACK_ROLL',
       'ADD_BONUS_DIE',
@@ -721,9 +744,18 @@ const buildModifierGrantVariants = () =>
       attackDomainParamDtoSchema,
       modifierScalarValueDtoSchema
     ),
-    buildModifierGrantVariant('ATTACKS_AGAINST', 'ADVANTAGE', attacksAgainstParamDtoSchema),
-    buildModifierGrantVariant('ATTACKS_AGAINST', 'DISADVANTAGE', attacksAgainstParamDtoSchema),
-    buildModifierGrantVariant('ATTACKS_AGAINST', 'NEGATE_ADVANTAGE', attacksAgainstParamDtoSchema),
+    buildModifierGrantVariant(
+      'ATTACKS_AGAINST',
+      'ROLL_INFLUENCE',
+      attacksAgainstParamDtoSchema,
+      rollInfluencePayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'ATTACKS_AGAINST',
+      'SUPPRESS_ROLL_INFLUENCE',
+      attacksAgainstParamDtoSchema,
+      rollInfluencePayloadDtoSchema
+    ),
     buildModifierGrantVariant('ATTACK_TRAIT', 'ENABLE', attackTraitParamDtoSchema),
     buildModifierGrantVariant(
       'WEAPON_DAMAGE_DIE',
@@ -758,8 +790,12 @@ const buildModifierGrantVariants = () =>
       skillParamDtoSchema,
       modifierScalarValueDtoSchema
     ),
-    buildModifierGrantVariant('SKILL_MODIFIER', 'ADVANTAGE', skillParamDtoSchema),
-    buildModifierGrantVariant('SKILL_MODIFIER', 'DISADVANTAGE', skillParamDtoSchema),
+    buildModifierGrantVariant(
+      'SKILL_MODIFIER',
+      'ROLL_INFLUENCE',
+      skillParamDtoSchema,
+      rollInfluencePayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'SKILL_MODIFIER',
       'PENALTY',

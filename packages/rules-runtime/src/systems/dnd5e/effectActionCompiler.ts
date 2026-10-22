@@ -182,6 +182,7 @@ import {
 import {
   DND5E_CANCEL_NEEDS_SPELL_CAST_REACTION,
   dnd5eOutcomeDefinition,
+  dnd5eOutcomeTargetPreconditions,
   dnd5eTargetOnlyOutcome,
   type Dnd5eAuthoredOutcome
 } from './effectActionOutcomes.js'
@@ -3183,12 +3184,10 @@ function supported(
       return { kind: 'CONTEST_RELATIONSHIP' }
     }
   }
-  // Stabilize, conceal and detect settle on a fixed-DC or passive check itself; a contest's win,
-  // and any other success outcome, runs after the check test (D173).
+  // Conceal and detect settle on a fixed-DC or passive check itself; a contest's win, and any other
+  // success outcome, runs after the check test (D173).
   const settlesOnCheck =
-    outcome.effectKind === 'STABILIZE' ||
-    outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' ||
-    outcome.effectKind === 'DETECT_CONCEALED'
+    outcome.effectKind === 'CONCEAL_FROM_OBSERVERS' || outcome.effectKind === 'DETECT_CONCEALED'
   if (contestAction || (checkAction && !settlesOnCheck)) {
     const won = specializedTestOutcome(entry)
     if (
@@ -5185,6 +5184,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         riders.set(entry.optionalRider.riderId, entry.optionalRider.cost)
     return [...riders].map(([riderId, cost]) => ({ riderId, cost }))
   },
+  outcomeTargetPreconditions: ({ effectKinds }) => dnd5eOutcomeTargetPreconditions(effectKinds),
   compileTestTemplate: ({ compilerSource }) => {
     const test = compileDnd5eEffectActionTestTemplate({
       action: dndSourceFromCompilerSource(compilerSource)
@@ -5629,10 +5629,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         positionalFacts,
         sceneContext
       })
-      // A target's grant that negates advantage (Elusive) leaves the attack no advantage at all.
+      // A target's grant that suppresses an influence (Elusive's advantage) leaves the attack none.
+      const suppressed = sourceDerivedFacts.attackSuppressedInfluences
       const allContributors = (flanking ? [...contributors, flanking] : contributors).filter(
-        ({ influence }) =>
-          sourceDerivedFacts.attackAdvantageNegated !== true || influence !== 'ADVANTAGE'
+        ({ influence }) => !Array.isArray(suppressed) || !suppressed.includes(influence)
       )
       allContributors.sort(compareCanonicalD20Contributors)
       const { rollMode } = resolveDnd5eRollMode(allContributors)

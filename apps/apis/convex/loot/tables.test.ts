@@ -1,6 +1,8 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
 import type {
+  LiveLoot,
+  LiveLootInput,
   SaveLootInput,
   LootDocument,
   LootOwner,
@@ -13,6 +15,7 @@ import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publ
 import { createSceneDefinitionFixture, publishScene } from '../../tests/fixtures/sceneDefinitions'
 
 const get = makeFunctionReference<'query', { owner: LootOwner }, LootDocument>('loot/tables:get')
+const live = makeFunctionReference<'query', LiveLootInput, LiveLoot>('loot/tables:live')
 const save = makeFunctionReference<'mutation', SaveLootInput, LootDocument>('loot/tables:save')
 const removeScene = makeFunctionReference<
   'mutation',
@@ -148,10 +151,22 @@ it('loot is deleted with its Scene', async () => {
     base.t.run((ctx) =>
       ctx.db
         .query('lootTables')
-        .withIndex('by_owner', (q) =>
+        .withIndex('by_scene', (q) =>
           q.eq('owner.kind', 'SCENE').eq('owner.sceneDefinitionId', sceneId)
         )
         .collect()
     )
   ).resolves.toEqual([])
+})
+
+it('the live Loot panel reads the Scene tables, and nothing for a Scene with none', async () => {
+  const { base, sceneId, table } = await sceneWithItem()
+  const input = { campaignId: base.campaign.id, sceneDefinitionId: sceneId, encounterId: null }
+  await expect(base.owner.caller.query(live, input)).resolves.toEqual({ documents: [] })
+  const saved = await base.owner.caller.mutation(save, {
+    ...ownerOf(base.campaign.id, sceneId),
+    expectedVersion: 0,
+    tables: [table]
+  })
+  await expect(base.owner.caller.query(live, input)).resolves.toEqual({ documents: [saved] })
 })

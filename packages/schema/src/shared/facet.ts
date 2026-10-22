@@ -34,6 +34,7 @@ import {
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from './authoredLimits.js'
+import { systemVocabularyCodeSchema } from './systemVocabularyCode.js'
 
 export { unknownObjectSchema }
 export const unknownObjectArraySchema = lazySchema(() =>
@@ -249,7 +250,9 @@ const predicatePayloadSchemas = lazySchemaParts(
       }),
       ATTACK_ROLL_MODE: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ROLL_MODE),
-        rollMode: z.enum(['ADVANTAGE', 'NOT_DISADVANTAGE'])
+        rollMode: systemVocabularyCodeSchema,
+        /** Met by every roll mode except `rollMode`. */
+        negated: z.optional(z.boolean())
       }),
       ENEMY_NEAR_TARGET: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ENEMY_NEAR_TARGET),

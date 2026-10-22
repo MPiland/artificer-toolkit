@@ -3,6 +3,9 @@ import {
   saveLootInputSchema,
   lootDocumentSchema,
   lootLookupInputSchema,
+  liveLootInputSchema,
+  liveLootSchema,
+  type LiveLoot,
   type LootDocument,
   type LootOwner,
   type LootTable
@@ -16,41 +19,62 @@ import { requireCampaignAuthority } from '../campaigns/authority'
 import { canReadAuthoredRoot } from '../content/documents'
 import { readRootCatalogue } from '../content/catalogueMetadata'
 import { requireSystem } from '../content/systemDocuments'
+import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
+import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/api/encounterData'
+import { findLootRow } from './ownerRows'
 
 function lower(id: string) {
   return id.toLowerCase()
 }
 
 /** Loot tables are GM reference data: only the Campaign owner reads or writes them. */
-async function requireLootOwner(ctx: QueryCtx, owner: LootOwner) {
+async function requireCampaignOwner(ctx: QueryCtx, campaignId: string) {
   const { userId } = await requireIdentity(ctx)
-  const { campaign, membership } = await requireCampaignAuthority(
-    ctx,
-    lower(owner.campaignId),
-    userId
-  )
+  const { campaign, membership } = await requireCampaignAuthority(ctx, lower(campaignId), userId)
   if (membership.role !== 'OWNER')
     throw new Error('Loot tables are only available to the Campaign owner.')
-  const definition = await ctx.db
-    .query('sceneDefinitions')
-    .withIndex('by_publicId', (q) => q.eq('id', lower(owner.sceneDefinitionId)))
+  return { campaign, userId }
+}
+
+async function requireLootOwner(ctx: QueryCtx, owner: LootOwner) {
+  const { campaign, userId } = await requireCampaignOwner(ctx, owner.campaignId)
+  if (owner.kind === 'SCENE') {
+    const definition = await ctx.db
+      .query('sceneDefinitions')
+      .withIndex('by_publicId', (q) => q.eq('id', lower(owner.sceneDefinitionId)))
+      .unique()
+    if (!definition || definition.campaignId !== campaign.id)
+      throw new Error('Scene definition is unavailable.')
+    return {
+      campaign,
+      userId,
+      owner: { kind: 'SCENE', campaignId: campaign.id, sceneDefinitionId: definition.id } as const
+    }
+  }
+  const encounter = await ctx.db
+    .query('encounterRuns')
+    .withIndex('by_publicId', (q) => q.eq('id', lower(owner.encounterId)))
     .unique()
-  if (!definition || definition.campaignId !== campaign.id)
-    throw new Error('Scene definition is unavailable.')
+  if (!encounter || encounter.campaignId !== campaign.id)
+    throw new Error('Encounter is unavailable.')
+  const actor = await ctx.db
+    .query('encounterRunActors')
+    .withIndex('by_encounterId_id', (q) =>
+      q.eq('encounterId', encounter.id).eq('id', lower(owner.actorId))
+    )
+    .unique()
+  if (!actor || readStoredRunActor(actor).kind === 'CHARACTER')
+    throw new Error('Encounter creature is unavailable.')
   return {
     campaign,
     userId,
-    owner: { kind: 'SCENE', campaignId: campaign.id, sceneDefinitionId: definition.id } as const
+    owner: {
+      kind: 'ENCOUNTER_ACTOR',
+      campaignId: campaign.id,
+      encounterId: encounter.id,
+      actorId: actor.id
+    } as const
   }
-}
-
-async function storedLoot(ctx: QueryCtx, owner: LootOwner) {
-  return ctx.db
-    .query('lootTables')
-    .withIndex('by_owner', (q) =>
-      q.eq('owner.kind', owner.kind).eq('owner.sceneDefinitionId', owner.sceneDefinitionId)
-    )
-    .unique()
 }
 
 /** Every reference must name something this Campaign's System and the owner's catalogue offer. */
@@ -96,10 +120,38 @@ export const get = query({
   handler: async (ctx, args): Promise<LootDocument> => {
     const input = lootLookupInputSchema.parse(args)
     const { owner } = await requireLootOwner(ctx, input.owner)
-    const row = await storedLoot(ctx, owner)
+    const row = await findLootRow(ctx, owner)
     if (!row) return { owner, version: 0, tables: [] }
     const { _id, _creationTime, updatedAt: _updatedAt, ...document } = row
     return lootDocumentSchema.parse(document)
+  }
+})
+
+/** Every table the live Loot panel lists, in one read: the Scene's and each Encounter creature's. */
+export const live = query({
+  args: zodToConvexFields(liveLootInputSchema.shape),
+  returns: zodToConvex(liveLootSchema),
+  handler: async (ctx, args): Promise<LiveLoot> => {
+    const input = liveLootInputSchema.parse(args)
+    const { campaign } = await requireCampaignOwner(ctx, input.campaignId)
+    const scene = await findLootRow(ctx, {
+      kind: 'SCENE',
+      campaignId: campaign.id,
+      sceneDefinitionId: lower(input.sceneDefinitionId)
+    })
+    const { encounterId } = input
+    const creatures = encounterId
+      ? await ctx.db
+          .query('lootTables')
+          .withIndex('by_actor', (q) =>
+            q.eq('owner.kind', 'ENCOUNTER_ACTOR').eq('owner.encounterId', lower(encounterId))
+          )
+          .take(MAX_ENCOUNTER_ACTORS)
+      : []
+    const documents = [...(scene ? [scene] : []), ...creatures]
+      .filter((row) => row.owner.campaignId === campaign.id && row.tables.length > 0)
+      .map(({ _id, _creationTime, updatedAt: _updatedAt, ...document }) => document)
+    return liveLootSchema.parse({ documents })
   }
 })
 
@@ -110,7 +162,7 @@ export const save = mutation({
     const input = saveLootInputSchema.parse(args)
     const { campaign, userId, owner } = await requireLootOwner(ctx, input.owner)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    const row = await storedLoot(ctx, owner)
+    const row = await findLootRow(ctx, owner)
     if ((row?.version ?? 0) !== input.expectedVersion)
       throw new Error('Loot tables changed before this save.')
     await requireLootReferences(ctx, campaign, userId, input.tables)

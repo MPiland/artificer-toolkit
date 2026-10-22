@@ -24413,7 +24413,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -35552,7 +35552,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -46700,7 +46700,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -57839,7 +57839,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -69013,7 +69013,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -80152,7 +80152,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -91279,7 +91279,7 @@ export declare const api: {
                 mechanics: Array<
                   | {
                       id: string;
-                      influence: "ADVANTAGE" | "DISADVANTAGE";
+                      influence: string;
                       kind: "D20_ROLL_MODE";
                       minimumLevel: number | null;
                       order: number;
@@ -102282,7 +102282,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -113421,7 +113421,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -124185,6 +124185,7 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
+            componentsLabel?: string;
             damageLabel?: string;
             grip: {
               attackKey: string;
@@ -125938,6 +125939,7 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
+            componentsLabel?: string;
             damageLabel?: string;
             grip: {
               attackKey: string;
@@ -127961,7 +127963,7 @@ export declare const api: {
                         | "SAVING_THROW";
                       label: string;
                       order: number;
-                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      rollMode?: string;
                     }>;
                     section?:
                       | "TRAIT"
@@ -129082,7 +129084,7 @@ export declare const api: {
                         | "SAVING_THROW";
                       label: string;
                       order: number;
-                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      rollMode?: string;
                     }>;
                     section?:
                       | "TRAIT"
@@ -130046,7 +130048,7 @@ export declare const api: {
                     | "SAVING_THROW";
                   label: string;
                   order: number;
-                  rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rollMode?: string;
                 }>;
                 section?:
                   | "TRAIT"
@@ -130346,7 +130348,7 @@ export declare const api: {
                         | "SAVING_THROW";
                       label: string;
                       order: number;
-                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      rollMode?: string;
                     }>;
                     section?:
                       | "TRAIT"
@@ -130986,7 +130988,7 @@ export declare const api: {
                   | "SAVING_THROW";
                 label: string;
                 order: number;
-                rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                rollMode?: string;
               }>;
               section?:
                 | "TRAIT"
@@ -131746,18 +131748,24 @@ export declare const api: {
         "query",
         "public",
         {
-          owner: {
-            campaignId: string;
-            kind: "SCENE";
-            sceneDefinitionId: string;
-          };
+          owner:
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
+            | {
+                actorId: string;
+                campaignId: string;
+                encounterId: string;
+                kind: "ENCOUNTER_ACTOR";
+              };
         },
         {
-          owner: {
-            campaignId: string;
-            kind: "SCENE";
-            sceneDefinitionId: string;
-          };
+          owner:
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
+            | {
+                actorId: string;
+                campaignId: string;
+                encounterId: string;
+                kind: "ENCOUNTER_ACTOR";
+              };
           tables: Array<{
             id: string;
             name: string;
@@ -131776,16 +131784,56 @@ export declare const api: {
           version: number;
         }
       >;
+      live: FunctionReference<
+        "query",
+        "public",
+        {
+          campaignId: string;
+          encounterId: string | null;
+          sceneDefinitionId: string;
+        },
+        {
+          documents: Array<{
+            owner:
+              | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
+              | {
+                  actorId: string;
+                  campaignId: string;
+                  encounterId: string;
+                  kind: "ENCOUNTER_ACTOR";
+                };
+            tables: Array<{
+              id: string;
+              name: string;
+              ranges: Array<{
+                entries: Array<
+                  | { itemId: string; kind: "ITEM"; quantity: number }
+                  | { amount: number; denominationId: string; kind: "COIN" }
+                >;
+                id: string;
+                max: number | null;
+                min: number;
+                note?: string;
+              }>;
+              skillId?: string;
+            }>;
+            version: number;
+          }>;
+        }
+      >;
       save: FunctionReference<
         "mutation",
         "public",
         {
           expectedVersion: number;
-          owner: {
-            campaignId: string;
-            kind: "SCENE";
-            sceneDefinitionId: string;
-          };
+          owner:
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
+            | {
+                actorId: string;
+                campaignId: string;
+                encounterId: string;
+                kind: "ENCOUNTER_ACTOR";
+              };
           tables: Array<{
             id: string;
             name: string;
@@ -131803,11 +131851,14 @@ export declare const api: {
           }>;
         },
         {
-          owner: {
-            campaignId: string;
-            kind: "SCENE";
-            sceneDefinitionId: string;
-          };
+          owner:
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
+            | {
+                actorId: string;
+                campaignId: string;
+                encounterId: string;
+                kind: "ENCOUNTER_ACTOR";
+              };
           tables: Array<{
             id: string;
             name: string;
@@ -137730,10 +137781,19 @@ export declare const internal: {
               reusable_definitions?: Array<
                 Record<string, string | number | boolean | null>
               >;
+              roll_influences?: Array<
+                Record<string, string | number | boolean | null>
+              >;
+              roll_modes?: Array<
+                Record<string, string | number | boolean | null>
+              >;
               senses?: Array<Record<string, string | number | boolean | null>>;
               skills?: Array<Record<string, string | number | boolean | null>>;
               speeds?: Array<Record<string, string | number | boolean | null>>;
               spell_effects?: Array<
+                Record<string, string | number | boolean | null>
+              >;
+              spell_slot_pools?: Array<
                 Record<string, string | number | boolean | null>
               >;
               spells?: Array<Record<string, string | number | boolean | null>>;
@@ -137800,10 +137860,13 @@ export declare const internal: {
             races?: string;
             rarities?: string;
             reusable_definitions?: string;
+            roll_influences?: string;
+            roll_modes?: string;
             senses?: string;
             skills?: string;
             speeds?: string;
             spell_effects?: string;
+            spell_slot_pools?: string;
             spells?: string;
           };
           subjectId: string;

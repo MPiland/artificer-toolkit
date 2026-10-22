@@ -11,6 +11,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * SPELLS-33.T6k2b4 (D159): the Air Elemental's Whirlwind collision is the authored `collision` block on
@@ -18,7 +19,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * no closed rule.
  */
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 
 function whirlwind() {
   const feature = airElemental.features?.find(({ label }) => label.startsWith('Whirlwind'))

@@ -90,6 +90,20 @@ overridden, or lifecycle-managed, such as a sense, skill, condition, or damage t
 are display/search metadata and never dispatch mechanics. Inline configured values such as `60 feet`,
 `3d6`, or a cone size remain typed data inside their owning item rather than separate records.
 
+Reusable definitions are the System's vocabulary. Their contract lives in `packages/schema`, and the SRD
+entries have one home, the seed content in `packages/source-data`. Runtime code reads them from the
+System record and never holds a list of them. When System behaviour needs a specific entry, such as
+the D&D prone condition, the System capability in `rules-runtime/systems/<id>` names its definition
+ID ([ADR 0039](docs/adr/0039-composable-system-neutral-rules-engine.md#amendment-2026-10-22-vocabulary-and-core-codes)).
+
+### Core code
+
+A fixed code with no ID that engine behaviour branches on, such as a roll mode, an action economy
+slot, an event kind or an outcome kind. A campaign could not add one without new code. Neutral core
+codes live in `packages/schema` enum schemas or `packages/shared` core; System-specific core codes
+live in `rules-runtime/systems/<id>` behind the capability registry. A core code that later becomes
+authorable is promoted to a reusable definition by giving it an ID.
+
 ### Authored object
 
 The human-authorable contract for content. It uses meaningful domain shapes, keeps parent ownership explicit, and avoids exposing normalized join-table details. Features, grants, effects, outcomes, subjects, and character intent/state are authored objects or authored aggregates.

@@ -4,7 +4,6 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   LiveSessionEncounterBasicActionResponseCommitInput,
-  LiveSessionEncounterCheckPauseCommitInput,
   LiveSessionEncounterEscapeResponseCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
@@ -24,7 +23,6 @@ import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/s
 import { serverRuleExecutionReceiptCommandMetadataDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionReceiptCommandMetadata'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import {
   chosenEncounterD20WindowOption,
   encounterD20WindowSelectedIndex,
@@ -40,17 +38,12 @@ import {
   projectNativeBasicActionCheckPending,
   projectNativeD20WindowPending
 } from './basicActionCheckPending.js'
-import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
 import { isCheckActionSettlement } from './checkActionSettlement.js'
-import { addResponseChangesToRoot, deleteGrants } from './consumedGrantPersistence.js'
-import {
-  isConcealmentCheckSettlement,
-  settleEncounterConcealmentCheck
-} from './concealmentCheckSettlement.js'
+import { addResponseChangesToRoot } from './consumedGrantPersistence.js'
+import { settleEncounterConcealmentCheck } from './concealmentCheckSettlement.js'
 import { changedFields, readRunActors } from './documents.js'
 import { settleEncounterEscapeCheck } from './escapeCheckSettlement.js'
 import { projectNativeGm } from './nativeProjection.js'
-import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { encounterReplayReceipt } from './replayReceipts.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
@@ -96,27 +89,22 @@ type CheckPersistenceSpec<TInput extends CheckResponseCommitInput> = {
 }
 
 /**
- * Commits the roller's d20 for a pending basic action check: First Aid's stabilize or Hide's and
- * Search's concealment change, the occurrence's completion and the receipts, atomically. The root
- * command already spent the Action, so a failed check changes only the occurrence.
+ * Commits the roller's d20 for a pending concealment check (Hide, Search): its concealment change,
+ * the occurrence's completion and the receipts, atomically. The root command already spent the
+ * Action, so a failed check changes only the occurrence.
  */
 export function persistEncounterBasicActionResponse(
   ctx: EncounterWriteTransaction,
   input: LiveSessionEncounterBasicActionResponseCommitInput,
   callbacks: {
     validateReadFence: CheckPersistenceSpec<LiveSessionEncounterBasicActionResponseCommitInput>['validateReadFence']
-    applyMechanics(
-      batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
-    ): Promise<EncounterMechanicsBatchResult>
   }
 ) {
   return persistCheckResponse(ctx, input, {
     admit: (transaction, scope) =>
       readBasicActionCheckResponseAdmission(transaction, { ...scope, response: scope.command }),
     selectedNatural: (execution) =>
-      execution.status === 'COMPLETE' &&
-      (execution.applicationOutputs.kind === 'BASIC_ACTION_CHECK' ||
-        execution.applicationOutputs.kind === 'CONCEALMENT_CHECK')
+      execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'CONCEALMENT_CHECK'
         ? execution.applicationOutputs.d20.selectedNatural
         : null,
     settle: (transaction, settleInput) => {
@@ -124,13 +112,7 @@ export function persistEncounterBasicActionResponse(
       // A check action's answer commits through persistEncounterCheckActionResponse.
       if (isCheckActionSettlement(settlement))
         throw new Error('Live Session check result does not match its pending evidence.')
-      return isConcealmentCheckSettlement(settlement)
-        ? settleEncounterConcealmentCheck(transaction, { ...settleInput, settlement })
-        : settleEncounterBasicActionCheck(transaction, {
-            ...settleInput,
-            settlement,
-            applyMechanics: callbacks.applyMechanics
-          })
+      return settleEncounterConcealmentCheck(transaction, { ...settleInput, settlement })
     },
     validateReadFence: callbacks.validateReadFence
   })
@@ -180,139 +162,6 @@ export async function readCheckScope(
       input.rules.actors.length === ruleActors.length &&
       input.rules.actors.every((entry) => ruleActors.some((rule) => rule.id === entry.actorId))
   }
-}
-
-/**
- * Pauses a rolled First Aid check on its roller's d20 window: the d20 is admitted as it would be at
- * settlement, but the occurrence stays pending on the sealed window the roller answers next. Nothing
- * of the check settles, and no rule result exists yet, so no receipt is written.
- */
-export async function persistEncounterD20WindowOpen(
-  ctx: EncounterWriteTransaction,
-  input: LiveSessionEncounterCheckPauseCommitInput,
-  callbacks: {
-    validateReadFence: CheckPersistenceSpec<LiveSessionEncounterBasicActionResponseCommitInput>['validateReadFence']
-  }
-): Promise<EncounterCommandResultDto> {
-  const admission = await readBasicActionCheckResponseAdmission(ctx, {
-    ...input,
-    response: input.command
-  })
-  if (admission.kind === 'REPLAY') return admission.result
-  const { state, occurrence, pending } = admission
-  const { snapshot } = input
-  const window = snapshot.applicationContext
-  const { actors, rulesMatch } = await readCheckScope(
-    ctx,
-    state,
-    input,
-    callbacks.validateReadFence
-  )
-  if (
-    window.kind !== 'ENCOUNTER_D20_WINDOW' ||
-    pending.context.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' ||
-    snapshot.occurrenceId !== occurrence.id ||
-    checksumCanonicalJson(window.source.context) !== checksumCanonicalJson(pending.context) ||
-    window.pause.payload.rolled.initialFactsChecksum !==
-      checksumRuleDocument(pending.continuation.facts) ||
-    window.pause.payload.rolled.execution.evidence.source.gameSystemId !== state.gameSystemId ||
-    !rulesMatch ||
-    (window.pause.payload.appRollId !== null) !== (admission.appRoll !== null) ||
-    (admission.appRoll !== null && window.pause.payload.appRollId !== admission.appRoll.rollId)
-  )
-    throw new Error('Live Session check result does not match its pending evidence.')
-  return recordCheckResponse(ctx, {
-    admission,
-    input,
-    actors,
-    endedEffects: [],
-    ruleResult: window.pause.payload.rolled.execution,
-    receipt: null,
-    next: { kind: 'PENDING', snapshot }
-  })
-}
-
-/**
- * Commits the roller's answer to a d20 window: the held die's effect ended, the First Aid stabilize
- * the final total earns, the occurrence's completion and the receipt, atomically. The roll card was
- * deferred to here, so it shows the total the check settled with.
- */
-export async function persistEncounterD20WindowAnswer(
-  ctx: EncounterWriteTransaction,
-  input: LiveSessionEncounterBasicActionResponseCommitInput,
-  callbacks: {
-    validateReadFence: CheckPersistenceSpec<LiveSessionEncounterBasicActionResponseCommitInput>['validateReadFence']
-    applyMechanics(
-      batch: Omit<EncounterMechanicsBatchInput, 'expectedCharacterStreamVersion'>
-    ): Promise<EncounterMechanicsBatchResult>
-  }
-): Promise<EncounterCommandResultDto> {
-  const admission = await readD20WindowResponseAdmission(ctx, { ...input, response: input.command })
-  if (admission.kind === 'REPLAY') return admission.result
-  const { state, campaign, occurrence, pending, response } = admission
-  const { context: window, continuation } = pending
-  const offered = window.pause.payload
-  const { settlement } = input
-  if (
-    isCheckActionSettlement(settlement) ||
-    isConcealmentCheckSettlement(settlement) ||
-    !settlement.window
-  )
-    throw new Error('Live Session check result does not match its pending evidence.')
-  const { execution } = settlement
-  const spentEffect = settlement.window.spentEffect
-  const { actors, rulesMatch } = await readCheckScope(
-    ctx,
-    state,
-    input,
-    callbacks.validateReadFence
-  )
-  const output =
-    execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'BASIC_ACTION_CHECK'
-      ? execution.applicationOutputs
-      : null
-  if (
-    !output ||
-    execution.status !== 'COMPLETE' ||
-    checksumCanonicalJson(settlement.context) !== checksumCanonicalJson(window.source.context) ||
-    execution.occurrenceId !== occurrence.id ||
-    !rulesMatch
-  )
-    throw new Error('Live Session check result does not match its pending evidence.')
-  const answer = requireD20WindowAnswer({
-    offered,
-    resolution: response.resolution,
-    spentEffect,
-    settled: {
-      execution,
-      initialFactsChecksum: execution.initialFactsChecksum,
-      d20: output.d20,
-      appRollId: settlement.appRollId
-    }
-  })
-  if (spentEffect) await deleteGrants(ctx, [spentEffect])
-  const settled = await settleEncounterBasicActionCheck(ctx, {
-    campaign,
-    state,
-    actors,
-    settlement,
-    windowDice: answer.windowDice,
-    rootCommandId: window.commandId,
-    initiatorUserId: admission.initiatorUserId,
-    occurredAt: input.occurredAt,
-    // The stored result keeps the version the d20 was evidenced at, before the window paused it.
-    occurrenceVersion: occurrence.version,
-    applyMechanics: callbacks.applyMechanics
-  })
-  return recordCheckResponse(ctx, {
-    admission,
-    input,
-    actors: settled.actors,
-    endedEffects: spentEffect ? [spentEffect] : [],
-    ruleResult: execution,
-    receipt: { requestId: continuation.request.requestId, value: answer.selectedIndex },
-    next: { kind: 'COMPLETE' }
-  })
 }
 
 /**

@@ -628,6 +628,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { kind: 'TARGET_HIT_POINTS_AT_MOST', amount: 1 }
     case 'perTargetLockout':
       return { until: 'SOURCE_LONG_REST' }
+    case 'slotCost':
+      return { poolCode: '' }
     case 'proficiencyGrant':
       return createProficiencyGrant(order)
     case 'raceAncestry':

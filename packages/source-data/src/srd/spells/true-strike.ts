@@ -92,7 +92,8 @@ export const trueStrike: SpellAuthored = {
                     grantKind: GRANT_KIND.MODIFIER_GRANT,
                     valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
                     domain: { attackDomain, requiresHolderSeesAttacker: false },
-                    modifierKind: MODIFIER_KIND.ADVANTAGE,
+                    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                    payload: { influence: 'ADVANTAGE' },
                     scope: MODIFIER_SCOPE_KIND.GLOBAL,
                     selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                     order: index + 1

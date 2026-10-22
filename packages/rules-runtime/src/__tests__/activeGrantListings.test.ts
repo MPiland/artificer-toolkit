@@ -181,8 +181,13 @@ const polarityOf = (
   listActiveGrantListings([piecesEffect(pieces, senseCount)])[0]?.polarity
 
 const fixed = (amount: number) => ({ valueKind: 'FIXED', amount })
-const advantage = { domain: 'INITIATIVE', kind: 'ADVANTAGE' }
-const disadvantage = { domain: 'INITIATIVE', kind: 'DISADVANTAGE' }
+const influence = (domain: string, code: string, kind = 'ROLL_INFLUENCE') => ({
+  domain,
+  kind,
+  payload: { influence: code }
+})
+const advantage = influence('INITIATIVE', 'ADVANTAGE')
+const disadvantage = influence('INITIATIVE', 'DISADVANTAGE')
 
 describe('grant polarity (VTT_UI-1.2)', () => {
   it('reads a sense as beneficial', () => {
@@ -195,8 +200,16 @@ describe('grant polarity (VTT_UI-1.2)', () => {
   })
 
   it('inverts advantage and disadvantage on attacks against the holder', () => {
-    expect(polarityOf([{ domain: 'ATTACKS_AGAINST', kind: 'ADVANTAGE' }])).toBe('HARMFUL')
-    expect(polarityOf([{ domain: 'ATTACKS_AGAINST', kind: 'DISADVANTAGE' }])).toBe('BENEFICIAL')
+    expect(polarityOf([influence('ATTACKS_AGAINST', 'ADVANTAGE')])).toBe('HARMFUL')
+    expect(polarityOf([influence('ATTACKS_AGAINST', 'DISADVANTAGE')])).toBe('BENEFICIAL')
+  })
+
+  it('inverts a suppressed influence (RULES-2.T9b)', () => {
+    const suppress = (domain: string, code: string) =>
+      influence(domain, code, 'SUPPRESS_ROLL_INFLUENCE')
+    expect(polarityOf([suppress('ATTACKS_AGAINST', 'ADVANTAGE')])).toBe('BENEFICIAL')
+    expect(polarityOf([suppress('INITIATIVE', 'DISADVANTAGE')])).toBe('BENEFICIAL')
+    expect(polarityOf([suppress('INITIATIVE', 'ADVANTAGE')])).toBe('HARMFUL')
   })
 
   it('reads bonuses as beneficial and penalties as harmful', () => {

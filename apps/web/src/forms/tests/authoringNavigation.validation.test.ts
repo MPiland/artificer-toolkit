@@ -191,8 +191,8 @@ describe('authoring group row labels', () => {
       node: createArrayNode('modifierGrant', 'Modifiers', 'modifier'),
       row: {
         valueDomainCode: 'DAMAGE',
-        modifierKind: 'ADVANTAGE',
-        payload: { amount: 1000 }
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { amount: 1000, influence: 'ADVANTAGE' }
       },
       expected: '+1,000 Damage Rolls Advantage'
     },

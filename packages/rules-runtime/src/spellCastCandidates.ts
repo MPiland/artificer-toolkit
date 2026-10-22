@@ -1,5 +1,6 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterSpellSourceRef } from '@artificer-toolkit/shared/character'
+import type { SpellComponent } from '@artificer-toolkit/shared/core'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { v5 as uuidv5 } from 'uuid'
@@ -44,6 +45,8 @@ export function createSpellCastCandidateList(
         fixedLevel?: number
         /** Narrows a slot-mode spell's cast levels to those the holder can pay for. */
         offersLevel?: (castLevel: number) => boolean
+        /** The slot pool a limited-use cast also spends a slot from (D175); null for none. */
+        slotPoolCode?: SpellCastCandidate['slotPoolCode']
       } = {}
     ) {
       const levels = castLevels(spellLevel, mode, options.fixedLevel)
@@ -62,7 +65,8 @@ export function createSpellCastCandidateList(
           castMode: mode,
           castLevel: level,
           baseEntry: index === 0,
-          resourceOwnerKey
+          resourceOwnerKey,
+          slotPoolCode: options.slotPoolCode ?? null
         })
       }
     }
@@ -91,6 +95,26 @@ export function spellCastLabel(
   return cast.spellLevel === 0
     ? spell.label
     : `${spell.label} (${cast.castLevel}${LEVEL_SUFFIXES[cast.castLevel] ?? 'th'} level)`
+}
+
+const COMPONENT_LETTERS: Readonly<Record<SpellComponent, string>> = {
+  VERBAL: 'V',
+  SOMATIC: 'S',
+  MATERIAL: 'M'
+}
+
+/**
+ * What a cast shows of the spell's components, straight from its data: "V, S, M (a pearl worth at
+ * least 100 gp)". None are enforced (D171); a spell that authors no components shows none.
+ */
+export function spellComponentsLabel(
+  spell: Pick<CompiledSpell, 'components' | 'materialDescription'>
+): string | undefined {
+  if (!spell.components?.length) return undefined
+  const letters = spell.components.map((component) => COMPONENT_LETTERS[component]).join(', ')
+  return spell.materialDescription && spell.components.includes('MATERIAL')
+    ? `${letters} (${spell.materialDescription})`
+    : letters
 }
 
 /**

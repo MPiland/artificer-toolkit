@@ -1,6 +1,9 @@
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { RuleInputBinding } from '@artificer-toolkit/shared/rules'
-import type { EffectOutcomeDefinition } from '../../effectOutcomeRegistry.js'
+import type {
+  EffectOutcomeDefinition,
+  EffectOutcomeTargetPrecondition
+} from '../../effectOutcomeRegistry.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
 import { DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY } from './endEffects.js'
@@ -48,14 +51,19 @@ const amountPayload = (outcome: { amount: number }) => ({ amount: literal(outcom
 /** An outcome that stores nothing on the target and carries nothing beyond it. */
 function targetOnly(
   operationKey: string,
-  options: { pathGated: boolean; changesTargetState: boolean }
+  options: {
+    pathGated: boolean
+    changesTargetState: boolean
+    targetPrecondition?: EffectOutcomeTargetPrecondition
+  }
 ) {
   return {
     operationKey,
     pathGatedOperationKey: options.pathGated ? dnd5ePathGatedOperationKey(operationKey) : null,
     payloadInputs: () => ({}),
     payloadOutputs: [],
-    changesTargetState: options.changesTargetState
+    changesTargetState: options.changesTargetState,
+    targetPrecondition: options.targetPrecondition
   }
 }
 
@@ -126,7 +134,8 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
     },
     STABILIZE: targetOnly(DND5E_STABILIZE_PROPOSAL_OPERATION_KEY, {
       pathGated: true,
-      changesTargetState: true
+      changesTargetState: true,
+      targetPrecondition: 'DYING'
     }),
     KILL: targetOnly(DND5E_KILL_PROPOSAL_OPERATION_KEY, {
       pathGated: true,
@@ -191,6 +200,20 @@ export function dnd5eOutcomeDefinition<Kind extends Dnd5eRegisteredOutcome['kind
 }
 
 const DEFINITIONS = Object.values(DND5E_EFFECT_OUTCOMES)
+const DEFINITION_BY_KIND: Readonly<
+  Record<string, Pick<Definition<Dnd5eRegisteredOutcome['kind']>, 'targetPrecondition'>>
+> = DND5E_EFFECT_OUTCOMES
+/** The target preconditions the registry declares for these outcome kinds (D173 Q1). */
+export function dnd5eOutcomeTargetPreconditions(
+  effectKinds: readonly string[]
+): EffectOutcomeTargetPrecondition[] {
+  return effectKinds.flatMap((kind) => {
+    const precondition = Object.hasOwn(DEFINITION_BY_KIND, kind)
+      ? DEFINITION_BY_KIND[kind]!.targetPrecondition
+      : undefined
+    return precondition ? [precondition] : []
+  })
+}
 /** The direct proposal each path-gated proposal applies once its test resolves to its path. */
 export const DND5E_DIRECT_OPERATION_BY_PATH_GATED_OPERATION: ReadonlyMap<string, string> = new Map(
   DEFINITIONS.flatMap(({ operationKey, pathGatedOperationKey }) =>

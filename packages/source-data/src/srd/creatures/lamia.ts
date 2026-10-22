@@ -305,7 +305,8 @@ export const lamia: CreatureAuthored = {
                           grantKind: S.GRANT_KIND.MODIFIER_GRANT,
                           valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
                           domain: { ability: S.ABILITY_CODE.WISDOM },
-                          modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                          modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                          payload: { influence: 'DISADVANTAGE' },
                           scope: MODIFIER_SCOPE_KIND.GLOBAL,
                           selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
                           order: 1
@@ -315,7 +316,8 @@ export const lamia: CreatureAuthored = {
                           grantKind: S.GRANT_KIND.MODIFIER_GRANT,
                           valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
                           domain: {},
-                          modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                          modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                          payload: { influence: 'DISADVANTAGE' },
                           scope: MODIFIER_SCOPE_KIND.GLOBAL,
                           selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
                           order: 2

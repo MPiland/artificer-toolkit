@@ -5,8 +5,8 @@ import {
   type RollRuleCheckDto
 } from '@artificer-toolkit/schema/api/rolls'
 import type {
-  basicActionCheckApplicationOutputDtoSchema,
-  damageSaveCheckApplicationOutputDtoSchema
+  damageSaveCheckApplicationOutputDtoSchema,
+  ruleCheckD20EvidenceDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
@@ -337,7 +337,7 @@ export function basicActionCheckRollRecord(input: {
   occurrenceId: string
   /** The card's id where the occurrence cards more than one check. */
   rollId?: string
-  d20: Omit<ReturnType<typeof basicActionCheckApplicationOutputDtoSchema.parse>['d20'], 'dc'>
+  d20: Omit<ReturnType<typeof ruleCheckD20EvidenceDtoSchema.parse>, 'dc'>
   actionLabel: string
   checkLabel: string
   rollerLabel: string

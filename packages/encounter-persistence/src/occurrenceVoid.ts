@@ -81,8 +81,6 @@ export function classifyRuleOccurrenceVoid(context: RuleOccurrenceVoidFacts): Ru
       return answerRequired(
         context.source === 'EFFECT_REPEAT_SAVE' ? 'A repeat save' : 'A Concentration save'
       )
-    case 'ENCOUNTER_BASIC_ACTION_CHECK':
-      return answerRequired('A basic action check')
     case 'ENCOUNTER_CONCEALMENT_CHECK':
       return answerRequired('A concealment check')
     case 'ENCOUNTER_ESCAPE_CHECK':

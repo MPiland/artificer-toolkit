@@ -11,6 +11,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * SPELLS-33 T6d3a (D156): Pack Tactics is a standing attack roll advantage gated by an
@@ -19,7 +20,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * another distance.
  */
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 
 function normalize(creature: CreatureAuthored) {
   return normalizeNodeRuntimeValues(reader, {

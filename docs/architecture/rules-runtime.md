@@ -68,6 +68,7 @@ package before tests that import newly added modules.
 | Area                          | Modules                                                                                                                                                                                             | Owns                                                                                                                                                                         |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Execution wrapper             | `rulesRuntimeService`, `platformRulesRuntime`, `platformPolicyModules`, `systemCapabilityRegistry`, `*Capability*`, `platformEncounterPolicy`, `platformCharacterPolicy`, `random`                  | Schema-aware Kernel execution, frozen-graph admission, installed System lookup by System UUID, fail-closed System capability registries                                      |
+| System vocabulary             | `platformSystemVocabulary`                                                                                                                                                                          | The installed Systems' code lists (`systemVocabularyRegistry`); loads no play execution, so authoring reads it                                                               |
 | Systems                       | `systems/dnd5e/*`                                                                                                                                                                                   | D&D 2014 policy, action compiler, grant fold, modifier scope, concentration, lifecycle and optional-combat policy                                                            |
 | Character                     | `character/*`                                                                                                                                                                                       | Context and Sheet preparation, Builder catalogue/eligibility/reconciliation/readiness/payload, snapshot readers, Sheet commands, rest, roll, projection, rule-fact composers |
 | Encounter actions             | `encounterAction*`, `encounterBasicActions`, `encounterDisarmPreparation`, `encounterWieldConflict`, `encounterCleaving*`, `encounterConcentration*`                                                | Source resolution, mechanics preparation, economy, target policy, effects, receipts, warnings                                                                                |
@@ -340,7 +341,7 @@ duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollMode
 **System vocabulary (RULES-2.T9a, current).** Policy vocabulary is System code strings, not UUID rows:
 the wire types a code as `systemVocabularyCodeSchema` (`schema/shared/systemVocabularyCode.ts`, shape
 only), and the one seam that decides membership is `systemVocabularyRegistry.requireCode(gameSystemId,
-kind, code)` (`systemVocabularyCapability.ts`, installed in `platformPolicyModules.ts`; the D&D lists in
+kind, code)` (`systemVocabularyCapability.ts`, installed in `platformSystemVocabulary.ts`; the D&D lists in
 `systems/dnd5e/vocabulary.ts`). Lists today: `rollInfluence`, `rollMode`, each code with its display
 label. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
 settlement) validates through it; capability registries call it before an adapter sees a code. A
@@ -355,6 +356,14 @@ must match the faces the roll mode keeps."). A pending d20 request (`D20_EVIDENC
 its top level) carries `rollModes`, the `{ code, label, keep }` entries of `rollModeCapabilityRegistry.
 offeredRollModes(gameSystemId)` (the System's `rollMode` vocabulary plus the adapter's `keepFor`); the
 web roll picker renders only those entries and keeps no mode table of its own. The D&D passive score (10 plus the modifier, ±5) is the adapter's `passiveScore`.
+Authored roll influence (RULES-2.T9b) is one modifier kind pair: `ROLL_INFLUENCE` and `SUPPRESS_ROLL_INFLUENCE`,
+each with `payload: { influence }` naming a `rollInfluence` code; follow-up saves, active rule effects, actor
+relationships and the `ATTACK_ROLL_MODE` facet (`{ rollMode, negated? }`) carry codes the same way. The node maps
+draw these selects from the `roll_influences` and `roll_modes` sources, which callers inject into
+`createNodeRuntimeSourceReader` from the System's vocabulary, so authoring clears a code outside the list; runtime
+membership is checked where `rollModeCapabilityRegistry` resolves the contributors. A grant's fold group key carries
+its influence (`ATTACK_ROLL:ROLL_INFLUENCE|attackDomain=MELEE|influence=ADVANTAGE`), and a grant's listing polarity
+follows the face the System keeps under its influence.
 **Transitional (until RULES-2.T9a2):** the shared dice evaluator, roll evidence `mode`, manual and
 Campaign roll input, the held d20 and the `D20_MODE_ADJUSTED` record still use the D&D mode codes.
 **System capability registries (RULES-2.T11a–g, current).** Every System capability is one
@@ -588,7 +597,7 @@ ring no wider than its thickness (`AREA_TOO_SMALL`). A policy this path cannot r
 drawn by dragging from one end (or the center) to the other end (or the edge), clamped to its maximum
 (`drawnAreaAim`). The room still decides who is caught.
 
-### A list of chosen creatures (current, SPELLS-8.T12, D118)
+### A list of chosen creatures (current, SPELLS-8.T14, D118)
 
 An action whose targeting is `CHOSEN_CREATURES` with an authored `maxTargets` (Mass Healing Word, Prayer of
 Healing, Mass Cure Wounds, Magic Missile, Acid Splash, Chain Lightning, Scorching Ray, Eldritch Blast), or with no cap
@@ -1322,27 +1331,28 @@ actor makes one authored check (`invocation.check`: `checks` plus a `FIXED` dc; 
 and refused by the compiler until ATTACK-7 slice C) and the `ON_CHECK_SUCCESS` path runs only on success. The
 dnd5e compiler supports exactly one check and a `STABILIZE` outcome; the planner admits `CHECK` only on the
 `BASIC_ACTION` source. The SRD authors First Aid as an Action with Wisdom (Medicine), DC 10, a touch-range single
-target. It resolves through `RESOLVE_ACTION`, and the stored root carries the check occurrence receipt
-(`checkReceipt`). The target comes from the command (a custom actor is refused and a MANUAL Run refuses it as `ASSISTED_ONLY`). A target
-that is not dying gives the overridable `TARGET_NOT_DYING` warning and, once overridden, spends the
-Action with no roll. Touch range reuses the Healer's Kit warnings. The root command always commits and
-spends the Action and the helper's one-roll `ON_ABILITY_CHECK` grants (a Help) are consumed with it. A prompted roll writes a PENDING occurrence
-(`ENCOUNTER_BASIC_ACTION_CHECK`) answered by a separate `RESOLVE_RULE_OCCURRENCE`; an auto-roll
-settles at once. The roll card is credited to the helper, never hidden from the GM, and de-duplicated
-by the app-roll attempt identity. GM undo restores the Action, the used Help and the target's death
-saves, restores the consumed grants and keeps the roll on the record; it is refused while the check is pending
-(`packages/encounter-persistence/src/basicActionCheck*.ts`, `packages/rules-runtime/src/encounterBasicActionCheck.ts`).
+target. Since RULES-2.T6e3b2 (D173) it runs the generic check action (**Check outcomes** below): its success runs the
+`STABILIZE` outcome through `settleTargetOutcome` and commits a `CHECK_ACTION` output, and no First Aid output, settlement or
+undo branch remains. The target comes from the command (a custom actor is refused and a MANUAL Run refuses it as `ASSISTED_ONLY`).
+`STABILIZE` declares the `DYING` target precondition in the System's outcome registry (`targetPrecondition`, read through the
+adapter's `outcomeTargetPreconditions`); a target that fails a declared precondition gives its overridable warning at admission,
+before any roll (`TARGET_NOT_DYING` for `DYING`, in place of `TARGET_DEFEATED`), and once overridden the Action is spent with no
+roll (`TARGET_PRECONDITION_WARNING_CODES`, D173 Q1). Touch range reuses the Healer's Kit warnings. The helper's one-roll
+`ON_ABILITY_CHECK` grants (a Help) are consumed with the Action. The roll card is credited to the helper, never hidden from the
+GM, and de-duplicated by the app-roll attempt identity. GM undo, through the generic check receipt, restores the Action, the used
+Help and the target's death saves and keeps the roll on the record (`packages/rules-runtime/src/encounterBasicActionCheck.ts`,
+`packages/encounter-persistence/src/actionRevert.ts`).
 Spare the Dying and Sheet tracking of death saves are not built (target).
 
 **d20 window (SPELLS-31.T4c1a, current).** A roller holding `AFTER_ROLL` rolled dice on its own active effects pauses a rolled d20
 before the check settles. Two commands act on one occurrence: the d20 response pends a second `ENCOUNTER_D20_WINDOW`
-`KERNEL_EVIDENCE` snapshot (discriminated `source`, today `BASIC_ACTION_CHECK`; no rule receipt, version +1), then
+`KERNEL_EVIDENCE` snapshot (discriminated `source`, today `CHECK_ACTION`; no rule receipt, version +1), then
 its `pause` is the `D20_WINDOW` member of the one pause union. `D20_WINDOW_USE { requestId, optionId, faces? }` or
 `D20_WINDOW_DECLINE` resumes the System-owned bounded choice (index 0 declines),
 appends the die to the d20's `addedDice`, settles the check with the final total and ends the spending effect in the same transaction.
 A GM void of a window is refused. Options and their ids derive from the held grants and the roll's evidence checksum, so a homebrew
 die or trigger runs the same path. Rolled-die faces stay a d4 (`ROLLED_DIE_FACES`).
-(`packages/rules-runtime/src/encounterD20Window.ts`, `packages/encounter-persistence/src/basicActionCheckResponsePersistence.ts`).
+(`packages/rules-runtime/src/encounterD20Window.ts`, `packages/encounter-persistence/src/checkActionResponsePersistence.ts`).
 
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
 options (ADR 0038); nothing in code names Hide.
@@ -1600,10 +1610,10 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (Blur: Blindsight, Truesight). A `TEST` whose only outcome is an `APPLY_GRANT` on its failed-save path compiles a
   result-gated grant plan (`saveFailureGrantPlan`, adapter fact `dnd5e.grant-authored-path`) and no OUTCOME graph, like
   `creatureFormPlan`: each creature that fails holds the grant (Enthrall).
-- **Negated advantage and attack occasions (SPELLS-31.T4k2a, D156).** An `ATTACKS_AGAINST` `NEGATE_ADVANTAGE`
-  modifier (Elusive) carries no contributor: while it holds, the sight contributors drop `ADVANTAGE` and preparation
-  publishes `attackAdvantageNegated`, so the compiler drops every advantage from the final attack roll, the attacker's
-  own grants and flanking included. An optional `attackOccasion` (`OPPORTUNITY`, Escape the Horde) limits a modifier to
+- **Suppressed roll influence and attack occasions (SPELLS-31.T4k2a, D156; RULES-2.T9b).** An `ATTACKS_AGAINST`
+  `SUPPRESS_ROLL_INFLUENCE` modifier (Elusive suppresses `ADVANTAGE`) carries no contributor: while it holds, the sight
+  contributors drop that influence and preparation publishes it in `attackSuppressedInfluences`, so the compiler drops
+  every contributor of it from the final attack roll, the attacker's own grants and flanking included. An optional `attackOccasion` (`OPPORTUNITY`, Escape the Horde) limits a modifier to
   attacks made on that occasion; `prepareEncounterActionMechanics` takes the occasion as input, and a movement reaction
   attack is prepared as `OPPORTUNITY`. A Character holder's feature grants come from its grant fold (holder-state
   restrictions such as `CAN_ACT` apply), beside its active effects.
@@ -1815,6 +1825,16 @@ outcome graph from the bound `dnd5e.spell-cast-level` fact). The selector takes 
 a bound level fact, so a class-level key reuses it. A heal that targets several chosen creatures (Mass Cure
 Wounds, Mass Healing Word, Prayer of Healing) is offered with the list target above. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
 
+A spell grant may also name the slot pool that pays its cast (`slotCost.poolCode`, a System-supplied code such as
+`PACT`, listed by the dnd5e vocabulary as `spellSlotPool` and checked against it by `characterSpellRuleFacts`; SPELLS-31.T5p, D175). The candidate then carries `slotPoolCode`, the decision ladder
+requires a slot of that pool (`SPELL_SLOT_REMAINING`, `SPELL_SLOT_EXHAUSTED`, `NO_ELIGIBLE_SPELL_SLOT`) in addition
+to the grant's own pool (`RESOURCE_EXHAUSTED`), and the cast spends both: the slot through the ordinary
+`spellConsumption.slotKey`, the pool through `resourceBinding`. A grant with `access: CLASS_LIST_ONLY` and
+`classListIds` gives no access; `spellClassListAdditions.ts` is the one merge that adds its spells to those class
+lists for the Sheet's preparation catalog and the Builder's merged catalog (the Builder owns the merged list for
+prepare and known choices; the Sheet only reads it). The compiler refuses `CLASS_LIST_ONLY` without `classListIds`.
+Primeval Awareness has no runtime: the generic `USE_SPELL_SLOT` Sheet command spends the slot and the sensing is description.
+
 The cast level is a fact of the action. `prepareNativeCharacterActionState` copies the policy's `castLevel`
 onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the declared fact
 `dnd5e.spell-cast-level` (a Game System `factContracts` entry), and the
@@ -1830,7 +1850,9 @@ target, the area root for a point area, once). `REVERT_LAST_ACTION` restores the
 function, and only while the Character's Sheet stream is unchanged since the cast (a later Sheet write makes
 the undo unavailable, like any Character state change). A Concentration spell starts Concentration through
 `prepareEncounterActionMaintenance` (D99), so the undo restore rules there apply. Components, hands and
-silence have no Sheet rule yet, so an Encounter applies none either.
+silence have no Sheet rule yet, so an Encounter applies none either. Each cast choice shows the spell's
+components read from its compiled data (`componentsLabel`, from `spellComponentsLabel`: "V, S, M (a pearl worth at least 100 gp)"); they are display only and never enforced (D171, SPELLS-8.T10).
+A spell the Character may cast only as a ritual (a `RITUAL` spell grant the Sheet lists as castable) is not a cast action: it is listed in `unavailableActions` with `RITUAL_CAST_REFUSAL` (a ritual takes ten minutes longer than the spell's casting time, so an Encounter, which always has an initiative round, never casts one), and choosing it is refused by that name with no slot spent (D171, SPELLS-8.T11). The Sheet casts it out of play and spends no slot. Class-level ritual casting (`SPELLCASTING_ATTRIBUTE.RITUAL_CASTER`) has no Sheet cast path yet (SPELLS-8.T14), so it is neither offered nor listed.
 
 ### Ending a held effect and its `onEnd` grant (current, SPELLS-4.T2l-a)
 
@@ -2444,7 +2466,7 @@ receipt applications in Convex and refuses a checksum mismatch, and the commit l
 contest outcome whose push owes a destination pick fails closed.
 
 **Check outcomes (D173, RULES-2.T6e3b1a).** A CHECK action with a `FIXED` dc whose `ON_CHECK_SUCCESS` outcome is not a
-check-settled kind (STABILIZE, CONCEAL_FROM_OBSERVERS, DETECT_CONCEALED) compiles to `TEST_OUTCOME` the same way, with
+check-settled kind (CONCEAL_FROM_OBSERVERS, DETECT_CONCEALED) compiles to `TEST_OUTCOME` the same way, with
 the d20 check graph (`createDnd5eCheckDefinition`) as its test. The room freezes the actor's check, rolls it, and on a
 success runs the same `planNativeTargetOutcome` (its test roll mode is the check's). It commits one `CHECK_ACTION`
 output (`check`, `d20`, `outcome` SUCCESS or FAILURE, and a `TARGET_OUTCOME` or `NONE` `stateTransition`) in a
@@ -2456,8 +2478,9 @@ settles the check; a success re-prepares the action from the root command on the
 (`prepareNativeLiveRootActionMechanics`) and runs its outcome, which pauses in the `OUTCOME` phase on its dice
 (`ACTION_OUTCOME_EVIDENCE`) unless the roller's preference rolls them. The room plans each answer
 (`planNativeLiveCheckActionResponse`); Convex records a pause through `persistEncounterCheckActionPause` and the settled
-check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Undo returns a failed
-check's economy, feature charges and grants and refuses a success's outcome.
+check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Undo returns the check's
+economy, feature charges and grants and, for a success, inverts its outcome's mechanics behind the generic
+`targetOutcomeTransition` stream-version fence (RULES-2.T6e3b2).
 
 **Creature feature checks (D173, RULES-2.T6e3b1c).** A Creature feature authored with a `FIXED`-dc CHECK runs the same
 check action; a contest, a concealment check or a stabilizing check stays a basic action's (`checkActionSource` refuses

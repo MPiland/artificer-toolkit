@@ -36,6 +36,7 @@ const statusCategories: Record<NonGrantStatusKind, VttStatusCategory> = {
   CONDITION: 'HARMFUL',
   HEALTH: 'OTHER',
   INJURY: 'HARMFUL',
+  LOOT: 'OTHER',
   MORALE: 'HARMFUL',
   REACTION: 'OTHER'
 }
@@ -54,6 +55,8 @@ export function buildVttTokenPresentations(input: {
   currentUserId: string
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   pending: PendingEncounterRuleOccurrenceSummaryDto | null
+  /** The defeated creatures carrying loot tables; the GM's view only, so players never see a marker. */
+  lootActorIds?: ReadonlySet<string>
   scene: CampaignSceneStateDto
   /** The tokens the caster can pick while targeting; empty when no one is targeting. */
   targetableTokenIds?: ReadonlySet<string>
@@ -107,6 +110,8 @@ export function buildVttTokenPresentations(input: {
     else if (healthBand && healthBand !== 'HEALTHY') {
       statuses.push(statusFromValues(`health:${healthBand}`, 'HEALTH', titleCase(healthBand)))
     }
+    if (actorId && input.lootActorIds?.has(actorId))
+      statuses.push(statusFromValues('loot', 'LOOT', 'Has loot'))
     const pendingReaction = input.pending?.kind === 'MOVEMENT_REACTION' ? input.pending : null
     const reactionAvailable = pendingReaction?.choice.reactorTokenId === token.id
     if (reactionAvailable) {
@@ -211,7 +216,8 @@ function compareStatuses(
     MORALE: 3,
     CONDITION: 4,
     EFFECT: 5,
-    HEALTH: 6
+    LOOT: 6,
+    HEALTH: 7
   } as const
   return priority[left.kind] - priority[right.kind] || left.label.localeCompare(right.label)
 }

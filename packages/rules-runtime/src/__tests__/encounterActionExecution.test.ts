@@ -25,7 +25,8 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   RANGE_KIND,
-  TRIGGER
+  TRIGGER,
+  modifierRollInfluence
 } from '@artificer-toolkit/shared/core'
 
 const EFFECT_ID = ACTION_EFFECT_ID
@@ -644,7 +645,7 @@ describe('native phased action execution', () => {
     expect(modifiers).toSatisfy((all: typeof modifiers) =>
       all.every(
         (modifier) =>
-          modifier.modifierKind === 'ADVANTAGE' &&
+          modifierRollInfluence(modifier) === 'ADVANTAGE' &&
           modifier.valueDomainCode === 'SAVING_THROW_MODIFIER' &&
           (modifier.domain as { conditionTypeId?: string }).conditionTypeId ===
             POISONED_CONDITION_ID

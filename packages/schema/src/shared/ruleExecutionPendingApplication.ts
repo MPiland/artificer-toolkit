@@ -6,7 +6,6 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import {
   encounterActorRuleActionPendingContextDtoSchema,
   encounterActorSpellCastPendingContextDtoSchema,
-  encounterBasicActionCheckPendingContextDtoSchema,
   encounterCharacterRuleActionPendingContextDtoSchema,
   encounterConcealmentCheckPendingContextDtoSchema,
   encounterDamageSaveCheckPendingContextDtoSchema,
@@ -52,7 +51,6 @@ export type ServerRuleExecutionPendingApplicationContextDto =
   | z.infer<typeof encounterActorSpellCastPendingContextDtoSchema>
   | z.infer<typeof encounterCreatureRuleActionPendingContextDtoSchema>
   | z.infer<typeof encounterDamageSaveCheckPendingContextDtoSchema>
-  | z.infer<typeof encounterBasicActionCheckPendingContextDtoSchema>
   | z.infer<typeof encounterEscapeCheckPendingContextDtoSchema>
   | z.infer<typeof encounterConcealmentCheckPendingContextDtoSchema>
   | z.infer<typeof encounterD20WindowPendingContextDtoSchema>
@@ -78,7 +76,6 @@ const serverRuleExecutionPendingApplicationContextDtoSchemaImpl: z.ZodMiniType<S
         encounterActorSpellCastPendingContextDtoSchema,
         encounterCreatureRuleActionPendingContextDtoSchema,
         encounterDamageSaveCheckPendingContextDtoSchema,
-        encounterBasicActionCheckPendingContextDtoSchema,
         encounterEscapeCheckPendingContextDtoSchema,
         encounterConcealmentCheckPendingContextDtoSchema,
         encounterD20WindowPendingContextDtoSchema,

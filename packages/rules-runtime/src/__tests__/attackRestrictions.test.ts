@@ -25,7 +25,8 @@ import {
 const ADVANTAGE = { predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'ADVANTAGE' } as const
 const NOT_DISADVANTAGE = {
   predicateCode: 'ATTACK_ROLL_MODE',
-  rollMode: 'NOT_DISADVANTAGE'
+  rollMode: 'DISADVANTAGE',
+  negated: true
 } as const
 const ENEMY_WITHIN_5 = { predicateCode: 'ENEMY_NEAR_TARGET', feet: 5 } as const
 const MOVED_20 = { predicateCode: 'MOVED_TOWARD_TARGET', minFeet: 20 } as const

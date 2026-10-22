@@ -25,6 +25,8 @@ import {
   stageEncounterActionEconomyRefreshes
 } from '../encounterActionEconomy.js'
 import { consumeEncounterActionEconomy } from '../encounterActionEconomyConsumption.js'
+import type { isEncounterTargetDying } from '../encounterActorDefeat.js'
+import { dnd5eOutcomeTargetPreconditions } from '../systems/dnd5e/effectActionOutcomes.js'
 import {
   encounterActionEconomyWarnings,
   evaluateEncounterActionRuleWarnings,
@@ -399,7 +401,7 @@ describe('encounter action rule warning gate', () => {
             sceneContext: farApart
           },
           targetDefeated: false,
-          stabilize: null,
+          targetPreconditions: { declared: [], target: undefined },
           actionEconomy,
           activationCode: 'ACTION',
           acknowledged
@@ -462,7 +464,7 @@ describe('encounter action rule warning gate', () => {
           sceneContext: farApart
         },
         targetDefeated: false,
-        stabilize: null,
+        targetPreconditions: { declared: [], target: undefined },
         actionEconomy: {
           consumption: {
             definitionId: SRD_ACTION_ALLOWANCE_DEFINITION_ID,
@@ -512,7 +514,7 @@ describe('encounter action rule warning gate', () => {
         },
         ...sizes,
         targetDefeated: false,
-        stabilize: null,
+        targetPreconditions: { declared: [], target: undefined },
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: ['TARGET_RANGE_UNCHECKED', ...acknowledged]
@@ -532,9 +534,9 @@ describe('encounter action rule warning gate', () => {
         kind: 'UNACKNOWLEDGED',
         warnings: [tooLarge, expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })]
       })
-      expect(
-        gate({ actorSize: 'MEDIUM', targetSize: 'HUGE' }, ['TARGET_TOO_LARGE'])
-      ).toMatchObject({ kind: 'ACCEPTED', overrides: expect.arrayContaining([tooLarge]) })
+      expect(gate({ actorSize: 'MEDIUM', targetSize: 'HUGE' }, ['TARGET_TOO_LARGE'])).toMatchObject(
+        { kind: 'ACCEPTED', overrides: expect.arrayContaining([tooLarge]) }
+      )
     })
 
     it('raises nothing when either size is unknown', () => {
@@ -698,7 +700,7 @@ describe('encounter action rule warning gate', () => {
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
         targetDefeated: false,
-        stabilize: null,
+        targetPreconditions: { declared: [], target: undefined },
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: []
@@ -746,7 +748,7 @@ describe('encounter action rule warning gate', () => {
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
         targetDefeated: false,
-        stabilize: null,
+        targetPreconditions: { declared: [], target: undefined },
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: []
@@ -772,7 +774,7 @@ describe('encounter action rule warning gate', () => {
           sceneContext: null
         },
         targetDefeated: true,
-        stabilize: null,
+        targetPreconditions: { declared: [], target: undefined },
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged
@@ -782,9 +784,15 @@ describe('encounter action rule warning gate', () => {
     expect(gate(['TARGET_DEFEATED'])).toEqual({ kind: 'ACCEPTED', overrides: [defeated] })
   })
 
-  it('warns, overridably, when a stabilize action names a target that is not dying (D96)', () => {
+  it("warns, overridably, when a target fails its outcome's declared precondition (D96, D173 Q1)", () => {
+    const character = (current: number, stable: boolean) => ({
+      actor: { kind: 'CHARACTER' as const },
+      state: { current, deathSaves: { successes: 0, failures: 0, stable } }
+    })
+    type Target = Parameters<typeof isEncounterTargetDying>[0]
     const gate = (
-      stabilize: { targetDying: boolean },
+      effectKinds: string[],
+      target: Target,
       acknowledged: EncounterRuleWarningDto['code'][]
     ) =>
       evaluateEncounterActionRuleWarnings({
@@ -802,20 +810,48 @@ describe('encounter action rule warning gate', () => {
           sceneContext: null
         },
         targetDefeated: true,
-        stabilize,
+        targetPreconditions: {
+          declared: dnd5eOutcomeTargetPreconditions(effectKinds),
+          target
+        },
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged
       })
     const notDying = { code: 'TARGET_NOT_DYING', message: 'The target is not dying.' }
-    expect(gate({ targetDying: true }, [])).toEqual({ kind: 'ACCEPTED', overrides: [] })
-    expect(gate({ targetDying: false }, [])).toEqual({
+    const dying = character(0, false)
+    const stable = character(0, true)
+    expect(gate(['STABILIZE'], dying, [])).toEqual({ kind: 'ACCEPTED', overrides: [] })
+    expect(gate(['STABILIZE'], stable, [])).toEqual({
       kind: 'UNACKNOWLEDGED',
       warnings: [notDying]
     })
-    expect(gate({ targetDying: false }, ['TARGET_NOT_DYING'])).toEqual({
+    expect(gate(['STABILIZE'], stable, ['TARGET_NOT_DYING'])).toEqual({
       kind: 'ACCEPTED',
       overrides: [notDying]
+    })
+    // A Character above 0 hit points has no death saves to stabilize.
+    const healthy = {
+      actor: { kind: 'CHARACTER' as const },
+      state: { current: 4, deathSaves: null }
+    }
+    expect(gate(['STABILIZE'], healthy, [])).toEqual({
+      kind: 'UNACKNOWLEDGED',
+      warnings: [notDying]
+    })
+    // A Creature at 0 hit points is defeated rather than dying.
+    const creature = {
+      actor: { kind: 'CREATURE' as const },
+      state: { current: 0, deathSaves: null }
+    }
+    expect(gate(['STABILIZE'], creature, [])).toEqual({
+      kind: 'UNACKNOWLEDGED',
+      warnings: [notDying]
+    })
+    // An outcome that declares no precondition keeps the defeated-target warning.
+    expect(gate(['DAMAGE'], dying, [])).toEqual({
+      kind: 'UNACKNOWLEDGED',
+      warnings: [{ code: 'TARGET_DEFEATED', message: 'The target is defeated.' }]
     })
   })
 
@@ -849,7 +885,7 @@ describe('encounter action rule warning gate', () => {
           },
           targetCreatureTypeId,
           targetDefeated: false,
-          stabilize: null,
+          targetPreconditions: { declared: [], target: undefined },
           actionEconomy: null,
           activationCode: 'ACTION',
           acknowledged
@@ -916,7 +952,7 @@ describe('encounter action rule warning gate', () => {
         preparedWarnings: [],
         target: { actor, target, targetPolicy, makesAttackRoll: false, sceneContext: null },
         targetDefeated: false,
-        stabilize: null,
+        targetPreconditions: { declared: [], target: undefined },
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: []
@@ -933,7 +969,7 @@ describe('encounter action rule warning gate', () => {
           sceneContext: null
         },
         targetDefeated: false,
-        stabilize: null,
+        targetPreconditions: { declared: [], target: undefined },
         actionEconomy: null,
         activationCode: 'ACTION',
         acknowledged: ['RESOURCE_UNAVAILABLE']

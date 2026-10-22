@@ -37,7 +37,6 @@ import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from './spatial.js'
 import {
   characterMechanicsApplicationDtoSchema,
   characterMechanicsResourceReceiptDtoSchema,
-  characterMechanicsTargetStateDtoSchema,
   characterMechanicsTargetTransitionDtoSchema,
   encounterActorActiveEffectCreateReceiptDtoSchema,
   encounterFeatureResourceReceiptDtoSchema,
@@ -1657,58 +1656,6 @@ export const cleavingDamageApplicationOutputDtoSchema = lazySchema(() =>
             message: 'Cleaving settlement evidence is inconsistent.'
           })
         }
-      })
-    )
-)
-
-/** A basic action's settled d20 check (first aid): what was rolled and what it did to the target. */
-export const basicActionCheckApplicationOutputDtoSchema = lazySchema(() =>
-  z
-    .strictObject({
-      kind: z.literal('BASIC_ACTION_CHECK'),
-      schemaVersion: z.literal(1),
-      occurrenceId: uuidSchema,
-      commandId: uuidSchema,
-      definition: z.strictObject({
-        id: uuidSchema,
-        version: positiveIntegerSchema,
-        checksum: checksumSchema
-      }),
-      helperActorId: uuidSchema,
-      targetActorId: uuidSchema,
-      targetCharacterId: uuidSchema,
-      check: z.strictObject({ checkDefinitionId: uuidSchema, dc: positiveIntegerSchema }),
-      d20: ruleCheckD20EvidenceDtoSchema,
-      outcome: z.enum(['STABILIZED', 'FAILED', 'NOT_DYING']),
-      /** Present only when the target was stabilized; undo restores `before` at `afterStreamVersion`. */
-      targetTransition: z.nullable(
-        z.strictObject({
-          before: characterMechanicsTargetStateDtoSchema,
-          after: characterMechanicsTargetStateDtoSchema,
-          afterStreamVersion: aggregateVersionSchema
-        })
-      )
-    })
-    .check(
-      z.superRefine((value, context) => {
-        if ((value.outcome === 'STABILIZED') !== (value.targetTransition !== null))
-          context.addIssue({
-            code: 'custom',
-            path: ['targetTransition'],
-            message: 'Only a stabilized target carries a transition.'
-          })
-        if (value.d20.dc !== value.check.dc)
-          context.addIssue({
-            code: 'custom',
-            path: ['d20', 'dc'],
-            message: 'The check evidence must be rolled against the check DC.'
-          })
-        if (value.outcome === 'FAILED' && value.d20.total >= value.check.dc)
-          context.addIssue({
-            code: 'custom',
-            path: ['outcome'],
-            message: 'A check that reaches its DC does not fail.'
-          })
       })
     )
 )

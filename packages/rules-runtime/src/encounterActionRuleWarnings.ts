@@ -4,16 +4,27 @@ import type {
 } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { sizeRank } from '@artificer-toolkit/shared/core'
 import type { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
+import { isEncounterTargetDying } from './encounterActorDefeat.js'
+import type { EffectOutcomeTargetPrecondition } from './effectOutcomeRegistry.js'
 import {
   evaluateEncounterActionTargetPolicy,
   targetingExcludesCreatureType,
   withoutCreatureTypeRestrictions
 } from './encounterActionTargetPolicy.js'
 
-/** The overridable warning for a stabilize (the Healer's Kit, First Aid) aimed at a creature that is not dying. */
-export const TARGET_NOT_DYING_WARNING: EncounterRuleWarningDto = {
-  code: 'TARGET_NOT_DYING',
-  message: 'The target is not dying.'
+type OutcomeTarget = Parameters<typeof isEncounterTargetDying>[0]
+
+/** How a target meets each outcome precondition, and the overridable warning it raises when it fails. */
+const TARGET_PRECONDITIONS: Readonly<
+  Record<
+    EffectOutcomeTargetPrecondition,
+    { met: (target: OutcomeTarget) => boolean; warning: EncounterRuleWarningDto }
+  >
+> = {
+  DYING: {
+    met: isEncounterTargetDying,
+    warning: { code: 'TARGET_NOT_DYING', message: 'The target is not dying.' }
+  }
 }
 
 /** The overridable warning for an end-effects action (Lesser Restoration) aimed at a creature with nothing it ends. */
@@ -21,6 +32,14 @@ export const TARGET_NOTHING_TO_END_WARNING: EncounterRuleWarningDto = {
   code: 'TARGET_NOTHING_TO_END',
   message: 'The target holds no effect this ends.'
 }
+
+/**
+ * The warnings an unmet outcome precondition raises. An action that proceeds over one rolls and
+ * applies nothing (D173 Q1).
+ */
+export const TARGET_PRECONDITION_WARNING_CODES: ReadonlySet<EncounterRuleWarningCodeDto> = new Set(
+  Object.values(TARGET_PRECONDITIONS).map(({ warning }) => warning.code)
+)
 
 type EncounterActionWarningInput = {
   preparedWarnings: readonly EncounterRuleWarningDto[]
@@ -47,10 +66,13 @@ type EncounterActionWarningInput = {
   /** Set when the action bonds its targets (Telepathic Bond): Intelligence at or below it is excluded. */
   linkIntelligenceFloor?: number | null
   /**
-   * Set when the action stabilizes (the Healer's Kit): it needs a dying target, so a target that
-   * is not dying warns with TARGET_NOT_DYING in place of TARGET_DEFEATED.
+   * The target preconditions the action's outcomes declare (D173 Q1) and the loaded target judged
+   * against them. Each one it fails warns in place of TARGET_DEFEATED, which a dying target is.
    */
-  stabilize: { targetDying: boolean } | null
+  targetPreconditions: {
+    declared: readonly EffectOutcomeTargetPrecondition[]
+    target: OutcomeTarget
+  }
   actionEconomy: Awaited<ReturnType<typeof evaluateEncounterActionEconomy>>
   activationCode: string
   acknowledged: readonly EncounterRuleWarningCodeDto[]
@@ -82,10 +104,11 @@ function encounterActionWarnings(input: EncounterActionWarningInput) {
   return [
     ...encounterActionEconomyWarnings(input.actionEconomy, input.activationCode),
     ...input.preparedWarnings,
-    ...(input.stabilize
-      ? input.stabilize.targetDying
-        ? []
-        : [TARGET_NOT_DYING_WARNING]
+    ...(input.targetPreconditions.declared.length > 0
+      ? [...new Set(input.targetPreconditions.declared)].flatMap((precondition) => {
+          const { met, warning } = TARGET_PRECONDITIONS[precondition]
+          return met(input.targetPreconditions.target) ? [] : [warning]
+        })
       : input.targetDefeated
         ? [{ code: 'TARGET_DEFEATED' as const, message: 'The target is defeated.' }]
         : []),
@@ -151,7 +174,7 @@ export function evaluateEncounterActorsRuleWarnings(
     | 'targetDefeated'
     | 'targetCreatureTypeId'
     | 'targetIntelligence'
-    | 'stabilize'
+    | 'targetPreconditions'
     | 'actorSize'
     | 'targetSize'
   > & {
@@ -170,7 +193,11 @@ export function evaluateEncounterActorsRuleWarnings(
     areaWarnings.map((warning) => [JSON.stringify([warning.code, warning.message]), warning])
   )
   for (const target of targets) {
-    const targetWarnings = encounterActionWarnings({ ...shared, ...target, stabilize: null })
+    const targetWarnings = encounterActionWarnings({
+      ...shared,
+      ...target,
+      targetPreconditions: { declared: [], target: undefined }
+    })
     if (targetWarnings === null) return { kind: 'UNSUPPORTED_TARGET' }
     for (const warning of targetWarnings)
       warnings.set(JSON.stringify([warning.code, warning.message]), warning)

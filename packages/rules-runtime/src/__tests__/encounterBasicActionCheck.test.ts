@@ -6,18 +6,15 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
-  completeEncounterBasicActionCheckResult,
-  encounterBasicActionCheckPendingSnapshot,
   encounterBasicActionCheckTrigger,
   evaluateEncounterBasicActionCheck,
-  prepareEncounterBasicActionCheck,
+  freezeEncounterActorCheck,
   startEncounterBasicActionCheck
 } from '../encounterBasicActionCheck.js'
 import { encounterBasicActionCheckLabel } from '../encounterMovementPassagePreparation.js'
 import type { MovementTarget } from '../encounterMovementTargets.js'
 import {
   SRD_SYSTEM_ID,
-  characterActor,
   createSrdRulesRuntime,
   creatureActor,
   creatureRuleFacts,
@@ -29,12 +26,10 @@ import { helpEffect } from './antitoxinEffectFixture.js'
 import { GOBLIN } from './encounterActiveEffectFixtures.js'
 
 const system = systemAuthoredDtoSchema.parse(srdSystemRecord)
-const FIRST_AID_ID = '00000000-0000-4000-8000-000000000b09'
 const HELP_EFFECT_ID = '00000000-0000-4000-8000-00000000c0c1'
 const OCCURRENCE_ID = testUuid(900)
-const COMMAND_ID = testUuid(901)
-const CHECK = { checkKind: 'SKILL' as const, checkDefinitionId: SRD_MEDICINE_SKILL_ID, dc: 10 }
-const DEFINITION = { id: FIRST_AID_ID, version: 1, checksum: 'a'.repeat(64), label: 'First Aid' }
+const CHECK = { checkKind: 'SKILL' as const, checkDefinitionId: SRD_MEDICINE_SKILL_ID }
+const DC = 10
 const scores = {
   STRENGTH: 10,
   DEXTERITY: 10,
@@ -66,40 +61,10 @@ function helperActor(
 }
 
 const helper = helperActor(testUuid(1))
-const ally = helperActor(testUuid(2))
-const hero = characterActor({ id: testUuid(3), characterId: testUuid(4) })
 
-/**
- * The Character target at a given hit point state. Its Character facts are platform data this
- * module never reads (only the actor's kind, source and death state), so a Creature's target
- * carries the Character actor.
- */
-function heroTarget(state: MovementTarget['state']): MovementTarget {
-  return { ...srdCreatureTarget(ally), actor: hero, state }
-}
-
-function dyingHero(): MovementTarget {
-  return heroTarget({
-    current: 0,
-    temporary: 0,
-    conditions: [],
-    deathSaves: { successes: 1, failures: 2, stable: false }
-  })
-}
-
-function prepare(overrides: Partial<Parameters<typeof prepareEncounterBasicActionCheck>[0]> = {}) {
-  return prepareEncounterBasicActionCheck({
-    gameSystemId: SRD_SYSTEM_ID,
-    commandId: COMMAND_ID,
-    commandFingerprint: 'b'.repeat(64),
-    definition: DEFINITION,
-    system,
-    check: CHECK,
-    checkLabel: encounterBasicActionCheckLabel(system, SRD_MEDICINE_SKILL_ID),
-    helper: srdCreatureTarget(helper),
-    target: dyingHero(),
-    ...overrides
-  })
+/** Freezes the First Aid helper's Wisdom (Medicine) check, as a check action does (D173). */
+function freeze(actor: MovementTarget = srdCreatureTarget(helper)) {
+  return freezeEncounterActorCheck({ gameSystemId: SRD_SYSTEM_ID, system, check: CHECK, actor })
 }
 
 /** The First Aid helper holding the Help grant an ally's Help action planned for it. */
@@ -110,57 +75,47 @@ function helpedHelper(): MovementTarget {
   }
 }
 
-async function settle(
-  prepared: NonNullable<ReturnType<typeof prepare>>,
-  faces: number[],
-  targetStillDying = true
-) {
+async function settle(frozen: ReturnType<typeof freeze>, faces: number[]) {
   const runtime = createSrdRulesRuntime()
   const continuation = await startEncounterBasicActionCheck({
     runtime,
     gameSystemId: SRD_SYSTEM_ID,
     occurrenceId: OCCURRENCE_ID
   })
-  const evaluated = await evaluateEncounterBasicActionCheck({
+  return evaluateEncounterBasicActionCheck({
     gameSystemId: SRD_SYSTEM_ID,
     runtime,
-    context: prepared.context,
+    context: { d20: frozen.d20, check: { dc: DC } },
     continuation,
     answer: {
       kind: 'ENTER_DICE',
       requestId: continuation.request.requestId,
       rawFaces: faces,
-      rollMode: prepared.context.d20.rollMode
+      rollMode: frozen.d20.rollMode
     },
     rollD20: () => {
       throw new Error('An entered roll never rolls.')
     },
     expectedOccurrenceId: OCCURRENCE_ID
   })
-  return { runtime, continuation, evaluated, targetStillDying }
 }
 
-describe('First Aid check', () => {
+describe('First Aid’s check, on the generic check flow (D173)', () => {
   it('names the check from the System: Wisdom (Medicine)', () => {
     expect(encounterBasicActionCheckLabel(system, SRD_MEDICINE_SKILL_ID)).toBe('Wisdom (Medicine)')
     expect(() => encounterBasicActionCheckLabel(system, testUuid(77))).toThrow()
   })
 
   it('freezes the helper’s Medicine total and names its trigger', () => {
-    const prepared = prepare()!
-    expect(prepared.context).toMatchObject({
-      helperActorId: helper.id,
-      targetActorId: hero.id,
-      targetCharacterId: hero.sourceId,
-      check: {
-        checkDefinitionId: CHECK.checkDefinitionId,
-        dc: CHECK.dc,
-        label: 'Wisdom (Medicine)'
-      },
-      d20: { rollMode: 'NORMAL', modifier: 3 }
-    })
-    expect(prepared.context.consumedGrants).toEqual([])
-    expect(encounterBasicActionCheckTrigger(prepared.context)).toEqual({
+    const frozen = freeze()
+    expect(frozen.d20).toMatchObject({ rollMode: 'NORMAL', modifier: 3 })
+    expect(frozen.consumedGrants).toEqual([])
+    expect(
+      encounterBasicActionCheckTrigger({
+        actionLabel: 'First Aid',
+        check: { label: encounterBasicActionCheckLabel(system, SRD_MEDICINE_SKILL_ID), dc: DC }
+      })
+    ).toEqual({
       kind: 'BASIC_ACTION_CHECK',
       actionLabel: 'First Aid',
       checkLabel: 'Wisdom (Medicine)',
@@ -168,98 +123,31 @@ describe('First Aid check', () => {
     })
   })
 
-  it('makes no check for a target that is not dying', () => {
-    expect(
-      prepare({
-        target: heroTarget({ current: 4, temporary: 0, conditions: [], deathSaves: null })
-      })
-    ).toBeNull()
-  })
-
   it('refuses a custom helper and a helper with no Medicine total', () => {
     const custom = creatureActor({ id: testUuid(5), kind: 'CUSTOM', snapshot: {} })
-    expect(() => prepare({ helper: { ...srdCreatureTarget(helper), actor: custom } })).toThrow(
-      'custom actor'
-    )
-    expect(() => prepare({ helper: srdCreatureTarget(helperActor(testUuid(6), {})) })).toThrow(
-      'no total'
-    )
-  })
-
-  it('makes no check for a Creature, which is defeated rather than dying', () => {
-    expect(prepare({ target: srdCreatureTarget(ally) })).toBeNull()
+    expect(() => freeze({ ...srdCreatureTarget(helper), actor: custom })).toThrow('custom actor')
+    expect(() => freeze(srdCreatureTarget(helperActor(testUuid(6), {})))).toThrow('no total')
   })
 
   it('applies the Help grant the helper holds: advantage, and the grant is reported as used', () => {
     const helped = helpedHelper()
-    const prepared = prepare({ helper: helped })!
-    expect(prepared.context.d20.rollMode).toBe('ADVANTAGE')
-    expect(prepared.context.consumedGrants).toEqual(helped.activeEffects)
+    const frozen = freeze(helped)
+    expect(frozen.d20.rollMode).toBe('ADVANTAGE')
+    expect(frozen.consumedGrants).toEqual(helped.activeEffects)
   })
 
-  it('reaching the DC stabilizes and a miss changes nothing', async () => {
-    const prepared = prepare()!
-    const reached = await settle(prepared, [7])
-    expect(reached.evaluated.d20).toMatchObject({ total: 10, dc: 10, selectedNatural: 7 })
-    expect(reached.evaluated.reachesDc).toBe(true)
-    const missed = await settle(prepared, [6])
-    expect(missed.evaluated.d20.total).toBe(9)
-    expect(missed.evaluated.reachesDc).toBe(false)
-    const result = completeEncounterBasicActionCheckResult({
-      context: prepared.context,
-      continuation: missed.continuation,
-      evaluated: missed.evaluated,
-      targetStillDying: true,
-      transition: null,
-      occurrenceVersion: 2,
-      initialFactsChecksum: 'c'.repeat(64)
-    })
-    expect(result.applicationOutputs).toMatchObject({ outcome: 'FAILED', targetTransition: null })
+  it('reaches the DC on a total of 10 and misses on 9', async () => {
+    const frozen = freeze()
+    const reached = await settle(frozen, [7])
+    expect(reached.d20).toMatchObject({ total: 10, dc: 10, selectedNatural: 7 })
+    expect(reached.reachesDc).toBe(true)
+    const missed = await settle(frozen, [6])
+    expect(missed.d20.total).toBe(9)
+    expect(missed.reachesDc).toBe(false)
   })
 
   it('advantage keeps the higher of two entered dice', async () => {
-    const prepared = prepare({ helper: helpedHelper() })!
-    const rolled = await settle(prepared, [2, 9])
-    expect(rolled.evaluated.d20).toMatchObject({
-      selectedNatural: 9,
-      total: 12,
-      rollMode: 'ADVANTAGE'
-    })
-  })
-
-  it('a target no longer dying at resolution is not stabilized', async () => {
-    const prepared = prepare()!
-    const rolled = await settle(prepared, [20])
-    const result = completeEncounterBasicActionCheckResult({
-      context: prepared.context,
-      continuation: rolled.continuation,
-      evaluated: rolled.evaluated,
-      targetStillDying: false,
-      transition: null,
-      occurrenceVersion: 2,
-      initialFactsChecksum: 'c'.repeat(64)
-    })
-    expect(result.applicationOutputs.outcome).toBe('NOT_DYING')
-  })
-
-  it('a prompted check waits on a kernel snapshot carrying its frozen context', async () => {
-    const prepared = prepare()!
-    const runtime = createSrdRulesRuntime()
-    const continuation = await startEncounterBasicActionCheck({
-      runtime,
-      gameSystemId: SRD_SYSTEM_ID,
-      occurrenceId: OCCURRENCE_ID
-    })
-    expect(
-      encounterBasicActionCheckPendingSnapshot({
-        continuation,
-        context: prepared.context,
-        optionalCombatSnapshotChecksum: 'd'.repeat(64)
-      })
-    ).toMatchObject({
-      snapshotKind: 'KERNEL_EVIDENCE',
-      optionalCombatSnapshotChecksum: 'd'.repeat(64),
-      applicationContext: { kind: 'ENCOUNTER_BASIC_ACTION_CHECK', helperActorId: helper.id }
-    })
+    const rolled = await settle(freeze(helpedHelper()), [2, 9])
+    expect(rolled.d20).toMatchObject({ selectedNatural: 9, total: 12, rollMode: 'ADVANTAGE' })
   })
 })

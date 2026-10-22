@@ -153,7 +153,8 @@ export const haste: SpellAuthored = {
                       id: spellChildId(SPELL_IDS.HASTE, 0x214, 3),
                       valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
                       domain: { ability: ABILITY_CODE.DEXTERITY },
-                      modifierKind: MODIFIER_KIND.ADVANTAGE,
+                      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                      payload: { influence: 'ADVANTAGE' },
                       order: 3
                     }
                   ]

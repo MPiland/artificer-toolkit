@@ -36,7 +36,8 @@ const blurModifiers = Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, index
     requiresHolderSeesAttacker: false,
     exemptAttackerSenseDefinitionIds: [SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID]
   },
-  modifierKind: MODIFIER_KIND.DISADVANTAGE
+  modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+  payload: { influence: 'DISADVANTAGE' }
 }))
 export const blur: SpellAuthored = {
   kind: SUBJECT.SPELL,

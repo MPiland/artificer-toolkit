@@ -24,6 +24,7 @@ import { isTestPath } from './redProof.mjs'
 export const SIZE_LIMIT = 1500
 export const SIZE_BUDGET = 'scripts/fileSizeBudget.json'
 export const FENCE_ALLOWLIST = 'scripts/systemsImportAllowlist.json'
+const PLATFORM_ROOT = /^packages\/rules-runtime\/src\/platform[^/]*\.ts$/
 
 const RULES_RUNTIME = 'packages/rules-runtime/src/'
 const SYSTEMS = `${RULES_RUNTIME}systems`
@@ -166,8 +167,14 @@ export const ratchetProblems = (root, { base } = {}) => {
         ...Object.keys(baseAllowlist.compositionRoots),
         ...baseAllowlist.importers
       ]
+      // The importers are debt and only shrink; a new System install point may be a composition
+      // root only as a platform module that states why it installs System adapters.
+      const newRoot = (file) =>
+        PLATFORM_ROOT.test(file) &&
+        (compositionRoots[file]?.trim() ?? '') !== '' &&
+        !allowlist.includes(file)
       for (const file of fenceEntries)
-        if (!baseEntries.includes(file))
+        if (!baseEntries.includes(file) && !newRoot(file))
           problems.push(`${FENCE_ALLOWLIST}: ${file} is new; the allowlist only shrinks.`)
     }
   }
