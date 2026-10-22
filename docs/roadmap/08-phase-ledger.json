@@ -947,7 +947,7 @@
             {
               "id": "PLATFORM-14.T2",
               "text": "Bug (found 2026-10-22 by RELIABILITY-9.T3b): the RaceEditRoute story \"Dragonborn Ancestry Feature Branch\" fails in the Storybook browser project (\"Unable to find the authoring rail expander\"), on the phase branch before T3b too. CI does not run the Storybook project, so nothing caught it. Fix the story or the rail regression it exposes, with the story as the red proof.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-14.1"],
               "wsjf": {
                 "bv": 2,
@@ -955,7 +955,7 @@
                 "rr": 3,
                 "size": 1
               },
-              "activeWorkbook": "docs/handoffs/slice-reliability-9-t1.md"
+              "note": "Merged m324 (efb89cc06)."
             }
           ]
         },
@@ -3403,7 +3403,7 @@
             },
             {
               "id": "RULES-2.T6f",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3413,7 +3413,7 @@
                 "after": ["RULES-2.T6e"]
               },
               "text": "Compiler: zone subsystem as its own module, neutral geometry outside systems/dnd5e.",
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "note": "Merged m325 (3ceed3087)."
             },
             {
               "id": "RULES-2.T7",
@@ -3846,7 +3846,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["RULES-2.T6f"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             },
             {
               "status": "TODO",
@@ -14735,6 +14736,19 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["RULES-2.T6e"]
+              }
+            },
+            {
+              "id": "SPELLS-33.T4i3e",
+              "text": "Timed conditions in a gated multi-outcome band (split from T4i3c 2026-10-22): every CONDITION outcome in a gated band carries its duration, and a condition can be scoped to last while another from the same band holds (Giant Centipede: stable, poisoned for 1 hour, paralyzed while poisoned this way). Re-author Centipede with the timing; generic, parity proof.",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-33.T4i3c", "RULES-2.T6f"]
               }
             }
           ]

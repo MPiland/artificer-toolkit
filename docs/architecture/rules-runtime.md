@@ -112,29 +112,42 @@ checksum and reseeds development data in the same change, because published grap
 these checksums. Regenerate with `vitest run -u` on that test only. Passive Creature traits compiled by other
 adapter methods (zones, damage grants) are not covered.
 
-### Effect-action compiler module map (current, RULES-2.T6b)
+### Effect-action compiler module map (current, RULES-2.T6f)
 
 `systems/dnd5e/effectActionCompiler.ts` compiles an authored Effect and holds the adapter. Its operation registry and
 its runtime interpretation (the code that re-checks a committed graph's evidence and returns the applications) live in
 sibling modules. Imports run one way, down this list; no module imports the compiler, and none re-exports another's
 names.
 
-| Module                           | Owns                                                                                                                                                                                                           |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, forced-movement collision encoding, node-id helpers                                                                   |
-| `effectActionOperationRegistry`  | Every `dnd5e*Operation` contract, their factories, and `dnd5eEffectActionCapability`                                                                                                                           |
-| `effectActionOutcomes`           | `DND5E_EFFECT_OUTCOMES`: one outcome definition per `Outcome` kind (see the outcomes registry below), and the key sets interpretation derives from it                                                          |
-| `effectActionEvidenceChecks`     | Pure checks shared by interpretation: condition immunity facts, hit-point gate evidence, repeat-save condition ids                                                                                             |
-| `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                             |
-| `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                |
-| `effectActionScalingFacts`       | `Dnd5eEffectScalingFacts`, built once by `dnd5eEffectScalingFacts` where locked facts enter the compiler; `scalingLevel`; the bounded exact-dice contract (`parseBoundedDiceConfiguration`, `boundedDiceTerm`) |
+| Module                           | Owns                                                                                                                                                                                                              |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `effectActionContracts`          | The `DND5E_*` operation and fact keys, the compiler error, the `Outcome` and path types, forced-movement collision encoding, node-id helpers                                                                      |
+| `effectActionOperationRegistry`  | Every `dnd5e*Operation` contract, their factories, and `dnd5eEffectActionCapability`                                                                                                                              |
+| `effectActionOutcomes`           | `DND5E_EFFECT_OUTCOMES`: one outcome definition per `Outcome` kind (see the outcomes registry below), and the key sets interpretation derives from it                                                             |
+| `effectActionEvidenceChecks`     | Pure checks shared by interpretation: condition immunity facts, hit-point gate evidence, repeat-save condition ids                                                                                                |
+| `effectActionInterpretation`     | `interpret`, `interpretDirect`, `interpretDirectProposal`, `interpretSpatial` and `testApplications`, which call one another and so share a module                                                                |
+| `effectActionRepeatSaveEvidence` | `repeatedFollowUpSaveResultPath`: the repeat-save result path a committed save trace must carry                                                                                                                   |
+| `effectActionScalingFacts`       | `Dnd5eEffectScalingFacts`, built once by `dnd5eEffectScalingFacts` where locked facts enter the compiler; `scalingLevel`; the bounded exact-dice contract (`parseBoundedDiceConfiguration`, `boundedDiceTerm`)    |
+| `effectActionZones`              | `compileDnd5eZonePlacement`: every zone rule (D140, D142–D146, D153–D156) and the zone plan it assembles: a cast's zone pick, a placed or source zone, its bands, held condition, occupant bonus and placer grant |
+
+Transitional (RULES-2.T6f, until RULES-2.T6g): a zone composes the test-phase, outcome and lifetime pieces that still live
+in the compiler (`compileTestDefinition`, the bounded and specialized test outcomes, `modifierGrantEntryPlan`,
+`durationPublishedGraph`, `maintenancePlan`, `diceGraphDefinition`, `withMovementInterruption`, `publishedGraph`). The
+compiler builds one `ZONE_COMPILER_PIECES` record of those functions and passes it to `compileDnd5eZonePlacement`; the
+zones module imports only the record's type (`ZoneCompilerPieces`, `typeof` the record), so no module imports the
+compiler at run time. RULES-2.T6g moves those pieces into modules of their own, which zones then import directly, and
+the record goes away.
+
+The neutral `shapeMeasurement` module, outside `systems/dnd5e`, holds the shape geometry both the area target policy
+and zones read: `shapeExtent` (the measurement that sizes each shape kind) and `scaledShapeMeasurements` (which of a
+shape's measurements scale, and by what). Which sizes may scale stays System policy.
 
 The scaling facts are validated at that one boundary: a level the contract carries is a positive safe integer, class
 levels are a validated map, and the roll mode is always present. Downstream compiler code reads them without re-checking.
 A parsed dice configuration is one bounded term plus its flat modifier, so callers never re-check the term's bounds; only
 a critical hit's doubled count is re-bounded.
 
-All seven are D&D 2014 policy (their keys, messages and facts name D&D), so they stay under `systems/dnd5e`. The
+All eight are D&D 2014 policy (their keys, messages and facts name D&D), so they stay under `systems/dnd5e`. The
 first neutral piece is the outcomes registry below; the interpretation dispatcher is a later RULES-2 step once the
 compiler stops naming D&D facts. Each file stays under the 1,500-line budget, and the golden above gates every move.
 
