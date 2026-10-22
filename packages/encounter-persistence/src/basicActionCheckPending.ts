@@ -10,7 +10,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
-import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import type {
+  ServerKernelRuleExecutionPendingSnapshotDto,
+  ServerRuleExecutionPendingSnapshotDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterDocument } from './store.js'
 
 /** A kernel snapshot split into the paused graph and the application context it waits under. */
@@ -101,16 +104,98 @@ export function readNativeEscapeCheckPending(
   return pending
 }
 
-/** The roller rolls the check (the helper, or the escaping holder); its controllers and the GM answer it. */
+/**
+ * The check action a pending occurrence waits on (D173): its roller's d20, or, once that reached
+ * the DC, the outcome's dice on the outcome graph's own request.
+ */
+export function readNativeCheckActionPending(
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  snapshot: ServerRuleExecutionPendingSnapshotDto | null
+) {
+  const pending = readCheckActionPhaseSnapshot(snapshot)
+  if (!pending) throw new Error('The check action occurrence is unavailable.')
+  requirePendingRoot(occurrence, pending)
+  return pending
+}
+
+function readCheckActionPhaseSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
+  const pending = splitKernelSnapshot(snapshot)
+  return pending?.context.kind === 'ENCOUNTER_CHECK_ACTION' &&
+    pending.snapshot.request.kind === 'INTEGER_RANGE' &&
+    (pending.context.phase.kind === 'OUTCOME' || readKernelCheckSnapshot(pending.snapshot))
+    ? { snapshot: pending.snapshot, continuation: pending.continuation, context: pending.context }
+    : null
+}
+
+/**
+ * The check action a pending snapshot waits on (D173), with the d20 window its d20 opened when it
+ * waits on one; null when the snapshot waits on anything else.
+ */
+export function readCheckActionSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
+  const pending = readD20WindowSnapshot(snapshot)
+  if (!pending) {
+    const phase = readCheckActionPhaseSnapshot(snapshot)
+    return phase && { ...phase, window: null }
+  }
+  const { source } = pending.context
+  return source.kind === 'CHECK_ACTION'
+    ? {
+        snapshot: pending.snapshot,
+        continuation: pending.continuation,
+        context: source.context,
+        window: pending.context
+      }
+    : null
+}
+
+/** The check action's roller sees its d20, or the outcome's dice; its controllers and the GM answer. */
+function projectNativeCheckActionPending(
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  pendingSnapshot: ServerRuleExecutionPendingSnapshotDto,
+  reasons: EncounterRollModeReasons
+) {
+  const { snapshot, context } = readNativeCheckActionPending(occurrence, pendingSnapshot)
+  if (context.phase.kind === 'CHECK')
+    return projectD20Evidence(occurrence, snapshot, context, reasons)
+  return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
+    kind: 'ACTION_OUTCOME_EVIDENCE',
+    occurrenceId: occurrence.id,
+    occurrenceVersion: occurrence.version,
+    encounterVersion: occurrence.expectedEncounterVersion,
+    rollerActorId: context.actorId,
+    request: {
+      requestId: snapshot.request.requestId,
+      min: snapshot.request.min,
+      max: snapshot.request.max
+    },
+    allowedResponses: ['ENTER_INTEGER', 'SYSTEM_ROLL']
+  })
+}
+
+/** The roller rolls the check (the helper, the escaping holder or the acting actor); its controllers and the GM answer it. */
 export function projectNativeBasicActionCheckPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
   pendingSnapshot: ServerRuleExecutionPendingSnapshotDto,
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ) {
+  if (pendingSnapshot.applicationContext.kind === 'ENCOUNTER_CHECK_ACTION')
+    return projectNativeCheckActionPending(occurrence, pendingSnapshot, reasons)
   const { snapshot, context } =
     pendingSnapshot.applicationContext.kind === 'ENCOUNTER_ESCAPE_CHECK'
       ? readNativeEscapeCheckPending(occurrence, pendingSnapshot)
       : readNativeBasicActionCheckPending(occurrence, pendingSnapshot)
+  return projectD20Evidence(occurrence, snapshot, context, reasons)
+}
+
+function projectD20Evidence(
+  occurrence: EncounterDocument<'encounterRuleOccurrences'>,
+  snapshot: ServerKernelRuleExecutionPendingSnapshotDto,
+  context:
+    | ReturnType<typeof readNativeBasicActionCheckPending>['context']
+    | ReturnType<typeof readNativeEscapeCheckPending>['context']
+    | ReturnType<typeof readNativeCheckActionPending>['context'],
+  reasons: EncounterRollModeReasons
+) {
   return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
     kind: 'D20_EVIDENCE',
     occurrenceId: occurrence.id,

@@ -21,7 +21,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, withCheckTotals } from './actionRoomFixture.js'
-import { seedModifierGrant } from './grantSeed.js'
+import { heldDieEffect, seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
@@ -378,25 +378,6 @@ describe('First Aid, a System basic action with a check, in the room', () => {
     expect(await room.version()).toBe(before)
   })
 })
-
-/** A held-die effect: the real Guidance grant, authored to be offered after the d20 is seen. */
-function heldDieEffect(change: { count?: number; ability?: 'WISDOM' | 'STRENGTH' } = {}) {
-  const effect = structuredClone(guidance.effects![0]!)
-  for (const path of effect.paths)
-    if (path.selectionKind === 'FIXED')
-      for (const outcome of path.resultBlock.outcomes)
-        if (outcome.effectKind === 'APPLY_GRANT')
-          for (const modifier of outcome.grants.modifiers ?? []) {
-            if (modifier.modifierKind !== 'ADD_BONUS_DIE') continue
-            modifier.payload = {
-              ...modifier.payload,
-              ...(change.count === undefined ? {} : { count: change.count }),
-              timing: 'AFTER_ROLL'
-            }
-            if (change.ability) modifier.domain = { ability: change.ability }
-          }
-  return effect
-}
 
 describe('a die the helper holds for after the d20, in the First Aid room (SPELLS-31.T4c1a)', () => {
   async function heldDieRoom(effect: ReturnType<typeof heldDieEffect>) {

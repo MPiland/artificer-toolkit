@@ -33,7 +33,6 @@ import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolki
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
-import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
@@ -286,8 +285,9 @@ export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInpu
 /**
  * Plans a fixed-DC CHECK action whose success runs its authored outcome on its target (D173): the
  * actor's frozen check rolls against the authored DC, and a success runs the action's sealed
- * ON_CHECK_SUCCESS graph, the same outcome a won contest runs. Until the check's d20 can pend, only
- * a roller whose preference rolls for them, and who holds no after-roll dice, can make it.
+ * ON_CHECK_SUCCESS graph, the same outcome a won contest runs. The check pends on the roller's d20
+ * unless their preference rolls for them and they hold no after-roll dice; its answer runs the
+ * outcome then (`planNativeLiveCheckActionResponse`).
  */
 async function planNativeLiveCheckOutcomeAction(input: NativeLiveCheckActionInput) {
   const { capability, command, state, actor, target, prepared } = input
@@ -298,12 +298,6 @@ async function planNativeLiveCheckOutcomeAction(input: NativeLiveCheckActionInpu
     encounterHeldCheckDice(input.system, input.actorEffects, checkDefinitionId).length > 0
       ? null
       : input.autoRoll
-  if (!autoRoll)
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'SOURCE_REQUIREMENTS_NOT_MET',
-      message: 'This check action rolls only for a roller whose preference rolls for them.'
-    })
   const { d20, consumedGrants } = freezeEncounterActorCheck({
     gameSystemId: state.gameSystemId,
     system: input.system,
@@ -339,6 +333,22 @@ async function planNativeLiveCheckOutcomeAction(input: NativeLiveCheckActionInpu
     addedDice: d20.addedDice,
     published: prepared.plan.test.published
   })
+  if (!autoRoll)
+    return {
+      kind: 'CHECK' as const,
+      input: nativeLiveCheckCommitInput(input, {
+        check: {
+          kind: 'PENDING',
+          snapshot: encounterBasicActionCheckPendingSnapshot({
+            continuation,
+            // The answer re-prepares the outcome from the root command, never from these facts.
+            context: { ...context, commandJson: JSON.stringify(command), phase: { kind: 'CHECK' } },
+            optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
+          })
+        },
+        consumedGrants
+      })
+    }
   const evaluated = await evaluateEncounterBasicActionCheck({
     gameSystemId: state.gameSystemId,
     runtime: input.runtime,

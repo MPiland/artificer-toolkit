@@ -6,6 +6,7 @@ import type {
   ActiveRuleEffectRecord,
   EncounterMaintainedEffectStateRecord
 } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { ApplyEncounterForcedMovements } from './actionCommitRecords.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterPersistenceTransaction } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
@@ -157,9 +158,9 @@ export function receiptConsumedGrants(input: {
 
 /**
  * A response committed after its action's root (a Cleaving choice, answering the action's
- * occurrence) can end grants and change idle-turn marks too: the root's receipt takes them, so the
- * action's undo gives them back with everything else. A mark the root already changed keeps the
- * value it held before the action.
+ * occurrence) can end grants, change idle-turn marks and land forced movements too: the root's
+ * receipt takes them, so the action's undo gives them back with everything else. A mark the root
+ * already changed keeps the value it held before the action.
  */
 export async function addResponseChangesToRoot(
   ctx: EncounterPersistenceTransaction,
@@ -168,10 +169,13 @@ export async function addResponseChangesToRoot(
     actionOccurrenceId: string
     endedGrants: readonly ActiveRuleEffectRecord[]
     idleTurnMarkChanges?: readonly { actorId: string; before: EncounterIdleTurnMark | null }[]
+    forcedMovements?: Pick<Awaited<ReturnType<ApplyEncounterForcedMovements>>, 'moves' | 'landings'>
   }
 ) {
   const markChanges = input.idleTurnMarkChanges ?? []
-  if (!input.endedGrants.length && !markChanges.length) return
+  const moves = input.forcedMovements?.moves ?? []
+  const landings = input.forcedMovements?.landings ?? []
+  if (!input.endedGrants.length && !markChanges.length && !moves.length) return
   const occurrence = await ctx.db
     .query('encounterRuleOccurrences')
     .withIndex('by_publicId', (q) => q.eq('id', input.actionOccurrenceId))
@@ -194,7 +198,9 @@ export async function addResponseChangesToRoot(
       ...markChanges.filter(
         ({ actorId }) => !root.idleTurnMarkChanges.some((change) => change.actorId === actorId)
       )
-    ]
+    ],
+    forcedMovements: [...root.forcedMovements, ...moves],
+    forcedMovementLandings: [...root.forcedMovementLandings, ...landings]
   })
 }
 

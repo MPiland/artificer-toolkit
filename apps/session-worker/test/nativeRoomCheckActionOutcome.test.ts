@@ -10,6 +10,7 @@ import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
+import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import {
   SRD_CONDITION_TYPES,
   SRD_DAMAGE_TYPES,
@@ -20,6 +21,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, withCheckTotals } from './actionRoomFixture.js'
+import { heldDieEffect, seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
   parseReceiptExecution,
@@ -105,7 +107,7 @@ const ONE_D6 = strikeDefinition([bludgeoning({ valueKind: 'DICE', diceConfig: '1
 /** The striker Wolf (Medicine +3) strikes a plain Wolf. Its d20 is drawn first, then the damage. */
 async function strikeRoom(
   definition: typeof ONE_D6,
-  options: { autoRoll: boolean; faces?: number[] }
+  options: { autoRoll: boolean; faces?: number[]; heldDie?: boolean }
 ) {
   const room = await actionRoom({
     ...(options.autoRoll ? { autoRoll: 'BOTH' as const } : {}),
@@ -117,7 +119,16 @@ async function strikeRoom(
       }),
       srdCreatureActor({ id: TARGET_ID, creature: plainWolf })
     ],
-    ownerFeatureId: creatureFeature(plainWolf, 'Bite').id
+    ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
+    ...(options.heldDie && {
+      seed: seedModifierGrant({
+        sourceActorId: STRIKER_ID,
+        holderActorId: STRIKER_ID,
+        lifecycle: {},
+        effect: heldDieEffect(),
+        sourceLabel: guidance.label
+      })
+    })
   })
   const hitPointsBefore = readActorHitPoints(await readRoomHistory(room.room.base.stub), TARGET_ID)
   return { room, hitPointsBefore }
@@ -129,11 +140,18 @@ function strike(room: StrikeRoom) {
   return room.startAction(TARGET_ID, HOSTILE_TOUCH, null, null, STRIKE_ACTION_ID, STRIKER_ID)
 }
 
-/** The settled check action outputs, the Run's occurrences and the target's state. */
+/**
+ * The settled check action outputs (on the action, or on the roller's answer that settled it), the
+ * Run's occurrences, the target's state and the Run's active effects.
+ */
 async function settled(room: StrikeRoom) {
   const history = await readRoomHistory(room.room.base.stub)
   const outputs = history.receipts.flatMap((receipt) => {
-    if (receipt.commandType !== 'RESOLVE_ACTION') return []
+    if (
+      receipt.commandType !== 'RESOLVE_ACTION' &&
+      receipt.commandType !== 'RESOLVE_RULE_OCCURRENCE'
+    )
+      return []
     const execution = parseReceiptExecution(receipt)
     return execution.status === 'COMPLETE' && execution.applicationOutputs?.kind === 'CHECK_ACTION'
       ? [execution.applicationOutputs]
@@ -143,8 +161,49 @@ async function settled(room: StrikeRoom) {
     outputs,
     occurrences: history.occurrences.map(({ state }) => state),
     targetHitPoints: readActorHitPoints(history, TARGET_ID),
-    targetConditionIds: readActorConditionIds(history, TARGET_ID)
+    targetConditionIds: readActorConditionIds(history, TARGET_ID),
+    activeEffects: history.activeEffects
   }
+}
+
+/** The roller enters `face` for the pending check's d20. */
+async function enterD20(room: StrikeRoom, face: number) {
+  const roll = await room.pendingDecision()
+  if (roll.pending.kind !== 'D20_EVIDENCE')
+    throw new Error(`Expected the d20, got ${roll.pending.kind}.`)
+  expect(roll.pending.rollerActorId).toBe(STRIKER_ID)
+  const answer = await room.resolve(roll, {
+    kind: 'ENTER_DICE',
+    requestId: roll.pending.request.requestId,
+    rawFaces: [face],
+    rollMode: roll.pending.request.rollMode
+  })
+  expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  return roll
+}
+
+/** The roller enters `value` for a won check's pending damage die. */
+async function enterOutcome(room: StrikeRoom, value: number) {
+  const dice = await room.pendingDecision()
+  if (dice.pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+    throw new Error(`Expected the outcome dice, got ${dice.pending.kind}.`)
+  expect(dice.pending).toMatchObject({ rollerActorId: STRIKER_ID, request: { min: 1, max: 6 } })
+  const answer = await room.resolve(dice, {
+    kind: 'ENTER_INTEGER',
+    requestId: dice.pending.request.requestId,
+    value
+  })
+  expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  return dice
+}
+
+async function undo(room: StrikeRoom) {
+  return room.send({
+    type: 'REVERT_LAST_ACTION',
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version()
+  })
 }
 
 /** The receipt of a successful strike that dealt `amount` bludgeoning damage from `before`. */
@@ -239,17 +298,143 @@ describe('a homebrew fixed-DC check whose success runs its outcome, in the room 
     expect(room.room.diceDrawn()).toBe(1)
     expect(targetHitPoints).toBe(hitPointsBefore)
   })
+})
 
-  it('refuses a roller whose preference does not roll for them, until the check can pend', async () => {
-    const { room, hitPointsBefore } = await strikeRoom(ONE_D6, { autoRoll: false })
-    const before = await room.version()
+describe('a homebrew check action whose roller rolls their own dice, in the room (D173)', () => {
+  it('asks the roller for its d20, then deals its fixed damage on a success', async () => {
+    const { room, hitPointsBefore } = await strikeRoom(FIXED_THREE, { autoRoll: false })
     const { answer } = await strike(room)
-    expect(answer.type).toBe('COMMAND_REJECTED')
-    expect(JSON.stringify(answer)).toContain(
-      'This check action rolls only for a roller whose preference rolls for them.'
-    )
-    expect(answer).toMatchObject({ code: 'DOMAIN_REJECTED', reason: 'SOURCE_REQUIREMENTS_NOT_MET' })
-    expect(await room.version()).toBe(before)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await settled(room)).occurrences).toEqual(['PENDING'])
+
+    await enterD20(room, 12)
+    const { outputs, occurrences, targetHitPoints } = await settled(room)
+    expect(outputs).toMatchObject([
+      { d20: { selectedNatural: 12, total: 15 }, ...succeededWith(3, hitPointsBefore) }
+    ])
+    expect(occurrences).toEqual(['COMPLETED'])
+    expect(targetHitPoints).toBe(hitPointsBefore - 3)
+    expect(room.room.diceDrawn()).toBe(0)
+  })
+
+  it('pauses a success on its damage die, then deals what the roller enters', async () => {
+    const { room, hitPointsBefore } = await strikeRoom(ONE_D6, { autoRoll: false })
+    await strike(room)
+    const roll = await enterD20(room, 12)
+    expect((await settled(room)).outputs).toEqual([])
     expect((await settled(room)).targetHitPoints).toBe(hitPointsBefore)
+
+    const dice = await enterOutcome(room, 5)
+    expect(dice.occurrence.id).toBe(roll.occurrence.id)
+    const { outputs, occurrences, targetHitPoints } = await settled(room)
+    expect(outputs).toMatchObject([
+      { d20: { selectedNatural: 12, total: 15 }, ...succeededWith(5, hitPointsBefore) }
+    ])
+    expect(occurrences).toEqual(['COMPLETED'])
+    expect(targetHitPoints).toBe(hitPointsBefore - 5)
+    expect(room.room.diceDrawn()).toBe(0)
+  })
+
+  it('runs nothing on a miss, which undo takes back', async () => {
+    const { room, hitPointsBefore } = await strikeRoom(ONE_D6, { autoRoll: false })
+    await strike(room)
+    await enterD20(room, 3)
+    const { outputs, occurrences, targetHitPoints } = await settled(room)
+    expect(outputs).toMatchObject([
+      {
+        d20: { selectedNatural: 3, total: 6 },
+        outcome: 'FAILURE',
+        stateTransition: { kind: 'NONE' }
+      }
+    ])
+    expect(occurrences).toEqual(['COMPLETED'])
+    expect(targetHitPoints).toBe(hitPointsBefore)
+
+    const before = await room.version()
+    const reverted = await undo(room)
+    expect(reverted.type, JSON.stringify(reverted)).toBe('COMMAND_COMMITTED')
+    expect(await room.version()).toBe(before + 1)
+  })
+
+  it("refuses to undo a success's outcome, and leaves the Run as it was", async () => {
+    const { room, hitPointsBefore } = await strikeRoom(ONE_D6, { autoRoll: false })
+    await strike(room)
+    await enterD20(room, 12)
+    await enterOutcome(room, 4)
+    const before = await room.version()
+
+    const reverted = await undo(room)
+    expect(reverted.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(reverted)).toContain(
+      "Undo can't restore a check's outcome; adjust manually."
+    )
+    expect(await room.version()).toBe(before)
+    expect((await settled(room)).targetHitPoints).toBe(hitPointsBefore - 4)
+  })
+
+  it('offers a held die once the d20 is seen; spending it turns a miss into a success', async () => {
+    const { room, hitPointsBefore } = await strikeRoom(ONE_D6, {
+      autoRoll: true,
+      heldDie: true,
+      faces: [6]
+    })
+    const { answer } = await strike(room)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    // 5 + 3 = 8 misses DC 10; the Guidance die is offered before the check settles.
+    await enterD20(room, 5)
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    const { pending } = decision
+    expect(pending).toMatchObject({
+      rollerActorId: STRIKER_ID,
+      d20: { selectedNatural: 5, total: 8 },
+      options: [{ label: 'Guidance', count: 1, faces: 4, sign: 'ADD' }]
+    })
+    expect((await settled(room)).activeEffects).toHaveLength(1)
+
+    const used = await room.resolve(decision, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [3]
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    expect((await settled(room)).activeEffects).toEqual([])
+
+    // The held die made the d20 the roller's; their preference still rolls the damage die.
+    expect(room.room.diceDrawn()).toBe(1)
+    const { outputs, occurrences, targetHitPoints } = await settled(room)
+    expect(outputs).toMatchObject([
+      {
+        d20: {
+          selectedNatural: 5,
+          total: 11,
+          addedDice: [{ label: 'Guidance', rolledFaces: [3] }]
+        },
+        ...succeededWith(6, hitPointsBefore)
+      }
+    ])
+    expect(occurrences).toEqual(['COMPLETED'])
+    expect(targetHitPoints).toBe(hitPointsBefore - 6)
+  })
+
+  it('keeps the miss and the die when the roller declines the window', async () => {
+    const { room, hitPointsBefore } = await strikeRoom(ONE_D6, { autoRoll: true, heldDie: true })
+    await strike(room)
+    await enterD20(room, 5)
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    const declined = await room.resolve(decision, {
+      kind: 'D20_WINDOW_DECLINE',
+      requestId: decision.pending.requestId
+    })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    const { outputs, occurrences, targetHitPoints, activeEffects } = await settled(room)
+    expect(outputs).toMatchObject([
+      { d20: { total: 8 }, outcome: 'FAILURE', stateTransition: { kind: 'NONE' } }
+    ])
+    expect(occurrences).toEqual(['COMPLETED'])
+    expect(activeEffects).toHaveLength(1)
+    expect(targetHitPoints).toBe(hitPointsBefore)
   })
 })

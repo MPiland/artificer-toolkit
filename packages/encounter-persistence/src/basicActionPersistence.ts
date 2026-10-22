@@ -108,10 +108,12 @@ export async function persistEncounterBasicAction(
   if (check === null && input.consumedGrants.length > 0)
     throw new Error('Live Session basic action check scope mismatch.')
   const pendingContext = check?.kind === 'PENDING' ? check.snapshot.applicationContext : null
+  const authoredCheck = effect.invocation.check
   if (
     check?.kind === 'PENDING' &&
     ((pendingContext?.kind !== 'ENCOUNTER_BASIC_ACTION_CHECK' &&
-      pendingContext?.kind !== 'ENCOUNTER_CONCEALMENT_CHECK') ||
+      pendingContext?.kind !== 'ENCOUNTER_CONCEALMENT_CHECK' &&
+      pendingContext?.kind !== 'ENCOUNTER_CHECK_ACTION') ||
       pendingContext.commandId !== command.commandId ||
       pendingContext.commandFingerprint !== fingerprint ||
       pendingContext.definition.id !== definition.id ||
@@ -120,9 +122,21 @@ export async function persistEncounterBasicAction(
       (pendingContext.kind === 'ENCOUNTER_BASIC_ACTION_CHECK'
         ? pendingContext.helperActorId !== actor.id ||
           pendingContext.targetActorId !== targetActorId
-        : pendingContext.actorId !== actor.id ||
-          pendingContext.actionId !== command.actionId ||
-          targetActorId !== actor.id) ||
+        : pendingContext.kind === 'ENCOUNTER_CHECK_ACTION'
+          ? // The check action resumes from this command, so its pending copy must be this command.
+            pendingContext.actorId !== actor.id ||
+            pendingContext.targetActorId !== targetActorId ||
+            pendingContext.phase.kind !== 'CHECK' ||
+            checksumCanonicalJson(JSON.parse(pendingContext.commandJson)) !== fingerprint ||
+            pendingContext.check.dc !==
+              (authoredCheck.dc.kind === 'FIXED' ? authoredCheck.dc.value : null) ||
+            ![
+              ...authoredCheck.checks.skillIds,
+              ...authoredCheck.checks.abilityDefinitionIds
+            ].includes(pendingContext.check.checkDefinitionId)
+          : pendingContext.actorId !== actor.id ||
+            pendingContext.actionId !== command.actionId ||
+            targetActorId !== actor.id) ||
       check.snapshot.optionalCombatSnapshotChecksum !== state.optionalCombatSnapshotChecksum ||
       check.snapshot.graph.source.gameSystemId !== state.gameSystemId)
   )
@@ -156,7 +170,7 @@ export async function persistEncounterBasicAction(
     }
     const { settlement } = check
     if (isCheckActionSettlement(settlement)) {
-      const { dc, checks } = effect.invocation.check
+      const { dc, checks } = authoredCheck
       const settled = await settleEncounterCheckAction(ctx, {
         ...settleInput,
         settlement,

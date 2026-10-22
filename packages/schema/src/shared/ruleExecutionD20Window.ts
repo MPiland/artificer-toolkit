@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { encounterPauseVariants } from './encounterPause.js'
+import { encounterCheckActionPendingContextDtoSchema } from './ruleExecutionCheckAction.js'
 import { encounterBasicActionCheckPendingContextDtoSchema } from './ruleExecutionDirectActionPendingContexts.js'
 import {
   ruleExecutionChecksumSchema as checksumSchema,
@@ -15,6 +16,10 @@ export const d20WindowSourceDtoSchema = lazySchema(() =>
     z.strictObject({
       kind: z.literal('BASIC_ACTION_CHECK'),
       context: encounterBasicActionCheckPendingContextDtoSchema
+    }),
+    z.strictObject({
+      kind: z.literal('CHECK_ACTION'),
+      context: encounterCheckActionPendingContextDtoSchema
     })
   ])
 )

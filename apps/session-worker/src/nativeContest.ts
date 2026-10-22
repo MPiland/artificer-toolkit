@@ -1,6 +1,4 @@
 import {
-  actionTargetActorId,
-  castChoiceOptionId,
   type EscapeRelationshipInputDto,
   type ResolveEncounterActionInputDto,
   type ResolveRuleOccurrenceInputDto
@@ -29,8 +27,6 @@ import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-r
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { applyEncounterAttackActionTransition } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import { encounterAttackD20Belief } from '@artificer-toolkit/rules-runtime/encounterAttackBelief'
-import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
-import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
   prepareEncounterBasicActionContest,
   prepareEncounterEscapeContest
@@ -64,30 +60,21 @@ import {
   contestDefenderPolicy,
   executeEncounterOptionalContestAction
 } from '@artificer-toolkit/rules-runtime/encounterOptionalContestActionExecution'
-import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { sightGovernedStageD20 } from '@artificer-toolkit/rules-runtime/encounterSightGovernedD20'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { requireEncounterD20Evidence } from './nativeD20Evidence.js'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
-import {
-  readNativeLiveAttackPerception,
-  readNativeLiveSourcesSeen
-} from './nativeAttackPerception.js'
-import {
-  captureActionEconomyDefinitions,
-  evaluateNativeLiveActionEconomy
-} from './nativeEncounterActionEconomy.js'
+import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
-  readNativeLiveActorsAndEffects,
-  readNativeLiveSpellPins
+  readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { createNativeActiveEffect, nativeEffectOwner } from './nativeEncounterSettlement.js'
+import { prepareNativeLiveRootActionMechanics } from './nativeRootActionPreparation.js'
 import { spendNativeHolderActivation } from './nativeHolderActivation.js'
 import {
   planNativeTargetMechanics,
@@ -298,16 +285,17 @@ export async function planNativeLiveContest(
       revisions: reads.revisions
     })
   }
-  const targetActorId = actionTargetActorId(root.target)
   const intent = root.optionalCombatIntent
-  const actor = actors.find((entry) => entry.id === root.actorId)
-  const target = actors.find((entry) => entry.id === targetActorId)
-  if (!actor || !target) throw new Error('Contest actors are unavailable.')
-  const movementTargets = new Map(
-    await Promise.all(
-      [actor, target].map(async (entry) => [entry.id, await loadTarget(entry)] as const)
-    )
-  )
+  const { actor, target, movementTargets, sceneContext, definitions, prepared } =
+    await prepareNativeLiveRootActionMechanics({
+      root,
+      state,
+      system,
+      actors,
+      activeEffectsByActorId,
+      loadTarget,
+      capture
+    })
   const definition = intent
     ? requireEncounterDisarmDefinition({
         state,
@@ -316,89 +304,11 @@ export async function planNativeLiveContest(
         target,
         command: {
           ...root,
-          targetActorId,
+          targetActorId: target.id,
           definitionId: intent.definitionId
         }
       })
     : null
-  const scene = root.sceneContext
-    ? (
-        await capture({
-          kind: 'ACTION_SCENE',
-          command: {
-            actorId: root.actorId,
-            targetActorId,
-            sceneContext: root.sceneContext
-          }
-        })
-      ).context
-    : null
-  const sceneContext = scene
-    ? {
-        sceneId: scene.sceneId,
-        sceneVersion: scene.sceneVersion,
-        sourceToken: scene.sourceToken,
-        targetToken: scene.targetToken,
-        grid: resolveEncounterSceneGrid({
-          encounter: state,
-          sceneGrid: scene.sceneGrid
-        })
-      }
-    : null
-  const definitions = captureActionEconomyDefinitions(capture)
-  const prepared = await prepareEncounterActionMechanics({
-    state,
-    actor,
-    target,
-    actors,
-    actionId: root.actionId,
-    // A resumed contest runs as the outcome its root picked (Shove, D105).
-    choiceOptionId: castChoiceOptionId(root.target),
-    wieldConflictAcceptance: { kind: 'UNPROMPTED' },
-    overridable: false,
-    movementTargets,
-    sceneContext,
-    loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
-      readNativeLiveAttackPerception({
-        state,
-        system,
-        attacker: sourceFacts,
-        target: targetFacts,
-        roller,
-        sceneContext,
-        capture
-      }),
-    loadSourcesSeen: ({ holder, sourceActorIds }) =>
-      readNativeLiveSourcesSeen({
-        state,
-        system,
-        holder,
-        sourceActorIds,
-        actors,
-        loadTarget: async (entry) => movementTargets.get(entry.id) ?? loadTarget(entry),
-        sceneContext,
-        capture
-      }),
-    loadSource: async (input) =>
-      resolveEncounterActionSource({
-        ...input,
-        system,
-        spells: await readNativeLiveSpellPins(capture),
-        basicActions: await readEncounterBasicActionEntries({
-          actorId: input.actor.id,
-          actionId: input.actionId,
-          gameSystemId: input.gameSystemId,
-          definitions
-        })
-      }),
-    loadRelationshipFacts: async (input) =>
-      lockedRelationshipActionFacts({
-        actionEffectId: input.actionEffectId,
-        sourceActorId: input.sourceActorId,
-        targetActorId: input.targetActorId,
-        targets: { activeEffectsByActorId }
-      })
-  })
   const priorContest = priorContext ? { priorContest: priorContext.contest } : {}
   const contestInput = { state, actor, target, command: root, prepared, sceneContext, system }
   let preparation: ContestPreparation

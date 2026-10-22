@@ -399,6 +399,10 @@ an `ACTION_OUTCOME_EVIDENCE` pending summary for the initiator, answered with `E
 action's push. A fixed-DC check action whose success runs an outcome (D173) commits through the basic action commit
 input with a `CheckActionSettlement` (`ENCOUNTER_CHECK_ACTION` context, the stored execution, `appRollId` and the planned
 `forcedMovements`) and records one `CHECK_ACTION` output with the same `TARGET_OUTCOME` or `NONE` `stateTransition`.
+A roller who does not auto-roll answers the check's `D20_EVIDENCE` summary (or its `D20_WINDOW`), then a success's
+outcome dice on an `ACTION_OUTCOME_EVIDENCE` summary answered with `ENTER_INTEGER` or `SYSTEM_ROLL`. The room commits
+each pause with `LiveSessionEncounterCheckPauseCommitInput` (the next snapshot, and `window.spentEffect` after a d20
+window's answer) and the settled check with the basic action response commit input.
 
 Forced-movement destinations (D157): an action whose push has two or more legal squares pauses on a
 `FORCED_MOVEMENT_DESTINATION` pending summary (`sourceActorId`, `targetActorId`, `requestId`, and the server-derived
