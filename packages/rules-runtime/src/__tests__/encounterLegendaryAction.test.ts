@@ -50,6 +50,8 @@ import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 const ancientRedDragon = srdByLabel(SRD.creatures, 'Ancient Red Dragon')
 const wolf = srdByLabel(SRD.creatures, 'Wolf')
 const unicorn = srdByLabel(SRD.creatures, 'Unicorn')
+const vampire = srdByLabel(SRD.creatures, 'Vampire')
+const vampireLegendaryActions = creatureFeature(vampire, 'Legendary Actions')
 
 const DRAGON_ID = '00000000-0000-4000-8000-00000000b001'
 const WOLF_ID = '00000000-0000-4000-8000-00000000b002'
@@ -362,6 +364,16 @@ describe('Legendary Action choices offered at the end of a turn', () => {
       }
     ])
   })
+  it('offers the Vampire Unarmed Strike, whose action authors a damage-or-grapple pick (SPELLS-33.T4i1f)', async () => {
+    const vampireActor = srdCreatureActor({
+      id: DRAGON_ID,
+      creature: vampire,
+      featureCharges: { [vampireLegendaryActions.id]: 0 }
+    })
+    const [choice] = await offered({ actors: [vampireActor, wolfActor], outgoingActorId: WOLF_ID })
+    expect(choice?.options.map((option) => option.label)).toContain('Unarmed Strike')
+  })
+
   it('offers the unicorn Shimmering Shield on any creature, itself included (D99)', async () => {
     const unicornActor = srdCreatureActor({
       id: DRAGON_ID,
@@ -725,6 +737,42 @@ describe('Legendary Action turn window', () => {
     expect(featureChargeUsed(settledDragon, legendaryActions.id)).toBe(1)
     // Later turn stages see the wounded Wolf.
     expect(done.movementTargets.get(WOLF_ID)?.state.current).toBe(0)
+  })
+
+  it('runs the first option of the Vampire Unarmed Strike pick, since a Legendary Action cannot prompt (SPELLS-33.T4i1f)', async () => {
+    const actors = [
+      srdCreatureActor({
+        id: DRAGON_ID,
+        creature: vampire,
+        featureCharges: { [vampireLegendaryActions.id]: 0 }
+      }),
+      wolfActor
+    ]
+    const { snapshot, context, tailAttack } = await pausedChoice(actors, 'Unarmed Strike')
+    // A 15 hits (+9 against the Wolf's 13), and the damage option deals 1d8 + 4 = 1 + 4 bludgeoning.
+    const done = await prepare({
+      actors,
+      turnRoot: context.root,
+      pending: snapshot,
+      resolution: {
+        kind: 'LEGENDARY_OPTION',
+        optionId: tailAttack.optionId,
+        targetActorId: WOLF_ID
+      },
+      autoRollByActorId: { [DRAGON_ID]: true },
+      faces: [14, 0]
+    })
+    if (done.kind !== 'COMPLETE') throw new Error('The Unarmed Strike settles the window.')
+    const [evidence] = done.root.completedLegendaryActions ?? []
+    if (evidence?.resolution.kind !== 'EXECUTED') throw new Error('Expected the executed window.')
+    expect(
+      evidence.resolution.application.kind === 'ENCOUNTER_ACTOR_MECHANICS_BATCH' &&
+        evidence.resolution.application.applications.map((application) =>
+          application.kind === 'DAMAGE'
+            ? [application.requestedAmount, application.damageTypeId]
+            : null
+        )
+    ).toEqual([[5, srdDamageTypeId('Bludgeoning')]])
   })
 
   it('doubles the Tail’s damage dice on a critical hit', async () => {

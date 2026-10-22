@@ -10,12 +10,7 @@ import {
   type CharacterRuleActionExecutionPlan,
   type CharacterRuleActionSystemAdapter
 } from './characterRuleActionSystemAdapter.js'
-import {
-  buildCompiledActionTargetPolicy,
-  compileCastChoicePlans,
-  compileEncounterFeatureActionPlan
-} from './encounterActionEntryPointCompiler.js'
-import { castChoiceOptions } from './encounterCastChoice.js'
+import { compileEncounterFeatureActionPlan } from './encounterActionEntryPointCompiler.js'
 import {
   discoverUncompiledEncounterFeatureActions,
   type EncounterFeatureActionCapabilityDescriptor,
@@ -100,10 +95,7 @@ export function discoverEncounterFeatureActions(
   }
   for (const capability of discovered.available)
     compiles(capability, (adapter) => {
-      // An action that authors a cast pick (D148) must compile per option, as a Character's does.
-      if (castChoiceOptions(capability.compiledEffect))
-        compileCastChoicePlans(adapter, capability, buildCompiledActionTargetPolicy(capability))
-      else compileEncounterFeatureActionPlan(adapter, capability)
+      compileEncounterFeatureActionPlan(adapter, capability)
       available.push(capability)
     })
   for (const capability of discovered.passiveZoneCapabilities)
