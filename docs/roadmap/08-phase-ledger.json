@@ -14736,6 +14736,19 @@
                 "size": 3,
                 "after": ["RULES-2.T6e"]
               }
+            },
+            {
+              "id": "SPELLS-33.T4i3e",
+              "text": "Timed conditions in a gated multi-outcome band (split from T4i3c 2026-10-22): every CONDITION outcome in a gated band carries its duration, and a condition can be scoped to last while another from the same band holds (Giant Centipede: stable, poisoned for 1 hour, paralyzed while poisoned this way). Re-author Centipede with the timing; generic, parity proof.",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-33.T4i3c", "RULES-2.T6f"]
+              }
             }
           ]
         }
