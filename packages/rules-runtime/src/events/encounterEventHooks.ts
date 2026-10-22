@@ -14,7 +14,8 @@ import type {
   EncounterEventSubscription,
   EncounterReactionHook,
   IncomingGateSubscription,
-  MaintenanceLinkHook
+  MaintenanceLinkHook,
+  ZoneEventSubscription
 } from './encounterEventTable.js'
 
 type HookedEffect = Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>
@@ -292,6 +293,20 @@ function incomingGateMet({ payload }: IncomingGateSubscription, event: Encounter
   )
 }
 
+/** Whether a zone acts on the event: a movement, a turn boundary or a melee hit on its source it subscribes to. */
+function zoneHookMet(zone: ZoneEventSubscription, event: EncounterEvent) {
+  switch (event.kind) {
+    case 'ZONE_MOVEMENT':
+      return zone.triggerModes.includes(event.movement)
+    case 'ZONE_TURN':
+      return zone.turnTriggers?.includes(event.boundary) ?? false
+    case 'ZONE_SOURCE_MELEE_HIT':
+      return zone.retaliatesMeleeHits === true
+    default:
+      return false
+  }
+}
+
 /**
  * The one discovery entry point for event hooks (ADR 0039 decision 4): what these events, raised on
  * the holder of `effects` and `reactions`, set off. `ended` are the effects one of whose `END`
@@ -301,7 +316,8 @@ function incomingGateMet({ payload }: IncomingGateSubscription, event: Encounter
  * their types meets. `reactions` are the held reactions an event offers, in held order, each once
  * with the first hook met; whether one is affordable is decided when it is prepared.
  * `damageInterceptions` and `incomingGates` are the held intercepts an event meets before it resolves,
- * in the order given (their spend order); the caller spends the first.
+ * in the order given (their spend order); the caller spends the first. `zones` are the zones a
+ * creature's contact event (a `ZONE_*` event) sets off, in the order given.
  */
 export function discoverEncounterEventHooks<
   Event extends EncounterEvent,
@@ -309,9 +325,11 @@ export function discoverEncounterEventHooks<
   Grant extends DamageGrantSubscription = never,
   Reaction extends ReactionCandidate = never,
   Interception extends DamageInterceptionSubscription = never,
-  Gate extends IncomingGateSubscription = never
+  Gate extends IncomingGateSubscription = never,
+  Zone extends ZoneEventSubscription = never
 >(input: {
   effects?: readonly Effect[]
+  zones?: readonly Zone[]
   reactions?: readonly Reaction[]
   damageInterceptions?: readonly Interception[]
   incomingGates?: readonly Gate[]
@@ -354,6 +372,9 @@ export function discoverEncounterEventHooks<
   const incomingGates = (input.incomingGates ?? []).filter((gate) =>
     input.events.some((event) => incomingGateMet(gate, event))
   )
+  const zones = (input.zones ?? []).filter((zone) =>
+    input.events.some((event) => zoneHookMet(zone, event))
+  )
   // A maintenance link has no effect record, so its hooks meet an event with no effect scope.
   const maintenance = input.maintenanceHooks ?? []
   const maintenanceMet = (hook: MaintenanceLinkHook) =>
@@ -367,6 +388,7 @@ export function discoverEncounterEventHooks<
     reactions,
     damageInterceptions,
     incomingGates,
+    zones,
     maintenanceBreakReason: maintenanceBreak?.hook === 'BREAK' ? maintenanceBreak.reason : null,
     maintenanceSave
   }

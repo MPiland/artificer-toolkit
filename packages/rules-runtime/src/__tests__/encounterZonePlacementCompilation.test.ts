@@ -361,6 +361,15 @@ describe('a zone that triggers at turn boundaries (SPELLS-20 T4b2a)', () => {
     expect(zone.turnTriggers).toEqual(['START_OF_TURN', 'END_OF_TURN'])
   })
 
+  it('compiles leaving the space to an EXIT trigger (RULES-2.T5d)', () => {
+    const authored = withInteractions(['ENTER_SPACE', 'LEAVE_SPACE', 'END_TURN_IN_SPACE'])
+    expect(equipmentAuthoredDtoSchema.safeParse(authored).success).toBe(true)
+    expect(zonePlacementOf(authored)).toMatchObject({
+      triggerModes: ['ENTER', 'EXIT'],
+      turnTriggers: ['END_OF_TURN']
+    })
+  })
+
   it('leaves a movement-only zone without turn triggers, as the SRD Caltrops zone is', () => {
     expect(zonePlacementOf().turnTriggers).toBeUndefined()
     expect(zonePlacementOf().triggerModes).toEqual(['ENTER', 'CROSS'])

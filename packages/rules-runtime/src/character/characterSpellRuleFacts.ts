@@ -2,11 +2,13 @@ import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/cha
 import type { CompiledFeature, CompiledSpellGrant } from '@artificer-toolkit/shared/compilers'
 import {
   getChosenGrantTargetIds,
+  SPELL_GRANT_ACCESS,
   type CharacterAssemblyRegistry,
   type CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
 import type { CharacterProvenance } from '@artificer-toolkit/shared/subjects/authored'
 
+import { systemVocabularyRegistry } from '../platformSystemVocabulary.js'
 import { getCharacterGrantFoldSelectedOptionIds } from './characterGrantFoldSourceFacts.js'
 
 export type CharacterSpellAccessCandidate =
@@ -182,6 +184,8 @@ function appendGrantCandidates(params: {
   source: CandidateSource
 }): void {
   const { candidates, feature, grant, snapshot, source } = params
+  // A class-list-only grant joins a spell list and casts nothing (D175); see spellClassListAdditions.
+  if (grant.access === SPELL_GRANT_ACCESS.CLASS_LIST_ONLY) return
   const provenance = sourceProvenance(source)
   const instanceId = sourceInstanceId(source, feature.id, grant.id)
   const specializationRestrictionIds = collectSpecializationRestrictionIds(grant.restrictions)
@@ -222,7 +226,14 @@ function appendGrantCandidates(params: {
         castingAbility: grant.castingAbility ?? null,
         charge: chargeDescriptor(grant),
         allowedCreatureTypeIds: grant.allowedCreatureTypeIds ?? [],
-        perTargetLockout: grant.perTargetLockout !== undefined
+        perTargetLockout: grant.perTargetLockout !== undefined,
+        slotPoolCode: grant.slotCost
+          ? systemVocabularyRegistry.requireCode(
+              snapshot.systemId,
+              'spellSlotPool',
+              grant.slotCost.poolCode
+            ).code
+          : null
       })
     }
   }

@@ -1511,8 +1511,9 @@ export function compareSpatialMovementCandidates(
 }
 
 /**
- * Collect deterministic full-footprint contact facts. It does not decide
- * eligibility, execute an effect, or mutate scene state.
+ * Collect deterministic full-footprint contact facts: how the mover meets each effect (enters,
+ * leaves or passes through). It does not decide which contacts an effect acts on (the rules
+ * runtime's event table does), execute an effect, or mutate scene state.
  */
 export function collectSpatialMovementCandidates(input: {
   readonly actorIdByTokenId: ReadonlyMap<string, string>
@@ -1564,7 +1565,7 @@ export function collectSpatialMovementCandidates(input: {
       const path = sourceMoved ? relativeSourcePath(target, input.path) : input.path
       if (!path) continue
       if (effect.distanceStep !== undefined) {
-        if (input.movementKind === 'TELEPORT' || !effect.triggerModes.includes('ENTER')) continue
+        if (input.movementKind === 'TELEPORT') continue
         for (const { pathDistance, step } of distanceStepContacts({
           geometry,
           path,
@@ -1594,7 +1595,7 @@ export function collectSpatialMovementCandidates(input: {
         path,
         token: target
       })
-      if (!trigger || !effect.triggerModes.includes(trigger.trigger)) continue
+      if (!trigger) continue
       const contact = sourceMoved
         ? pathPointAtDistance(input.path, trigger.pathDistance)
         : trigger.contact
@@ -1640,10 +1641,10 @@ export interface SpatialTurnCandidate {
 }
 
 /**
- * The effects that catch a creature at a turn boundary: those with that turn trigger whose area
- * the target's footprint currently shares area with (or lies wholly inside, for an effect that
- * requires it), that do not exempt it and whose per-turn limit is not spent. Like
- * {@link collectSpatialMovementCandidates} it only reports contact facts.
+ * The effects a creature stands in at a turn boundary: those whose area the target's footprint
+ * currently shares area with (or lies wholly inside, for an effect that requires it), that do not
+ * exempt it and whose per-turn limit is not spent. Like {@link collectSpatialMovementCandidates}
+ * it only reports contact facts; whether an effect acts at `trigger` is the event table's.
  */
 export function collectSpatialTurnCandidates(input: {
   readonly actorIdByTokenId: ReadonlyMap<string, string>
@@ -1663,7 +1664,6 @@ export function collectSpatialTurnCandidates(input: {
     .filter((effect) => {
       if (
         !validSpatialEffect(effect, tokenIds) ||
-        !effect.turnTriggers?.includes(input.trigger) ||
         !spatialEffectAffects(effect, targetActorId) ||
         (effect.maxApplicationsPerTurn !== undefined &&
           zoneApplicationsSpent(
@@ -1695,10 +1695,10 @@ export interface SpatialMeleeRetaliationCandidate {
 }
 
 /**
- * The effects that answer a melee hit (D153): those anchored to the hit creature's token that
- * retaliate, whose area the attacker's footprint shares area with and that do not exempt it. The
- * attacker is the target of each. Like {@link collectSpatialTurnCandidates} it only reports
- * contact facts.
+ * The effects a melee hit's attacker stands in (D153): those anchored to the hit creature's token
+ * whose area the attacker's footprint shares area with and that do not exempt it. The attacker is
+ * the target of each. Like {@link collectSpatialTurnCandidates} it only reports contact facts;
+ * whether an effect retaliates is the event table's.
  */
 export function collectSpatialMeleeRetaliationCandidates(input: {
   readonly actorIdByTokenId: ReadonlyMap<string, string>
@@ -1722,7 +1722,6 @@ export function collectSpatialMeleeRetaliationCandidates(input: {
   return input.effects
     .filter((effect) => {
       if (
-        !effect.retaliatesMeleeHits ||
         effect.anchorKind !== 'TOKEN' ||
         effect.sourceTokenId !== input.hitTokenId ||
         effect.sourceActorId !== hitActorId ||

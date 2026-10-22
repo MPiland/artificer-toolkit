@@ -2,6 +2,8 @@ import type {
   ActiveEffectConsumeEvent,
   ActiveEffectEndEvent
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
+import { SPATIAL_TURN_TRIGGERS } from '@artificer-toolkit/schema/shared/spatial'
+import type { CompiledManifestComponent } from '@artificer-toolkit/shared/compilers'
 import type {
   EncounterEffectHook,
   EncounterEventSubscription,
@@ -32,6 +34,30 @@ const LIFECYCLE_EVENT_SUBSCRIPTIONS = {
   ActiveEffectConsumeEvent | ActiveEffectEndEvent,
   EncounterEventSubscription
 >
+
+type ZoneSubscription = NonNullable<
+  ReturnType<EventVocabularyCapabilityAdapter['zoneSubscription']>
+>
+type ZoneInteractionKind = NonNullable<CompiledManifestComponent['interactionKinds']>[number]
+
+/** The movements each 5e zone interaction acts on. */
+const ZONE_MOVEMENT_SUBSCRIPTIONS: Readonly<
+  Partial<Record<ZoneInteractionKind, ZoneSubscription['triggerModes']>>
+> = {
+  ENTER_SPACE: ['ENTER'],
+  ENTER_OR_PASS_THROUGH: ['ENTER', 'CROSS'],
+  MOVE_ACROSS: ['CROSS'],
+  LEAVE_SPACE: ['EXIT']
+}
+
+/** The turn boundary each 5e zone interaction acts at, for a creature inside. */
+const ZONE_TURN_SUBSCRIPTIONS: Readonly<
+  Partial<Record<ZoneInteractionKind, NonNullable<ZoneSubscription['turnTriggers']>[number]>>
+> = {
+  START_TURN_IN_SPACE: 'START_OF_TURN',
+  END_TURN_IN_SPACE: 'END_OF_TURN',
+  START_OF_SOURCE_TURN: 'START_OF_SOURCE_TURN'
+}
 
 function lifecycleSubscription(code: string): EncounterEventSubscription {
   if (!Object.hasOwn(LIFECYCLE_EVENT_SUBSCRIPTIONS, code))
@@ -79,5 +105,26 @@ export const dnd5eEventVocabularyCapabilityAdapter: EventVocabularyCapabilityAda
         trigger
       }))
     ]
+  },
+  zoneSubscription(kinds) {
+    if (!kinds?.length) return null
+    const movement = new Set<string>()
+    const turn = new Set<string>()
+    for (const kind of kinds) {
+      if (kind === 'MELEE_HIT_ON_SOURCE') continue
+      const movements = ZONE_MOVEMENT_SUBSCRIPTIONS[kind]
+      const boundary = ZONE_TURN_SUBSCRIPTIONS[kind]
+      if (!movements && !boundary) return null
+      movements?.forEach((trigger) => movement.add(trigger))
+      if (boundary) turn.add(boundary)
+    }
+    const turnTriggers = SPATIAL_TURN_TRIGGERS.filter((trigger) => turn.has(trigger))
+    return {
+      triggerModes: (['ENTER', 'EXIT', 'CROSS'] as const).filter((trigger) =>
+        movement.has(trigger)
+      ),
+      ...(turnTriggers.length ? { turnTriggers } : {}),
+      ...(kinds.includes('MELEE_HIT_ON_SOURCE') ? { retaliatesMeleeHits: true as const } : {})
+    }
   }
 }

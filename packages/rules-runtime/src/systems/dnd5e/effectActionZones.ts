@@ -14,7 +14,6 @@ import { castChoiceOptions } from '../../encounterCastChoice.js'
 import {
   passiveMeleeRetaliationZone,
   placedSpaceZone,
-  zoneTriggers,
   type PlacedSpaceZone
 } from '../../encounterZonePlacement.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
@@ -33,6 +32,7 @@ import {
 } from './effectActionContracts.js'
 import type { Dnd5eCompiledEffectActionSource, ZoneCompilerPieces } from './effectActionCompiler.js'
 import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import { dnd5eEventVocabularyCapabilityAdapter } from './eventVocabulary.js'
 import { boundedDiceTerm } from './effectActionScalingFacts.js'
 
 /**
@@ -354,7 +354,7 @@ function zoneComponentPlan(
   action: Dnd5eCompiledEffectActionSource,
   zone: PlacedSpaceZone,
   { component, behavior }: PlacedSpaceZone['components'][number],
-  triggers = zoneTriggers(component)
+  triggers = dnd5eEventVocabularyCapabilityAdapter.zoneSubscription(component.interactionKinds)
 ): Omit<CharacterRuleActionZonePlacementPlan, 'regionComponents' | 'sourceGrant'> {
   if (!behavior && !component.movementCostMultiplier)
     unsupported('Only a zone’s own component lends an occupant save bonus.')

@@ -466,46 +466,18 @@ describe('spatial movement candidates', () => {
     })
   })
 
-  it('fails closed for a missing source token and filters unsupported movement or trigger kinds', () => {
-    const missingSource = effect({
-      anchorKind: 'TOKEN',
-      geometry: {
-        frame: 'TOKEN_LOCAL',
-        shape: { kind: 'CIRCLE', center: { x: 0, y: 0 }, radius: 1 }
-      },
-      sourceTokenId: ids.sourceToken
-    })
-    const filtered = effect({ movementKinds: ['VOLUNTARY'], triggerModes: ['EXIT'] })
+  it('reports how the mover meets a zone whatever the zone subscribes to', () => {
+    const exitOnly = effect({ triggerModes: ['EXIT'] })
     expect(
       collect({
-        effects: [missingSource],
-        movementKind: 'VOLUNTARY',
-        path: [
-          { x: -5, y: 0 },
-          { x: 0, y: 0 }
-        ]
-      })
-    ).toEqual([])
-    expect(
-      collect({
-        effects: [filtered],
-        movementKind: 'FORCED',
-        path: [
-          { x: 0, y: 0 },
-          { x: 5, y: 0 }
-        ]
-      })
-    ).toEqual([])
-    expect(
-      collect({
-        effects: [filtered],
+        effects: [exitOnly],
         movementKind: 'VOLUNTARY',
         path: [
           { x: -5, y: 0 },
           { x: 5, y: 0 }
         ]
-      })
-    ).toEqual([])
+      }).map((candidate) => candidate.trigger)
+    ).toEqual(['CROSS'])
   })
 
   it('orders equal-distance candidates by ordinal text, without locale collation', () => {
@@ -1104,8 +1076,6 @@ describe('spatial turn candidates', () => {
 
   it.each([
     ['outside the area', { targetAt: 10 }],
-    ['at a boundary the effect lacks', { effects: [effect({ turnTriggers: ['END_OF_TURN'] })] }],
-    ['for an effect without turn triggers', { effects: [effect()] }],
     [
       'a creature the effect never catches',
       {
@@ -1123,6 +1093,17 @@ describe('spatial turn candidates', () => {
     ]
   ])('catches nothing: %s', (_name, input) => {
     expect(collectTurn(input)).toEqual([])
+  })
+
+  it('reports a creature in a zone at any boundary, whatever the zone subscribes to', () => {
+    expect(collectTurn({ effects: [effect()], trigger: 'END_OF_TURN' })).toEqual([
+      {
+        effectId: ids.effect,
+        sourceActorId: ids.sourceActor,
+        targetActorId: ids.targetActor,
+        trigger: 'END_OF_TURN'
+      }
+    ])
   })
 
   describe('an effect that catches only a creature fully within it (SPELLS-20 T4b3a)', () => {
@@ -1473,37 +1454,14 @@ describe('spatial melee retaliation candidates (D153)', () => {
     expect(collect(input)).toEqual([])
   })
 
-  it('raises no movement or turn candidate for a zone that only retaliates', () => {
-    const tokens = [token(ids.sourceToken, 0), token(ids.targetToken, 3)]
-    const actorIdByTokenId = new Map([
-      [ids.sourceToken, ids.sourceActor],
-      [ids.targetToken, ids.targetActor]
+  it('reports the attacker in a zone on the hit creature whatever the zone subscribes to', () => {
+    expect(
+      collect({
+        effects: [sourceZone({ retaliatesMeleeHits: undefined, triggerModes: ['ENTER'] })]
+      })
+    ).toEqual([
+      { effectId: ids.effect, sourceActorId: ids.sourceActor, targetActorId: ids.targetActor }
     ])
-    expect(
-      collectSpatialMovementCandidates({
-        actorIdByTokenId,
-        grid: { kind: 'GRIDLESS', pixelsPerUnit: 1, unit: 'FEET' },
-        effects: [sourceZone()],
-        movementKind: 'VOLUNTARY',
-        path: [
-          { x: 10, y: 0 },
-          { x: 3, y: 0 }
-        ],
-        tokens,
-        movingTokenId: ids.targetToken,
-        turnSequence: 1
-      })
-    ).toEqual([])
-    expect(
-      collectSpatialTurnCandidates({
-        actorIdByTokenId,
-        effects: [sourceZone()],
-        targetTokenId: ids.targetToken,
-        tokens,
-        trigger: 'START_OF_TURN',
-        turnSequence: 1
-      })
-    ).toEqual([])
   })
 })
 
@@ -1584,13 +1542,6 @@ describe('spatial candidates per distance moved (SPELLS-4.T1h, D156)', () => {
 
     // 15 diagonal squares cost 15 under equal diagonals, though they span 21.2 in the plane.
     expect(diagonal.map((candidate) => candidate.step)).toEqual([1, 2, 3])
-  })
-
-  it('raises nothing for a teleport, or for a component that does not act on entering', () => {
-    const exitOnly = { ...field, triggerModes: ['EXIT'] as const }
-
-    expect(collect({ effects: [field], movementKind: 'TELEPORT', path: walk(25) })).toEqual([])
-    expect(collect({ effects: [exitOnly], movementKind: 'VOLUNTARY', path: walk(25) })).toEqual([])
   })
 
   it('keeps each step apart from the once-per-movement contact of another zone', () => {

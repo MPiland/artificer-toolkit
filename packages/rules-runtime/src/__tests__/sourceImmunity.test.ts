@@ -385,7 +385,8 @@ describe('SRD Chains of Carceri: a grant that locks each target out (SPELLS-31.T
         castMode: 'SPELL_SLOT',
         castLevel: 5,
         baseEntry: true,
-        resourceOwnerKey: null
+        resourceOwnerKey: null,
+        slotPoolCode: null
       },
       decision: { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:5' },
       spellAccessCandidates
