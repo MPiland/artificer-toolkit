@@ -1,3 +1,9 @@
+import {
+  SRD_DWARVEN_HERITAGE_ID,
+  SRD_GOLD_CURRENCY_ID,
+  SRD_STEALTH_SKILL_ID,
+  SRD_WALK_SPEED_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
@@ -279,10 +285,10 @@ describe('import preparation', () => {
     const vocabulary = {
       damageTypes: [{ id: 'damage-piercing', code: 'PIERCING', label: 'Piercing' }],
       rarities: [{ id: 'rarity-legendary', code: 'LEGENDARY', label: 'Legendary' }],
-      currencies: [{ id: 'currency-gp', code: 'GP', label: 'Gold' }],
-      speeds: [{ id: 'speed-walk', code: 'WALK', label: 'Walking Speed' }],
-      skills: [{ id: 'skill-stealth', code: 'STEALTH', label: 'Stealth' }],
-      heritages: [{ id: 'heritage-dwarven', code: 'DWARVEN', label: 'Dwarven' }]
+      currencies: [{ id: SRD_GOLD_CURRENCY_ID, code: 'GP', label: 'Gold' }],
+      speeds: [{ id: SRD_WALK_SPEED_ID, code: 'WALK', label: 'Walking Speed' }],
+      skills: [{ id: SRD_STEALTH_SKILL_ID, code: 'STEALTH', label: 'Stealth' }],
+      heritages: [{ id: SRD_DWARVEN_HERITAGE_ID, code: 'DWARVEN', label: 'Dwarven' }]
     }
 
     async function prepareAstralTear(rarity: string) {
@@ -352,7 +358,7 @@ describe('import preparation', () => {
         activate: true,
         payload: {
           rarityId: 'rarity-legendary',
-          cost: { amount: 100, currencyId: 'currency-gp' },
+          cost: { amount: 100, currencyId: SRD_GOLD_CURRENCY_ID },
           effects: [expect.anything()],
           modifiers: expect.any(Array)
         }

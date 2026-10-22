@@ -18,6 +18,13 @@ import {
   type EquipmentChildId
 } from '@artificer-toolkit/shared/authored'
 
+import {
+  SRD_DWARVEN_HERITAGE_ID,
+  SRD_GOLD_CURRENCY_ID,
+  SRD_STEALTH_SKILL_ID,
+  SRD_WALK_SPEED_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
+
 import { applyImportedEquipmentTerms } from './importedEquipmentTerms.js'
 
 function sequentialIds() {
@@ -46,17 +53,17 @@ const vocabulary = {
   ],
   currencies: [
     { id: 'currency-sp', code: 'SP', label: 'Silver' },
-    { id: 'currency-gp', code: 'GP', label: 'Gold' }
+    { id: SRD_GOLD_CURRENCY_ID, code: 'GP', label: 'Gold' }
   ],
   speeds: [
-    { id: 'speed-walk', code: 'WALK', label: 'Walking Speed' },
+    { id: SRD_WALK_SPEED_ID, code: 'WALK', label: 'Walking Speed' },
     { id: 'speed-fly', code: 'FLY', label: 'Flying Speed' }
   ],
   skills: [
-    { id: 'skill-stealth', code: 'STEALTH', label: 'Stealth' },
+    { id: SRD_STEALTH_SKILL_ID, code: 'STEALTH', label: 'Stealth' },
     { id: 'skill-athletics', code: 'ATHLETICS', label: 'Athletics' }
   ],
-  heritages: [{ id: 'heritage-dwarven', code: 'DWARVEN', label: 'Dwarven' }]
+  heritages: [{ id: SRD_DWARVEN_HERITAGE_ID, code: 'DWARVEN', label: 'Dwarven' }]
 }
 
 type TermsExtra = Partial<
@@ -158,7 +165,7 @@ describe('applyImportedEquipmentTerms rarity and price', () => {
   it('resolves the rarity by label or code and the price through the gold currency', () => {
     expect(terms('WEAPON', [], { rarityName: 'Legendary', costGold: 15 })).toMatchObject({
       rarityId: 'rarity-legendary',
-      cost: { amount: 15, currencyId: 'currency-gp' }
+      cost: { amount: 15, currencyId: SRD_GOLD_CURRENCY_ID }
     })
     expect(terms('WEAPON', [], { rarityName: 'very rare' })).toMatchObject({
       rarityId: 'rarity-very-rare'
@@ -177,14 +184,52 @@ describe('applyImportedEquipmentTerms rarity and price', () => {
   })
 })
 
+describe('applyImportedEquipmentTerms definition ids', () => {
+  const renamed = {
+    ...vocabulary,
+    currencies: [{ id: SRD_GOLD_CURRENCY_ID, code: 'GOLD', label: 'Crown' }],
+    speeds: [{ id: SRD_WALK_SPEED_ID, code: 'FOOT', label: 'Foot' }],
+    skills: [{ id: SRD_STEALTH_SKILL_ID, code: 'SNEAK', label: 'Sneak' }],
+    heritages: [{ id: SRD_DWARVEN_HERITAGE_ID, code: 'DEEPFOLK', label: 'Deepfolk' }]
+  }
+
+  it('resolves gold, walking speed, Stealth and Dwarven by definition id whatever their codes', () => {
+    const result = termsResult(
+      'ARMOR',
+      ['HEAVY'],
+      { costGold: 5, strengthRequirement: 15, stealthDisadvantage: true },
+      renamed
+    )
+    expect(result.payload).toMatchObject({ cost: { amount: 5, currencyId: SRD_GOLD_CURRENCY_ID } })
+    expect(result.payload.modifiers).toHaveLength(2)
+    expect(result.issues).toEqual([])
+  })
+
+  it('does not take a code match for the definition', () => {
+    const impostor = {
+      ...vocabulary,
+      currencies: [{ id: 'other-gp', code: 'GP', label: 'Gold' }],
+      skills: [{ id: 'other-stealth', code: 'STEALTH', label: 'Stealth' }]
+    }
+    const result = termsResult(
+      'ARMOR',
+      ['HEAVY'],
+      { costGold: 5, stealthDisadvantage: true },
+      impostor
+    )
+    expect(result.payload).not.toHaveProperty('cost')
+    expect(result.issues).toEqual([expect.objectContaining({ code: 'UNKNOWN_ARMOR_VOCABULARY' })])
+  })
+})
+
 describe('applyImportedEquipmentTerms armor rules', () => {
   const stealth = (childId: EquipmentChildId) => [
-    stealthDisadvantageModifier(childId, 'skill-stealth')
+    stealthDisadvantageModifier(childId, SRD_STEALTH_SKILL_ID)
   ]
   const strength = (requirement: number) => (childId: EquipmentChildId) => [
     heavyArmorStrengthModifier(
       childId,
-      { walkSpeedId: 'speed-walk', dwarvenHeritageId: 'heritage-dwarven' },
+      { walkSpeedId: SRD_WALK_SPEED_ID, dwarvenHeritageId: SRD_DWARVEN_HERITAGE_ID },
       requirement
     )
   ]
