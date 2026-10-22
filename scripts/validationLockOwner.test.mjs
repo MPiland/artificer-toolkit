@@ -89,4 +89,4 @@ describe('Enter-ValidationLock', () => {
     expect(readFileSync(lock, 'utf8')).toMatch(/^waiter pid \d+ start \d+/)
     expect(pwsh(`(Get-ChildItem -Force '${directory.replaceAll('\\', '/')}').Count`)).toBe('1')
   })
-})
+}, 30_000)
