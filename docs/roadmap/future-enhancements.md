@@ -85,6 +85,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ## Post-launch
 
+- **Give loot from a table (SCENE-4):** a "Give to…" action on a loot table entry moves the catalog item, or the coins, into a Character's inventory.
+
 ### Deferred edge cases (watch for in real use)
 
 - **Haste's lethargy timing (SPELLS-4.T2l-a):** the follow-on grant lasts one end of the holder's turn. A Haste that ends during its holder's own turn (Concentration dropped mid-turn) lets the lethargy end at the end of that same turn, instead of the holder's next. The rules text is "until after its next turn"; it is rare, and the GM can end the lethargy by hand. Related, latent: a follow-on created during the outgoing boundary's turn effects could tick once before `persistEncounterGrantTicks`; `documents.ts` deletes a form-holding effect row directly, bypassing the `onEnd` seam; only the first `MODIFIER_GRANT` contribution's `onEnd` is read. No SRD effect triggers any of these today.

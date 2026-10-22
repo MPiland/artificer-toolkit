@@ -7042,22 +7042,22 @@
         },
         {
           "id": "SCENE-4",
-          "title": "Scene loot tables by check result",
+          "title": "GM loot tables on Scenes and Encounter creatures",
           "status": "TODO",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
-          "note": "Registered 2026-10-10 by the product owner. Design open: what a loot entry holds and how a found item reaches a Character's inventory.",
+          "note": "Registered 2026-10-10; rescoped by the product owner 2026-10-21. A loot table is a GM reference with exclusive roll ranges; the app never resolves a check against it. Not authored on creatures: a creature’s gear stays stats and gameplay. Giving an item to a Character from the table is in future-enhancements.",
           "acs": [
             {
-              "text": "A GM authors loot tables on a Scene, each keyed to a check (for example Investigation or Perception) with non-overlapping result ranges, each range listing what it reveals.",
+              "text": "A GM authors loot tables on a Scene and on a creature placed in an Encounter. Each table has a name, an optional check from the System’s skills, and exclusive roll ranges that may not overlap. Each range lists real catalog items (SRD or homebrew) with quantities, coins in the System’s denominations, and an optional note. Tables save and reopen, and overlapping ranges are refused with a named message.",
               "status": "TODO",
               "proof": [],
               "origin": [],
               "id": "SCENE-4.1"
             },
             {
-              "text": "In a live Session, a check of that kind on the Scene reveals to the roller everything in the ranges its result reaches; the GM sees the roll and what was revealed, and other players see nothing.",
+              "text": "In a live Session, the GM’s Loot panel lists the current Scene’s tables and the tables of defeated creatures, whose tokens show a loot marker. The GM enters a roll result and the matching range is highlighted. Players see none of it, and nothing is resolved or granted automatically.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -7068,12 +7068,12 @@
             "bv": 5,
             "tc": 1,
             "rr": 1,
-            "size": 5
+            "size": 8
           },
           "tasks": [
             {
               "id": "SCENE-4.T1",
-              "text": "A GM authors loot tables on a Scene: keyed to a check, non-overlapping result ranges with what each reveals; saved, reopened and refused when ranges overlap.",
+              "text": "Scene loot tables: shared contract (name, optional System check, exclusive ranges, entries of catalog item + quantity, System coins, note), overlap refusal in shared code, Scene editor section; saved, reopened and refused when ranges overlap.",
               "status": "TODO",
               "closes": [
                 "SCENE-4.1"
@@ -7083,11 +7083,29 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             },
             {
               "id": "SCENE-4.T2",
-              "text": "Live reveal: a check of that kind on the Scene reveals to the roller every range its result reaches (result at or above the range start); the GM sees the roll and the reveal; other players see nothing. Includes the Scene check path outside an Encounter if none exists.",
+              "text": "Encounter creature placement loot tables, reusing the T1 contract and editor; saved, reopened and refused on overlap. Closes SCENE-4.1 with T1.",
+              "status": "TODO",
+              "closes": [
+                "SCENE-4.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 1,
+                "rr": 1,
+                "size": 2,
+                "after": [
+                  "SCENE-4.T1"
+                ]
+              }
+            },
+            {
+              "id": "SCENE-4.T3",
+              "text": "GM-only live Loot panel: current Scene tables and defeated creatures’ tables (token loot marker); the GM enters a result and the matching range highlights; players receive nothing.",
               "status": "TODO",
               "closes": [
                 "SCENE-4.2"
@@ -7096,9 +7114,9 @@
                 "bv": 5,
                 "tc": 1,
                 "rr": 1,
-                "size": 5,
+                "size": 3,
                 "after": [
-                  "SCENE-4.T1"
+                  "SCENE-4.T2"
                 ]
               }
             }
@@ -12958,7 +12976,8 @@
                 "after": [
                   "SPELLS-8.T1"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
             },
             {
               "id": "SPELLS-8.T11",
@@ -12975,7 +12994,8 @@
                 "after": [
                   "SPELLS-8.T1"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
             },
             {
               "id": "SPELLS-8.T12",
@@ -19677,7 +19697,8 @@
                 "tc": 1,
                 "rr": 3,
                 "size": 5
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-reliability-9-t1.md"
             },
             {
               "id": "RELIABILITY-9.T2b",
