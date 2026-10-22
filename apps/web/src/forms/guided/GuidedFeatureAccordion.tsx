@@ -296,14 +296,12 @@ function outcomeLabel(value: FeatureOutcome): string {
 
 function readOutcome(feature: FeatureDto): FeatureOutcome {
   if (feature.effects?.length !== 1) return 'DESCRIPTION'
-  return rehydrateGuidedSpell(feature.effects[0], SUMMARY_EFFECT_IDS)?.draft.intent ?? 'DESCRIPTION'
+  return rehydrateGuidedSpell(feature.effects, SUMMARY_EFFECT_IDS)?.draft.intent ?? 'DESCRIPTION'
 }
 
 function hasUnsupportedMechanics(feature: FeatureDto): boolean {
   return Boolean(
-    (feature.effects?.length &&
-      (feature.effects.length !== 1 ||
-        !rehydrateGuidedSpell(feature.effects[0], SUMMARY_EFFECT_IDS))) ||
+    (feature.effects?.length && !rehydrateGuidedSpell(feature.effects, SUMMARY_EFFECT_IDS)) ||
     feature.grants ||
     feature.restrictions ||
     feature.options?.length ||

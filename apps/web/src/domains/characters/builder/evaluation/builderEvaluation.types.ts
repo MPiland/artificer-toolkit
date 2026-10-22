@@ -33,7 +33,7 @@ export type BuilderEvaluationRequest = {
   previousCharacter: CharacterAuthoredDto | null
 }
 
-export type BuilderEvaluationOutput =
+type BuilderEvaluationOutput =
   | { operation: 'resolve'; payload: CharacterBuilderPayloadDto }
   | {
       operation: 'preview'

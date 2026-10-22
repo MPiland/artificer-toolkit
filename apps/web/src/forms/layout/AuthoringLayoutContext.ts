@@ -8,7 +8,7 @@ import type { AuthoringNavigationTarget } from './authoringNavigation'
 
 export type AuthoringPreviewContent = ReactNode | undefined
 
-export type AuthoringLayoutToggles = {
+type AuthoringLayoutToggles = {
   stepsNavigationOpen: boolean
   toggleStepsNavigation: () => void
   previewOpen: boolean
@@ -17,12 +17,12 @@ export type AuthoringLayoutToggles = {
   toggleResetFormConfirm: () => void
 }
 
-export type AuthoringLayoutState = {
+type AuthoringLayoutState = {
   previewContent: AuthoringPreviewContent
   setPreviewContent: Dispatch<SetStateAction<AuthoringPreviewContent>>
 }
 
-export type AuthoringLayoutConstants = {
+type AuthoringLayoutConstants = {
   isWideDesktop: boolean
   title: string
   label: string

@@ -12,15 +12,14 @@ import {
   resolveInputAuthoringMeta,
   resolveObjectAuthoringMeta
 } from '@artificer-toolkit/shared/maps'
+import { AuthoringLayout } from '#forms'
+import { useAppForm, withForm } from '#forms/app-form/AppForm'
+import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
+import { FormRenderer } from '#forms/rendering/FormRenderer'
 import {
-  AuthoringLayout,
   createDefaultAuthoringArrayItem,
-  createDefaultAuthoringObjectItem,
-  FormRenderer,
-  useAppForm,
-  useAuthoringForm,
-  withForm
-} from '#forms'
+  createDefaultAuthoringObjectItem
+} from '#forms/rendering/authoringNodeDefaults'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { buildAuthoringNavigationTree } from '../layout/authoringNavigation'
 import { toAuthoringRailSummaries } from '../layout/Steps/Steps.utils'

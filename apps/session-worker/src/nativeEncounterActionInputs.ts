@@ -12,6 +12,7 @@ import { encounterActionReachFeet } from '@artificer-toolkit/rules-runtime/encou
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { SQUARE_GRID_COMPASS_RAYS, type ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
+import { authoredCheckOf } from './nativeCheckAction.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
 type Relationship = Parameters<
@@ -94,6 +95,27 @@ export async function refuseUnmetBasicActionRestrictions(
         ? 'This action would stow a held weapon; confirm it first.'
         : 'This action stows nothing.'
     )
+}
+
+/**
+ * A check action runs from an authored basic action, or from a Creature feature whose success runs
+ * its outcome against a fixed DC (D173). A contest, a concealment check and a stabilizing check are
+ * a basic action's alone, and a Character action authored with the check is refused.
+ */
+export function checkActionSource(prepared: Pick<Prepared, 'source' | 'plan'>) {
+  const { source } = prepared
+  if (source.kind === 'BASIC_ACTION') return source
+  if (
+    source.kind === 'CREATURE' &&
+    prepared.plan.kind === 'TEST_OUTCOME' &&
+    authoredCheckOf(source.capability).dc.kind === 'FIXED'
+  )
+    return source
+  throw new LiveSessionDomainRejectionError(422, {
+    code: 'DOMAIN_REJECTED',
+    reason: 'SOURCE_REQUIREMENTS_NOT_MET',
+    message: 'Only a basic action or a Creature feature with a fixed DC can make this check.'
+  })
 }
 
 /** An item action with authored requirements is taken only once they hold (an off-hand attack). */

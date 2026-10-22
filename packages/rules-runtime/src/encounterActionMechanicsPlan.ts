@@ -235,7 +235,6 @@ type SettledMechanicsPlan = Pick<
 
 /** The receipts of the source's one spend, read from what the action prepared. */
 function nativeSourceSpendReceipts(prepared: NativeEncounterActionMechanicsInput['prepared']) {
-  const { actor, source, resourceUse, featureResource, featureUsed, featureSpent } = prepared
   const resourceConsumption = prepared.characterActionState?.resourceConsumption
   const itemConsumption = prepared.characterActionState?.itemConsumption
   const spellConsumption = prepared.characterActionState?.spellConsumption
@@ -261,29 +260,38 @@ function nativeSourceSpendReceipts(prepared: NativeEncounterActionMechanicsInput
       }
     : null
   const spellConsumptionReceipt = characterSpellConsumptionReceipt(spellConsumption)
-  const featureResourceReceipt =
-    source.kind === 'CREATURE' &&
-    resourceUse &&
-    featureSpent > 0 &&
-    featureResource?.remaining !== null &&
-    featureResource?.remaining !== undefined
-      ? {
-          ownerActorId: actor.id,
-          ownerFeatureId: source.capability.ownerFeatureId,
-          chargeId: resourceUse.chargeId,
-          cost: featureSpent,
-          beforeUsed: featureUsed,
-          afterUsed: featureUsed + featureSpent,
-          beforeRemaining: featureResource.remaining,
-          afterRemaining: featureResource.remaining - featureSpent
-        }
-      : null
   return {
     resourceReceipt,
     itemConsumptionReceipt,
     spellConsumptionReceipt,
-    featureResourceReceipt
+    featureResourceReceipt: nativeSourceFeatureResourceReceipt(prepared)
   }
+}
+
+/** The receipt of the Creature feature charges the prepared action spends; null when it spends none. */
+export function nativeSourceFeatureResourceReceipt(
+  prepared: Pick<
+    NativeEncounterActionMechanicsInput['prepared'],
+    'actor' | 'source' | 'resourceUse' | 'featureResource' | 'featureUsed' | 'featureSpent'
+  >
+) {
+  const { actor, source, resourceUse, featureResource, featureUsed, featureSpent } = prepared
+  return source.kind === 'CREATURE' &&
+    resourceUse &&
+    featureSpent > 0 &&
+    featureResource?.remaining !== null &&
+    featureResource?.remaining !== undefined
+    ? {
+        ownerActorId: actor.id,
+        ownerFeatureId: source.capability.ownerFeatureId,
+        chargeId: resourceUse.chargeId,
+        cost: featureSpent,
+        beforeUsed: featureUsed,
+        afterUsed: featureUsed + featureSpent,
+        beforeRemaining: featureResource.remaining,
+        afterRemaining: featureResource.remaining - featureSpent
+      }
+    : null
 }
 
 /** A Creature source's feature charge the action spends, applied to the source as settled so far. */

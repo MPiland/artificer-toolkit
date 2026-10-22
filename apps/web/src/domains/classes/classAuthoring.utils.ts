@@ -7,9 +7,6 @@ import type {
   ClassMulticlassDto,
   ClassStartingGoldDto
 } from '@artificer-toolkit/schema/subjects/shared'
-import type { DetailDto } from '@artificer-toolkit/schema/shared'
-import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants'
 import {
   ABILITY_CODE,
   CHARGE_LIMIT_KIND,
@@ -99,37 +96,6 @@ export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuth
 
 export function resolveCreateClassSystemId(systems: readonly { id: string }[]): string | null {
   return systems[0]?.id ?? null
-}
-
-export function createEmptyDetail(order: number): DetailDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    order
-  }
-}
-
-export function createEmptyFeature(order: number): FeatureDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    order
-  }
-}
-
-export function createEmptyProficiency(order: number): ProficiencyGrantDto {
-  return {
-    grantKind: 'PROFICIENCY_GRANT',
-    id: crypto.randomUUID(),
-    order,
-    selectionKind: 'GRANTED',
-    scalingKind: 'NONE',
-    proficiencyKind: 'SKILL',
-    authoringModeKind: 'ALL',
-    level: 'FULL'
-  }
 }
 
 function createEmptyStartingGold(): ClassStartingGoldDto {

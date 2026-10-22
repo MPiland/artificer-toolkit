@@ -1,18 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { z } from 'zod/mini'
-import { proficiencyGrantDtoSchema } from '@artificer-toolkit/schema/grants'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared'
 import {
-  addStartingEquipmentItem,
-  createEmptyBackground,
-  createEmptyProficiency,
   createEmptyStartingEquipment,
+  createEmptyStartingEquipmentItem,
   getStartingEquipmentItems,
-  normalizeBackgroundForSubmit,
-  removeStartingEquipmentItem,
   replaceStartingEquipmentItem,
   upsertStartingEquipmentItem
-} from '../backgroundAuthoring.utils'
+} from '#app/forms/rendering/startingEquipmentDefaults'
+import { createEmptyBackground, normalizeBackgroundForSubmit } from '../backgroundAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
 
@@ -26,10 +21,6 @@ type GrantedEquipmentStartingEquipmentItemDto = Extract<
 describe('background authoring helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks()
-  })
-
-  it('creates an empty proficiency grant that satisfies the grant contract', () => {
-    expect(z.safeParse(proficiencyGrantDtoSchema, createEmptyProficiency(0)).success).toBe(true)
   })
 
   it('creates a draft background with editable collection defaults', () => {
@@ -70,9 +61,9 @@ describe('background authoring helpers', () => {
     expect(normalized.startingEquipment?.sets).toEqual([])
   })
 
-  it('adds, replaces, and removes starting equipment items without pagination-style state', () => {
+  it('appends, replaces, and upserts starting equipment items without pagination-style state', () => {
     const empty = createEmptyStartingEquipment()
-    const withItem = addStartingEquipmentItem(empty)
+    const withItem = upsertStartingEquipmentItem(empty, createEmptyStartingEquipmentItem(1))
     const item = expectEquipmentItem(getStartingEquipmentItems(withItem)[0])
 
     expect(withItem.sets[0]?.groups[0]?.options[0]?.items).toHaveLength(1)
@@ -88,9 +79,6 @@ describe('background authoring helpers', () => {
       quantity: 2
     })
     expect(expectEquipmentItem(getStartingEquipmentItems(replaced)[0]).quantity).toBe(2)
-
-    const removed = removeStartingEquipmentItem(replaced, item.id)
-    expect(getStartingEquipmentItems(removed)).toEqual([])
 
     const upserted = upsertStartingEquipmentItem(empty, {
       ...item,

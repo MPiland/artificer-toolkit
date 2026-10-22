@@ -21,7 +21,7 @@ import {
   characterActiveEffectCreateReceiptDtoSchema,
   characterMechanicsApplicationDtoSchema,
   characterMechanicsResourceReceiptDtoSchema,
-  characterMechanicsTargetStateDtoSchema,
+  characterMechanicsTargetTransitionDtoSchema,
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
   resolveDispositionDamage,
@@ -48,6 +48,7 @@ import {
   escapeCheckApplicationOutputDtoSchema,
   sourceItemDrawDtoSchema
 } from './ruleExecutionEncounterApplications.js'
+import { checkActionApplicationOutputDtoSchema } from './ruleExecutionCheckAction.js'
 import {
   serverRuleExecutionD20EvidenceDtoSchema,
   serverRuleExecutionNestedD20EvidenceDtoSchema
@@ -59,7 +60,6 @@ import {
 } from './ruleExecutionReactionChoice.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
-  ruleExecutionChecksumSchema as checksumSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
 import {
@@ -140,11 +140,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         z.array(stateEffectCreateReceiptDtoSchema).check(z.maxLength(1)),
         []
       ),
-      targetTransition: z.strictObject({
-        checksum: checksumSchema,
-        before: characterMechanicsTargetStateDtoSchema,
-        after: characterMechanicsTargetStateDtoSchema
-      }),
+      targetTransition: characterMechanicsTargetTransitionDtoSchema,
       applications: z
         .array(characterMechanicsApplicationDtoSchema)
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
@@ -672,6 +668,7 @@ export type ServerRuleExecutionApplicationOutputsDto =
   | z.infer<typeof encounterGatedActionApplicationOutputDtoSchema>
   | z.infer<typeof encounterActorMechanicsBatchApplicationOutputDtoSchema>
   | z.infer<typeof basicActionCheckApplicationOutputDtoSchema>
+  | z.infer<typeof checkActionApplicationOutputDtoSchema>
   | z.infer<typeof escapeCheckApplicationOutputDtoSchema>
   | z.infer<typeof concealmentCheckApplicationOutputDtoSchema>
   | z.infer<typeof characterMechanicsBatchApplicationOutputDtoSchema>
@@ -689,6 +686,7 @@ export const serverRuleExecutionApplicationOutputsDtoSchema: z.ZodMiniType<Serve
       encounterGatedActionApplicationOutputDtoSchema,
       encounterActorMechanicsBatchApplicationOutputDtoSchema,
       basicActionCheckApplicationOutputDtoSchema,
+      checkActionApplicationOutputDtoSchema,
       escapeCheckApplicationOutputDtoSchema,
       concealmentCheckApplicationOutputDtoSchema,
       characterMechanicsBatchApplicationOutputDtoSchema

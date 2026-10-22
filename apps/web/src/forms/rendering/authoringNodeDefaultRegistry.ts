@@ -354,10 +354,6 @@ const defaultKindByMapId = Object.entries(AUTHORING_DEFAULT_MAP_IDS).reduce<
   return result
 }, {})
 
-export function hasAuthoringDefaultKind(mapId: string): boolean {
-  return mapId in defaultKindByMapId
-}
-
 export function getAuthoringDefaultKind(mapId: string): AuthoringDefaultKind {
   const kind = defaultKindByMapId[mapId]
   if (kind === undefined) {

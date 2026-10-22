@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
 import {
@@ -9,6 +10,7 @@ import {
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { MAX_ACTIVE_EFFECT_STORED_TICKS } from './activeRuleEffectLifecycle.js'
 import { authoredIdentifierSchema } from './authoredLimits.js'
+import { forcedMovementDirectionSchema } from './enums.js'
 import { characterResourcePoolIdentitySchema } from './characterResourceIdentity.js'
 import {
   ruleExecutionAggregateVersionSchema as aggregateVersionSchema,
@@ -356,6 +358,50 @@ export function isEndedEffectRelease<T extends { kind: string }>(
     application.kind === 'CONDITION_REMOVE' || application.kind === 'TEMPORARY_HIT_POINTS_RELEASE'
   )
 }
+
+/** A target's mechanics before and after one settled batch, bound to the batch's checksum. */
+export const characterMechanicsTargetTransitionDtoSchema = lazySchema(() =>
+  z.strictObject({
+    checksum: checksumSchema,
+    before: characterMechanicsTargetStateDtoSchema,
+    after: characterMechanicsTargetStateDtoSchema
+  })
+)
+
+/**
+ * What a won contest's outcome settled on its target (D105, D173): its mechanics batch, null when it
+ * applied none, and the pushes its commit lands on the Scene (D157). It settles at least one.
+ */
+export const targetOutcomeTransitionDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('TARGET_OUTCOME'),
+      mechanics: z.nullable(
+        z.strictObject({
+          targetTransition: characterMechanicsTargetTransitionDtoSchema,
+          applications: z
+            .array(characterMechanicsApplicationDtoSchema)
+            .check(z.minLength(1), z.maxLength(RULE_GRAPH_LIMITS.NODES))
+        })
+      ),
+      forcedMovements: z
+        .array(
+          z.strictObject({
+            direction: forcedMovementDirectionSchema,
+            feet: z.number().check(z.positive()),
+            upTo: z.boolean()
+          })
+        )
+        .check(z.maxLength(RULE_GRAPH_LIMITS.NODES))
+    })
+    .check(
+      z.refine((value) => value.mechanics !== null || value.forcedMovements.length > 0, {
+        message: 'A contest outcome settles mechanics or a forced movement on its target.'
+      })
+    )
+)
+
+export type TargetOutcomeTransitionDto = z.infer<typeof targetOutcomeTransitionDtoSchema>
 
 /**
  * What the acting source's own state changed with its action, apart from the target's outcome: the

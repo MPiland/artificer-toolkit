@@ -15,10 +15,6 @@ import {
   liveSessionForcedMovementsSchema,
   type LiveSessionForcedMovement
 } from './liveSessionEncounterAction.js'
-import {
-  ruleExecutionIdentifierSchema,
-  ruleExecutionUuidSchema
-} from '../shared/ruleExecutionPrimitives.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 
 const contestScope = lazySchema(() =>
@@ -53,17 +49,6 @@ export type LiveSessionEncounterContestPendingInput = z.infer<
   typeof liveSessionEncounterContestPendingInputSchema
 >
 
-/** A condition a won contest's picked outcome applies to its target, as the room planned it (D105). */
-export type LiveSessionContestConditionApplication = {
-  kind: 'CONDITION_APPLY'
-  conditionId: string
-  targetActorId: string
-  sourceNodeId: string
-  sourceOperationKey: string
-  authoredPath: string | null
-  resolvedPath: string | null
-}
-
 /**
  * A room-planned contest's settlement. Convex re-applies the changes and ACTION use it describes
  * and records the receipts; it never rolls or evaluates.
@@ -80,8 +65,6 @@ export type LiveSessionEncounterContestCommitInput = Omit<
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
   /** The hold effect a won basic action contest (Grapple) creates on its target; null otherwise. */
   createdEffect: z.infer<typeof activeRuleEffectRecordSchema> | null
-  /** The conditions a won contest's picked outcome (Shove's Prone) applies to its target. */
-  conditionApplications: LiveSessionContestConditionApplication[]
   /** The push a won contest's picked outcome (Shove's 5 feet away) settles on the Scene (D157). */
   forcedMovements: LiveSessionForcedMovement[]
 }
@@ -97,19 +80,6 @@ export const liveSessionEncounterContestCommitInputSchema: z.ZodMiniType<LiveSes
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(2 * MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
       createdEffect: z.nullable(activeRuleEffectRecordSchema),
-      conditionApplications: z
-        .array(
-          z.strictObject({
-            kind: z.literal('CONDITION_APPLY'),
-            conditionId: ruleExecutionUuidSchema,
-            targetActorId: ruleExecutionUuidSchema,
-            sourceNodeId: ruleExecutionIdentifierSchema,
-            sourceOperationKey: ruleExecutionIdentifierSchema,
-            authoredPath: z.nullable(ruleExecutionIdentifierSchema),
-            resolvedPath: z.nullable(ruleExecutionIdentifierSchema)
-          })
-        )
-        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
       forcedMovements: liveSessionForcedMovementsSchema
     })
   )

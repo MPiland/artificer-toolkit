@@ -21,7 +21,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, withCheckTotals } from './actionRoomFixture.js'
-import { seedModifierGrant } from './grantSeed.js'
+import { heldDieEffect, seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
@@ -189,8 +189,8 @@ describe('a homebrew basic action authored with the CHECK test, in the room', ()
   })
 })
 
-describe('a Creature feature authored with the CHECK test', () => {
-  it('is refused, since only a basic action makes a check, and nothing is spent or written', async () => {
+describe('a Creature feature authored with a contested CHECK test', () => {
+  it('is refused, since only a basic action makes a contest, and nothing is spent or written', async () => {
     const attack = biteWolf('ATTACK', { damage: 1, reachFeet: 5 })
     const checkWolf = creatureAuthoredDtoSchema.parse({
       ...attack,
@@ -206,7 +206,10 @@ describe('a Creature feature authored with the CHECK test', () => {
                   triggerCode: 'CHECK' as const,
                   check: {
                     checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] },
-                    dc: { kind: 'FIXED' as const, value: 10 }
+                    dc: {
+                      kind: 'CONTEST' as const,
+                      checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] }
+                    }
                   }
                 },
                 paths: effect.paths.map((path) => ({ ...path, pathCode: 'ON_CHECK_SUCCESS' }))
@@ -378,25 +381,6 @@ describe('First Aid, a System basic action with a check, in the room', () => {
     expect(await room.version()).toBe(before)
   })
 })
-
-/** A held-die effect: the real Guidance grant, authored to be offered after the d20 is seen. */
-function heldDieEffect(change: { count?: number; ability?: 'WISDOM' | 'STRENGTH' } = {}) {
-  const effect = structuredClone(guidance.effects![0]!)
-  for (const path of effect.paths)
-    if (path.selectionKind === 'FIXED')
-      for (const outcome of path.resultBlock.outcomes)
-        if (outcome.effectKind === 'APPLY_GRANT')
-          for (const modifier of outcome.grants.modifiers ?? []) {
-            if (modifier.modifierKind !== 'ADD_BONUS_DIE') continue
-            modifier.payload = {
-              ...modifier.payload,
-              ...(change.count === undefined ? {} : { count: change.count }),
-              timing: 'AFTER_ROLL'
-            }
-            if (change.ability) modifier.domain = { ability: change.ability }
-          }
-  return effect
-}
 
 describe('a die the helper holds for after the d20, in the First Aid room (SPELLS-31.T4c1a)', () => {
   async function heldDieRoom(effect: ReturnType<typeof heldDieEffect>) {

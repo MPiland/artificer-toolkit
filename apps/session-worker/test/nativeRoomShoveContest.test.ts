@@ -138,7 +138,14 @@ describe('Shove, a basic action contested by the target, in the room (ATTACK-7 A
         sourceRoll: { selectedNatural: 12, modifier: 5, total: 17 },
         targetRoll: { selectedNatural: 10, modifier: 2, total: 12 },
         outcome: 'SOURCE_WIN',
-        stateTransition: { kind: 'CONDITIONS_APPLIED', appliedConditionIds: [PRONE] }
+        stateTransition: {
+          kind: 'TARGET_OUTCOME',
+          mechanics: {
+            applications: [{ kind: 'CONDITION_APPLY', conditionId: PRONE }],
+            targetTransition: { after: { conditionIds: expect.arrayContaining([PRONE]) } }
+          },
+          forcedMovements: []
+        }
       }
     ])
     expect(occurrences).toEqual(['COMPLETED'])
@@ -156,10 +163,9 @@ describe('Shove, a basic action contested by the target, in the room (ATTACK-7 A
       {
         outcome: 'SOURCE_WIN',
         stateTransition: {
-          kind: 'FORCED_MOVEMENT',
-          direction: 'AWAY_FROM_SOURCE',
-          feet: 5,
-          upTo: false
+          kind: 'TARGET_OUTCOME',
+          mechanics: null,
+          forcedMovements: [{ direction: 'AWAY_FROM_SOURCE', feet: 5, upTo: false }]
         }
       }
     ])

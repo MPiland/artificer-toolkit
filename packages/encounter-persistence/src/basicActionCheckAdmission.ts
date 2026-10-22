@@ -6,6 +6,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { requireEncounterActorControl } from './actorController.js'
 import {
   readNativeBasicActionCheckPending,
+  readNativeCheckActionPending,
   readNativeD20WindowPending,
   readNativeEscapeCheckPending
 } from './basicActionCheckPending.js'
@@ -30,11 +31,14 @@ export function storedCheckOccurrenceId(root: StoredCommand | undefined): string
 const takesD20Evidence = ({ kind }: ResolveRuleOccurrenceInputDto['resolution']) =>
   kind === 'ENTER_DICE' || kind === 'SYSTEM_ROLL'
 
+const takesD20WindowDecision = ({ kind }: ResolveRuleOccurrenceInputDto['resolution']) =>
+  kind === 'D20_WINDOW_DECLINE' || kind === 'D20_WINDOW_USE'
+
 type CheckResponseInput = Omit<LiveSessionEncounterRulesInput, 'request'> & {
   response: ResolveRuleOccurrenceInputDto
 }
 
-/** What differs between the answers a root command's check can wait on: a d20, or a d20 window's decision. */
+/** What differs between the answers a root command's check can wait on: a d20, a d20 window's decision or a won outcome's dice. */
 type CheckAdmissionSpec<TPending extends { context: { commandFingerprint: string } }> = {
   readPending(
     occurrence: EncounterDocument<'encounterRuleOccurrences'>,
@@ -43,7 +47,10 @@ type CheckAdmissionSpec<TPending extends { context: { commandFingerprint: string
   /** The actor whose controllers roll the d20. */
   rollerActorId(context: TPending['context']): string
   /** Whether a resolution is the kind of answer this pending decision takes. */
-  takesResolution(resolution: ResolveRuleOccurrenceInputDto['resolution']): boolean
+  takesResolution(
+    resolution: ResolveRuleOccurrenceInputDto['resolution'],
+    context: TPending['context']
+  ): boolean
 }
 
 /**
@@ -176,7 +183,7 @@ async function admitCheckResponse<
     response.resolution.requestId !== snapshot.request.requestId
   )
     rejectDomain('VERSION_STALE', 'The check changed; review it and answer again.')
-  if (!spec.takesResolution(response.resolution))
+  if (!spec.takesResolution(response.resolution, context))
     throw new Error('The check does not take this answer.')
   if (state.status !== 'ACTIVE') rejectDomain('ENCOUNTER_NOT_ACTIVE')
   if (state.automationMode === 'MANUAL') rejectDomain('ASSISTED_ONLY')
@@ -219,7 +226,37 @@ export function readD20WindowResponseAdmission(
   return admitCheckResponse(ctx, input, {
     readPending: readNativeD20WindowPending,
     rollerActorId: encounterD20WindowRollerActorId,
-    takesResolution: ({ kind }) => kind === 'D20_WINDOW_DECLINE' || kind === 'D20_WINDOW_USE'
+    takesResolution: takesD20WindowDecision
+  })
+}
+
+/**
+ * Admits the actor's answer to a pending check action (D173): the d20 of its check, the decision on
+ * a held die in that d20's window, or the dice of the outcome the check won.
+ */
+export function readCheckActionResponseAdmission(
+  ctx: EncounterReadTransaction,
+  input: CheckResponseInput
+) {
+  return admitCheckResponse(ctx, input, {
+    readPending: (occurrence, snapshot) => {
+      if (snapshot?.applicationContext.kind !== 'ENCOUNTER_D20_WINDOW')
+        return readNativeCheckActionPending(occurrence, snapshot)
+      const window = readNativeD20WindowPending(occurrence, snapshot)
+      if (window.context.source.kind !== 'CHECK_ACTION')
+        throw new Error('The check action occurrence is unavailable.')
+      return window
+    },
+    rollerActorId: (context) =>
+      context.kind === 'ENCOUNTER_D20_WINDOW'
+        ? encounterD20WindowRollerActorId(context)
+        : context.actorId,
+    takesResolution: (resolution, context) =>
+      context.kind === 'ENCOUNTER_D20_WINDOW'
+        ? takesD20WindowDecision(resolution)
+        : context.phase.kind === 'CHECK'
+          ? takesD20Evidence(resolution)
+          : resolution.kind === 'ENTER_INTEGER' || resolution.kind === 'SYSTEM_ROLL'
   })
 }
 

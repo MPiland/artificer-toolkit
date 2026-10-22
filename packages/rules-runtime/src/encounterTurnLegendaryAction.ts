@@ -1,5 +1,6 @@
 import { decoyStrikeEffects, withDecoyStrikeApplied } from './encounterAttackDecoys.js'
 import { v5 as uuidv5 } from 'uuid'
+import { createLinkedRiders, riderEffectKey } from './encounterActionEffectPlans.js'
 import { stageEncounterLegendaryActionRefreshes } from './encounterLegendaryActionDiscovery.js'
 import { stageEncounterActionEconomyRefreshes } from './encounterActionEconomy.js'
 import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
@@ -399,7 +400,9 @@ export async function prepareTurnLegendaryActions<
         ordinal,
         forceTargetVersionAdvance:
           target.kind === 'CHARACTER' &&
-          Boolean(effects.stateEffect || effects.recurringEffect || effects.riderEffect)
+          Boolean(
+            effects.stateEffect || effects.recurringEffect || effects.riderEffects.some(Boolean)
+          )
       },
       userId
     )
@@ -427,10 +430,7 @@ export async function prepareTurnLegendaryActions<
       decoyStrikeEffects(prepared.attackDecoy, result.d20?.resultPath)
     )
     const createdEffects: ActiveRuleEffectRecord[] = []
-    const createEffect = (
-      kind: 'STATE' | 'RECURRING' | 'RIDER',
-      planned: typeof effects.stateEffect
-    ) => {
+    const createEffect = (kind: string, planned: typeof effects.stateEffect) => {
       if (!planned) return null
       const record = prepareActiveRuleEffectRecord({
         id: uuidv5(
@@ -449,7 +449,9 @@ export async function prepareTurnLegendaryActions<
     }
     const stateEffect = createEffect('STATE', effects.stateEffect)
     const recurringEffect = createEffect('RECURRING', effects.recurringEffect)
-    const riderEffect = createEffect('RIDER', effects.riderEffect)
+    const riderEffects = createLinkedRiders(effects.riderEffects, recurringEffect, (plan, index) =>
+      createEffect(riderEffectKey(index), plan)
+    )
     // The target's own damage triggers give it timed grants after the option's effects.
     const grantEffects = incomingDamageGrantRecords({
       grants: damageEnded.grants,
@@ -517,7 +519,7 @@ export async function prepareTurnLegendaryActions<
       effects: projectNativeActionEffectTransitions({
         state: stateEffect,
         recurring: recurringEffect,
-        rider: riderEffect,
+        riders: riderEffects,
         targetActorId: target.id
       }),
       maintainedState: null,

@@ -107,6 +107,7 @@ export function activeEffect(input: {
   const compiledEntryId = testUuid(0xb005)
   const definition: ActiveRuleEffectDefinitionDto = {
     schemaVersion: 2,
+    linkedEffectId: null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: ENCOUNTER_ID,

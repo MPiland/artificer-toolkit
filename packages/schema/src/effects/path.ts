@@ -11,6 +11,7 @@ import { hitPointMaximumReductionDtoSchema } from './hitPointMaximumReduction.js
 import { scalarReductionDtoSchema } from './scalarReduction.js'
 import { forcedMovementDtoSchema } from './forcedMovement.js'
 import { createFollowUpSaveDtoSchema, failureMarginRiderDtoSchema } from './followUpSave.js'
+import { resultBlockGateDtoSchema } from './resultBlockGate.js'
 import { createFollowUpCheckDtoSchema } from './followUpCheck.js'
 import { healDtoSchema } from './heal.js'
 import { manifestDtoSchema } from './manifest.js'
@@ -215,18 +216,7 @@ const createResultBlockDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) =>
     duration: z.optional(durationDtoSchema),
     lifecycle: z.optional(pathLifecycleDtoSchema),
     failureMarginRider: z.optional(failureMarginRiderDtoSchema),
-    gate: z.optional(
-      z.discriminatedUnion('kind', [
-        z.object({
-          kind: z.enum(['TARGET_HIT_POINTS_AT_MOST', 'TARGET_HIT_POINTS_AT_LEAST']),
-          amount: z.number().check(z.int()).check(z.gte(1))
-        }),
-        z.object({
-          kind: z.literal('REDUCED_TO_ZERO_BY'),
-          damageOutcomeId: postgresUuidSchema
-        })
-      ])
-    ),
+    gate: z.optional(resultBlockGateDtoSchema),
     suppressedByDamageTypeIds: z.optional(damageTypeFilterDtoSchema),
     outcomes: authoredNestedCollectionSchema(outcomePayloadDtoSchema)
   })

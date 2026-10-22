@@ -5,6 +5,10 @@ import {
   persistEncounterEscapeResponse
 } from '@artificer-toolkit/encounter-persistence/basicActionCheckResponsePersistence'
 import { persistEncounterBasicAction } from '@artificer-toolkit/encounter-persistence/basicActionPersistence'
+import {
+  persistEncounterCheckActionPause,
+  persistEncounterCheckActionResponse
+} from '@artificer-toolkit/encounter-persistence/checkActionResponsePersistence'
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { persistEncounterEndHeldGrant } from '@artificer-toolkit/encounter-persistence/endHeldGrantPersistence'
 import { persistEncounterMoveHeldEffect } from '@artificer-toolkit/encounter-persistence/moveHeldEffectPersistence'
@@ -29,6 +33,7 @@ import { planNativeLiveEscapeResponse } from './nativeEscapeActionResponse.js'
 import { planNativeLiveMoveHeldEffect } from './nativeMoveHeldEffectAction.js'
 import { planNativeLiveReleaseRelationship } from './nativeReleaseRelationshipAction.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
+import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
 import {
   assertRoomEncounterReadFence,
   assertRoomEncounterRulesRevisions
@@ -61,6 +66,38 @@ function basicActionExecution(input: RoomBasicActionInput) {
   }
 }
 
+/** How a check action's won outcome lands: its mechanics batch and its pushes on the Scene (D157). */
+function actionOutcomeCallbacks(input: RoomBasicActionInput) {
+  const { ctx, store, transaction, inputs, scope, observed } = input
+  return {
+    applyMechanics: (batch: Parameters<typeof applyRoomEncounterMechanicsBatch>[0]['batch']) =>
+      applyRoomEncounterMechanicsBatch({
+        ctx,
+        store,
+        transaction,
+        inputs,
+        campaignId: scope.campaignId,
+        epoch: scope.authorityEpoch,
+        observed,
+        batch
+      }),
+    applyForcedMovements: (movement: Parameters<typeof applyRoomForcedMovements>[0]['movement']) =>
+      applyRoomForcedMovements({
+        ctx,
+        transaction,
+        store,
+        inputs,
+        scope,
+        observed,
+        captures: roomLiveCaptureReads({ ctx, store, transaction, inputs, observed }),
+        runtime: input.runtime,
+        random: input.random,
+        userId: scope.expectedUserId,
+        movement
+      })
+  }
+}
+
 /** The Characters a basic action's Run holds, whose revisions its commit is fenced on. */
 async function readBasicActionRevisions(input: RoomBasicActionInput) {
   const { ctx, scope, observed } = input
@@ -81,7 +118,7 @@ async function readBasicActionRevisions(input: RoomBasicActionInput) {
 export async function persistRoomEncounterCheckAction(
   input: RoomBasicActionInput & { planned: LiveSessionEncounterBasicActionCommitInput }
 ) {
-  const { ctx, store, transaction, inputs, scope, observed, planned } = input
+  const { ctx, transaction, inputs, scope, observed, planned } = input
   const revisions = await readBasicActionRevisions(input)
   mergeNativeRulesRevisions(revisions, planned.revisions)
   return persistEncounterBasicAction(
@@ -98,17 +135,7 @@ export async function persistRoomEncounterCheckAction(
         const source = await inputs.definition(id, observed, transaction)
         return source.sourceKind === 'PLATFORM' ? source.definition : null
       },
-      applyMechanics: (batch) =>
-        applyRoomEncounterMechanicsBatch({
-          ctx,
-          store,
-          transaction,
-          inputs,
-          campaignId: scope.campaignId,
-          epoch: scope.authorityEpoch,
-          observed,
-          batch
-        })
+      ...actionOutcomeCallbacks(input)
     }
   )
 }
@@ -229,11 +256,11 @@ export async function executeRoomEncounterEscapeResponse(
   )
 }
 
-/** The helper's d20 settles a pending basic action check and its stabilize in one native commit. */
+/** A d20 or outcome answer settles or pauses a pending basic action check or check action (D173) in one native commit. */
 export async function executeRoomEncounterBasicActionResponse(
   input: RoomBasicActionInput & { command: ResolveRuleOccurrenceInputDto }
 ) {
-  const { ctx, store, transaction, inputs, scope, observed } = input
+  const { ctx, scope, observed } = input
   const plan = await planNativeLiveBasicActionResponse(
     scope,
     input.command,
@@ -249,26 +276,18 @@ export async function executeRoomEncounterBasicActionResponse(
   ) => assertRoomEncounterRulesRevisions(observed, state, characterIds, fence)
   if (plan.kind === 'WINDOW_OPEN')
     return persistEncounterD20WindowOpen(ctx, { ...plan.input, revisions }, { validateReadFence })
+  if (plan.kind === 'CHECK_ACTION_PAUSE')
+    return persistEncounterCheckActionPause(
+      ctx,
+      { ...plan.input, revisions },
+      { validateReadFence }
+    )
+  const callbacks = { validateReadFence, ...actionOutcomeCallbacks(input) }
+  if (plan.kind === 'CHECK_ACTION_SETTLED')
+    return persistEncounterCheckActionResponse(ctx, { ...plan.input, revisions }, callbacks)
   const persist =
     plan.kind === 'WINDOW_ANSWER'
       ? persistEncounterD20WindowAnswer
       : persistEncounterBasicActionResponse
-  return persist(
-    ctx,
-    { ...plan.input, revisions },
-    {
-      validateReadFence,
-      applyMechanics: (batch) =>
-        applyRoomEncounterMechanicsBatch({
-          ctx,
-          store,
-          transaction,
-          inputs,
-          campaignId: scope.campaignId,
-          epoch: scope.authorityEpoch,
-          observed,
-          batch
-        })
-    }
-  )
+  return persist(ctx, { ...plan.input, revisions }, callbacks)
 }

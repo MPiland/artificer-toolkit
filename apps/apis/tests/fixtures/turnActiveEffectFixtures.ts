@@ -372,6 +372,7 @@ export async function seedTurnSaveEffect(
           : { kind: 'ENCOUNTER_ACTOR', encounterId: base.run.id, targetActorId: actor.id },
       definition: activeRuleEffectDefinitionDtoSchema.parse({
         schemaVersion: 2,
+        linkedEffectId: null,
         stateContributions: [],
         origin: {
           kind: 'ENCOUNTER',

@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export type CharacterSelectionCardDetail = {
+type CharacterSelectionCardDetail = {
   label: string
   value: ReactNode
   prominence?: 'primary' | 'secondary'

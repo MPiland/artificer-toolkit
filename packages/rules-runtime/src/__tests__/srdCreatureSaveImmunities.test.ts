@@ -123,11 +123,11 @@ describe('SRD creature save immunities (SPELLS-33.T7a, D156)', () => {
     }
     const failed = await settle(0)
     expect(failed.conditionIds).toEqual([FRIGHTENED])
-    expect(failed.effects.riderEffect).toBeNull()
+    expect(failed.effects.riderEffects.filter(Boolean)).toEqual([])
     const saved = await settle(19)
     expect(saved.d20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
     expect(saved.conditionIds).toEqual([])
-    expect(saved.effects.riderEffect?.definition).toMatchObject({
+    expect(saved.effects.riderEffects[0]?.definition).toMatchObject({
       recurrence: { expiration: { initialRemaining: 14_400 } },
       stateContributions: [
         {
@@ -155,7 +155,7 @@ describe('SRD Mummies’ Dreadful Glare (SPELLS-33.T7b, D156)', () => {
         recurrenceStage: 'END_OF_TURN',
         tickAnchor: 'SOURCE',
         conditionContributions: [{ conditionId: FRIGHTENED }],
-        marginRider: { failedBy: 5, conditionContributions: [{ conditionId: PARALYZED }] },
+        marginRiders: [{ failedBy: 5, conditionContributions: [{ conditionId: PARALYZED }] }],
         sourceImmunity: {
           appliesTo: 'SAVE_SUCCESS',
           immuneToId: effectId,
@@ -202,16 +202,16 @@ describe('SRD Mummies’ Dreadful Glare (SPELLS-33.T7b, D156)', () => {
       }
       const narrow = await settle(dc - 4)
       expect(narrow.conditionIds).toEqual([FRIGHTENED])
-      expect(narrow.effects.riderEffect).toBeNull()
+      expect(narrow.effects.riderEffects.filter(Boolean)).toEqual([])
       const margin = await settle(dc - 5)
       expect(margin.conditionIds).toEqual([FRIGHTENED, PARALYZED].sort())
-      expect(margin.effects.riderEffect?.definition).toMatchObject({
+      expect(margin.effects.riderEffects[0]?.definition).toMatchObject({
         stateContributions: [{ kind: 'CONDITION_OWNERSHIP', conditionId: PARALYZED }]
       })
       const saved = await settle(dc)
       expect(saved.d20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
       expect(saved.conditionIds).toEqual([])
-      expect(saved.effects.riderEffect?.definition).toMatchObject({
+      expect(saved.effects.riderEffects[0]?.definition).toMatchObject({
         recurrence: { expiration: { initialRemaining: 14_400 } },
         stateContributions: [
           {

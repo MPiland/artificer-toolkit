@@ -215,14 +215,16 @@ export async function revertLastEncounterAction(
   const root = recent[rootIndex]
   if (root?.commandType === 'REVERT_LAST_ACTION') unavailable('The last action was already undone.')
   const scope = { run, state, campaign, input, fingerprint, userId }
-  // A check the helper's roll settled is the one command after its action.
+  // Only the check's own answers follow its action: its d20, a d20 window's choice, its outcome dice.
   const requireCheckAnswerScan = (checkOccurrenceId: string | null) => {
-    const answer = recent[0]
     if (
-      rootIndex > 1 ||
-      (rootIndex === 1 &&
-        (answer?.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
-          answer.ruleOccurrenceId !== checkOccurrenceId))
+      recent
+        .slice(0, rootIndex)
+        .some(
+          (answer) =>
+            answer.commandType !== 'RESOLVE_RULE_OCCURRENCE' ||
+            answer.ruleOccurrenceId !== checkOccurrenceId
+        )
     )
       throw new Error('Stored Encounter command scan is invalid.')
   }
@@ -723,11 +725,8 @@ export async function revertLastEncounterAction(
     const feature = spend.featureResourceConsumption
     if (feature) {
       const owner = actorsById.get(feature.ownerActorId)
-      if (!owner || featureChargeUsed(owner, feature.ownerFeatureId) !== feature.afterUsed)
-        unavailable("The actor's feature charges changed after this action; adjust manually.")
-      updateActor(owner.id, {
-        resources: withFeatureChargeUsed(owner, feature.ownerFeatureId, feature.beforeUsed)
-      })
+      if (!owner) unavailable(FEATURE_CHARGES_CHANGED)
+      updateActor(owner.id, { resources: returnSpentFeatureCharge(owner, feature).resources })
     }
     const economy = spend.actionEconomyTransition
     if (economy) {
@@ -1114,8 +1113,8 @@ async function commitRevert(
 }
 
 /**
- * Undoes the Run's last CHECK action exactly from its receipt: its allowance use and the grants its
- * check used up.
+ * Undoes the Run's last CHECK action exactly from its receipt: its allowance use, the Creature
+ * feature charges it spent and the grants its check used up.
  */
 async function revertCheckAction(
   ctx: EncounterCharacterWriteTransaction,
@@ -1131,7 +1130,10 @@ async function revertCheckAction(
   const actors = await readRunActors(ctx, state)
   const actor = actors.find((entry) => entry.id === receipt.actorId)
   if (!actor) unavailable('The actor left the Encounter; adjust manually.')
-  const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
+  const restored = returnSpentFeatureCharge(
+    returnSpentActionEconomy(actor, receipt.actionEconomy),
+    receipt.featureResourceConsumption
+  )
   // The Help the check used goes back to its holder.
   await restoreConsumedGrants(ctx, root.consumedGrants)
   const updatedAt = new Date().toISOString()
@@ -1142,9 +1144,12 @@ async function revertCheckAction(
         occurrenceId: receipt.checkOccurrenceId
       })
     : null
+  // A failed check action changed only its roller; a success's outcome is left to the GM.
+  if (outputs?.kind === 'CHECK_ACTION' && outputs.stateTransition.kind !== 'NONE')
+    unavailable("Undo can't restore a check's outcome; adjust manually.")
   if (outputs?.kind === 'CONCEALMENT_CHECK')
     await revertConcealmentCheck(ctx, state, actors, outputs)
-  else if (outputs && outputs.kind !== 'BASIC_ACTION_CHECK')
+  else if (outputs && outputs.kind !== 'BASIC_ACTION_CHECK' && outputs.kind !== 'CHECK_ACTION')
     throw new Error('Stored basic action check receipt is invalid.')
   const stabilized =
     outputs?.kind === 'BASIC_ACTION_CHECK' && outputs.targetTransition
@@ -1178,6 +1183,30 @@ async function revertCheckAction(
     actors,
     nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
     updatedAt
+  })
+}
+
+const FEATURE_CHARGES_CHANGED =
+  "The actor's feature charges changed after this action; adjust manually."
+
+/** Gives a Creature feature's spent charges back, refusing if its charges changed since. */
+function returnSpentFeatureCharge(
+  actor: EncounterRunActorState,
+  feature: {
+    ownerActorId: string
+    ownerFeatureId: string
+    beforeUsed: number
+    afterUsed: number
+  } | null
+): EncounterRunActorState {
+  if (!feature) return actor
+  if (feature.ownerActorId !== actor.id)
+    throw new Error('Stored feature charge receipt is invalid.')
+  if (featureChargeUsed(actor, feature.ownerFeatureId) !== feature.afterUsed)
+    unavailable(FEATURE_CHARGES_CHANGED)
+  return encounterRunActorStateSchema.parse({
+    ...actor,
+    resources: withFeatureChargeUsed(actor, feature.ownerFeatureId, feature.beforeUsed)
   })
 }
 

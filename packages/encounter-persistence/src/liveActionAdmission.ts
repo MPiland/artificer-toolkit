@@ -116,6 +116,12 @@ export async function readLiveEncounterActionAdmission(
     : { ...admission, resume, removal }
 }
 
+/** The admitted, ready result of one admission reader. */
+type ReadyAdmission<Read extends (...args: never[]) => Promise<{ kind: string }>> = Extract<
+  Awaited<ReturnType<Read>>,
+  { kind: 'READY' }
+>
+
 /**
  * Re-admits a player's action or action response for one follow-up rules capture, so every read
  * made for that action still requires a current, admissible command (ADR 0034 decision 1).
@@ -131,7 +137,12 @@ export async function readLiveEncounterActionScope(
     expectedVersion: number
     action: LiveSessionActionCaptureScope
   }
-) {
+): Promise<
+  | ReadyAdmission<typeof readCleavingResponseAdmission>
+  | ReadyAdmission<typeof readContestAdmission>
+  | ReadyAdmission<typeof readBasicActionScopeAdmission>
+  | ReadyAdmission<typeof readNativeEncounterActionAdmission>
+> {
   if (input.action.kind === 'CLEAVING_RESPONSE') {
     const cleaving = await readCleavingResponseAdmission(ctx, {
       ...input,

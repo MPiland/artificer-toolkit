@@ -14,7 +14,6 @@ import { encounterActorRelationship } from '@artificer-toolkit/rules-runtime/enc
 import { relationshipConditionApplications } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
-import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
@@ -31,6 +30,7 @@ import { armIdleTurnActor, engageIdleTurnActor } from './idleTurnMark.js'
 import { readLiveCharacterMaximumHitPoints } from './liveMovementTargetState.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterDocument } from './store.js'
+import { settleTargetOutcome, targetOutcomeCommandId } from './targetOutcomeSettlement.js'
 
 type ContestApplicationOutputsInput = Parameters<typeof contestApplicationOutputs>[0]
 
@@ -43,8 +43,9 @@ type ContestSettlementInput = Omit<ContestApplicationOutputsInput, 'stateTransit
   target: EncounterRunActorState
   /** The hold effect a won basic action contest creates on its target; null otherwise. */
   createdEffect: ActiveRuleEffectRecord | null
-  /** What a won contest's picked outcome (Shove, D105) applies or settles; empty otherwise. */
-  conditionApplications: LiveSessionEncounterContestCommitInput['conditionApplications']
+  /** What the room planned the contest settles; a won picked outcome (Shove, D105) re-applies it. */
+  plannedStateTransition: ContestApplicationOutputsInput['stateTransition']
+  /** The pushes a won picked outcome lands on the Scene (D157); empty otherwise. */
   forcedMovements: LiveSessionEncounterContestCommitInput['forcedMovements']
   commandId: string
   sourceCommandId: string
@@ -69,13 +70,7 @@ async function applyContestTargetMechanics(
     expectedEncounterVersion: state.version,
     occurrenceId,
     sourceCommandId,
-    commandId: deriveEncounterCharacterMechanicsEventCommandId({
-      occurrenceId,
-      sourceCommandId,
-      phase: 'DIRECT_ACTION_OUTCOME',
-      ordinal: 0,
-      targetCharacterId: target.kind === 'CHARACTER' ? target.sourceId : target.id
-    }),
+    commandId: targetOutcomeCommandId(input),
     occurredAt,
     applications,
     effectiveMaximumHitPoints:
@@ -93,48 +88,6 @@ function appliedConditionIds(mechanics: EncounterMechanicsBatchResult) {
   return mechanics.receiptApplications.flatMap((application) =>
     application.kind === 'CONDITION_APPLY' && application.applied ? [application.conditionId] : []
   )
-}
-
-/**
- * A won basic action contest whose win is its picked outcome (Shove, D105) applies the conditions
- * the room planned to the target, or pushes it, which the commit lands on the Scene (D157).
- */
-async function settleContestOutcome(
-  ctx: EncounterCharacterWriteTransaction,
-  input: ContestSettlementInput
-) {
-  const [movement, ...more] = input.forcedMovements
-  if (
-    more.length ||
-    (movement && input.conditionApplications.length) ||
-    [...input.forcedMovements, ...input.conditionApplications].some(
-      ({ targetActorId }) => targetActorId !== input.target.id
-    )
-  )
-    throw new Error('Contest outcome does not match its target.')
-  if (movement)
-    return {
-      target: input.target,
-      stateTransition: {
-        kind: 'FORCED_MOVEMENT' as const,
-        direction: movement.direction,
-        feet: movement.feet,
-        upTo: movement.upTo
-      }
-    }
-  const mechanics = await applyContestTargetMechanics(
-    ctx,
-    input,
-    input.conditionApplications,
-    false
-  )
-  return {
-    target: mechanics.updatedActor,
-    stateTransition: {
-      kind: 'CONDITIONS_APPLIED' as const,
-      appliedConditionIds: appliedConditionIds(mechanics)
-    }
-  }
 }
 
 /**
@@ -273,9 +226,13 @@ export async function settleContest(
   let target = input.target
   let stateTransition: ContestApplicationOutputsInput['stateTransition'] = { kind: 'NONE' }
   if (contestSourceWins(rolls) && contest.origin.kind === 'BASIC_ACTION') {
+    const planned = input.plannedStateTransition
     const won = input.createdEffect
       ? await settleContestHold(ctx, input)
-      : await settleContestOutcome(ctx, input)
+      : planned.kind === 'TARGET_OUTCOME'
+        ? await settleTargetOutcome({ ...input, planned })
+        : null
+    if (!won) throw new Error('Contest outcome does not match its target.')
     target = won.target
     stateTransition = won.stateTransition
   } else if (contestSourceWins(rolls)) {

@@ -10,6 +10,7 @@ import {
   prepareNativeIncomingDamageGrantTriggers
 } from './encounterActionEffects.js'
 import { decoyStrikeEffects } from './encounterAttackDecoys.js'
+import { createLinkedRiders, riderEffectKey } from './encounterActionEffectPlans.js'
 import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
 import {
   actionEndedEffects,
@@ -102,7 +103,7 @@ export function planEncounterMovementReactionEffects<
     (effect) => !removedIds.has(effect.id)
   )
   const createdEffects: ActiveRuleEffectRecord[] = []
-  const create = (kind: 'STATE' | 'RECURRING' | 'RIDER', plan: typeof effects.stateEffect) => {
+  const create = (kind: string, plan: typeof effects.stateEffect) => {
     if (!plan) return null
     const record = prepareActiveRuleEffectRecord({
       id: uuidv5(
@@ -128,7 +129,9 @@ export function planEncounterMovementReactionEffects<
   }
   const state = create('STATE', effects.stateEffect)
   const recurring = create('RECURRING', effects.recurringEffect)
-  const rider = create('RIDER', effects.riderEffect)
+  const riders = createLinkedRiders(effects.riderEffects, recurring, (plan, index) =>
+    create(riderEffectKey(index), plan)
+  )
   // The reactor's attack roll or spell cast uses up its grants; the mover's effects that end on
   // damage end, and its own damage triggers give it timed grants, each freeing the conditions it
   // alone held in its holder's own batch.
@@ -203,7 +206,7 @@ export function planEncounterMovementReactionEffects<
     ...projectNativeActionEffectTransitions({
       state,
       recurring,
-      rider,
+      riders,
       targetActorId: prepared.target.id
     })
   }

@@ -947,14 +947,15 @@
             {
               "id": "PLATFORM-14.T2",
               "text": "Bug (found 2026-10-22 by RELIABILITY-9.T3b): the RaceEditRoute story \"Dragonborn Ancestry Feature Branch\" fails in the Storybook browser project (\"Unable to find the authoring rail expander\"), on the phase branch before T3b too. CI does not run the Storybook project, so nothing caught it. Fix the story or the rail regression it exposes, with the story as the red proof.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-14.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 3,
                 "size": 1
-              }
+              },
+              "note": "Merged m324 (efb89cc06)."
             }
           ]
         },
@@ -3388,7 +3389,7 @@
             },
             {
               "id": "RULES-2.T6e",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3398,11 +3399,11 @@
                 "after": ["RULES-2.T6d2"]
               },
               "text": "Compiler: table-driven dispatch; remove combination refusals that are not genuine rules.",
-              "note": "2026-10-21: legendary discovery leaves out options its compiler does not plan (SPELLS-33.T4i1d); the Vampire legendary Unarmed Strike (damage-or-grapple) must be offered again once this lands, with a room proof."
+              "note": "Merged m321 (3e11bf774). G1 and G2 shipped; G3-G7 split to RULES-2.T6e2, T6e3 and SPELLS-33.T4i1f."
             },
             {
               "id": "RULES-2.T6f",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3411,7 +3412,8 @@
                 "size": 8,
                 "after": ["RULES-2.T6e"]
               },
-              "text": "Compiler: zone subsystem as its own module, neutral geometry outside systems/dnd5e."
+              "text": "Compiler: zone subsystem as its own module, neutral geometry outside systems/dnd5e.",
+              "note": "Merged m325 (3ceed3087)."
             },
             {
               "id": "RULES-2.T7",
@@ -3834,7 +3836,7 @@
               "note": "Merged m311 (60b0c993b)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "RULES-2.T6e2",
               "text": "Compiler (split from T6e 2026-10-22, G3/G7): verify against the executor the chosen-creatures gate refusing condition, kill or target-only outcomes on a list, and the HP gate under a test path; remove each refusal that is not a genuine rule or reclassify it, with enumerated golden flips.",
               "closes": ["RULES-2.6"],
@@ -3843,21 +3845,92 @@
                 "tc": 1,
                 "rr": 3,
                 "size": 2,
-                "after": ["RULES-2.T6e"]
-              }
+                "after": ["RULES-2.T6f"]
+              },
+              "note": "Merged m327 (dc0889001)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "RULES-2.T6e3",
-              "text": "Compiler (split from T6e 2026-10-22, G4/G5): contest and non-contest checks admit registry outcomes (damage and the rest) like save tests; proved by an authored-parity test, since no SRD effect uses them.",
+              "text": "Contest outcomes end to end (G4, D173): a contest win admits registry outcomes (damage and the rest) and the Session Worker settles them through planEncounterMechanicsBatch, rolling dice in the action roll window; one generic mechanics receipt transition replaces the contest-only kinds, stored receipts migrated; parity proved by a real authored contest.",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 3,
                 "size": 3,
-                "after": ["RULES-2.T6e"]
+                "after": ["RULES-2.T6f"]
+              },
+              "note": "Merged m330 (f0eb52a76)."
+            },
+            {
+              "id": "RULES-2.T6g",
+              "text": "Compiler (split from T6f 2026-10-22): the test-phase, outcome dispatch and lifetime pieces (compileTestDefinition, boundedTestOutcome, specializedTestOutcome, diceGraphDefinition, modifierGrantEntryPlan, maintenance and duration plans) move into their own modules below the compiler; the transitional ZoneCompilerPieces injection is deleted and the zone module imports them directly. Golden unchanged; budgets drop.",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["RULES-2.T6f", "RULES-2.T6e2", "RULES-2.T6e3"]
               }
+            },
+            {
+              "id": "RULES-2.T6e3b1a",
+              "text": "Homebrew check outcomes, immediate auto-roll (G5, D173): a fixed-DC check whose ON_CHECK_SUCCESS outcome is not STABILIZE/CONCEAL/DETECT compiles TEST_OUTCOME (System d20 check graph under the effect id), the refusal removed; the room freezes, rolls and on success runs the outcome through the outcome planner shared with contests; a generic CHECK_ACTION receipt output (d20, SUCCESS|FAILURE, NONE|TARGET_OUTCOME) re-applied by Convex through the shared TARGET_OUTCOME settler with checksum refusal; a non-auto-roll roller is refused by name until b1b. Parity: fixed damage plus condition, auto-rolled 1d6, miss.",
+              "status": "DONE",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": ["RULES-2.T6e3"]
+              },
+              "note": "Merged m331 (61c0b73fd)."
+            },
+            {
+              "id": "RULES-2.T6e3b1b",
+              "text": "Homebrew check outcomes, prompted roller (D173): the pending check d20, its response, the d20 window and the outcome-dice pause (ACTION_OUTCOME_EVIDENCE with an explicit phase on the context); removes the b1a prompted-roller refusal; parity for prompted dice.",
+              "status": "DONE",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 2,
+                "size": 2,
+                "after": ["RULES-2.T6e3b1a"]
+              },
+              "note": "Merged m332 (e9a3152f1)."
+            },
+            {
+              "id": "RULES-2.T6e3b1c",
+              "text": "Creature-feature checks on the check flow (split from b1b 2026-10-22, D173): a source union BASIC_ACTION | CREATURE_FEATURE on the persisted check context and CHECK_ACTION output; Convex re-resolves the feature from the creature snapshot and spends its costs (charges, recharge, Legendary pool) through the existing creature action cost spending, not a copy; the b1a room refusal removed; parity by a creature check with a cost.",
+              "status": "DONE",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": ["RULES-2.T6e3b1b"]
+              },
+              "note": "Merged m333 (0c9f32cc7)."
+            },
+            {
+              "id": "RULES-2.T6e3b2",
+              "text": "First Aid on the generic check flow (D173): parity against the existing First Aid, basic-action check and death-save cases; the BASIC_ACTION_CHECK output, STABILIZED/FAILED/NOT_DYING enum, StabilizeCheckSettlement, bespoke settlement/response persistence and actionRevert branch removed; undo through the generic receipt, restoring a successful check outcome (b1a refuses that undo) so First Aid stays undoable; a stored old receipt fails closed by name; the not-dying gate generalized as a data-declared outcome precondition warned before the roll (D173 Q1).",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": ["RULES-2.T6e3b1b"]
+              },
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             }
           ]
         }
@@ -10130,7 +10203,7 @@
             {
               "id": "SPELLS-4.T1k",
               "text": "Drag through a zone: a grappler dragging a creature through or into a zone settles its zone contacts with the T1j forced-movement settlement (D170), with undo evidence; drag is no longer refused for zone contact.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.2"],
               "wsjf": {
                 "bv": 3,
@@ -10138,7 +10211,8 @@
                 "rr": 1,
                 "size": 2,
                 "after": ["SPELLS-4.T1j"]
-              }
+              },
+              "note": "Merged m323 (99eb7e77e)."
             }
           ]
         },
@@ -13890,7 +13964,7 @@
             },
             {
               "id": "SPELLS-33.T4i3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13899,11 +13973,12 @@
                 "size": 2,
                 "after": ["SPELLS-33.T4i3d"]
               },
-              "text": "Solar Slaying Longbow (split 2026-10-21): a gated nested save whose failure is KILL, composed from the unified follow-up model; deletes CREATURE_SOLAR_SLAYING_LONGBOW and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity."
+              "text": "Solar Slaying Longbow (split 2026-10-21): a gated nested save whose failure is KILL, composed from the unified follow-up model; deletes CREATURE_SOLAR_SLAYING_LONGBOW and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity.",
+              "note": "Merged m326 (68e28ea27)."
             },
             {
               "id": "SPELLS-33.T4i3c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13912,7 +13987,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T4i3d"]
               },
-              "text": "Giant Centipede venom (split 2026-10-21): nested save with poison damage, then outcomes gated on that damage reducing the target to 0 (stable, poisoned 1 hour, paralyzed), composed from the unified follow-up model; deletes GIANT_CENTIPEDE_VENOM and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity."
+              "text": "Giant Centipede venom (split 2026-10-21): nested save with poison damage, then outcomes gated on that damage reducing the target to 0 (stable, poisoned 1 hour, paralyzed), composed from the unified follow-up model; deletes GIANT_CENTIPEDE_VENOM and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity.",
+              "note": "Merged m326 (68e28ea27)."
             },
             {
               "id": "SPELLS-33.T4i4a",
@@ -14697,7 +14773,7 @@
             {
               "id": "SPELLS-33.T4i3d",
               "text": "Gated nested-save outcomes (generic, found by T4i3b/c 2026-10-22): an optional gate from the one gate table (HP band, REDUCED_TO_ZERO_BY) on nested-save band outcomes with gate inputs on the nested-save graph; KILL admitted in a band only when gated or the save entry is HP-gated (\"never on a save alone\" holds); a hit’s nested save may sit in its own gated result block after the damage block. Nested-save graph in a neutral module so the compiler does not grow. Parity proofs; enumerated golden flips.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -14705,7 +14781,8 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["RULES-2.T6e"]
-              }
+              },
+              "note": "Merged m326 (68e28ea27)."
             },
             {
               "status": "TODO",
@@ -14719,6 +14796,48 @@
                 "size": 3,
                 "after": ["RULES-2.T6e"]
               }
+            },
+            {
+              "id": "SPELLS-33.T4i3e",
+              "text": "Timed conditions in a gated multi-outcome band (split from T4i3c 2026-10-22): every CONDITION outcome in a gated band carries its duration, and a condition can be scoped to last while another from the same band holds (Giant Centipede: stable, poisoned for 1 hour, paralyzed while poisoned this way). Re-author Centipede with the timing; generic, parity proof.",
+              "status": "DONE",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-33.T4i3c", "RULES-2.T6f"]
+              },
+              "note": "Merged m328 (4d2d68f53)."
+            },
+            {
+              "id": "SPELLS-33.T4i3f",
+              "text": "Drow poison rider adopts the D172 link (2026-10-22): the D149 margin-of-failure unconscious rider names its parent poisoned outcome with endsWithOutcomeId, so curing or GM-ending the poison ends the sleep; closes the D149 deferred edge case. Generic, parity proof.",
+              "status": "DONE",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 1,
+                "after": ["SPELLS-33.T4i3e"]
+              },
+              "note": "Merged m329 (5c07ac9fb)."
+            },
+            {
+              "id": "SPELLS-33.T4i3g",
+              "text": "Any number of timed conditions in a gated band (found by T4i3e 2026-10-22): the single marginRider slot becomes a list across the projection/adapter schema, the four rider roots (one shared linkedRiderPlan), ordering and linked-id mapping, so a band with three or more timed or linked conditions compiles instead of refusing with the engine-limit message (AC RULES-2.6 refuses only invalid input or a genuine rule). Generic, parity proof.",
+              "status": "DONE",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": ["SPELLS-33.T4i3f"]
+              },
+              "note": "Merged m329 (5c07ac9fb)."
             }
           ]
         }
@@ -16301,16 +16420,16 @@
             {
               "id": "RELIABILITY-9.T3b",
               "text": "Increment 2 of T3: unused exports and test-code casts removed, with the ratchet lowered so they cannot return.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-9.4"],
-              "activeWorkbook": "docs/handoffs/slice-reliability-9-t1.md",
               "wsjf": {
                 "bv": 1,
                 "tc": 1,
                 "rr": 3,
                 "size": 5,
                 "after": ["RELIABILITY-9.T3"]
-              }
+              },
+              "note": "Merged m322 (b19855ee5)."
             }
           ]
         },
