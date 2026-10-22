@@ -178,11 +178,11 @@ export const SRD_CONDITION_TYPES = [
 // ─── Currencies ───────────────────────────────────────────────────────────────
 
 export const SRD_CURRENCIES = [
-  { id: vocabId(D.currency, 1), code: 'CP', label: 'Copper Piece', short: 'cp' },
-  { id: vocabId(D.currency, 2), code: 'SP', label: 'Silver Piece', short: 'sp' },
-  { id: vocabId(D.currency, 3), code: 'EP', label: 'Electrum Piece', short: 'ep' },
-  { id: vocabId(D.currency, 4), code: 'GP', label: 'Gold Piece', short: 'gp' },
-  { id: vocabId(D.currency, 5), code: 'PP', label: 'Platinum Piece', short: 'pp' }
+  { id: vocabId(D.currency, 1), code: 'CP', baseValue: 1, label: 'Copper Piece', short: 'cp' },
+  { id: vocabId(D.currency, 2), code: 'SP', baseValue: 10, label: 'Silver Piece', short: 'sp' },
+  { id: vocabId(D.currency, 3), code: 'EP', baseValue: 50, label: 'Electrum Piece', short: 'ep' },
+  { id: vocabId(D.currency, 4), code: 'GP', baseValue: 100, label: 'Gold Piece', short: 'gp' },
+  { id: vocabId(D.currency, 5), code: 'PP', baseValue: 1000, label: 'Platinum Piece', short: 'pp' }
 ]
 
 // ─── Damage Types ─────────────────────────────────────────────────────────────
@@ -823,21 +823,24 @@ const SRD_PASSIVES = [
     code: 'PASSIVE_PERCEPTION',
     label: 'Passive Perception',
     description: '10 + Perception modifier.',
-    skillDefinitionId: SRD_PERCEPTION_SKILL_ID
+    skillDefinitionId: SRD_PERCEPTION_SKILL_ID,
+    abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM
   },
   {
     id: vocabId(D.passive, 2),
     code: 'PASSIVE_INVESTIGATION',
     label: 'Passive Investigation',
     description: '10 + Investigation modifier.',
-    skillDefinitionId: SRD_INVESTIGATION_SKILL_ID
+    skillDefinitionId: SRD_INVESTIGATION_SKILL_ID,
+    abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE
   },
   {
     id: vocabId(D.passive, 3),
     code: 'PASSIVE_INSIGHT',
     label: 'Passive Insight',
     description: '10 + Insight modifier.',
-    skillDefinitionId: SRD_INSIGHT_SKILL_ID
+    skillDefinitionId: SRD_INSIGHT_SKILL_ID,
+    abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM
   }
 ]
 
@@ -899,238 +902,340 @@ export const SRD_CHALLENGE_RATINGS = [
     code: 'CR_0',
     label: '0',
     short: 'CR 0',
-    description: '0 XP'
+    description: '0 XP',
+    xp: 0,
+    proficiencyBonus: 2,
+    rank: 0
   },
   {
     id: vocabId(D.challengeRating, 2),
     code: 'CR_1_8',
     label: '1/8',
     short: 'CR 1/8',
-    description: '25 XP'
+    description: '25 XP',
+    xp: 25,
+    proficiencyBonus: 2,
+    rank: 1
   },
   {
     id: vocabId(D.challengeRating, 3),
     code: 'CR_1_4',
     label: '1/4',
     short: 'CR 1/4',
-    description: '50 XP'
+    description: '50 XP',
+    xp: 50,
+    proficiencyBonus: 2,
+    rank: 2
   },
   {
     id: vocabId(D.challengeRating, 4),
     code: 'CR_1_2',
     label: '1/2',
     short: 'CR 1/2',
-    description: '100 XP'
+    description: '100 XP',
+    xp: 100,
+    proficiencyBonus: 2,
+    rank: 3
   },
   {
     id: vocabId(D.challengeRating, 5),
     code: 'CR_1',
     label: '1',
     short: 'CR 1',
-    description: '200 XP'
+    description: '200 XP',
+    xp: 200,
+    proficiencyBonus: 2,
+    rank: 4
   },
   {
     id: vocabId(D.challengeRating, 6),
     code: 'CR_2',
     label: '2',
     short: 'CR 2',
-    description: '450 XP'
+    description: '450 XP',
+    xp: 450,
+    proficiencyBonus: 2,
+    rank: 5
   },
   {
     id: vocabId(D.challengeRating, 7),
     code: 'CR_3',
     label: '3',
     short: 'CR 3',
-    description: '700 XP'
+    description: '700 XP',
+    xp: 700,
+    proficiencyBonus: 2,
+    rank: 6
   },
   {
     id: vocabId(D.challengeRating, 8),
     code: 'CR_4',
     label: '4',
     short: 'CR 4',
-    description: '1100 XP'
+    description: '1100 XP',
+    xp: 1100,
+    proficiencyBonus: 2,
+    rank: 7
   },
   {
     id: vocabId(D.challengeRating, 9),
     code: 'CR_5',
     label: '5',
     short: 'CR 5',
-    description: '1800 XP'
+    description: '1800 XP',
+    xp: 1800,
+    proficiencyBonus: 3,
+    rank: 8
   },
   {
     id: vocabId(D.challengeRating, 10),
     code: 'CR_6',
     label: '6',
     short: 'CR 6',
-    description: '2300 XP'
+    description: '2300 XP',
+    xp: 2300,
+    proficiencyBonus: 3,
+    rank: 9
   },
   {
     id: vocabId(D.challengeRating, 11),
     code: 'CR_7',
     label: '7',
     short: 'CR 7',
-    description: '2900 XP'
+    description: '2900 XP',
+    xp: 2900,
+    proficiencyBonus: 3,
+    rank: 10
   },
   {
     id: vocabId(D.challengeRating, 12),
     code: 'CR_8',
     label: '8',
     short: 'CR 8',
-    description: '3900 XP'
+    description: '3900 XP',
+    xp: 3900,
+    proficiencyBonus: 3,
+    rank: 11
   },
   {
     id: vocabId(D.challengeRating, 13),
     code: 'CR_9',
     label: '9',
     short: 'CR 9',
-    description: '5000 XP'
+    description: '5000 XP',
+    xp: 5000,
+    proficiencyBonus: 4,
+    rank: 12
   },
   {
     id: vocabId(D.challengeRating, 14),
     code: 'CR_10',
     label: '10',
     short: 'CR 10',
-    description: '5900 XP'
+    description: '5900 XP',
+    xp: 5900,
+    proficiencyBonus: 4,
+    rank: 13
   },
   {
     id: vocabId(D.challengeRating, 15),
     code: 'CR_11',
     label: '11',
     short: 'CR 11',
-    description: '7200 XP'
+    description: '7200 XP',
+    xp: 7200,
+    proficiencyBonus: 4,
+    rank: 14
   },
   {
     id: vocabId(D.challengeRating, 16),
     code: 'CR_12',
     label: '12',
     short: 'CR 12',
-    description: '8400 XP'
+    description: '8400 XP',
+    xp: 8400,
+    proficiencyBonus: 4,
+    rank: 15
   },
   {
     id: vocabId(D.challengeRating, 17),
     code: 'CR_13',
     label: '13',
     short: 'CR 13',
-    description: '10000 XP'
+    description: '10000 XP',
+    xp: 10000,
+    proficiencyBonus: 5,
+    rank: 16
   },
   {
     id: vocabId(D.challengeRating, 18),
     code: 'CR_14',
     label: '14',
     short: 'CR 14',
-    description: '11500 XP'
+    description: '11500 XP',
+    xp: 11500,
+    proficiencyBonus: 5,
+    rank: 17
   },
   {
     id: vocabId(D.challengeRating, 19),
     code: 'CR_15',
     label: '15',
     short: 'CR 15',
-    description: '13000 XP'
+    description: '13000 XP',
+    xp: 13000,
+    proficiencyBonus: 5,
+    rank: 18
   },
   {
     id: vocabId(D.challengeRating, 20),
     code: 'CR_16',
     label: '16',
     short: 'CR 16',
-    description: '15000 XP'
+    description: '15000 XP',
+    xp: 15000,
+    proficiencyBonus: 5,
+    rank: 19
   },
   {
     id: vocabId(D.challengeRating, 21),
     code: 'CR_17',
     label: '17',
     short: 'CR 17',
-    description: '18000 XP'
+    description: '18000 XP',
+    xp: 18000,
+    proficiencyBonus: 6,
+    rank: 20
   },
   {
     id: vocabId(D.challengeRating, 22),
     code: 'CR_18',
     label: '18',
     short: 'CR 18',
-    description: '20000 XP'
+    description: '20000 XP',
+    xp: 20000,
+    proficiencyBonus: 6,
+    rank: 21
   },
   {
     id: vocabId(D.challengeRating, 23),
     code: 'CR_19',
     label: '19',
     short: 'CR 19',
-    description: '22000 XP'
+    description: '22000 XP',
+    xp: 22000,
+    proficiencyBonus: 6,
+    rank: 22
   },
   {
     id: vocabId(D.challengeRating, 24),
     code: 'CR_20',
     label: '20',
     short: 'CR 20',
-    description: '25000 XP'
+    description: '25000 XP',
+    xp: 25000,
+    proficiencyBonus: 6,
+    rank: 23
   },
   {
     id: vocabId(D.challengeRating, 25),
     code: 'CR_21',
     label: '21',
     short: 'CR 21',
-    description: '33000 XP'
+    description: '33000 XP',
+    xp: 33000,
+    proficiencyBonus: 7,
+    rank: 24
   },
   {
     id: vocabId(D.challengeRating, 26),
     code: 'CR_22',
     label: '22',
     short: 'CR 22',
-    description: '41000 XP'
+    description: '41000 XP',
+    xp: 41000,
+    proficiencyBonus: 7,
+    rank: 25
   },
   {
     id: vocabId(D.challengeRating, 27),
     code: 'CR_23',
     label: '23',
     short: 'CR 23',
-    description: '50000 XP'
+    description: '50000 XP',
+    xp: 50000,
+    proficiencyBonus: 7,
+    rank: 26
   },
   {
     id: vocabId(D.challengeRating, 28),
     code: 'CR_24',
     label: '24',
     short: 'CR 24',
-    description: '62000 XP'
+    description: '62000 XP',
+    xp: 62000,
+    proficiencyBonus: 7,
+    rank: 27
   },
   {
     id: vocabId(D.challengeRating, 29),
     code: 'CR_25',
     label: '25',
     short: 'CR 25',
-    description: '75000 XP'
+    description: '75000 XP',
+    xp: 75000,
+    proficiencyBonus: 8,
+    rank: 28
   },
   {
     id: vocabId(D.challengeRating, 30),
     code: 'CR_26',
     label: '26',
     short: 'CR 26',
-    description: '90000 XP'
+    description: '90000 XP',
+    xp: 90000,
+    proficiencyBonus: 8,
+    rank: 29
   },
   {
     id: vocabId(D.challengeRating, 31),
     code: 'CR_27',
     label: '27',
     short: 'CR 27',
-    description: '105000 XP'
+    description: '105000 XP',
+    xp: 105000,
+    proficiencyBonus: 8,
+    rank: 30
   },
   {
     id: vocabId(D.challengeRating, 32),
     code: 'CR_28',
     label: '28',
     short: 'CR 28',
-    description: '120000 XP'
+    description: '120000 XP',
+    xp: 120000,
+    proficiencyBonus: 8,
+    rank: 31
   },
   {
     id: vocabId(D.challengeRating, 33),
     code: 'CR_29',
     label: '29',
     short: 'CR 29',
-    description: '135000 XP'
+    description: '135000 XP',
+    xp: 135000,
+    proficiencyBonus: 9,
+    rank: 32
   },
   {
     id: vocabId(D.challengeRating, 34),
     code: 'CR_30',
     label: '30',
     short: 'CR 30',
-    description: '155000 XP'
+    description: '155000 XP',
+    xp: 155000,
+    proficiencyBonus: 9,
+    rank: 33
   }
 ]
 

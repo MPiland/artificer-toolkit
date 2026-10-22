@@ -2,7 +2,8 @@ import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
 
 const VOCABULARY_NOUNS = {
   rollInfluence: 'roll-mode influence',
-  rollMode: 'roll mode'
+  rollMode: 'roll mode',
+  spellSlotPool: 'spell slot pool'
 } as const
 
 /** A list a System supplies in place of a fixed wire enum (ADR 0039 decision 5). */
@@ -11,6 +12,7 @@ export type SystemVocabularyKind = keyof typeof VOCABULARY_NOUNS
 export interface SystemVocabularyEntry {
   code: string
   label: string
+  description?: string
 }
 
 /** A System's vocabulary lists: each code unique within its list, labels for display only. */

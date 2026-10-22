@@ -8,6 +8,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * SPELLS-20 T6c (ADR 0038, D144): the SRD Balor's Fire Aura is a passive zone authored from the same
@@ -15,7 +16,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * exactly as authored, as must a variant with another radius and other dice.
  */
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 
 function normalize(creature: CreatureAuthored) {
   return normalizeNodeRuntimeValues(reader, {
@@ -72,6 +73,21 @@ describe('a creature’s passive zone through the creature node map (ADR 0038)',
 
   it('keeps an aura with another radius and other dice the same way', async () => {
     const authored = variant()
+    const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)
+  })
+
+  it('keeps a zone acting on entering, leaving and each turn boundary inside (RULES-2.T5d)', async () => {
+    const authored = variant()
+    const component = fireAura(authored).zone.components?.[0]
+    if (!component) throw new Error('The aura must author a component.')
+    component.interactionKinds = [
+      'ENTER_SPACE',
+      'START_TURN_IN_SPACE',
+      'END_TURN_IN_SPACE',
+      'LEAVE_SPACE'
+    ]
     const result = await normalize(authored)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['features'])).toEqual(authored.features)

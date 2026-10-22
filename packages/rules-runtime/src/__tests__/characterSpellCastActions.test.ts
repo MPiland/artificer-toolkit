@@ -6,7 +6,10 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { ManifestComponentAuthored } from '@artificer-toolkit/shared/authored'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
-import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
+import {
+  SPELLCASTING_ABILITY_REFERENCE,
+  modifierRollInfluence
+} from '@artificer-toolkit/shared/core'
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { quarterstaff } from '@artificer-toolkit/source-data/srd/equipment/quarterstaff.js'
@@ -39,6 +42,7 @@ import { discoverCharacterActionCapabilities } from '../characterActionCapabilit
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../encounterAreaAction.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
+import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -103,6 +107,7 @@ function candidate(
     castLevel,
     baseEntry: castLevel === authored.level,
     resourceOwnerKey: null,
+    slotPoolCode: null,
     ...overrides
   }
 }
@@ -715,10 +720,26 @@ describe('a cast paid from a spell-source pool', () => {
       castMode,
       resourceOwnerKey: poolId
     })
+  const pactMagic = {
+    sourceClassId: 'warlock',
+    slots: 2,
+    level: 3,
+    rawUsed: 0,
+    effectiveUsed: 0,
+    remaining: 2
+  }
+  /** The policy of a pooled cast: its slot is the Pact Magic slot when the cast names that pool. */
+  const pooledPolicy = (cast: SpellCastCandidate, rawUsed: number) => {
+    const paysPact = cast.slotPoolCode === 'PACT'
+    const policy = policyFor([cast], authoredById, () => (paysPact ? 'PACT' : null))
+    return {
+      ...policy,
+      resources: [pool(rawUsed)],
+      spellSlots: { ...policy.spellSlots, pactMagic: paysPact ? pactMagic : null }
+    }
+  }
   const buildPooled = (cast: SpellCastCandidate, rawUsed = 0) =>
-    build([cast], {
-      policyOutput: { ...policyFor([cast], authoredById, () => null), resources: [pool(rawUsed)] }
-    })
+    build([cast], { policyOutput: pooledPolicy(cast, rawUsed) })
   const character = evaluateSrdCharacter({ classes: [{ label: 'Fighter', level: 1 }] })
 
   function prepare(
@@ -751,8 +772,7 @@ describe('a cast paid from a spell-source pool', () => {
         candidate: offered,
         policyOutput: {
           ...character.output,
-          ...policyFor([cast], authoredById, () => null),
-          resources: [pool(rawUsed)],
+          ...pooledPolicy(cast, rawUsed),
           actionDecisions: built.decisions
         },
         resourceUsage:
@@ -809,6 +829,76 @@ describe('a cast paid from a spell-source pool', () => {
       afterRemaining: 0,
       characterId: CHARACTER_ID,
       expectedStreamVersion: STREAM_VERSION
+    })
+  })
+
+  it('spends the Pact Magic slot as well as the pool when the cast names that pool (SPELLS-31.T5p)', () => {
+    const pact = { ...pooled('LIMITED_USE'), slotPoolCode: 'PACT' as const }
+    const { prepared, built } = prepare(pact, 0, 'ASSISTED')
+    expect(built.decisions).toMatchObject([{ resourcePoolId: poolId }])
+    expect(prepared.resourceConsumption).toMatchObject({ poolId, afterUsed: 1 })
+    expect(prepared.spellConsumption).toMatchObject({ slotKey: 'PACT' })
+  })
+
+  describe('whose pool slot the rules decide on (SPELLS-31.T5p)', () => {
+    const pact = { ...pooled('LIMITED_USE'), slotPoolCode: 'PACT' as const }
+    const decide = (pactSlots: { level: number; remaining: number } | null, rawUsed = 0) =>
+      evaluateDnd5e2014CharacterActions({
+        candidates: [],
+        abilityDefinitions: [],
+        spellCandidates: [pact],
+        spellSlots: pactSlots
+          ? [{ slotKey: 'PACT', label: 'Pact Magic', max: 2, ...pactSlots }]
+          : [],
+        spellEffects: [],
+        spellMechanics: [],
+        spellcastingLocked: false,
+        proficiencies: [],
+        itemAdjustments: [],
+        activeSourceIds: [],
+        activeEquipmentInstanceIds: [],
+        resources: [
+          { ...pool(rawUsed), baseContribution: { sourceId: SOURCE_INSTANCE_ID, value: 2 } }
+        ],
+        modifierGroups: [],
+        totalLevel: 1,
+        classLevels: [],
+        proficiencyBonus: 2,
+        abilities: [],
+        skills: [],
+        spellcasting: null
+      }).spellCastDecisions[0]
+
+    it('offers the cast while the pool and a Pact slot of the cast level remain', () => {
+      expect(decide({ level: 3, remaining: 1 })).toMatchObject({
+        status: 'AVAILABLE',
+        reasonCode: 'SPELL_SLOT_REMAINING',
+        slotKey: 'PACT'
+      })
+    })
+
+    it('refuses it once the Pact slots are spent, and names the slot', () => {
+      expect(decide({ level: 3, remaining: 0 })).toMatchObject({
+        status: 'UNAVAILABLE',
+        reasonCode: 'SPELL_SLOT_EXHAUSTED',
+        slotKey: 'PACT'
+      })
+    })
+
+    it('refuses it with no Pact slot, or one below the cast level', () => {
+      for (const slots of [null, { level: 2, remaining: 2 }])
+        expect(decide(slots)).toMatchObject({
+          status: 'UNAVAILABLE',
+          reasonCode: 'NO_ELIGIBLE_SPELL_SLOT',
+          slotKey: null
+        })
+    })
+
+    it('refuses it once the pool is spent, whatever the slots', () => {
+      expect(decide({ level: 3, remaining: 2 }, 2)).toMatchObject({
+        status: 'UNAVAILABLE',
+        reasonCode: 'RESOURCE_EXHAUSTED'
+      })
     })
   })
 
@@ -1072,7 +1162,8 @@ const advantageOn = (id: number, ability: string) => ({
         grantKind: 'MODIFIER_GRANT',
         valueDomainCode: 'ABILITY_CHECK',
         domain: { ability },
-        modifierKind: 'ADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' },
         scope: 'GLOBAL',
         selectionKind: 'GRANTED',
         order: 1
@@ -1292,7 +1383,8 @@ describe('effect-owned temporary hit points and sequential effects (SPELLS-4.T2t
           modifiers: [
             {
               valueDomainCode: 'ABILITY_CHECK',
-              modifierKind: 'ADVANTAGE',
+              modifierKind: 'ROLL_INFLUENCE',
+              payload: { influence: 'ADVANTAGE' },
               domain: { ability: code }
             }
           ]
@@ -2020,14 +2112,16 @@ describe('a closed rule converted to a core option grant (SPELLS-4.T2a3, D156)',
       modifierGrantContribution: { consumeOnFirstEvents: ['ON_ATTACKED'] }
     })
     expect(
-      plan?.modifierGrantContribution?.modifiers.map(({ valueDomainCode, modifierKind }) => ({
-        valueDomainCode,
-        modifierKind
+      plan?.modifierGrantContribution?.modifiers.map((modifier) => ({
+        valueDomainCode: modifier.valueDomainCode,
+        modifierKind: modifier.modifierKind,
+        payload: { influence: modifierRollInfluence(modifier) }
       }))
     ).toEqual(
       Array.from({ length: 4 }, () => ({
         valueDomainCode: 'ATTACKS_AGAINST',
-        modifierKind: 'ADVANTAGE'
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' }
       }))
     )
   })
@@ -2242,7 +2336,11 @@ describe('a timed grant authored as a sequence of one outcome', () => {
         modifiers: [
           { valueDomainCode: 'SPEED', modifierKind: 'MULTIPLY' },
           { valueDomainCode: 'ARMOR_CLASS', modifierKind: 'BONUS' },
-          { valueDomainCode: 'SAVING_THROW_MODIFIER', modifierKind: 'ADVANTAGE' }
+          {
+            valueDomainCode: 'SAVING_THROW_MODIFIER',
+            modifierKind: 'ROLL_INFLUENCE',
+            payload: { influence: 'ADVANTAGE' }
+          }
         ],
         grantedActions: [{ activation: 'FREE', usesPerTurn: 1, weaponAttack: true }],
         onEnd: {
@@ -2384,12 +2482,20 @@ describe('a grant bound to the item its cast is used on (SPELLS-4.T2e, D156)', (
     // Owed on either save result, so no authored path narrows it.
     expect(compiled?.activeEffectPlan?.adapterFacts).toEqual({})
     expect(
-      compiled?.activeEffectPlan?.modifierGrantContribution?.modifiers.map(
-        ({ valueDomainCode, modifierKind, scope }) => [valueDomainCode, modifierKind, scope]
-      )
+      compiled?.activeEffectPlan?.modifierGrantContribution?.modifiers.map((modifier) => [
+        modifier.valueDomainCode,
+        modifier.modifierKind,
+        modifierRollInfluence(modifier),
+        modifier.scope
+      ])
     ).toEqual([
-      ...Array.from({ length: 4 }, () => ['ATTACK_ROLL', 'DISADVANTAGE', 'GLOBAL']),
-      ['ABILITY_CHECK', 'DISADVANTAGE', 'GLOBAL']
+      ...Array.from({ length: 4 }, () => [
+        'ATTACK_ROLL',
+        'ROLL_INFLUENCE',
+        'DISADVANTAGE',
+        'GLOBAL'
+      ]),
+      ['ABILITY_CHECK', 'ROLL_INFLUENCE', 'DISADVANTAGE', 'GLOBAL']
     ])
   })
 
@@ -2480,7 +2586,8 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
     for (const modifier of plan?.modifierGrantContribution?.modifiers ?? [])
       expect(modifier).toMatchObject({
         valueDomainCode: 'ATTACKS_AGAINST',
-        modifierKind: 'DISADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'DISADVANTAGE' },
         domain: {
           requiresHolderSeesAttacker: false,
           exemptAttackerSenseDefinitionIds: [SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID]
@@ -2498,7 +2605,8 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
         modifiers: [
           {
             valueDomainCode: 'SKILL_MODIFIER',
-            modifierKind: 'DISADVANTAGE',
+            modifierKind: 'ROLL_INFLUENCE',
+            payload: { influence: 'DISADVANTAGE' },
             domain: { skillId: SRD_PERCEPTION_SKILL_ID }
           }
         ]
@@ -2523,7 +2631,8 @@ describe('incoming-attack and perception spells from core options (SPELLS-4.T2k1
     for (const modifier of plan?.modifierGrantContribution?.modifiers ?? [])
       expect(modifier).toMatchObject({
         valueDomainCode: 'ATTACKS_AGAINST',
-        modifierKind: 'ADVANTAGE',
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { influence: 'ADVANTAGE' },
         domain: { requiresHolderSeesAttacker: false }
       })
     expect(plan?.maintenance?.definitionId).toBe(SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID)

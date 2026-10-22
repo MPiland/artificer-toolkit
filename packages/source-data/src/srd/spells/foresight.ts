@@ -36,25 +36,29 @@ const foresightModifiers = [
     ...grant,
     valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
     domain: { attackDomain },
-    modifierKind: MODIFIER_KIND.ADVANTAGE
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'ADVANTAGE' }
   })),
   {
     ...grant,
     valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
     domain: {},
-    modifierKind: MODIFIER_KIND.ADVANTAGE
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'ADVANTAGE' }
   },
   ...Object.values(ABILITY_CODE).map((ability) => ({
     ...grant,
     valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
     domain: { ability },
-    modifierKind: MODIFIER_KIND.ADVANTAGE
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'ADVANTAGE' }
   })),
   ...attackDomains.map((attackDomain) => ({
     ...grant,
     valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
     domain: { attackDomain, requiresHolderSeesAttacker: false },
-    modifierKind: MODIFIER_KIND.DISADVANTAGE
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'DISADVANTAGE' }
   }))
 ].map((modifier, index) => ({ id: grantId(index), ...modifier, order: index + 1 }))
 export const foresight: SpellAuthored = {

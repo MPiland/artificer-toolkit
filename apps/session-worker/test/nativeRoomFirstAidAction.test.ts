@@ -17,8 +17,11 @@ import {
   SRD_MEDICINE_SKILL_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
+import { runInDurableObject } from 'cloudflare:test'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, withCheckTotals } from './actionRoomFixture.js'
 import { heldDieEffect, seedModifierGrant } from './grantSeed.js'
@@ -83,17 +86,37 @@ async function useFirstAid(
   )
 }
 
-/** The one basic action check a Run settled: its stored rule execution and the occurrence state. */
+/** The check actions a Run settled (D173): their stored outputs and the occurrence states. */
 async function settledCheck(room: Awaited<ReturnType<typeof firstAidRoom>>) {
   const history = await readRoomHistory(room.room.base.stub)
   const outputs = history.receipts.flatMap((receipt) => {
     const execution = parseReceiptExecution(receipt)
-    return execution.status === 'COMPLETE' &&
-      execution.applicationOutputs?.kind === 'BASIC_ACTION_CHECK'
+    return execution.status === 'COMPLETE' && execution.applicationOutputs?.kind === 'CHECK_ACTION'
       ? [execution.applicationOutputs]
       : []
   })
   return { outputs, occurrences: history.occurrences }
+}
+
+/** The GM's undo of the Run's last action. */
+async function undo(room: Awaited<ReturnType<typeof firstAidRoom>>) {
+  return room.send({
+    type: 'REVERT_LAST_ACTION',
+    encounterId: room.room.encounterId,
+    commandId: crypto.randomUUID(),
+    expectedVersion: await room.version()
+  })
+}
+
+/** The Fighter's death saves, as the room stores its play state. */
+function fighterDeathSaves(room: Awaited<ReturnType<typeof firstAidRoom>>) {
+  return runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const row = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((candidate) => candidate.characterId === FIGHTER_ID)
+    if (!row) throw new Error('Missing room Character play state.')
+    return readCharacterPlay(row).hitpoints.deathSaves
+  })
 }
 
 const STEADY_ID = testUuid(0xf10)
@@ -168,23 +191,28 @@ describe('a homebrew basic action authored with the CHECK test, in the room', ()
 
   it('runs its outcome when the total reaches its own DC', async () => {
     expect((await useSteady(14)).outputs).toMatchObject([
-      { check: { dc: 15 }, outcome: 'STABILIZED' }
+      { check: { dc: 15 }, outcome: 'SUCCESS', stateTransition: { kind: 'TARGET_OUTCOME' } }
     ])
   })
 
   it('runs no outcome and writes no effect when the total falls short, though First Aid’s DC 10 would pass', async () => {
     const { outputs } = await useSteady(10)
     expect(outputs).toMatchObject([
-      { check: { dc: 15 }, d20: { selectedNatural: 10 }, outcome: 'FAILED', targetTransition: null }
+      {
+        check: { dc: 15 },
+        d20: { selectedNatural: 10 },
+        outcome: 'FAILURE',
+        stateTransition: { kind: 'NONE' }
+      }
     ])
   })
 
   it('rolls a plain ability check the same way, a Strength check against its own DC', async () => {
     expect((await useHomebrew(strongDefinition, STRONG, 14)).outputs).toMatchObject([
-      { check: { dc: 15 }, outcome: 'STABILIZED' }
+      { check: { dc: 15 }, outcome: 'SUCCESS', stateTransition: { kind: 'TARGET_OUTCOME' } }
     ])
     expect((await useHomebrew(strongDefinition, STRONG, 10)).outputs).toMatchObject([
-      { check: { dc: 15 }, outcome: 'FAILED', targetTransition: null }
+      { check: { dc: 15 }, outcome: 'FAILURE', stateTransition: { kind: 'NONE' } }
     ])
   })
 })
@@ -246,14 +274,22 @@ describe('First Aid, a System basic action with a check, in the room', () => {
     const { outputs, occurrences } = await settledCheck(room)
     expect(outputs).toMatchObject([
       {
-        helperActorId: WOLF_ID,
+        actorId: WOLF_ID,
         targetActorId: FIGHTER_ACTOR_ID,
         check: { dc: 10 },
         d20: { selectedNatural: 20 },
-        outcome: 'STABILIZED',
-        targetTransition: {
-          before: { currentHitPoints: 0, deathSaves: { stable: false } },
-          after: { currentHitPoints: 0, deathSaves: { successes: 0, failures: 0, stable: true } }
+        outcome: 'SUCCESS',
+        stateTransition: {
+          kind: 'TARGET_OUTCOME',
+          mechanics: {
+            targetTransition: {
+              before: { currentHitPoints: 0, deathSaves: { stable: false } },
+              after: {
+                currentHitPoints: 0,
+                deathSaves: { successes: 0, failures: 0, stable: true }
+              }
+            }
+          }
         }
       }
     ])
@@ -269,7 +305,63 @@ describe('First Aid, a System basic action with a check, in the room', () => {
 
     const { outputs } = await settledCheck(room)
     expect(outputs).toMatchObject([
-      { d20: { selectedNatural: 1 }, outcome: 'FAILED', targetTransition: null }
+      { d20: { selectedNatural: 1 }, outcome: 'FAILURE', stateTransition: { kind: 'NONE' } }
+    ])
+  })
+
+  it('undoes a success through the generic receipt: the target is dying again and the Action is back', async () => {
+    const room = await firstAidRoom({ currentHitPoints: 0, autoRoll: true, faces: [20, 1] })
+    const dying = await fighterDeathSaves(room)
+    expect(dying.stable).toBe(false)
+    const { answer } = await useFirstAid(room)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await fighterDeathSaves(room)).stable).toBe(true)
+
+    const before = await room.version()
+    const reverted = await undo(room)
+    expect(reverted.type, JSON.stringify(reverted)).toBe('COMMAND_COMMITTED')
+    expect(await room.version()).toBe(before + 1)
+    expect(await fighterDeathSaves(room)).toEqual(dying)
+    // The Action is back: First Aid is taken again without an Action warning.
+    const again = await useFirstAid(room)
+    expect(again.answer.type, JSON.stringify(again.answer)).toBe('COMMAND_COMMITTED')
+  })
+
+  it('spends the Help the helper holds: the check rolls with advantage, the grant ends, and undo gives it back', async () => {
+    const help = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.HELP)
+    if (help?.document.kind !== 'BASIC_ACTION') throw new Error('Missing Help fixture.')
+    const room = (await actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [2, 9].map(draw),
+      characterPlay: { currentHitPoints: 0 },
+      actors: [medicWolf(), characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })],
+      ownerFeatureId: creatureFeature(biteWolf('ATTACK', { damage: 1, reachFeet: 5 }), 'Bite').id,
+      seed: seedModifierGrant({
+        sourceActorId: FIGHTER_ACTOR_ID,
+        holderActorId: WOLF_ID,
+        lifecycle: {},
+        effect: help.document.effects[0],
+        sourceLabel: help.label
+      })
+    })) as Awaited<ReturnType<typeof firstAidRoom>>
+    const [held] = (await readRoomHistory(room.room.base.stub)).activeEffects
+    expect(held).toBeDefined()
+
+    const { answer } = await useFirstAid(room)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await settledCheck(room)).outputs).toMatchObject([
+      {
+        d20: { rollMode: 'ADVANTAGE', selectedNatural: 9, total: 12 },
+        outcome: 'SUCCESS',
+        stateTransition: { kind: 'TARGET_OUTCOME' }
+      }
+    ])
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toEqual([])
+
+    const reverted = await undo(room)
+    expect(reverted.type, JSON.stringify(reverted)).toBe('COMMAND_COMMITTED')
+    expect((await readRoomHistory(room.room.base.stub)).activeEffects).toMatchObject([
+      { id: held!.id }
     ])
   })
 
@@ -296,7 +388,13 @@ describe('First Aid, a System basic action with a check, in the room', () => {
 
     const { outputs, occurrences } = await settledCheck(room)
     expect(outputs).toMatchObject([
-      { outcome: 'STABILIZED', targetTransition: { after: { deathSaves: { stable: true } } } }
+      {
+        outcome: 'SUCCESS',
+        stateTransition: {
+          kind: 'TARGET_OUTCOME',
+          mechanics: { targetTransition: { after: { deathSaves: { stable: true } } } }
+        }
+      }
     ])
     expect(occurrences.map((occurrence) => occurrence.state)).toEqual(['COMPLETED'])
   })
@@ -445,7 +543,8 @@ describe('a die the helper holds for after the d20, in the First Aid room (SPELL
           total: 11,
           addedDice: [{ label: 'Guidance', rolledFaces: [3] }]
         },
-        outcome: 'STABILIZED'
+        outcome: 'SUCCESS',
+        stateTransition: { kind: 'TARGET_OUTCOME' }
       }
     ])
     expect(occurrences.map((occurrence) => occurrence.state)).toEqual(['COMPLETED'])
@@ -461,7 +560,7 @@ describe('a die the helper holds for after the d20, in the First Aid room (SPELL
     })
     expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
     expect((await settledCheck(room)).outputs).toMatchObject([
-      { d20: { total: 8 }, outcome: 'FAILED', targetTransition: null }
+      { d20: { total: 8 }, outcome: 'FAILURE', stateTransition: { kind: 'NONE' } }
     ])
     expect((await readRoomHistory(room.room.base.stub)).activeEffects).toHaveLength(1)
   })
@@ -478,7 +577,7 @@ describe('a die the helper holds for after the d20, in the First Aid room (SPELL
     })
     expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
     expect((await settledCheck(room)).outputs).toMatchObject([
-      { d20: { total: 11 }, outcome: 'STABILIZED' }
+      { d20: { total: 11 }, outcome: 'SUCCESS', stateTransition: { kind: 'TARGET_OUTCOME' } }
     ])
   })
 
@@ -493,6 +592,6 @@ describe('a die the helper holds for after the d20, in the First Aid room (SPELL
       rollMode: roll.pending.request.rollMode
     })
     expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
-    expect((await settledCheck(room)).outputs).toMatchObject([{ outcome: 'FAILED' }])
+    expect((await settledCheck(room)).outputs).toMatchObject([{ outcome: 'FAILURE' }])
   })
 })

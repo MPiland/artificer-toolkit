@@ -82,8 +82,7 @@ import {
   buildNodeMap,
   type BuildNodeMap,
   type NodeEntry,
-  type NodeMap,
-  valuesOf
+  type NodeMap
 } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 import {
@@ -136,6 +135,9 @@ type NodeMapBuildApi<NLocal extends object> = Parameters<
   : never
 export type OutcomeNodeMapApi = NodeMapBuildApi<OutcomeNode>
 type ScalarReductionNodeMapApi = NodeMapBuildApi<ScalarReductionAuthored>
+
+/** The columns a select drawn from a System code list shows. */
+const CODE_COLUMNS = ['id', 'label', 'description'] as const
 
 const PATH_SELECTION_KIND_OPTIONS = [
   {
@@ -200,29 +202,17 @@ const TELEPORT_DESTINATION_KIND_OPTIONS = [
   { code: 'SPECIAL', label: 'Special' }
 ] as const
 
-const SUMMON_DAMAGEABILITY_OPTIONS = valuesOf(
-  Object.fromEntries(
-    Object.values(SUMMON_DAMAGEABILITY_KIND).map((code) => [
-      code,
-      {
-        code,
-        label: code === 'INVULNERABLE' ? 'Invulnerable' : code === 'SPECIAL' ? 'Special' : 'Normal'
-      }
-    ])
-  )
-)
+const SUMMON_DAMAGEABILITY_OPTIONS = [
+  { code: SUMMON_DAMAGEABILITY_KIND.NORMAL, label: 'Normal' },
+  { code: SUMMON_DAMAGEABILITY_KIND.INVULNERABLE, label: 'Invulnerable' },
+  { code: SUMMON_DAMAGEABILITY_KIND.SPECIAL, label: 'Special' }
+] as const
 
-const SUMMON_VISIBILITY_OPTIONS = valuesOf(
-  Object.fromEntries(
-    Object.values(SUMMON_VISIBILITY_KIND).map((code) => [
-      code,
-      {
-        code,
-        label: code === 'INVISIBLE' ? 'Invisible' : code === 'SPECIAL' ? 'Special' : 'Visible'
-      }
-    ])
-  )
-)
+const SUMMON_VISIBILITY_OPTIONS = [
+  { code: SUMMON_VISIBILITY_KIND.VISIBLE, label: 'Visible' },
+  { code: SUMMON_VISIBILITY_KIND.INVISIBLE, label: 'Invisible' },
+  { code: SUMMON_VISIBILITY_KIND.SPECIAL, label: 'Special' }
+] as const
 
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
@@ -1307,6 +1297,7 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
             { code: 'ENTER_OR_PASS_THROUGH', label: 'Enter or Pass Through' },
             { code: 'MOVE_ACROSS', label: 'Move Across' },
             { code: 'ENTER_SPACE', label: 'Enter Space' },
+            { code: 'LEAVE_SPACE', label: 'Leave Space' },
             { code: 'START_TURN_IN_SPACE', label: 'Start Turn in Space' },
             { code: 'END_TURN_IN_SPACE', label: 'End Turn in Space' },
             { code: 'START_OF_SOURCE_TURN', label: 'Start of Source Turn' },
@@ -1562,6 +1553,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
     const local = cond.local()
     const { or } = logic
     const { table } = data
+    const releaseCost = local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST')
     const isActionEffectModule = or([
       local.field(['kind']).eq('SOURCE_ACTION_TARGET_RESTRICTION'),
       local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE')
@@ -1613,16 +1605,13 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
         selectSingle(
           ['influence'],
           'Influence',
-          { kind: 'INLINE_OPTIONS', options: [{ code: 'ADVANTAGE', label: 'Advantage' }] },
+          { kind: 'DATA', relationship: table('roll_influences', { selectColumns: CODE_COLUMNS }) },
           { showIf: local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE') }
         )
       )
       .set(
         'amount',
-        number(['amount'], 'Movement Cost', {
-          constraints: { minimum: 0 },
-          showIf: local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST')
-        })
+        number(['amount'], 'Movement Cost', { constraints: { minimum: 0 }, showIf: releaseCost })
       )
       .set(
         'unit',
@@ -1630,7 +1619,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
           ['unit'],
           'Unit',
           { kind: 'INLINE_OPTIONS', options: LENGTH_UNIT_OPTIONS },
-          { showIf: local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST') }
+          { showIf: releaseCost }
         )
       )
       .set(
@@ -1700,7 +1689,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
         selectSingle(
           ['whenResolvedAttackD20Mode'],
           'When Attack Mode Is',
-          { kind: 'INLINE_OPTIONS', options: [{ code: 'ADVANTAGE', label: 'Advantage' }] },
+          { kind: 'DATA', relationship: table('roll_modes', { selectColumns: CODE_COLUMNS }) },
           { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
         )
       )

@@ -1094,6 +1094,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Follow-up:** the D149 Drow rider adopts the link (SPELLS-33.T4i3f). Shipped as SPELLS-33.T4i3f: `failureMarginRider.endsWithOutcomeId` (the rider may name only its save's one condition); the Drow, Pseudodragon and Sprite riders link, so the D149 deferred edge case is closed for every seam that ends the poison through the linked-end cascade.
   - **Shipped as SPELLS-33.T4i3g:** the single `marginRider` is a `marginRiders` list (at most `MAX_ACTION_RIDERS` = 3), so a band of up to four timed conditions compiles as a chain, a fan-out or both; a rider's `endsWith` is `'PRIMARY'` or an earlier rider's index, and the roots link them through `createLinkedRiders`.
   - **Rejected:** per-condition end triggers inside one effect (D149), and an independent 1-hour paralysis that outlives an early cure.
+* **D175** (2026-10-22) Spell slot costs and class spell lists are generic options on `SPELL_GRANT` (SPELLS-31.T5p, AC SPELLS-31.1). Orchestrator ruling; shipped in m344. The evidence is in [the slice handoff](slice-spells-31-t5p.md).
+  - **Slot cost:** `slotCost: { poolCode }` names the slot pool that pays the cast. The code comes from the System (`systemVocabularyCodeSchema`), not a platform enum: the dnd5e System supplies `PACT`, "Pact Magic". Authoring reads the options through the injected `policyVocabulary`. The rules-runtime fact seam refuses an unknown code for the snapshot's System. Under the [ADR 0039 amendment](../adr/0039-composable-system-neutral-rules-engine.md#amendment-2026-10-22-vocabulary-and-core-codes), the pool code is a System core code, not vocabulary. The neutral character files' existing `'PACT'` literals move into the System under RULES-2.T9p.
+  - **Primeval Awareness** is Sheet-only: spending the slot through the generic `USE_SPELL_SLOT` is the whole mechanic.
+  - **Expanded spell lists:** `access: 'CAST' | 'CLASS_LIST_ONLY'` plus `classListIds`, merged by one function (`spellClassListAdditions.ts`). The Builder owns the merged list, and the Sheet only reads it. Inconsistent shapes are refused at compile time.
+  - **Deleted kinds:** `CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST`, `CLASS_RANGER_PRIMEVAL_AWARENESS`, `CLASS_FIEND_EXPANDED_SPELL_LIST`.
 
 ## Approved implementation decisions
 

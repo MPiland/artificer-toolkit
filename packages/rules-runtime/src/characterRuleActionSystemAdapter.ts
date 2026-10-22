@@ -51,6 +51,7 @@ import type {
   DamageInterceptionSaveDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
+import type { EffectOutcomeTargetPrecondition } from './effectOutcomeRegistry.js'
 import type {
   CompiledActionActiveEffectPlan,
   CompiledActionCompilerSource,
@@ -621,6 +622,10 @@ export interface CharacterRuleActionSystemAdapter {
     riderId: string
     cost: OptionalOnHitAuthored
   }[]
+  /** The target preconditions the System's outcome registry declares for these effect kinds (D173 Q1). */
+  outcomeTargetPreconditions(input: {
+    effectKinds: readonly string[]
+  }): readonly EffectOutcomeTargetPrecondition[]
   /** Specializes the one selected authored result path after TEST evidence is terminal. */
   specializeOutcomeTemplate?(input: {
     compilerSource: CompiledActionCompilerSource
@@ -699,7 +704,7 @@ export interface CharacterRuleActionSystemAdapter {
     | {
         kind: 'ROLL_INFLUENCE'
         requirement: CombatPerceptionRequirementDto
-        influence: 'ADVANTAGE' | 'DISADVANTAGE'
+        influence: string
       }
     | {
         kind: 'ATTEMPT_GATE'
@@ -833,7 +838,7 @@ export interface CharacterRuleActionSystemAdapter {
       checksum: string
     } | null
     /** How the damage that triggered this repeat save tilts its d20 (D167); absent on a turn tick. */
-    rollInfluence?: 'ADVANTAGE' | 'DISADVANTAGE' | null
+    rollInfluence?: string | null
   }): {
     facts: Readonly<Record<string, RuleValue>>
     evidencePolicy: ServerRuleExecutionD20PolicyDto | null

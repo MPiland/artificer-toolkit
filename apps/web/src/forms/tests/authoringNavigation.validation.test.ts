@@ -191,8 +191,8 @@ describe('authoring group row labels', () => {
       node: createArrayNode('modifierGrant', 'Modifiers', 'modifier'),
       row: {
         valueDomainCode: 'DAMAGE',
-        modifierKind: 'ADVANTAGE',
-        payload: { amount: 1000 }
+        modifierKind: 'ROLL_INFLUENCE',
+        payload: { amount: 1000, influence: 'ADVANTAGE' }
       },
       expected: '+1,000 Damage Rolls Advantage'
     },
@@ -248,14 +248,51 @@ describe('authoring group row labels', () => {
       node: createArrayNode('facetContext', 'Contexts', 'facet-context'),
       row: { subject: 'CHARACTER' },
       expected: 'Character condition'
-    },
-    {
-      node: createArrayNode('speed', 'Speeds', 'speed'),
-      row: { speedId: 'WALKING', amount: 30, unit: 'FEET' },
-      expected: 'Walking - 30 Feet'
     }
   ])('builds $expected from authored mechanics', ({ node, row, expected }) => {
     expect(getCollectionRowLabel(node, row, 0)).toBe(expected)
+  })
+
+  it('labels a speed row from the System speed the row scope resolved', () => {
+    const speedScope = {
+      mapId: 'speed',
+      clearPaths: [],
+      scopes: [],
+      steps: [
+        {
+          id: 'speed',
+          label: 'Speed',
+          order: 1,
+          sections: [
+            {
+              id: 'speed-section',
+              label: 'Speed',
+              order: 1,
+              nodes: [
+                {
+                  id: 'speedId',
+                  path: ['speedId'],
+                  label: 'Speed',
+                  kind: 'INPUT',
+                  type: 'SELECT_SINGLE',
+                  options: [{ value: 'speed-fly', label: 'Flying Speed' }],
+                  visible: true,
+                  required: true,
+                  hiddenBehavior: 'KEEP',
+                  clearPaths: [],
+                  authoring: inputAuthoring
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    } satisfies NodeRuntimeResolveResponseDto
+    const node = createArrayNode('speed', 'Speeds', 'speed')
+    const row = { speedId: 'speed-fly', amount: 30, unit: 'FEET' }
+
+    expect(getCollectionRowLabel(node, row, 0, speedScope)).toBe('Flying Speed - 30 Feet')
+    expect(getCollectionRowLabel(node, row, 0)).toBe('30 Feet')
   })
 
   it('prefers an explicit authored label and falls back to the singular collection label', () => {

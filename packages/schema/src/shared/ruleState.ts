@@ -4,6 +4,7 @@ import { authoredLengthAmountSchema } from './authoredLimits.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
 import { lengthUnitCodeSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
+import { systemVocabularyCodeSchema } from './systemVocabularyCode.js'
 
 const uuidSchema = lazySchema(() =>
   z.pipe(
@@ -126,7 +127,7 @@ export const conditionMechanicDtoSchema = lazySchema(() =>
     z.strictObject({
       ...conditionMechanicFields(),
       kind: z.literal('D20_ROLL_MODE'),
-      influence: z.enum(['ADVANTAGE', 'DISADVANTAGE']),
+      influence: systemVocabularyCodeSchema,
       roll: conditionMechanicRollScopeDtoSchema,
       /**
        * Applies only while the holder can see a recorded source of the condition; a holding with no

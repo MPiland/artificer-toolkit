@@ -138,6 +138,33 @@ describe('VTT token presentation model', () => {
     }
   })
 
+  it('marks a defeated creature that has loot, only when given the loot actors (the GM view)', () => {
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const enemyId = tabletopGmEncounter.actors[1]!.id
+    const present = (lootActorIds?: ReadonlySet<string>) =>
+      buildVttTokenPresentations({
+        boundTokenControl: new Map(),
+        actorIdByTokenId: new Map([[token.id, enemyId]]),
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter: {
+          ...tabletopGmEncounter,
+          currentActorId: null,
+          actors: tabletopGmEncounter.actors.map((actor) =>
+            actor.id === enemyId ? { ...actor, defeated: true } : actor
+          )
+        },
+        lootActorIds,
+        pending: null,
+        scene
+      })[token.id]!
+    const marked = present(new Set([enemyId]))
+    expect(marked.statuses.map((status) => status.kind)).toEqual(['LOOT', 'HEALTH'])
+    expect(marked.accessibleDescription).toContain('Has loot')
+    for (const result of [present(), present(new Set())])
+      expect(result.statuses.map((status) => status.kind)).toEqual(['HEALTH'])
+  })
+
   it('labels a defeated Character Dead for the GM and players alike (D96)', () => {
     const scene = sceneForActor()
     const token = scene.tokens[0]!

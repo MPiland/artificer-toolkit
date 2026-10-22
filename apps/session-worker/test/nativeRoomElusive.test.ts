@@ -12,8 +12,8 @@ import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 
 /**
- * SPELLS-31.T4k2a (D156): the Rogue's Elusive, authored as `NEGATE_ADVANTAGE` grants on attacks
- * against its holder, leaves no attack at the holder with advantage while it can act.
+ * SPELLS-31.T4k2a (D156): the Rogue's Elusive, authored as `SUPPRESS_ROLL_INFLUENCE` `ADVANTAGE`
+ * grants on attacks against its holder, leaves no attack at the holder with advantage while it can act.
  */
 
 const CHARACTER_ACTOR_ID = testUuid(0xe10)

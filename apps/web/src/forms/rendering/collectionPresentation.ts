@@ -3,9 +3,9 @@ import type {
   NodeRuntimeCollectionActionDto,
   NodeRuntimeCollectionAuthoringDto,
   NodeRuntimeObjectActionDto,
-  NodeRuntimeObjectGroupNodeDto
+  NodeRuntimeObjectGroupNodeDto,
+  NodeRuntimeResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
-import { speedOptions } from '@artificer-toolkit/shared/authored'
 import {
   EFFECT_KIND_OPTIONS,
   MODIFIER_KIND_OPTIONS,
@@ -86,10 +86,12 @@ export function getObjectGroupPresentation(node: NodeRuntimeObjectGroupNodeDto) 
   }
 }
 
+/** `rowScope` is the row's resolved child scope; it supplies the System option labels a row summary names. */
 export function getCollectionRowLabel(
   node: NodeRuntimeArrayGroupNodeDto,
   row: unknown,
-  index: number
+  index: number,
+  rowScope?: NodeRuntimeResolveResponseDto
 ) {
   if (isRecord(row) && typeof row.label === 'string' && row.label.trim()) {
     const availableAtLevel = readNumber(row.availableAtLevel)
@@ -97,7 +99,7 @@ export function getCollectionRowLabel(
   }
 
   const summary = node.authoring?.collection?.rowSummary
-  const label = summary ? getRowSummaryLabel(summary, row) : undefined
+  const label = summary ? getRowSummaryLabel(summary, row, rowScope) : undefined
   if (label) return label
 
   const proficiencyLabel = getProficiencyRowLabel(row)
@@ -261,7 +263,11 @@ function findObjectAction<TType extends NodeRuntimeObjectActionDto['type']>(
   )
 }
 
-function getRowSummaryLabel(summary: RowSummary, row: unknown): string | undefined {
+function getRowSummaryLabel(
+  summary: RowSummary,
+  row: unknown,
+  rowScope: NodeRuntimeResolveResponseDto | undefined
+): string | undefined {
   if (!isRecord(row)) return undefined
 
   switch (summary) {
@@ -273,7 +279,15 @@ function getRowSummaryLabel(summary: RowSummary, row: unknown): string | undefin
       return getOptionLabel(PREDICATE_OPTIONS, readString(row.predicateCode))
     case 'modifier': {
       const amount = readNumber(getRecordValue(row, 'payload.amount'))
-      const modifierKind = getOptionLabel(MODIFIER_KIND_OPTIONS, readString(row.modifierKind))
+      const kind = readString(row.modifierKind)
+      const influence = formatEnumLabel(readString(getRecordValue(row, 'payload.influence')))
+      // A roll influence reads as its System code (Advantage); a suppressed one as its absence.
+      const modifierKind =
+        influence === undefined
+          ? getOptionLabel(MODIFIER_KIND_OPTIONS, kind)
+          : kind === 'SUPPRESS_ROLL_INFLUENCE'
+            ? `No ${influence}`
+            : influence
       const valueDomainCode = readString(row.valueDomainCode)
       const valueDomain =
         valueDomainCode === 'ATTACK_ROLL'
@@ -303,7 +317,7 @@ function getRowSummaryLabel(summary: RowSummary, row: unknown): string | undefin
       return effectKind === 'HEAL' ? 'Healing' : getOptionLabel(EFFECT_KIND_OPTIONS, effectKind)
     }
     case 'speed': {
-      const speedLabel = getSpeedOptionLabel(readString(row.speedId))
+      const speedLabel = getResolvedOptionLabel(rowScope, 'speedId', readString(row.speedId))
       const amount = readNumber(row.amount)
       const unit = formatEnumLabel(readString(row.unit))
       const amountLabel =
@@ -324,14 +338,22 @@ function getRestrictionLabel(row: Record<string, unknown>) {
   return undefined
 }
 
-function getSpeedOptionLabel(value: string | undefined) {
+function getResolvedOptionLabel(
+  scope: NodeRuntimeResolveResponseDto | undefined,
+  nodeId: string,
+  value: string | undefined
+) {
   if (!value) return undefined
-  const normalized = value.toLowerCase()
-  return speedOptions.find((option) =>
-    [option.id, option.code, option.label].some(
-      (candidate) => candidate.toLowerCase() === normalized
-    )
-  )?.label
+  for (const step of scope?.steps ?? []) {
+    for (const section of step.sections) {
+      for (const node of section.nodes) {
+        if (node.kind === 'INPUT' && 'options' in node && node.id === nodeId) {
+          return node.options.find((option) => option.value === value)?.label
+        }
+      }
+    }
+  }
+  return undefined
 }
 
 function getOptionLabel(

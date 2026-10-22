@@ -8,7 +8,7 @@ import {
 import { shapeExtent } from '../../shapeMeasurement.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind } from './attackKind.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
-import type { Dnd5eCompiledEffectActionSource } from './effectActionCompiler.js'
+import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
 
 /**
  * An AREA_CONTENTS action over a fixed-size area: a save action, or a hit-point pool action (Sleep)

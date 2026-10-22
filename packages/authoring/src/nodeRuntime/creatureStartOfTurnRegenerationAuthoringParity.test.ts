@@ -12,6 +12,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues, resolveNodeRuntime } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * SPELLS-33 T4i1a: the Oni's and Shield Guardian's Regeneration author the generic start-of-turn
@@ -19,7 +20,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * feature, so each must pass the creature node map exactly as authored, as must a variant.
  */
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 
 function normalize(creature: CreatureAuthored) {
   return normalizeNodeRuntimeValues(reader, {

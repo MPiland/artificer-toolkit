@@ -35,7 +35,8 @@ function compiledTieredCast(
       castMode: 'SPELL_SLOT',
       castLevel: 7,
       baseEntry: true,
-      resourceOwnerKey: null
+      resourceOwnerKey: null,
+      slotPoolCode: null
     },
     decision: { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:7' }
   })

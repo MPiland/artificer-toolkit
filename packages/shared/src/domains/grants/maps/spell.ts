@@ -6,6 +6,7 @@ import {
   ABILITY_OPTIONS,
   SCALING_OPTIONS,
   SCALING_SOURCE_OPTIONS,
+  SPELL_GRANT_ACCESS_OPTIONS,
   SPELL_GRANT_ATTRIBUTE_OPTIONS
 } from '#core'
 import { CHARGE_NODE_MAP } from '../../shared/maps/charge.js'
@@ -39,6 +40,25 @@ const PER_TARGET_LOCKOUT_NODE_MAP = perTargetLockout.define(
     )
   }
 )
+
+const slotCost = buildNodeMap<NonNullable<SpellGrantAuthored['slotCost']>>()
+
+const SLOT_COST_NODE_MAP = slotCost.define('slotCost', ({ map, nodes, data }) => {
+  map.set(
+    'poolCode',
+    nodes.selectSingle(
+      ['poolCode'],
+      'Spell Slot Pool',
+      {
+        kind: 'DATA',
+        relationship: data.table('spell_slot_pools', {
+          selectColumns: ['id', 'label', 'description']
+        })
+      },
+      { requiredIf: true }
+    )
+  )
+})
 
 const spellGrantLevel = buildNodeMap<SpellGrantLevel>()
 
@@ -265,6 +285,37 @@ export const SPELL_GRANT_NODE_MAP = spellGrant.define(
           presentation: 'inline',
           showIf: local.field(['attributes']).contains(['CAST_AT_WILL'])
         })
+      )
+      .set(
+        'slotCost',
+        groupObject(['slotCost'], 'Slot Cost', () => SLOT_COST_NODE_MAP, {
+          presentation: 'inline',
+          showIf: local.field(['attributes']).contains(['LIMITED_USE'])
+        })
+      )
+      .set(
+        'access',
+        selectSingle(['access'], 'Access', {
+          kind: 'INLINE_OPTIONS',
+          options: SPELL_GRANT_ACCESS_OPTIONS
+        })
+      )
+      .set(
+        'classListIds',
+        selectMulti(
+          ['classListIds'],
+          'Class Spell Lists',
+          {
+            kind: 'DATA',
+            relationship: table('classes', {
+              selectColumns: ['id', 'label']
+            })
+          },
+          {
+            requiredIf: true,
+            showIf: local.field(['access']).eq('CLASS_LIST_ONLY')
+          }
+        )
       )
       .set(
         'charges',

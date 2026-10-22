@@ -19,7 +19,9 @@ function bindingOf(
   const compiled =
     'reactionTrigger' in capability.compiledEffect.invocation
       ? capability.compiledEffect.invocation.reactionTrigger
-        ? reactionTriggerBindingDtoSchema.parse(capability.compiledEffect.invocation.reactionTrigger)
+        ? reactionTriggerBindingDtoSchema.parse(
+            capability.compiledEffect.invocation.reactionTrigger
+          )
         : null
       : null
   if (JSON.stringify(normalized) !== JSON.stringify(compiled)) {

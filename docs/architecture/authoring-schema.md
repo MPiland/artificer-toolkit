@@ -96,7 +96,9 @@ Maps live in `packages/shared/src/domains/{subjects,features,grants,effects,shar
 executor, registry, and trusted source manifest. It depends on `schema` and `shared`, never the
 database or a client framework. Keeping this package separate avoids a `shared` → `schema` cycle.
 `NodeRuntimeSourceReader` supplies trusted rows for a closed source key, columns, predicate, and
-System UUID; it is not a client-provided query or a new rules language.
+System UUID; it is not a client-provided query or a new rules language. Code-owned policy vocabulary
+(`roll_influences`, `roll_modes`) comes in through the source reader: callers pass the System's lists to
+`createNodeRuntimeSourceReader`, so this package still depends only on `schema` and `shared`.
 
 `resolveNodeRuntime(sourceReader, request)`:
 
@@ -126,6 +128,8 @@ Current limitation: condition paths are `ShallowPath` (one field, `packages/shar
 Placed zones (SPELLS-17, [ADR 0038](../adr/0038-rules-authored-from-core-options.md) parity): a `MANIFEST` `ZONE` `PLACED_SPACE` outcome authored through the Equipment `effects` node map is the same data an SRD record carries, so nothing in the compiler is specific to one item. The System runs it when it is one component with one behavior, a fixed save DC, one damage outcome, any `ON_SAVE_FAIL` stop-movement, and a point shape (`SPHERE`, `CYLINDER`, `CIRCLE` or a cube at a non-Self range); the DC, shape size and `bypassAtHalfSpeed` are free to vary. A directed shape (cone, line, Self cube), a second component, behavior or outcome, a non-fixed DC, an unmodeled field and an end event the System never reads (anything but `ON_HIT_POINTS_REGAINED`) compile as manual (`NOT_NORMALIZED`). `zoneAuthoringParity.test.ts` proves a variant zone survives `normalizeNodeRuntimeValues` unchanged and `encounterZonePlacementCompilation.test.ts` proves it compiles and plans like the SRD shape.
 
 Relationship execution is in `relationshipExecutor.ts`; it evaluates table/column plans, local values, parent/ancestor references, filters, and stream transformations. The shared `schema/api/nodeRuntimeSources` contract owns the exact table-to-column pairs reachable from the 11 active roots, re-exported by `nodeRuntimeSourceManifest.ts`. Its parity test derives shipped `DATA` descriptors and fails if a schema adds or removes a source without updating the adapter boundary. Trust is pairwise—a column allowed for one table is not allowed for every table. Add new relationship behavior here rather than embedding ad-hoc queries in a route.
+
+System-supplied vocabulary options (SPELLS-31.T5p, D175): a node whose codes belong to the Game System, not the platform (the spell slot pool `slotCost.poolCode`), reads a `DATA` source table (`spell_slot_pools`) that `systemVocabularyRows` serves from the `policyVocabulary` the caller injects (`apps/apis/convex/authoring/systemSources.ts`, from the rules-runtime vocabulary registry). `packages/authoring` does not depend on `rules-runtime`.
 
 ## Frontend contract
 

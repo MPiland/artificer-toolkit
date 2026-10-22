@@ -323,8 +323,8 @@ export function encounterAttackPerceptionContributors(
  * Every attack-roll contributor that sight decides: the target's `ATTACKS_AGAINST` contributors
  * (Dodge), those that require the target to see the attacker holding only while it can, those
  * that exempt Senses dropped for an attacker seeing the target through one (Blur), and the unseen
- * attacker/target contributors. A grant that negates advantage (Elusive) and holds drops every
- * advantage among them. True and believed perception build theirs with this one rule.
+ * attacker/target contributors. A grant that suppresses an influence (Elusive's advantage) and
+ * holds drops every contributor of that influence among them. True and believed perception build theirs with this one rule.
  */
 export function encounterAttackSightContributors(input: {
   perception: EncounterAttackPerception
@@ -336,14 +336,18 @@ export function encounterAttackSightContributors(input: {
     held.flatMap(({ contributor }) => (contributor ? [contributor] : [])),
     encounterAttackPerceptionContributors(perception)
   )
-  return held.some(({ contributor }) => contributor === null)
-    ? contributors.filter(({ influence }) => influence !== 'ADVANTAGE')
-    : contributors
+  const suppressed = held.flatMap(({ suppressedInfluence }) =>
+    suppressedInfluence === null ? [] : [suppressedInfluence]
+  )
+  return contributors.filter(({ influence }) => !suppressed.includes(influence))
 }
 
 type SightDecidedAttackAgainst = Pick<
   EncounterAttackAgainstContributor,
-  'requiresHolderSeesAttacker' | 'exemptAttackerSenseDefinitionIds' | 'contributor'
+  | 'requiresHolderSeesAttacker'
+  | 'exemptAttackerSenseDefinitionIds'
+  | 'contributor'
+  | 'suppressedInfluence'
 >
 
 /**
@@ -352,7 +356,7 @@ type SightDecidedAttackAgainst = Pick<
  * seeing the target through a Sense it exempts. Without perception, every grant holds.
  */
 export function attackAgainstHolds(
-  entry: Omit<SightDecidedAttackAgainst, 'contributor'>,
+  entry: Omit<SightDecidedAttackAgainst, 'contributor' | 'suppressedInfluence'>,
   perception: EncounterAttackPerception | null
 ): boolean {
   return (

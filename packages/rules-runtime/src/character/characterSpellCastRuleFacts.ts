@@ -69,7 +69,8 @@ export function buildCharacterSpellCastRuleFacts(params: {
       {
         fixedLevel: access.attributes.includes('CAST_AT_LEVEL')
           ? (access.castAtLevel ?? undefined)
-          : undefined
+          : undefined,
+        slotPoolCode: access.slotPoolCode
       }
     )
   }

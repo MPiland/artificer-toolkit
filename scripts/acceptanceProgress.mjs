@@ -161,13 +161,14 @@ const rankWork = (features) => {
 
 const scoredOpenWork = (features) => {
   const statuses = workItemStatuses(features)
-  const toItem = (feature, { id, wsjf, activeWorkbook }, title) => ({
+  const toItem = (feature, { id, wsjf, activeWorkbook, merging }, title) => ({
     id,
     feature: feature.id,
     title,
     score: wsjfScore(wsjf),
     wsjf,
     activeWorkbook: activeWorkbook ?? null,
+    merging: merging ?? null,
     waitingOn: (wsjf.after ?? []).filter((after) => statuses.get(after) !== 'DONE')
   })
   return features.flatMap((feature) =>
@@ -238,6 +239,19 @@ const validatePbi = (pbi, seen, errors) => {
     if (item.status === 'DONE') errors.push(`${item.id} is DONE but still has an activeWorkbook`)
     if (!existsSync(`${repoRoot}${item.activeWorkbook}`))
       errors.push(`${item.id} activeWorkbook not found: ${item.activeWorkbook}`)
+  }
+  // merging is the merge-slice run URL while a green item merges; mergedAt dates the merge once DONE.
+  for (const item of [pbi, ...(pbi.tasks ?? [])]) {
+    if (item.merging !== undefined) {
+      if (item.status === 'DONE') errors.push(`${item.id} is DONE but still has merging`)
+      if (!/^https:\/\/github\.com\/[^/]+\/[^/]+\/actions\/runs\/\d+$/.test(item.merging))
+        errors.push(`${item.id} merging is not a workflow run URL: ${item.merging}`)
+    }
+    if (item.mergedAt !== undefined) {
+      if (item.status !== 'DONE') errors.push(`${item.id} has mergedAt but is not DONE`)
+      if (Number.isNaN(Date.parse(item.mergedAt)))
+        errors.push(`${item.id} mergedAt is not a date: ${item.mergedAt}`)
+    }
   }
   if (pbi.status !== 'DONE') validateWsjf(pbi.id, pbi.wsjf, errors)
   if (pbi.status === 'DONE' && !isPbiProven(pbi)) {
