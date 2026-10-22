@@ -10,10 +10,10 @@ const systemVocabularyFields = lazySchemaParts(() => ({
   rulesetCode: z.string(),
   rulesetVersion: z.string(),
   alignments: z.array(vocabularyDtoSchema),
-  challengeRatings: z.array(vocabularyDtoSchema),
+  challengeRatings: z.array(systemChallengeRatingDtoSchema),
   conditionTypes: z.array(vocabularyDtoSchema),
   creatureTypes: z.array(vocabularyDtoSchema),
-  currencies: z.array(vocabularyDtoSchema),
+  currencies: z.array(systemCurrencyDtoSchema),
   damageTypes: z.array(vocabularyDtoSchema),
   heritages: z.array(vocabularyDtoSchema),
   languages: z.array(vocabularyDtoSchema),
@@ -27,6 +27,20 @@ const systemVocabularyFields = lazySchemaParts(() => ({
   terrains: z.array(vocabularyDtoSchema),
   userId: z.string()
 }))
+
+/** A System challenge rating: its XP, the proficiency bonus it grants, and its place in the ascending order. */
+const systemChallengeRatingDtoSchema = lazySchema(() =>
+  z.extend(vocabularyDtoSchema, {
+    xp: z.number().check(z.int()).check(z.gte(0)),
+    proficiencyBonus: z.number().check(z.int()).check(z.gte(0)),
+    rank: z.number().check(z.int()).check(z.gte(0))
+  })
+)
+
+/** A System currency: its value in the System's smallest denomination. */
+const systemCurrencyDtoSchema = lazySchema(() =>
+  z.extend(vocabularyDtoSchema, { baseValue: z.number().check(z.int()).check(z.gte(1)) })
+)
 
 const abilityVocabularyDtoSchema = lazySchema(() =>
   z.extend(vocabularyDtoSchema, {
@@ -49,9 +63,13 @@ const systemCheckDefinitionDtoSchema = lazySchema(() =>
   })
 )
 
-/** A System passive score (10 + a skill's modifier). It names its skill, or none when no skill underlies it. */
+/** A System passive score (10 + a skill's modifier). It names its skill, or none when no skill underlies it, and the ability it uses. */
 const systemPassiveDefinitionDtoSchema = lazySchema(() =>
   z.extend(vocabularyDtoSchema, {
+    abilityDefinitionId: z.pipe(
+      postgresUuidSchema,
+      z.transform((value) => value.toLowerCase())
+    ),
     skillDefinitionId: z.nullable(
       z.pipe(
         postgresUuidSchema,
@@ -135,6 +153,14 @@ export const systemAuthoredDtoSchema = lazySchema(() =>
           checkCodes.add(check.code)
         }
         for (const [index, passive] of document.passives.entries()) {
+          if (!abilityIds.has(passive.abilityDefinitionId)) {
+            context.addIssue({
+              code: 'custom',
+              path: ['passives', index, 'abilityDefinitionId'],
+              message:
+                'System passive definitions must reference an ability in the same System document.'
+            })
+          }
           if (passive.skillDefinitionId && !checkIds.has(passive.skillDefinitionId)) {
             context.addIssue({
               code: 'custom',
