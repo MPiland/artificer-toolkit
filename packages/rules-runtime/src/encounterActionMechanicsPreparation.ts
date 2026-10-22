@@ -31,7 +31,8 @@ import {
   CastChoiceUnavailableError,
   EncounterValidationError,
   HandReleaseRequiredError,
-  StaleCharacterActionError
+  StaleCharacterActionError,
+  UnavailableCreatureActionError
 } from './encounterErrors.js'
 import { encounterActorHeldItems } from './encounterHolderDefense.js'
 import { refuseUnmetTargetRequirements } from './encounterTargetRequirements.js'
@@ -217,6 +218,12 @@ export async function prepareEncounterActionSource<
           }
         }
       : entry
+  // A ritual is listed with the reason it cannot be cast here, so choosing it is refused by name (D171).
+  const refusedRitual = candidate
+    ? undefined
+    : spellCast?.unavailable.find((value) => value.id === actionId)
+  if (refusedRitual)
+    throw new UnavailableCreatureActionError(refusedRitual.label, refusedRitual.reason)
   const loaded = await input.loadSource({
     actor,
     actionId,

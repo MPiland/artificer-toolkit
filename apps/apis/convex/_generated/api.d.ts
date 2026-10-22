@@ -124185,6 +124185,7 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
+            componentsLabel?: string;
             damageLabel?: string;
             grip: {
               attackKey: string;
@@ -125938,6 +125939,7 @@ export declare const api: {
             }>;
             attackBonus?: number;
             attackSlot: { number: number; total: number } | null;
+            componentsLabel?: string;
             damageLabel?: string;
             grip: {
               attackKey: string;
@@ -131746,18 +131748,24 @@ export declare const api: {
         "query",
         "public",
         {
-          owner: {
-            campaignId: string;
-            kind: "SCENE";
-            sceneDefinitionId: string;
-          };
+          owner:
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
+            | {
+                actorId: string;
+                campaignId: string;
+                encounterId: string;
+                kind: "ENCOUNTER_ACTOR";
+              };
         },
         {
-          owner: {
-            campaignId: string;
-            kind: "SCENE";
-            sceneDefinitionId: string;
-          };
+          owner:
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
+            | {
+                actorId: string;
+                campaignId: string;
+                encounterId: string;
+                kind: "ENCOUNTER_ACTOR";
+              };
           tables: Array<{
             id: string;
             name: string;
@@ -131781,11 +131789,14 @@ export declare const api: {
         "public",
         {
           expectedVersion: number;
-          owner: {
-            campaignId: string;
-            kind: "SCENE";
-            sceneDefinitionId: string;
-          };
+          owner:
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
+            | {
+                actorId: string;
+                campaignId: string;
+                encounterId: string;
+                kind: "ENCOUNTER_ACTOR";
+              };
           tables: Array<{
             id: string;
             name: string;
@@ -131803,11 +131814,14 @@ export declare const api: {
           }>;
         },
         {
-          owner: {
-            campaignId: string;
-            kind: "SCENE";
-            sceneDefinitionId: string;
-          };
+          owner:
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
+            | {
+                actorId: string;
+                campaignId: string;
+                encounterId: string;
+                kind: "ENCOUNTER_ACTOR";
+              };
           tables: Array<{
             id: string;
             name: string;

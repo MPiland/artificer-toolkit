@@ -12,14 +12,18 @@ import {
   lootDocumentSchema,
   lootLookupInputSchema,
   saveLootInputSchema,
-  type LootDocument
+  type LootDocument,
+  type LootOwner
 } from '@artificer-toolkit/schema/api/lootTables'
 import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import { getContentCatalogueManifest } from '#app/data/contentSnapshots/queries'
 import { contentCatalogueQueryKey } from '#app/data/contentSnapshots/useContentCatalogue'
 import { authoredRouteStoryUser } from '#domains/authoredRouteStory.fixtures'
-import { CampaignSceneLootEditor } from './CampaignSceneLootEditor'
-import { tabletopCampaignId, tabletopSceneDefinition } from './CampaignTabletop.stories.fixtures'
+import {
+  tabletopCampaignId,
+  tabletopSceneDefinition
+} from '../vtt/CampaignTabletop.stories.fixtures'
+import { CampaignLootEditor } from './CampaignLootEditor'
 
 const gameSystemId = '11111111-1111-4111-8111-111111111111'
 const contentSourceId = '99999999-9999-4999-8999-999999999911'
@@ -71,32 +75,37 @@ const system = {
   skills: [{ id: '99999999-9999-4999-8999-999999999914', label: 'Investigation' }]
 }
 
-const owner = {
+const sceneOwner = {
   kind: 'SCENE',
   campaignId: tabletopCampaignId,
   sceneDefinitionId: tabletopSceneDefinition.id
 } as const
+const creatureOwner = {
+  kind: 'ENCOUNTER_ACTOR',
+  campaignId: tabletopCampaignId,
+  encounterId: '99999999-9999-4999-8999-999999999921',
+  actorId: '99999999-9999-4999-8999-999999999922'
+} as const
 
 /** The fake backend lives in sessionStorage so a browser reload reopens what was saved. */
-const storageKey = `story-loot:${owner.sceneDefinitionId}`
-function readStored(): LootDocument {
-  const raw = window.sessionStorage.getItem(storageKey)
+const storageKey = (owner: LootOwner) => `story-loot:${JSON.stringify(owner)}`
+function readStored(owner: LootOwner): LootDocument {
+  const raw = window.sessionStorage.getItem(storageKey(owner))
   return lootDocumentSchema.parse(raw ? JSON.parse(raw) : { owner, version: 0, tables: [] })
 }
 
 const meta = {
-  component: CampaignSceneLootEditor,
+  component: CampaignLootEditor,
   parameters: { a11y: { test: 'error' }, layout: 'fullscreen' },
-  title: 'Domains/Campaigns/VTT/Scene Loot Editor',
-  args: { campaignId: tabletopCampaignId, gameSystemId, sceneId: tabletopSceneDefinition.id },
+  title: 'Domains/Campaigns/Loot Editor',
+  args: { gameSystemId },
   beforeEach: () => {
     const client = new ConvexReactClient('https://story-fixture.convex.cloud', { logger: false })
     Object.defineProperty(client, 'query', {
       value: fn<ConvexReactClient['query']>().mockImplementation(async (...[reference, input]) => {
         if (getFunctionName(reference) !== getFunctionName(api.loot.tables.get))
           throw new Error(`Unexpected loot query: ${getFunctionName(reference)}`)
-        lootLookupInputSchema.parse(input)
-        return readStored()
+        return readStored(lootLookupInputSchema.parse(input).owner)
       })
     })
     Object.defineProperty(client, 'mutation', {
@@ -105,7 +114,7 @@ const meta = {
           if (getFunctionName(reference) !== getFunctionName(api.loot.tables.save))
             throw new Error(`Unexpected loot mutation: ${getFunctionName(reference)}`)
           const values = saveLootInputSchema.parse(input)
-          const current = readStored()
+          const current = readStored(values.owner)
           if (current.version !== values.expectedVersion)
             throw new Error('Loot tables changed before this save.')
           const saved = lootDocumentSchema.parse({
@@ -113,7 +122,7 @@ const meta = {
             version: values.expectedVersion + 1,
             tables: values.tables
           })
-          window.sessionStorage.setItem(storageKey, JSON.stringify(saved))
+          window.sessionStorage.setItem(storageKey(values.owner), JSON.stringify(saved))
           return saved
         }
       )
@@ -137,9 +146,11 @@ const meta = {
       return <Story />
     }
   ]
-} satisfies Meta<typeof CampaignSceneLootEditor>
+} satisfies Meta<typeof CampaignLootEditor>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Empty: Story = {}
+export const Scene: Story = { args: { owner: sceneOwner, subject: 'Scene' } }
+
+export const EncounterCreature: Story = { args: { owner: creatureOwner, subject: 'Creature' } }
