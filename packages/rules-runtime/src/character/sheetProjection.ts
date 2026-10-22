@@ -17,6 +17,7 @@ import {
   formatLengthMeasurement,
   MEASUREMENT_UNIT_REGISTRY,
   VEHICLE_CATEGORY_REGISTRY,
+  type CharacterBuildSnapshot,
   type LengthUnitCode,
   type MeasurementUnitCode
 } from '@artificer-toolkit/shared/core'
@@ -289,6 +290,7 @@ export function getSpellSourcesBySpellId(
   sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>,
   preparationCapableClassIds: ReadonlySet<string>,
   spellAccess: readonly CharacterSheetRuleProjection['spellAccess'][number][],
+  classRitualSources: NonNullable<CharacterBuildSnapshot['classRitualSources']>,
   classLabels: ReadonlyMap<string, string> = new Map(),
   featureLabels: ReadonlyMap<string, string> = new Map()
 ): Map<string, CharacterSheetSpellSource[]> {
@@ -409,6 +411,23 @@ export function getSpellSourcesBySpellId(
       if (sheetSpellIdsByClassId.get(classState.classId)?.has(spellId))
         addSpellSource(spellId, classState.classId)
     }
+  }
+
+  for (const { classId, source } of classRitualSources) {
+    const sources =
+      sourcesBySpellId.get(source.spellId) ?? new Map<string, CharacterSheetSpellSource>()
+    sources.set(createCharacterSpellSourceKey(source), {
+      id: source.sourceInstanceId,
+      classId,
+      label: `${classLabels.get(classId) ?? 'Class'} (ritual)`,
+      source,
+      provenance: 'CLASS',
+      acquisition: 'GRANTED',
+      castMode: 'RITUAL',
+      canPrepare: false,
+      prepared: true
+    })
+    sourcesBySpellId.set(source.spellId, sources)
   }
 
   for (const access of spellAccess) {
@@ -1053,6 +1072,7 @@ export function projectCharacterSheetBundle(
     sheetSpellIdsByClassId,
     preparationCapableClassIds,
     ruleProjection.spellAccess,
+    ruleEvaluation.snapshot.classRitualSources ?? [],
     classLabels,
     featureLabels
   )

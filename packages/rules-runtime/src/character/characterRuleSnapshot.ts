@@ -32,6 +32,7 @@ import type {
   CharacterProvenance
 } from '@artificer-toolkit/shared/subjects/authored'
 import { isSameCharacterProvenanceIdentity } from '@artificer-toolkit/shared/subjects/authored'
+import { assembleClassRitualSources } from './classRitualSources.js'
 
 export interface CharacterRuleSnapshotInput {
   character: CharacterAuthored
@@ -326,6 +327,7 @@ export function assembleCharacterRuleSnapshot(
     features: grantedFeatures,
     equipmentItems,
     spellSources: assembleSpellSources(character),
+    classRitualSources: assembleClassRitualSources(character, registry, context.catalog.spells),
     companions: input.companions
       ? input.companions.map((companion) => ({
           ...companion,

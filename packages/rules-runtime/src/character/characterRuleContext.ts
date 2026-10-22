@@ -64,7 +64,7 @@ export interface CharacterRuleContext {
   registry: CharacterRuleRegistry
   presentation?: CharacterPresentationLookup
   catalog: {
-    spells: readonly Pick<SpellAuthored, 'id' | 'label' | 'level' | 'classIds'>[]
+    spells: readonly Pick<SpellAuthored, 'id' | 'label' | 'level' | 'classIds' | 'attributes'>[]
   }
   vocabularySnapshot?: Pick<SystemVocabularySnapshot, 'document'>
 }

@@ -537,7 +537,7 @@ describe('the cast choices an Encounter offers a Character', () => {
     expect(built.unavailable).toEqual([
       {
         id: spellCastActionId(ritual.candidateId),
-        label: 'Fireball (3rd level)',
+        label: 'Fireball (3rd level) (ritual)',
         reason: RITUAL_CAST_REFUSAL
       }
     ])

@@ -13,9 +13,10 @@ export function buildCharacterSpellMechanicsRuleFacts(
 ): Pick<CharacterRulePolicyInput, 'spellMechanicsFacts'> {
   return {
     spellMechanicsFacts: {
-      snapshotSources: (snapshot.spellSources ?? []).map((spellSource, sequence) =>
-        source(spellSource, sequence)
-      ),
+      snapshotSources: [
+        ...(snapshot.spellSources ?? []),
+        ...(snapshot.classRitualSources ?? []).map(({ source }) => source)
+      ].map((spellSource, sequence) => source(spellSource, sequence)),
       adjustments: (snapshot.adjustments ?? [])
         .filter(
           (
