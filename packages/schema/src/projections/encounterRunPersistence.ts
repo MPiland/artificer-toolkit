@@ -24,7 +24,7 @@ import {
   activeRuleEffectRecordSchema,
   encounterMaintainedEffectStateRecordSchema
 } from './activeRuleEffectPersistence.js'
-import { rollModeKeepSchema, systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
+import { rollModeKeepSchema, systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 // Keep the Convex table schema independent of recursive authored snapshots. Projections are built
 // on read from the Run state and its actors (ADR 0035 Amendment 12), so the Run stores neither.
@@ -187,9 +187,9 @@ export const encounterStoredEvidenceRollSchema = lazySchema(() =>
     attempt: z.number().check(z.int()).check(z.positive()),
     faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
     value: z.number().check(z.int()),
-    rollMode: z.nullable(systemVocabularyCodeSchema),
+    rollMode: z.nullable(systemCoreCodeSchema),
     keep: z.nullable(rollModeKeepSchema),
-    derivedRollMode: z.nullable(systemVocabularyCodeSchema),
+    derivedRollMode: z.nullable(systemCoreCodeSchema),
     /** The faces of the request's added dice (D156), rolled with the d20. */
     addedFaces: z.optional(d20AddedFacesDtoSchema),
     createdAt: z.iso.datetime()

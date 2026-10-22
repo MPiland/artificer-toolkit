@@ -46,8 +46,8 @@ import {
 import {
   rollModeKeepFaceCount,
   rollModeKeepSchema,
-  systemVocabularyCodeSchema
-} from '../shared/systemVocabularyCode.js'
+  systemCoreCodeSchema
+} from '../shared/systemCoreCode.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -291,7 +291,7 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
 
 export { encounterRuleOccurrenceSummaryDtoSchema, pendingEncounterRuleOccurrenceSummaryDtoSchema }
 
-const d20RollModeSchema = lazySchema(() => systemVocabularyCodeSchema)
+const d20RollModeSchema = lazySchema(() => systemCoreCodeSchema)
 
 /**
  * One "Roll dice" attempt for a prompt row, recorded by the server and settled later only by its

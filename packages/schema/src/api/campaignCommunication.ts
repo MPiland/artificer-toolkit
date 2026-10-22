@@ -1,5 +1,5 @@
 import { z, lazySchema } from '../zod.js'
-import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { parseRollExpression, validateRollMode } from '@artificer-toolkit/shared/rolls'
 
 import { rollRecordDtoSchema, rollRevealModeDtoSchema, rollSourceDtoSchema } from './rolls.js'
@@ -239,7 +239,7 @@ const executeCampaignRollDetailsSchema = lazySchema(() =>
     .strictObject({
       characterId: z.nullable(uuidSchema),
       expression: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(200)),
-      rollMode: z.optional(systemVocabularyCodeSchema),
+      rollMode: z.optional(systemCoreCodeSchema),
       source: rollSourceDtoSchema
     })
     .check(

@@ -4,7 +4,7 @@ import {
   type D20RolledAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
-import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type {
   ServerCompletedRuleExecutionDto,
   ServerRuleExecutionContinuationDto,

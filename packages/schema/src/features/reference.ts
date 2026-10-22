@@ -6,7 +6,7 @@ import {
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
-import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 export const featureRollDefinitionDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -14,7 +14,7 @@ export const featureRollDefinitionDtoSchema = lazySchema(() =>
     label: authoredShortTextSchema,
     kind: z.enum(['ATTACK', 'DAMAGE', 'HEALING', 'ABILITY_CHECK', 'SAVING_THROW']),
     expression: diceExpressionDtoSchema,
-    rollMode: z._default(systemVocabularyCodeSchema, 'NORMAL'),
+    rollMode: z._default(systemCoreCodeSchema, 'NORMAL'),
     chargeCost: z._default(z.nullable(z.number().check(z.int()).check(z.positive())), null),
     order: z.number().check(z.int()).check(z.nonnegative())
   })

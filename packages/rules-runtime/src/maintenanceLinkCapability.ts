@@ -1,5 +1,5 @@
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { MaintenanceLinkHook } from './events/encounterEventTable.js'

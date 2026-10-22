@@ -49,9 +49,9 @@ import {
   rollModeKeepFaceCount,
   rollModeKeepSchema,
   rollModeKeptFace,
-  systemVocabularyCodeSchema,
+  systemCoreCodeSchema,
   type RollModeKeep
-} from './systemVocabularyCode.js'
+} from './systemCoreCode.js'
 
 /** The exact Legendary Resistance source a failed save is offered, pinned when it is offered. */
 export const encounterLegendaryResistancePinDtoSchema = lazySchema(() =>
@@ -188,9 +188,9 @@ export const directActionTwoPhaseDtoSchema = lazySchema(() =>
         testRollEvidence: z
           .strictObject({
             requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
-            rollMode: systemVocabularyCodeSchema,
+            rollMode: systemCoreCodeSchema,
             keep: rollModeKeepSchema,
-            derivedRollMode: systemVocabularyCodeSchema,
+            derivedRollMode: systemCoreCodeSchema,
             rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
             selectedNatural: pendingD20FaceSchema,
             /** Set when the server settled the TEST d20 in a mode other than the one rolled (ATTACK-10.1). */
@@ -309,7 +309,7 @@ export const encounterCharacterRuleActionPendingContextDtoSchema = lazySchema(()
     targetStateChecksum: checksumSchema,
     d20: z.nullable(
       z.strictObject({
-        rollMode: systemVocabularyCodeSchema,
+        rollMode: systemCoreCodeSchema,
         keep: rollModeKeepSchema,
         contributors: z
           .array(receiptD20ContributorSchema)
@@ -374,7 +374,7 @@ export const encounterActorRuleActionPendingContextDtoSchema = lazySchema(() =>
         kind: z.literal('ACTION_EVIDENCE'),
         d20: z.nullable(
           z.strictObject({
-            rollMode: systemVocabularyCodeSchema,
+            rollMode: systemCoreCodeSchema,
             keep: rollModeKeepSchema,
             contributors: z
               .array(receiptD20ContributorSchema)
@@ -485,7 +485,7 @@ export const encounterCreatureRuleActionPendingContextDtoSchema = lazySchema(() 
         kind: z.literal('ACTION_EVIDENCE'),
         d20: z.nullable(
           z.strictObject({
-            rollMode: systemVocabularyCodeSchema,
+            rollMode: systemCoreCodeSchema,
             keep: rollModeKeepSchema,
             contributors: z
               .array(receiptD20ContributorSchema)
@@ -702,7 +702,7 @@ export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySche
       save: z.strictObject({
         savingThrowAbilityDefinitionId: uuidSchema,
         modifier: integerSchema,
-        rollMode: systemVocabularyCodeSchema,
+        rollMode: systemCoreCodeSchema,
         keep: rollModeKeepSchema,
         contributors: canonicalConcentrationContributorsDtoSchema,
         contributorChecksum: checksumSchema,
@@ -730,7 +730,7 @@ export const encounterEffectRepeatSavePendingContextDtoSchema = lazySchema(() =>
         lifecycleChecksum: checksumSchema
       }),
       /** How the effect's trigger tilts the roll; applied on top of the holder's own influences. */
-      rollInfluence: z.nullable(systemVocabularyCodeSchema),
+      rollInfluence: z.nullable(systemCoreCodeSchema),
       /** The pinned frozen save, taken from the paused kernel request. */
       d20Policy: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)
     })

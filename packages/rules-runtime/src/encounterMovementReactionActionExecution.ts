@@ -18,7 +18,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   rollModeKeptFace,
   type RollModeKeep
-} from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+} from '@artificer-toolkit/schema/shared/systemCoreCode'
 
 import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
 import { EncounterValidationError } from './encounterErrors.js'

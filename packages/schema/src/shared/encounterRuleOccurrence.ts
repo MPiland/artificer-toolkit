@@ -11,8 +11,8 @@ import { MAX_FORCED_MOVEMENT_DESTINATIONS, spatialPointDtoSchema } from './spati
 import {
   offeredRollModeSchema,
   rollModeKeepSchema,
-  systemVocabularyCodeSchema
-} from './systemVocabularyCode.js'
+  systemCoreCodeSchema
+} from './systemCoreCode.js'
 
 const uuidSchema = lazySchema(() =>
   z.pipe(
@@ -156,7 +156,7 @@ const d20EvidenceRequestDtoSchema = lazySchema(() =>
       requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
       min: z.literal(1),
       max: z.literal(20),
-      rollMode: systemVocabularyCodeSchema,
+      rollMode: systemCoreCodeSchema,
       /** Which of the rolled faces the d20 counts; the System derives it from `rollMode`. */
       keep: rollModeKeepSchema,
       /** The roll modes the roller may answer with: the System's `rollMode` vocabulary. */
@@ -234,7 +234,7 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
             z.strictObject({
               checkDefinitionId: uuidSchema,
               label: triggerLabelSchema,
-              rollMode: systemVocabularyCodeSchema,
+              rollMode: systemCoreCodeSchema,
               keep: rollModeKeepSchema,
               derivedRollModeReasons: z
                 .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))

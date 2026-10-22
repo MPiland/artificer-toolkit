@@ -35,7 +35,7 @@ import {
   refineTurnZoneEffectsEvidence,
   turnZoneEffectsEvidenceFields
 } from './ruleExecutionTurnPhaseEvidence.js'
-import { rollModeKeepSchema, systemVocabularyCodeSchema } from './systemVocabularyCode.js'
+import { rollModeKeepSchema, systemCoreCodeSchema } from './systemCoreCode.js'
 export const pausedRuleExecutionResultDtoSchema = lazySchema(() =>
   z.strictObject({
     status: z.literal('PAUSED'),
@@ -48,7 +48,7 @@ export const pausedRuleExecutionResultDtoSchema = lazySchema(() =>
         z.discriminatedUnion('kind', [
           z.strictObject({
             kind: z.literal('D20_EVIDENCE'),
-            rollMode: systemVocabularyCodeSchema,
+            rollMode: systemCoreCodeSchema,
             keep: rollModeKeepSchema
           }),
           z
