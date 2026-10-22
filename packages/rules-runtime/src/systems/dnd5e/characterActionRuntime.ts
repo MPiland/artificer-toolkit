@@ -10,7 +10,6 @@ import {
   dnd5eForcedMovementProposalOperation,
   dnd5eDamageTotalOperation,
   dnd5eDamageReductionOperation,
-  dnd5eSaveDamageTotalOperation,
   dnd5eDamageMultiplierOperation,
   dnd5eEffectActionCapability,
   dnd5eHealProposalOperation,
@@ -32,14 +31,8 @@ import {
   dnd5eDepartProposalOperation,
   dnd5eTeleportAllowanceProposalOperation,
   dnd5eTemporaryHitPointsProposalOperation,
-  dnd5eTestScalarReductionProposalOperation,
-  dnd5eTestConditionProposalOperation,
-  dnd5eTestMarginConditionProposalOperation,
-  dnd5eTestDamageProposalOperation,
-  dnd5eTestHealProposalOperation,
-  dnd5eTestTemporaryHitPointsProposalOperation,
   dnd5eMovementInterruptionAuthorizationOperation,
-  dnd5ePathGatedTargetProposalOperations
+  dnd5ePathGatedProposalOperations
 } from './effectActionOperationRegistry.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind, isDnd5eSpellAttackKind } from './attackKind.js'
 import { dnd5eConcentrationDamageDcOperation } from './concentrationPolicy.js'
@@ -90,7 +83,6 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eForcedMovementProposalOperation,
     dnd5eDamageTotalOperation,
     dnd5eDamageReductionOperation,
-    dnd5eSaveDamageTotalOperation,
     dnd5eDamageMultiplierOperation,
     dnd5eHealTotalOperation,
     dnd5eConditionApplyProposalOperation,
@@ -98,13 +90,7 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eConditionDurationOperation,
     dnd5eAttackTestOperation,
     dnd5eSaveTestOperation,
-    dnd5eTestHealProposalOperation,
-    dnd5eTestTemporaryHitPointsProposalOperation,
-    dnd5eTestDamageProposalOperation,
-    dnd5eTestScalarReductionProposalOperation,
-    dnd5eTestConditionProposalOperation,
-    dnd5eTestMarginConditionProposalOperation,
     dnd5eMovementInterruptionAuthorizationOperation,
-    ...dnd5ePathGatedTargetProposalOperations
+    ...dnd5ePathGatedProposalOperations
   ] satisfies readonly RuleOperationContract[]
 } as const

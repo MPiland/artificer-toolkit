@@ -1,21 +1,25 @@
 import { Button, Group, Select, Stack, Text, Title } from '@mantine/core'
 import { useId } from 'react'
+import type { EncounterEffectOfferChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type {
   EncounterCommandResultDto,
-  MoveHeldEffectInputDto
+  MoveHeldEffectInputDto,
+  ResolveEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
 import { ACTIVATION_REGISTRY, formatLengthMeasurement } from '@artificer-toolkit/shared/core'
 import { CampaignTabletopCommandOutcome } from './CampaignTabletopCommandOutcome'
 import {
   effectOfferKey,
   EFFECT_OFFER_KIND_LABELS,
-  type MoveEffectOfferChoice
+  isMoveEffectOffer,
+  type MoveEffectOfferChoice,
+  type RepeatEffectOfferChoice
 } from './effectOffers.model'
 import { useWarnedCommand } from './useWarnedCommand'
 import * as styles from './CampaignTabletopActionList.css'
 
 type EffectOffersProps = {
-  offers: MoveEffectOfferChoice[]
+  offers: EncounterEffectOfferChoiceDto[]
   actorId: string
   encounterId: string
   encounterVersion: number
@@ -36,12 +40,14 @@ type EffectOffersProps = {
   onTargetPick: (actorId: string | null) => void
   onPickOnMap: () => void
   onMove: (command: MoveHeldEffectInputDto) => Promise<EncounterCommandResultDto>
+  onResolve: (command: ResolveEncounterActionInputDto) => Promise<EncounterCommandResultDto>
 }
 
 /**
  * The choices held effects offer the current actor beside their holders' turns (D160): one row per
  * live offer, with the cost it spends and how far its pick reaches. Choosing an offer opens a pick
- * of the creature that holds the effect next. The outcome belongs to the offers on offer, so a
+ * of the creature that holds the effect next. A repeat offer (D166) re-runs the cast against its
+ * holder as an ordinary action, at the level and DC the cast froze. The outcome belongs to the offers on offer, so a
  * different actor or set of offers starts afresh.
  */
 export function CampaignTabletopEffectOffers(props: EffectOffersProps) {
@@ -63,7 +69,8 @@ function EffectOfferList({
   onChooseOffer,
   onTargetPick,
   onPickOnMap,
-  onMove
+  onMove,
+  onResolve
 }: EffectOffersProps) {
   const titleId = useId()
   const { submittingId, confirming, feedback, error, run, cancelConfirmation } =
@@ -94,6 +101,29 @@ function EffectOfferList({
     )
   }
 
+  function repeat(
+    offer: RepeatEffectOfferChoice,
+    acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings']
+  ) {
+    return run(
+      effectOfferKey(offer),
+      () =>
+        onResolve({
+          type: 'RESOLVE_ACTION',
+          encounterId,
+          commandId: crypto.randomUUID(),
+          expectedVersion: encounterVersion,
+          actorId,
+          actionId: offer.actionId,
+          target: { kind: 'ACTOR', actorId: offer.holderActorId },
+          acceptedWieldConflict: null,
+          sceneContext: null,
+          acknowledgedWarnings
+        }),
+      { done: () => 'Repeated.', failed: 'The repeat could not be made.' }
+    )
+  }
+
   const confirmingOffer = offers.find((offer) => effectOfferKey(offer) === confirming?.id)
   return (
     <section aria-labelledby={titleId} className={styles.section}>
@@ -103,6 +133,43 @@ function EffectOfferList({
       <ul className={styles.list}>
         {offers.map((offer) => {
           const key = effectOfferKey(offer)
+          if (!isMoveEffectOffer(offer)) {
+            const label = `Repeat ${offer.label} on ${holderLabel(offer.holderActorId)}`
+            return (
+              <li className={styles.row} key={key}>
+                <Stack gap={4} style={{ flex: 1 }}>
+                  <Text fw={600} size='sm'>
+                    {label}{' '}
+                    <Text c='dimmed' component='span' fw={400} size='xs'>
+                      {[
+                        ACTIVATION_REGISTRY[offer.activation].label,
+                        offer.castLevel === undefined ? null : `cast at level ${offer.castLevel}`,
+                        offer.dc === undefined ? null : `DC ${offer.dc}`
+                      ]
+                        .filter(Boolean)
+                        .map((part) => `· ${part}`)
+                        .join(' ')}
+                    </Text>
+                  </Text>
+                  {offer.warnings.length ? (
+                    <Text c='dimmed' size='xs'>
+                      {offer.warnings.map((warning) => warning.message).join(' ')}
+                    </Text>
+                  ) : null}
+                </Stack>
+                <Button
+                  aria-label={label}
+                  disabled={busy}
+                  loading={submittingId === key}
+                  size='xs'
+                  variant='default'
+                  onClick={() => void repeat(offer, [])}
+                >
+                  Repeat
+                </Button>
+              </li>
+            )
+          }
           const chosen = key === chosenOfferKey
           const label = `${EFFECT_OFFER_KIND_LABELS[offer.kind]} on ${holderLabel(offer.holderActorId)}`
           return (
@@ -169,15 +236,13 @@ function EffectOfferList({
         feedback={feedback}
         warnings={confirmingOffer ? (confirming?.warnings ?? null) : null}
         onCancel={cancelConfirmation}
-        onConfirm={(warnings) =>
-          confirmingOffer &&
-          targetActorId &&
-          void move(
-            confirmingOffer,
-            targetActorId,
-            warnings.map((warning) => warning.code)
-          )
-        }
+        onConfirm={(warnings) => {
+          if (!confirmingOffer) return
+          const codes = warnings.map((warning) => warning.code)
+          if (isMoveEffectOffer(confirmingOffer)) {
+            if (targetActorId) void move(confirmingOffer, targetActorId, codes)
+          } else void repeat(confirmingOffer, codes)
+        }}
       />
     </section>
   )

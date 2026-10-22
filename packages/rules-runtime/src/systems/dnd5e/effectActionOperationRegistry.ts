@@ -65,7 +65,6 @@ import {
   DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
-  DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
   DND5E_HEAL_TOTAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
@@ -715,32 +714,6 @@ export const dnd5eDamageReductionOperation: PureRuleOperationContract = {
     return { value: flooredDamage(amount - reduction) }
   }
 }
-/** Selects the one authored full-or-floor-half damage value after a nested save. */
-export const dnd5eSaveDamageTotalOperation: PureRuleOperationContract = {
-  key: DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY,
-  contractVersion: 1,
-  executionKind: 'PURE',
-  inputs: {
-    subtotal: RULE_VALUE_KIND.NUMBER,
-    resultPath: RULE_VALUE_KIND.TEXT
-  },
-  outputs: { value: RULE_VALUE_KIND.NUMBER },
-  execute(inputs) {
-    const subtotal = inputs.subtotal
-    const resultPath = inputs.resultPath
-    if (
-      typeof subtotal !== 'number' ||
-      !Number.isSafeInteger(subtotal) ||
-      subtotal < 0 ||
-      (resultPath !== 'ON_SAVE_FAIL' && resultPath !== 'ON_SAVE_SUCCESS')
-    ) {
-      throw new Error('D&D nested save damage requires a bounded save result and subtotal.')
-    }
-    return {
-      value: resultPath === 'ON_SAVE_SUCCESS' ? Math.floor(subtotal / 2) : subtotal
-    }
-  }
-}
 /** Applies an authored damage multiplier to rolled damage, rounding down (SRD). */
 export const dnd5eDamageMultiplierOperation: PureRuleOperationContract = {
   key: DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
@@ -1072,9 +1045,10 @@ export function testProposalOperation(
         throw new Error('D&D test proposal requires exact target and path identities.')
       for (const [port, kind] of Object.entries(payload)) {
         const value = inputs[port]
+        // A halved roll of 1 rounds down to 0, which is still the result the path proposes.
         if (
           (kind === RULE_VALUE_KIND.NUMBER &&
-            (typeof value !== 'number' || !Number.isSafeInteger(value) || value <= 0)) ||
+            (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)) ||
           (kind === RULE_VALUE_KIND.TEXT && typeof value !== 'string')
         )
           throw new Error('D&D test proposal payload is invalid.')
@@ -1134,6 +1108,16 @@ export const dnd5eTestScalarReductionProposalOperation = testProposalOperation(
     terminalConsequence: RULE_VALUE_KIND.TEXT
   }
 )
+/** Every proposal a test's result path gates, each told apart by its key and contract version. */
+export const dnd5ePathGatedProposalOperations = [
+  dnd5eTestHealProposalOperation,
+  dnd5eTestTemporaryHitPointsProposalOperation,
+  dnd5eTestDamageProposalOperation,
+  dnd5eTestScalarReductionProposalOperation,
+  dnd5eTestConditionProposalOperation,
+  dnd5eTestMarginConditionProposalOperation,
+  ...dnd5ePathGatedTargetProposalOperations
+]
 /** Binds a persistent relationship's authored entry; application is owned by the effect planner. */
 export const dnd5eActorRelationshipStateOperation: PureRuleOperationContract = {
   key: DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
@@ -1274,7 +1258,6 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_TOTAL_OPERATION_KEY,
     DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
-    DND5E_SAVE_DAMAGE_TOTAL_OPERATION_KEY,
     DND5E_DAMAGE_MULTIPLIER_OPERATION_KEY,
     DND5E_HEAL_TOTAL_OPERATION_KEY,
     DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
