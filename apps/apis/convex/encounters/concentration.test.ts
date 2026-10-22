@@ -56,7 +56,7 @@ function response(
     occurrenceVersion: number
     request: {
       requestId: string
-      rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+      rollMode: string
       keep: 'FIRST' | 'HIGHER' | 'LOWER'
     }
   },
