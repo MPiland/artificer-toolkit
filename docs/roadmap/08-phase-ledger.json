@@ -3403,7 +3403,7 @@
             },
             {
               "id": "RULES-2.T6f",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -3413,7 +3413,7 @@
                 "after": ["RULES-2.T6e"]
               },
               "text": "Compiler: zone subsystem as its own module, neutral geometry outside systems/dnd5e.",
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "note": "Merged m325 (3ceed3087)."
             },
             {
               "id": "RULES-2.T7",
@@ -3846,7 +3846,8 @@
                 "rr": 3,
                 "size": 2,
                 "after": ["RULES-2.T6f"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             },
             {
               "status": "TODO",
