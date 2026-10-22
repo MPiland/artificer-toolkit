@@ -11,6 +11,7 @@ import type { CharacterBuilderIntentCacheDto } from '@artificer-toolkit/schema/a
 import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import type { SelectOption } from '#forms/utils/formUtils'
 import type { CharacterFormValues } from '../../core/characterBuilder.types'
+import { findOption } from '#app/forms/utils/valueGuards'
 
 type AbilityIntentCache = NonNullable<CharacterBuilderIntentCacheDto['abilities']>
 export const DEFAULT_ABILITY_ROLL_CONFIGURATION = '4d6dl1r1'
@@ -37,10 +38,9 @@ const abilityOptionDefinitions = ABILITY_OPTIONS.map((option) => ({
 })) satisfies { value: AbilityAssignmentCode; label: string }[]
 
 export const abilityCodes = abilityOptionDefinitions.map((option) => option.value)
-const abilityCodeSet = new Set<AbilityAssignmentCode>(abilityCodes)
 
 export function isCharacterAbilityCode(value: string): value is AbilityAssignmentCode {
-  return abilityCodeSet.has(value as AbilityAssignmentCode)
+  return findOption(abilityCodes, value) !== undefined
 }
 
 const abilityMethodOptions: SelectOption[] = CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS.map(
@@ -51,13 +51,11 @@ const abilityMethodLabelByValue = new Map(
   abilityMethodOptions.map((option) => [option.value, option.label])
 )
 
-const standardArrayOptionValues = new Set<string>(
-  STANDARD_ARRAY_SCORE_OPTIONS.map((option) => option.code)
-)
-const pointBuyOptionValues = new Set<string>(POINT_BUY_SCORE_OPTIONS.map((option) => option.code))
+const standardArrayOptionCodes = STANDARD_ARRAY_SCORE_OPTIONS.map((option) => option.code)
+const pointBuyOptionCodes = POINT_BUY_SCORE_OPTIONS.map((option) => option.code)
 const allAbilityOptionValues = new Set<string>([
-  ...standardArrayOptionValues,
-  ...pointBuyOptionValues
+  ...standardArrayOptionCodes,
+  ...pointBuyOptionCodes
 ])
 
 export function isAbilityAssignmentOption(
@@ -169,18 +167,12 @@ export function setAbilityDraftSlots(
   if (method === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY) {
     const abilities: CharacterFormValues['intent']['abilities'] = {
       method,
-      assignments: normalizedSlots.flatMap((slot) =>
-        slot.ability !== undefined &&
-        slot.option !== undefined &&
-        pointBuyOptionValues.has(slot.option)
-          ? [
-              {
-                ability: slot.ability,
-                option: slot.option as PointBuyAbilities['assignments'][number]['option']
-              }
-            ]
+      assignments: normalizedSlots.flatMap((slot) => {
+        const option = findOption(pointBuyOptionCodes, slot.option)
+        return slot.ability !== undefined && option !== undefined
+          ? [{ ability: slot.ability, option }]
           : []
-      )
+      })
     }
 
     return {
@@ -194,10 +186,7 @@ export function setAbilityDraftSlots(
             method,
             slots: normalizedSlots.map(({ ability, option }) => ({
               ability,
-              option:
-                option && pointBuyOptionValues.has(option)
-                  ? (option as PointBuyAbilities['assignments'][number]['option'])
-                  : undefined
+              option: findOption(pointBuyOptionCodes, option)
             }))
           }
         },
@@ -208,18 +197,12 @@ export function setAbilityDraftSlots(
 
   const abilities: CharacterFormValues['intent']['abilities'] = {
     method,
-    assignments: normalizedSlots.flatMap((slot) =>
-      slot.ability !== undefined &&
-      slot.option !== undefined &&
-      standardArrayOptionValues.has(slot.option)
-        ? [
-            {
-              ability: slot.ability,
-              option: slot.option as StandardArrayAbilities['assignments'][number]['option']
-            }
-          ]
+    assignments: normalizedSlots.flatMap((slot) => {
+      const option = findOption(standardArrayOptionCodes, slot.option)
+      return slot.ability !== undefined && option !== undefined
+        ? [{ ability: slot.ability, option }]
         : []
-    )
+    })
   }
 
   return {
@@ -233,10 +216,7 @@ export function setAbilityDraftSlots(
           method,
           slots: normalizedSlots.map(({ ability, option }) => ({
             ability,
-            option:
-              option && standardArrayOptionValues.has(option)
-                ? (option as StandardArrayAbilities['assignments'][number]['option'])
-                : undefined
+            option: findOption(standardArrayOptionCodes, option)
           }))
         }
       },
@@ -392,22 +372,18 @@ export function normalizeAbilityIntent(
   }
 
   if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY) {
-    const pointBuyAbilities = abilities as PointBuyAbilities
-
     return {
       method: CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY,
-      assignments: pointBuyAbilities.assignments.map((assignment) => ({
+      assignments: abilities.assignments.map((assignment) => ({
         ability: assignment.ability,
         option: assignment.option
       }))
     }
   }
 
-  const standardArrayAbilities = abilities as StandardArrayAbilities
-
   return {
     method: CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY,
-    assignments: standardArrayAbilities.assignments.map((assignment) => ({
+    assignments: abilities.assignments.map((assignment) => ({
       ability: assignment.ability,
       option: assignment.option
     }))

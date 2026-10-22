@@ -2271,7 +2271,10 @@ describe('Assisted soft enforcement', () => {
     const read = await targetModifiersFor(base, base.other.caller, version, scene)
     // The Blinded target makes the true roll Advantage ("Unseen attacker"); the player believes Normal.
     expect(read.targets).toEqual([
-      { actorId: base.target.id, attack: { rollMode: 'NORMAL', reasons: [] } }
+      {
+        actorId: base.target.id,
+        attack: { rollMode: 'NORMAL', rollModeLabel: 'Normal', keep: 'FIRST', reasons: [] }
+      }
     ])
     const issued = await executeInRoom(base.other.caller, {
       command: command({
@@ -2345,14 +2348,19 @@ describe('Assisted soft enforcement', () => {
     expect(onScene.targets).toHaveLength(2)
     expect(onScene.targets).toContainEqual({
       actorId: base.target.id,
-      attack: { rollMode: 'DISADVANTAGE', reasons: ['Long range'] }
+      attack: {
+        rollMode: 'DISADVANTAGE',
+        rollModeLabel: 'Disadvantage',
+        keep: 'LOWER',
+        reasons: ['Long range']
+      }
     })
     expect(onScene.targets).toContainEqual({ actorId: custom.id, attack: null })
     const offScene = await targetModifiersFor(base, base.owner.caller, base.run.version, null)
     expect(offScene.targets).toHaveLength(2)
     expect(offScene.targets).toContainEqual({
       actorId: base.target.id,
-      attack: { rollMode: 'NORMAL', reasons: [] }
+      attack: { rollMode: 'NORMAL', rollModeLabel: 'Normal', keep: 'FIRST', reasons: [] }
     })
     expect(offScene.targets).toContainEqual({ actorId: custom.id, attack: null })
     await expect(

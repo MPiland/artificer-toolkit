@@ -4,6 +4,7 @@ import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/chara
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
@@ -55,6 +56,7 @@ export type SpatialMovementTarget = {
 /** The resolved d20 of a candidate whose damage dice are being answered. */
 export type SpatialD20Roll = {
   rollMode: EncounterD20RollMode
+  keep: RollModeKeep
   rawFaces: number[]
   addedDice: D20RolledAddedDieDto[]
 }
@@ -236,7 +238,8 @@ export function spatialExecutionOutcome(input: {
 /**
  * Whether a finished spatial execution ends the move at its contact: its graph interrupts the
  * movement, or it drops a creature moving of its own accord to 0 Hit Points, which can move no
- * further (D156). A forced move carries a creature on regardless.
+ * further (D156). A forced move stops at the contact that drops its creature to 0 Hit Points too
+ * (D170); a teleport arrives regardless.
  */
 export function spatialExecutionStopsMovement(
   recorded: {
@@ -249,7 +252,7 @@ export function spatialExecutionStopsMovement(
   if (recorded.execution.movementInterruption?.kind === 'STOP') return true
   const { before, after } = recorded.targetTransition
   return (
-    movementKind === 'VOLUNTARY' &&
+    (movementKind === 'VOLUNTARY' || movementKind === 'FORCED') &&
     !recorded.candidate.candidate.sourceMoved &&
     before.currentHitPoints > 0 &&
     after.currentHitPoints === 0
@@ -300,13 +303,14 @@ export async function settleAutomaticSpatialEvidence(input: {
     input.autoRoll[input.candidate.targetActorId] === true
   ) {
     const answer = { kind: 'AUTO_ROLL' as const, requestId: result.continuation.request.requestId }
-    const { rawFaces, rollMode, addedDice } = settleEncounterD20Answer({
+    const { rawFaces, rollMode, keep, addedDice } = settleEncounterD20Answer({
+      gameSystemId: result.continuation.graph.source.gameSystemId,
       d20: result.evidencePolicy,
       answer,
       rollD20: () => random(20) + 1,
       random
     })
-    d20 = { rollMode, rawFaces, addedDice }
+    d20 = { rollMode, keep, rawFaces, addedDice }
     result = await resumeTargetBoundActiveRuleEffectWithPause({
       ...effectInput,
       continuation: result.continuation,

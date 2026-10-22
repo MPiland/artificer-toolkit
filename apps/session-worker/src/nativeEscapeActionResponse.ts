@@ -85,6 +85,7 @@ export async function planNativeLiveEscapeResponse(
     refusal: 'An escape check requires d20 evidence.'
   })
   const evaluated = await evaluateEncounterBasicActionCheck({
+    gameSystemId: state.gameSystemId,
     runtime: executionOptions.runtime,
     context,
     continuation,

@@ -363,7 +363,9 @@ Held escapes (D105, D152): the action choices' `escapes` carry `dc`, null for an
 (the tabletop shows "Contested"). A contest participant offered several checks answers its `CONTEST_CHECK`
 pending decision with one `CONTEST_CHECK` resolution (`requestId`, `checkDefinitionId`, and the d20 `roll` as
 `ENTER_DICE` or `SYSTEM_ROLL`). "Roll dice" (`ROLL_RULE_EVIDENCE`) accepts the contest's one `requestId` in the
-picked check's `rollMode`; the decision drawer picks the check, then rolls or enters it.
+picked check's `rollMode`; the decision drawer picks the check, then rolls or enters it. `ENTER_DICE` never carries
+`keep`: the server derives it from the `rollMode`, which must be one of the pending request's `rollModes` (the
+System's offered `{ code, label, keep }` entries), and refuses a face count that does not match it.
 
 Added dice (D156, SPELLS-4.T2c1): a d20 evidence request for an Encounter attack roll or saving throw (concentration
 and death saves included) carries `addedDice`, the rolled-die grants its roller holds (`label`, `count`, `faces`,

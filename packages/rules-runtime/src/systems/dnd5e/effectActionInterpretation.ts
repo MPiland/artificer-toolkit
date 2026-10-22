@@ -40,9 +40,7 @@ import {
   DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
-  MAX_CONDITIONS_PER_PATH,
   isPathConditionImmuneFactKey,
-  DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   UUID,
   Dnd5eEffectActionCompilerError,
@@ -53,7 +51,6 @@ import {
   uuid,
   decodeForcedMovementCollision,
   NESTED_SAVE_MARGIN_NODE_ID,
-  nestedSaveRiderConditionNodeId,
   proposalNodePathCode,
   positive
 } from './effectActionContracts.js'
@@ -69,8 +66,7 @@ import {
   dnd5eTestResultPath,
   dnd5eSaveTestOperation,
   dnd5eMovementInterruptionAuthorizationOperation,
-  dnd5eTestDamageProposalOperation,
-  dnd5eTestConditionProposalOperation,
+  dnd5ePathGatedProposalOperations,
   dnd5eTestMarginConditionProposalOperation,
   dnd5eResultPathSatisfies
 } from './effectActionOperationRegistry.js'
@@ -854,12 +850,11 @@ export function interpretDirect(
   options: { fullTrace?: boolean } = {}
 ): readonly CharacterRuleActionApplication[] {
   if (!options.fullTrace) return interpretDirectProposal(input, graph)
-  // A nested save's riders propose their condition and damage in their test form.
+  // A nested save's bands propose their outcomes in their path-gated form.
   const proposalKeys = new Set([
     ...DND5E_DIRECT_OUTCOME_OPERATION_KEYS,
     DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
-    DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
-    DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
+    ...DND5E_DIRECT_OPERATION_BY_PATH_GATED_OPERATION.keys()
   ])
   if (input.execution.evidence.trace.length !== graph.nodes.length)
     throw new Dnd5eEffectActionCompilerError(
@@ -897,13 +892,20 @@ export function interpretDirect(
     let proposal = originalProposal
     let nestedPaths: { authoredPath: string; resolvedPath: string } | null = null
     const proposalNode = graph.nodes.find((node) => node.id === proposal.nodeId)
+    const directOperation = DND5E_DIRECT_OPERATION_BY_PATH_GATED_OPERATION.get(
+      proposal.operation.key
+    )
     const nestedCondition = proposal.operation.key === DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY
     // A failure-margin rider's condition, gated by the margin its save total is compared against.
     const riderCondition =
       nestedCondition &&
       proposal.operation.contractVersion ===
         dnd5eTestMarginConditionProposalOperation.contractVersion
-    if (nestedCondition || proposal.operation.key === DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY) {
+    if (directOperation) {
+      const operation = dnd5ePathGatedProposalOperations.find(
+        ({ key, contractVersion }) =>
+          key === proposal.operation.key && contractVersion === proposal.operation.contractVersion
+      )
       const saveNode = graph.nodes.find((node) => node.id === 'nested-save-test')
       const save = input.execution.evidence.trace.find((entry) => entry.nodeId === saveNode?.id)
       const die = input.execution.evidence.trace.find((entry) => entry.nodeId === 'nested-save-d20')
@@ -916,14 +918,9 @@ export function interpretDirect(
       const margin = input.execution.evidence.trace.find((entry) => entry.nodeId === marginNode?.id)
       const marginCleared = proposalNode?.inputs.marginCleared
       const marginTotal = marginNode?.inputs.value
-      const expectedNodeIds = riderCondition
-        ? Array.from({ length: MAX_CONDITIONS_PER_PATH - 1 }, (_, index) =>
-            nestedSaveRiderConditionNodeId(index)
-          )
-        : [nestedCondition ? 'nested-save-condition' : 'nested-save-proposal']
       if (
         !proposalNode ||
-        !expectedNodeIds.includes(proposalNode.id) ||
+        !operation ||
         (riderCondition &&
           (marginNode?.operation.key !== compareThresholdRuleOperation.key ||
             marginNode.operation.contractVersion !==
@@ -980,15 +977,7 @@ export function interpretDirect(
         ...(marginNode && margin
           ? [[marginNode, margin, compareThresholdRuleOperation] as const]
           : []),
-        [
-          proposalNode,
-          proposal,
-          riderCondition
-            ? dnd5eTestMarginConditionProposalOperation
-            : nestedCondition
-              ? dnd5eTestConditionProposalOperation
-              : dnd5eTestDamageProposalOperation
-        ]
+        [proposalNode, proposal, operation]
       ]
       for (const [node, trace, operation] of verified) {
         const expectedInputs: Record<string, RuleValue> = {}
@@ -1046,10 +1035,12 @@ export function interpretDirect(
         authoredPath: proposal.outputs.authoredPath,
         resolvedPath: proposal.outputs.resolvedPath
       }
-      proposal = {
-        ...proposal,
-        operation: { key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY, contractVersion: 1 }
-      }
+      const {
+        resolvedPath: _resolvedPath,
+        authoredPath: _authoredPath,
+        ...outputs
+      } = proposal.outputs
+      proposal = { ...proposal, operation: { key: directOperation, contractVersion: 1 }, outputs }
     }
     const amountBinding = proposalNode?.inputs.amount
     const resolvedAmount =

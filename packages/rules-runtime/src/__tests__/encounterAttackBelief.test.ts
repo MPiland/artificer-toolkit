@@ -109,8 +109,10 @@ function truePolicy(
   others: ReturnType<typeof encounterAttackSightContributors> = []
 ) {
   const contributors = [...mergeCanonicalD20Contributors(trueSight, others)]
+  const { rollMode, keep } = resolveDnd5eRollMode(contributors)
   return {
-    rollMode: resolveDnd5eRollMode(contributors).rollMode,
+    rollMode,
+    keep,
     contributors,
     contributorChecksum: checksumRuleDocument(contributors)
   }
@@ -371,6 +373,7 @@ describe('encounter save sight captions', () => {
   const sight = (
     value: Partial<Parameters<typeof encounterSaveSightCaptions>[0]>
   ): Parameters<typeof encounterSaveSightCaptions>[0] => ({
+    gameSystemId: DND5E_SYSTEM_ID,
     actual: {
       targetSeesAttacker: 'SEES',
       attackerSeesTarget: 'SEES',

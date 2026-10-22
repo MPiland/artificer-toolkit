@@ -124,6 +124,7 @@ describe('Hideous Laughter authored from core options', () => {
           requestId: paused.continuation.request.requestId,
           rawFaces: [face],
           rollMode: 'NORMAL',
+          keep: 'FIRST',
           addedDice: []
         }
       })

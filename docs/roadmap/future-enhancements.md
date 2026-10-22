@@ -85,6 +85,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ## Post-launch
 
+- **Costly and consumed material components (D171):** authored `materialCost` and `consumed` fields on spells, checked against the caster's inventory and deducted on cast, for example Revivify's 300 gp diamond. Today the material description is shown only.
 - **Give loot from a table (SCENE-4):** a "Give to…" action on a loot table entry moves the catalog item, or the coins, into a Character's inventory.
 
 ### Deferred edge cases (watch for in real use)

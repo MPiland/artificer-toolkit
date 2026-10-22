@@ -171,6 +171,7 @@ function passageTerminalCommand() {
       outcome: 'SUCCESS' as const,
       initiator: {
         rollMode: 'NORMAL' as const,
+        keep: 'FIRST' as const,
         rawFaces: [15],
         selectedNatural: 15,
         modifier: 0,
@@ -178,6 +179,7 @@ function passageTerminalCommand() {
       },
       defender: {
         rollMode: 'NORMAL' as const,
+        keep: 'FIRST' as const,
         rawFaces: [10],
         selectedNatural: 10,
         modifier: 0,
@@ -603,6 +605,7 @@ function movementReactionLegendaryPendingContext() {
   const originalD20 = {
     requestId: 'movement-reaction-save',
     rollMode: 'NORMAL' as const,
+    keep: 'FIRST' as const,
     derivedRollMode: 'NORMAL' as const,
     rawFaces: [5],
     selectedNatural: 5,
@@ -767,6 +770,7 @@ function concentrationContext(input: {
       savingThrowAbilityDefinitionId: ids.entry,
       modifier: 0,
       rollMode: 'ADVANTAGE' as const,
+      keep: 'HIGHER' as const,
       contributors: [],
       contributorChecksum: checksumRuleDocument([])
     },

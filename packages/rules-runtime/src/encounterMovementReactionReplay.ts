@@ -198,6 +198,7 @@ export async function replayEncounterMovementReactionAction(input: {
     }
     if (snapshot && result.continuation.request.requestId === snapshot.request.requestId) break
     const resolution = resolutionForRetainedEvidence({
+      gameSystemId: input.prepared.prepared.state.gameSystemId,
       pending: result,
       integers,
       d20,
@@ -366,6 +367,7 @@ async function replayResistanceAction(
       throw new Error('The retained action evidence is invalid.')
     if (snapshot && result.continuation.request.requestId === snapshot.request.requestId) break
     const resolution = resolutionForRetainedEvidence({
+      gameSystemId: input.prepared.prepared.state.gameSystemId,
       pending: result,
       integers,
       d20,

@@ -220,6 +220,7 @@ function recurringSaveBatchResult(outcome: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'): 
   execution.d20 = {
     requestId: 'recurring-save-d20',
     rollMode: 'NORMAL',
+    keep: 'FIRST',
     derivedRollMode: 'NORMAL',
     rawFaces: [12],
     selectedNatural: 12,
@@ -602,6 +603,7 @@ describe('rules runtime contracts', () => {
     const policy = {
       requestNodeId: 'd20',
       rollMode: 'ADVANTAGE' as const,
+      keep: 'HIGHER' as const,
       contributors: [
         {
           sourceId: 'grant:one',
@@ -650,6 +652,7 @@ describe('rules runtime contracts', () => {
         kind: 'ACTION_EVIDENCE' as const,
         d20: {
           rollMode: 'NORMAL' as const,
+          keep: 'FIRST' as const,
           contributors: [],
           contributorChecksum: 'e'.repeat(64),
           modifier: 5,
@@ -692,6 +695,7 @@ describe('rules runtime contracts', () => {
           testRollEvidence: {
             requestId: 'test-roll',
             rollMode: 'NORMAL',
+            keep: 'FIRST',
             derivedRollMode: 'NORMAL',
             rawFaces: [12],
             selectedNatural: 12
@@ -714,6 +718,7 @@ describe('rules runtime contracts', () => {
     const nestedOutcomeD20 = {
       requestNodeId: 'nested-save-d20',
       rollMode: 'ADVANTAGE' as const,
+      keep: 'HIGHER' as const,
       contributors: nestedContributors,
       contributorChecksum: checksumRuleDocument(nestedContributors),
       modifier: 2,
@@ -723,6 +728,7 @@ describe('rules runtime contracts', () => {
       requestNodeId: nestedOutcomeD20.requestNodeId,
       requestId: 'nested-save-request',
       rollMode: nestedOutcomeD20.rollMode,
+      keep: nestedOutcomeD20.keep,
       derivedRollMode: nestedOutcomeD20.rollMode,
       rawFaces: [3, 17],
       selectedNatural: 17,
@@ -746,6 +752,7 @@ describe('rules runtime contracts', () => {
         testRollEvidence: {
           requestId: 'test-roll',
           rollMode: 'NORMAL' as const,
+          keep: 'FIRST' as const,
           derivedRollMode: 'NORMAL' as const,
           rawFaces: [12],
           selectedNatural: 12
@@ -818,6 +825,7 @@ describe('rules runtime contracts', () => {
         savingThrowAbilityDefinitionId: '00000000-0000-0000-0011-000300000000',
         modifier: 3,
         rollMode: 'NORMAL',
+        keep: 'FIRST',
         contributors: [],
         contributorChecksum: 'e'.repeat(64)
       },
@@ -857,6 +865,7 @@ describe('rules runtime contracts', () => {
       d20Policy: {
         requestNodeId: 'save',
         rollMode: 'NORMAL' as const,
+        keep: 'FIRST' as const,
         contributors: [],
         contributorChecksum: 'e'.repeat(64),
         modifier: 0,
@@ -923,6 +932,7 @@ describe('rules runtime contracts', () => {
         d20: {
           requestId: 'concentration-d20',
           rollMode: 'NORMAL',
+          keep: 'FIRST',
           derivedRollMode: 'NORMAL',
           rawFaces: [12],
           selectedNatural: 12,
@@ -1006,6 +1016,7 @@ describe('rules runtime contracts', () => {
         d20: {
           requestId: 'concentration-d20',
           rollMode: 'NORMAL',
+          keep: 'FIRST',
           derivedRollMode: 'NORMAL',
           rawFaces: [12],
           selectedNatural: 12,
@@ -1037,6 +1048,7 @@ describe('rules runtime contracts', () => {
         d20: {
           requestId: 'concentration-d20',
           rollMode: 'NORMAL',
+          keep: 'FIRST',
           derivedRollMode: 'NORMAL',
           rawFaces: [2],
           selectedNatural: 2,
@@ -1482,6 +1494,7 @@ describe('rules runtime contracts', () => {
     const evidence = {
       requestId: 'ordinary-d20-request',
       rollMode: 'ADVANTAGE' as const,
+      keep: 'HIGHER' as const,
       derivedRollMode: 'ADVANTAGE' as const,
       rawFaces: [3, 17],
       selectedNatural: 17,
@@ -1498,6 +1511,7 @@ describe('rules runtime contracts', () => {
       serverRuleExecutionD20EvidenceDtoSchema.parse({
         ...evidence,
         rollMode: 'NORMAL',
+        keep: 'FIRST',
         rawFaces: [3],
         selectedNatural: 3,
         total: 7
@@ -1821,6 +1835,7 @@ describe('rules runtime contracts', () => {
         Reflect.set(result.executions[0]!, 'd20', {
           requestId: 'turn-effect-d20',
           rollMode: 'NORMAL',
+          keep: 'FIRST',
           derivedRollMode: 'NORMAL',
           rawFaces: [14],
           selectedNatural: 14,
@@ -1835,6 +1850,7 @@ describe('rules runtime contracts', () => {
         Reflect.set(result.executions[0]!, 'd20', {
           requestId: 'turn-effect-d20',
           rollMode: 'ADVANTAGE',
+          keep: 'HIGHER',
           derivedRollMode: 'ADVANTAGE',
           rawFaces: [14],
           selectedNatural: 14,
@@ -1849,6 +1865,7 @@ describe('rules runtime contracts', () => {
         Reflect.set(result.executions[0]!, 'd20', {
           requestId: 'turn-effect-d20',
           rollMode: 'NORMAL',
+          keep: 'FIRST',
           derivedRollMode: 'NORMAL',
           rawFaces: [14],
           selectedNatural: 13,
@@ -1863,6 +1880,7 @@ describe('rules runtime contracts', () => {
         Reflect.set(result.executions[0]!, 'd20', {
           requestId: 'wrong-request',
           rollMode: 'NORMAL',
+          keep: 'FIRST',
           derivedRollMode: 'NORMAL',
           rawFaces: [14],
           selectedNatural: 14,

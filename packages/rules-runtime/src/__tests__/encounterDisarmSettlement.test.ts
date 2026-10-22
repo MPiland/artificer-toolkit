@@ -187,6 +187,7 @@ function disarmContest(input: {
       actorId: SOURCE_ACTOR_ID,
       requestNodeId: 'initiator_d20',
       rollMode: 'NORMAL',
+      keep: 'FIRST',
       contributors,
       contributorChecksum: checksumRuleDocument(contributors),
       modifier: 4
@@ -199,6 +200,7 @@ function disarmContest(input: {
           checkDefinitionId: DEFENDER_CHECK_ID,
           label: 'Strength (Athletics)',
           rollMode: 'NORMAL',
+          keep: 'FIRST',
           contributors,
           contributorChecksum: checksumRuleDocument(contributors),
           modifier: 1
@@ -252,6 +254,7 @@ function contestRoll(actorId: string, requestNodeId: string, face: number, modif
     actorId,
     requestNodeId,
     rollMode: 'NORMAL' as const,
+    keep: 'FIRST' as const,
     rawFaces: [face],
     selectedNatural: face,
     contributors: [],

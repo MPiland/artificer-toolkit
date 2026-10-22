@@ -14,7 +14,7 @@ import {
 } from '../encounterActionExecution.js'
 import type { EncounterEvidenceAnswer } from '../encounterEvidenceAnswer.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
-import { testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { SRD_SYSTEM_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   QUILL_VOLLEY_ID,
   creatureActor,
@@ -169,7 +169,12 @@ describe('attack d20 believed versus true mode through the action execution', ()
     const held = await advance(prepared, {
       resume: {
         pending,
-        resolution: { kind: 'ENTER_DICE', requestId, rawFaces: [12], rollMode: 'NORMAL' }
+        resolution: {
+          kind: 'ENTER_DICE',
+          requestId,
+          rawFaces: [12],
+          rollMode: 'NORMAL'
+        }
       }
     })
     if (held.kind !== 'PENDING') throw new Error('Expected a held d20.')
@@ -186,7 +191,12 @@ describe('attack d20 believed versus true mode through the action execution', ()
       advance(prepared, {
         resume: {
           pending: held,
-          resolution: { kind: 'ENTER_DICE', requestId, rawFaces: [3, 5], rollMode: 'ADVANTAGE' }
+          resolution: {
+            kind: 'ENTER_DICE',
+            requestId,
+            rawFaces: [3, 5],
+            rollMode: 'ADVANTAGE'
+          }
         }
       })
     ).rejects.toThrow()
@@ -225,7 +235,8 @@ describe('attack d20 believed versus true mode through the action execution', ()
         requestId: pending.continuation.request.requestId,
         rollId: testUuid(0xc4),
         faces: [12],
-        rollMode: 'NORMAL'
+        rollMode: 'NORMAL',
+        keep: 'FIRST'
       },
       [6]
     )
@@ -372,6 +383,7 @@ describe('attack d20 believed versus true mode through the action execution', ()
     const requestId = pending.continuation.request.requestId
     const replay = (rollMode: 'ADVANTAGE' | 'DISADVANTAGE') =>
       resolutionForRetainedEvidence({
+        gameSystemId: SRD_SYSTEM_ID,
         pending,
         integers: new Map(),
         d20: new Map([
@@ -380,6 +392,7 @@ describe('attack d20 believed versus true mode through the action execution', ()
             {
               requestId,
               rollMode,
+              keep: rollMode === 'ADVANTAGE' ? 'HIGHER' : 'LOWER',
               derivedRollMode: 'DISADVANTAGE',
               rawFaces: [3, 18],
               selectedNatural: rollMode === 'ADVANTAGE' ? 18 : 3

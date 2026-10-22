@@ -10,6 +10,7 @@ import { GuidedVehicleAuthoring } from '#domains/vehicles/guided/GuidedVehicleAu
 import type { AuthoredFormSession } from '../factories/authoredFormFactories.types'
 import type { GuidedAuthoringStateHandler } from './guidedAuthoring.types'
 import { GuidedStartChoice } from './GuidedStartChoice'
+import { isRecord } from '#forms/utils/valueGuards'
 
 type GuidedAuthoringProps = {
   form: ComponentProps<typeof GuidedSpellAuthoring>['form']
@@ -123,7 +124,7 @@ export function GuidedAuthoring({
 }
 
 function hasMeaningfulGuidedValues(values: object) {
-  const record = values as Record<string, unknown>
+  const record: Record<string, unknown> = isRecord(values) ? values : {}
   return (
     (typeof record.label === 'string' && record.label.trim().length > 0) ||
     ['effects', 'features', 'details'].some(

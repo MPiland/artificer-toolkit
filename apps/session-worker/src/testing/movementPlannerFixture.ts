@@ -227,6 +227,12 @@ export async function spatialDamageEffect(input: {
   }
   /** Makes a Scene-fixed effect a hidden, unrevealed field that allows passage at half speed. */
   hiddenHalfSpeedField?: boolean
+  /** The kinds of movement that trigger the effect; a voluntary move alone unless it says more. */
+  movementKinds?: ('VOLUNTARY' | 'FORCED' | 'TELEPORT')[]
+  /** What triggers the effect; crossing the circle alone unless it says more. */
+  triggerModes?: ('ENTER' | 'EXIT' | 'CROSS')[]
+  /** Whether a Scene-fixed effect is spent by its first trigger; one-shot unless it says otherwise. */
+  activation?: 'ONE_SHOT' | 'REPEATABLE'
 }) {
   const offset = (input.variant ?? 0) * 0x10
   return buildSpatialDamageEffect({
@@ -247,7 +253,10 @@ export async function spatialDamageEffect(input: {
     condition: input.condition,
     remainingTicks: 3,
     moving: input.moving,
-    hiddenHalfSpeedField: input.hiddenHalfSpeedField
+    hiddenHalfSpeedField: input.hiddenHalfSpeedField,
+    movementKinds: input.movementKinds,
+    triggerModes: input.triggerModes,
+    activation: input.activation
   })
 }
 

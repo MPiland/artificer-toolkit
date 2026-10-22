@@ -16,6 +16,7 @@ import { GuidedSimpleEffectComposer } from './GuidedSimpleEffectComposer'
 import { rehydrateGuidedSpell } from './guidedSimpleEffect.rehydrate'
 import type { GuidedEffectIds } from './guidedSimpleEffect.types'
 import * as styles from './guidedAuthoring.css'
+import { findOption } from '#forms/utils/valueGuards'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
 
 const USAGE_OPTIONS = [
@@ -23,6 +24,12 @@ const USAGE_OPTIONS = [
   { value: 'ACTION', label: 'Action' },
   { value: 'BONUS_ACTION', label: 'Bonus action' },
   { value: 'REACTION', label: 'Reaction' }
+] as const
+
+const RESET_OPTIONS = [
+  { value: 'SHORT_REST', label: 'Short rest' },
+  { value: 'LONG_REST', label: 'Long rest' },
+  { value: 'DAWN', label: 'Dawn' }
 ] as const
 
 const OUTCOME_OPTIONS = [
@@ -157,7 +164,11 @@ export function GuidedFeatureAccordion({
                         value={feature.section ?? 'TRAIT'}
                         onChange={(value) =>
                           updateFeature(feature.id, {
-                            section: (value ?? 'TRAIT') as FeatureDto['section']
+                            section:
+                              findOption(
+                                USAGE_OPTIONS.map((option) => option.value),
+                                value
+                              ) ?? 'TRAIT'
                           })
                         }
                       />
@@ -203,17 +214,17 @@ export function GuidedFeatureAccordion({
                         />
                         <Select
                           label='Reset timing'
-                          data={[
-                            { value: 'SHORT_REST', label: 'Short rest' },
-                            { value: 'LONG_REST', label: 'Long rest' },
-                            { value: 'DAWN', label: 'Dawn' }
-                          ]}
+                          data={RESET_OPTIONS}
                           value={simpleCharge.resetKind}
                           onChange={(value) =>
                             updateFeature(feature.id, {
                               charges: {
                                 ...simpleCharge,
-                                resetKind: (value ?? 'LONG_REST') as typeof simpleCharge.resetKind
+                                resetKind:
+                                  findOption(
+                                    RESET_OPTIONS.map((option) => option.value),
+                                    value
+                                  ) ?? 'LONG_REST'
                               }
                             })
                           }

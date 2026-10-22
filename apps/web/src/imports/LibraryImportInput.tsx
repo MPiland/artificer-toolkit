@@ -70,7 +70,10 @@ export function LibraryImportInput({
       <Radio.Group
         label='Choose a source'
         value={source}
-        onChange={(value) => onSourceChange(value as ImportSourceDto)}
+        onChange={(value) => {
+          const nextSource = sourceOptions.find((option) => option.value === value)?.value
+          if (nextSource) onSourceChange(nextSource)
+        }}
       >
         <SimpleGrid cols={{ base: 1, sm: 3 }}>
           {sourceOptions.map((option) => (

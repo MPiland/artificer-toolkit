@@ -24,6 +24,7 @@ import {
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { encounterRuleUsageUsed, withEncounterRuleUsageUsed } from '../encounterActorState.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID as ACTION } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
@@ -219,6 +220,7 @@ describe('a zone acting at a turn boundary (SPELLS-20 T4b2b)', () => {
     expect(turnPendingActorId(saveRequest)).toBe(GOBLIN_ID)
     expect(
       projectNativeTurnPending({
+        gameSystemId: DND5E_SYSTEM_ID,
         snapshot: saveRequest,
         occurrenceId: OCCURRENCE_ID,
         occurrenceVersion: 1,
@@ -245,6 +247,7 @@ describe('a zone acting at a turn boundary (SPELLS-20 T4b2b)', () => {
     expect(turnPendingActorId(dieRequest)).toBe(SOURCE_ID)
     expect(
       projectNativeTurnPending({
+        gameSystemId: DND5E_SYSTEM_ID,
         snapshot: dieRequest,
         occurrenceId: OCCURRENCE_ID,
         occurrenceVersion: 1,
@@ -556,6 +559,7 @@ describe('a zone outcome with no save at the start of its source’s turn (SPELL
       expect(turnPendingActorId(snapshot)).toBe(SOURCE_ID)
       expect(
         projectNativeTurnPending({
+          gameSystemId: DND5E_SYSTEM_ID,
           snapshot,
           occurrenceId: OCCURRENCE_ID,
           occurrenceVersion: 1,

@@ -3,7 +3,7 @@ import {
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import type { InitiativeDeclarationAdjudicationFieldDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import type { EncounterD20RollModeDto } from '@artificer-toolkit/schema/api/encounters'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { EncounterRuleRollTriggerDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import {
@@ -28,24 +28,18 @@ export function adjudicationSelectionValues(
   )
 }
 
-export const rollModeLabels = {
-  NORMAL: 'Normal',
-  ADVANTAGE: 'Advantage',
-  DISADVANTAGE: 'Disadvantage'
-} as const satisfies Record<EncounterD20RollModeDto, string>
-
 /**
- * The face a d20 row keeps, matching the server's selection: the higher on advantage, the lower on
- * disadvantage (the first on a tie), otherwise the only face.
+ * The face a d20 row keeps, matching the server's selection: the higher for HIGHER, the lower for
+ * LOWER (the first on a tie), otherwise the only face.
  */
 export function keptFaceIndex(
-  rollMode: EncounterD20RollModeDto,
+  keep: RollModeKeep,
   faces: readonly (number | string)[]
 ): number | null {
-  if (rollMode === 'NORMAL') return 0
+  if (keep === 'FIRST') return 0
   const [first, second] = faces
   if (typeof first !== 'number' || typeof second !== 'number') return null
-  return (rollMode === 'ADVANTAGE' ? second > first : second < first) ? 1 : 0
+  return (keep === 'HIGHER' ? second > first : second < first) ? 1 : 0
 }
 
 /**

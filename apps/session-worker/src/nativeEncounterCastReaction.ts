@@ -499,6 +499,7 @@ export async function advanceNativeCastReactions(input: {
   }
   if (rolling) {
     const evaluated = await evaluateEncounterBasicActionCheck({
+      gameSystemId: input.gameSystemId,
       runtime,
       context: { d20: rolling.check.d20, check: { dc: rolling.check.dc } },
       continuation: rolling.continuation,

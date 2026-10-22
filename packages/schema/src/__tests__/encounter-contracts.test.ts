@@ -17,6 +17,11 @@ import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '../shared/encoun
 const encounterId = '00000000-0000-4000-8000-000000000001'
 const commandId = '00000000-0000-4000-8000-000000000002'
 
+const offeredRollModes = [
+  { code: 'NORMAL', label: 'Normal', keep: 'FIRST' as const },
+  { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' as const }
+]
+
 describe('encounter contracts', () => {
   it('retains only exact post-action Cleaving trigger facts on a paused Character action', () => {
     const pending = {
@@ -335,6 +340,8 @@ describe('encounter contracts', () => {
           min: 1 as const,
           max: 20 as const,
           rollMode: 'NORMAL' as const,
+          keep: 'FIRST' as const,
+          rollModes: offeredRollModes,
           derivedRollModeReasons: []
         },
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'] as const
@@ -999,7 +1006,7 @@ describe('encounter contracts', () => {
         rollMode: 'ADVANTAGE'
       }
     })
-    const enterDice = (rawFaces: number[], rollMode: string) =>
+    const enterDice = (extra: Record<string, unknown>) =>
       encounterCommandInputDtoSchema.safeParse({
         encounterId,
         commandId,
@@ -1007,14 +1014,15 @@ describe('encounter contracts', () => {
         type: 'RESOLVE_RULE_OCCURRENCE',
         occurrenceId: encounterId,
         expectedOccurrenceVersion: 0,
-        resolution: { kind: 'ENTER_DICE', requestId: 'concentration-d20', rawFaces, rollMode }
+        resolution: { kind: 'ENTER_DICE', requestId: 'concentration-d20', ...extra }
       }).success
-    expect(enterDice([17], 'NORMAL')).toBe(true)
-    expect(enterDice([4, 17], 'DISADVANTAGE')).toBe(true)
-    expect(enterDice([4, 17], 'NORMAL')).toBe(false)
-    expect(enterDice([17], 'ADVANTAGE')).toBe(false)
-    expect(enterDice([17], 'DISADVANTAGE')).toBe(false)
-    expect(enterDice([17], 'SUPER_ADVANTAGE')).toBe(false)
+    // The wire checks code shape only; the System adapter decides which modes and face counts exist.
+    expect(enterDice({ rawFaces: [17], rollMode: 'NORMAL' })).toBe(true)
+    expect(enterDice({ rawFaces: [4, 17], rollMode: 'DISADVANTAGE' })).toBe(true)
+    expect(enterDice({ rawFaces: [17], rollMode: 'SUPER_ADVANTAGE' })).toBe(true)
+    expect(enterDice({ rawFaces: [17], rollMode: 'not a code' })).toBe(false)
+    // The server derives which face a mode keeps, so the client cannot send it.
+    expect(enterDice({ rawFaces: [17], rollMode: 'NORMAL', keep: 'FIRST' })).toBe(false)
     expect(
       encounterCommandInputDtoSchema.safeParse({
         encounterId,
@@ -1184,6 +1192,8 @@ describe('encounter contracts', () => {
             min: 1,
             max: 20,
             rollMode: 'ADVANTAGE',
+            keep: 'HIGHER',
+            rollModes: offeredRollModes,
             derivedRollModeReasons: ['Flanking']
           },
           allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
@@ -1194,9 +1204,31 @@ describe('encounter contracts', () => {
       request: {
         requestId: 'issued-d20',
         rollMode: 'ADVANTAGE',
+        keep: 'HIGHER',
+        rollModes: offeredRollModes,
         derivedRollModeReasons: ['Flanking']
       }
     })
+    for (const rollModes of [undefined, []])
+      expect(
+        pendingEncounterRuleOccurrenceSummaryDtoSchema.safeParse({
+          kind: 'D20_EVIDENCE',
+          occurrenceId: encounterId,
+          occurrenceVersion: 0,
+          encounterVersion: 2,
+          rollerActorId: null,
+          request: {
+            requestId: 'issued-d20',
+            min: 1,
+            max: 20,
+            rollMode: 'NORMAL',
+            keep: 'FIRST',
+            rollModes,
+            derivedRollModeReasons: []
+          },
+          allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
+        }).success
+      ).toBe(false)
     expect(() =>
       encounterCommandResultDtoSchema.parse({
         projection,
@@ -1216,6 +1248,8 @@ describe('encounter contracts', () => {
               min: 1,
               max: 20,
               rollMode: 'NORMAL',
+              keep: 'FIRST',
+              rollModes: offeredRollModes,
               derivedRollModeReasons: []
             },
             allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'],

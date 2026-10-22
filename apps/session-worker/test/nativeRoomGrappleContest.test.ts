@@ -177,7 +177,12 @@ describe('Grapple, a basic action contested by the target, in the room (ATTACK-7
       ]
     })
     const { requestId } = defender.pending
-    const roll = { kind: 'ENTER_DICE', requestId, rawFaces: [13], rollMode: 'NORMAL' }
+    const roll = {
+      kind: 'ENTER_DICE',
+      requestId,
+      rawFaces: [13],
+      rollMode: 'NORMAL'
+    }
 
     const unsealed = await room.resolve(defender, {
       kind: 'CONTEST_CHECK',

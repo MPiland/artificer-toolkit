@@ -115,6 +115,7 @@ export async function advanceNativeIncomingGate(input: {
     }
   const random = input.random ?? nextRollInt
   const evaluated = await evaluateEncounterBasicActionCheck({
+    gameSystemId: input.gameSystemId,
     runtime: input.runtime,
     context: { d20: offer.d20, check: { dc: offer.dc } },
     continuation,

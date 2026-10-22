@@ -1,9 +1,14 @@
 import type { EncounterEffectOfferChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 
-/** The offers this surface lists: picking a new holder. A repeat offer is taken as an action (D166). */
 export type MoveEffectOfferChoice = Extract<
   EncounterEffectOfferChoiceDto,
   { kind: 'MOVE_HELD_EFFECT' }
+>
+
+/** A repeat offer is taken as an ordinary action against the holder (D166). */
+export type RepeatEffectOfferChoice = Extract<
+  EncounterEffectOfferChoiceDto,
+  { kind: 'REPEAT_SOURCE_PATH' }
 >
 
 export const isMoveEffectOffer = (

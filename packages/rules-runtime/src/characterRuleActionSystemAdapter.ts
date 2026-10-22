@@ -1,5 +1,6 @@
 import type { CompiledDuration } from '@artificer-toolkit/shared/compilers'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import {
   FORCED_MOVEMENT_DIRECTION,
   type ForcedMovementDirection
@@ -624,7 +625,7 @@ export interface CharacterRuleActionSystemAdapter {
     /** The outputs of the completed TEST, which an outcome that depends on its margin reads. */
     testOutputs?: Readonly<Record<string, RuleValue>>
     /** The mode the TEST d20 was settled in, which may differ from the mode the rules derived. */
-    testRollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    testRollMode: string
   }): CharacterRuleActionOutcomeTemplate | null
   /**
    * The zone this action places when its authored outcome is a placed-space manifest (or the zones
@@ -775,7 +776,9 @@ export interface CharacterRuleActionSystemAdapter {
   }): {
     facts: Readonly<Record<string, RuleValue>>
     /** The System-selected d20 evidence policy for a paused one-stage test. */
-    d20RollMode?: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    d20RollMode?: string
+    /** The face the System keeps for that mode, present whenever `d20RollMode` is. */
+    d20Keep?: RollModeKeep
     /**
      * Whose d20 it is, present whenever `d20RollMode` is: the source rolls an attack, the target a
      * saving throw. The roll goes to that actor's controllers (ADR 0034 decision 3).
