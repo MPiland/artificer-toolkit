@@ -704,7 +704,7 @@ export interface CharacterRuleActionSystemAdapter {
     | {
         kind: 'ROLL_INFLUENCE'
         requirement: CombatPerceptionRequirementDto
-        influence: 'ADVANTAGE' | 'DISADVANTAGE'
+        influence: string
       }
     | {
         kind: 'ATTEMPT_GATE'
@@ -838,7 +838,7 @@ export interface CharacterRuleActionSystemAdapter {
       checksum: string
     } | null
     /** How the damage that triggered this repeat save tilts its d20 (D167); absent on a turn tick. */
-    rollInfluence?: 'ADVANTAGE' | 'DISADVANTAGE' | null
+    rollInfluence?: string | null
   }): {
     facts: Readonly<Record<string, RuleValue>>
     evidencePolicy: ServerRuleExecutionD20PolicyDto | null

@@ -108,7 +108,15 @@ export interface VttTokenPresentation {
   statuses: Array<{
     category: VttStatusCategory
     id: string
-    kind: 'CONCENTRATION' | 'CONDITION' | 'EFFECT' | 'HEALTH' | 'INJURY' | 'MORALE' | 'REACTION'
+    kind:
+      | 'CONCENTRATION'
+      | 'CONDITION'
+      | 'EFFECT'
+      | 'HEALTH'
+      | 'INJURY'
+      | 'LOOT'
+      | 'MORALE'
+      | 'REACTION'
     label: string
   }>
 }

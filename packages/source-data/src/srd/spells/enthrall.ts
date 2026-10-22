@@ -102,7 +102,8 @@ export const enthrall: SpellAuthored = {
                       grantKind: GRANT_KIND.MODIFIER_GRANT,
                       valueDomainCode: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
                       domain: { skillId: SRD_PERCEPTION_SKILL_ID },
-                      modifierKind: MODIFIER_KIND.DISADVANTAGE,
+                      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                      payload: { influence: 'DISADVANTAGE' },
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                       order: 1

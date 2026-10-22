@@ -97,7 +97,7 @@ export interface TargetBoundActiveRuleEffectExecutionInput {
     checksum: string
   } | null
   /** How the damage that triggered this repeat save tilts its d20 (D167); absent on a turn tick. */
-  rollInfluence?: 'ADVANTAGE' | 'DISADVANTAGE' | null
+  rollInfluence?: string | null
   runtime: RulesRuntimeService
 }
 

@@ -45,7 +45,8 @@ const concentrationAdvantageFeature = {
           ability: 'CONSTITUTION' as const,
           ruleDefinitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
         },
-        modifierKind: 'ADVANTAGE' as const,
+        modifierKind: 'ROLL_INFLUENCE' as const,
+        payload: { influence: 'ADVANTAGE' },
         scope: 'GLOBAL' as const,
         selectionKind: 'GRANTED' as const,
         order: 0

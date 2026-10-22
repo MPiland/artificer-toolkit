@@ -19,8 +19,9 @@ const rollDefinition = buildNodeMap<FeatureRollDefinitionAuthored>()
 
 export const FEATURE_ROLL_DEFINITION_NODE_MAP = rollDefinition.define(
   'featureRollDefinition',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     const { text, number, selectSingle, groupObject } = nodes
+    const { table } = data
     map
       .set('label', text(['label'], 'Label'))
       .set(
@@ -45,12 +46,8 @@ export const FEATURE_ROLL_DEFINITION_NODE_MAP = rollDefinition.define(
       .set(
         'rollMode',
         selectSingle(['rollMode'], 'Roll Mode', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'NORMAL', label: 'Normal' },
-            { code: 'ADVANTAGE', label: 'Advantage' },
-            { code: 'DISADVANTAGE', label: 'Disadvantage' }
-          ]
+          kind: 'DATA',
+          relationship: table('roll_modes', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set('chargeCost', number(['chargeCost'], 'Charge Cost'))

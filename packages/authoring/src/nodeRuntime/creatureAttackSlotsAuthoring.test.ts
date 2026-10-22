@@ -6,13 +6,14 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * ATTACK-11.3: a Multiattack's slot set is authored through the Creature editor's node map, so the
  * SRD Brown Bear and a homebrew Creature hold the same set exactly as authored.
  */
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 const features = brownBear.features ?? []
 const multiattackIndex = features.findIndex((feature) => feature.label === 'Multiattack')
 const bite = features.find((feature) => feature.label === 'Bite')

@@ -13,6 +13,7 @@ import { speedDtoSchema, type SpeedDto } from '@artificer-toolkit/schema/shared/
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
   feetInLengthUnit,
+  modifierRollInfluence,
   type AttackDomainCode,
   type AttackOccasionCode,
   type ValueDomainCode
@@ -179,14 +180,15 @@ export function withCreatureActiveGrantSaves(
     const { domain } = modifier
     const abilityDefinitionId = abilityDefinitionIdByCode[String(domain.ability)]
     const { conditionTypeId } = domain
+    const influence = modifierRollInfluence(modifier)
     if (
-      (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
+      influence === null ||
       modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
       abilityDefinitionId === undefined ||
       modifier.scope !== 'GLOBAL'
     )
       continue
-    const contributor = contributorOf(modifier.modifierKind)
+    const contributor = contributorOf(influence)
     if (conditionTypeId !== undefined) {
       const key = `${abilityDefinitionId}:${conditionTypeId}`
       const entry = scoped.get(key) ?? { abilityDefinitionId, conditionTypeId, contributors: [] }
@@ -373,13 +375,15 @@ export type EncounterAttackAgainstContributor = {
   attackOccasion?: AttackOccasionCode
   /** The attackers, and the turn, the grant's effect admits; a feature's grant admits every one. */
   eventScope: EffectEventScope
-  /** The advantage or disadvantage the grant gives, or null when it negates advantage (Elusive). */
+  /** The influence the grant gives, or null when it suppresses one instead (Elusive). */
   contributor: EncounterRelationshipD20Contributor | null
+  /** The System roll-influence code the grant takes from the attack, whatever its source. */
+  suppressedInfluence: string | null
 }
 
 type AttacksAgainstModifier = Pick<
   CharacterGrantFoldModifier,
-  'valueDomainCode' | 'modifierKind' | 'domain'
+  'valueDomainCode' | 'modifierKind' | 'domain' | 'payload'
 >
 
 /** The grant's part of an attacks-against entry, or null when it is no `ATTACKS_AGAINST` grant. */
@@ -391,13 +395,12 @@ function attacksAgainstEntry(
 ): Omit<EncounterAttackAgainstContributor, 'eventScope'> | null {
   const { attackDomain, requiresHolderSeesAttacker, exemptAttackerSenseDefinitionIds } =
     modifier.domain
-  const { modifierKind } = modifier
+  const influence = modifierRollInfluence(modifier)
+  const suppressedInfluence = modifierRollInfluence(modifier, 'SUPPRESS_ROLL_INFLUENCE')
   if (
     modifier.valueDomainCode !== 'ATTACKS_AGAINST' ||
     attackDomain === undefined ||
-    (modifierKind !== 'ADVANTAGE' &&
-      modifierKind !== 'DISADVANTAGE' &&
-      modifierKind !== 'NEGATE_ADVANTAGE')
+    (influence === null && suppressedInfluence === null)
   )
     return null
   return {
@@ -405,7 +408,8 @@ function attacksAgainstEntry(
     requiresHolderSeesAttacker: requiresHolderSeesAttacker === true,
     exemptAttackerSenseDefinitionIds: exemptAttackerSenseDefinitionIds ?? [],
     ...(modifier.domain.attackOccasion && { attackOccasion: modifier.domain.attackOccasion }),
-    contributor: modifierKind === 'NEGATE_ADVANTAGE' ? null : contributor(modifierKind)
+    contributor: influence === null ? null : contributor(influence),
+    suppressedInfluence
   }
 }
 
@@ -467,12 +471,13 @@ function featureHolderStateSkillGrants(
   return (grantFold?.modifierGroups ?? []).flatMap(({ contributions }) =>
     contributions.flatMap(({ acceptedModifierIndex, grantId }) => {
       const modifier = grantFold!.modifiers[acceptedModifierIndex]!
+      const influence = modifierRollInfluence(modifier)
       return modifier.valueDomainCode === 'SKILL_MODIFIER' &&
-        (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+        influence !== null &&
         modifier.scope === 'GLOBAL' &&
         modifier.source.kind !== 'ACTIVE_EFFECT' &&
         hasHolderStateRestriction(modifier.deferredRequirements)
-        ? [{ modifier, grantId, influence: modifier.modifierKind }]
+        ? [{ modifier, grantId, influence }]
         : []
     })
   )
@@ -546,8 +551,9 @@ export function withHolderStateGrantSaves(
   for (const { effectId, modifiers } of listActiveEffectGrants(effects)) {
     for (const modifier of modifiers) {
       const abilityDefinitionId = abilityDefinitionIdByCode[String(modifier.domain.ability)]
+      const influence = modifierRollInfluence(modifier)
       if (
-        (modifier.modifierKind !== 'ADVANTAGE' && modifier.modifierKind !== 'DISADVANTAGE') ||
+        influence === null ||
         modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
         abilityDefinitionId === undefined ||
         modifier.scope !== 'GLOBAL' ||
@@ -558,7 +564,7 @@ export function withHolderStateGrantSaves(
         continue
       byAbility.set(abilityDefinitionId, [
         ...(byAbility.get(abilityDefinitionId) ?? []),
-        activeGrantContributor(effectId, holderActorId, modifier.grantId, modifier.modifierKind)
+        activeGrantContributor(effectId, holderActorId, modifier.grantId, influence)
       ])
     }
   }
@@ -615,8 +621,8 @@ export function encounterSourceSightSaveGrants(input: {
       contributions.flatMap(({ acceptedModifierIndex, grantId }) => {
         const modifier = grantFold.modifiers[acceptedModifierIndex]!
         const abilityDefinitionId = abilityDefinitionIdByCode[String(modifier.domain.ability)]
-        return (modifier.modifierKind === 'ADVANTAGE' ||
-          modifier.modifierKind === 'DISADVANTAGE') &&
+        const influence = modifierRollInfluence(modifier)
+        return influence !== null &&
           scope.saveRequiresSourceSight(modifier) &&
           abilityDefinitionId !== undefined
           ? [
@@ -627,7 +633,7 @@ export function encounterSourceSightSaveGrants(input: {
                   sourceId: modifier.sourceId,
                   grantId,
                   domainKey: modifier.domainKey,
-                  influence: modifier.modifierKind,
+                  influence,
                   source: rollModeContributorSourceOfMechanicSource(
                     modifier.source,
                     input.holderActorId
@@ -641,7 +647,8 @@ export function encounterSourceSightSaveGrants(input: {
   return listActiveEffectGrants(input.effects).flatMap(({ effectId, modifiers }) =>
     modifiers.flatMap((modifier) => {
       const abilityDefinitionId = abilityDefinitionIdByCode[String(modifier.domain.ability)]
-      return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+      const influence = modifierRollInfluence(modifier)
+      return influence !== null &&
         scope.saveRequiresSourceSight(modifier) &&
         modifier.scope === 'GLOBAL' &&
         abilityDefinitionId !== undefined
@@ -653,7 +660,7 @@ export function encounterSourceSightSaveGrants(input: {
                 effectId,
                 input.holderActorId,
                 modifier.grantId,
-                modifier.modifierKind
+                influence
               )
             }
           ]
@@ -874,13 +881,14 @@ export function creatureActiveGrantAttackContributors(
   return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
     modifiers.flatMap((modifier) => {
       const grantAbility = modifier.domain.ability ?? null
-      return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+      const influence = modifierRollInfluence(modifier)
+      return influence !== null &&
         modifier.valueDomainCode === 'ATTACK_ROLL' &&
         modifier.domain.attackDomain === attackDomain &&
         modifier.domain.againstEffectSource !== true &&
         (grantAbility === null || grantAbility === attackAbility) &&
         modifier.scope === 'GLOBAL'
-        ? [activeGrantContributor(effectId, holderActorId, modifier.grantId, modifier.modifierKind)]
+        ? [activeGrantContributor(effectId, holderActorId, modifier.grantId, influence)]
         : []
     })
   )
@@ -950,12 +958,13 @@ export function creatureFeatureAttackContributors(
 ): EncounterRelationshipD20Contributor[] {
   return modifiers.flatMap((modifier) => {
     const grantAbility = modifier.domain.ability ?? null
+    const influence = modifierRollInfluence(modifier)
     const requirementsMet =
       modifier.deferredRequirements.length === 0 ||
       modifier.deferredRequirements.some((group) =>
         deferredGroupMet(group, nearestEnemyFeet, targetHasNotTakenTurn)
       )
-    return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+    return influence !== null &&
       modifier.valueDomainCode === 'ATTACK_ROLL' &&
       modifier.scope === 'GLOBAL' &&
       modifier.source.kind !== 'ACTIVE_EFFECT' &&
@@ -968,7 +977,7 @@ export function creatureFeatureAttackContributors(
             sourceId: modifier.sourceId,
             grantId: modifier.grantId,
             domainKey: modifier.domainKey,
-            influence: modifier.modifierKind,
+            influence,
             source: rollModeContributorSourceOfMechanicSource(modifier.source, holderActorId)
           }
         ]
@@ -993,21 +1002,15 @@ export function activeEffectSourceAttackContributors(input: {
       definition.origin.sourceActorId === input.targetActorId
   )
   return listActiveEffectGrants(fromTarget).flatMap(({ effectId, modifiers }) =>
-    modifiers.flatMap((modifier) =>
-      (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
-      modifier.valueDomainCode === 'ATTACK_ROLL' &&
-      modifier.domain.attackDomain === input.attackDomain &&
-      modifier.domain.againstEffectSource === true
-        ? [
-            activeGrantContributor(
-              effectId,
-              input.attackerActorId,
-              modifier.grantId,
-              modifier.modifierKind
-            )
-          ]
+    modifiers.flatMap((modifier) => {
+      const influence = modifierRollInfluence(modifier)
+      return influence !== null &&
+        modifier.valueDomainCode === 'ATTACK_ROLL' &&
+        modifier.domain.attackDomain === input.attackDomain &&
+        modifier.domain.againstEffectSource === true
+        ? [activeGrantContributor(effectId, input.attackerActorId, modifier.grantId, influence)]
         : []
-    )
+    })
   )
 }
 
@@ -1025,11 +1028,12 @@ export function creatureActiveGrantCheckContributors(
   return listActiveEffectGrants(effects).flatMap(({ effectId, modifiers }) =>
     modifiers.flatMap((modifier) => {
       const grantAbility = modifier.domain.ability ?? null
-      return (modifier.modifierKind === 'ADVANTAGE' || modifier.modifierKind === 'DISADVANTAGE') &&
+      const influence = modifierRollInfluence(modifier)
+      return influence !== null &&
         modifier.valueDomainCode === 'ABILITY_CHECK' &&
         (grantAbility === null || grantAbility === abilityCode) &&
         modifier.scope === 'GLOBAL'
-        ? [activeGrantContributor(effectId, holderActorId, modifier.grantId, modifier.modifierKind)]
+        ? [activeGrantContributor(effectId, holderActorId, modifier.grantId, influence)]
         : []
     })
   )

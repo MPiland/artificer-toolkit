@@ -18,7 +18,7 @@ vi.mock('convex/react', async (importOriginal) => ({
   useAction: () => delivery
 }))
 vi.mock('#app/data/campaigns/scenes', () => ({ saveSceneDefinition: vi.fn() }))
-vi.mock('./CampaignSceneLootEditor', () => ({ CampaignSceneLootEditor: () => null }))
+vi.mock('../loot/CampaignLootEditor', () => ({ CampaignLootEditor: () => null }))
 vi.mock('./vttSceneRenderer', () => ({
   createVttSceneRenderer: async () => ({ update: vi.fn(), destroy: vi.fn() })
 }))

@@ -137,6 +137,9 @@ type NodeMapBuildApi<NLocal extends object> = Parameters<
 export type OutcomeNodeMapApi = NodeMapBuildApi<OutcomeNode>
 type ScalarReductionNodeMapApi = NodeMapBuildApi<ScalarReductionAuthored>
 
+/** The columns a select drawn from a System code list shows. */
+const CODE_COLUMNS = ['id', 'label', 'description'] as const
+
 const PATH_SELECTION_KIND_OPTIONS = [
   {
     code: 'FIXED',
@@ -1562,6 +1565,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
     const local = cond.local()
     const { or } = logic
     const { table } = data
+    const releaseCost = local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST')
     const isActionEffectModule = or([
       local.field(['kind']).eq('SOURCE_ACTION_TARGET_RESTRICTION'),
       local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE')
@@ -1613,16 +1617,13 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
         selectSingle(
           ['influence'],
           'Influence',
-          { kind: 'INLINE_OPTIONS', options: [{ code: 'ADVANTAGE', label: 'Advantage' }] },
+          { kind: 'DATA', relationship: table('roll_influences', { selectColumns: CODE_COLUMNS }) },
           { showIf: local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE') }
         )
       )
       .set(
         'amount',
-        number(['amount'], 'Movement Cost', {
-          constraints: { minimum: 0 },
-          showIf: local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST')
-        })
+        number(['amount'], 'Movement Cost', { constraints: { minimum: 0 }, showIf: releaseCost })
       )
       .set(
         'unit',
@@ -1630,7 +1631,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
           ['unit'],
           'Unit',
           { kind: 'INLINE_OPTIONS', options: LENGTH_UNIT_OPTIONS },
-          { showIf: local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST') }
+          { showIf: releaseCost }
         )
       )
       .set(
@@ -1700,7 +1701,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
         selectSingle(
           ['whenResolvedAttackD20Mode'],
           'When Attack Mode Is',
-          { kind: 'INLINE_OPTIONS', options: [{ code: 'ADVANTAGE', label: 'Advantage' }] },
+          { kind: 'DATA', relationship: table('roll_modes', { selectColumns: CODE_COLUMNS }) },
           { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
         )
       )

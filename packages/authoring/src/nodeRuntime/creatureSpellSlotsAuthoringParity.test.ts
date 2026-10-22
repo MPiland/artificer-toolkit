@@ -15,6 +15,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * SPELLS-33 T3b: a slotted caster authors its Spellcasting as a cantrip grant plus one PREPARED
@@ -23,7 +24,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * save DC, attack bonus, spell list and slots; each grant is checked against that text.
  */
 
-const reader = createSrdNodeRuntimeReader()
+const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
 
 const casters: ReadonlyArray<readonly [string, CreatureAuthored]> = [
   ['Cult Fanatic', cultFanatic],

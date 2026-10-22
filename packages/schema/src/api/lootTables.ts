@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { findLootRangeRefusal } from '@artificer-toolkit/shared/vtt/lootTable'
+import { MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 const uuid = postgresUuidSchema
@@ -70,13 +71,19 @@ const lootTablesSchema = lazySchema(() =>
   )
 )
 
-/** Who the loot reference belongs to. Encounter placement adds its own kind here, not a second table. */
+/** Who the loot reference belongs to: a Scene, or a creature placed in an Encounter (a Run actor). */
 export const lootOwnerSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
       kind: z.literal('SCENE'),
       campaignId: uuid,
       sceneDefinitionId: uuid
+    }),
+    z.strictObject({
+      kind: z.literal('ENCOUNTER_ACTOR'),
+      campaignId: uuid,
+      encounterId: uuid,
+      actorId: uuid
     })
   ])
 )
@@ -89,6 +96,22 @@ export const lootDocumentSchema = lazySchema(() =>
     owner: lootOwnerSchema,
     version: z.number().check(z.int()).check(z.nonnegative()),
     tables: lootTablesSchema
+  })
+)
+
+/** The tables the GM's live Loot panel lists: the presented Scene's and each placed creature's. */
+export const liveLootInputSchema = lazySchema(() =>
+  z.strictObject({
+    campaignId: uuid,
+    sceneDefinitionId: uuid,
+    encounterId: z.nullable(uuid)
+  })
+)
+
+/** Only owners that have tables: the Scene's and the Encounter creatures'. */
+export const liveLootSchema = lazySchema(() =>
+  z.strictObject({
+    documents: z.array(lootDocumentSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS + 1))
   })
 )
 
@@ -105,4 +128,6 @@ export type LootRange = z.infer<typeof lootRangeSchema>
 export type LootTable = z.infer<typeof lootTableSchema>
 export type LootOwner = z.infer<typeof lootOwnerSchema>
 export type LootDocument = z.infer<typeof lootDocumentSchema>
+export type LiveLootInput = z.infer<typeof liveLootInputSchema>
+export type LiveLoot = z.infer<typeof liveLootSchema>
 export type SaveLootInput = z.infer<typeof saveLootInputSchema>

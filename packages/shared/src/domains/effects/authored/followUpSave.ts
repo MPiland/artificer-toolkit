@@ -39,7 +39,8 @@ export type FollowUpSaveRepeatPerceptionAuthored = {
 }
 
 export type FollowUpSaveRepeatRollInfluenceAuthored = {
-  influence: 'ADVANTAGE' | 'DISADVANTAGE'
+  /** A code from the System's roll-influence vocabulary. */
+  influence: string
   when: FollowUpSaveRepeatPerceptionAuthored
 }
 
@@ -61,7 +62,7 @@ export type FollowUpSaveRepeatTriggerAuthored = {
   /** Any damage type when absent. */
   damageTypeIds?: string[]
   /** How the triggered roll differs from the turn-end one ("advantage if triggered by damage"). */
-  rollInfluence?: 'ADVANTAGE' | 'DISADVANTAGE'
+  rollInfluence?: string
 }
 
 export type FollowUpSaveBranchAuthored =

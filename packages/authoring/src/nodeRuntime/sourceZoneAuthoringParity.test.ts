@@ -20,6 +20,7 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createNodeRuntimeSourceReader } from './systemSourceRows.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 /**
  * SPELLS-20 T1b (ADR 0038): the SRD Spirit Guardians aura is authored from the same core options a
@@ -28,6 +29,7 @@ import { createNodeRuntimeSourceReader } from './systemSourceRows.js'
  */
 
 const reader = createNodeRuntimeSourceReader({
+  policyVocabulary: dnd5eVocabularyCapabilityAdapter.lists,
   system: srdSystemRecord,
   readAuthoredRows: () => [],
   readReusableDefinitions: async () => []

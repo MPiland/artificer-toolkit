@@ -1,3 +1,4 @@
+import { modifierRollInfluence } from '@artificer-toolkit/shared/core'
 import { haste } from '@artificer-toolkit/source-data/srd/spells/haste.js'
 import { describe, expect, it } from 'vitest'
 
@@ -48,14 +49,15 @@ describe('Haste authored from core options (SPELLS-4.T2l-a)', () => {
     expect(contribution).toMatchObject({ kind: 'MODIFIER_GRANT' })
     if (contribution?.kind !== 'MODIFIER_GRANT') throw new Error('Expected a grant.')
     expect(
-      contribution.modifiers.map(({ valueDomainCode, modifierKind }) => [
-        valueDomainCode,
-        modifierKind
+      contribution.modifiers.map((modifier) => [
+        modifier.valueDomainCode,
+        modifier.modifierKind,
+        modifierRollInfluence(modifier)
       ])
     ).toEqual([
-      ['SPEED', 'MULTIPLY'],
-      ['ARMOR_CLASS', 'BONUS'],
-      ['SAVING_THROW_MODIFIER', 'ADVANTAGE']
+      ['SPEED', 'MULTIPLY', null],
+      ['ARMOR_CLASS', 'BONUS', null],
+      ['SAVING_THROW_MODIFIER', 'ROLL_INFLUENCE', 'ADVANTAGE']
     ])
     expect(contribution.onEnd?.turns).toBe(1)
     expect(encounterActiveGrantCapabilitySuppressions(DND5E_SYSTEM_ID, [hasteRecord()])).toEqual([])

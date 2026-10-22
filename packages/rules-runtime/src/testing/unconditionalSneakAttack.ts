@@ -79,7 +79,8 @@ export type RiderGateCondition =
   | {
       constraint?: 'EXCLUDE'
       predicateCode: 'ATTACK_ROLL_MODE'
-      rollMode: 'ADVANTAGE' | 'NOT_DISADVANTAGE'
+      rollMode: string
+      negated?: boolean
     }
   | { constraint?: 'EXCLUDE'; predicateCode: 'ENEMY_NEAR_TARGET'; feet: number }
   | { constraint?: 'EXCLUDE'; predicateCode: 'MOVED_TOWARD_TARGET'; minFeet: number }

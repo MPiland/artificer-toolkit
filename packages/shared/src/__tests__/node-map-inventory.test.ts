@@ -179,15 +179,21 @@ describe('node map inventory', () => {
       hiddenBehavior: 'CLEAR'
     })
     expect(JSON.stringify(registry.get('facetCondition')?.nodes.predicateRollMode)).toContain(
-      'NOT_DISADVANTAGE'
+      'roll_modes'
     )
+    expect(registry.get('facetCondition')?.nodes.predicateNegated).toMatchObject({
+      type: 'TOGGLE'
+    })
     expect(registry.get('facetCondition')?.nodes.predicateFeet).toMatchObject({
       type: 'NUMBER',
       hiddenBehavior: 'CLEAR'
     })
     for (const mapId of ['effectPath', 'manifestBehaviorPath']) {
       const pathMap = registry.get(mapId)
-      expect(pathMap?.nodes.restrictions, mapId).toMatchObject({ kind: 'GROUP', groupKind: 'OBJECT' })
+      expect(pathMap?.nodes.restrictions, mapId).toMatchObject({
+        kind: 'GROUP',
+        groupKind: 'OBJECT'
+      })
       expect(pathMap?.nodes.usage, mapId).toMatchObject({ type: 'SELECT_SINGLE' })
     }
   })

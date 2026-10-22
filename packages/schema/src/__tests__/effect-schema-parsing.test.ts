@@ -730,11 +730,16 @@ describe('effect schema parsing', () => {
         )
       )
 
-    for (const rollMode of ['ADVANTAGE', 'NOT_DISADVANTAGE']) {
+    for (const rollMode of ['ADVANTAGE', 'DISADVANTAGE']) {
       expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode })).success).toBe(true)
     }
     expect(
-      parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'DISADVANTAGE' })).success
+      parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'DISADVANTAGE', negated: true }))
+        .success
+    ).toBe(true)
+    // The wire checks the code's shape; the System's rollMode list decides membership at ingress.
+    expect(
+      parse(gate({ predicateCode: 'ATTACK_ROLL_MODE', rollMode: 'not_disadvantage' })).success
     ).toBe(false)
     expect(parse(gate({ predicateCode: 'ATTACK_ROLL_MODE' })).success).toBe(false)
 
@@ -982,7 +987,8 @@ describe('effect schema parsing', () => {
     )
     expect(followUpSave({ repeatTriggers: [] })).toBe(false)
     expect(followUpSave({ repeatTriggers: [{ ...trigger, kind: 'HOLDER_ACTION' }] })).toBe(false)
-    expect(followUpSave({ repeatTriggers: [{ ...trigger, rollInfluence: 'MAYBE' }] })).toBe(false)
+    // The schema checks a System code's shape; the System's rollInfluence list decides membership.
+    expect(followUpSave({ repeatTriggers: [{ ...trigger, rollInfluence: 'maybe' }] })).toBe(false)
     expect(followUpSave({ attempts: { kind: 'ONCE' } })).toBe(false)
   })
 

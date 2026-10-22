@@ -54,17 +54,15 @@ const FOLLOW_UP_SAVE_REPEAT_PERCEPTION_NODE_MAP = followUpSaveRepeatPerception.d
 
 export const FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP = followUpSaveRepeatRollInfluence.define(
   'followUpSaveRepeatRollInfluence',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     const { selectSingle, groupObject } = nodes
+    const { table } = data
     map
       .set(
         'influence',
         selectSingle(['influence'], 'Influence', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ADVANTAGE', label: 'Advantage' },
-            { code: 'DISADVANTAGE', label: 'Disadvantage' }
-          ]
+          kind: 'DATA',
+          relationship: table('roll_influences', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set(
@@ -109,11 +107,8 @@ export const FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP = followUpSaveRepeatTrigger.
       .set(
         'rollInfluence',
         selectSingle(['rollInfluence'], 'Roll Influence', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'ADVANTAGE', label: 'Advantage' },
-            { code: 'DISADVANTAGE', label: 'Disadvantage' }
-          ]
+          kind: 'DATA',
+          relationship: table('roll_influences', { selectColumns: ['id', 'label', 'description'] })
         })
       )
   }

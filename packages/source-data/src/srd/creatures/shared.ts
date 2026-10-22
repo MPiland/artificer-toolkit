@@ -306,7 +306,8 @@ export function advantageGrants(
 ): NonNullable<FeatureAuthored['grants']> {
   const common = {
     grantKind: GRANT_KIND.MODIFIER_GRANT,
-    modifierKind: MODIFIER_KIND.ADVANTAGE,
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'ADVANTAGE' },
     scope: MODIFIER_SCOPE_KIND.GLOBAL,
     selectionKind: AUTHORING_SELECTION_KIND.GRANTED
   } as const
@@ -361,7 +362,8 @@ export function conditionalAttackAdvantageGrants(
         grantKind: GRANT_KIND.MODIFIER_GRANT,
         valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
         domain: { attackDomain },
-        modifierKind: MODIFIER_KIND.ADVANTAGE,
+        modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+        payload: { influence: 'ADVANTAGE' },
         scope: MODIFIER_SCOPE_KIND.GLOBAL,
         selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
         order,
@@ -963,11 +965,12 @@ export function sneakAttackEffects(
 ): EffectAuthored[] {
   return [TRIGGER.MELEE_WEAPON_ATTACK, TRIGGER.RANGED_WEAPON_ATTACK].map((triggerCode, variant) => {
     const id = (offset: number) => actionId(creatureIndex, localIndex + variant * 16 + offset)
-    const roll = (rollMode: 'ADVANTAGE' | 'NOT_DISADVANTAGE') => ({
+    const roll = (rollMode: string, negated?: true) => ({
       kind: 'PREDICATE' as const,
       constraint: 'INCLUDE' as const,
       predicateCode: 'ATTACK_ROLL_MODE' as const,
-      rollMode
+      rollMode,
+      ...(negated && { negated })
     })
     const gates = [
       [roll('ADVANTAGE')],
@@ -978,7 +981,7 @@ export function sneakAttackEffects(
           predicateCode: 'ENEMY_NEAR_TARGET' as const,
           feet: 5
         },
-        roll('NOT_DISADVANTAGE')
+        roll('DISADVANTAGE', true)
       ]
     ]
     return {

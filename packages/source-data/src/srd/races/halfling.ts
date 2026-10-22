@@ -141,7 +141,8 @@ export const halfling: RaceAuthored = {
           grantKind: GRANT_KIND.MODIFIER_GRANT,
           valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
           domain: { ability, conditionTypeId: conditionTypeId('FRIGHTENED') },
-          modifierKind: MODIFIER_KIND.ADVANTAGE,
+          modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+          payload: { influence: 'ADVANTAGE' },
           scope: MODIFIER_SCOPE_KIND.GLOBAL,
           selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
           order: index

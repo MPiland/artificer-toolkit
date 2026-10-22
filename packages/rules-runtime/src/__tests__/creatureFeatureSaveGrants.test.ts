@@ -1,3 +1,4 @@
+import { modifierRollInfluence } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { describe, expect, it } from 'vitest'
@@ -65,8 +66,9 @@ describe('passive saving-throw grants on SRD Creatures (SPELLS-33.T3a2)', () => 
   it('folds the Death Dog Perception advantage as a skill modifier grant', () => {
     expect(
       foldDnd5eCreatureFeatureGrants(srdCreature('Death Dog')).filter(
-        ({ valueDomainCode, modifierKind }) =>
-          valueDomainCode === 'SKILL_MODIFIER' && modifierKind === 'ADVANTAGE'
+        (modifier) =>
+          modifier.valueDomainCode === 'SKILL_MODIFIER' &&
+          modifierRollInfluence(modifier) === 'ADVANTAGE'
       )
     ).toHaveLength(1)
   })
