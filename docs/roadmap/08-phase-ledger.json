@@ -13346,7 +13346,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New options (D175): a spell grant's slot pool code (`slotCost.poolCode`, the System code `SPELL_SLOT_POOL.PACT`) and class spell lists (`access: CLASS_LIST_ONLY` with `classListIds`); the six pact-slot invocations, Primeval Awareness (Sheet-only: the generic USE_SPELL_SLOT command is the mechanic, sensing stays description), Expanded Spell List. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): spell slot costs and class spell lists; the six pact-slot invocations, Primeval Awareness, Expanded Spell List. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
             {
               "id": "SPELLS-31.T5q",
