@@ -650,8 +650,12 @@
             },
             {
               "id": "PLATFORM-13.13",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge of ef0c589ca (PLATFORM-13.T18) in m355",
+                "scripts/vitestSource.test.mjs and apps/apis/convex/workspaceSource.test.ts green in CI",
+                "AGENTS.md and ci-validation.md retire the local typecheck lane and -BuildFor"
+              ],
               "origin": ["User request 2026-10-22 (validation lock queue)"],
               "note": "AC confirmed by the user 2026-10-22.",
               "text": "A slice session runs any single test file locally without building a package or taking a shared lock: tests resolve workspace packages from source. Typechecking runs only in CI, and AGENTS.md retires the local typecheck lane."
@@ -917,7 +921,7 @@
             },
             {
               "id": "PLATFORM-13.T18",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-13.13"],
               "wsjf": {
                 "bv": 5,
@@ -927,7 +931,8 @@
                 "after": []
               },
               "text": "Workspace packages export a source condition pointing at src, and every Vitest config resolves it, so a local run needs no dist build (generated files such as the SRD manifest handled). CI keeps passing on every suite. Remove the typecheck lane and -BuildFor from withValidationLock.ps1 and the docs (AGENTS.md, ci-validation.md).",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "mergedAt": "2026-10-22T23:09:40Z",
+              "proof": "green ci/platform-13-t18 ef0c589ca (Tests and Live success); merged in m355 514609efc."
             },
             {
               "id": "PLATFORM-13.T19",
