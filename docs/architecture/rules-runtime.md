@@ -2457,7 +2457,17 @@ settles the check; a success re-prepares the action from the root command on the
 (`ACTION_OUTCOME_EVIDENCE`) unless the roller's preference rolls them. The room plans each answer
 (`planNativeLiveCheckActionResponse`); Convex records a pause through `persistEncounterCheckActionPause` and the settled
 check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Undo returns a failed
-check's economy and grants and refuses a success's outcome.
+check's economy, feature charges and grants and refuses a success's outcome.
+
+**Creature feature checks (D173, RULES-2.T6e3b1c).** A Creature feature authored with a `FIXED`-dc CHECK runs the same
+check action; a contest, a concealment check or a stabilizing check stays a basic action's (`checkActionSource` refuses
+the rest `SOURCE_REQUIREMENTS_NOT_MET`). The check context, the `CHECK_ACTION` output and the commit input name their
+`source`, `BASIC_ACTION` (the catalogue entry's id, version and checksum) or `CREATURE_FEATURE` (`ownerFeatureId`,
+`effectId`, `compiledEffectChecksum`). The room spends the feature's charges with the action
+(`nativeSourceFeatureResourceReceipt`), and the commit carries the `featureResourceConsumption` receipt. Convex
+re-resolves the feature from the actor's snapshot (`admitCheckActionSource`), admits the receipt only at the authored
+cost or, under an acknowledged `RESOURCE_UNAVAILABLE`, the charges that remained, and spends it through
+`settleActionSourceSpend`, the creature action cost path. The check receipt keeps the charge receipt for undo.
 
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no

@@ -1,4 +1,5 @@
 import type { CheckActionSettlement } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import type { CheckActionSourceDto } from '@artificer-toolkit/schema/shared/ruleExecutionCheckAction'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { settledCheckD20MatchesFrozen } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
@@ -33,7 +34,7 @@ export async function settleEncounterCheckAction(
       commandFingerprint: string
       actorId: string
       targetActorId: string
-      definition: { id: string; version: number; checksum: string }
+      source: CheckActionSourceDto
       checkDefinitionIds: readonly string[]
       dc: number | null
     }
@@ -69,8 +70,8 @@ export async function settleEncounterCheckAction(
     context.commandFingerprint !== admitted.commandFingerprint ||
     context.actorId !== admitted.actorId ||
     context.targetActorId !== admitted.targetActorId ||
-    checksumCanonicalJson(context.definition) !== checksumCanonicalJson(admitted.definition) ||
-    checksumCanonicalJson(output.definition) !== checksumCanonicalJson(context.definition) ||
+    checksumCanonicalJson(context.source) !== checksumCanonicalJson(admitted.source) ||
+    checksumCanonicalJson(output.source) !== checksumCanonicalJson(context.source) ||
     output.actorId !== context.actorId ||
     output.targetActorId !== context.targetActorId ||
     !admitted.checkDefinitionIds.includes(context.check.checkDefinitionId) ||

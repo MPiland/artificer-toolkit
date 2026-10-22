@@ -165,7 +165,7 @@ import { discoverNativeLegendaryResistance } from './nativeAreaRevalidation.js'
 import { type ForcedMovementPick } from './nativeAreaPreparation.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
 import {
-  basicActionCheckSource,
+  checkActionSource,
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
   interpretForcedMovements,
@@ -795,12 +795,12 @@ export async function planNativeLiveEncounterAction(
     })
   const actionEconomy = economy?.consumption ?? null
   if (mechanicFacts.invocation.triggerCode === 'CHECK') {
-    const { capability } = basicActionCheckSource(prepared.source)
+    const source = checkActionSource(prepared)
     const actor = movementTargets.get(prepared.actor.id)
     const target = movementTargets.get(prepared.target.id)
     if (responseCommand || !actor || !target) throw new Error('A check action is unavailable.')
     // A check its target contests (Grapple) rolls both participants' d20s as one contest (D152).
-    if (authoredCheckOf(capability).dc.kind === 'CONTEST') {
+    if (authoredCheckOf(source.capability).dc.kind === 'CONTEST') {
       const contestInput = {
         state,
         actor: prepared.actor,
@@ -846,7 +846,7 @@ export async function planNativeLiveEncounterAction(
     // A concealment check compares its roller with every actor in the Run; load them all before the
     // revisions the plan depends on are read.
     const concealmentTargets =
-      authoredCheckOf(capability).dc.kind === 'FIXED'
+      authoredCheckOf(source.capability).dc.kind === 'FIXED'
         ? null
         : new Map(
             await Promise.all(
@@ -860,7 +860,7 @@ export async function planNativeLiveEncounterAction(
       scope,
       command,
       fingerprint,
-      capability,
+      source,
       prepared,
       state,
       system,

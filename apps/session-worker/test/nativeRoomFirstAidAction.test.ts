@@ -189,8 +189,8 @@ describe('a homebrew basic action authored with the CHECK test, in the room', ()
   })
 })
 
-describe('a Creature feature authored with the CHECK test', () => {
-  it('is refused, since only a basic action makes a check, and nothing is spent or written', async () => {
+describe('a Creature feature authored with a contested CHECK test', () => {
+  it('is refused, since only a basic action makes a contest, and nothing is spent or written', async () => {
     const attack = biteWolf('ATTACK', { damage: 1, reachFeet: 5 })
     const checkWolf = creatureAuthoredDtoSchema.parse({
       ...attack,
@@ -206,7 +206,10 @@ describe('a Creature feature authored with the CHECK test', () => {
                   triggerCode: 'CHECK' as const,
                   check: {
                     checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] },
-                    dc: { kind: 'FIXED' as const, value: 10 }
+                    dc: {
+                      kind: 'CONTEST' as const,
+                      checks: { skillIds: [SRD_MEDICINE_SKILL_ID], abilityDefinitionIds: [] }
+                    }
                   }
                 },
                 paths: effect.paths.map((path) => ({ ...path, pathCode: 'ON_CHECK_SUCCESS' }))

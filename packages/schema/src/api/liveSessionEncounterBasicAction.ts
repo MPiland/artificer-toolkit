@@ -14,8 +14,10 @@ import {
 } from '../shared/ruleExecutionDirectActionPendingContexts.js'
 import {
   type EncounterCheckActionContextDto,
+  checkActionSourceDtoSchema,
   encounterCheckActionContextDtoSchema
 } from '../shared/ruleExecutionCheckAction.js'
+import { encounterFeatureResourceReceiptDtoSchema } from '../shared/ruleExecutionMechanics.js'
 import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
@@ -125,12 +127,10 @@ export const liveSessionEncounterBasicActionCommitInputSchema = lazySchema(() =>
     command: resolveCheckActionInputDtoSchema,
     revisions: liveSessionRulesRevisionsSchema,
     occurredAt: z.iso.datetime(),
-    /** The exact published catalogue entry the room planned with. */
-    definition: z.strictObject({
-      id: postgresUuidSchema,
-      version: z.number().check(z.int()).check(z.positive()),
-      checksum: z.string().check(z.regex(/^[a-f0-9]{64}$/))
-    }),
+    /** The exact published catalogue entry, or the Creature feature, the room planned with. */
+    source: checkActionSourceDtoSchema,
+    /** The charges a Creature feature's check spends; null for a basic action or none. */
+    featureResourceConsumption: z.nullable(encounterFeatureResourceReceiptDtoSchema),
     actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
     /** Warnings the command acknowledged and the room overrode. */
     ruleOverrides: encounterRuleWarningsDtoSchema,

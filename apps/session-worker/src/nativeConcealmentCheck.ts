@@ -25,6 +25,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { readNativeLiveObserversSeeing } from './nativeAttackPerception.js'
 import {
   authoredCheckOf,
+  basicCheckCapability,
   nativeLiveCheckCommitInput,
   type NativeLiveCheckActionInput
 } from './nativeCheckAction.js'
@@ -100,7 +101,8 @@ export async function planNativeLiveConcealmentCheckAction(
     capture: Parameters<typeof readNativeLiveObserversSeeing>[0]['capture']
   }
 ) {
-  const { capability, command, state, actor, targets } = input
+  const { command, state, actor, targets } = input
+  const capability = basicCheckCapability(input.source)
   const { checkKind, checkDefinitionId, dc } = authoredCheckOf(capability)
   if (dc.kind !== 'PASSIVE' && dc.kind !== 'CONCEALMENT')
     throw new EncounterValidationError('The selected action makes no concealment check.')

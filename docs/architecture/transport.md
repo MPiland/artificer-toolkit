@@ -396,8 +396,9 @@ stored receipt of either fails its schema parse. A win's dice that its initiator
 an `ACTION_OUTCOME_EVIDENCE` pending summary for the initiator, answered with `ENTER_DICE`, `ENTER_INTEGER` or
 `SYSTEM_ROLL`. The room's contest commit (`LiveSessionEncounterContestCommitInput`) carries the planned
 `forcedMovements`; the commit lands the push on the Scene through the same `applyRoomForcedMovements` path as an
-action's push. A fixed-DC check action whose success runs an outcome (D173) commits through the basic action commit
-input with a `CheckActionSettlement` (`ENCOUNTER_CHECK_ACTION` context, the stored execution, `appRollId` and the planned
+action's push. A fixed-DC check action whose success runs an outcome (D173), made by a basic action or a Creature feature,
+commits through the basic action commit input, which names its `source` (`BASIC_ACTION` or `CREATURE_FEATURE`) and a
+feature's `featureResourceConsumption` receipt, with a `CheckActionSettlement` (`ENCOUNTER_CHECK_ACTION` context, the stored execution, `appRollId` and the planned
 `forcedMovements`) and records one `CHECK_ACTION` output with the same `TARGET_OUTCOME` or `NONE` `stateTransition`.
 A roller who does not auto-roll answers the check's `D20_EVIDENCE` summary (or its `D20_WINDOW`), then a success's
 outcome dice on an `ACTION_OUTCOME_EVIDENCE` summary answered with `ENTER_INTEGER` or `SYSTEM_ROLL`. The room commits

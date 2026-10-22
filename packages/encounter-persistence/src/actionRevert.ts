@@ -725,11 +725,8 @@ export async function revertLastEncounterAction(
     const feature = spend.featureResourceConsumption
     if (feature) {
       const owner = actorsById.get(feature.ownerActorId)
-      if (!owner || featureChargeUsed(owner, feature.ownerFeatureId) !== feature.afterUsed)
-        unavailable("The actor's feature charges changed after this action; adjust manually.")
-      updateActor(owner.id, {
-        resources: withFeatureChargeUsed(owner, feature.ownerFeatureId, feature.beforeUsed)
-      })
+      if (!owner) unavailable(FEATURE_CHARGES_CHANGED)
+      updateActor(owner.id, { resources: returnSpentFeatureCharge(owner, feature).resources })
     }
     const economy = spend.actionEconomyTransition
     if (economy) {
@@ -1116,8 +1113,8 @@ async function commitRevert(
 }
 
 /**
- * Undoes the Run's last CHECK action exactly from its receipt: its allowance use and the grants its
- * check used up.
+ * Undoes the Run's last CHECK action exactly from its receipt: its allowance use, the Creature
+ * feature charges it spent and the grants its check used up.
  */
 async function revertCheckAction(
   ctx: EncounterCharacterWriteTransaction,
@@ -1133,7 +1130,10 @@ async function revertCheckAction(
   const actors = await readRunActors(ctx, state)
   const actor = actors.find((entry) => entry.id === receipt.actorId)
   if (!actor) unavailable('The actor left the Encounter; adjust manually.')
-  const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
+  const restored = returnSpentFeatureCharge(
+    returnSpentActionEconomy(actor, receipt.actionEconomy),
+    receipt.featureResourceConsumption
+  )
   // The Help the check used goes back to its holder.
   await restoreConsumedGrants(ctx, root.consumedGrants)
   const updatedAt = new Date().toISOString()
@@ -1183,6 +1183,30 @@ async function revertCheckAction(
     actors,
     nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
     updatedAt
+  })
+}
+
+const FEATURE_CHARGES_CHANGED =
+  "The actor's feature charges changed after this action; adjust manually."
+
+/** Gives a Creature feature's spent charges back, refusing if its charges changed since. */
+function returnSpentFeatureCharge(
+  actor: EncounterRunActorState,
+  feature: {
+    ownerActorId: string
+    ownerFeatureId: string
+    beforeUsed: number
+    afterUsed: number
+  } | null
+): EncounterRunActorState {
+  if (!feature) return actor
+  if (feature.ownerActorId !== actor.id)
+    throw new Error('Stored feature charge receipt is invalid.')
+  if (featureChargeUsed(actor, feature.ownerFeatureId) !== feature.afterUsed)
+    unavailable(FEATURE_CHARGES_CHANGED)
+  return encounterRunActorStateSchema.parse({
+    ...actor,
+    resources: withFeatureChargeUsed(actor, feature.ownerFeatureId, feature.beforeUsed)
   })
 }
 
