@@ -2265,6 +2265,35 @@ function registerOutcomeFields(
   registerConditionOutcomeFields(map, nodes, cond, logic)
   map
     .set(
+      'endEffectsScope',
+      selectSingle(
+        ['scope'],
+        'Ends',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'ALL', label: 'Every Matching Effect' },
+            { code: 'ONE_CHOSEN', label: 'One Effect the Caster Picks' }
+          ]
+        },
+        { requiredIf: true, showIf: local.field(['effectKind']).eq(EFFECT_KIND.END_EFFECTS) }
+      )
+    )
+    .set(
+      'endEffectsConditionIds',
+      selectMulti(
+        ['conditionIds'],
+        'Ends Effects Granting',
+        {
+          kind: 'DATA',
+          relationship: table('condition_types', {
+            selectColumns: ['id', 'label', 'description']
+          })
+        },
+        { requiredIf: true, showIf: local.field(['effectKind']).eq(EFFECT_KIND.END_EFFECTS) }
+      )
+    )
+    .set(
       'grants',
       groupObject(['grants'], 'Grants', () => APPLY_GRANTS_NODE_MAP, {
         presentation: 'inline',

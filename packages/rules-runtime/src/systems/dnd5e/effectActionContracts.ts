@@ -180,6 +180,7 @@ export type Outcome =
       destinationKind: TeleportAllowanceDestinationKind
     }
   | { kind: 'CANCEL_TRIGGERING_EVENT' }
+  | { kind: 'END_EFFECTS' }
   | {
       kind: 'FORCED_MOVEMENT'
       direction: ForcedMovementDirection

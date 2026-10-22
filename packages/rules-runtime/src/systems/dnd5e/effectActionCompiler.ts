@@ -2947,6 +2947,8 @@ const DND5E_DIRECT_OUTCOMES: {
   DETECT_CONCEALED: (_outcome, input) => offList({ kind: 'DETECT_CONCEALED' }, input),
   // The reaction cancels the event it answered: nothing is stored on its target, the cast.
   CANCEL_TRIGGERING_EVENT: (_outcome, input) => offList({ kind: 'CANCEL_TRIGGERING_EVENT' }, input),
+  // The commit ends the held effects its plan selects; nothing is stored on the target here.
+  END_EFFECTS: (_outcome, input) => offList({ kind: 'END_EFFECTS' }, input),
   APPLY_GRANT: (_outcome, { plans }) =>
     plans.grant ? { kind: 'MODIFIER_GRANT' } : unsupportedDirectOutcome(),
   TELEPATHIC_LINK: (_outcome, { plans }) =>

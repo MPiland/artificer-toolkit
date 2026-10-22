@@ -3,6 +3,7 @@ import type { RuleInputBinding } from '@artificer-toolkit/shared/rules'
 import type { EffectOutcomeDefinition } from '../../effectOutcomeRegistry.js'
 import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedToMovement.js'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
+import { DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY } from './endEffects.js'
 import {
   DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
   DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
@@ -155,6 +156,10 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
     },
     CANCEL_TRIGGERING_EVENT: targetOnly(DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY, {
       pathGated: true,
+      changesTargetState: false
+    }),
+    END_EFFECTS: targetOnly(DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY, {
+      pathGated: false,
       changesTargetState: false
     }),
     MODIFIER_GRANT: targetOnly(DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY, {
