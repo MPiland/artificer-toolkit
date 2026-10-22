@@ -17,9 +17,10 @@ import {
 } from 'convex/react'
 import type { MediaImageTarget } from '#app/components/MediaImage/MediaImage.types'
 import { queryKeys } from '#app/lib/queryKeys'
+import { acceptedImageTypes } from '#app/components/MediaImage/mediaImageUtils'
+import { findOption } from '#app/forms/utils/valueGuards'
 
 type ImageVariant = 'SOURCE' | 'DISPLAY' | 'THUMBNAIL'
-type ImageMimeType = 'image/jpeg' | 'image/png' | 'image/webp'
 
 function isAccountAvatar(target: MediaImageTarget | undefined) {
   return target?.lookup.type === 'ACCOUNT_AVATAR'
@@ -235,9 +236,11 @@ export function useMediaImageActions(target: MediaImageTarget) {
           })
           return
         }
+        const declaredMimeType = findOption(acceptedImageTypes, file.type)
+        if (!declaredMimeType) throw new Error('unsupported image type')
         const input = {
           originalFileName: file.name,
-          declaredMimeType: file.type as ImageMimeType,
+          declaredMimeType,
           declaredBytes: file.size,
           idempotencyKey: crypto.randomUUID()
         }

@@ -83,6 +83,7 @@ describe('settling the chosen reaction (REACTION-4.5)', () => {
     const d20Policy = {
       requestNodeId: 'attack',
       rollMode: 'NORMAL' as const,
+      keep: 'FIRST' as const,
       contributors: [],
       contributorChecksum: checksumRuleDocument([]),
       modifier: 5,

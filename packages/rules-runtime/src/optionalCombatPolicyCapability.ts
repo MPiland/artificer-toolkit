@@ -29,7 +29,7 @@ export type OptionalCombatEconomy = 'ACTION' | 'BONUS_ACTION'
 
 /** A server-qualified d20 contributor. A policy only appends its own contributors. */
 export interface OptionalMovementContributor {
-  readonly influence: 'ADVANTAGE' | 'DISADVANTAGE'
+  readonly influence: string
   readonly id: string
   readonly reason: 'EXISTING_QUALIFIED_FACT' | 'SHOVE_ASIDE_POLICY' | 'SIZE_RELATION'
 }
@@ -70,7 +70,7 @@ export interface TumbleContestProposal {
 export interface OverrunContestProposal extends TumbleContestProposal {
   readonly contest: TumbleContestProposal['contest'] & {
     readonly initiatorContributors: readonly OptionalMovementContributor[]
-    readonly initiatorMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
+    readonly initiatorMode: string
   }
 }
 
@@ -109,7 +109,8 @@ export interface CleavingProposal {
 }
 
 export type OptionalCombatD20Contributor = Readonly<ReceiptD20ContributorDto>
-type OptionalCombatD20Mode = 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
+/** A code from the System's `rollMode` vocabulary. */
+type OptionalCombatD20Mode = string
 
 /** Exact Disarm facts; the System alone interprets sizes, item properties and the trigger. */
 export interface DisarmPreparationInput extends OptionalCombatPolicyInput {

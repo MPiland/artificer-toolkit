@@ -16,7 +16,8 @@ export type SavingThrowRow = {
   ruleDefinitionId?: string
   conditionTypeId?: string
   modifier: number
-  rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  /** A code from the System's `rollMode` vocabulary. */
+  rollMode: string
   contributors: ReadonlyArray<ReceiptD20ContributorDto>
 }
 

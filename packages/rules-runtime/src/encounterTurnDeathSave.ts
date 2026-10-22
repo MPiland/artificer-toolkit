@@ -22,6 +22,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { activeSavingThrowDice } from './character/activeEffectGrantTotals.js'
 import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
 import { deriveEncounterCharacterMechanicsEventCommandId } from './encounterCharacterMechanicsBatch.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 import { settleEncounterD20Answer, settleEncounterD20Test } from './encounterD20Settlement.js'
 import { savingThrowSpentEffects } from './encounterEndedEffectRelease.js'
 import { encounterEvidenceMode } from './encounterEvidenceMode.js'
@@ -223,7 +224,15 @@ export async function prepareEncounterTurnDeathSave<
   }
   const roll = (answer: EncounterEvidenceAnswer | EncounterResponseAnswer): DeathSaveRoll => {
     const d20 = settleEncounterD20Answer({
-      d20: { rollMode: 'NORMAL', addedDice: candidate.addedDice },
+      gameSystemId: published.gameSystemId,
+      d20: {
+        rollMode: 'NORMAL',
+        keep: rollModeCapabilityRegistry.rollModeKeep({
+          gameSystemId: published.gameSystemId,
+          rollMode: 'NORMAL'
+        }),
+        addedDice: candidate.addedDice
+      },
       answer,
       rollD20: () => input.random(20) + 1,
       random: input.random

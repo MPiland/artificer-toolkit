@@ -13,6 +13,7 @@ import {
   validatorsFor
 } from '../validation/formValidation'
 import { toTypedAuthoringFieldName } from '../utils/pathUtils'
+import { isRecord } from '#forms/utils/valueGuards'
 
 const requiredValidatorCache = new Map<string, ReturnType<typeof validatorsFor>>()
 
@@ -156,5 +157,5 @@ function isResettableNode(node: NodeRuntimeNodeDto) {
 }
 
 export function toEditorValues(value: unknown): Record<string, unknown> {
-  return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
+  return isRecord(value) ? value : {}
 }

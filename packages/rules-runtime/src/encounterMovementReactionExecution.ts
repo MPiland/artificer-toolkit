@@ -204,6 +204,7 @@ export async function resumeEncounterMovementLegendaryResistance(input: {
       checksumRuleDocument(audit) !== checksumRuleDocument(resistance.audit) ||
       dice.requestId !== boundary.d20.requestId ||
       dice.rollMode !== boundary.d20.rollMode ||
+      dice.keep !== boundary.d20.keep ||
       dice.selectedNatural !== boundary.d20.selectedNatural ||
       checksumRuleDocument(dice.rawFaces) !== checksumRuleDocument(boundary.d20.rawFaces) ||
       (retained.kind === 'COMPLETE' &&

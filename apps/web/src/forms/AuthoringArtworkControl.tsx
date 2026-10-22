@@ -1,4 +1,4 @@
-import type { AuthoredSubjectKindDto } from '@artificer-toolkit/schema/api/content'
+import { authoredSubjectKindDtoSchema } from '@artificer-toolkit/schema/api/content'
 import { MediaImageControl } from '#app/components/MediaImage'
 import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
 
@@ -6,7 +6,7 @@ export function AuthoringArtworkControl() {
   const { authoredSession, readOnly, saveDraft } = useAuthoringForm()
   if (!authoredSession) return null
 
-  const subjectKind = authoredSession.domain.toUpperCase() as AuthoredSubjectKindDto
+  const subjectKind = authoredSubjectKindDtoSchema.parse(authoredSession.domain.toUpperCase())
   const subjectId = authoredSession.subjectId
 
   return (

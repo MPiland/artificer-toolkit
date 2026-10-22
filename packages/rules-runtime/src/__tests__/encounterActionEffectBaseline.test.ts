@@ -295,6 +295,7 @@ function planWith(
     d20: {
       requestId: ids.command,
       rollMode: 'NORMAL',
+      keep: 'FIRST',
       derivedRollMode: 'NORMAL',
       rawFaces: [10],
       selectedNatural: 10,
@@ -604,6 +605,7 @@ describe('plan-owned outcomes on a test result path (RULES-2.T6d)', () => {
       d20: {
         requestId: ids.command,
         rollMode: 'NORMAL',
+        keep: 'FIRST',
         derivedRollMode: 'NORMAL',
         rawFaces: [5],
         selectedNatural: 5,

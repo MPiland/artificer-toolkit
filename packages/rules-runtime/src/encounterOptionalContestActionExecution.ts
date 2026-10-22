@@ -1,3 +1,7 @@
+import {
+  rollModeKeptFace,
+  type RollModeKeep
+} from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type {
@@ -16,10 +20,7 @@ import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 import { settleEncounterD20Answer } from './encounterD20Settlement.js'
-import {
-  selectEncounterActionD20Natural,
-  type EncounterEvidenceAnswer
-} from './encounterEvidenceAnswer.js'
+import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
 import {
   heldStageD20,
   settleSightGovernedD20,
@@ -29,7 +30,8 @@ import {
 type OptionalContestD20Policy = {
   actorId: string
   requestNodeId: 'initiator_d20' | 'target_d20'
-  rollMode: 'ADVANTAGE' | 'DISADVANTAGE' | 'NORMAL'
+  rollMode: string
+  keep: RollModeKeep
   contributors: readonly ReceiptD20ContributorDto[]
   contributorChecksum: string
   modifier: number
@@ -105,6 +107,7 @@ function requireRequest(
 }
 
 function resolveFaces(input: {
+  gameSystemId: string
   policy: OptionalContestD20Policy
   resolution: OptionalContestResolution
   requestId: string
@@ -112,8 +115,13 @@ function resolveFaces(input: {
 }): readonly number[] {
   if (input.resolution.requestId !== input.requestId)
     throw new EncounterConflictError('Optional combat contest evidence request is stale.')
-  const { rawFaces: faces, rollMode } = settleEncounterD20Answer({
-    d20: { rollMode: input.policy.rollMode },
+  const {
+    rawFaces: faces,
+    rollMode,
+    keep
+  } = settleEncounterD20Answer({
+    gameSystemId: input.gameSystemId,
+    d20: { rollMode: input.policy.rollMode, keep: input.policy.keep },
     answer: input.resolution,
     rollD20: input.rollD20,
     random: () => {
@@ -121,13 +129,14 @@ function resolveFaces(input: {
     }
   })
   // Contest evidence records only faces, so a contest d20 keeps its rules-derived mode.
-  if (rollMode !== input.policy.rollMode)
+  if (rollMode !== input.policy.rollMode || keep !== input.policy.keep)
     throw new EncounterValidationError('A contest roll keeps its rules-derived roll mode.')
   return faces
 }
 
 /** One participant's answer: its faces, or the held die when sight needs one more from the roller. */
 function settleFaces(input: {
+  gameSystemId: string
   policy: OptionalContestD20Policy
   /** Set for the initiator's attack d20 when sight decides its mode. */
   sight: SightGovernedD20 | null
@@ -139,6 +148,7 @@ function settleFaces(input: {
   if (input.resolution.requestId !== input.requestId)
     throw new EncounterConflictError('Optional combat contest evidence request is stale.')
   const settled = settleSightGovernedD20({
+    gameSystemId: input.gameSystemId,
     appliedMode: input.policy.rollMode,
     sightGoverned: input.sight,
     resolution: input.resolution,
@@ -158,8 +168,8 @@ function completeEncounterOptionalContestActionExecution(input: {
   if (!initiatorFaces || !defenderFaces) {
     throw new EncounterValidationError('Optional combat contest evidence is incomplete.')
   }
-  const initiatorNatural = selectEncounterActionD20Natural(input.initiator.rollMode, initiatorFaces)
-  const defenderNatural = selectEncounterActionD20Natural(input.defender.rollMode, defenderFaces)
+  const initiatorNatural = rollModeKeptFace(input.initiator.keep, initiatorFaces)
+  const defenderNatural = rollModeKeptFace(input.defender.keep, defenderFaces)
   if (
     input.execution.outputs.initiatorNaturalD20 !== initiatorNatural ||
     input.execution.outputs.targetNaturalD20 !== defenderNatural ||
@@ -210,6 +220,7 @@ export async function executeEncounterOptionalContestAction(input: {
     const policy = participant === 'INITIATOR' ? input.initiator : input.defender
     const sight = participant === 'INITIATOR' ? (input.initiatorSight ?? null) : null
     const settled = settleFaces({
+      gameSystemId: input.published.gameSystemId,
       policy,
       sight,
       resolution: input.resolution,
@@ -249,6 +260,7 @@ export async function executeEncounterOptionalContestAction(input: {
       rolls.get(participant) ??
       (input.autoRoll[policy.actorId] === true
         ? resolveFaces({
+            gameSystemId: input.published.gameSystemId,
             policy,
             resolution: { kind: 'AUTO_ROLL', requestId },
             requestId,
@@ -259,7 +271,7 @@ export async function executeEncounterOptionalContestAction(input: {
     rolls.set(participant, faces)
     execution = await input.runtime.resume({
       continuation: execution.continuation,
-      response: { requestId, value: selectEncounterActionD20Natural(policy.rollMode, faces) }
+      response: { requestId, value: rollModeKeptFace(policy.keep, faces) }
     })
   }
   if (execution.status === 'PAUSED') {

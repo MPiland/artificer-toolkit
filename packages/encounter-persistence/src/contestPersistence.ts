@@ -173,7 +173,7 @@ export async function persistEncounterContestPending(
         pending:
           participant === 'DEFENDER' && contestDefenderPicksCheck(contest)
             ? null
-            : { kind: 'D20_EVIDENCE', rollMode: policy.rollMode }
+            : { kind: 'D20_EVIDENCE', rollMode: policy.rollMode, keep: policy.keep }
       })
     })
   return result

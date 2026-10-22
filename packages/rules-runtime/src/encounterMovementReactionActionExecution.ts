@@ -15,14 +15,14 @@ import {
   type D20RolledAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import {
+  rollModeKeptFace,
+  type RollModeKeep
+} from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 
 import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
 import { EncounterValidationError } from './encounterErrors.js'
-import {
-  savingThrowAbility,
-  selectEncounterActionD20Natural,
-  type EncounterD20RollMode
-} from './encounterEvidenceAnswer.js'
+import { savingThrowAbility, type EncounterD20RollMode } from './encounterEvidenceAnswer.js'
 
 export interface PreparedEncounterMovementReactionAction {
   adapter: CharacterRuleActionSystemAdapter
@@ -80,12 +80,13 @@ export function deriveEncounterActionD20Policy(input: {
   bound: ReturnType<CharacterRuleActionSystemAdapter['bindFacts']>
 }): ServerRuleExecutionD20PolicyDto {
   requireD20Request(input.continuation)
-  if (!input.bound.d20RollMode || !input.bound.d20Audit) {
+  if (!input.bound.d20RollMode || !input.bound.d20Keep || !input.bound.d20Audit) {
     throw new EncounterValidationError('The selected reaction action has no exact d20 policy.')
   }
   return serverRuleExecutionD20PolicyDtoSchema.parse({
     requestNodeId: input.continuation.request.nodeId,
     rollMode: input.bound.d20RollMode,
+    keep: input.bound.d20Keep,
     contributors: input.bound.d20Audit.contributors,
     contributorChecksum: input.bound.d20Audit.contributorChecksum,
     modifier: input.bound.d20Audit.modifier,
@@ -102,15 +103,10 @@ export function policyAddedDice(addedDice: readonly D20AddedDieDto[]) {
 
 export function nestedOutcomeD20Policy(input: {
   published: ServerPublishedRuleDefinitionDto
-  d20: {
-    rollMode: ServerRuleExecutionD20PolicyDto['rollMode']
-    contributors: readonly ServerRuleExecutionD20PolicyDto['contributors'][number][]
-    contributorChecksum: string
-    modifier: number
-    defenseOrDc: number
-    addedDice: readonly D20AddedDieDto[]
-    savingThrowAbilityDefinitionId?: string
-  } | null
+  bound: Pick<
+    ReturnType<CharacterRuleActionSystemAdapter['bindFacts']>,
+    'd20RollMode' | 'd20Keep' | 'd20Audit'
+  >
 }): ServerRuleExecutionD20PolicyDto | null {
   const requestNode = input.published.definition.nodes?.find(
     (node) => node.id === 'nested-save-d20'
@@ -128,16 +124,19 @@ export function nestedOutcomeD20Policy(input: {
   ) {
     throw new EncounterValidationError('The nested save request is invalid.')
   }
-  if (!input.d20) throw new EncounterValidationError('The nested save policy is unavailable.')
+  const { d20RollMode: rollMode, d20Keep: keep, d20Audit: audit } = input.bound
+  if (!rollMode || !keep || !audit)
+    throw new EncounterValidationError('The nested save policy is unavailable.')
   return serverRuleExecutionD20PolicyDtoSchema.parse({
     requestNodeId: requestNode.id,
-    rollMode: input.d20.rollMode,
-    contributors: [...input.d20.contributors],
-    contributorChecksum: input.d20.contributorChecksum,
-    modifier: input.d20.modifier,
-    dc: input.d20.defenseOrDc,
-    ...savingThrowAbility(input.d20),
-    ...policyAddedDice(input.d20.addedDice)
+    rollMode,
+    keep,
+    contributors: [...audit.contributors],
+    contributorChecksum: audit.contributorChecksum,
+    modifier: audit.modifier,
+    dc: audit.defenseOrDc,
+    ...savingThrowAbility(audit),
+    ...policyAddedDice(audit.addedDice)
   })
 }
 
@@ -152,11 +151,12 @@ export function buildEncounterActionD20Evidence(input: {
   requestId: string
   faces: readonly number[]
   rollMode: EncounterD20RollMode
+  keep: RollModeKeep
   modeAdjustment?: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
   /** The policy's added dice with the faces they rolled, in the policy's order. */
   addedDice: readonly D20RolledAddedDieDto[]
 }): ServerRuleExecutionD20EvidenceDto {
-  const natural = selectEncounterActionD20Natural(input.rollMode, input.faces)
+  const natural = rollModeKeptFace(input.keep, input.faces)
   const trace = input.execution.evidence.trace.find(
     (entry) => entry.evidence?.requestId === input.requestId && entry.evidence.value === natural
   )
@@ -167,6 +167,7 @@ export function buildEncounterActionD20Evidence(input: {
   return serverRuleExecutionD20EvidenceDtoSchema.parse({
     requestId: input.requestId,
     rollMode: input.rollMode,
+    keep: input.keep,
     derivedRollMode: input.policy.rollMode,
     rawFaces: input.faces,
     selectedNatural: natural,
@@ -188,14 +189,16 @@ export function buildEncounterSaveD20Evidence(input: {
   requestId: string
   faces: readonly number[]
   rollMode: EncounterD20RollMode
+  keep: RollModeKeep
   addedDice: readonly D20RolledAddedDieDto[]
 }): ServerRuleExecutionNestedD20EvidenceDto {
-  const natural = selectEncounterActionD20Natural(input.rollMode, input.faces)
+  const natural = rollModeKeptFace(input.keep, input.faces)
   const total = natural + input.policy.modifier + d20AddedDiceTotal(input.addedDice)
   return serverRuleExecutionNestedD20EvidenceDtoSchema.parse({
     requestNodeId: input.policy.requestNodeId,
     requestId: input.requestId,
     rollMode: input.rollMode,
+    keep: input.keep,
     derivedRollMode: input.policy.rollMode,
     rawFaces: input.faces,
     selectedNatural: natural,

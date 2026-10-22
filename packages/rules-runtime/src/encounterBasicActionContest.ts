@@ -91,6 +91,7 @@ function sealEncounterContest(input: {
             checkDefinitionId: listed.id,
             label: encounterBasicActionCheckLabel(system, listed.id),
             ...freezeD20Context({
+              gameSystemId: state.gameSystemId,
               rollMode: check.rollMode,
               contributors: check.contributors,
               modifier: check.modifier
@@ -141,6 +142,7 @@ function sealEncounterContest(input: {
       actorId: actor.id,
       requestNodeId: 'initiator_d20',
       ...freezeD20Context({
+        gameSystemId: state.gameSystemId,
         rollMode: initiator.rollMode,
         contributors: initiator.contributors,
         modifier: initiator.modifier

@@ -9,6 +9,7 @@ import { sizeCodeSchema } from '../shared/enums.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
+import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -421,35 +422,23 @@ const requestIdSchema = lazySchema(() =>
 )
 
 /** A d20 row's roll mode. The rules-derived mode is recommended; the roller may change it. */
-export const encounterD20RollModeDtoSchema = lazySchema(() =>
-  z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
-)
+export const encounterD20RollModeDtoSchema = lazySchema(() => systemVocabularyCodeSchema)
 export type EncounterD20RollModeDto = z.infer<typeof encounterD20RollModeDtoSchema>
 
 /** Faces the roller entered ("Entered by <name>"): two for advantage or disadvantage. */
 const enterDiceResolutionDtoSchema = lazySchema(() =>
-  z
-    .strictObject({
-      kind: z.literal('ENTER_DICE'),
-      requestId: requestIdSchema,
-      rawFaces: z
-        .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
-        .check(z.minLength(1))
-        .check(z.maxLength(2)),
-      rollMode: encounterD20RollModeDtoSchema,
-      /** The faces of the request's added dice (D156). */
-      addedFaces: z.optional(d20AddedFacesDtoSchema)
-    })
-    .check(
-      z.superRefine((value, context) => {
-        if (value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2))
-          context.addIssue({
-            code: 'custom',
-            path: ['rawFaces'],
-            message: 'Advantage and disadvantage take two faces; a normal roll takes one.'
-          })
-      })
-    )
+  z.strictObject({
+    kind: z.literal('ENTER_DICE'),
+    requestId: requestIdSchema,
+    rawFaces: z
+      .array(z.number().check(z.int()).check(z.gte(1)).check(z.lte(20)))
+      .check(z.minLength(1))
+      .check(z.maxLength(2)),
+    /** One of the request's offered `rollModes`; the server derives which face it keeps. */
+    rollMode: encounterD20RollModeDtoSchema,
+    /** The faces of the request's added dice (D156). */
+    addedFaces: z.optional(d20AddedFacesDtoSchema)
+  })
 )
 
 /**

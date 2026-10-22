@@ -82,6 +82,7 @@ const root = turnCoordinatorRootDtoSchema.parse({
 const DEX_SAVE_POLICY = {
   requestNodeId: 'd20',
   rollMode: 'NORMAL',
+  keep: 'FIRST',
   contributors: [],
   contributorChecksum: checksumRuleDocument([]),
   modifier: 2,
@@ -450,7 +451,8 @@ describe('prepareEncounterTurnEffects', () => {
         requestId: secondPause.request.requestId,
         rollId: APP_ROLL_ID,
         faces: [5],
-        rollMode: 'NORMAL'
+        rollMode: 'NORMAL',
+        keep: 'FIRST'
       }
     })
     const result = await complete(finalRun)

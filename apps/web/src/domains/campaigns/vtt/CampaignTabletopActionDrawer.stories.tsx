@@ -804,6 +804,45 @@ export const EffectOfferPickingNewHolder: Story = {
   }
 }
 
+const repeatOffers = validated(encounterActionChoicesDtoSchema.shape.effectOffers)([
+  {
+    effectId: '00000000-0000-4000-8000-000000000e32',
+    offerIndex: 0,
+    kind: 'REPEAT_SOURCE_PATH',
+    holderActorId: targetActor.id,
+    activation: 'BONUS_ACTION',
+    actionId: `${sourceActor.id}:REPEAT_PATH:00000000-0000-4000-8000-000000000e32:0`,
+    label: 'Heat Metal',
+    castLevel: 3,
+    dc: 15,
+    warnings: []
+  }
+])
+
+/** The Heat Metal repeat: the offer names the frozen cast level and DC, and one press resolves it against the holder (D166). */
+export const RepeatOfferResolved: Story = {
+  args: { ...ResolveTargetedAction.args, effectOffers: repeatOffers },
+  play: async ({ canvasElement }) => {
+    resolveAction.mockClear()
+    const { drawer } = await openActions(canvasElement)
+    const section = within(drawer.getByRole('region', { name: 'Effect choices' }))
+
+    await expect(section.getByText(/Repeat Heat Metal on Vault Warden/)).toBeVisible()
+    await expect(section.getByText(/Bonus Action · cast at level 3 · DC 15/i)).toBeVisible()
+    await userEvent.click(section.getByRole('button', { name: /Repeat Heat Metal on/ }))
+
+    await expect(await section.findByText('Repeated.')).toBeVisible()
+    await expect(resolveAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_ACTION',
+        actorId: sourceActor.id,
+        actionId: repeatOffers[0].actionId,
+        target: { kind: 'ACTOR', actorId: targetActor.id }
+      })
+    )
+  }
+}
+
 const fireball = validated(encounterActionChoiceDtoSchema)({
   id: 'spell-fireball:cast',
   label: 'Fireball',

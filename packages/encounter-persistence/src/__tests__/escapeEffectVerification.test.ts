@@ -62,6 +62,7 @@ function escapeContext(check: { checkDefinitionId?: string; dc?: number } = {}) 
     check: { checkDefinitionId: ATHLETICS, dc: DC, label: 'Strength (Athletics)', ...check },
     d20: {
       rollMode: 'NORMAL',
+      keep: 'FIRST',
       contributors: [],
       contributorChecksum: checksumRuleDocument([]),
       modifier: 4

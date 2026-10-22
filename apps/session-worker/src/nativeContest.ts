@@ -306,6 +306,7 @@ function planNativeContestHold(
       d20: {
         requestId: input.initiatorRequestId,
         rollMode: initiator.rollMode,
+        keep: initiator.keep,
         derivedRollMode: initiator.rollMode,
         rawFaces: [...initiator.rawFaces],
         selectedNatural: initiator.selectedNatural,

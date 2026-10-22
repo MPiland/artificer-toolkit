@@ -12,6 +12,7 @@ const floor = { amount: 15, label: 'Glibness', sourceEffectId: uuid(1) }
 const evidence = {
   requestId: 'check-request',
   rollMode: 'NORMAL' as const,
+  keep: 'FIRST' as const,
   derivedRollMode: 'NORMAL' as const,
   rawFaces: [4],
   selectedNatural: 4,

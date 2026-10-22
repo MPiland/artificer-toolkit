@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { allowlistProblems, findDoubleCasts } from './doubleCasts.mjs'
+import { allowlistProblems, findDoubleCasts, findNarrowingCasts } from './doubleCasts.mjs'
 
 const casts = (source) => findDoubleCasts('probe.ts', source).length
 
@@ -38,6 +38,33 @@ describe('allowlistProblems', () => {
     ])
     expect(allowlistProblems([], allowed)).toEqual([
       'a.ts: 0 double casts, allowlist says 2; lower the allowlist count.'
+    ])
+  })
+})
+
+describe('findNarrowingCasts', () => {
+  const narrowing = (source) => findNarrowingCasts('probe.ts', source).length
+
+  it('finds a read value narrowed to a type', () => {
+    expect(narrowing('const a = value as Kind')).toBe(1)
+    expect(narrowing('const a = params.kind as Kind')).toBe(1)
+    expect(narrowing('const a = JSON.parse(text) as Kind')).toBe(1)
+    expect(narrowing('const a = (value ?? "x") as Kind')).toBe(1)
+    expect(narrowing('const a = <Kind>value')).toBe(1)
+  })
+
+  it('accepts const assertions, widening to unknown, and cast literals', () => {
+    expect(narrowing('const a = ["x"] as const')).toBe(0)
+    expect(narrowing('const a = value as unknown')).toBe(0)
+    expect(narrowing('const a = { id: 1 } as Kind')).toBe(0)
+  })
+})
+
+describe('allowlistProblems for narrowing casts', () => {
+  it('names narrowing casts in its messages', () => {
+    const labels = { noun: 'narrowing casts', problem: 'cast narrows a read value' }
+    expect(allowlistProblems([{ file: 'b.ts', line: 4 }], {}, labels)).toEqual([
+      'b.ts:4: cast narrows a read value; type the value instead.'
     ])
   })
 })

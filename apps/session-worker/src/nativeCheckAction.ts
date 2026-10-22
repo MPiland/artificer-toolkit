@@ -195,6 +195,7 @@ export async function planNativeLiveCheckAction(input: NativeLiveCheckActionInpu
       }
     else {
       const evaluated = await evaluateEncounterBasicActionCheck({
+        gameSystemId: state.gameSystemId,
         runtime: input.runtime,
         context,
         continuation,

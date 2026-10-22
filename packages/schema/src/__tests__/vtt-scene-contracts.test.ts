@@ -704,6 +704,11 @@ describe('VTT scene contracts', () => {
           min: 1 as const,
           max: 20 as const,
           rollMode: 'NORMAL' as const,
+          keep: 'FIRST' as const,
+          rollModes: [
+            { code: 'NORMAL', label: 'Normal', keep: 'FIRST' },
+            { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' }
+          ],
           derivedRollModeReasons: []
         },
         allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL'] as const

@@ -8,7 +8,6 @@ import { describe, expect, it } from 'vitest'
 import {
   concealmentsFoundBy,
   encounterConcealmentOf,
-  encounterPassiveScore,
   isConcealedFrom,
   observersHiddenFrom,
   passiveSkillDefinitionId
@@ -24,10 +23,18 @@ import {
   settleCreatureAction
 } from './encounterCreatureAction.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
+import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 const HIDER_ID = testUuid(0xa1)
 const SEEING_ID = testUuid(0xa2)
 const FOOLED_ID = testUuid(0xa3)
+const passiveScore = (rollMode: string) =>
+  rollModeCapabilityRegistry.passiveScore({
+    gameSystemId: DND5E_SYSTEM_ID,
+    skillModifier: 3,
+    rollMode
+  })
 
 const hiddenFrom = (...observerActorIds: string[]) =>
   concealmentRecord({
@@ -64,7 +71,7 @@ describe('concealment rules', () => {
     expect(passiveSkillDefinitionId(srdSystemRecord, SRD_PASSIVE_PERCEPTION_ID)).toBe(
       SRD_PERCEPTION_SKILL_ID
     )
-    expect(encounterPassiveScore(3, 'NORMAL')).toBe(13)
+    expect(passiveScore('NORMAL')).toBe(13)
   })
 
   it('reads the authored skill link, not the passive code, and none when the System authors none', () => {
@@ -91,8 +98,8 @@ describe('concealment rules', () => {
   })
 
   it('adds 5 to a passive score with advantage and removes 5 with disadvantage', () => {
-    expect(encounterPassiveScore(3, 'ADVANTAGE')).toBe(18)
-    expect(encounterPassiveScore(3, 'DISADVANTAGE')).toBe(8)
+    expect(passiveScore('ADVANTAGE')).toBe(18)
+    expect(passiveScore('DISADVANTAGE')).toBe(8)
   })
 
   it('reads the frozen total and the observers a stored concealment still hides its holder from', () => {

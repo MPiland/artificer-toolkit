@@ -9,14 +9,14 @@ import { getAbilityShortLabel } from './characterSheetOverview.utils'
 import { CharacterSheetRollValue } from '../dice/CharacterSheetRollValue'
 import { withRollModifier } from '../dice/dice.utils'
 
-const ABILITY_ICONS = {
+const ABILITY_ICONS: Partial<Record<string, typeof Dumbbell>> = {
   STRENGTH: Dumbbell,
   DEXTERITY: Footprints,
   CONSTITUTION: HeartPulse,
   INTELLIGENCE: Brain,
   WISDOM: Eye,
   CHARISMA: Smile
-} as const
+}
 
 const ABILITY_LABELS = {
   STRENGTH: 'Strength',
@@ -39,7 +39,7 @@ export function CharacterSheetOverviewAbilities({
       {abilities.map((ability) => (
         <div className={overviewStyles.abilityCard} key={ability.ability}>
           {(() => {
-            const Icon = ABILITY_ICONS[ability.ability as keyof typeof ABILITY_ICONS]
+            const Icon = ABILITY_ICONS[ability.ability]
             return Icon ? (
               <Icon className={overviewStyles.abilityIcon} aria-hidden='true' size={16} />
             ) : null

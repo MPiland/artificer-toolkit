@@ -654,6 +654,7 @@ export async function prepareEncounterActionMechanics<
       : encounterAttackSightContributors({ perception: seen, attacksAgainst })
   const attackSight: EncounterPreparedAttackSight | null = perception && {
     ...perception,
+    gameSystemId: state.gameSystemId,
     subject: attackKind === null ? 'SAVE' : 'ATTACK',
     trueSight: sightContributors(perception.actual),
     believedSight: sightContributors(perception.believed),

@@ -76,6 +76,13 @@ import {
   validateMeleeRetaliation
 } from './ruleExecutionEffectEvidence.js'
 import { damageAddedDiceDtoSchema } from './d20AddedDice.js'
+import {
+  rollModeKeepFaceCount,
+  rollModeKeepSchema,
+  rollModeKeptFace,
+  systemVocabularyCodeSchema,
+  type RollModeKeep
+} from './systemVocabularyCode.js'
 
 /** What losing a Concentration slot removes: the maintained state, its dependents and Character owner versions. */
 const concentrationCleanupDtoSchema = lazySchema(() =>
@@ -141,8 +148,9 @@ export const concentrationEndApplicationOutputDtoSchema = lazySchema(() =>
 const ruleCheckRollFields = () => ({
   requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
   /** The mode the faces were rolled with; `derivedRollMode` is the rules-derived one. */
-  rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-  derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+  rollMode: systemVocabularyCodeSchema,
+  keep: rollModeKeepSchema,
+  derivedRollMode: systemVocabularyCodeSchema,
   rawFaces: z
     .array(integerSchema.check(z.gte(1)).check(z.lte(20)))
     .check(z.minLength(1))
@@ -163,7 +171,7 @@ const ruleCheckRollFields = () => ({
 
 const checkRollMatchesRollMode = (
   value: {
-    rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    keep: RollModeKeep
     rawFaces: number[]
     selectedNatural: number
     modifier: number
@@ -174,13 +182,8 @@ const checkRollMatchesRollMode = (
   context: { addIssue: (issue: { code: 'custom'; path: string[]; message: string }) => void }
 ) => {
   if (
-    value.rawFaces.length !== (value.rollMode === 'NORMAL' ? 1 : 2) ||
-    value.selectedNatural !==
-      (value.rollMode === 'ADVANTAGE'
-        ? Math.max(...value.rawFaces)
-        : value.rollMode === 'DISADVANTAGE'
-          ? Math.min(...value.rawFaces)
-          : value.rawFaces[0]) ||
+    value.rawFaces.length !== rollModeKeepFaceCount(value.keep) ||
+    value.selectedNatural !== rollModeKeptFace(value.keep, value.rawFaces) ||
     value.total !== d20CheckTotal(value)
   )
     context.addIssue({
@@ -1230,16 +1233,6 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
             })
           contributorKeys.add(key)
         }
-        const influences = new Set(
-          (value.d20?.contributors ?? []).map((contributor) => contributor.influence)
-        )
-        const expectedRollMode = influences.size === 1 ? [...influences][0] : 'NORMAL'
-        if (value.d20 && value.d20.derivedRollMode !== expectedRollMode)
-          context.addIssue({
-            code: 'custom',
-            path: ['d20', 'derivedRollMode'],
-            message: 'd20 contributor mode is invalid.'
-          })
       })
     )
 )
@@ -1249,7 +1242,8 @@ const contestedActionRollDtoSchema = lazySchema(() =>
     .strictObject({
       actorId: uuidSchema,
       requestNodeId: localNodeIdSchema,
-      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      rollMode: systemVocabularyCodeSchema,
+      keep: rollModeKeepSchema,
       rawFaces: z.array(receiptD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
       selectedNatural: receiptD20FaceSchema,
       contributors: z
@@ -1261,14 +1255,10 @@ const contestedActionRollDtoSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((value, context) => {
-        const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
-        const expectedSelected =
-          value.rollMode === 'ADVANTAGE'
-            ? Math.max(...value.rawFaces)
-            : value.rollMode === 'DISADVANTAGE'
-              ? Math.min(...value.rawFaces)
-              : value.rawFaces[0]
-        if (value.rawFaces.length !== expectedFaces || value.selectedNatural !== expectedSelected)
+        if (
+          value.rawFaces.length !== rollModeKeepFaceCount(value.keep) ||
+          value.selectedNatural !== rollModeKeptFace(value.keep, value.rawFaces)
+        )
           context.addIssue({
             code: 'custom',
             message: 'Contested-action d20 faces do not match the sealed roll mode.'

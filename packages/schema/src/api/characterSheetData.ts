@@ -32,6 +32,7 @@ import {
   activeGrantListingDtoSchema,
   concentrationListingDtoSchema
 } from '../shared/activeGrantListing.js'
+import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
 
 export { characterSheetReadInputSchema, type CharacterSheetReadInput } from './characterSheet.js'
 
@@ -100,7 +101,7 @@ export const characterSheetAbilityDtoSchema = lazySchema(() =>
     ability: abilityCodeSchema,
     score: integerSchema,
     modifier: integerSchema,
-    rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])
+    rollMode: systemVocabularyCodeSchema
   })
 )
 
@@ -148,7 +149,7 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
     facts: z.array(characterSheetFactDtoSchema),
     armorClass: integerSchema,
     initiative: integerSchema,
-    initiativeRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+    initiativeRollMode: systemVocabularyCodeSchema,
     proficiencyBonus: integerSchema,
     inspiration: z.optional(booleanSchema),
     currentHitPoints: integerSchema,
@@ -183,7 +184,7 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
         ability: abilityCodeSchema,
         label: stringSchema,
         total: integerSchema,
-        rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+        rollMode: systemVocabularyCodeSchema,
         proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
       })
     ),
@@ -194,7 +195,7 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
         label: stringSchema,
         ability: abilityCodeSchema,
         total: integerSchema,
-        rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+        rollMode: systemVocabularyCodeSchema,
         proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
       })
     ),
@@ -255,7 +256,7 @@ export const characterSheetMechanicDtoSchema = lazySchema(() =>
     ),
     rangeLabel: z.optional(stringSchema),
     attackBonus: z.optional(integerSchema),
-    attackRollMode: z.optional(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
+    attackRollMode: z.optional(systemVocabularyCodeSchema),
     save: z.optional(
       z.object({
         ability: abilityCodeSchema,
@@ -737,7 +738,7 @@ export const characterSheetResponseDtoSchema = lazySchema(() =>
     spells: z.object({
       saveDc: z.nullable(integerSchema),
       attackBonus: z.nullable(integerSchema),
-      attackRollMode: z.optional(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
+      attackRollMode: z.optional(systemVocabularyCodeSchema),
       slots: z.array(characterSheetSpellSlotDtoSchema),
       activeGroups: z.array(characterSheetActiveSpellGroupDtoSchema),
       spells: z.array(characterSheetSpellDtoSchema),

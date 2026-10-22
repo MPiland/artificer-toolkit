@@ -407,9 +407,9 @@ export function createLiveSessionConnection(
           return
         }
         const parsed = liveSessionWebSocketServerMessageDtoSchema.safeParse(
-          (() => {
+          ((): unknown => {
             try {
-              return JSON.parse(event.data) as unknown
+              return JSON.parse(event.data)
             } catch {
               return null
             }

@@ -3168,7 +3168,7 @@ export declare const api: {
           campaignId: string;
           characterId: string;
           expression: string;
-          rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+          rollMode?: string;
           source: {
             kind:
               | "MANUAL"
@@ -3190,7 +3190,7 @@ export declare const api: {
           characterLabel: string;
           createdAt: string;
           evidence: {
-            mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            mode: string;
             modifier: number;
             subtotal: number;
             terms: Array<{
@@ -3278,7 +3278,7 @@ export declare const api: {
               mechanic?: {
                 activation?: { amount: number; kind: string };
                 attackBonus?: number;
-                attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                attackRollMode?: string;
                 effectId: string;
                 outcomes: Array<
                   | {
@@ -3619,7 +3619,7 @@ export declare const api: {
                 | "STRENGTH"
                 | "WISDOM";
               modifier: number;
-              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rollMode: string;
               score: number;
             }>;
             activeGrants: Array<{
@@ -3663,7 +3663,7 @@ export declare const api: {
               used: number;
             }>;
             initiative: number;
-            initiativeRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            initiativeRollMode: string;
             inspiration?: boolean;
             maxHitPoints: number;
             maxHitPointsModifier: number;
@@ -3687,7 +3687,7 @@ export declare const api: {
                 | "WISDOM";
               label: string;
               proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rollMode: string;
               total: number;
             }>;
             skills: Array<{
@@ -3701,7 +3701,7 @@ export declare const api: {
               code: string;
               label: string;
               proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rollMode: string;
               skillId: string;
               total: number;
             }>;
@@ -3954,7 +3954,7 @@ export declare const api: {
                 mechanics?: Array<{
                   activation?: { amount: number; kind: string };
                   attackBonus?: number;
-                  attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  attackRollMode?: string;
                   effectId: string;
                   outcomes: Array<
                     | {
@@ -4042,7 +4042,7 @@ export declare const api: {
               level: number;
             }>;
             attackBonus: number | null;
-            attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            attackRollMode?: string;
             preparationSources?: Array<{
               classId: string;
               label: string;
@@ -4076,7 +4076,7 @@ export declare const api: {
               mechanics?: Array<{
                 activation?: { amount: number; kind: string };
                 attackBonus?: number;
-                attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                attackRollMode?: string;
                 effectId: string;
                 outcomes: Array<
                   | {
@@ -7238,7 +7238,7 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              mode: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -7334,7 +7334,7 @@ export declare const api: {
               characterLabel: string;
               createdAt: string;
               evidence: {
-                mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                mode: string;
                 modifier: number;
                 subtotal: number;
                 terms: Array<{
@@ -7435,7 +7435,7 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              mode: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -7524,7 +7524,7 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              mode: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -10352,7 +10352,7 @@ export declare const api: {
           roll: {
             characterId: string | null;
             expression: string;
-            rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            rollMode?: string;
             source: {
               kind:
                 | "MANUAL"
@@ -10389,7 +10389,7 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              mode: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -10464,7 +10464,7 @@ export declare const api: {
           roll: {
             characterId: string | null;
             expression: string;
-            rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            rollMode?: string;
             source: {
               kind:
                 | "MANUAL"
@@ -10487,7 +10487,7 @@ export declare const api: {
           characterLabel: string;
           createdAt: string;
           evidence: {
-            mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            mode: string;
             modifier: number;
             subtotal: number;
             terms: Array<{
@@ -10579,7 +10579,7 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              mode: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -18461,7 +18461,7 @@ export declare const api: {
               mechanic?: {
                 activation?: { amount: number; kind: string };
                 attackBonus?: number;
-                attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                attackRollMode?: string;
                 effectId: string;
                 outcomes: Array<
                   | {
@@ -18802,7 +18802,7 @@ export declare const api: {
                 | "STRENGTH"
                 | "WISDOM";
               modifier: number;
-              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rollMode: string;
               score: number;
             }>;
             activeGrants: Array<{
@@ -18846,7 +18846,7 @@ export declare const api: {
               used: number;
             }>;
             initiative: number;
-            initiativeRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            initiativeRollMode: string;
             inspiration?: boolean;
             maxHitPoints: number;
             maxHitPointsModifier: number;
@@ -18870,7 +18870,7 @@ export declare const api: {
                 | "WISDOM";
               label: string;
               proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rollMode: string;
               total: number;
             }>;
             skills: Array<{
@@ -18884,7 +18884,7 @@ export declare const api: {
               code: string;
               label: string;
               proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rollMode: string;
               skillId: string;
               total: number;
             }>;
@@ -19137,7 +19137,7 @@ export declare const api: {
                 mechanics?: Array<{
                   activation?: { amount: number; kind: string };
                   attackBonus?: number;
-                  attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  attackRollMode?: string;
                   effectId: string;
                   outcomes: Array<
                     | {
@@ -19225,7 +19225,7 @@ export declare const api: {
               level: number;
             }>;
             attackBonus: number | null;
-            attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+            attackRollMode?: string;
             preparationSources?: Array<{
               classId: string;
               label: string;
@@ -19259,7 +19259,7 @@ export declare const api: {
               mechanics?: Array<{
                 activation?: { amount: number; kind: string };
                 attackBonus?: number;
-                attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                attackRollMode?: string;
                 effectId: string;
                 outcomes: Array<
                   | {
@@ -20988,7 +20988,7 @@ export declare const api: {
                     | "STRENGTH"
                     | "WISDOM";
                   modifier: number;
-                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rollMode: string;
                   score: number;
                 }>;
                 activeGrants: Array<{
@@ -21032,7 +21032,7 @@ export declare const api: {
                   used: number;
                 }>;
                 initiative: number;
-                initiativeRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                initiativeRollMode: string;
                 inspiration?: boolean;
                 maxHitPoints: number;
                 maxHitPointsModifier: number;
@@ -21058,7 +21058,7 @@ export declare const api: {
                     | "WISDOM";
                   label: string;
                   proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rollMode: string;
                   total: number;
                 }>;
                 skills: Array<{
@@ -21072,7 +21072,7 @@ export declare const api: {
                   code: string;
                   label: string;
                   proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
-                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rollMode: string;
                   skillId: string;
                   total: number;
                 }>;
@@ -21128,7 +21128,7 @@ export declare const api: {
                   mechanic?: {
                     activation?: { amount: number; kind: string };
                     attackBonus?: number;
-                    attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    attackRollMode?: string;
                     effectId: string;
                     outcomes: Array<
                       | {
@@ -21385,7 +21385,7 @@ export declare const api: {
                     mechanics?: Array<{
                       activation?: { amount: number; kind: string };
                       attackBonus?: number;
-                      attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      attackRollMode?: string;
                       effectId: string;
                       outcomes: Array<
                         | {
@@ -21496,7 +21496,7 @@ export declare const api: {
                   mechanics?: Array<{
                     activation?: { amount: number; kind: string };
                     attackBonus?: number;
-                    attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    attackRollMode?: string;
                     effectId: string;
                     outcomes: Array<
                       | {
@@ -21777,7 +21777,7 @@ export declare const api: {
                     mechanics?: Array<{
                       activation?: { amount: number; kind: string };
                       attackBonus?: number;
-                      attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      attackRollMode?: string;
                       effectId: string;
                       outcomes: Array<
                         | {
@@ -21871,7 +21871,7 @@ export declare const api: {
                   level: number;
                 }>;
                 attackBonus: number | null;
-                attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                attackRollMode?: string;
                 preparationSources?: Array<{
                   classId: string;
                   label: string;
@@ -21905,7 +21905,7 @@ export declare const api: {
                   mechanics?: Array<{
                     activation?: { amount: number; kind: string };
                     attackBonus?: number;
-                    attackRollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    attackRollMode?: string;
                     effectId: string;
                     outcomes: Array<
                       | {
@@ -127715,9 +127715,12 @@ export declare const api: {
             | {
                 actionId: string;
                 activation: "ACTION" | "BONUS_ACTION" | "REACTION" | "FREE";
+                castLevel?: number;
+                dc?: number;
                 effectId: string;
                 holderActorId: string;
                 kind: "REPEAT_SOURCE_PATH";
+                label: string;
                 offerIndex: number;
                 warnings: Array<{
                   code:
@@ -127872,8 +127875,10 @@ export declare const api: {
           targets: Array<{
             actorId: string;
             attack: {
+              keep: "FIRST" | "HIGHER" | "LOWER";
               reasons: Array<string>;
-              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rollMode: string;
+              rollModeLabel: string;
             } | null;
           }>;
         }
@@ -128230,10 +128235,16 @@ export declare const api: {
                   }>;
                   derivedRollModeReasons: Array<string>;
                   heldD20?: { caption: string | null; faces: Array<number> };
+                  keep: "FIRST" | "HIGHER" | "LOWER";
                   max: 20;
                   min: 1;
                   requestId: string;
-                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rollMode: string;
+                  rollModes: Array<{
+                    code: string;
+                    keep: "FIRST" | "HIGHER" | "LOWER";
+                    label: string;
+                  }>;
                 };
                 rollerActorId: string | null;
                 trigger?:
@@ -128263,14 +128274,20 @@ export declare const api: {
                 checks: Array<{
                   checkDefinitionId: string;
                   derivedRollModeReasons: Array<string>;
+                  keep: "FIRST" | "HIGHER" | "LOWER";
                   label: string;
-                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rollMode: string;
                 }>;
                 encounterVersion: number;
                 kind: "CONTEST_CHECK";
                 occurrenceId: string;
                 occurrenceVersion: number;
                 requestId: string;
+                rollModes: Array<{
+                  code: string;
+                  keep: "FIRST" | "HIGHER" | "LOWER";
+                  label: string;
+                }>;
                 rollerActorId: string;
               }
             | {
@@ -128299,10 +128316,16 @@ export declare const api: {
                     }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
+                    keep: "FIRST" | "HIGHER" | "LOWER";
                     max: 20;
                     min: 1;
                     requestId: string;
-                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    rollMode: string;
+                    rollModes: Array<{
+                      code: string;
+                      keep: "FIRST" | "HIGHER" | "LOWER";
+                      label: string;
+                    }>;
                   };
                   targetActorId: string;
                 }>;
@@ -128611,13 +128634,14 @@ export declare const api: {
           evidenceRoll?: {
             addedFaces?: Array<number>;
             attempt: number;
-            derivedRollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+            derivedRollMode: string | null;
             faces: Array<number>;
+            keep: "FIRST" | "HIGHER" | "LOWER" | null;
             occurrenceId: string;
             occurrenceVersion: number;
             requestId: string;
             rollId: string;
-            rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE" | null;
+            rollMode: string | null;
             value: number;
           } | null;
           occurrence?: {
@@ -128639,10 +128663,16 @@ export declare const api: {
                     }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
+                    keep: "FIRST" | "HIGHER" | "LOWER";
                     max: 20;
                     min: 1;
                     requestId: string;
-                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    rollMode: string;
+                    rollModes: Array<{
+                      code: string;
+                      keep: "FIRST" | "HIGHER" | "LOWER";
+                      label: string;
+                    }>;
                   };
                   rollerActorId: string | null;
                   trigger?:
@@ -128676,14 +128706,20 @@ export declare const api: {
                   checks: Array<{
                     checkDefinitionId: string;
                     derivedRollModeReasons: Array<string>;
+                    keep: "FIRST" | "HIGHER" | "LOWER";
                     label: string;
-                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    rollMode: string;
                   }>;
                   encounterVersion: number;
                   kind: "CONTEST_CHECK";
                   occurrenceId: string;
                   occurrenceVersion: number;
                   requestId: string;
+                  rollModes: Array<{
+                    code: string;
+                    keep: "FIRST" | "HIGHER" | "LOWER";
+                    label: string;
+                  }>;
                   rollerActorId: string;
                 }
               | {
@@ -128715,10 +128751,16 @@ export declare const api: {
                         caption: string | null;
                         faces: Array<number>;
                       };
+                      keep: "FIRST" | "HIGHER" | "LOWER";
                       max: 20;
                       min: 1;
                       requestId: string;
-                      rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      rollMode: string;
+                      rollModes: Array<{
+                        code: string;
+                        keep: "FIRST" | "HIGHER" | "LOWER";
+                        label: string;
+                      }>;
                     };
                     targetActorId: string;
                   }>;
@@ -129262,7 +129304,7 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              mode: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -129504,7 +129546,7 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              mode: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -129591,10 +129633,16 @@ export declare const api: {
               }>;
               derivedRollModeReasons: Array<string>;
               heldD20?: { caption: string | null; faces: Array<number> };
+              keep: "FIRST" | "HIGHER" | "LOWER";
               max: 20;
               min: 1;
               requestId: string;
-              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rollMode: string;
+              rollModes: Array<{
+                code: string;
+                keep: "FIRST" | "HIGHER" | "LOWER";
+                label: string;
+              }>;
             };
             rollerActorId: string | null;
             trigger?:
@@ -129624,14 +129672,20 @@ export declare const api: {
             checks: Array<{
               checkDefinitionId: string;
               derivedRollModeReasons: Array<string>;
+              keep: "FIRST" | "HIGHER" | "LOWER";
               label: string;
-              rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rollMode: string;
             }>;
             encounterVersion: number;
             kind: "CONTEST_CHECK";
             occurrenceId: string;
             occurrenceVersion: number;
             requestId: string;
+            rollModes: Array<{
+              code: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              label: string;
+            }>;
             rollerActorId: string;
           }
         | {
@@ -129657,10 +129711,16 @@ export declare const api: {
                 }>;
                 derivedRollModeReasons: Array<string>;
                 heldD20?: { caption: string | null; faces: Array<number> };
+                keep: "FIRST" | "HIGHER" | "LOWER";
                 max: 20;
                 min: 1;
                 requestId: string;
-                rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                rollMode: string;
+                rollModes: Array<{
+                  code: string;
+                  keep: "FIRST" | "HIGHER" | "LOWER";
+                  label: string;
+                }>;
               };
               targetActorId: string;
             }>;
@@ -130519,10 +130579,16 @@ export declare const api: {
                   }>;
                   derivedRollModeReasons: Array<string>;
                   heldD20?: { caption: string | null; faces: Array<number> };
+                  keep: "FIRST" | "HIGHER" | "LOWER";
                   max: 20;
                   min: 1;
                   requestId: string;
-                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rollMode: string;
+                  rollModes: Array<{
+                    code: string;
+                    keep: "FIRST" | "HIGHER" | "LOWER";
+                    label: string;
+                  }>;
                 };
                 rollerActorId: string | null;
                 trigger?:
@@ -130552,14 +130618,20 @@ export declare const api: {
                 checks: Array<{
                   checkDefinitionId: string;
                   derivedRollModeReasons: Array<string>;
+                  keep: "FIRST" | "HIGHER" | "LOWER";
                   label: string;
-                  rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rollMode: string;
                 }>;
                 encounterVersion: number;
                 kind: "CONTEST_CHECK";
                 occurrenceId: string;
                 occurrenceVersion: number;
                 requestId: string;
+                rollModes: Array<{
+                  code: string;
+                  keep: "FIRST" | "HIGHER" | "LOWER";
+                  label: string;
+                }>;
                 rollerActorId: string;
               }
             | {
@@ -130588,10 +130660,16 @@ export declare const api: {
                     }>;
                     derivedRollModeReasons: Array<string>;
                     heldD20?: { caption: string | null; faces: Array<number> };
+                    keep: "FIRST" | "HIGHER" | "LOWER";
                     max: 20;
                     min: 1;
                     requestId: string;
-                    rollMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    rollMode: string;
+                    rollModes: Array<{
+                      code: string;
+                      keep: "FIRST" | "HIGHER" | "LOWER";
+                      label: string;
+                    }>;
                   };
                   targetActorId: string;
                 }>;
@@ -132145,7 +132223,7 @@ export declare const api: {
       {
         characterId: string;
         expression: string;
-        rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+        rollMode?: string;
         source: {
           kind:
             | "MANUAL"
@@ -132167,7 +132245,7 @@ export declare const api: {
         characterLabel: string;
         createdAt: string;
         evidence: {
-          mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+          mode: string;
           modifier: number;
           subtotal: number;
           terms: Array<{
@@ -132236,7 +132314,7 @@ export declare const api: {
       { configuration: string },
       {
         evidence: {
-          mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+          mode: string;
           modifier: number;
           subtotal: number;
           terms: Array<{
@@ -132270,7 +132348,7 @@ export declare const api: {
         characterLabel: string;
         createdAt: string;
         evidence: {
-          mode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+          mode: string;
           modifier: number;
           subtotal: number;
           terms: Array<{

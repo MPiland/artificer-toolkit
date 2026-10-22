@@ -52,6 +52,7 @@ const checkOutput = concentrationCheckApplicationOutputDtoSchema.parse({
   d20: {
     requestId: 'request',
     rollMode: 'NORMAL',
+    keep: 'FIRST',
     derivedRollMode: 'NORMAL',
     rawFaces: [15],
     selectedNatural: 15,

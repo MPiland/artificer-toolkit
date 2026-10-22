@@ -4131,7 +4131,7 @@
             },
             {
               "id": "RULES-2.T6d2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RULES-2.6"
               ],
@@ -4145,7 +4145,7 @@
                 ]
               },
               "text": "Compiler (split 2026-10-21): on-hit nested save bands composed from the outcome registry; ImmediateFollowUpSaveShape deleted. Golden flips enumerated; reseed in the same change.",
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md"
+              "note": "Merged m316 (0c2028320)."
             },
             {
               "id": "RULES-2.T6e",
@@ -4220,7 +4220,7 @@
             },
             {
               "id": "RULES-2.T9a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RULES-2.7"
               ],
@@ -4234,8 +4234,8 @@
                   "RULES-2.T7"
                 ]
               },
-              "activeWorkbook": "docs/handoffs/rules-engine-composability-audit-2026-10-20.md",
-              "text": "System vocabulary (split 2026-10-21): one neutral systemVocabulary capability with a dnd5e adapter; rule-execution d20 DTOs (policy, pending contexts, applications, held d20, mode adjustment) gain a required neutral keep (FIRST/HIGHER/LOWER) the schema checks faces against; rollMode becomes a System code checked against keep through the adapter at the one validation seam; passive score and caption labels behind the System; dev data reset."
+              "text": "System vocabulary (split 2026-10-21): one neutral systemVocabulary capability with a dnd5e adapter; rule-execution d20 DTOs (policy, pending contexts, applications, held d20, mode adjustment) gain a required neutral keep (FIRST/HIGHER/LOWER) the schema checks faces against; rollMode becomes a System code checked against keep through the adapter at the one validation seam; passive score and caption labels behind the System; dev data reset.",
+              "note": "Merged m318 (e7b954f37)."
             },
             {
               "id": "RULES-2.T9a2",
@@ -4718,6 +4718,40 @@
               },
               "text": "Delete definition schemaVersion 1 (ruled at T5a review, 2026-10-21; pre-launch, no compatibility): migrate every v1 definition and seed to the current version in the same change and remove the v1 read paths.",
               "note": "Merged m311 (60b0c993b)."
+            },
+            {
+              "status": "TODO",
+              "id": "RULES-2.T6e2",
+              "text": "Compiler (split from T6e 2026-10-22, G3/G7): verify against the executor the chosen-creatures gate refusing condition, kill or target-only outcomes on a list, and the HP gate under a test path; remove each refusal that is not a genuine rule or reclassify it, with enumerated golden flips.",
+              "closes": [
+                "RULES-2.6"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 2,
+                "after": [
+                  "RULES-2.T6e"
+                ]
+              }
+            },
+            {
+              "status": "TODO",
+              "id": "RULES-2.T6e3",
+              "text": "Compiler (split from T6e 2026-10-22, G4/G5): contest and non-contest checks admit registry outcomes (damage and the rest) like save tests; proved by an authored-parity test, since no SRD effect uses them.",
+              "closes": [
+                "RULES-2.6"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": [
+                  "RULES-2.T6e"
+                ]
+              }
             }
           ]
         }
@@ -7042,22 +7076,22 @@
         },
         {
           "id": "SCENE-4",
-          "title": "Scene loot tables by check result",
+          "title": "GM loot tables on Scenes and Encounter creatures",
           "status": "TODO",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
-          "note": "Registered 2026-10-10 by the product owner. Design open: what a loot entry holds and how a found item reaches a Character's inventory.",
+          "note": "Registered 2026-10-10; rescoped by the product owner 2026-10-21. A loot table is a GM reference with exclusive roll ranges; the app never resolves a check against it. Not authored on creatures: a creature’s gear stays stats and gameplay. Giving an item to a Character from the table is in future-enhancements.",
           "acs": [
             {
-              "text": "A GM authors loot tables on a Scene, each keyed to a check (for example Investigation or Perception) with non-overlapping result ranges, each range listing what it reveals.",
+              "text": "A GM authors loot tables on a Scene and on a creature placed in an Encounter. Each table has a name, an optional check from the System’s skills, and exclusive roll ranges that may not overlap. Each range lists real catalog items (SRD or homebrew) with quantities, coins in the System’s denominations, and an optional note. Tables save and reopen, and overlapping ranges are refused with a named message.",
               "status": "TODO",
               "proof": [],
               "origin": [],
               "id": "SCENE-4.1"
             },
             {
-              "text": "In a live Session, a check of that kind on the Scene reveals to the roller everything in the ranges its result reaches; the GM sees the roll and what was revealed, and other players see nothing.",
+              "text": "In a live Session, the GM’s Loot panel lists the current Scene’s tables and the tables of defeated creatures, whose tokens show a loot marker. The GM enters a roll result and the matching range is highlighted. Players see none of it, and nothing is resolved or granted automatically.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -7068,12 +7102,12 @@
             "bv": 5,
             "tc": 1,
             "rr": 1,
-            "size": 5
+            "size": 8
           },
           "tasks": [
             {
               "id": "SCENE-4.T1",
-              "text": "A GM authors loot tables on a Scene: keyed to a check, non-overlapping result ranges with what each reveals; saved, reopened and refused when ranges overlap.",
+              "text": "Scene loot tables: shared contract (name, optional System check, exclusive ranges, entries of catalog item + quantity, System coins, note), overlap refusal in shared code, Scene editor section; saved, reopened and refused when ranges overlap.",
               "status": "TODO",
               "closes": [
                 "SCENE-4.1"
@@ -7083,11 +7117,29 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 3
-              }
+              },
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             },
             {
               "id": "SCENE-4.T2",
-              "text": "Live reveal: a check of that kind on the Scene reveals to the roller every range its result reaches (result at or above the range start); the GM sees the roll and the reveal; other players see nothing. Includes the Scene check path outside an Encounter if none exists.",
+              "text": "Encounter creature placement loot tables, reusing the T1 contract and editor; saved, reopened and refused on overlap. Closes SCENE-4.1 with T1.",
+              "status": "TODO",
+              "closes": [
+                "SCENE-4.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 1,
+                "rr": 1,
+                "size": 2,
+                "after": [
+                  "SCENE-4.T1"
+                ]
+              }
+            },
+            {
+              "id": "SCENE-4.T3",
+              "text": "GM-only live Loot panel: current Scene tables and defeated creatures’ tables (token loot marker); the GM enters a result and the matching range highlights; players receive nothing.",
               "status": "TODO",
               "closes": [
                 "SCENE-4.2"
@@ -7096,9 +7148,9 @@
                 "bv": 5,
                 "tc": 1,
                 "rr": 1,
-                "size": 5,
+                "size": 3,
                 "after": [
-                  "SCENE-4.T1"
+                  "SCENE-4.T2"
                 ]
               }
             }
@@ -11918,7 +11970,7 @@
             },
             {
               "id": "SPELLS-4.T2lb2c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -11932,7 +11984,7 @@
                 ]
               },
               "text": "Web repeat-offer row (split from T2lb2a at review, 2026-10-20): the Character sees and uses a REPEAT_SOURCE_PATH offer (cast level, frozen DC) from the tabletop effect offers, with a browser journey for the Heat Metal repeat.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Merged m315 (85f13553c)."
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -12311,6 +12363,23 @@
                 ]
               },
               "text": "New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted."
+            },
+            {
+              "id": "SPELLS-4.T1k",
+              "text": "Drag through a zone: a grappler dragging a creature through or into a zone settles its zone contacts with the T1j forced-movement settlement (D170), with undo evidence; drag is no longer refused for zone contact.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-4.2"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 1,
+                "size": 2,
+                "after": [
+                  "SPELLS-4.T1j"
+                ]
+              }
             }
           ]
         },
@@ -12958,7 +13027,8 @@
                 "after": [
                   "SPELLS-8.T1"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
             },
             {
               "id": "SPELLS-8.T11",
@@ -12975,7 +13045,8 @@
                 "after": [
                   "SPELLS-8.T1"
                 ]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
             },
             {
               "id": "SPELLS-8.T12",
@@ -13008,6 +13079,23 @@
                 "size": 2,
                 "after": [
                   "SPELLS-8.T5"
+                ]
+              }
+            },
+            {
+              "id": "SPELLS-8.T14",
+              "text": "Class ritual casting on the Sheet (D171): a class whose System data carries RITUAL_CASTER lists its eligible spells (spellbook or prepared, from data, no class names) in the Sheet RITUAL cast mode, with no slot and ritual casting time; the Encounter refusal points to it.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-8.1"
+              ],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 3,
+                "after": [
+                  "SPELLS-8.T11"
                 ]
               }
             }
@@ -16851,8 +16939,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": [
-                  "SPELLS-33.T4i3a",
-                  "RULES-2.T6d2"
+                  "SPELLS-33.T4i3d"
                 ]
               },
               "text": "Solar Slaying Longbow (split 2026-10-21): a gated nested save whose failure is KILL, composed from the unified follow-up model; deletes CREATURE_SOLAR_SLAYING_LONGBOW and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity."
@@ -16869,8 +16956,7 @@
                 "rr": 3,
                 "size": 2,
                 "after": [
-                  "SPELLS-33.T4i3a",
-                  "RULES-2.T6d2"
+                  "SPELLS-33.T4i3d"
                 ]
               },
               "text": "Giant Centipede venom (split 2026-10-21): nested save with poison damage, then outcomes gated on that damage reducing the target to 0 (stable, poisoned 1 hour, paralyzed), composed from the unified follow-up model; deletes GIANT_CENTIPEDE_VENOM and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity."
@@ -17924,6 +18010,40 @@
                 "size": 3
               },
               "text": "new: a recurring saving throw on a held relationship (found in ATTACK-7.T8, 2026-10-20). The Shambling Mound’s Engulf deals 2d8+4 bludgeoning on a failed DC 14 Constitution save at the start of each of the Mound’s turns while the target stays engulfed. A relationship recurrence that carries a save and its outcome, authorable from core options; reuse it for any other held-creature recurring damage. Authoring-parity proof and a room journey (workbook slice-spells-33.md)."
+            },
+            {
+              "id": "SPELLS-33.T4i3d",
+              "text": "Gated nested-save outcomes (generic, found by T4i3b/c 2026-10-22): an optional gate from the one gate table (HP band, REDUCED_TO_ZERO_BY) on nested-save band outcomes with gate inputs on the nested-save graph; KILL admitted in a band only when gated or the save entry is HP-gated (\"never on a save alone\" holds); a hit’s nested save may sit in its own gated result block after the damage block. Nested-save graph in a neutral module so the compiler does not grow. Parity proofs; enumerated golden flips.",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-33.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "RULES-2.T6e"
+                ]
+              }
+            },
+            {
+              "status": "TODO",
+              "id": "SPELLS-33.T4i1f",
+              "text": "Legendary discovery compiles through compileCastChoicePlans (split from RULES-2.T6e 2026-10-22, G6): a legendary action option carries its cast-choice pick through the room, so Vampire Unarmed Strike is offered as a legendary action.",
+              "closes": [
+                "SPELLS-33.1"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 2,
+                "size": 3,
+                "after": [
+                  "RULES-2.T6e"
+                ]
+              }
             }
           ]
         }
@@ -19667,9 +19787,8 @@
             {
               "id": "RELIABILITY-9.T3",
               "text": "No test-only code in production modules and no casts on unknown web data.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
-                "RELIABILITY-9.4",
                 "RELIABILITY-9.8"
               ],
               "wsjf": {
@@ -19677,7 +19796,8 @@
                 "tc": 1,
                 "rr": 3,
                 "size": 5
-              }
+              },
+              "note": "Merged m317 (0f6eeaf79). Increment 1: casts on unknown web data; 9.4 moved to T3b."
             },
             {
               "id": "RELIABILITY-9.T2b",
@@ -19693,6 +19813,24 @@
               },
               "text": "Suspected gap (found in RELIABILITY-9.T2, 2026-10-20): CampaignTableSettings parses its settings on every render, so a re-render of its parent may reset an unsaved draft. Prove it with a component test; if it fails, key the draft by the record and surface incoming changes as RELIABILITY-9.1 requires.",
               "note": "Merged m228 (d219cc19f): real bug; the Table Settings draft now resets only when settings.version changes."
+            },
+            {
+              "id": "RELIABILITY-9.T3b",
+              "text": "Increment 2 of T3: unused exports and test-code casts removed, with the ratchet lowered so they cannot return.",
+              "status": "TODO",
+              "closes": [
+                "RELIABILITY-9.4"
+              ],
+              "activeWorkbook": "docs/handoffs/slice-reliability-9-t1.md",
+              "wsjf": {
+                "bv": 1,
+                "tc": 1,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "RELIABILITY-9.T3"
+                ]
+              }
             }
           ]
         },

@@ -1,6 +1,7 @@
 import { Alert, Badge, Group, Loader, Select, Stack, Tabs, Title } from '@mantine/core'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { findOption } from '../../forms/utils/valueGuards'
 import { useCampaignDetailOrNull } from '#app/data/campaigns/queries'
 import { getCampaignTabs, type CampaignTab } from './campaignAccess'
 import { CampaignSettings } from './components/CampaignSettings'
@@ -75,8 +76,8 @@ export function CampaignDetailPage({
   const deepLink = readDeepLink(locationSearch)
   if (appliedSearch !== locationSearch) {
     setAppliedSearch(locationSearch)
-    if (deepLink.requestedTab && tabs.includes(deepLink.requestedTab as CampaignTab))
-      setActiveTab(deepLink.requestedTab as CampaignTab)
+    const requestedTab = findOption(tabs, deepLink.requestedTab)
+    if (requestedTab) setActiveTab(requestedTab)
     if (deepLink.announcementPublicId) {
       setRequestedAnnouncementId(deepLink.announcementPublicId)
       if (tabs.includes('announcements')) setActiveTab('announcements')

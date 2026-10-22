@@ -153,6 +153,7 @@ export async function planNativeLiveConcealmentCheckAction(
           context,
           continuation,
           evaluated: await rollEncounterCheck({
+            gameSystemId: state.gameSystemId,
             runtime: input.runtime,
             context,
             continuation,

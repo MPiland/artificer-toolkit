@@ -77,6 +77,7 @@ export async function readNativeTurnCommandPending(
           pendingContext.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_CHOICE' ||
           pendingContext.kind === 'ENCOUNTER_TURN_LEGENDARY_ACTION_EVIDENCE'
             ? projectNativeTurnPending({
+                gameSystemId: row.gameSystemId,
                 snapshot: pendingSnapshot,
                 occurrenceId: rootCommandOccurrence.id,
                 occurrenceVersion: rootCommandOccurrence.version,
