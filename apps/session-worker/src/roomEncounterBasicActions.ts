@@ -1,7 +1,5 @@
 import {
   persistEncounterBasicActionResponse,
-  persistEncounterD20WindowAnswer,
-  persistEncounterD20WindowOpen,
   persistEncounterEscapeResponse
 } from '@artificer-toolkit/encounter-persistence/basicActionCheckResponsePersistence'
 import { persistEncounterBasicAction } from '@artificer-toolkit/encounter-persistence/basicActionPersistence'
@@ -256,7 +254,7 @@ export async function executeRoomEncounterEscapeResponse(
   )
 }
 
-/** A d20 or outcome answer settles or pauses a pending basic action check or check action (D173) in one native commit. */
+/** A d20 or outcome answer settles or pauses a pending check action (D173) or concealment check in one native commit. */
 export async function executeRoomEncounterBasicActionResponse(
   input: RoomBasicActionInput & { command: ResolveRuleOccurrenceInputDto }
 ) {
@@ -274,8 +272,6 @@ export async function executeRoomEncounterBasicActionResponse(
     characterIds: Parameters<typeof assertRoomEncounterRulesRevisions>[2],
     fence: Parameters<typeof assertRoomEncounterRulesRevisions>[3]
   ) => assertRoomEncounterRulesRevisions(observed, state, characterIds, fence)
-  if (plan.kind === 'WINDOW_OPEN')
-    return persistEncounterD20WindowOpen(ctx, { ...plan.input, revisions }, { validateReadFence })
   if (plan.kind === 'CHECK_ACTION_PAUSE')
     return persistEncounterCheckActionPause(
       ctx,
@@ -285,9 +281,5 @@ export async function executeRoomEncounterBasicActionResponse(
   const callbacks = { validateReadFence, ...actionOutcomeCallbacks(input) }
   if (plan.kind === 'CHECK_ACTION_SETTLED')
     return persistEncounterCheckActionResponse(ctx, { ...plan.input, revisions }, callbacks)
-  const persist =
-    plan.kind === 'WINDOW_ANSWER'
-      ? persistEncounterD20WindowAnswer
-      : persistEncounterBasicActionResponse
-  return persist(ctx, { ...plan.input, revisions }, callbacks)
+  return persistEncounterBasicActionResponse(ctx, { ...plan.input, revisions }, callbacks)
 }

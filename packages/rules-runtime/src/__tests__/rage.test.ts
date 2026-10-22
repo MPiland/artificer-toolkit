@@ -109,7 +109,8 @@ describe('the spellcasting lock on spell casts', () => {
           castMode: 'AT_WILL',
           castLevel: 0,
           baseEntry: false,
-          resourceOwnerKey: null
+          resourceOwnerKey: null,
+          slotPoolCode: null
         }
       ],
       spellSlots: [],

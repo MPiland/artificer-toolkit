@@ -1331,27 +1331,28 @@ actor makes one authored check (`invocation.check`: `checks` plus a `FIXED` dc; 
 and refused by the compiler until ATTACK-7 slice C) and the `ON_CHECK_SUCCESS` path runs only on success. The
 dnd5e compiler supports exactly one check and a `STABILIZE` outcome; the planner admits `CHECK` only on the
 `BASIC_ACTION` source. The SRD authors First Aid as an Action with Wisdom (Medicine), DC 10, a touch-range single
-target. It resolves through `RESOLVE_ACTION`, and the stored root carries the check occurrence receipt
-(`checkReceipt`). The target comes from the command (a custom actor is refused and a MANUAL Run refuses it as `ASSISTED_ONLY`). A target
-that is not dying gives the overridable `TARGET_NOT_DYING` warning and, once overridden, spends the
-Action with no roll. Touch range reuses the Healer's Kit warnings. The root command always commits and
-spends the Action and the helper's one-roll `ON_ABILITY_CHECK` grants (a Help) are consumed with it. A prompted roll writes a PENDING occurrence
-(`ENCOUNTER_BASIC_ACTION_CHECK`) answered by a separate `RESOLVE_RULE_OCCURRENCE`; an auto-roll
-settles at once. The roll card is credited to the helper, never hidden from the GM, and de-duplicated
-by the app-roll attempt identity. GM undo restores the Action, the used Help and the target's death
-saves, restores the consumed grants and keeps the roll on the record; it is refused while the check is pending
-(`packages/encounter-persistence/src/basicActionCheck*.ts`, `packages/rules-runtime/src/encounterBasicActionCheck.ts`).
+target. Since RULES-2.T6e3b2 (D173) it runs the generic check action (**Check outcomes** below): its success runs the
+`STABILIZE` outcome through `settleTargetOutcome` and commits a `CHECK_ACTION` output, and no First Aid output, settlement or
+undo branch remains. The target comes from the command (a custom actor is refused and a MANUAL Run refuses it as `ASSISTED_ONLY`).
+`STABILIZE` declares the `DYING` target precondition in the System's outcome registry (`targetPrecondition`, read through the
+adapter's `outcomeTargetPreconditions`); a target that fails a declared precondition gives its overridable warning at admission,
+before any roll (`TARGET_NOT_DYING` for `DYING`, in place of `TARGET_DEFEATED`), and once overridden the Action is spent with no
+roll (`TARGET_PRECONDITION_WARNING_CODES`, D173 Q1). Touch range reuses the Healer's Kit warnings. The helper's one-roll
+`ON_ABILITY_CHECK` grants (a Help) are consumed with the Action. The roll card is credited to the helper, never hidden from the
+GM, and de-duplicated by the app-roll attempt identity. GM undo, through the generic check receipt, restores the Action, the used
+Help and the target's death saves and keeps the roll on the record (`packages/rules-runtime/src/encounterBasicActionCheck.ts`,
+`packages/encounter-persistence/src/actionRevert.ts`).
 Spare the Dying and Sheet tracking of death saves are not built (target).
 
 **d20 window (SPELLS-31.T4c1a, current).** A roller holding `AFTER_ROLL` rolled dice on its own active effects pauses a rolled d20
 before the check settles. Two commands act on one occurrence: the d20 response pends a second `ENCOUNTER_D20_WINDOW`
-`KERNEL_EVIDENCE` snapshot (discriminated `source`, today `BASIC_ACTION_CHECK`; no rule receipt, version +1), then
+`KERNEL_EVIDENCE` snapshot (discriminated `source`, today `CHECK_ACTION`; no rule receipt, version +1), then
 its `pause` is the `D20_WINDOW` member of the one pause union. `D20_WINDOW_USE { requestId, optionId, faces? }` or
 `D20_WINDOW_DECLINE` resumes the System-owned bounded choice (index 0 declines),
 appends the die to the d20's `addedDice`, settles the check with the final total and ends the spending effect in the same transaction.
 A GM void of a window is refused. Options and their ids derive from the held grants and the roll's evidence checksum, so a homebrew
 die or trigger runs the same path. Rolled-die faces stay a d4 (`ROLLED_DIE_FACES`).
-(`packages/rules-runtime/src/encounterD20Window.ts`, `packages/encounter-persistence/src/basicActionCheckResponsePersistence.ts`).
+(`packages/rules-runtime/src/encounterD20Window.ts`, `packages/encounter-persistence/src/checkActionResponsePersistence.ts`).
 
 Hide and Search (ATTACK-10.T1, current) are authored `SELF` check actions with per-observer outcomes, built from generic
 options (ADR 0038); nothing in code names Hide.
@@ -1823,6 +1824,16 @@ graph rolls that many dice (a heal's dice count is structural, unlike a damage u
 outcome graph from the bound `dnd5e.spell-cast-level` fact). The selector takes rows keyed by a minimum value of
 a bound level fact, so a class-level key reuses it. A heal that targets several chosen creatures (Mass Cure
 Wounds, Mass Healing Word, Prayer of Healing) is offered with the list target above. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
+
+A spell grant may also name the slot pool that pays its cast (`slotCost.poolCode`, a System-supplied code such as
+`PACT`, listed by the dnd5e vocabulary as `spellSlotPool` and checked against it by `characterSpellRuleFacts`; SPELLS-31.T5p, D175). The candidate then carries `slotPoolCode`, the decision ladder
+requires a slot of that pool (`SPELL_SLOT_REMAINING`, `SPELL_SLOT_EXHAUSTED`, `NO_ELIGIBLE_SPELL_SLOT`) in addition
+to the grant's own pool (`RESOURCE_EXHAUSTED`), and the cast spends both: the slot through the ordinary
+`spellConsumption.slotKey`, the pool through `resourceBinding`. A grant with `access: CLASS_LIST_ONLY` and
+`classListIds` gives no access; `spellClassListAdditions.ts` is the one merge that adds its spells to those class
+lists for the Sheet's preparation catalog and the Builder's merged catalog (the Builder owns the merged list for
+prepare and known choices; the Sheet only reads it). The compiler refuses `CLASS_LIST_ONLY` without `classListIds`.
+Primeval Awareness has no runtime: the generic `USE_SPELL_SLOT` Sheet command spends the slot and the sensing is description.
 
 The cast level is a fact of the action. `prepareNativeCharacterActionState` copies the policy's `castLevel`
 onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the declared fact
@@ -2455,7 +2466,7 @@ receipt applications in Convex and refuses a checksum mismatch, and the commit l
 contest outcome whose push owes a destination pick fails closed.
 
 **Check outcomes (D173, RULES-2.T6e3b1a).** A CHECK action with a `FIXED` dc whose `ON_CHECK_SUCCESS` outcome is not a
-check-settled kind (STABILIZE, CONCEAL_FROM_OBSERVERS, DETECT_CONCEALED) compiles to `TEST_OUTCOME` the same way, with
+check-settled kind (CONCEAL_FROM_OBSERVERS, DETECT_CONCEALED) compiles to `TEST_OUTCOME` the same way, with
 the d20 check graph (`createDnd5eCheckDefinition`) as its test. The room freezes the actor's check, rolls it, and on a
 success runs the same `planNativeTargetOutcome` (its test roll mode is the check's). It commits one `CHECK_ACTION`
 output (`check`, `d20`, `outcome` SUCCESS or FAILURE, and a `TARGET_OUTCOME` or `NONE` `stateTransition`) in a
@@ -2467,8 +2478,9 @@ settles the check; a success re-prepares the action from the root command on the
 (`prepareNativeLiveRootActionMechanics`) and runs its outcome, which pauses in the `OUTCOME` phase on its dice
 (`ACTION_OUTCOME_EVIDENCE`) unless the roller's preference rolls them. The room plans each answer
 (`planNativeLiveCheckActionResponse`); Convex records a pause through `persistEncounterCheckActionPause` and the settled
-check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Undo returns a failed
-check's economy, feature charges and grants and refuses a success's outcome.
+check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Undo returns the check's
+economy, feature charges and grants and, for a success, inverts its outcome's mechanics behind the generic
+`targetOutcomeTransition` stream-version fence (RULES-2.T6e3b2).
 
 **Creature feature checks (D173, RULES-2.T6e3b1c).** A Creature feature authored with a `FIXED`-dc CHECK runs the same
 check action; a contest, a concealment check or a stabilizing check stays a basic action's (`checkActionSource` refuses

@@ -279,6 +279,10 @@ owned authored deletion; other lifecycle producers remain separate integration w
 spell-grant detection and exact input Spell-ID collection. Both transitional and native loaders use
 these same pure decisions. This packet proves a saved native draft can produce native policy facts
 from actual current Convex publications; it does not complete the Builder API or browser journey.
+
+Class spell list additions (a `CLASS_LIST_ONLY` spell grant, such as The Fiend's Expanded Spell List) are merged once by
+`rules-runtime/character/spellClassListAdditions`: the Builder resolution (`builderResolution.ts`) owns the merged catalog
+for prepare and known choices, and the Sheet's preparation catalog reads the same merge (SPELLS-31.T5p, D175).
 Native Campaign-aware Sheet evaluation, scoped GM commands and supplemental-state writers are described below.
 Admission, catalogue-removal and membership-loss writers plus remaining reconciliation producers and
 browser Campaign wiring remain their owning integration work. Native Builder resolution, preview

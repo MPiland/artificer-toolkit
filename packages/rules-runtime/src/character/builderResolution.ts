@@ -38,6 +38,10 @@ import {
   getSpellSelectionCounts
 } from './builderSpellSelection.js'
 import {
+  collectSpellClassListAdditions,
+  withClassListAdditions
+} from './spellClassListAdditions.js'
+import {
   compileStartingEquipmentEligibilityRuleFacts,
   hasStartingEquipmentGroupWithoutEligibleOptions,
   isStartingEquipmentDecisionComplete,
@@ -277,7 +281,7 @@ export async function resolveCharacterBuilder({
     additionalEligibilityFacets: CharacterRulePolicyInput['eligibilityFacets']
   }) => Promise<Pick<FeatureOptionEligibility, 'optionsByFeatureId' | 'eligibilityById'>>
 }): Promise<CharacterBuilderResolution> {
-  const { catalog, registry } = context
+  const { registry } = context
   const abilityScores = deriveAbilityScores(character.intent.abilities)
   const {
     classSelections,
@@ -289,6 +293,15 @@ export async function resolveCharacterBuilder({
     selectedAncestryOption,
     grantedFeatures: structuralFeatures
   } = collectGrantedFeaturesForCharacter(character, registry)
+  const catalog = {
+    ...context.catalog,
+    spells: withClassListAdditions(
+      context.catalog.spells,
+      classSelections.flatMap((selection) =>
+        collectSpellClassListAdditions(selection.features, selection.row.classLevel)
+      )
+    )
+  }
   const grantedFeatures = collectCharacterBuilderFeatures(character, registry, structuralFeatures)
   const primaryClass = classSelections[0]?.baseClass
   const startingEquipmentEligibilityFacets = [

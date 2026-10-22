@@ -41,7 +41,6 @@ export type ReceiptApplications = Extract<
 const CHARACTER_MECHANICS_EVENT_NAMESPACE = '1724d9a4-39b9-5c6a-80b9-b5cc1fb8616f'
 
 export type EncounterCharacterMechanicsEventPhase =
-  | 'BASIC_ACTION_CHECK'
   | 'DIRECT_ACTION_OUTCOME'
   | 'DIRECT_ACTION_RESOURCE'
   | 'LEGENDARY_ACTION_OUTCOME'
