@@ -13,6 +13,7 @@ import * as projection from '@artificer-toolkit/rules-runtime/character/sheetPro
 import { findResourceByOwner } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { magicMissile } from '@artificer-toolkit/source-data/srd/spells/magic-missile.js'
+import { alarm } from '@artificer-toolkit/source-data/srd/spells/alarm.js'
 import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { api } from '../_generated/api'
@@ -344,4 +345,87 @@ describe('native Character Sheet casting', () => {
     ).toMatchObject({ used: 1, remaining: 1 })
     expect((await readState()).receipts).toHaveLength(before.receipts.length + 1)
   })
+})
+
+describe('class ritual casting on the Sheet (D171)', () => {
+  async function ritualFixture(
+    attributes: readonly string[],
+    spellIds: { known: string[]; prepared: string[] }
+  ) {
+    if (!wizard.spellcasting) throw new Error('Expected canonical Wizard spellcasting.')
+    const base = await readyCharacterFixture({
+      spellcasting: {
+        ...wizard.spellcasting,
+        attributes: [...attributes] as NonNullable<typeof wizard.spellcasting>['attributes'],
+        spellLimits: [{ classLevel: 1, slots: [{ spellLevel: 1, slotCount: 2 }], cantripsLimit: 0 }]
+      }
+    })
+    await importSeededSubjects(base.t, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      subjects: [alarm].map((spell) =>
+        importedSubject({
+          subjectKind: 'SPELL',
+          ...spell,
+          document: { ...spell, classIds: [base.baseClass.id] }
+        })
+      )
+    })
+    const { draft, character } = await base.createCharacter()
+    await base.owner.caller.mutation(api.characters.commit.commit, {
+      expectedDraftId: draft.id,
+      mode: 'create',
+      character
+    })
+    let expectedVersion = 1
+    for (const [type, ids] of [
+      ['SET_KNOWN_SPELLS', spellIds.known],
+      ['SET_PREPARED_SPELLS', spellIds.prepared]
+    ] as const) {
+      await base.owner.caller.mutation(execute, {
+        id: character.id,
+        command: {
+          type,
+          commandId: crypto.randomUUID(),
+          expectedVersion: expectedVersion++,
+          classId: base.baseClass.id,
+          spellIds: ids
+        }
+      })
+    }
+    const sheet = (await base.owner.caller.query(getSheet, { id: character.id }))!
+    const sources = sheet.spells.spells.find((entry) => entry.id === alarm.id)!.sources!
+    return { ...base, character, sheet, sources, expectedVersion }
+  }
+
+  it('casts a spellbook ritual with no slot spent, though it is not prepared', async () => {
+    const { owner, character, sheet, sources, expectedVersion } = await ritualFixture(
+      wizard.spellcasting!.attributes!,
+      { known: [alarm.id], prepared: [] }
+    )
+    const ritual = sources.find((source) => source.castMode === 'RITUAL')!
+    expect(ritual.provenance).toBe('CLASS')
+    expect(sheet.spells.activeGroups.flatMap((group) => group.entries)).toContainEqual(
+      expect.objectContaining({ spellId: alarm.id, sourceId: ritual.id, available: true })
+    )
+    const cast = await owner.caller.mutation(execute, {
+      id: character.id,
+      command: {
+        type: 'CAST_SPELL',
+        commandId: crypto.randomUUID(),
+        expectedVersion,
+        spellId: alarm.id,
+        sourceId: ritual.id
+      }
+    })
+    const after = (await owner.caller.query(api.characters.sheet.get, { id: cast.characterId }))!
+    expect(after.spells.slots).toEqual(sheet.spells.slots)
+  }, 15_000)
+
+  it('casts a non-spellbook ritual caster only from its prepared spells', async () => {
+    const attributes = ['PREPARES_SPELLS', 'RITUAL_CASTER']
+    const known = await ritualFixture(attributes, { known: [], prepared: [] })
+    expect(known.sources.some((source) => source.castMode === 'RITUAL')).toBe(false)
+    const prepared = await ritualFixture(attributes, { known: [], prepared: [alarm.id] })
+    expect(prepared.sources.some((source) => source.castMode === 'RITUAL')).toBe(true)
+  }, 30_000)
 })

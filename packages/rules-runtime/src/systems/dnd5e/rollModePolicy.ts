@@ -1,10 +1,10 @@
-import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type {
   RollModeCapabilityAdapter,
   RollModeResolution
 } from '../../rollModeCapabilityRegistry.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
-import { DND5E_ROLL_INFLUENCES, DND5E_ROLL_MODES, type Dnd5eRollMode } from './vocabulary.js'
+import { DND5E_ROLL_INFLUENCES, DND5E_ROLL_MODES, type Dnd5eRollMode } from './coreCodes.js'
 
 /** The face a roll mode keeps of two d20s: advantage the higher, disadvantage the lower. */
 export const DND5E_KEEP_BY_ROLL_MODE = {

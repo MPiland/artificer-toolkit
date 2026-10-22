@@ -1,6 +1,6 @@
-import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
-import type { SystemVocabularyRegistry } from './systemVocabularyCapability.js'
+import type { SystemCoreCodeRegistry } from './systemCoreCodeCapability.js'
 
 export interface RollModeResolution {
   /** A code from the System's `rollMode` vocabulary. */
@@ -25,7 +25,7 @@ export interface RollModeCapabilityAdapter {
 
 export function createRollModeCapabilityRegistry(
   adapters: readonly RollModeCapabilityAdapter[],
-  vocabulary: SystemVocabularyRegistry
+  vocabulary: SystemCoreCodeRegistry
 ) {
   const registry = createSystemCapabilityRegistry('roll-mode', adapters)
   const rollModeKeep = (input: { gameSystemId: string; rollMode: string }): RollModeKeep => {

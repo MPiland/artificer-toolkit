@@ -45,6 +45,11 @@ export function buildCharacterSpellCastRuleFacts(params: {
     append(source, spell.label, spell.level, 'SPELL_SLOT', null)
   }
 
+  for (const { source } of params.snapshot.classRitualSources ?? []) {
+    const spell = spellById.get(source.spellId)
+    if (spell) append(source, spell.label, spell.level, 'RITUAL', null)
+  }
+
   for (const access of params.spellAccessCandidates) {
     if (!isCharacterSpellActionAccessCandidate(access)) continue
     const spell = spellById.get(access.spellId)

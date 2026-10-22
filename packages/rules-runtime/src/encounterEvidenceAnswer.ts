@@ -4,7 +4,7 @@ import {
   rollModeKeepFaceCount,
   rollModeKeptFace,
   type RollModeKeep
-} from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+} from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 import { EncounterValidationError } from './encounterErrors.js'
 

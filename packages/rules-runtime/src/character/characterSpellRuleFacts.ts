@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/shared/core'
 import type { CharacterProvenance } from '@artificer-toolkit/shared/subjects/authored'
 
-import { systemVocabularyRegistry } from '../platformSystemVocabulary.js'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import { getCharacterGrantFoldSelectedOptionIds } from './characterGrantFoldSourceFacts.js'
 
 export type CharacterSpellAccessCandidate =
@@ -228,7 +228,7 @@ function appendGrantCandidates(params: {
         allowedCreatureTypeIds: grant.allowedCreatureTypeIds ?? [],
         perTargetLockout: grant.perTargetLockout !== undefined,
         slotPoolCode: grant.slotCost
-          ? systemVocabularyRegistry.requireCode(
+          ? systemCoreCodeRegistry.requireCode(
               snapshot.systemId,
               'spellSlotPool',
               grant.slotCost.poolCode

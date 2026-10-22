@@ -32,7 +32,7 @@ Done. A player on their own Character, with no GM step, attacks with the Club (t
 
 - REACTION-4.T4 spells selects (`invocation.ts`, `grants/maps/modifier.ts`) read `description`, which the node runtime source manifest does not serve; they now select `id` and `label` (`Untrusted node runtime column for spells: description`).
 - The effects `speeds` select now reads `description` (manifest serves it).
-- `passives`: missing from the manifest and `systemVocabularyRows`. PLATFORM-23 credits that fix; this slice's duplicate was removed on sync.
+- `passives`: missing from the manifest and `systemCoreCodeRows`. PLATFORM-23 credits that fix; this slice's duplicate was removed on sync.
 - Regression test: `packages/authoring/src/nodeRuntime/systemVocabularyOptions.test.ts` "selects only columns the node runtime source manifest serves, on every node map select" walks every node map select against the manifest. Red proof: the red-proof job on ci/attack-2-t2 (scratch red runs Tests 39005441085 and 38935739069).
 - Fixture and journey errors in the slice's own earlier draft (not product): the wolf's `wolfBites` needed the scene context; the content snapshot heads must be built before the journey; the Wolf's save is listed only in the owner's view after a checkpoint; the Thunderwave damage has no caster roll.
 

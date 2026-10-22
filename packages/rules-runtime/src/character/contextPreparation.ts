@@ -560,7 +560,13 @@ export async function prepareCharacterRuleContext(
       for (const spell of catalogue.publications) currentSpellsById.set(spell.id, spell)
     }
     context.catalog.spells = [...spellCatalogueEntries]
-      .map(({ id, label, level, classIds }) => ({ id, label, level, classIds }))
+      .map(({ id, label, level, classIds, attributes }) => ({
+        id,
+        label,
+        level,
+        classIds,
+        attributes
+      }))
       .sort(
         (left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id)
       )

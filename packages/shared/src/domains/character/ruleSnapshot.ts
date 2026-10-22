@@ -88,6 +88,8 @@ export interface CharacterBuildSnapshot {
   adjustments?: CharacterMechanicalAdjustment[]
   movementDisplayPreference?: CharacterMovementDisplayPreference
   spellSources?: CharacterSpellSourceRef[]
+  /** Spells a Class casts as rituals (D171); each is a source of its own, cast with no slot. */
+  classRitualSources?: Array<{ classId: string; source: CharacterSpellSourceRef }>
   companions?: CharacterCompanionCalculationInput[]
 }
 

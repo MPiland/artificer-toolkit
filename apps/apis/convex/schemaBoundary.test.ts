@@ -134,10 +134,10 @@ it('evaluates the complete database schema without environment-variable access',
 
 /** The System vocabulary seam's closure: the only rules-runtime files authoring may load. */
 const SYSTEM_VOCABULARY_SEAM = [
-  'platformSystemVocabulary.ts',
-  'systemVocabularyCapability.ts',
+  'platformSystemCoreCodes.ts',
+  'systemCoreCodeCapability.ts',
   'systemCapabilityRegistry.ts',
-  'systems/dnd5e/vocabulary.ts',
+  'systems/dnd5e/coreCodes.ts',
   'systems/dnd5e/identity.ts'
 ].map((file) => `/packages/rules-runtime/src/${file}`)
 
@@ -176,13 +176,13 @@ it('refuses a play module loaded beside the System vocabulary seam', () => {
   const playImports = playImportsOf({
     stdin: {
       contents: [
-        "export * from '@artificer-toolkit/rules-runtime/platformSystemVocabulary'",
+        "export * from '@artificer-toolkit/rules-runtime/platformSystemCoreCodes'",
         "export * from '@artificer-toolkit/rules-runtime/platformPolicyModules'"
       ].join('\n')
     }
   })
   expect(playImports).toContain('/packages/rules-runtime/src/platformPolicyModules.ts')
-  expect(playImports.some((path) => path.endsWith('/platformSystemVocabulary.ts'))).toBe(false)
+  expect(playImports.some((path) => path.endsWith('/platformSystemCoreCodes.ts'))).toBe(false)
 })
 
 it.each(['./characters/documents.ts', './content/deletion.ts'])(

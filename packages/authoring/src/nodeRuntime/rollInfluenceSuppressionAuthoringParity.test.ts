@@ -9,7 +9,7 @@ import {
   type EncounterAttackPerception
 } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import { ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
-import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
+import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 import {
   SRD,
   evaluateSrdCharacter,
@@ -31,7 +31,7 @@ import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
  * runtime drops the suppressed influence through the same path that drops Elusive's advantage.
  */
 
-const reader = createSrdNodeRuntimeReader(dnd5eVocabularyCapabilityAdapter.lists)
+const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 const HOMEBREW_ID = '7e57a000-0000-4000-8000-000000000001'
 const HOLDER_ID = '7e57a000-0000-4000-8000-000000000002'
 

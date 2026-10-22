@@ -34,14 +34,14 @@ import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
 import {
   rollModeKeepFaceCount,
   rollModeKeepSchema,
-  systemVocabularyCodeSchema
-} from './systemVocabularyCode.js'
+  systemCoreCodeSchema
+} from './systemCoreCode.js'
 
 /** One sealed contest d20 roll: its mode, contributors and modifier. */
 const contestD20RollDtoSchema = lazySchema(() =>
   z
     .strictObject({
-      rollMode: systemVocabularyCodeSchema,
+      rollMode: systemCoreCodeSchema,
       keep: rollModeKeepSchema,
       contributors: z
         .array(receiptD20ContributorSchema)

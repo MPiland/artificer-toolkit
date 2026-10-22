@@ -51,7 +51,7 @@ import {
   ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
-import { systemVocabularyCodeSchema } from './systemVocabularyCode.js'
+import { systemCoreCodeSchema } from './systemCoreCode.js'
 
 /** Hard aggregate-local bound for persisted active effects. */
 export const MAX_ACTIVE_RULE_EFFECTS_PER_OWNER = 64
@@ -200,7 +200,7 @@ export const activeEffectRepeatTriggerSchema = lazySchema(() =>
     event: z.literal('DAMAGE_TAKEN'),
     by: pathLifecycleEndTriggerBySchema,
     damageTypeIds: z.nullable(damageTypeFilterDtoSchema),
-    rollInfluence: z.nullable(systemVocabularyCodeSchema)
+    rollInfluence: z.nullable(systemCoreCodeSchema)
   })
 )
 

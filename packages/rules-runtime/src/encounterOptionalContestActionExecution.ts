@@ -1,7 +1,7 @@
 import {
   rollModeKeptFace,
   type RollModeKeep
-} from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+} from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { EncounterActionHeldD20Dto } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import type {

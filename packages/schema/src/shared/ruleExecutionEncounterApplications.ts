@@ -80,9 +80,9 @@ import {
   rollModeKeepFaceCount,
   rollModeKeepSchema,
   rollModeKeptFace,
-  systemVocabularyCodeSchema,
+  systemCoreCodeSchema,
   type RollModeKeep
-} from './systemVocabularyCode.js'
+} from './systemCoreCode.js'
 
 /** What losing a Concentration slot removes: the maintained state, its dependents and Character owner versions. */
 const concentrationCleanupDtoSchema = lazySchema(() =>
@@ -148,9 +148,9 @@ export const concentrationEndApplicationOutputDtoSchema = lazySchema(() =>
 const ruleCheckRollFields = () => ({
   requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
   /** The mode the faces were rolled with; `derivedRollMode` is the rules-derived one. */
-  rollMode: systemVocabularyCodeSchema,
+  rollMode: systemCoreCodeSchema,
   keep: rollModeKeepSchema,
-  derivedRollMode: systemVocabularyCodeSchema,
+  derivedRollMode: systemCoreCodeSchema,
   rawFaces: z
     .array(integerSchema.check(z.gte(1)).check(z.lte(20)))
     .check(z.minLength(1))
@@ -1238,7 +1238,7 @@ const contestedActionRollDtoSchema = lazySchema(() =>
     .strictObject({
       actorId: uuidSchema,
       requestNodeId: localNodeIdSchema,
-      rollMode: systemVocabularyCodeSchema,
+      rollMode: systemCoreCodeSchema,
       keep: rollModeKeepSchema,
       rawFaces: z.array(receiptD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
       selectedNatural: receiptD20FaceSchema,

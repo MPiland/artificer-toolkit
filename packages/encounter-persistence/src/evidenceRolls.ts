@@ -24,7 +24,7 @@ import {
   type RollMode
 } from '@artificer-toolkit/shared/rolls'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
-import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { withAddedDiceTerms } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'

@@ -1,7 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 
 import { abilityCodeSchema } from '../shared/enums.js'
-import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const integerSchema = lazySchema(() => z.number().check(z.int()))
 const booleanSchema = lazySchema(() => z.boolean())
@@ -72,7 +72,7 @@ const characterSpellAccessCandidateSchema = lazySchema(() =>
     /** Whether each creature a cast targets is locked out of this grant until the caster's long rest. */
     perTargetLockout: z._default(booleanSchema, false),
     /** The slot pool each cast also spends a slot from (D175); null when the grant spends none. */
-    slotPoolCode: z._default(z.nullable(systemVocabularyCodeSchema), null)
+    slotPoolCode: z._default(z.nullable(systemCoreCodeSchema), null)
   })
 )
 
