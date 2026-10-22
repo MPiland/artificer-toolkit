@@ -11368,7 +11368,7 @@
             {
               "id": "SPELLS-8.T14",
               "text": "Class ritual casting on the Sheet (D171): a class whose System data carries RITUAL_CASTER lists its eligible spells (spellbook or prepared, from data, no class names) in the Sheet RITUAL cast mode, with no slot and ritual casting time; the Encounter refusal points to it.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 2,
@@ -11377,8 +11377,8 @@
                 "size": 3,
                 "after": ["SPELLS-8.T11"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39847779497"
+              "mergedAt": "2026-10-22T20:32:00Z",
+              "note": "Merged in m352."
             }
           ]
         },
