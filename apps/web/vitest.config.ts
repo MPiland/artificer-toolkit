@@ -5,7 +5,7 @@ import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import { vanillaExtractPlugin } from '@vanilla-extract/vite-plugin'
 import { playwright } from '@vitest/browser-playwright'
 import { defineConfig } from 'vitest/config'
-import { sourceResolve } from '../../scripts/vitestSource.mjs'
+import { sourceResolve, workspaceSourceAliases } from '../../scripts/vitestSource.mjs'
 
 const configDir = join(dirname(fileURLToPath(import.meta.url)), '.storybook')
 
@@ -13,6 +13,7 @@ export default defineConfig({
   ssr: sourceResolve.ssr,
   resolve: {
     ...sourceResolve.resolve,
+    alias: workspaceSourceAliases,
     tsconfigPaths: true
   },
   plugins: [
