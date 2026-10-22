@@ -14771,7 +14771,7 @@
             {
               "id": "SPELLS-33.T4i3f",
               "text": "Drow poison rider adopts the D172 link (2026-10-22): the D149 margin-of-failure unconscious rider names its parent poisoned outcome with endsWithOutcomeId, so curing or GM-ending the poison ends the sleep; closes the D149 deferred edge case. Generic, parity proof.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 2,
@@ -14780,12 +14780,12 @@
                 "size": 1,
                 "after": ["SPELLS-33.T4i3e"]
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "note": "Merged m329 (5c07ac9fb)."
             },
             {
               "id": "SPELLS-33.T4i3g",
               "text": "Any number of timed conditions in a gated band (found by T4i3e 2026-10-22): the single marginRider slot becomes a list across the projection/adapter schema, the four rider roots (one shared linkedRiderPlan), ordering and linked-id mapping, so a band with three or more timed or linked conditions compiles instead of refusing with the engine-limit message (AC RULES-2.6 refuses only invalid input or a genuine rule). Generic, parity proof.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 2,
@@ -14793,7 +14793,8 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["SPELLS-33.T4i3f"]
-              }
+              },
+              "note": "Merged m329 (5c07ac9fb)."
             }
           ]
         }

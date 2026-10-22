@@ -4,8 +4,8 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 export function projectNativeActionEffectTransitions(input: {
   state: ActiveRuleEffectRecord | null
   recurring: ActiveRuleEffectRecord | null
-  /** A failure-margin rider's effect, created beside the recurring effect it rides on. */
-  rider?: ActiveRuleEffectRecord | null
+  /** The riders' effects, created beside the recurring effect they ride on, in plan order. */
+  riders?: readonly (ActiveRuleEffectRecord | null)[]
   targetActorId: string
 }) {
   const { state, recurring } = input
@@ -37,7 +37,7 @@ export function projectNativeActionEffectTransitions(input: {
         })()
       ]
     : []
-  const activeEffectTransitions = [recurring, input.rider ?? null].flatMap((recurring) =>
+  const activeEffectTransitions = [recurring, ...(input.riders ?? [])].flatMap((recurring) =>
     recurring
       ? [
           {

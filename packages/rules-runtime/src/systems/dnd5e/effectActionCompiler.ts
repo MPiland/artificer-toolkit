@@ -552,7 +552,7 @@ function supportedRecurringPlan(
       ...repeatSave,
       perceptionContributions: [],
       maintenance,
-      marginRider: null
+      marginRiders: []
     }
   }
   if (
@@ -582,7 +582,7 @@ function supportedRecurringPlan(
     adapterFacts: {},
     perceptionContributions: [],
     maintenance,
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -761,7 +761,7 @@ function sequentialCompositionPlan(
     ...(temporary && { ownsTemporaryHitPoints: true }),
     perceptionContributions: [],
     maintenance: maintenancePlan(action, recurring),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -920,7 +920,7 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
     adapterFacts: { 'dnd5e.relationship-authored-path': entry.pathCode },
     perceptionContributions: [],
     maintenance: null,
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -1236,7 +1236,7 @@ function repeatingImmediateFollowUpSavePlan(
     ...repeatSave,
     perceptionContributions: [],
     maintenance: maintenancePlan(action, saveEntry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -1289,8 +1289,9 @@ function timedImmediateConditionPlan(
     !initialRemaining ||
     !knownConditionIds.includes(condition.conditionId) ||
     !UUID.test(resolved.saveEntry.resultBlockId) ||
-    (band?.rider &&
-      !knownConditionIds.includes(band.rider.conditionContributions[0]!.conditionId)) ||
+    band?.riders.some(
+      ({ conditionContributions: [c] }) => !knownConditionIds.includes(c!.conditionId)
+    ) ||
     rider?.outcomes.some(({ conditionId }) => !knownConditionIds.includes(conditionId))
   )
     return null
@@ -1311,7 +1312,7 @@ function timedImmediateConditionPlan(
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
     maintenance: maintenancePlan(action, resolved.saveEntry),
-    marginRider: band ? band.rider : rider ? marginRiderPlan(rider) : null
+    marginRiders: band ? band.riders : rider ? [marginRiderPlan(rider, condition.id)] : []
   }
 }
 
@@ -1435,7 +1436,7 @@ function timedConditionPlan(
     adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
     perceptionContributions: [],
     maintenance,
-    marginRider: rider ? marginRiderPlan(rider) : null
+    marginRiders: rider ? [marginRiderPlan(rider)] : []
   }
 }
 
@@ -1507,7 +1508,7 @@ function sourceImmunityPlan(
       initialRemaining: null,
       frozenGraph: durationPublishedGraph({
         effectId: action.effectId,
-        plan: { ...plan, marginRider: null }
+        plan: { ...plan, marginRiders: [] }
       })
     }
   }
@@ -1534,7 +1535,7 @@ function sourceImmunityPlan(
     initialRemaining,
     frozenGraph: durationPublishedGraph({
       effectId: action.effectId,
-      plan: { ...plan, marginRider: null }
+      plan: { ...plan, marginRiders: [] }
     })
   }
 }
@@ -1557,7 +1558,7 @@ export function incomingGateImmunityPlan(input: { wardId: string; duration: Comp
       initialRemaining,
       frozenGraph: durationPublishedGraph({
         effectId: input.wardId,
-        plan: { ...plan, marginRider: null }
+        plan: { ...plan, marginRiders: [] }
       })
     }
   }
@@ -1997,7 +1998,7 @@ function modifierGrantEntryPlan(input: {
     adapterFacts: {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -2038,7 +2039,7 @@ function actorLinkPlan(
     adapterFacts: {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -2109,7 +2110,7 @@ function creatureFormPlan(
     adapterFacts: {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -2149,7 +2150,7 @@ function concealmentPlan(
     adapterFacts: {},
     perceptionContributions: [],
     maintenance: maintenancePlan(action, entry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -2167,7 +2168,7 @@ function durationPublishedGraph(input: {
     | 'modifierGrantContribution'
     | 'actorLinkContribution'
     | 'creatureFormContribution'
-    | 'marginRider'
+    | 'marginRiders'
     | 'repeatCarrier'
   >
 }): ServerPublishedRuleDefinitionDto {
@@ -2184,7 +2185,7 @@ function durationPublishedGraph(input: {
     definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
     nodes: [
       input.plan.frozenGraphNodeId,
-      input.plan.marginRider?.frozenGraphNodeId,
+      ...input.plan.marginRiders.map(({ frozenGraphNodeId }) => frozenGraphNodeId),
       input.plan.repeatCarrier?.frozenGraphNodeId
     ].flatMap((id) =>
       id
@@ -2219,14 +2220,10 @@ function durationPublishedGraph(input: {
               { compiledEntryId: { kind: 'LITERAL', value: input.plan.compiledEntryId } },
     sourceEntryBindings: [
       { sourceEntryId: input.plan.compiledEntryId, nodeId: input.plan.frozenGraphNodeId },
-      ...(input.plan.marginRider
-        ? [
-            {
-              sourceEntryId: input.plan.marginRider.compiledEntryId,
-              nodeId: input.plan.marginRider.frozenGraphNodeId
-            }
-          ]
-        : []),
+      ...input.plan.marginRiders.map(({ compiledEntryId, frozenGraphNodeId }) => ({
+        sourceEntryId: compiledEntryId,
+        nodeId: frozenGraphNodeId
+      })),
       ...(input.plan.repeatCarrier
         ? [
             {
@@ -2390,7 +2387,7 @@ function repeatingDirectFollowUpSavePlan(
     castSaveDcFactKey: triggerCode === 'ACTIVATED' ? null : repeatSave.castSaveDcFactKey,
     perceptionContributions: [],
     maintenance: maintenancePlan(action, leadEntry),
-    marginRider: null
+    marginRiders: []
   }
 }
 
@@ -4574,7 +4571,10 @@ function dnd5eActiveEffectPlans(
   // created apart from the Concentration it outlasts, and takes the slot a failure rider would.
   if (
     sourceImmunity &&
-    (!plan || (sourceImmunity.appliesTo === 'SAVE_SUCCESS' ? plan.maintenance : plan.marginRider))
+    (!plan ||
+      (sourceImmunity.appliesTo === 'SAVE_SUCCESS'
+        ? plan.maintenance
+        : plan.marginRiders.length > 0))
   )
     unsupported('D&D source immunity needs a lasting effect it can ride.')
   const repeatCarrier = repeatCarrierPlan(action)
@@ -4584,7 +4584,7 @@ function dnd5eActiveEffectPlans(
     (!timedPlan?.modifierGrantContribution ||
       !timedPlan.maintenance ||
       !timedPlan.chosenItem ||
-      timedPlan.marginRider ||
+      timedPlan.marginRiders.length > 0 ||
       sourceImmunity)
   )
     unsupported('D&D repeat offer needs a maintained chosen-item grant it can ride.')

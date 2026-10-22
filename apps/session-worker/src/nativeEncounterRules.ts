@@ -1507,7 +1507,7 @@ export async function planNativeLiveEncounterAction(
         prepared.target.kind === 'CHARACTER' &&
         (preparedEffects.stateEffect !== null ||
           preparedEffects.recurringEffect !== null ||
-          preparedEffects.riderEffect !== null ||
+          preparedEffects.riderEffects.some(Boolean) ||
           reactionUse !== null ||
           targetFailedCounterSpend ||
           damageEnded.grants.length > 0 ||

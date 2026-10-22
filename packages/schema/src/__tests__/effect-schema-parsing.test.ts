@@ -1429,7 +1429,7 @@ describe('failure margin rider on a direct saving throw (SPELLS-33.T7b)', () => 
     ],
     lifecycle: {}
   }
-  const effectWith = (pathCode: string, triggerCode = 'SAVING_THROW') => ({
+  const effectWith = (pathCode: string, triggerCode = 'SAVING_THROW', margin = rider) => ({
     id: '00000000-0000-4000-8000-0000000000f4',
     order: 1,
     invocation: {
@@ -1455,7 +1455,7 @@ describe('failure margin rider on a direct saving throw (SPELLS-33.T7b)', () => 
             effectKind: 'CONDITION',
             conditionId: '00000000-0000-4000-8000-0000000000f9'
           },
-          { failureMarginRider: rider }
+          { failureMarginRider: margin }
         )
       )
     ]
@@ -1465,6 +1465,13 @@ describe('failure margin rider on a direct saving throw (SPELLS-33.T7b)', () => 
     const parsed = effectDtoSchema.parse(effectWith('ON_SAVE_FAIL'))
 
     expect(parsed.paths[0]).toMatchObject({ resultBlock: { failureMarginRider: rider } })
+  })
+
+  it('keeps the condition outcome the rider ends with (D172)', () => {
+    const linked = { ...rider, endsWithOutcomeId: '00000000-0000-4000-8000-0000000000fa' }
+    const parsed = effectDtoSchema.parse(effectWith('ON_SAVE_FAIL', 'SAVING_THROW', linked))
+
+    expect(parsed.paths[0]).toMatchObject({ resultBlock: { failureMarginRider: linked } })
   })
 
   it.each([

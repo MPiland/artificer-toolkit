@@ -160,14 +160,14 @@ describe('immunity to a source after a successful save (SPELLS-31.T5l, D156)', (
   it('frightens on a failure and plans no immunity', async () => {
     const failed = await roar(0)
     expect(failed.conditionIds).toEqual([FRIGHTENED])
-    expect(failed.effects.riderEffect).toBeNull()
+    expect(failed.effects.riderEffects.filter(Boolean)).toEqual([])
   })
 
   it('makes a target that saves immune to this roarer’s Roar for its hour, outliving the action', async () => {
     const saved = await roar(19)
     expect(saved.conditionIds).toEqual([])
     expect(saved.effects.riderMaintained).toBe(false)
-    expect(saved.effects.riderEffect?.definition).toMatchObject({
+    expect(saved.effects.riderEffects[0]?.definition).toMatchObject({
       origin: { sourceActorId: SOURCE_ID },
       recurrence: { expiration: { kind: 'TICKS', initialRemaining: 600 } },
       stateContributions: [
@@ -183,7 +183,7 @@ describe('immunity to a source after a successful save (SPELLS-31.T5l, D156)', (
 
   it('refuses the same roarer’s Roar against the holder, not another roarer’s', async () => {
     const saved = await roar(19)
-    const immunity = saved.effects.riderEffect
+    const immunity = saved.effects.riderEffects[0]
     if (!immunity) throw new Error('The successful save planned no immunity.')
     const held = [
       {
@@ -328,7 +328,7 @@ describe('SRD Chains of Carceri: a grant that locks each target out (SPELLS-31.T
       initialRemaining: null
     })
     for (const resultPath of ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS'] as const)
-      expect(planned(resultPath).riderEffect?.definition, resultPath).toMatchObject({
+      expect(planned(resultPath).riderEffects[0]?.definition, resultPath).toMatchObject({
         // A Run holds no rest, so the lockout lasts the Run.
         recurrence: {
           recurrenceStage: 'NONE',
@@ -347,7 +347,7 @@ describe('SRD Chains of Carceri: a grant that locks each target out (SPELLS-31.T
   })
 
   it('refuses the locked-out creature this Warlock’s next at-will cast', () => {
-    const lockout = planned('ON_SAVE_SUCCESS').riderEffect
+    const lockout = planned('ON_SAVE_SUCCESS').riderEffects[0]
     if (!lockout) throw new Error('The cast planned no lockout.')
     const holderEffects = [
       {

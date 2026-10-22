@@ -240,17 +240,18 @@ export interface CharacterRuleActionActiveEffectPlan {
     emptyDependentPolicy: 'TERMINATE_WHEN_EMPTY' | 'RETAIN_UNTIL_TERMINAL'
   }
   /**
-   * Conditions a save failed by at least `failedBy` also applies (unconscious beside poisoned). A
-   * second active effect holds them, bound to this plan's frozen graph node under its own entry. A
-   * gated band's second timed condition takes the slot with no margin, its own duration and, when
-   * it ends with the first, `linksToPrimary` (D172).
+   * The effects beside the plan's own, in creation order. A save failed by at least `failedBy` also
+   * applies conditions (unconscious beside poisoned): a rider holds them as a second active effect,
+   * bound to this plan's frozen graph node under its own entry. A gated band's timed conditions
+   * after the first each take one with no margin and their own duration; `endsWith` names the
+   * effect one lasts only while: the plan's own (`'PRIMARY'`) or an earlier rider, by index (D172).
    */
-  marginRider: null | {
+  marginRiders: readonly {
     compiledEntryId: string
     frozenGraphNodeId: string
     failedBy: number | null
     initialRemaining: number | null
-    linksToPrimary: boolean
+    endsWith: null | 'PRIMARY' | number
     conditionContributions: readonly {
       conditionId: string
       recordsSource: boolean
@@ -260,7 +261,7 @@ export interface CharacterRuleActionActiveEffectPlan {
       /** The structured events that end the rider, unique and in canonical order. */
       endOnTriggers: readonly ActiveEffectEndTrigger[]
     }
-  }
+  }[]
   /**
    * The immunity the action leaves on its target against this source (D156, SPELLS-31.T5l): a
    * successful save's, for the result block's duration, or an at-will grant's lockout on every
