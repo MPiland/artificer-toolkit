@@ -3907,7 +3907,7 @@
             {
               "id": "RULES-2.T6e3b1c",
               "text": "Creature-feature checks on the check flow (split from b1b 2026-10-22, D173): a source union BASIC_ACTION | CREATURE_FEATURE on the persisted check context and CHECK_ACTION output; Convex re-resolves the feature from the creature snapshot and spends its costs (charges, recharge, Legendary pool) through the existing creature action cost spending, not a copy; the b1a room refusal removed; parity by a creature check with a cost.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 2,
@@ -3916,7 +3916,7 @@
                 "size": 3,
                 "after": ["RULES-2.T6e3b1b"]
               },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "note": "Merged m333 (0c9f32cc7)."
             },
             {
               "id": "RULES-2.T6e3b2",
@@ -3929,7 +3929,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["RULES-2.T6e3b1b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             }
           ]
         }
