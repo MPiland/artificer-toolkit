@@ -142,6 +142,8 @@ export function directResultSequence(
       entry.resolutionKind === 'DIRECT' &&
       entry.groupKind === 'SEQUENTIAL' &&
       entry.pathCode === 'ON_USE' &&
+      // A follow-up save belongs to the effect it follows; that result's own plan carries it.
+      entry.outcome.effectKind !== 'FOLLOW_UP_SAVE' &&
       !entry.rangeOverride &&
       !entry.targetingOverride
   )
