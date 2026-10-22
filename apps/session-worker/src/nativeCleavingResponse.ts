@@ -232,7 +232,8 @@ export async function planNativeLiveCleavingResponse(
     },
     capture,
     runtime: executionOptions.runtime,
-    random: executionOptions.random
+    random: executionOptions.random,
+    repeatSaves: { damagerActorId: context.sourceActorId }
   })
   const facts = buildEncounterActorRuleFacts({ actors: concentration.actors })
   const rules = reconcileEncounterActorRuleOutput(

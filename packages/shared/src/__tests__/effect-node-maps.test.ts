@@ -90,6 +90,30 @@ describe('effect node maps', () => {
     }
   })
 
+  it('offers an end-effects outcome only for the end-effects kind, with its scope and conditions', () => {
+    const resultNode = PATH_NODE_MAP.nodes.resultBlock
+    if (resultNode?.kind !== 'GROUP')
+      throw new Error('Expected the result block to be a group node')
+    const resultMap = typeof resultNode.nodes === 'function' ? resultNode.nodes() : resultNode.nodes
+    const outcomesNode = resultMap.nodes.outcomes
+    if (outcomesNode?.kind !== 'GROUP') throw new Error('Expected outcomes to be a group node')
+    const outcomeMap =
+      typeof outcomesNode.nodes === 'function' ? outcomesNode.nodes() : outcomesNode.nodes
+    const scope = outcomeMap.nodes.endEffectsScope
+    const conditionIds = outcomeMap.nodes.endEffectsConditionIds
+    if (!scope?.showIf || !conditionIds?.showIf)
+      throw new Error('Expected both end-effects fields to be conditional')
+
+    for (const { showIf } of [scope, conditionIds]) {
+      expect(evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.END_EFFECTS } })).toBe(
+        true
+      )
+      expect(
+        evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.RESTORE_RESOURCE } })
+      ).toBe(false)
+    }
+  })
+
   it('declares explicit authoring presentation for effect groups', () => {
     const effectsNode = SPELL_NODE_MAP.nodes.effects
     const invocationNode = EFFECT_NODE_MAP.nodes.invocation

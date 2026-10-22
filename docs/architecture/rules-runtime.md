@@ -1870,6 +1870,16 @@ A spell the Character may cast only as a ritual (a `RITUAL` spell grant the Shee
 
 `deleteCas` and `deleteMaintainedStateCas` (`encounter-persistence/effectStore.ts`) are the one place a held effect leaves encounter state, in the Convex path and the room alike. Each takes a required `removal`: `ENDED` (expiry, Concentration drop or replacement, early end, consumption, a departing source) or `REMOVED` (undo, an actor's own removal, Run completion). An `ENDED` effect whose definition carries a `MODIFIER_GRANT` `onEnd` template leaves its follow-on grant on the same holder (Haste's lethargy, `rules-runtime/encounterEffectOnEnd.ts`): a holder-anchored timed grant with an id derived from the ended effect's, created inside the tick pass so it is not ticked in the same pass. Restoring the effect (`create` with `restoredFrom`) takes that follow-on back.
 
+### Ending held effects by authored selection: `END_EFFECTS` (current, SPELLS-4.T2f, D174)
+
+`END_EFFECTS` is a generic authored outcome (`effectKind: 'END_EFFECTS'`, node-map fields `endEffectsScope` and `endEffectsConditionIds`; the DTO is `endEffects: { scope: 'ALL' | 'ONE_CHOSEN', conditionIds }`). It ends the **target's own** held effects that grant any of the listed conditions. Lesser Restoration, Greater Restoration (charmed and petrified), and Protection from Poison (poisoned) are authored from it; their closed rule kinds are deleted. The outcome compiles to the target-only `dnd5e.end-effects-proposal` operation and, like `CANCEL_TRIGGERING_EVENT`, stores nothing: the commit does the work.
+
+- **Facts:** `characterActionRuleFacts.ts` carries the authored `endEffects` on the `EFFECT` mechanic fact. The compiler, the character-action facts and the resolved mechanics all use one `actionEffectFactSchema`, so a new field on an EFFECT fact cannot drift between them.
+- **Legal list and pick (server-derived):** `offerEndEffects` (`encounterEndedEffectRelease.ts`) lists the target's held effects the selectors match (`endEffectsCandidates`). `ONE_CHOSEN` resolves through `endEffectsChoice`: a sole match is auto-picked, a cast naming one of several carries it as `command.target.chosenEffectId` (an `ACTOR` target field), several with no legal pick are refused `TARGET_UNAVAILABLE`, and none raises the overridable warning `TARGET_NOTHING_TO_END` (D173; acknowledged like any other, the Action is then spent and nothing ends). There is no pause kind. The worker wiring is `apps/session-worker/src/nativeEndEffects.ts` (`planEndEffects`, `committedEndEffects`).
+- **Commit:** `selectedEndedEffects` returns the ended effects plus the condition releases. Linked dependents (D172 `withLinkedDependents`) end with their effect, and a condition leaves only when the ended effects were its sole owner (`endedEffectReleases`), all in the one transaction and receipt; undo restores both. The System reads its own outcome back through `ExecutionOutcomeCapabilityAdapter.endsEffects`, so the commit stays system-neutral.
+- **Not covered:** a condition held without an owning effect is not ended (`CONDITION_REMOVE.sourceActiveEffectId` is required). Tag selectors (curses, ability and hit-point-maximum reductions) and Dispel Magic (T2f1, T2f2) are separate slices; Greater Restoration's exhaustion and attunement clauses and Protection from Poison's grant clauses stay `MANUAL_ADJUDICATION` rulings in a SEQUENTIAL ruling sequence (one executable outcome plus rulings).
+- **Proofs:** `endEffectsAuthoringParity.test.ts` (the SRD Lesser Restoration and a homebrew variant compile to the same plan shape), `encounterEndedEffectRelease.test.ts` (selection, pick, links), `effect-node-maps.test.ts`, and the room journey `apps/session-worker/test/nativeRoomEndEffectsSpell.test.ts`.
+
 ### Granted-action offers (current, SPELLS-4.T2lb, D160)
 
 A held effect's result block may carry `lifecycle.grantedActions` (generic authored data: `activation`, optional `usesPerTurn`, optional `weaponAttack`, `actionDefinitionIds` of BASIC_ACTIONs; never a spell name). The compiler stores it on the `MODIFIER_GRANT` contribution (`grantedActions`); `encounterGrantedActions.ts` reads it back from the holder's current effects (`heldGrantedActions`). The `onEnd` follow-on never inherits it.
@@ -2574,7 +2584,21 @@ one `FOLLOW_UP_SAVE`): each lead is a `conditionContributions` entry and its own
 (`nodePrefix` and `conditionOrdinal`, as in `timedConditionPlan`), and the plan's
 `dnd5e.active-effect-repeat-save-condition-ids` fact is the comma-joined list that the terminal tick removes in
 order. A grant lead or an escalation takes a single condition lead only. The follow-up's `repeatTriggers` (advantage
-on a damage-triggered repeat) are stored on the plan's lifecycle; the Funnel hook that consumes them is T2m1b2.
+on a damage-triggered repeat) are stored on the plan's lifecycle and read by the damage-save chain below.
+
+**Damage-save reader contract (D167, SPELLS-4.T2m1b2b).** Committed damage owes its damaged holders a chain of
+saves: Concentration checks and effect repeat saves, in one canonical order (`compareDamageSaveApplications`),
+raised inside the damaging command and answered by the holder's controllers. Two functions derive the effect half
+and are the only readers of `repeatTriggers`: `effectRepeatTrigger` (does this damage meet this effect's trigger)
+and `effectRepeatSaveApplications` (the saves a finalized damage envelope owes: one per damaged, undefeated holder
+effect; an effect the damaging command placed never repeats against its own damage). A damage source opts in on
+both sides with the same inputs: the room passes `repeatSaves: { damagerActorId }` to `planNativeLiveConcentration`,
+and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
+rows so a stale or invented chain is rejected by comparison. Sources wired: single-target action, area (damager is
+the caster), Cleaving (the cleaving creature), and turn effects with Legendary Actions (no damager, so only `ANYONE`
+triggers match). T2m3 and SPELLS-33.T6e2/T4m add triggers or effects by changing these readers, never by adding a
+source-specific path. Movement (zone contact) damage settles through `MovementConcentrationSettlement`, a separate
+per-step stack, and is not in the chain yet.
 
 **Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it
 (Guardian Naga Spit Poison) and one whose failure applies a condition and then a once-only `TARGET_TURN_END`

@@ -38,6 +38,7 @@ import type {
   bindEncounterConcentrationApplications,
   persistEncounterConcentrationChildren
 } from './concentrationChildrenPersistence.js'
+import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
 
@@ -202,15 +203,23 @@ export async function persistEncounterCleavingResponse(
         true
       )
     : []
+  const damagedActors = actors.map((actor) =>
+    actor.id === mechanics?.updatedActor.id ? mechanics.updatedActor : actor
+  )
   const { actors: nextActors } = await callbacks.persistConcentrationChildren({
     state: nextState,
-    actors: actors.map((actor) =>
-      actor.id === mechanics?.updatedActor.id ? mechanics.updatedActor : actor
-    ),
+    actors: damagedActors,
     parentOccurrenceId: occurrence.id,
     parentCommandFingerprint: fingerprint,
     finalizedDamageEnvelopeChecksum: checksumRuleDocument(applications),
-    remaining: await callbacks.bindConcentrationApplications(nextState, applications),
+    remaining: await bindEncounterDamageSaveChain(ctx, {
+      concentration: await callbacks.bindConcentrationApplications(nextState, applications),
+      state: nextState,
+      actors: damagedActors,
+      applications,
+      parentOccurrenceId: occurrence.id,
+      damagerActorId: context.sourceActorId
+    }),
     correlationId: occurrence.id,
     userId: input.expectedUserId,
     authorizedCharacterIds: characterIds,

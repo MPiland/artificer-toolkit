@@ -1294,7 +1294,7 @@
 00000020-0000-0210-0092-000000000001 CHARACTER:spells Goodberry | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0094-000000000001 CHARACTER:spells Grease | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
 00000020-0000-0210-0095-000000000001 CHARACTER:spells Greater Invisibility | SINGLE_GRAPH 63436da6082c3dd72ff7cfadd4062abe3e0332e4862d2d809f44c2c7f961ee91 nodes=1 outputs=2
-00000020-0000-0210-0096-000000000001 CHARACTER:spells Greater Restoration | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-0096-000000000001 CHARACTER:spells Greater Restoration | SINGLE_GRAPH 03aa2dc59b90a2ac4f21de9d21545928abc7fc3389575dac585afafbe44deff7 nodes=2 outputs=1
 00000020-0000-0210-0097-000000000001 CHARACTER:spells Guardian of Faith | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0098-000000000001 CHARACTER:spells Guards and Wards | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0099-000000000001 CHARACTER:spells Guidance | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
@@ -1330,7 +1330,7 @@
 00000020-0000-0210-00b7-000000000001 CHARACTER:spells Jump | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-00b8-000000000001 CHARACTER:spells Knock | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000020-0000-0210-00b9-000000000001 CHARACTER:spells Legend Lore | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
-00000020-0000-0210-00ba-000000000001 CHARACTER:spells Lesser Restoration | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-00ba-000000000001 CHARACTER:spells Lesser Restoration | SINGLE_GRAPH fb200ab31eddf0997bdc5227a7bccdf2ea889123ab0484e9e905cc13bdd26999 nodes=1 outputs=1
 00000020-0000-0210-00bb-000000000001 CHARACTER:spells Levitate | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-00bc-000000000001 CHARACTER:spells Light | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-00bd-000000000001 CHARACTER:spells Lightning Bolt | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=1dddb4713fbf0b8f904f095b34f97a8908ed2ba5b78ccc1f168c7c2bd7d4c08f,ON_SAVE_SUCCESS=87c1bd51135bb311d5c1cec3cfc52e8662fdc12d21a0dfea5b7ac091e086dfe0]
@@ -1391,7 +1391,7 @@
 00000020-0000-0210-00f3-000000000001 CHARACTER:spells Project Image | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-00f4-000000000001 CHARACTER:spells Protection from Energy | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-00f5-000000000001 CHARACTER:spells Protection from Evil and Good | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000020-0000-0210-00f6-000000000001 CHARACTER:spells Protection from Poison | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-00f6-000000000001 CHARACTER:spells Protection from Poison | SINGLE_GRAPH d843c2ca4efea1f7c7a898134b346573ec8aa265a04732461787eee2eb072316 nodes=2 outputs=1
 00000020-0000-0210-00f7-000000000001 CHARACTER:spells Purify Food and Drink | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-00f8-000000000001 CHARACTER:spells Raise Dead | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-00f9-000000000001 CHARACTER:spells Ray of Enfeeblement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.

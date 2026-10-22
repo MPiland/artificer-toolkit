@@ -3,7 +3,6 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
-  DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
   SUBJECT,
@@ -15,7 +14,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import { conditionTypeId, spellChildId } from './shared.js'
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
   if (!entry)
@@ -59,21 +58,26 @@ export const greaterRestoration: SpellAuthored = {
           id: spellChildId(SPELL_IDS.GREATER_RESTORATION, 0x212, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.GREATER_RESTORATION, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.GREATER_RESTORATION, 0x213, 1),
-              durationKind: DURATION_KIND.INSTANTANEOUS
-            },
+            resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GREATER_RESTORATION, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'GREATER_RESTORATION' as const
+                effectKind: EFFECT_KIND.END_EFFECTS,
+                scope: 'ONE_CHOSEN' as const,
+                conditionIds: ['CHARMED', 'PETRIFIED'].map(conditionTypeId)
+              },
+              {
+                id: spellChildId(SPELL_IDS.GREATER_RESTORATION, 0x214, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Greater Restoration',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "You can reduce the target's exhaustion level by one, or end one of the following effects on the target: * One effect that charmed or petrified the target * One curse, including the target's attunement to a cursed magic item * Any reduction to one of the target's ability scores * One effect reducing the target's hit point maximum"
               }
             ]
           }

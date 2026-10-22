@@ -3,7 +3,6 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
-  DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
   SUBJECT,
@@ -14,7 +13,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const protectionFromPoison: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.PROTECTION_FROM_POISON,
@@ -51,22 +50,26 @@ export const protectionFromPoison: SpellAuthored = {
           id: spellChildId(SPELL_IDS.PROTECTION_FROM_POISON, 0x212, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.PROTECTION_FROM_POISON, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.PROTECTION_FROM_POISON, 0x213, 1),
-              durationKind: DURATION_KIND.HOUR,
-              amount: 1
-            },
+            resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PROTECTION_FROM_POISON, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PROTECTION_FROM_POISON' as const
+                effectKind: EFFECT_KIND.END_EFFECTS,
+                scope: 'ONE_CHOSEN' as const,
+                conditionIds: [conditionTypeId('POISONED')]
+              },
+              {
+                id: spellChildId(SPELL_IDS.PROTECTION_FROM_POISON, 0x214, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Protection from Poison',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'For the duration, the target has advantage on saving throws against being poisoned, and it has resistance to poison damage.'
               }
             ]
           }

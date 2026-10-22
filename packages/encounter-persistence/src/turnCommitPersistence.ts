@@ -23,7 +23,8 @@ import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runt
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type {
   ConcentrationDamageApplicationDto,
-  concentrationMaintainedDamageApplicationDtoSchema
+  concentrationMaintainedDamageApplicationDtoSchema,
+  DamageSaveApplicationDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import { readDeadCharacterIds } from './characterStates.js'
@@ -42,6 +43,7 @@ import {
   persistEncounterInitiativeRestores,
   type EncounterInitiativeRestoreCharacterRules
 } from './initiativeRestorePersistence.js'
+import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import { markTurnStarted, readTurnStartedBy } from './turnMovement.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
 import { persistEncounterTurnZoneEffects } from './turnZoneEffectsPersistence.js'
@@ -92,9 +94,7 @@ export async function persistEncounterTurnCommit(
         parentOccurrenceId: string
         parentCommandFingerprint: string
         finalizedDamageEnvelopeChecksum: string
-        remaining: readonly ReturnType<
-          typeof concentrationMaintainedDamageApplicationDtoSchema.parse
-        >[]
+        remaining: readonly DamageSaveApplicationDto[]
         correlationId: string
         userId: string
         authorizedCharacterIds: ReadonlySet<string>
@@ -402,13 +402,21 @@ export async function persistEncounterTurnCommit(
   )
   for (const request of input.maintenanceOwners)
     if (request.owner.kind === 'CHARACTER') characterIds.add(request.owner.characterId)
+  const settledActors = await readRunActors(ctx, state)
   const { actors } = await callbacks.persistConcentrationChildren({
     state: nextState,
-    actors: await readRunActors(ctx, state),
+    actors: settledActors,
     parentOccurrenceId: input.occurrenceId,
     parentCommandFingerprint: fingerprint,
     finalizedDamageEnvelopeChecksum: checksumRuleDocument(applications),
-    remaining: await callbacks.bindConcentrationApplications(nextState, applications),
+    remaining: await bindEncounterDamageSaveChain(ctx, {
+      concentration: await callbacks.bindConcentrationApplications(nextState, applications),
+      state: nextState,
+      actors: settledActors,
+      applications,
+      parentOccurrenceId: input.occurrenceId,
+      damagerActorId: null
+    }),
     correlationId: input.occurrenceId,
     userId: input.expectedUserId,
     authorizedCharacterIds: characterIds,

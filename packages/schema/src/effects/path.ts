@@ -35,6 +35,7 @@ import { detectConcealedDtoSchema } from './detectConcealed.js'
 import { cancelTriggeringEventDtoSchema } from './cancelTriggeringEvent.js'
 import { sourceImmunityDtoSchema } from './sourceImmunity.js'
 import { releaseChosenItemDtoSchema } from './releaseChosenItem.js'
+import { endEffectsDtoSchema } from './endEffects.js'
 import { degradeEquipmentDtoSchema } from './degradeEquipment.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
@@ -103,6 +104,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             cancelTriggeringEventDtoSchema,
             sourceImmunityDtoSchema,
             releaseChosenItemDtoSchema,
+            endEffectsDtoSchema,
             degradeEquipmentDtoSchema
           ]
         : [
@@ -135,6 +137,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             cancelTriggeringEventDtoSchema,
             sourceImmunityDtoSchema,
             releaseChosenItemDtoSchema,
+            endEffectsDtoSchema,
             degradeEquipmentDtoSchema
           ]
     )
