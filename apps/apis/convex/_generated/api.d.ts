@@ -131785,7 +131785,11 @@ export declare const api: {
       live: FunctionReference<
         "query",
         "public",
-        { campaignId: string; encounterId: string | null; sceneDefinitionId: string },
+        {
+          campaignId: string;
+          encounterId: string | null;
+          sceneDefinitionId: string;
+        },
         {
           documents: Array<{
             owner:
