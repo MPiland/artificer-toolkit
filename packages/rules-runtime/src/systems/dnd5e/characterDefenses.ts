@@ -72,8 +72,7 @@ export function evaluateDnd5eCharacterDefenses(
     if (bypassedBy?.length) {
       if (kind === 'VULNERABILITY') continue
       const key = `${kind}:${damageTypeId}:${[...bypassedBy].sort().join(',')}`
-      if (adding)
-        qualifiedDefenses.set(key, { kind, damageTypeId, bypassedBy, source: modifier.source })
+      if (adding) qualifiedDefenses.set(key, { kind, damageTypeId, bypassedBy })
       else qualifiedDefenses.delete(key)
       continue
     }

@@ -110,8 +110,7 @@ const characterQualifiedDefenseSchema = lazySchema(() =>
   z.strictObject({
     kind: z.enum(['RESISTANCE', 'IMMUNITY']),
     damageTypeId: serverUuidIdentityDtoSchema,
-    bypassedBy: z.array(damageDefenseBypassCodeSchema).check(z.minLength(1)).check(z.maxLength(3)),
-    source: characterMechanicSourceSchema
+    bypassedBy: z.array(damageDefenseBypassCodeSchema).check(z.minLength(1)).check(z.maxLength(3))
   })
 )
 
