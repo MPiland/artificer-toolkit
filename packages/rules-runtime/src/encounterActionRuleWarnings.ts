@@ -27,6 +27,12 @@ const TARGET_PRECONDITIONS: Readonly<
   }
 }
 
+/** The overridable warning for an end-effects action (Lesser Restoration) aimed at a creature with nothing it ends. */
+export const TARGET_NOTHING_TO_END_WARNING: EncounterRuleWarningDto = {
+  code: 'TARGET_NOTHING_TO_END',
+  message: 'The target holds no effect this ends.'
+}
+
 /**
  * The warnings an unmet outcome precondition raises. An action that proceeds over one rolls and
  * applies nothing (D173 Q1).

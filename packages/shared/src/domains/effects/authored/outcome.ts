@@ -28,6 +28,7 @@ import type { DetectConcealedAuthored } from './detectConcealed.js'
 import type { CancelTriggeringEventAuthored } from './cancelTriggeringEvent.js'
 import type { SourceImmunityAuthored } from './sourceImmunity.js'
 import type { ReleaseChosenItemAuthored } from './releaseChosenItem.js'
+import type { EndEffectsAuthored } from './endEffects.js'
 import type { DegradeEquipmentAuthored } from './degradeEquipment.js'
 
 export type OutcomeRowMetadataAuthored = {
@@ -64,6 +65,7 @@ export type OutcomeAuthored =
   | CancelTriggeringEventAuthored
   | SourceImmunityAuthored
   | ReleaseChosenItemAuthored
+  | EndEffectsAuthored
   | DegradeEquipmentAuthored
   | ClosedRuleAuthored
   | ManualAdjudicationAuthored

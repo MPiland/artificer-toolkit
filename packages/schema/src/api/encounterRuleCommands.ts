@@ -142,6 +142,8 @@ export const resolveEncounterActionTargetDtoSchema = lazySchema(() =>
        * (Shillelagh's club, Heat Metal's armor): Disarm's item choice.
        */
       boundItemInstanceId: z.optional(postgresUuidSchema),
+      /** The target's held effect a one-chosen end-effects action ends (Lesser Restoration's pick). */
+      chosenEffectId: z.optional(postgresUuidSchema),
       /** The ammunition stack a weapon attack fires, when several fit (ATTACK-19.4). */
       ammunitionItemInstanceId: z.optional(postgresUuidSchema)
     }),

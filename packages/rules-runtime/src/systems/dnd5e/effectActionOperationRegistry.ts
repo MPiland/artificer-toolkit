@@ -46,6 +46,7 @@ import { DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY } from './addSpeedTo
 import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllowance.js'
 import { isTeleportAllowanceDestinationKind } from '@artificer-toolkit/shared/vtt/teleportAllowanceDestinationKind'
 import { DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY } from './cancelTriggeringEvent.js'
+import { DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY } from './endEffects.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
@@ -320,6 +321,11 @@ export const dnd5eTeleportAllowanceProposalOperation: ProposalRuleOperationContr
 export const dnd5eCancelTriggeringEventProposalOperation = targetOnlyProposalOperation(
   DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
   'cancel triggering event',
+  false
+)
+export const dnd5eEndEffectsProposalOperation = targetOnlyProposalOperation(
+  DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY,
+  'end effects',
   false
 )
 export const dnd5eTemporaryHitPointsProposalOperation = simpleOperation(
@@ -1276,6 +1282,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
     DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,
     DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
+    DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
     DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,

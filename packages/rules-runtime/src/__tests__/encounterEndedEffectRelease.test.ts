@@ -12,6 +12,10 @@ import {
   endedEffectReleases,
   expiredEffectReleases,
   moveEndHolds,
+  endEffectsCandidates,
+  endEffectsChoice,
+  offerEndEffects,
+  selectedEndedEffects,
   targetEndedEffects,
   withOwnedTemporaryHitPoints
 } from '../encounterEndedEffectRelease.js'
@@ -34,7 +38,12 @@ const owner = {
   targetActorId: HOLDER_ID
 }
 
-function owning(id: string, conditions: Record<string, boolean>, createdOrdinal = 1) {
+function owning(
+  id: string,
+  conditions: Record<string, boolean>,
+  createdOrdinal = 1,
+  linkedEffectId: string | null = null
+) {
   const [first, ...rest] = Object.entries(conditions).map(
     ([conditionIdValue, baselinePresent]) => ({
       kind: 'CONDITION_OWNERSHIP' as const,
@@ -43,7 +52,13 @@ function owning(id: string, conditions: Record<string, boolean>, createdOrdinal 
     })
   )
   if (!first) throw new Error('An owning effect needs at least one condition.')
-  return activeEffect({ id, owner, createdOrdinal, stateContributions: [first, ...rest] })
+  return activeEffect({
+    id,
+    owner,
+    createdOrdinal,
+    linkedEffectId,
+    stateContributions: [first, ...rest]
+  })
 }
 
 describe('conditions released with the effects an event ended', () => {
@@ -795,5 +810,84 @@ describe('what taking an action or moving ends for the holder', () => {
         recurrence: { ...definition.recurrence, endOnEvents: ['ON_MOVE', 'ON_TAKE_ACTION'] }
       }).success
     ).toBe(true)
+  })
+})
+
+describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
+  const THIRD_ID = '00000000-0000-4000-8000-00000000f2a3'
+  const POISONED = conditionId('POISONED')
+  const select = (input: {
+    held: ReturnType<typeof owning>[]
+    scope: 'ALL' | 'ONE_CHOSEN'
+    chosenEffectId?: string
+    conditionIds: string[]
+  }) =>
+    selectedEndedEffects({
+      holderActorId: HOLDER_ID,
+      held: input.held,
+      selectors: [{ kind: 'CONDITION', conditionIds: input.conditionIds }],
+      scope: input.scope,
+      chosenEffectId: input.chosenEffectId
+    })
+
+  it('ends every held effect owning a selected condition, and releases what only they held', () => {
+    const charm = owning(FIRST_ID, { [CHARMED]: false })
+    const poison = owning(SECOND_ID, { [POISONED]: false })
+    const { endedEffects, releases } = select({
+      held: [charm, poison],
+      scope: 'ALL',
+      conditionIds: [CHARMED]
+    })
+    expect(endedEffects.map(({ id }) => id)).toEqual([FIRST_ID])
+    expect(releases.map((release) => release.kind)).toEqual(['CONDITION_REMOVE'])
+  })
+
+  it('ends only the chosen effect under ONE_CHOSEN, and nothing for a choice that does not match', () => {
+    const first = owning(FIRST_ID, { [POISONED]: false })
+    const second = owning(SECOND_ID, { [POISONED]: false })
+    const base = { held: [first, second], scope: 'ONE_CHOSEN' as const, conditionIds: [POISONED] }
+    expect(select({ ...base, chosenEffectId: SECOND_ID }).endedEffects.map(({ id }) => id)).toEqual(
+      [SECOND_ID]
+    )
+    expect(select({ ...base, chosenEffectId: THIRD_ID }).endedEffects).toEqual([])
+  })
+
+  it('lists the candidates and auto-picks a sole match, flags none, and demands a legal pick for several', () => {
+    const first = owning(FIRST_ID, { [POISONED]: false })
+    const second = owning(SECOND_ID, { [POISONED]: false })
+    const selectors = [{ kind: 'CONDITION' as const, conditionIds: [POISONED] }]
+    const none = endEffectsCandidates([owning(THIRD_ID, { [CHARMED]: false })], selectors)
+    expect(endEffectsChoice(none, undefined)).toEqual({ kind: 'NONE' })
+    const one = endEffectsCandidates([first, owning(THIRD_ID, { [CHARMED]: false })], selectors)
+    expect(endEffectsChoice(one, undefined)).toEqual({ kind: 'CHOSEN', effectId: FIRST_ID })
+    const many = endEffectsCandidates([first, second], selectors)
+    expect(endEffectsChoice(many, undefined)).toEqual({ kind: 'UNCHOSEN' })
+    expect(endEffectsChoice(many, THIRD_ID)).toEqual({ kind: 'UNCHOSEN' })
+    expect(endEffectsChoice(many, SECOND_ID)).toEqual({ kind: 'CHOSEN', effectId: SECOND_ID })
+  })
+
+  it('offers nothing for an action that ends no effects, and a pick only under ONE_CHOSEN', () => {
+    const held = [owning(FIRST_ID, { [POISONED]: false }), owning(SECOND_ID, { [POISONED]: false })]
+    expect(
+      offerEndEffects({ endEffects: undefined, held, chosenEffectId: FIRST_ID })
+    ).toMatchObject({ candidates: [], pick: null })
+    const all = { scope: 'ALL' as const, conditionIds: [POISONED] }
+    const offeredAll = offerEndEffects({ endEffects: all, held, chosenEffectId: undefined })
+    expect(offeredAll.candidates).toHaveLength(2)
+    expect(offeredAll.pick).toBeNull()
+    const oneChosen = { scope: 'ONE_CHOSEN' as const, conditionIds: [POISONED] }
+    expect(
+      offerEndEffects({ endEffects: oneChosen, held, chosenEffectId: SECOND_ID }).pick
+    ).toEqual({ kind: 'CHOSEN', effectId: SECOND_ID })
+  })
+
+  it('ends the effects linked to a selected effect in the same result', () => {
+    const poison = owning(FIRST_ID, { [POISONED]: false })
+    const rider = owning(SECOND_ID, { [INVISIBLE]: false }, 2, FIRST_ID)
+    expect(
+      select({ held: [poison, rider], scope: 'ALL', conditionIds: [POISONED] }).endedEffects.map(
+        ({ id }) => id
+      )
+    ).toEqual([FIRST_ID, SECOND_ID])
   })
 })
