@@ -31,25 +31,28 @@ import {
   type EntryDiceDamageOutcome,
   type Outcome
 } from './effectActionContracts.js'
-import type { Dnd5eCompiledEffectActionSource, ZoneCompilerPieces } from './effectActionCompiler.js'
+import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
+import { diceGraphDefinition } from './effectActionDiceGraph.js'
+import { durationPublishedGraph, maintenancePlan } from './effectActionLifetime.js'
+import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
+import { publishedGraph } from './effectActionPublishedGraph.js'
+import { boundedTestOutcome, specializedTestOutcome } from './effectActionTestOutcomes.js'
+import { compileTestDefinition, withMovementInterruption } from './effectActionTestPhase.js'
 import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
 import { boundedDiceTerm } from './effectActionScalingFacts.js'
 
 /**
  * The zone an action places (D140, D153–D156): a passive melee trait's retaliating zone, the zones a
- * cast picks one of, or a placed-space or source manifest's zone; null for any other action. It
- * composes the compiler's test-phase, outcome and lifetime pieces, passed in until RULES-2.T6g gives
- * them modules of their own.
+ * cast picks one of, or a placed-space or source manifest's zone; null for any other action.
  */
 export function compileDnd5eZonePlacement(
-  pieces: ZoneCompilerPieces,
   action: Dnd5eCompiledEffectActionSource,
   label: string | undefined
 ): CharacterRuleActionZonePlacementPlan | CharacterRuleActionZoneChoicePlan | null {
   const zone = passiveMeleeRetaliationZone(action.compiledEffect, label, dnd5eAttackKind)
   return zone
-    ? zoneComponentPlan(pieces, action, zone, zone.components[0]!)
-    : (zoneChoicePlan(pieces, action) ?? zonePlacementPlan(pieces, action))
+    ? zoneComponentPlan(action, zone, zone.components[0]!)
+    : (zoneChoicePlan(action) ?? zonePlacementPlan(action))
 }
 
 /**
@@ -96,15 +99,14 @@ function zoneDamageRow(
  * save may deal half of it. Bonuses and other multipliers belong to the zone turn trigger.
  */
 function zoneDamageOutcome(
-  pieces: ZoneCompilerPieces,
   entry: CompiledEffectGroup['entries'][number],
   pathCode: 'ON_USE' | 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
 ): Outcome | EntryDiceDamageOutcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   const { outcome } = entry
   if (outcome.effectKind !== 'DAMAGE' || outcome.valueKind !== 'DICE')
-    return pieces.boundedTestOutcome(entry)
-  const authored = pieces.specializedTestOutcome(entry)
+    return boundedTestOutcome(entry)
+  const authored = specializedTestOutcome(entry)
   if (authored.kind === 'DAMAGE') return authored
   const multiplier = damageMultiplier(outcome)
   if (
@@ -132,13 +134,12 @@ function zoneDamageOutcome(
  * have its own area, aimed after the pick (D154).
  */
 function zoneChoicePlan(
-  pieces: ZoneCompilerPieces,
   action: Dnd5eCompiledEffectActionSource
 ): CharacterRuleActionZoneChoicePlan | null {
   const choices = castChoiceOptions(action.compiledEffect)
   if (!choices) return null
   const options = choices.flatMap(({ optionId, label, compiledEffect }) => {
-    const zone = zonePlacementPlan(pieces, { ...action, compiledEffect })
+    const zone = zonePlacementPlan({ ...action, compiledEffect })
     return zone ? [{ optionId, label, zone }] : []
   })
   if (options.length !== choices.length) return null
@@ -163,7 +164,6 @@ function zoneChoicePlan(
  * maintained by the Concentration the cast opens, and the grant its placer holds (D153).
  */
 function zonePlacementPlan(
-  pieces: ZoneCompilerPieces,
   action: Dnd5eCompiledEffectActionSource
 ): CharacterRuleActionZonePlacementPlan | null {
   const zone = placedSpaceZone(action.compiledEffect)
@@ -212,12 +212,11 @@ function zonePlacementPlan(
       'Only a zone no creature interacts with holds the condition its appear save applies.'
     )
   if (first && !first.behavior && !terrain)
-    return occupantBonusZonePlacementPlan(pieces, action, zone, first.component)
+    return occupantBonusZonePlacementPlan(action, zone, first.component)
   const primary =
     first && (!terrain || !appearSave)
-      ? zoneComponentPlan(pieces, action, zone, first, terrain ? { triggerModes: [] } : undefined)
+      ? zoneComponentPlan(action, zone, first, terrain ? { triggerModes: [] } : undefined)
       : zoneComponentPlan(
-          pieces,
           action,
           zone,
           {
@@ -234,7 +233,6 @@ function zonePlacementPlan(
       unsupported('A zone’s region component spares the creatures the zone spares.')
     if (perDistanceMoved) unsupported('Only a zone’s own component acts per distance moved.')
     const { attachment, shape, ringThickness, maintenance, ...component } = zoneComponentPlan(
-      pieces,
       action,
       zone,
       planned
@@ -243,8 +241,7 @@ function zonePlacementPlan(
       unsupported('Every component of a zone depends on the Concentration its cast opens.')
     return { region: region!, ...component, label }
   })
-  const sourceGrant =
-    zone.sourceGrantEntry && sourceGrantPlan(pieces, action, zone.sourceGrantEntry)
+  const sourceGrant = zone.sourceGrantEntry && sourceGrantPlan(action, zone.sourceGrantEntry)
   return {
     ...primary,
     ...(regionComponents.length ? { regionComponents } : {}),
@@ -259,7 +256,6 @@ function zonePlacementPlan(
  * its source.
  */
 function occupantBonusZonePlacementPlan(
-  pieces: ZoneCompilerPieces,
   action: Dnd5eCompiledEffectActionSource,
   zone: PlacedSpaceZone,
   component: PlacedSpaceZone['components'][number]['component']
@@ -303,7 +299,7 @@ function occupantBonusZonePlacementPlan(
               minimum: bonus.minimum ?? null
             }
     },
-    ...lastingZoneEntry(pieces, action, zone)
+    ...lastingZoneEntry(action, zone)
   }
 }
 
@@ -313,7 +309,6 @@ function occupantBonusZonePlacementPlan(
  * the shape every zone has, maintained only by the Concentration its cast opens.
  */
 function lastingZoneEntry(
-  pieces: ZoneCompilerPieces,
   action: Dnd5eCompiledEffectActionSource,
   zone: PlacedSpaceZone
 ): Pick<CharacterRuleActionZonePlacementPlan, 'entry' | 'grant' | 'maintenance'> {
@@ -335,10 +330,10 @@ function lastingZoneEntry(
   return {
     entry: {
       ...plan,
-      frozenGraph: pieces.durationPublishedGraph({ effectId: action.effectId, plan })
+      frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan })
     },
     grant: null,
-    maintenance: pieces.maintenancePlan(action, entry)
+    maintenance: maintenancePlan(action, entry)
   }
 }
 
@@ -350,7 +345,6 @@ function lastingZoneEntry(
  * (D144). Anything else the behavior authors is refused rather than partly honored.
  */
 function zoneComponentPlan(
-  pieces: ZoneCompilerPieces,
   action: Dnd5eCompiledEffectActionSource,
   zone: PlacedSpaceZone,
   { component, behavior }: PlacedSpaceZone['components'][number],
@@ -406,7 +400,7 @@ function zoneComponentPlan(
       : {}),
     ...(blockingRules?.length ? { blockingRules: [...new Set(blockingRules)] } : {})
   }
-  if (!behavior) return { ...placement, ...lastingZoneEntry(pieces, action, zone) }
+  if (!behavior) return { ...placement, ...lastingZoneEntry(action, zone) }
   const { invocation, entries } = behavior
   const savingThrow = 'savingThrow' in invocation ? invocation.savingThrow : undefined
   const zoneSave =
@@ -419,7 +413,7 @@ function zoneComponentPlan(
   if (requiredSight?.length && invocation.triggerCode !== 'SAVING_THROW')
     unsupported('A zone that needs sight of its source gates a saving throw.')
   if (invocation.triggerCode !== 'SAVING_THROW')
-    return unsavedZonePlacementPlan(pieces, action, placement, entries, successImmunity)
+    return unsavedZonePlacementPlan(action, placement, entries, successImmunity)
   if (
     invocation.triggerCode !== 'SAVING_THROW' ||
     !zoneSave ||
@@ -514,16 +508,16 @@ function zoneComponentPlan(
     maintenance: null,
     marginRiders: []
   }
-  const saveGraph = pieces.compileTestDefinition(
+  const saveGraph = compileTestDefinition(
     action,
     {
       kind: 'SAVE',
       branches: new Map([
         ...(proposed
-          ? [['ON_SAVE_FAIL', zoneDamageOutcome(pieces, proposed, 'ON_SAVE_FAIL')] as const]
+          ? [['ON_SAVE_FAIL', zoneDamageOutcome(proposed, 'ON_SAVE_FAIL')] as const]
           : []),
         ...madeDamageRows.map(
-          (row) => ['ON_SAVE_SUCCESS', zoneDamageOutcome(pieces, row, 'ON_SAVE_SUCCESS')] as const
+          (row) => ['ON_SAVE_SUCCESS', zoneDamageOutcome(row, 'ON_SAVE_SUCCESS')] as const
         )
       ]),
       ...(besideDamage
@@ -531,7 +525,7 @@ function zoneComponentPlan(
             conditions: new Map([
               [
                 'ON_SAVE_FAIL',
-                { outcome: pieces.boundedTestOutcome(besideDamage), entryId: besideDamage.entryId }
+                { outcome: boundedTestOutcome(besideDamage), entryId: besideDamage.entryId }
               ]
             ])
           }
@@ -540,7 +534,7 @@ function zoneComponentPlan(
     entryPlan
   )
   const lingeringPlan = grant
-    ? pieces.modifierGrantEntryPlan({
+    ? modifierGrantEntryPlan({
         action,
         entry: grant,
         resultGated: false,
@@ -555,7 +549,7 @@ function zoneComponentPlan(
     (!lingering || lingering.consumeOnFirstEvents.length > 0 || lingeringPlan?.maintenance)
   )
     unsupported('A placed zone grant must last until its end event.')
-  const maintenance = pieces.maintenancePlan(action, primary)
+  const maintenance = maintenancePlan(action, primary)
   // A held condition ends with its zone through the zone's maintenance, which nothing else ends.
   if (heldCondition && !heldCondition.endsAtEndOfHolderTurn && !maintenance)
     unsupported('A zone-held condition needs a zone that Concentration maintains.')
@@ -575,7 +569,7 @@ function zoneComponentPlan(
     ...(heldCondition ? { heldCondition } : {}),
     entry: {
       ...entryPlan,
-      frozenGraph: stop ? pieces.withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph
+      frozenGraph: stop ? withMovementInterruption(saveGraph, 'ON_SAVE_FAIL') : saveGraph
     },
     grant: lingering
       ? {
@@ -649,11 +643,10 @@ function zoneHeldCondition(
  * active-effect clock rather than the zone's, compiled as any timed modifier grant. A grant that is not one is refused rather than dropped.
  */
 function sourceGrantPlan(
-  pieces: ZoneCompilerPieces,
   action: Dnd5eCompiledEffectActionSource,
   entry: CompiledEffectGroup['entries'][number]
 ): CharacterRuleActionActiveEffectPlan {
-  const plan = pieces.modifierGrantEntryPlan({
+  const plan = modifierGrantEntryPlan({
     action,
     entry,
     resultGated: false,
@@ -662,7 +655,7 @@ function sourceGrantPlan(
   if (!plan) unsupported('A zone’s placer holds a timed modifier grant.')
   return {
     ...plan,
-    frozenGraph: pieces.durationPublishedGraph({ effectId: action.effectId, plan })
+    frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan })
   }
 }
 
@@ -672,7 +665,6 @@ function sourceGrantPlan(
  * dice.
  */
 function unsavedZonePlacementPlan(
-  pieces: ZoneCompilerPieces,
   action: Dnd5eCompiledEffectActionSource,
   placement: Omit<CharacterRuleActionZonePlacementPlan, 'entry' | 'grant' | 'maintenance'>,
   entries: readonly CompiledEffectGroup['entries'][number][],
@@ -691,7 +683,7 @@ function unsavedZonePlacementPlan(
   )
     unsupported('A zone outcome with no save is direct damage on use.')
   const row = zoneDamageRow(entries, action.spellCastLevel)
-  const outcome = zoneDamageOutcome(pieces, row, 'ON_USE')
+  const outcome = zoneDamageOutcome(row, 'ON_USE')
   if (outcome.kind !== 'ENTRY_DICE_DAMAGE' || !UUID.test(row.entryId))
     unsupported('A zone outcome with no save rolls one damage dice row.')
   const entryPlan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
@@ -707,7 +699,7 @@ function unsavedZonePlacementPlan(
     maintenance: null,
     marginRiders: []
   }
-  const definition = pieces.diceGraphDefinition({
+  const definition = diceGraphDefinition({
     action,
     entry: row,
     diceConfig: outcome.diceConfig,
@@ -717,9 +709,9 @@ function unsavedZonePlacementPlan(
     ...placement,
     entry: {
       ...entryPlan,
-      frozenGraph: pieces.publishedGraph(definition)
+      frozenGraph: publishedGraph(definition)
     },
     grant: null,
-    maintenance: pieces.maintenancePlan(action, row)
+    maintenance: maintenancePlan(action, row)
   }
 }
