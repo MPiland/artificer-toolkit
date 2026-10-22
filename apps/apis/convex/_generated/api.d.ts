@@ -131747,11 +131747,7 @@ export declare const api: {
         "public",
         {
           owner:
-            | {
-                campaignId: string;
-                kind: "SCENE";
-                sceneDefinitionId: string;
-              }
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
             | {
                 actorId: string;
                 campaignId: string;
@@ -131761,11 +131757,7 @@ export declare const api: {
         },
         {
           owner:
-            | {
-                campaignId: string;
-                kind: "SCENE";
-                sceneDefinitionId: string;
-              }
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
             | {
                 actorId: string;
                 campaignId: string;
@@ -131796,11 +131788,7 @@ export declare const api: {
         {
           expectedVersion: number;
           owner:
-            | {
-                campaignId: string;
-                kind: "SCENE";
-                sceneDefinitionId: string;
-              }
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
             | {
                 actorId: string;
                 campaignId: string;
@@ -131825,11 +131813,7 @@ export declare const api: {
         },
         {
           owner:
-            | {
-                campaignId: string;
-                kind: "SCENE";
-                sceneDefinitionId: string;
-              }
+            | { campaignId: string; kind: "SCENE"; sceneDefinitionId: string }
             | {
                 actorId: string;
                 campaignId: string;
