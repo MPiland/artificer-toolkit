@@ -12,6 +12,8 @@ import {
   endedEffectReleases,
   expiredEffectReleases,
   moveEndHolds,
+  endEffectsCandidates,
+  endEffectsChoice,
   selectedEndedEffects,
   targetEndedEffects,
   withOwnedTemporaryHitPoints
@@ -847,6 +849,20 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
       select({ ...base, chosenEffectId: SECOND_ID }).endedEffects.map(({ id }) => id)
     ).toEqual([SECOND_ID])
     expect(select({ ...base, chosenEffectId: THIRD_ID }).endedEffects).toEqual([])
+  })
+
+  it('lists the candidates and auto-picks a sole match, flags none, and demands a legal pick for several', () => {
+    const first = owning(FIRST_ID, { [POISONED]: false })
+    const second = owning(SECOND_ID, { [POISONED]: false })
+    const selectors = [{ kind: 'CONDITION' as const, conditionIds: [POISONED] }]
+    const none = endEffectsCandidates([owning(THIRD_ID, { [CHARMED]: false })], selectors)
+    expect(endEffectsChoice(none, undefined)).toEqual({ kind: 'NONE' })
+    const one = endEffectsCandidates([first, owning(THIRD_ID, { [CHARMED]: false })], selectors)
+    expect(endEffectsChoice(one, undefined)).toEqual({ kind: 'CHOSEN', effectId: FIRST_ID })
+    const many = endEffectsCandidates([first, second], selectors)
+    expect(endEffectsChoice(many, undefined)).toEqual({ kind: 'UNCHOSEN' })
+    expect(endEffectsChoice(many, THIRD_ID)).toEqual({ kind: 'UNCHOSEN' })
+    expect(endEffectsChoice(many, SECOND_ID)).toEqual({ kind: 'CHOSEN', effectId: SECOND_ID })
   })
 
   it('ends the effects linked to a selected effect in the same result', () => {

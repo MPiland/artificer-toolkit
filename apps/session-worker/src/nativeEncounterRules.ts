@@ -54,11 +54,15 @@ import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/enco
 import { sourceImmunityEffect } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
+import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import {
   actionEndedEffects,
   actionUsedOnHolderEndedEffects,
   actsAgainstEnemy,
   attackHitEndedEffects,
+  endEffectsCandidates,
+  endEffectsChoice,
+  selectedEndedEffects,
   targetEndedEffects,
   withOwnedTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -71,7 +75,8 @@ import {
   encounterActionSuppressedWarning,
   evaluateEncounterActionRuleWarnings,
   overridesActionEconomy,
-  RULE_WARNINGS_MESSAGE
+  RULE_WARNINGS_MESSAGE,
+  TARGET_NOTHING_TO_END_WARNING
 } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import {
   encounterConditionFleeSources,
@@ -738,6 +743,30 @@ export async function planNativeLiveEncounterAction(
     prepared.source.kind === 'CHARACTER_ACTION'
       ? prepared.source.candidate.mechanicFacts
       : prepared.source.capability.mechanicFacts
+  // An end-effects action's legal list is the target's own held effects it could end: one match is
+  // picked for the caster, several need the caster's pick, none is an overridable warning.
+  const [endEffects] = mechanicFacts.outcomes.flatMap((outcome) =>
+    outcome.kind === 'EFFECT' && outcome.endEffects ? [outcome.endEffects] : []
+  )
+  const endEffectsSelectors = [
+    { kind: 'CONDITION' as const, conditionIds: endEffects?.conditionIds ?? [] }
+  ]
+  const endEffectsOptions = endEffects
+    ? endEffectsCandidates(activeEffectsByActorId.get(prepared.target.id) ?? [], endEffectsSelectors)
+    : []
+  const endEffectsPick =
+    endEffects?.scope === 'ONE_CHOSEN'
+      ? endEffectsChoice(
+          endEffectsOptions,
+          command.target.kind === 'ACTOR' ? command.target.chosenEffectId : undefined
+        )
+      : null
+  if (endEffectsPick?.kind === 'UNCHOSEN')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'TARGET_UNAVAILABLE',
+      message: 'Choose which effect on the target this ends.'
+    })
   const fleeWarnings = encounterFleeActionWarnings({
     sourceActorIds: encounterConditionFleeSources(actorTarget),
     activationCode,
@@ -752,6 +781,7 @@ export async function planNativeLiveEncounterAction(
     preparedWarnings: [
       ...prepared.ruleWarnings,
       ...fleeWarnings,
+      ...(endEffects && endEffectsOptions.length === 0 ? [TARGET_NOTHING_TO_END_WARNING] : []),
       ...(suppressed ? [encounterActionSuppressedWarning(activationCode)] : [])
     ],
     target: {
@@ -1456,7 +1486,16 @@ export async function planNativeLiveEncounterAction(
         usedByActorId: prepared.actor.id,
         basicActionDefinitionId: encounterBasicActionDefinitionId(command.actionId)
       })
-    : null
+    : endEffects &&
+        executionOutcomeCapabilityRegistry.require(state.gameSystemId).endsEffects(execution.execution)
+      ? selectedEndedEffects({
+          holderActorId: prepared.target.id,
+          held: targetHeld,
+          selectors: endEffectsSelectors,
+          scope: endEffects.scope,
+          chosenEffectId: endEffectsPick?.kind === 'CHOSEN' ? endEffectsPick.effectId : undefined
+        })
+      : null
   const gateImmunity = passedWardImmunityPlan({
     gameSystemId: state.gameSystemId,
     ward: gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null

@@ -20,6 +20,8 @@ export interface ExecutionOutcomeCapabilityAdapter {
   cancelsTriggeringEvent(execution: CommittedExecutionTrace): boolean
   /** Whether an action resolved the Dash outcome, so its commit adds the actor's speed to the turn. */
   addsSpeedToMovement(execution: CommittedExecutionTrace): boolean
+  /** Whether an action resolved the end-effects outcome (Lesser Restoration), so its commit ends the effects. */
+  endsEffects(execution: CommittedExecutionTrace): boolean
   /** The one-shot teleport an action granted (Misty Step), or null when it granted none. */
   teleportAllowance(
     execution: CommittedExecutionTrace

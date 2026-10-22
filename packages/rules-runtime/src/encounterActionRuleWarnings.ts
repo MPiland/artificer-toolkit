@@ -16,6 +16,12 @@ export const TARGET_NOT_DYING_WARNING: EncounterRuleWarningDto = {
   message: 'The target is not dying.'
 }
 
+/** The overridable warning for an end-effects action (Lesser Restoration) aimed at a creature with nothing it ends. */
+export const TARGET_NOTHING_TO_END_WARNING: EncounterRuleWarningDto = {
+  code: 'TARGET_NOTHING_TO_END',
+  message: 'The target holds no effect this ends.'
+}
+
 type EncounterActionWarningInput = {
   preparedWarnings: readonly EncounterRuleWarningDto[]
   target: Parameters<typeof evaluateEncounterActionTargetPolicy>[0]
