@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { getAuthoringDefaultKind, hasAuthoringDefaultKind } from './authoringNodeDefaultRegistry'
+import { getAuthoringDefaultKind } from './authoringNodeDefaultRegistry'
+import { hasAuthoringDefaultKind } from './authoringNodeDefaultRegistry.testUtils'
 
 describe('getAuthoringDefaultKind', () => {
   it.each([

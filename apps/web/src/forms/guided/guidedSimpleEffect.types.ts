@@ -1,6 +1,6 @@
 export type GuidedSpellIntent = 'DAMAGE' | 'CONDITION' | 'HEALING' | 'MOVEMENT'
 type GuidedSpellTarget = 'SELF' | 'CREATURE'
-export type GuidedConditionDuration = 'INSTANTANEOUS' | 'ROUND' | 'MINUTE' | 'UNTIL_DISPELLED'
+type GuidedConditionDuration = 'INSTANTANEOUS' | 'ROUND' | 'MINUTE' | 'UNTIL_DISPELLED'
 
 export type GuidedSpellDraft = {
   intent: GuidedSpellIntent

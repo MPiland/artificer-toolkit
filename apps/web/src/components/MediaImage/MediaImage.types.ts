@@ -6,7 +6,7 @@ import type {
   SignedImageDeliveryDto
 } from '@artificer-toolkit/schema/api/media'
 
-export type MediaImageMode = 'square' | 'decorative'
+type MediaImageMode = 'square' | 'decorative'
 
 export interface MediaImageTarget {
   lookup: ImageLookupInput['target']

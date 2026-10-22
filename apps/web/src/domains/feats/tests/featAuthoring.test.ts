@@ -1,11 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
-  createEmptyCharge,
   createEmptyFeat,
-  createEmptyFeature,
   normalizeFeatForSubmit,
-  resolveCreateFeatSystemId,
-  upsertById
+  resolveCreateFeatSystemId
 } from '../featAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
@@ -71,31 +68,5 @@ describe('feat authoring helpers', () => {
     expect(normalized.effects).toEqual([])
     expect(normalized.features).toEqual([])
     expect(normalized.grants?.feats).toHaveLength(1)
-  })
-
-  it('creates valid feature and charge defaults', () => {
-    vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
-
-    expect(createEmptyFeature(2)).toMatchObject({
-      id: generatedId,
-      label: '',
-      description: '',
-      order: 2
-    })
-    expect(createEmptyCharge()).toMatchObject({
-      id: generatedId,
-      resetKind: 'LONG_REST',
-      limitKind: 'FIXED_AMOUNT',
-      scalingKind: 'NONE',
-      amount: 1
-    })
-  })
-
-  it('upserts feature basics by id', () => {
-    const original = createEmptyFeature(1)
-    const updated = { ...original, label: 'Opening Read' }
-
-    expect(upsertById([], original)).toEqual([original])
-    expect(upsertById([original], updated)).toEqual([updated])
   })
 })

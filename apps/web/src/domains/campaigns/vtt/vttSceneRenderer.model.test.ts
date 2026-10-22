@@ -24,7 +24,6 @@ import {
   buildVttFogMask,
   canPreserveSceneTokenDrag,
   clampPolygonToRadius,
-  countDarknessZones,
   darknessZoneStyle,
   dashedPolygonSegments,
   directedAreaAim,
@@ -60,6 +59,7 @@ import {
   type VttActionPreview,
   type VttSenseReach
 } from './vttSceneRenderer.model'
+import { countDarknessZones } from './vttDarknessZoneCounts.testUtils'
 import { validated } from '../../../test/validatedFixture'
 
 describe('VTT scene renderer model', () => {

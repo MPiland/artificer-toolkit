@@ -43,7 +43,7 @@ export type AuthoredFormPreviewContext<TValues extends object = object> = {
   values: TValues
 }
 
-export type AuthoredFormOperationConfig = {
+type AuthoredFormOperationConfig = {
   activate: (payload: object) => Promise<ActivatedAuthoringResponse>
   deleteActive?: (id: string) => Promise<void>
   deleteDraft?: (id: string) => Promise<void>
@@ -62,7 +62,7 @@ export type AuthoredFormOperationConfig = {
   saveDraft: (payload: object) => Promise<DraftAuthoringResponse>
 }
 
-export type AuthoredFormDeleteConfig = {
+type AuthoredFormDeleteConfig = {
   deleteActive: (id: string) => Promise<void>
   deleteDraft: (id: string) => Promise<void>
   detailSubjectQueryKey: readonly unknown[] | ((id: string) => readonly unknown[])

@@ -21,15 +21,6 @@ export function createEmptyStartingEquipmentItem(order: number): StartingEquipme
   }
 }
 
-export function addStartingEquipmentItem(
-  startingEquipment: StartingEquipmentDto | undefined
-): StartingEquipmentDto {
-  const next = startingEquipment ?? createEmptyStartingEquipment()
-  const itemCount = getStartingEquipmentItems(next).length
-
-  return appendStartingEquipmentItem(next, createEmptyStartingEquipmentItem(itemCount + 1))
-}
-
 export function upsertStartingEquipmentItem(
   startingEquipment: StartingEquipmentDto | undefined,
   item: StartingEquipmentItemDto
@@ -49,15 +40,6 @@ export function replaceStartingEquipmentItem(
 ): StartingEquipmentDto {
   return updateStartingEquipmentItems(startingEquipment, (items) =>
     items.map((item) => (item.id === itemId ? replacement : item))
-  )
-}
-
-export function removeStartingEquipmentItem(
-  startingEquipment: StartingEquipmentDto,
-  itemId: string
-): StartingEquipmentDto {
-  return updateStartingEquipmentItems(startingEquipment, (items) =>
-    items.filter((item) => item.id !== itemId)
   )
 }
 
