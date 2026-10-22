@@ -25,6 +25,7 @@ import {
   ManualCollectionOrderingProvider,
   ManualCollectionOrderingRow
 } from './ManualCollectionOrdering'
+import { getResolvedAuthoringScope } from '../authoring-schema/resolvedAuthoringScope'
 import { isRecord } from '../utils/valueGuards'
 import { toCollectionDomId } from './collectionPresentation'
 
@@ -39,8 +40,15 @@ export function createResolvedArrayGroup<TValues extends object>(defaultValues: 
     defaultValues,
     props: {} as ResolvedArrayGroupProps,
     render: function ResolvedArrayGroup({ form, hideHeading = false, node, validationTargets }) {
-      const { childAncestors, fieldPathPrefix, readOnly, renderChild, renderAllSteps, values } =
-        useAuthoringRendererScope()
+      const {
+        childAncestors,
+        fieldPathPrefix,
+        model,
+        readOnly,
+        renderChild,
+        renderAllSteps,
+        values
+      } = useAuthoringRendererScope()
       const {
         expandedInlineRowIds,
         groupEditor,
@@ -73,9 +81,15 @@ export function createResolvedArrayGroup<TValues extends object>(defaultValues: 
             const classSet = getCollectionStyleSet(collection.rowLayout, usesCompactTable)
             const editorForField =
               groupEditor?.fieldName === String(fieldName) ? groupEditor : undefined
+            const rowScopeOf = (index: number) =>
+              getResolvedAuthoringScope(
+                model,
+                childMapId,
+                toAuthoringFieldName(fieldPathPrefix, [...node.path, index])
+              )
             const orderingItems = rows.map((row, index) => ({
               id: getCollectionItemIdentity(row, index, ordering),
-              label: getCollectionRowLabel(node, row, index)
+              label: getCollectionRowLabel(node, row, index, rowScopeOf(index))
             }))
             const moveRow = (fromIndex: number, toIndex: number) => {
               field.moveValue(fromIndex, toIndex)
@@ -199,7 +213,7 @@ export function createResolvedArrayGroup<TValues extends object>(defaultValues: 
                           collection.rowExpansion === 'expanded' ||
                           expandedInlineRowIds.has(rowId) ||
                           (renderAllSteps && rows.length === 1 && !usesCompactTable)
-                        const rowLabel = getCollectionRowLabel(node, row, index)
+                        const rowLabel = getCollectionRowLabel(node, row, index, rowScopeOf(index))
                         const rowBodyId = `authoring-group-row-${toCollectionDomId(rowId)}`
                         const usesFlatRow = usesFlatRows || usesCompactRows
                         const canRemoveRow = !nodeReadOnly && collection.removeAction !== undefined

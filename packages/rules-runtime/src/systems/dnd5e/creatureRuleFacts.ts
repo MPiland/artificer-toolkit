@@ -3,7 +3,6 @@ import {
   type EncounterCreatureRuleFactsSnapshot
 } from '@artificer-toolkit/schema/api/encounterActorRules'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
-import { challengeRatings } from '@artificer-toolkit/shared/authored'
 import {
   PROFICIENCY_KIND,
   ROUNDING_CODE,
@@ -84,15 +83,11 @@ export function compileDnd5eCreatureRuleFacts(input: {
     }
   }
 
-  const challengeRatingDefinition = creature.challengeRatingId
+  const challengeRating = creature.challengeRatingId
     ? (document.challengeRatings.find((candidate) => candidate.id === creature.challengeRatingId) ??
       null)
     : null
-  const challengeRating = challengeRatingDefinition
-    ? (challengeRatings.find((candidate) => candidate.code === challengeRatingDefinition.code) ??
-      null)
-    : null
-  if (creature.challengeRatingId && (!challengeRatingDefinition || !challengeRating)) {
+  if (creature.challengeRatingId && !challengeRating) {
     throw new Error('Creature challenge rating is unavailable for D&D proficiency.')
   }
 

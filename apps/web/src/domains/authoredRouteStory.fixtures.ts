@@ -87,7 +87,10 @@ export const authoredRouteStorySystem = {
       code: 'CR_1_4',
       label: '1/4',
       short: 'CR 1/4',
-      description: '50 XP'
+      description: '50 XP',
+      xp: 50,
+      proficiencyBonus: 2,
+      rank: 2
     }
   ],
   conditionTypes: [
@@ -109,7 +112,8 @@ export const authoredRouteStorySystem = {
       id: '00000000-0000-0000-0003-000400000000',
       code: 'GP',
       label: 'Gold Piece',
-      short: 'gp'
+      short: 'gp',
+      baseValue: 100
     }
   ],
   damageTypes: [

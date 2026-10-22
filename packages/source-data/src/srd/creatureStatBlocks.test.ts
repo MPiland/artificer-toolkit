@@ -1,4 +1,3 @@
-import { challengeRatings } from '@artificer-toolkit/shared/authored'
 import type { AbilityCode, CreatureAuthored } from '@artificer-toolkit/shared'
 import { printCreatureSenses } from '@artificer-toolkit/shared/subjects/core'
 import { describe, expect, it } from 'vitest'
@@ -45,7 +44,7 @@ const skillAbility = new Map(
   ])
 )
 const proficiencyBonus = new Map<string, number>(
-  challengeRatings.map((rating) => [rating.code, rating.proficiencyBonus])
+  SRD_CHALLENGE_RATINGS.map((rating) => [rating.code, rating.proficiencyBonus])
 )
 const modifier = (score: number) => Math.floor((score - 10) / 2)
 

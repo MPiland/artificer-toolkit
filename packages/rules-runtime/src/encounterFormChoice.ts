@@ -1,4 +1,3 @@
-import { challengeRatings } from '@artificer-toolkit/shared/authored'
 import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
 
 type CreatureFormFilter = NonNullable<
@@ -11,12 +10,6 @@ function payloadOf(snapshot: unknown): Record<string, unknown> {
   return typeof payload === 'object' && payload !== null ? (payload as Record<string, unknown>) : {}
 }
 
-/** A challenge rating's place in the System's ascending order, or null when the code is unknown. */
-function challengeRatingRank(code: string | undefined): number | null {
-  const rank = challengeRatings.findIndex((candidate) => candidate.code === code)
-  return rank < 0 ? null : rank
-}
-
 /**
  * Why a Creature cannot be the form a filtered choice allows (Polymorph: a beast whose challenge
  * rating does not exceed the target's, or the target's level when it has none), or null when it can.
@@ -27,7 +20,7 @@ export function creatureFormFilterRefusal(input: {
   filter: CreatureFormFilter
   form: { snapshot: unknown }
   target: { snapshot: unknown; level: number | null }
-  system: { challengeRatings: readonly { id: string; code: string }[] }
+  system: { challengeRatings: readonly { id: string; code: string; rank: number }[] }
 }): string | null {
   const { filter, form, target, system } = input
   const formPayload = payloadOf(form.snapshot)
@@ -44,14 +37,18 @@ export function creatureFormFilterRefusal(input: {
   )
     return 'That creature has a way of moving this action does not allow.'
 
-  const codeOf = (id: unknown) => system.challengeRatings.find((entry) => entry.id === id)?.code
-  const formRank = challengeRatingRank(codeOf(formPayload.challengeRatingId))
+  const rankOf = (id: unknown) =>
+    system.challengeRatings.find((entry) => entry.id === id)?.rank ?? null
+  const formRank = rankOf(formPayload.challengeRatingId)
   if (formRank === null) return 'That creature has no challenge rating.'
   const capRank =
     filter.challengeRatingCapKind === 'FIXED'
-      ? challengeRatingRank(codeOf(filter.maxChallengeRatingId))
-      : (challengeRatingRank(codeOf(payloadOf(target.snapshot).challengeRatingId)) ??
-        challengeRatingRank(target.level === null ? undefined : `CR_${target.level}`))
+      ? rankOf(filter.maxChallengeRatingId)
+      : (rankOf(payloadOf(target.snapshot).challengeRatingId) ??
+        (target.level === null
+          ? null
+          : (system.challengeRatings.find((entry) => entry.code === `CR_${target.level}`)?.rank ??
+            null)))
   if (capRank === null) return 'The target has no challenge rating or level to cap the form.'
   return formRank > capRank ? 'That creature is too powerful for this target.' : null
 }
