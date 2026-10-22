@@ -3714,6 +3714,7 @@ export declare const api: {
               description?: string;
               id: string;
               label: string;
+              levelled?: boolean;
             }>;
             currencyOptions: Array<{
               campaignCurrencySystemId?: string;
@@ -18897,6 +18898,7 @@ export declare const api: {
               description?: string;
               id: string;
               label: string;
+              levelled?: boolean;
             }>;
             currencyOptions: Array<{
               campaignCurrencySystemId?: string;
@@ -21085,6 +21087,7 @@ export declare const api: {
                   description?: string;
                   id: string;
                   label: string;
+                  levelled?: boolean;
                 }>;
                 defenses: Array<{
                   damageTypeId: string;
@@ -123552,6 +123555,7 @@ export declare const api: {
             description?: string | null;
             id: string;
             label: string;
+            levelled?: boolean;
             short?: string | null;
           }>;
           creatureTypes: Array<{
@@ -123576,6 +123580,11 @@ export declare const api: {
             label: string;
             short?: string | null;
           }>;
+          defaults?: {
+            conditionTypeId: string;
+            damageTypeId: string;
+            movementTypeId: string;
+          };
           description?: string | null;
           heritages: Array<{
             code: string;
