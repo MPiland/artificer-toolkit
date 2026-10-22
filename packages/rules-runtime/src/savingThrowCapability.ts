@@ -36,6 +36,8 @@ export interface SavingThrowCapabilityAdapter {
     },
     facts: SavingThrowDcFacts
   ): number | null
+  /** The ability definition an authored ability code names, or undefined for an unknown code. */
+  abilityDefinitionId(abilityCode: string): string | undefined
   /** The saving-throw rows of a creature, condition contributors included. */
   holderSaves(
     target: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'targetDerivedFacts'>

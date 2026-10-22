@@ -573,6 +573,21 @@ export async function revertLastEncounterAction(
           )
         })
       }
+      // A feature-held interception's charge goes back, last spend first.
+      for (const application of [...action.applications].reverse()) {
+        if (
+          (application.kind !== 'DAMAGE' && application.kind !== 'KILL_NEGATED') ||
+          !application.interceptionCharge
+        )
+          continue
+        const charge = application.interceptionCharge
+        const holder = actorsById.get(target.id)!
+        if (featureChargeUsed(holder, charge.ownerFeatureId) !== charge.afterUsed)
+          unavailable("The target's feature charges changed after this action; adjust manually.")
+        updateActor(holder.id, {
+          resources: withFeatureChargeUsed(holder, charge.ownerFeatureId, charge.beforeUsed)
+        })
+      }
       const reactionEconomy = reaction?.actionEconomyTransition
       if (reactionEconomy) {
         const reactor = actorsById.get(target.id)!

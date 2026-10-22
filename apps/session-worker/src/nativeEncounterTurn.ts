@@ -134,7 +134,8 @@ export async function planNativeLiveEncounterTurn(
         state,
         actor,
         activeEffectsByActorId,
-        captures
+        captures,
+        random: execution.random
       })
       targetReads.set(actorId, read)
     }

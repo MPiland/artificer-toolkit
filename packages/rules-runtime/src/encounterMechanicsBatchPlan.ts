@@ -42,8 +42,8 @@ import {
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
 import {
   applyDamageInterceptions,
-  type HeldDamageInterception,
-  type InterceptionSaveRoll
+  withInterceptionChargesSpent,
+  type HeldDamageInterception
 } from './encounterDamageInterception.js'
 import {
   enterActorForm,
@@ -85,11 +85,6 @@ export type EncounterMechanicsBatchInput = {
    * spend order. Omitted when none; whoever commits the plan spends the effects the receipt names.
    */
   damageInterceptions?: readonly HeldDamageInterception[]
-  /**
-   * The save dice for the saves those interceptions ask, in the order they ask (`hitPointsAfterDamage`),
-   * rolled by whoever commits the plan the way a death save's die is. Omitted when none ask a save.
-   */
-  interceptionSaveRolls?: readonly InterceptionSaveRoll[]
   /** The Character stream version the applications were planned against; null for other actors. */
   expectedCharacterStreamVersion: number | null
   /** The maximum of the hit points the applications change: a Character in a form takes the form's. */
@@ -218,11 +213,9 @@ export function planEncounterMechanicsBatch(input: {
         currentHitPoints: actor.currentHitPoints,
         temporaryHitPoints: actor.tempHitPoints,
         temporaryHitPointsSourceEffectId: actor.tempHitPointsSourceEffectId,
-        interceptions: batch.damageInterceptions ?? [],
-        saveRolls: batch.interceptionSaveRolls
+        interceptions: batch.damageInterceptions ?? []
       }),
       ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
-      ...(batch.interceptionSaveRolls && { interceptionSaveRolls: batch.interceptionSaveRolls }),
       absence: actor.absence
     })
     const nextConditions = [
@@ -242,7 +235,11 @@ export function planEncounterMechanicsBatch(input: {
     const updated = encounterRunActorStateSchema.parse(
       withActorTemporaryHitPoints(
         {
-          ...withDamageTypesTaken(actor, folded.applications, batch.sourceCommandId),
+          ...withDamageTypesTaken(
+            withInterceptionChargesSpent(actor, folded.applications),
+            folded.applications,
+            batch.sourceCommandId
+          ),
           currentHitPoints: folded.after.currentHitPoints,
           maxHitPoints: folded.after.maximumHitPoints,
           conditions: nextConditions,
@@ -738,11 +735,9 @@ function foldCharacterBatch(input: {
         currentHitPoints: sheet.currentHitPoints,
         temporaryHitPoints: sheet.temporaryHitPoints,
         temporaryHitPointsSourceEffectId: sheet.temporaryHitPointsSourceEffectId,
-        interceptions: batch.damageInterceptions ?? [],
-        saveRolls: batch.interceptionSaveRolls
+        interceptions: batch.damageInterceptions ?? []
       }),
       ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
-      ...(batch.interceptionSaveRolls && { interceptionSaveRolls: batch.interceptionSaveRolls }),
       deathSaveRoll: batch.deathSave
     })
     return {
@@ -765,11 +760,9 @@ function foldCharacterBatch(input: {
       currentHitPoints: form.currentHitPoints,
       temporaryHitPoints: form.tempHitPoints,
       temporaryHitPointsSourceEffectId: form.tempHitPointsSourceEffectId,
-      interceptions: batch.damageInterceptions ?? [],
-      saveRolls: batch.interceptionSaveRolls
+      interceptions: batch.damageInterceptions ?? []
     }),
-    ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
-    ...(batch.interceptionSaveRolls && { interceptionSaveRolls: batch.interceptionSaveRolls })
+    ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions })
   })
   if (inForm.after.currentHitPoints > 0)
     return {

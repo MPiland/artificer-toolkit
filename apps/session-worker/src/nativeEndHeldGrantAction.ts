@@ -23,7 +23,7 @@ import {
 export async function planNativeLiveEndHeldGrant(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   command: EndHeldGrantInputDto,
-  executionOptions: { captures: LiveCaptureReads }
+  executionOptions: { captures: LiveCaptureReads; random(maximum: number): number }
 ) {
   const admitted = await admitNativeLiveHolderCommand(scope, command, executionOptions.captures)
   if (admitted.kind === 'REPLAY') return admitted
@@ -48,7 +48,7 @@ export async function planNativeLiveEndHeldGrant(
     state,
     actor,
     activeEffectsByActorId,
-    captures: executionOptions.captures
+    ...executionOptions
   })
   reads.observe(prepared.revisions)
   const { actionEconomy, warnings, spent } = await spendNativeHolderActivation({

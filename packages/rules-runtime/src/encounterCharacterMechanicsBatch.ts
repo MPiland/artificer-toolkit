@@ -27,9 +27,10 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import {
   hitPointsAfterDamage,
+  interceptionChargeMatches,
+  interceptionChargeReceipt,
   killInterception,
-  type HeldDamageInterception,
-  type InterceptionSaveRoll
+  type HeldDamageInterception
 } from './encounterDamageInterception.js'
 import { EncounterValidationError } from './encounterErrors.js'
 
@@ -156,8 +157,6 @@ export function foldCharacterMechanicsApplications<
    * the first interception it fits and names it (`interceptedBy`, `negatedBy`).
    */
   damageInterceptions?: readonly HeldDamageInterception[]
-  /** The save dice the planner used for the saves those interceptions asked (`hitPointsAfterDamage`). */
-  interceptionSaveRolls?: readonly InterceptionSaveRoll[]
   /**
    * A dying Character's turn-start death save (D96), applied after the applications: its kept d20
    * and the signed total of its added dice (D156).
@@ -228,7 +227,6 @@ export function foldCharacterMechanicsApplications<
   let absence = input.absence ?? null
   const receipt: ReceiptApplications = []
   const unspentInterceptions = [...(input.damageInterceptions ?? [])]
-  let interceptionRollsUsed = 0
   for (const [ordinal, application] of input.applications.entries()) {
     if (application.targetActorId !== input.targetActorId)
       throw new EncounterValidationError('The Character rule action target is invalid.')
@@ -322,11 +320,15 @@ export function foldCharacterMechanicsApplications<
       const spent = killInterception(unspentInterceptions)
       if (spent === undefined || spent.effectId !== application.negatedBy)
         throw new EncounterValidationError('The Character kill negation is invalid.')
+      if (!interceptionChargeMatches(application.interceptionCharge, spent))
+        throw new EncounterValidationError('The Character kill negation charge is invalid.')
       unspentInterceptions.splice(unspentInterceptions.indexOf(spent), 1)
+      const interceptionCharge = interceptionChargeReceipt(spent)
       receipt.push({
         ordinal,
         kind: 'KILL_NEGATED',
         negatedBy: application.negatedBy,
+        ...(interceptionCharge && { interceptionCharge }),
         sourceNodeId: application.sourceNodeId,
         sourceOperationKey: application.sourceOperationKey,
         authoredPath: application.authoredPath,
@@ -528,8 +530,7 @@ export function foldCharacterMechanicsApplications<
       const {
         after: afterCurrent,
         interception,
-        saves,
-        rollsUsed
+        saves
       } = hitPointsAfterDamage({
         current,
         currentLost,
@@ -537,14 +538,13 @@ export function foldCharacterMechanicsApplications<
         damageTaken: resolvedAmount,
         damageTypeId: application.damageTypeId,
         critical: application.critical,
-        interceptions: unspentInterceptions,
-        saveRolls: (input.interceptionSaveRolls ?? []).slice(interceptionRollsUsed)
+        interceptions: unspentInterceptions
       })
-      interceptionRollsUsed += rollsUsed
       const intercepted = interception !== undefined
       const recordedSaves = application.interceptionSaves ?? []
       if (
         intercepted !== (application.interceptedBy !== undefined) ||
+        !interceptionChargeMatches(application.interceptionCharge, interception) ||
         recordedSaves.length !== saves.length ||
         saves.some((save, index) => {
           const recorded = recordedSaves[index]

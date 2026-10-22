@@ -644,3 +644,7 @@ Class B, new generic option (D156). A Feature or option effect may carry `grante
 ## T4i4: Sea Hag Death Glare and Will-o'-Wisp Consume Life (T4i4a done, `ci/spells-33-t4i4a`; T4i4b held)
 
 T4i4a added the generic single-target `targetRequirements` (`HAS_CONDITION`, `SIGHT`, `AT_ZERO_HIT_POINTS`), checked at admission with one shared sight evaluator (`encounterSightHolds`). T4i4b (the two conversions, KILL after a saving throw, `REDUCE_TO_ZERO_HIT_POINTS`, deleting both closed-rule kinds) is held behind RULES-2.T6c, the compiler's outcomes registry (ADR 0039): the new outcomes land in that registry rather than widening `effectActionCompiler.ts`.
+
+## T4i2: 0 HP interception (T4i2a, T4i2b on `ci/spells-33-t4i2`)
+
+T4i2a put the save, damage-type and critical exclusions and the damage cap on the `DAMAGE_INTERCEPTION` payload. T4i2b made a Creature's feature hold interceptions from passive `grants.modifiers` (authored like `movementPassageGrants`, through `damageInterceptionGrants`, not as a passive damage-grant effect), spends a limited-use charge with a receipt and undo, and converted Zombie and Ogre Zombie Undead Fortitude and Wereboar Relentless. The three closed-rule kinds (`CREATURE_UNDEAD_FORTITUDE`, `CREATURE_ZOMBIE_UNDEAD_FORTITUDE`, `CREATURE_WEREBOAR_RELENTLESS`) are deleted, and their three golden rows (`NOT_A_DISCOVERED_ACTION`) are gone with their effects. Save dice are rolled once per target in the Worker. Not covered: condition auto-fail of Constitution saves and added save dice.

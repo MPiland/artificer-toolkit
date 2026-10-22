@@ -609,11 +609,12 @@ describe('seeded SRD Creature hit riders in the room', () => {
   })
 
   it('hits with the Ogre Zombie’s Morningstar for its printed bludgeoning damage (ATTACK-5.T4a)', async () => {
+    // The first die is the Ogre Zombie's own Undead Fortitude save, rolled when it is prepared.
     const room = await hitRiderRoom({
       creature: 'Ogre Zombie',
       feature: 'Morningstar',
       playerAutoRoll: true,
-      rolls: [18, 0, 0]
+      rolls: [0, 18, 0, 0]
     })
     expect((await settle(room, null)).damage).toEqual([[6, damageTypeId('BLUDGEONING')]])
   })

@@ -46,6 +46,7 @@ import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/s
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type {
   DamageDispositionDto,
+  DamageInterceptionChargeDto,
   DamageInterceptionSaveDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
@@ -384,6 +385,8 @@ export type CharacterHitPointOutcomeApplication =
       interceptedBy?: string
       /** The saves the blow's interceptions asked of the holder, in the order they were rolled. */
       interceptionSaves?: DamageInterceptionSaveDto[]
+      /** The charge the intercepting feature spent, when it is limited-use. */
+      interceptionCharge?: DamageInterceptionChargeDto
     })
 
 export interface CharacterConditionApplyOutcomeApplication {
@@ -453,6 +456,8 @@ export interface CharacterKillNegatedOutcomeApplication {
   kind: 'KILL_NEGATED'
   targetActorId: string
   negatedBy: string
+  /** The charge the negating feature spent, when it is limited-use. */
+  interceptionCharge?: DamageInterceptionChargeDto
 }
 
 /** A System-authorized departure: the target leaves the Run's play (D128). */

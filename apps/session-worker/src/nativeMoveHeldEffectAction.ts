@@ -34,7 +34,7 @@ const refusal = (reason: 'SOURCE_REQUIREMENTS_NOT_MET' | 'TARGET_UNAVAILABLE', m
 export async function planNativeLiveMoveHeldEffect(
   scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
   command: MoveHeldEffectInputDto,
-  executionOptions: { captures: LiveCaptureReads }
+  executionOptions: { captures: LiveCaptureReads; random(maximum: number): number }
 ) {
   const admitted = await admitNativeLiveHolderCommand(scope, command, executionOptions.captures)
   if (admitted.kind === 'REPLAY') return admitted
@@ -57,7 +57,7 @@ export async function planNativeLiveMoveHeldEffect(
       state,
       actor: target,
       activeEffectsByActorId,
-      captures: executionOptions.captures
+      ...executionOptions
     })
   const prepared = await prepare(actor)
   reads.observe(prepared.revisions)

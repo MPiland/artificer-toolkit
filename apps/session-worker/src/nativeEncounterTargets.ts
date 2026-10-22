@@ -17,6 +17,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { withEncounterOccupantSaveBonus } from '@artificer-toolkit/rules-runtime/encounterOccupantSaveAuras'
 import { withEncounterHolderDefense } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
+import { withInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/encounterInterceptionSaveRolls'
 import { withEncounterConditionMechanics } from '@artificer-toolkit/rules-runtime/encounterConditionMechanics'
 import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { hydrateSpellPins } from '@artificer-toolkit/encounter-persistence/spellPins'
@@ -120,6 +121,8 @@ export async function prepareNativeLiveMovementTarget(input: {
   actor: EncounterRunActorState
   activeEffectsByActorId: Map<string, ActiveRuleEffectRecord[]>
   captures: LiveCaptureReads
+  /** Rolls the saves the target's damage interceptions ask, once, before any blow lands. */
+  random(maximum: number): number
 }) {
   const { actor, state, scope } = input
   const characterFacts =
@@ -170,18 +173,23 @@ export async function prepareNativeLiveMovementTarget(input: {
     runEffectsByActorId: input.activeEffectsByActorId,
     readTurnMovedFeet: () => readNativeLiveTurnMovedFeet(capture, actor.id)
   })
+  const saved = await withEncounterOccupantSaveBonus({
+    target: defended,
+    gameSystemId: state.gameSystemId,
+    auras: auras.auras,
+    readCharacterConditionIds: async ({ sourceActorId, sourceCharacterId }) => {
+      const source = await input.captures.prepareCharacter(
+        liveSessionCharacterRulesScope(scope, { id: sourceActorId, sourceId: sourceCharacterId })
+      )
+      revisions = mergeNativeRulesRevisions(revisions, source.revisions)
+      return characterConditionIds(source)
+    }
+  })
   return {
-    target: await withEncounterOccupantSaveBonus({
-      target: defended,
+    target: withInterceptionSaveRolls({
       gameSystemId: state.gameSystemId,
-      auras: auras.auras,
-      readCharacterConditionIds: async ({ sourceActorId, sourceCharacterId }) => {
-        const source = await input.captures.prepareCharacter(
-          liveSessionCharacterRulesScope(scope, { id: sourceActorId, sourceId: sourceCharacterId })
-        )
-        revisions = mergeNativeRulesRevisions(revisions, source.revisions)
-        return characterConditionIds(source)
-      }
+      target: saved,
+      random: input.random
     }),
     revisions
   }

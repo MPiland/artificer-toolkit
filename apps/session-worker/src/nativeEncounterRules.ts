@@ -211,7 +211,7 @@ export async function planNativeLiveEncounterAction(
     | RemoveAreaTargetInputDto,
   executionOptions: {
     runtime: RulesRuntimeService
-    random?: (maximum: number) => number
+    random(maximum: number): number
     captures: LiveCaptureReads
     /**
      * The pick an action's forced movements owe their source next on the Encounter's Scene (D157):
@@ -381,7 +381,7 @@ export async function planNativeLiveEncounterAction(
       state,
       actor,
       activeEffectsByActorId: effectsByActorId,
-      captures: executionOptions.captures
+      ...executionOptions
     })
     revisions = mergeNativeRulesRevisions(revisions, preparedTarget.revisions)
     return preparedTarget.target

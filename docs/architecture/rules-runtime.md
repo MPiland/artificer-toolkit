@@ -1027,10 +1027,18 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   filter added to the subscription reaches both. The `BEFORE` `DAMAGED` event carries the whole blow (`damageTaken`,
   `damageTypeId`, `critical`), and a damage interception may filter on it (SPELLS-33.T4i2a): `excludes` (damage types
   and critical hits it does not meet) and `maxDamageTaken`. Its optional `save` (ability, DC `base` plus the damage
-  taken when `plusDamageTaken`) is spent only on a pass: each save takes the next of the batch's
-  `interceptionSaveRolls` (`{ rawDie, addedTotal }`, caller-supplied like `deathSave`), a failure lets the blow meet
-  the next interception, and a missing die is an `EncounterValidationError`. The DAMAGE receipt records every save
-  asked as `interceptionSaves`; the fold recomputes them and refuses a mismatch. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
+  taken when `plusDamageTaken`) is spent only on a pass, with the die on the interception itself (`saveRoll`,
+  `{ rawDie, addedTotal }`): the Worker rolls it once per target before any blow lands (`withInterceptionSaveRolls`,
+  the holder's saving throw and roll mode; a room commit replays the recorded one with
+  `withRecordedInterceptionSaveRolls`). A failure lets the blow meet the next interception, and a missing die is an
+  `EncounterValidationError`. The DAMAGE receipt records every save asked as `interceptionSaves`; the fold recomputes
+  them and refuses a mismatch. A Creature's feature holds interceptions too (SPELLS-33.T4i2b): its passive
+  `DAMAGE_INTERCEPTION` feature grants fold through the creature grant fold and `featureHeldDamageInterceptions` lists
+  them beside the effect-held ones (`buildMovementTarget`). A feature with a limited-use charge (Wereboar Relentless)
+  is held only while the charge has one left; the intercepted blow spends it (`interceptionCharge` on the DAMAGE or
+  KILL_NEGATED application, recomputed by the fold), `withInterceptionChargesSpent` writes it on the plan's actor,
+  rest recovery resets it through `planCreatureRest`, and `actionRevert` restores it. A feature with no charge (Undead
+  Fortitude) is held every time. Known limits: a condition that fails the save outright and added save dice are not read. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
   meets a `HARMFUL_ACTION_AIMED` by an attacker of a listed type: `heldIncomingGate` lists the wards the attacker has not
   passed and asks discovery which one it meets. Counter and targeted-self windows are reactions to
   `SPELL_CAST_BY_OTHER` and `TARGETED_BY_CAST` above; a retarget stays the gate's failure pause.
