@@ -4232,7 +4232,8 @@
               },
               "text": "SRD import adapter (importedEquipmentTerms) maps GP, Walk, Stealth and Dwarven to their source-data definition IDs instead of code constants; it stays in the importer.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845550346"
             },
             {
               "id": "RULES-2.T9o",
@@ -11375,8 +11376,7 @@
                 "size": 3,
                 "after": ["SPELLS-8.T11"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39842110784"
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
             }
           ]
         },
@@ -15434,7 +15434,7 @@
                 "after": ["RULES-2.T6e"]
               },
               "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39842110784"
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845550346"
             },
             {
               "id": "SPELLS-33.T4i3e",
