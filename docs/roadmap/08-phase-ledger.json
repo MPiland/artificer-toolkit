@@ -13907,7 +13907,7 @@
             },
             {
               "id": "SPELLS-33.T4i3b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13916,11 +13916,12 @@
                 "size": 2,
                 "after": ["SPELLS-33.T4i3d"]
               },
-              "text": "Solar Slaying Longbow (split 2026-10-21): a gated nested save whose failure is KILL, composed from the unified follow-up model; deletes CREATURE_SOLAR_SLAYING_LONGBOW and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity."
+              "text": "Solar Slaying Longbow (split 2026-10-21): a gated nested save whose failure is KILL, composed from the unified follow-up model; deletes CREATURE_SOLAR_SLAYING_LONGBOW and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity.",
+              "note": "Merged m326 (68e28ea27)."
             },
             {
               "id": "SPELLS-33.T4i3c",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -13929,7 +13930,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T4i3d"]
               },
-              "text": "Giant Centipede venom (split 2026-10-21): nested save with poison damage, then outcomes gated on that damage reducing the target to 0 (stable, poisoned 1 hour, paralyzed), composed from the unified follow-up model; deletes GIANT_CENTIPEDE_VENOM and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity."
+              "text": "Giant Centipede venom (split 2026-10-21): nested save with poison damage, then outcomes gated on that damage reducing the target to 0 (stable, poisoned 1 hour, paralyzed), composed from the unified follow-up model; deletes GIANT_CENTIPEDE_VENOM and its SRD_CREATURE_ATTACK_UNSUPPORTED entry, with a room proof and parity.",
+              "note": "Merged m326 (68e28ea27)."
             },
             {
               "id": "SPELLS-33.T4i4a",
@@ -14714,7 +14716,7 @@
             {
               "id": "SPELLS-33.T4i3d",
               "text": "Gated nested-save outcomes (generic, found by T4i3b/c 2026-10-22): an optional gate from the one gate table (HP band, REDUCED_TO_ZERO_BY) on nested-save band outcomes with gate inputs on the nested-save graph; KILL admitted in a band only when gated or the save entry is HP-gated (\"never on a save alone\" holds); a hit’s nested save may sit in its own gated result block after the damage block. Nested-save graph in a neutral module so the compiler does not grow. Parity proofs; enumerated golden flips.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -14723,7 +14725,7 @@
                 "size": 5,
                 "after": ["RULES-2.T6e"]
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "note": "Merged m326 (68e28ea27)."
             },
             {
               "status": "TODO",
@@ -14749,7 +14751,8 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["SPELLS-33.T4i3c", "RULES-2.T6f"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             }
           ]
         }
