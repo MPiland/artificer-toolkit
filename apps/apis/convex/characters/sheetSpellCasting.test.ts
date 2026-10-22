@@ -31,7 +31,13 @@ const getSheet = makeFunctionReference<
   CharacterSheetResponseDto | null
 >('characters/sheet:get')
 
-async function fixture(attribute: 'LIMITED_USE' | 'CAST_AT_LEVEL' = 'LIMITED_USE') {
+const CAST_MODE = {
+  LIMITED_USE: 'LIMITED_USE',
+  CAST_AT_LEVEL: 'FIXED_LEVEL',
+  RITUAL: 'RITUAL'
+} as const
+
+async function fixture(attribute: keyof typeof CAST_MODE = 'LIMITED_USE') {
   if (!wizard.spellcasting) throw new Error('Expected canonical Wizard spellcasting.')
   const base = await readyCharacterFixture({
     spellcasting: {
@@ -56,13 +62,17 @@ async function fixture(attribute: 'LIMITED_USE' | 'CAST_AT_LEVEL' = 'LIMITED_USE
               spellIds: [magicMissile.id],
               attributes: [attribute],
               ...(attribute === 'CAST_AT_LEVEL' ? { castAtLevel: 2 } : {}),
-              charges: {
-                id: crypto.randomUUID(),
-                resetKind: 'LONG_REST',
-                limitKind: 'FIXED_AMOUNT',
-                scalingKind: 'NONE',
-                amount: 2
-              },
+              ...(attribute === 'RITUAL'
+                ? {}
+                : {
+                    charges: {
+                      id: crypto.randomUUID(),
+                      resetKind: 'LONG_REST' as const,
+                      limitKind: 'FIXED_AMOUNT' as const,
+                      scalingKind: 'NONE' as const,
+                      amount: 2
+                    }
+                  }),
               order: 0
             },
             {
@@ -126,14 +136,10 @@ async function fixture(attribute: 'LIMITED_USE' | 'CAST_AT_LEVEL' = 'LIMITED_USE
   const sheet = (await base.owner.caller.query(getSheet, { id: character.id }))!
   const spell = sheet.spells.spells.find((entry) => entry.id === magicMissile.id)!
   const classSource = spell.sources!.find((source) => source.source.sourceKind === 'CLASS')!
-  const chargedSource = spell.sources!.find(
-    (source) => source.castMode === (attribute === 'LIMITED_USE' ? 'LIMITED_USE' : 'FIXED_LEVEL')
-  )!
-  expect(chargedSource.resourceOwner).toBeDefined()
-  const chargedResourceId = findResourceByOwner(
-    sheet.resources.items,
-    chargedSource.resourceOwner!
-  )!.id
+  const chargedSource = spell.sources!.find((source) => source.castMode === CAST_MODE[attribute])!
+  const chargedResourceId = chargedSource.resourceOwner
+    ? findResourceByOwner(sheet.resources.items, chargedSource.resourceOwner)!.id
+    : undefined
   return { ...base, character, sheet, classSource, chargedSource, chargedResourceId, readState }
 }
 
@@ -283,6 +289,24 @@ describe('native Character Sheet casting', () => {
       expect(await readState()).toEqual(after)
     }
   )
+
+  it('casts a granted ritual from the Sheet without spending a slot or a use', async () => {
+    const { owner, character, chargedSource, sheet } = await fixture('RITUAL')
+    expect(chargedSource.resourceOwner).toBeUndefined()
+    const cast = await owner.caller.mutation(execute, {
+      id: character.id,
+      command: {
+        type: 'CAST_SPELL',
+        commandId: crypto.randomUUID(),
+        expectedVersion: 3,
+        spellId: magicMissile.id,
+        sourceId: chargedSource.id
+      }
+    })
+    const after = (await owner.caller.query(api.characters.sheet.get, { id: cast.characterId }))!
+    expect(after.spells.slots).toEqual(sheet.spells.slots)
+    expect(after.resources).toEqual(sheet.resources)
+  }, 15_000)
 
   it('rolls back charged usage and receipt on post-write failure and allows retry', async () => {
     const { owner, character, chargedSource, chargedResourceId, readState } = await fixture()

@@ -235,6 +235,7 @@ export async function readEncounterActionChoices(
     const policyOutput = actorTarget?.effectiveRulePolicyOutput
     if (!facts || !mechanics || !spellCast || !policyOutput)
       throw new Error('Encounter Character actions are unavailable.')
+    unavailableActions = [...spellCast.unavailable]
     // Each spell the Character may cast now is one choice per cast level (upcasting is the higher one).
     const actionCandidates = [
       ...mechanics.rulePolicyInput.actionCandidates,

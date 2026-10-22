@@ -398,7 +398,8 @@ export function buildMovementTarget<
               const label = spellComponentsLabel(spell)
               return label ? [[spellId, label] as const] : []
             })
-          )
+          ),
+          unavailable: spellCast.unavailable
         }
       : input.includeReactionSources
         ? {
@@ -406,7 +407,8 @@ export function buildMovementTarget<
             decisions: [],
             compiledActionEntryPoints: [],
             magicSchoolIdBySpellId: new Map(),
-            componentsLabelBySpellId: new Map()
+            componentsLabelBySpellId: new Map(),
+            unavailable: []
           }
         : null
     return {

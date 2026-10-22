@@ -25,6 +25,7 @@ import type {
   NodeRuntimeNormalizeValuesResponseDto,
   NodeRuntimeResolveRequestDto
 } from '@artificer-toolkit/schema/api/nodeRuntime'
+import { RITUAL_CAST_REFUSAL } from '@artificer-toolkit/rules-runtime/character/characterSpellCastActions'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   encounterRuleUsageUsed,
@@ -686,6 +687,27 @@ describe('Character spell casting in an Encounter', () => {
       ['Cure Wounds (1st level)', 'Cure Wounds (2nd level)', 'Fire Bolt', 'Mend (1st level)'].sort()
     )
     expect(new Set(choices.map(({ id }) => id)).size).toBe(choices.length)
+  }, 60000)
+
+  it('refuses a granted ritual by name, listing it unavailable and spending no slot (D171)', async () => {
+    const grantedRite = healSpell('Granted Rite', (spell) => fixHeal(spell, 1))
+    const fixture = await setup({
+      known: [],
+      granted: [{ spell: grantedRite, attributes: ['RITUAL'] }]
+    })
+    const choices = await fixture.gm.caller.query(actionChoices, {
+      encounterId: fixture.run.id,
+      expectedVersion: 0,
+      actorId: fixture.actor.id
+    })
+    expect(choices?.actions.filter(({ id }) => id.startsWith('spell-cast:'))).toEqual([])
+    const [ritual] = choices?.unavailableActions ?? []
+    expect(ritual).toMatchObject({ label: 'Granted Rite (1st level)', reason: RITUAL_CAST_REFUSAL })
+
+    await expect(
+      executeInRoom(fixture.player.caller, { command: castCommand(fixture, ritual!.id, 0) })
+    ).rejects.toThrow(RITUAL_CAST_REFUSAL)
+    expect((await storedCharacter(fixture)).record.state.spellSlots).toBeUndefined()
   }, 60000)
 
   it('offers a spell that does not read its cast level at its own level only, beside one that does at each owned higher level', async () => {

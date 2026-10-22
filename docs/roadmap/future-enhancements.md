@@ -86,6 +86,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 ## Post-launch
 
 - **Costly and consumed material components (D171):** authored `materialCost` and `consumed` fields on spells, checked against the caster's inventory and deducted on cast, for example Revivify's 300 gp diamond. Today the material description is shown only.
+- **Class ritual casting and out-of-initiative ritual casts (D171, SPELLS-8.T11):** a class that casts spells as rituals (`SPELLCASTING_ATTRIBUTE.RITUAL_CASTER`: a Wizard's spellbook, a prepared caster's prepared spells) has no Sheet cast path, so nothing lists those spells as rituals; and an Encounter always has an initiative round, so a ritual is only ever refused there. Needs a Sheet ritual cast for class casters first, then an out-of-initiative cast surface that advances a clock when one exists.
 - **Give loot from a table (SCENE-4):** a "Give to…" action on a loot table entry moves the catalog item, or the coins, into a Character's inventory.
 
 ### Deferred edge cases (watch for in real use)
