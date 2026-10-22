@@ -11,10 +11,11 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
+type Container = { paths: { resultBlock: { outcomes: Record<string, unknown>[] } }[] }
+
 function withReviveHitPoints(hitPoints: unknown) {
-  const effects = structuredClone(revivify.effects)
-  const [outcome] = effects[0]!.paths![0]!.resultBlock.outcomes
-  Object.assign(outcome!, { hitPoints })
+  const effects = structuredClone(revivify.effects) as unknown as Container[]
+  Object.assign(effects[0]!.paths[0]!.resultBlock.outcomes[0]!, { hitPoints })
   return { ...structuredClone(caltropsBagOf20), effects }
 }
 
