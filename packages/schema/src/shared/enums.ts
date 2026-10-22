@@ -319,6 +319,10 @@ export const spellGrantAttributeSchema = lazySchema(() =>
   ])
 )
 
+export const spellSlotPoolCodeSchema = lazySchema(() => z.enum(['PACT']))
+
+export const spellGrantAccessSchema = lazySchema(() => z.enum(['CAST', 'CLASS_LIST_ONLY']))
+
 export const effectKindSchema = lazySchema(() =>
   z.enum([
     'DAMAGE',

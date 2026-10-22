@@ -79,3 +79,55 @@ export const SPELL_GRANT_ATTRIBUTE_REGISTRY: Record<
 export const SPELL_GRANT_ATTRIBUTE_OPTIONS = valuesOf(
   SPELL_GRANT_ATTRIBUTE_REGISTRY
 ) as readonly SpellGrantAttributeOption[]
+
+/**
+ * The spell slot pools a cast can draw from beyond the slot of its own level. The code is the key the
+ * Sheet and Encounter slot resources already carry, so a grant names a pool the way a slot is read.
+ */
+export const SPELL_SLOT_POOL = {
+  PACT: 'PACT'
+} as const
+
+export type SpellSlotPoolCode = keyof typeof SPELL_SLOT_POOL
+
+export type SpellSlotPoolOption = CoreMeta<SpellSlotPoolCode>
+
+export const SPELL_SLOT_POOL_REGISTRY: Record<SpellSlotPoolCode, SpellSlotPoolOption> = {
+  PACT: {
+    code: SPELL_SLOT_POOL.PACT,
+    label: 'Pact Magic',
+    description: 'The cast also spends a spell slot from the caster’s Pact Magic pool.'
+  }
+} as const
+
+export const SPELL_SLOT_POOL_OPTIONS = valuesOf(
+  SPELL_SLOT_POOL_REGISTRY
+) as readonly SpellSlotPoolOption[]
+
+/** What a spell grant gives: the spells to cast, or only a place for them on a class spell list. */
+export const SPELL_GRANT_ACCESS = {
+  CAST: 'CAST',
+  CLASS_LIST_ONLY: 'CLASS_LIST_ONLY'
+} as const
+
+export type SpellGrantAccess = keyof typeof SPELL_GRANT_ACCESS
+
+export type SpellGrantAccessOption = CoreMeta<SpellGrantAccess>
+
+export const SPELL_GRANT_ACCESS_REGISTRY: Record<SpellGrantAccess, SpellGrantAccessOption> = {
+  CAST: {
+    code: SPELL_GRANT_ACCESS.CAST,
+    label: 'Cast',
+    description: 'The Character may learn, prepare or cast the spells.'
+  },
+  CLASS_LIST_ONLY: {
+    code: SPELL_GRANT_ACCESS.CLASS_LIST_ONLY,
+    label: 'Class List Only',
+    description:
+      'The spells join the chosen class spell lists and are not learned, prepared or cast by this grant.'
+  }
+} as const
+
+export const SPELL_GRANT_ACCESS_OPTIONS = valuesOf(
+  SPELL_GRANT_ACCESS_REGISTRY
+) as readonly SpellGrantAccessOption[]

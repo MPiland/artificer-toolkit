@@ -1815,6 +1815,16 @@ outcome graph from the bound `dnd5e.spell-cast-level` fact). The selector takes 
 a bound level fact, so a class-level key reuses it. A heal that targets several chosen creatures (Mass Cure
 Wounds, Mass Healing Word, Prayer of Healing) is offered with the list target above. Labels read "Cure Wounds (2nd level)"; a cantrip reads its name.
 
+A spell grant may also name the slot pool that pays its cast (`slotCost.poolCode`, a System code such as
+`SPELL_SLOT_POOL.PACT`; SPELLS-31.T5p, D175). The candidate then carries `slotPoolCode`, the decision ladder
+requires a slot of that pool (`SPELL_SLOT_REMAINING`, `SPELL_SLOT_EXHAUSTED`, `NO_ELIGIBLE_SPELL_SLOT`) in addition
+to the grant's own pool (`RESOURCE_EXHAUSTED`), and the cast spends both: the slot through the ordinary
+`spellConsumption.slotKey`, the pool through `resourceBinding`. A grant with `access: CLASS_LIST_ONLY` and
+`classListIds` gives no access; `spellClassListAdditions.ts` is the one merge that adds its spells to those class
+lists for the Sheet's preparation catalog and the Builder's merged catalog (the Builder owns the merged list for
+prepare and known choices; the Sheet only reads it). The compiler refuses `CLASS_LIST_ONLY` without `classListIds`.
+Primeval Awareness has no runtime: the generic `USE_SPELL_SLOT` Sheet command spends the slot and the sensing is description.
+
 The cast level is a fact of the action. `prepareNativeCharacterActionState` copies the policy's `castLevel`
 onto the action mechanic as `spellCastLevel`, the dnd5e adapter binds it as the declared fact
 `dnd5e.spell-cast-level` (a Game System `factContracts` entry), and the

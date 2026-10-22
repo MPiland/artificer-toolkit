@@ -38,6 +38,7 @@ import { discoverCharacterActionCapabilities } from '../characterActionCapabilit
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { encounterActionChoiceTarget, evaluateEncounterZoneTarget } from '../encounterAreaAction.js'
 import { planEncounterPlacedZone } from '../encounterPlacedZone.js'
+import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterActions.js'
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -102,6 +103,7 @@ function candidate(
     castLevel,
     baseEntry: castLevel === authored.level,
     resourceOwnerKey: null,
+    slotPoolCode: null,
     ...overrides
   }
 }
@@ -700,10 +702,26 @@ describe('a cast paid from a spell-source pool', () => {
       castMode,
       resourceOwnerKey: poolId
     })
+  const pactMagic = {
+    sourceClassId: 'warlock',
+    slots: 2,
+    level: 3,
+    rawUsed: 0,
+    effectiveUsed: 0,
+    remaining: 2
+  }
+  /** The policy of a pooled cast: its slot is the Pact Magic slot when the cast names that pool. */
+  const pooledPolicy = (cast: SpellCastCandidate, rawUsed: number) => {
+    const paysPact = cast.slotPoolCode === 'PACT'
+    const policy = policyFor([cast], authoredById, () => (paysPact ? 'PACT' : null))
+    return {
+      ...policy,
+      resources: [pool(rawUsed)],
+      spellSlots: { ...policy.spellSlots, pactMagic: paysPact ? pactMagic : null }
+    }
+  }
   const buildPooled = (cast: SpellCastCandidate, rawUsed = 0) =>
-    build([cast], {
-      policyOutput: { ...policyFor([cast], authoredById, () => null), resources: [pool(rawUsed)] }
-    })
+    build([cast], { policyOutput: pooledPolicy(cast, rawUsed) })
   const character = evaluateSrdCharacter({ classes: [{ label: 'Fighter', level: 1 }] })
 
   function prepare(
@@ -736,8 +754,7 @@ describe('a cast paid from a spell-source pool', () => {
         candidate: offered,
         policyOutput: {
           ...character.output,
-          ...policyFor([cast], authoredById, () => null),
-          resources: [pool(rawUsed)],
+          ...pooledPolicy(cast, rawUsed),
           actionDecisions: built.decisions
         },
         resourceUsage:
@@ -794,6 +811,76 @@ describe('a cast paid from a spell-source pool', () => {
       afterRemaining: 0,
       characterId: CHARACTER_ID,
       expectedStreamVersion: STREAM_VERSION
+    })
+  })
+
+  it('spends the Pact Magic slot as well as the pool when the cast names that pool (SPELLS-31.T5p)', () => {
+    const pact = { ...pooled('LIMITED_USE'), slotPoolCode: 'PACT' as const }
+    const { prepared, built } = prepare(pact, 0, 'ASSISTED')
+    expect(built.decisions).toMatchObject([{ resourcePoolId: poolId }])
+    expect(prepared.resourceConsumption).toMatchObject({ poolId, afterUsed: 1 })
+    expect(prepared.spellConsumption).toMatchObject({ slotKey: 'PACT' })
+  })
+
+  describe('whose pool slot the rules decide on (SPELLS-31.T5p)', () => {
+    const pact = { ...pooled('LIMITED_USE'), slotPoolCode: 'PACT' as const }
+    const decide = (pactSlots: { level: number; remaining: number } | null, rawUsed = 0) =>
+      evaluateDnd5e2014CharacterActions({
+        candidates: [],
+        abilityDefinitions: [],
+        spellCandidates: [pact],
+        spellSlots: pactSlots
+          ? [{ slotKey: 'PACT', label: 'Pact Magic', max: 2, ...pactSlots }]
+          : [],
+        spellEffects: [],
+        spellMechanics: [],
+        spellcastingLocked: false,
+        proficiencies: [],
+        itemAdjustments: [],
+        activeSourceIds: [],
+        activeEquipmentInstanceIds: [],
+        resources: [
+          { ...pool(rawUsed), baseContribution: { sourceId: SOURCE_INSTANCE_ID, value: 2 } }
+        ],
+        modifierGroups: [],
+        totalLevel: 1,
+        classLevels: [],
+        proficiencyBonus: 2,
+        abilities: [],
+        skills: [],
+        spellcasting: null
+      }).spellCastDecisions[0]
+
+    it('offers the cast while the pool and a Pact slot of the cast level remain', () => {
+      expect(decide({ level: 3, remaining: 1 })).toMatchObject({
+        status: 'AVAILABLE',
+        reasonCode: 'SPELL_SLOT_REMAINING',
+        slotKey: 'PACT'
+      })
+    })
+
+    it('refuses it once the Pact slots are spent, and names the slot', () => {
+      expect(decide({ level: 3, remaining: 0 })).toMatchObject({
+        status: 'UNAVAILABLE',
+        reasonCode: 'SPELL_SLOT_EXHAUSTED',
+        slotKey: 'PACT'
+      })
+    })
+
+    it('refuses it with no Pact slot, or one below the cast level', () => {
+      for (const slots of [null, { level: 2, remaining: 2 }])
+        expect(decide(slots)).toMatchObject({
+          status: 'UNAVAILABLE',
+          reasonCode: 'NO_ELIGIBLE_SPELL_SLOT',
+          slotKey: null
+        })
+    })
+
+    it('refuses it once the pool is spent, whatever the slots', () => {
+      expect(decide({ level: 3, remaining: 2 }, 2)).toMatchObject({
+        status: 'UNAVAILABLE',
+        reasonCode: 'RESOURCE_EXHAUSTED'
+      })
     })
   })
 

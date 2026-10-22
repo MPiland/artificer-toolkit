@@ -11,7 +11,8 @@ import {
   abilityCodeSchema,
   attackKindSchema,
   equipmentGripSchema,
-  modifierScopeKindSchema
+  modifierScopeKindSchema,
+  spellSlotPoolCodeSchema
 } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
@@ -687,7 +688,9 @@ const characterSpellCastCandidateSchema = lazySchema(() =>
     castMode: z.enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']),
     castLevel: integerSchema.check(z.gte(0)).check(z.lte(9)),
     baseEntry: booleanSchema,
-    resourceOwnerKey: z.nullable(characterResourcePoolIdentitySchema)
+    resourceOwnerKey: z.nullable(characterResourcePoolIdentitySchema),
+    /** The slot pool the cast also spends a slot from (D175); null when it spends none. */
+    slotPoolCode: z._default(z.nullable(spellSlotPoolCodeSchema), null)
   })
 )
 

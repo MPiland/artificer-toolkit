@@ -24,6 +24,7 @@ import {
   SPELLCASTING_ATTRIBUTE,
   SPELL_ATTRIBUTE,
   SPELL_GRANT_ATTRIBUTE,
+  SPELL_SLOT_POOL,
   STARTING_EQUIPMENT_KIND,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
@@ -924,6 +925,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.BANE],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
                 charges: {
                   id: classRowId(W, 0x51, 1),
                   limitKind: 'FIXED_AMOUNT',
@@ -935,9 +937,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(6, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
-          ],
           order: 8
         },
         // ── Additional SRD 5.1 Eldritch Invocations ──────────────────────────────
@@ -1091,6 +1090,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.CONFUSION],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
                 charges: {
                   id: classRowId(W, 0x51, 2),
                   limitKind: 'FIXED_AMOUNT',
@@ -1130,9 +1130,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(7, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
-          ],
           order: 12
         },
         {
@@ -1377,6 +1374,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.CONJURE_ELEMENTAL],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
                 charges: {
                   id: classRowId(W, 0x51, 3),
                   limitKind: 'FIXED_AMOUNT',
@@ -1416,9 +1414,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(8, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
-          ],
           order: 18
         },
         {
@@ -1436,6 +1431,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.SLOW],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
                 charges: {
                   id: classRowId(W, 0x51, 4),
                   limitKind: 'FIXED_AMOUNT',
@@ -1475,9 +1471,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
-          ],
           order: 19
         },
         {
@@ -1597,6 +1590,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.POLYMORPH],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
                 charges: {
                   id: classRowId(W, 0x51, 5),
                   limitKind: 'FIXED_AMOUNT',
@@ -1636,9 +1630,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(10, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
-          ],
           order: 22
         },
         {
@@ -1656,6 +1647,7 @@ export const warlock: ClassAuthored = {
                 authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
                 spellIds: [SPELL_IDS.BESTOW_CURSE],
                 attributes: [SPELL_GRANT_ATTRIBUTE.LIMITED_USE],
+                slotCost: { poolCode: SPELL_SLOT_POOL.PACT },
                 charges: {
                   id: classRowId(W, 0x51, 6),
                   limitKind: 'FIXED_AMOUNT',
@@ -1695,9 +1687,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            selfClassRuleEffect(11, CLOSED_RULE_KIND.CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST)
-          ],
           order: 23
         },
         {

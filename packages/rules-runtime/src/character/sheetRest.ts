@@ -1,4 +1,4 @@
-import { CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
+import { CLASS_CATEGORY, SPELL_SLOT_POOL } from '@artificer-toolkit/shared/core'
 import {
   temporaryHitPointsSet,
   withCharacterTemporaryHitPoints
@@ -228,7 +228,10 @@ export async function buildCharacterRestPreview(params: {
     .map((resource) => ({ id: resource.id, label: resource.label, recovered: resource.used }))
     .sort((left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id))
   const spellSlots = sheet.spells.slots
-    .filter((slot) => slot.used > 0 && (input.restKind === 'LONG' || slot.slotKey === 'PACT'))
+    .filter(
+      (slot) =>
+        slot.used > 0 && (input.restKind === 'LONG' || slot.slotKey === SPELL_SLOT_POOL.PACT)
+    )
     .map((slot) => ({ id: slot.slotKey, label: slot.label, recovered: slot.used }))
     .sort((left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id))
   const selectedCompanionIds = new Set(input.selectedCompanionInstanceIds)

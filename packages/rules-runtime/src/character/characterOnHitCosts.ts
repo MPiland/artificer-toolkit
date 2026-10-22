@@ -1,3 +1,4 @@
+import { SPELL_SLOT_POOL } from '@artificer-toolkit/shared/core'
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { OptionalOnHitAuthored } from '@artificer-toolkit/shared/authored'
@@ -29,7 +30,7 @@ export function onHitSlotChoices(
   return [
     ...standard,
     ...(pact && pact.remaining > 0 && !standard.some(({ level }) => level === pact.level)
-      ? [{ level: pact.level, slotKey: 'PACT' }]
+      ? [{ level: pact.level, slotKey: SPELL_SLOT_POOL.PACT }]
       : [])
   ].sort((left, right) => left.level - right.level)
 }

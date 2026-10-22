@@ -124,6 +124,7 @@ type AuthoringDefaultKind =
   | 'raceAncestry'
   | 'raceAncestryOption'
   | 'range'
+  | 'slotCost'
   | 'reactionTrigger'
   | 'resourceUse'
   | 'resultBlockGate'
@@ -299,6 +300,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   raceAncestry: ['raceAncestry'],
   raceAncestryOption: ['raceAncestryOption'],
   range: ['range', 'senseRange'],
+  slotCost: ['slotCost'],
   reactionTrigger: ['reactionTrigger'],
   resourceUse: ['resourceUse'],
   resultBlockGate: ['resultBlockGate'],
