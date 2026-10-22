@@ -87,6 +87,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 - **Costly and consumed material components (D171):** authored `materialCost` and `consumed` fields on spells, checked against the caster's inventory and deducted on cast, for example Revivify's 300 gp diamond. Today the material description is shown only.
 - **Give loot from a table (SCENE-4):** a "Give to…" action on a loot table entry moves the catalog item, or the coins, into a Character's inventory.
+- **Failure outcomes on an authored check (RULES-2.T6e3b1a):** authoring lets a CHECK trigger hold only an ON_CHECK_SUCCESS path, so a failed homebrew check does nothing. Add an ON_CHECK_FAIL path through the node map, compiler and room, for example "on a failed Athletics check you fall and take 1d6".
 
 ### Deferred edge cases (watch for in real use)
 
