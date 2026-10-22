@@ -133,11 +133,11 @@ async function storeRetiredFirstAidReceipt(room: Awaited<ReturnType<typeof first
     if (current?.status !== 'ACTIVE') throw new Error('The room holds no active authority.')
     const [receipt, execution] = store.documents('encounterRuleReceipts').flatMap((candidate) => {
       const stored = parseReceiptExecution(candidate)
-      return stored.applicationOutputs?.kind === 'CHECK_ACTION'
+      return stored.status === 'COMPLETE' && stored.applicationOutputs?.kind === 'CHECK_ACTION'
         ? [[candidate, stored] as const]
         : []
     })[0] ?? [null, null]
-    if (execution?.applicationOutputs?.kind !== 'CHECK_ACTION')
+    if (execution?.status !== 'COMPLETE' || execution.applicationOutputs?.kind !== 'CHECK_ACTION')
       throw new Error('Missing the settled check receipt.')
     const { actorId, targetActorId, check, d20 } = execution.applicationOutputs
     const retired = {
