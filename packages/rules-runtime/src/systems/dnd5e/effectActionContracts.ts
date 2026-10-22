@@ -4,6 +4,22 @@ import {
   CharacterRuleActionUnsupportedCompilationError
 } from '../../characterRuleActionSystemAdapter.js'
 import { type TeleportAllowanceDestinationKind } from '@artificer-toolkit/shared/vtt/teleportAllowanceDestinationKind'
+import type { EffectActionCapabilityDescriptor } from '../../characterActionCapabilityDiscovery.js'
+
+/** Exact compiled-effect input shared by runtime publication and source manifest admission. */
+export type Dnd5eCompiledEffectActionSource = Pick<
+  EffectActionCapabilityDescriptor,
+  | 'gameSystemId'
+  | 'entryPointDefinitionId'
+  | 'effectId'
+  | 'conditionDefinitionIds'
+  | 'savingThrowAbilityDefinitionId'
+  | 'compiledEffect'
+  | 'spellCastLevel'
+  | 'characterLevel'
+  | 'zoneAppearSave'
+  | 'perTargetLockout'
+>
 
 export const DND5E_EFFECT_ACTION_FAMILY_KEY = 'effect-action'
 export const DND5E_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.heal-proposal'

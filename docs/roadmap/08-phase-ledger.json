@@ -941,7 +941,8 @@
                 "after": []
               },
               "text": "withValidationLock.ps1 writes the owner PID and process start time into each lock; a waiter reclaims a lock whose owner is gone or whose start time differs (PID reuse). A test plants a dead-owner lock and a live-owner lock. AGENTS.md drops the report-do-not-delete rule for dead owners.",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39841195147"
             }
           ]
         },
@@ -4032,7 +4033,7 @@
             {
               "id": "RULES-2.T6g",
               "text": "Compiler (split from T6f 2026-10-22): the test-phase, outcome dispatch and lifetime pieces (compileTestDefinition, boundedTestOutcome, specializedTestOutcome, diceGraphDefinition, modifierGrantEntryPlan, maintenance and duration plans) move into their own modules below the compiler; the transitional ZoneCompilerPieces injection is deleted and the zone module imports them directly. Golden unchanged; budgets drop.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 3,
@@ -4041,8 +4042,8 @@
                 "size": 5,
                 "after": ["RULES-2.T6f", "RULES-2.T6e2", "RULES-2.T6e3"]
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39836780695"
+              "mergedAt": "2026-10-22T19:16:00Z",
+              "note": "Merged in m347."
             },
             {
               "id": "RULES-2.T6e3b1a",
@@ -4175,7 +4176,7 @@
               "text": "Challenge rating, currency and passives read from the System record: xp, proficiencyBonus and rank on each CR entry, baseValue on currency, the passive ability on its entry, all seeded from source-data. creatureRuleFacts, encounterFormChoice and collectionPresentation read the record; delete packages/shared/src/domains/vocabulary.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
               "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39837914940"
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39841195147"
             },
             {
               "id": "RULES-2.T9k",
@@ -11360,7 +11361,8 @@
                 "size": 3,
                 "after": ["SPELLS-8.T11"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39842110784"
             }
           ]
         },
@@ -15417,7 +15419,8 @@
                 "size": 3,
                 "after": ["RULES-2.T6e"]
               },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39842110784"
             },
             {
               "id": "SPELLS-33.T4i3e",
