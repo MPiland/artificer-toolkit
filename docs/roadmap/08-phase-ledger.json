@@ -4137,7 +4137,7 @@
             },
             {
               "id": "RULES-2.T6h",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -4147,8 +4147,8 @@
                 "after": ["RULES-2.T6e3b2"]
               },
               "text": "The effect-action compiler accepts several direct results in one action, in authored order (for example END_EFFECTS followed by APPLY_GRANT, with or without the grant's own duration). Today any second direct result is refused with \"D&D Effect action must have one fixed direct result without lifecycle overrides\", which is not a genuine rule. A test that fails first compiles and executes the two-result action, and the golden harness explains each changed checksum.",
-              "note": "Found by SPELLS-4.T2f on 2026-10-22: the refusal is the same with and without the grant lifecycle, so the limit is the result count.",
-              "activeWorkbook": "docs/adr/0039-composable-system-neutral-rules-engine.md"
+              "note": "Found by SPELLS-4.T2f on 2026-10-22: the refusal is the same with and without the grant lifecycle, so the limit is the result count. Merged in m354.",
+              "mergedAt": "2026-10-22T22:55:16Z"
             },
             {
               "id": "RULES-2.T9i",
