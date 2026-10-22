@@ -4,7 +4,6 @@
   "apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx": 2034,
   "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.ts": 2647,
   "packages/rules-runtime/src/character/sheetPanel.ts": 1693,
-  "packages/rules-runtime/src/character/sheetProjection.ts": 1529,
   "packages/rules-runtime/src/encounterActionExecution.ts": 1552,
   "packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts": 4828,
   "packages/schema/src/shared/ruleExecutionEncounterApplications.ts": 1626,

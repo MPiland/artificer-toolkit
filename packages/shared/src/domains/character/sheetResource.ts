@@ -106,6 +106,11 @@ export function createCharacterDefinitionSourceInstanceId(
   return `${sourceKind}:${sourceRecordId}`
 }
 
+/** The source of a Class casting its ritual spells; it is apart from the Class's own casting of the same spell. */
+export function createClassRitualSourceInstanceId(classId: string): string {
+  return createCharacterDefinitionSourceInstanceId('CLASS', `${classId}:ritual`)
+}
+
 export interface CharacterSpellSourceRef {
   spellId: string
   sourceKind: CharacterSpellSourceKind

@@ -702,7 +702,10 @@ describe('Character spell casting in an Encounter', () => {
     })
     expect(choices?.actions.filter(({ id }) => id.startsWith('spell-cast:'))).toEqual([])
     const [ritual] = choices?.unavailableActions ?? []
-    expect(ritual).toMatchObject({ label: 'Granted Rite (1st level)', reason: RITUAL_CAST_REFUSAL })
+    expect(ritual).toMatchObject({
+      label: 'Granted Rite (1st level) (ritual)',
+      reason: RITUAL_CAST_REFUSAL
+    })
 
     await expect(
       executeInRoom(fixture.player.caller, { command: castCommand(fixture, ritual!.id, 0) })
