@@ -249,6 +249,16 @@ const DND5E_ORDINARY_SIGHT_CAPABILITY = {
   physicalConstraints: ['LINE_OF_EFFECT'] as const
 }
 const DND5E_ORDINARY_SIGHT_CHECKSUM = checksumRuleDocument(DND5E_ORDINARY_SIGHT_CAPABILITY)
+/** The published DTO of a graph this compiler built: its identity, checksum and definition. */
+function publishedGraph(definition: RuleGraphDefinition) {
+  return serverPublishedRuleDefinitionDtoSchema.parse({
+    id: definition.id,
+    gameSystemId: definition.gameSystemId,
+    definitionFamilyKey: definition.definitionFamilyKey,
+    checksum: checksumRuleDocument(definition),
+    definition
+  })
+}
 function activeEffectGraphNodeId(compiledEntryId: string): string {
   return `active_effect_${compiledEntryId}`
 }
@@ -751,13 +761,7 @@ function sequentialCompositionPlan(
     authoredEffectId: action.effectId,
     compiledEntryId: recurring.resultBlockId,
     frozenGraphNodeId: nodeId,
-    frozenGraph: serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    }),
+    frozenGraph: publishedGraph(definition),
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: stage,
     initialRemaining: turns,
@@ -960,13 +964,7 @@ function relationshipStateGraph(input: {
     },
     sourceEntryBindings: [{ sourceEntryId: input.relationship.id, nodeId: 'relationship-state' }]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 function relationshipRecurrenceGraph(input: {
@@ -1101,13 +1099,7 @@ function relationshipRecurrenceGraph(input: {
     ]
   }
   void input.modules
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 /**
@@ -2627,13 +2619,7 @@ function durationPublishedGraph(input: {
         : [])
     ]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 /**
@@ -3210,13 +3196,7 @@ function unsavedZonePlacementPlan(
     ...placement,
     entry: {
       ...entryPlan,
-      frozenGraph: serverPublishedRuleDefinitionDtoSchema.parse({
-        id: definition.id,
-        gameSystemId: definition.gameSystemId,
-        definitionFamilyKey: definition.definitionFamilyKey,
-        checksum: checksumRuleDocument(definition),
-        definition
-      })
+      frozenGraph: publishedGraph(definition)
     },
     grant: null,
     maintenance: maintenancePlan(action, row)
@@ -3510,13 +3490,7 @@ function repeatFollowUpSavePublishedGraph(input: {
       }
     ]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 /**
@@ -4454,13 +4428,7 @@ function compileTestDefinition(
         }
       : {})
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  return publishedGraph(definition)
 }
 
 function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKind {
@@ -4644,13 +4612,7 @@ function compileDnd5eEffectActionTestTemplate({
       }
     }
   }
-  const base = serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  const base = publishedGraph(definition)
   const published = bindMovementInterruptionTestOutput({ action, published: base, kind })
   return { phase: 'TEST', published, templateChecksum: published.checksum }
 }
@@ -5597,13 +5559,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       action: input.action,
       definitions: [...primaryDefinitions, immediateFollowUpSaveGraphDefinition(input.action)]
     })
-    const published = serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    })
+    const published = publishedGraph(definition)
     return {
       phase: 'OUTCOME',
       published,
@@ -5635,13 +5591,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       })
     })
     const definition = mergedOutcomeGraphDefinition({ action: input.action, definitions })
-    const published = serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    })
+    const published = publishedGraph(definition)
     return {
       phase: 'OUTCOME',
       published,
@@ -5772,13 +5722,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       dice: input.facts.damageAddedDice ?? []
     })
   })
-  const published = serverPublishedRuleDefinitionDtoSchema.parse({
-    id: definition.id,
-    gameSystemId: definition.gameSystemId,
-    definitionFamilyKey: definition.definitionFamilyKey,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
+  const published = publishedGraph(definition)
   return {
     phase: 'OUTCOME',
     published,
@@ -6099,13 +6043,7 @@ function compileDnd5eEffectAction({
       ...rulingNodes.map(({ entryId, node }) => ({ sourceEntryId: entryId, nodeId: node.id }))
     ]
   }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    id: withRulings.id,
-    gameSystemId: withRulings.gameSystemId,
-    definitionFamilyKey: withRulings.definitionFamilyKey,
-    checksum: checksumRuleDocument(withRulings),
-    definition: withRulings
-  })
+  return publishedGraph(withRulings)
 }
 
 /** The gates the action's one direct entry authors on its outcome, when it authors any. */
@@ -6183,13 +6121,7 @@ function compileEffectActionGraph(
     })
     return bindMovementInterruptionOutput({
       action,
-      published: serverPublishedRuleDefinitionDtoSchema.parse({
-        id: definition.id,
-        gameSystemId: definition.gameSystemId,
-        definitionFamilyKey: definition.definitionFamilyKey,
-        checksum: checksumRuleDocument(definition),
-        definition
-      })
+      published: publishedGraph(definition)
     })
   }
   if (outcome.kind === 'DICE_DAMAGE') {
@@ -6206,13 +6138,7 @@ function compileEffectActionGraph(
     const definition = diceGraphDefinition({ action, entry, diceConfig: entry.outcome.dice })
     return bindMovementInterruptionOutput({
       action,
-      published: serverPublishedRuleDefinitionDtoSchema.parse({
-        id: definition.id,
-        gameSystemId: definition.gameSystemId,
-        definitionFamilyKey: definition.definitionFamilyKey,
-        checksum: checksumRuleDocument(definition),
-        definition
-      })
+      published: publishedGraph(definition)
     })
   }
   if (outcome.kind === 'CONTEST_RELATIONSHIP')
@@ -6264,13 +6190,7 @@ function compileEffectActionGraph(
   }
   return bindMovementInterruptionOutput({
     action,
-    published: serverPublishedRuleDefinitionDtoSchema.parse({
-      id: definition.id,
-      gameSystemId: definition.gameSystemId,
-      definitionFamilyKey: definition.definitionFamilyKey,
-      checksum: checksumRuleDocument(definition),
-      definition
-    })
+    published: publishedGraph(definition)
   })
 }
 
