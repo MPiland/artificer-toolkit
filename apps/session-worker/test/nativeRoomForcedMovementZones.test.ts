@@ -128,9 +128,11 @@ describe('an action’s forced movement through zones (SPELLS-4.T1j)', () => {
     // The token's edge meets the zone 70 px short of its centre, where voluntary movement stops too.
     expect(tokenPositions(room)(TARGET_ID)).toEqual({ x: 280, y: 150 })
     const { commands } = await readRoomHistory(room.room.base.stub)
-    expect(commands.flatMap((command) => command.forcedMovementLandings ?? [])).toMatchObject([
-      { targetActorId: TARGET_ID, feet: 0 }
-    ])
+    expect(
+      commands.flatMap((command) =>
+        command.commandType === 'RESOLVE_ACTION' ? (command.forcedMovementLandings ?? []) : []
+      )
+    ).toMatchObject([{ targetActorId: TARGET_ID, feet: 0 }])
   })
 
   it('rolls a save-or-damage zone with the room’s dice and records the outcome (homebrew zone)', async () => {
