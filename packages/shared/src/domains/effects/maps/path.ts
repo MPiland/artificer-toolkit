@@ -55,6 +55,7 @@ import {
   EFFECT_KIND_OPTIONS,
   FOLLOW_UP_SAVE_ATTEMPT_KIND_OPTIONS,
   FOLLOW_UP_SAVE_BRANCH_KIND_OPTIONS,
+  FOLLOW_UP_SAVE_TIMING,
   FOLLOW_UP_SAVE_TIMING_OPTIONS,
   FOLLOW_UP_CHECK_ACTOR_OPTIONS,
   FORCED_MOVEMENT_ACTION_ECONOMY_OPTIONS,
@@ -2606,7 +2607,12 @@ function registerOutcomeFields(
       selectSingle(
         ['repeatTiming'],
         'Repeat Timing',
-        { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_SAVE_TIMING_OPTIONS },
+        {
+          kind: 'INLINE_OPTIONS',
+          options: FOLLOW_UP_SAVE_TIMING_OPTIONS.filter(
+            ({ code }) => code !== FOLLOW_UP_SAVE_TIMING.ON_TRIGGERS_ONLY
+          )
+        },
         {
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
         }

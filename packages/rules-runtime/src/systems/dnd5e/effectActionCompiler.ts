@@ -152,6 +152,7 @@ import {
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY,
   DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
@@ -198,7 +199,10 @@ import {
   interpret,
   interpretSpatial
 } from './effectActionInterpretation.js'
-import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence.js'
+import {
+  repeatedFollowUpSaveResultPath,
+  repeatSaveGated
+} from './effectActionRepeatSaveEvidence.js'
 import {
   isChargedFreeActivation,
   isSupportedArea,
@@ -1888,7 +1892,8 @@ function repeatingDirectFollowUpSavePlan(
     heldConditionIds: leadConditions.map(({ conditionId }) => conditionId),
     escalationConditionId: escalation?.conditionId,
     repeatRollInfluence: save.repeatRollInfluence,
-    repeatAttemptGate: save.repeatAttemptGate
+    repeatAttemptGate: save.repeatAttemptGate,
+    triggersOnly: save.timing === 'ON_TRIGGERS_ONLY'
   })
   const grantPlan =
     lead.effectKind === 'APPLY_GRANT'
@@ -1925,7 +1930,7 @@ function repeatingDirectFollowUpSavePlan(
     !contribution ||
     !UUID.test(leadEntry.resultBlockId) ||
     initialRemaining === null ||
-    save.timing !== 'TARGET_TURN_END' ||
+    (save.timing !== 'TARGET_TURN_END' && save.timing !== 'ON_TRIGGERS_ONLY') ||
     (save.attempts.kind === 'ONCE'
       ? (save.attempts.repeatOnFailure === true) === (escalation !== null)
       : escalation !== null ||
@@ -2015,9 +2020,7 @@ function repeatFollowUpSavePublishedGraph(input: {
     throw new Dnd5eEffectActionCompilerError('D&D repeat-save facts are unavailable.')
   }
   // A gated repeat settles its d20 without a request on a turn the gate refuses the attempt.
-  const gated =
-    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.plan.adapterFacts ||
-    input.plan.saveThresholds !== undefined
+  const gated = repeatSaveGated(input.plan.adapterFacts, input.plan.saveThresholds)
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -4947,7 +4950,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     defenses,
     conditionImmunityIds,
     perception,
-    rollInfluence
+    rollInfluence,
+    onTrigger
   }) => {
     if (definition.frozenGraph.source.gameSystemId !== DND5E_SYSTEM_ID)
       throw new Dnd5eEffectActionCompilerError(
@@ -5091,7 +5095,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     }
     const contributorChecksum = checksumRuleDocument(contributors)
     const gate = perceptionRequirement?.kind === 'ATTEMPT_GATE' ? perceptionRequirement : null
-    const gated = gate !== null || definition.recurrence.saveThresholds !== undefined
+    const gated = repeatSaveGated(definition.adapterFacts, definition.recurrence.saveThresholds)
     if (
       definition.frozenGraph.nodes.filter(
         (node) =>
@@ -5105,7 +5109,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     }
     const attemptAllowed =
       !repeatSaveSettled(definition.recurrence.saveThresholds, lifecycle) &&
-      (!gate || perception?.satisfied === (gate.allow === 'WHEN_MET'))
+      (!gate || perception?.satisfied === (gate.allow === 'WHEN_MET')) &&
+      // A triggers-only save rolls when its damage trigger runs it, never on the turn tick.
+      (!(DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY in definition.adapterFacts) ||
+        onTrigger === true)
     const successImmunity =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]
     // A zone that needs sight of its source is saved against unrolled by an occupant without it.

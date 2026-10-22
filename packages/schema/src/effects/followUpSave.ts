@@ -62,7 +62,14 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
       id: authoredIdentifierSchema,
       effectKind: z.literal('FOLLOW_UP_SAVE'),
       timing: z.enum(followUpSaveTimings),
-      repeatTiming: z.optional(z.enum(followUpSaveTimings)),
+      repeatTiming: z.optional(
+        z.enum(
+          followUpSaveTimings.filter((timing) => timing !== 'ON_TRIGGERS_ONLY') as [
+            FollowUpSaveTiming,
+            ...FollowUpSaveTiming[]
+          ]
+        )
+      ),
       repeatRollInfluence: z.optional(
         z.object({
           influence: systemVocabularyCodeSchema,
@@ -113,6 +120,28 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
             path: ['repeatTiming'],
             message: 'Immediate repeated saving throws require an exact repeat timing.'
           })
+        }
+        if (value.timing === 'ON_TRIGGERS_ONLY') {
+          if (
+            value.repeatTriggers === undefined ||
+            !(value.attempts.kind === 'ONCE' && value.attempts.repeatOnFailure === true)
+          )
+            context.addIssue({
+              code: 'custom',
+              path: ['timing'],
+              message:
+                'A save made only on repeat triggers requires repeat triggers on a repeated one-time saving throw.'
+            })
+          for (const [policy, name] of [
+            [value.repeatRollInfluence, 'repeatRollInfluence'],
+            [value.repeatAttemptGate, 'repeatAttemptGate']
+          ] as const)
+            if (policy !== undefined)
+              context.addIssue({
+                code: 'custom',
+                path: [name],
+                message: 'A save made only on repeat triggers has no turn-end repeat to shape.'
+              })
         }
         if (
           value.repeatTiming !== undefined &&
