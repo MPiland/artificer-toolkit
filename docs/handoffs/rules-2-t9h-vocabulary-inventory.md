@@ -96,10 +96,10 @@ and `visibilityKind: 'INVISIBLE'` are likewise core enums.
 | `apps/web/src/forms/guided/GuidedSimpleEffectComposer.tsx:57,59` | `FIRE` damage, `POISONED` condition | default picker values via `system.<list>.find(code)` | `defaults` object on the System record names the definition ids (ruling 2); web reads it through `apps/apis` |
 | `apps/web/src/domains/spells/guided/GuidedSpellAuthoring.tsx:75,77` | `FIRE`, `POISONED` | same | same `defaults` object |
 | `apps/web/src/domains/characters/sheet/status/ConditionsEditor.tsx:79` | `EXHAUSTION` | hides Exhaustion from the "Add condition" select | a definition attribute on the condition entry (for example `levelled`); the select filters on the attribute, not the code (ruling 2) |
-| `packages/rules-runtime/src/encounterPlayerProjection.ts:82` | `INVISIBLE` condition | `invisibleConditionTypeIds(conditionTypes)` picks ids by code | capability (visibility conditions) returns the condition id |
-| `packages/rules-runtime/src/systems/dnd5e/characterMovementAndSenses.ts:174` | `WALK` | primary speed fallback by code (already inside `systems/dnd5e`) | name the Walking speed definition id |
-| `packages/rules-runtime/src/character/sheetProjection.ts:744` | `WALK`/`WALKING`/label match | neutral file guesses "is this walking" from code **and label** | System movement capability names the walking speed id; drop the label heuristic |
-| `packages/authoring/src/imports/importedEquipmentTerms.ts:28-31` | `GP`, `WALK`, `STEALTH`, `DWARVEN` | importer resolves SRD codes against the System record | dnd5e import adapter names the definition ids |
+| `packages/rules-runtime/src/encounterPlayerProjection.ts:82` | `INVISIBLE` condition | `invisibleConditionTypeIds(conditionTypes)` picks ids by code | condition attribute on the record entry (for example `unseen`); projection filters on it (ruling 3) |
+| `packages/rules-runtime/src/systems/dnd5e/characterMovementAndSenses.ts:174` | `WALK` | primary speed fallback by code (already inside `systems/dnd5e`) | default movement type in the record's `defaults` object (ruling 3) |
+| `packages/rules-runtime/src/character/sheetProjection.ts:744` | `WALK`/`WALKING`/label match | neutral file guesses "is this walking" from code **and label** | same `defaults` entry; drop the label heuristic (ruling 3) |
+| `packages/authoring/src/imports/importedEquipmentTerms.ts:28-31` | `GP`, `WALK`, `STEALTH`, `DWARVEN` | importer resolves SRD codes against the System record | stays in the SRD importer (System-specific input mapping, not engine branching); constants become the source-data definition ids, no capability (ruling 3) |
 | `apps/web/.../startingEquipmentChoices.ts:11` | `GOLD` | local mode enum `EQUIPMENT/GOLD`, not a currency code | none (core code; keep) |
 
 Ability codes (`STRENGTH` ... `CHARISMA`) are the largest literal family: **25 production files**
@@ -161,18 +161,18 @@ Sizes: S under half a day, M about a day, L multi-day. All close RULES-2.7. WSJF
 | **T9i** | Rename to core naming (section 6) incl. docs and `schemaBoundary.test.ts` path guard. Proof: existing registry, roll-mode and boundary tests green unchanged | core | M (mechanical, ~90 files) | none; land **before** T9a2 and T9c so they build on the new names |
 | **S1 = T9e1** | CR-driven rules read the System record: Polymorph form filter ranks CRs from the System record; creature proficiency bonus, `xp` and an explicit `rank` become fields on each CR entry on the System record (DTO, seed from source-data; no code keyed by CR id, ruling 1); currency `baseValue` and the passive's ability also move onto their record entries; shared `vocabulary/` folder, its barrel line and `SystemAuthored`/`SystemVocabularyKey` deleted; `shared-correctness` and `creatureStatBlocks` tests re-pointed at `source-data`; dev reseed (the DTO gains fields). Proof: Polymorph and creature check journey tests, `source-data` audit asserts CR bonuses and currency ratios | vocabulary | M | none |
 | **S2 = T9e2** | Authoring defaults and Sheet condition list from the System record: one `defaults` object on the record names the default damage type and condition ids (seeded from source-data, read by web through `apps/apis`); the condition entry gets a definition attribute (for example `levelled`) that `ConditionsEditor` filters on instead of `EXHAUSTION`; speed label in `collectionPresentation` from the System reference data. Proof: web component tests plus the authoring journey on real capability output | vocabulary | M | none; sequence with S1 (both change the System DTO and seed) |
-| **S3 = T9e3** | Player Encounter projection hides Invisible by capability: `invisibleConditionTypeIds` takes the id from a dnd5e visibility capability; no code string in neutral projection. Proof: `encounterPlayerProjection` test, Session Worker projection journey | vocabulary (c) | S | none |
-| **S4 = T9e4** | Walking speed by definition id in Sheet and movement: dnd5e names the Walking speed id; `sheetProjection.ts` drops the code and label heuristic; `characterMovementAndSenses.ts` uses the id. Proof: Sheet speed/movement tests, movement journey | vocabulary (c) | S | none |
-| **S5 = T9e5** | Imported equipment terms resolve through a dnd5e import adapter that names the GP, Walk, Stealth and Dwarven definition ids. Proof: `importedEquipmentTerms` and `importPreparation` tests | vocabulary (c) | S | none |
+| **S3 = T9e3** | Player Encounter projection hides Invisible by a condition attribute (for example `unseen`) on the record entry; `invisibleConditionTypeIds` filters on it, no code string. Proof: `encounterPlayerProjection` test, Session Worker projection journey | vocabulary | S | none; sequence with S1/S2 (DTO and seed) |
+| **S4 = T9e4** | Walking speed from the record's `defaults` object (default movement type): `sheetProjection.ts` drops the code and label heuristic; `characterMovementAndSenses.ts` reads the default. Proof: Sheet speed/movement tests, movement journey | vocabulary | S | **S2** (creates `defaults`) |
+| **S5 = T9e5** | The SRD importer's GP, Walk, Stealth and Dwarven constants become the source-data definition ids it maps to; no capability. Proof: `importedEquipmentTerms` and `importPreparation` tests | vocabulary | S | none |
 | **S6 = T9e6** | Boundary test: `packages/shared` exports no vocabulary list and no neutral production file (rules-runtime outside `systems/`, web, authoring) compares a System record `code` to an upper-case literal from the list in section 4. Proof: test fails before S1-S5, passes after | guard | S | S1-S5 |
 | T9f | as registered; add ability literals from section 4 (25 files) and mark sizes as core | vocabulary + core | L | S1 (so `AbilityCode`/CR reads are not mixed) |
 | T9g | as registered, with D175 wording read as core code | core | M | T9i |
 
-T9e stays as the umbrella of S1-S6, or retire it and register S1-S6 under their own ids. S3-S5 touch disjoint files and can run in parallel in separate worktrees. S1 and S2 both change the System DTO and seed data, so sequence them.
+T9e stays as the umbrella of S1-S6, or retire it and register S1-S6 under their own ids. S1, S2 and S3 each change the System DTO and seed data, so sequence them. S4 depends on S2. S5 is independent.
 
 ## 8. Orchestrator rulings (2026-10-22)
 
-Vocabulary is authorable data (ADR 0038/0039), so both open questions resolve to System-record data, not dnd5e code.
+Vocabulary is authorable data (ADR 0038/0039), so the open questions resolve to System-record data, not dnd5e code.
 
 1. **Challenge rating.** `xp`, `proficiencyBonus` and an explicit `rank` (ordering) go on each CR entry on the System record,
    seeded from source-data. No code capability keyed by CR id: a homebrew System changes XP and proficiency without code.
@@ -181,8 +181,12 @@ Vocabulary is authorable data (ADR 0038/0039), so both open questions resolve to
    condition, and so on), seeded from source-data; web reads it through `apps/apis`. It is not a capability. The Exhaustion
    filter is a property of the condition, so the entry carries a definition attribute (for example `levelled`) and the UI
    filters on it.
-3. **Sizes (T9f):** core unless a campaign must add sizes (default; no action needed).
-4. **T9g:** `slotCost.poolCode` is a System core code.
+3. **S3-S5 (same principle: record data first, code names nothing).** S3: Invisible comes from a condition attribute (for
+   example `unseen`) and projection filters on it. S4: the default movement type goes in the record's `defaults` object, so
+   S4 depends on S2. S5: the SRD importer stays; it is System-specific input mapping, not engine branching, and its constants
+   become the source-data definition ids.
 
-Still capability-based per the amendment (the rulings do not cover them): S3 Invisible, S4 Walk speed, S5 import adapter. They
-may become record attributes too if the same reasoning is applied; flagged for the orchestrator.
+Other decisions:
+
+- **Sizes (T9f):** core unless a campaign must add sizes (default; no action needed).
+- **T9g:** `slotCost.poolCode` is a System core code.
