@@ -38,8 +38,10 @@ describe('the removed-from-play effect through the effect node map (SPELLS-4.T2h
   })
 
   it('keeps a homebrew variant that keeps its turn and clears keepsTurn when the kind changes', async () => {
-    const effects = structuredClone(banishment.effects)
-    const outcomes = effects[0]!.paths[0]!.resultBlock!.outcomes as { keepsTurn?: boolean }[]
+    const effects = structuredClone(banishment.effects ?? [])
+    const [path] = effects[0]?.paths ?? []
+    if (path?.selectionKind !== 'FIXED') throw new Error('Banishment must author a fixed path.')
+    const outcomes: { keepsTurn?: boolean }[] = path.resultBlock.outcomes
     outcomes[1]!.keepsTurn = true
     const { authored, result } = await normalizeEffects(effects)
     expect(result.clearedPaths).toEqual([])

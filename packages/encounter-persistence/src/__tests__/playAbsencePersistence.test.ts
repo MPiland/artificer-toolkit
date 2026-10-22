@@ -70,6 +70,7 @@ async function seeded() {
           encounterId: ENCOUNTER_ID,
           sourceActorId: GOBLIN_ID,
           holderActorId: GOBLIN_ID,
+          lifecycle: {},
           rounds: 10
         }).definition,
         stateContributions: [{ kind: 'PLAY_ABSENCE', keepsTurn }]
