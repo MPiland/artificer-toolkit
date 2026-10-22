@@ -14753,6 +14753,19 @@
                 "after": ["SPELLS-33.T4i3c", "RULES-2.T6f"]
               },
               "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+            },
+            {
+              "id": "SPELLS-33.T4i3f",
+              "text": "Drow poison rider adopts the D172 link (2026-10-22): the D149 margin-of-failure unconscious rider names its parent poisoned outcome with endsWithOutcomeId, so curing or GM-ending the poison ends the sleep; closes the D149 deferred edge case. Generic, parity proof.",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 1,
+                "after": ["SPELLS-33.T4i3e"]
+              }
             }
           ]
         }
