@@ -15,6 +15,8 @@ import { GuidedSimpleEffectComposer } from '#forms/guided/GuidedSimpleEffectComp
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
+import { toFeatures } from '#forms/guided/guidedValues'
+import { isRecord } from '#forms/utils/valueGuards'
 
 type GuidedEquipmentAuthoringProps = {
   onAdvanced: (() => void) | undefined
@@ -202,7 +204,7 @@ function optionFor(item: { id: string; label: string }) {
 }
 
 function readEquipmentValues(values: object) {
-  const record = values as Record<string, unknown>
+  const record: Record<string, unknown> = isRecord(values) ? values : {}
   const array = (key: string) => (Array.isArray(record[key]) ? record[key] : [])
   return {
     advancedCount:
@@ -215,7 +217,7 @@ function readEquipmentValues(values: object) {
         ? record.category
         : EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
     effects: array('effects'),
-    features: array('features') as FeatureDto[],
+    features: toFeatures(record.features),
     label: typeof record.label === 'string' ? record.label.trim() : '',
     parentEquipmentId: typeof record.parentEquipmentId === 'string' ? record.parentEquipmentId : '',
     rarityId: typeof record.rarityId === 'string' ? record.rarityId : ''

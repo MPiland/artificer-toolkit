@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import { EncounterValidationError } from '../encounterErrors.js'
+import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import {
   resolveEncounterD20Answer,
   resolveEncounterIntegerAnswer,
@@ -11,6 +13,9 @@ import {
 const ROLL_ID = '00000000-0000-4000-8000-0000000000a1'
 const OTHER_ROLL_ID = '00000000-0000-4000-8000-0000000000a2'
 
+const keepOf = (rollMode: string) =>
+  rollModeCapabilityRegistry.rollModeKeep({ gameSystemId: DND5E_SYSTEM_ID, rollMode })
+const derivedOf = (rollMode: string) => ({ rollMode, keep: keepOf(rollMode) })
 const noRandom = () => {
   throw new Error('An answered request must not roll.')
 }
@@ -19,7 +24,14 @@ function appRoll(
   faces: number[],
   rollMode: EncounterAppRollAnswer['rollMode']
 ): EncounterAppRollAnswer {
-  return { kind: 'SYSTEM_ROLL', requestId: 'd20', rollId: ROLL_ID, faces, rollMode }
+  return {
+    kind: 'SYSTEM_ROLL',
+    requestId: 'd20',
+    rollId: ROLL_ID,
+    faces,
+    rollMode,
+    keep: rollMode === null ? null : keepOf(rollMode)
+  }
 }
 
 describe('withEncounterAppRoll', () => {
@@ -27,21 +39,27 @@ describe('withEncounterAppRoll', () => {
     expect(
       withEncounterAppRoll(
         { kind: 'SYSTEM_ROLL', requestId: 'd20', rollId: ROLL_ID.toUpperCase() },
-        { rollId: ROLL_ID, faces: [4, 17], rollMode: 'ADVANTAGE' }
+        { rollId: ROLL_ID, faces: [4, 17], rollMode: 'ADVANTAGE', keep: 'HIGHER' }
       )
     ).toEqual({
       kind: 'SYSTEM_ROLL',
       requestId: 'd20',
       rollId: ROLL_ID.toUpperCase(),
       faces: [4, 17],
-      rollMode: 'ADVANTAGE'
+      rollMode: 'ADVANTAGE',
+      keep: 'HIGHER' as const
     })
   })
 
   it('rejects a SYSTEM_ROLL answer without its matching roll', () => {
     const answer = { kind: 'SYSTEM_ROLL' as const, requestId: 'd20', rollId: ROLL_ID }
     expect(() =>
-      withEncounterAppRoll(answer, { rollId: OTHER_ROLL_ID, faces: [12], rollMode: 'NORMAL' })
+      withEncounterAppRoll(answer, {
+        rollId: OTHER_ROLL_ID,
+        faces: [12],
+        rollMode: 'NORMAL',
+        keep: 'FIRST'
+      })
     ).toThrow(EncounterValidationError)
     expect(() => withEncounterAppRoll(answer, null)).toThrow(EncounterValidationError)
   })
@@ -55,7 +73,12 @@ describe('withEncounterAppRoll', () => {
     }
     expect(withEncounterAppRoll(entered, null)).toBe(entered)
     expect(() =>
-      withEncounterAppRoll(entered, { rollId: ROLL_ID, faces: [9], rollMode: 'NORMAL' })
+      withEncounterAppRoll(entered, {
+        rollId: ROLL_ID,
+        faces: [9],
+        rollMode: 'NORMAL',
+        keep: 'FIRST'
+      })
     ).toThrow(EncounterValidationError)
   })
 })
@@ -66,35 +89,44 @@ describe('resolveEncounterD20Answer', () => {
     const rollD20 = () => faces.shift()!
     expect(
       resolveEncounterD20Answer({
-        derivedRollMode: 'ADVANTAGE',
+        gameSystemId: DND5E_SYSTEM_ID,
+        derived: derivedOf('ADVANTAGE'),
         answer: { kind: 'AUTO_ROLL', requestId: 'd20' },
         rollD20
       })
-    ).toEqual({ faces: [6, 15], rollMode: 'ADVANTAGE', natural: 15 })
+    ).toEqual({ faces: [6, 15], rollMode: 'ADVANTAGE', keep: 'HIGHER', natural: 15 })
     expect(
       resolveEncounterD20Answer({
-        derivedRollMode: 'NORMAL',
+        gameSystemId: DND5E_SYSTEM_ID,
+        derived: derivedOf('NORMAL'),
         answer: { kind: 'AUTO_ROLL', requestId: 'd20' },
         rollD20: () => 8
       })
-    ).toEqual({ faces: [8], rollMode: 'NORMAL', natural: 8 })
+    ).toEqual({ faces: [8], rollMode: 'NORMAL', keep: 'FIRST', natural: 8 })
   })
 
   it('keeps the mode the roller chose for entered dice and app rolls', () => {
     expect(
       resolveEncounterD20Answer({
-        derivedRollMode: 'ADVANTAGE',
-        answer: { kind: 'ENTER_DICE', requestId: 'd20', rawFaces: [11], rollMode: 'NORMAL' },
+        gameSystemId: DND5E_SYSTEM_ID,
+        derived: derivedOf('ADVANTAGE'),
+        answer: {
+          kind: 'ENTER_DICE',
+          requestId: 'd20',
+          rawFaces: [11],
+          rollMode: 'NORMAL'
+        },
         rollD20: noRandom
       })
-    ).toEqual({ faces: [11], rollMode: 'NORMAL', natural: 11 })
+    ).toEqual({ faces: [11], rollMode: 'NORMAL', keep: 'FIRST', natural: 11 })
     expect(
       resolveEncounterD20Answer({
-        derivedRollMode: 'NORMAL',
+        gameSystemId: DND5E_SYSTEM_ID,
+        derived: derivedOf('NORMAL'),
         answer: appRoll([4, 17], 'DISADVANTAGE'),
         rollD20: noRandom
       })
-    ).toEqual({ faces: [4, 17], rollMode: 'DISADVANTAGE', natural: 4 })
+    ).toEqual({ faces: [4, 17], rollMode: 'DISADVANTAGE', keep: 'LOWER', natural: 4 })
   })
 
   it('keeps the higher face with advantage and the lower with disadvantage', () => {
@@ -104,11 +136,41 @@ describe('resolveEncounterD20Answer', () => {
     ] as const)
       expect(
         resolveEncounterD20Answer({
-          derivedRollMode: 'NORMAL',
-          answer: { kind: 'ENTER_DICE', requestId: 'd20', rawFaces: [18, 3], rollMode },
+          gameSystemId: DND5E_SYSTEM_ID,
+          derived: derivedOf('NORMAL'),
+          answer: {
+            kind: 'ENTER_DICE',
+            requestId: 'd20',
+            rawFaces: [18, 3],
+            rollMode
+          },
           rollD20: noRandom
         }).natural
       ).toBe(natural)
+  })
+
+  it.each([
+    [
+      { rawFaces: [5], rollMode: 'GRAZING' },
+      'The roll mode "GRAZING" is not offered for this request.'
+    ],
+    [
+      { rawFaces: [5, 6], rollMode: 'NORMAL' },
+      'The face count must match the faces the roll mode keeps.'
+    ],
+    [
+      { rawFaces: [5], rollMode: 'DISADVANTAGE' },
+      'The face count must match the faces the roll mode keeps.'
+    ]
+  ])('refuses entered dice %j with a named message', (dice, message) => {
+    expect(() =>
+      resolveEncounterD20Answer({
+        gameSystemId: DND5E_SYSTEM_ID,
+        derived: derivedOf('NORMAL'),
+        answer: { kind: 'ENTER_DICE', requestId: 'd20', ...dice },
+        rollD20: noRandom
+      })
+    ).toThrow(message)
   })
 
   it('rejects a face count that does not match the mode, invalid faces, and non-d20 answers', () => {
@@ -136,7 +198,12 @@ describe('resolveEncounterD20Answer', () => {
       { kind: 'ENTER_INTEGER' as const, requestId: 'd20', value: 12 }
     ])
       expect(() =>
-        resolveEncounterD20Answer({ derivedRollMode: 'NORMAL', answer, rollD20: noRandom })
+        resolveEncounterD20Answer({
+          gameSystemId: DND5E_SYSTEM_ID,
+          derived: derivedOf('NORMAL'),
+          answer,
+          rollD20: noRandom
+        })
       ).toThrow(EncounterValidationError)
   })
 })

@@ -54,7 +54,7 @@ export interface EncounterFeatureActionCapabilityDescriptor extends EffectAction
   attackMechanic: {
     rollDefinitionId: string
     attackBonus: number
-    rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    rollMode: string
     definitionChecksum: string
   } | null
   /** Exact immutable Feature/option label for sanitized choices. */

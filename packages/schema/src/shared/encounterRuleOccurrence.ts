@@ -8,6 +8,11 @@ import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authored
 import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
 import { MAX_D20_ADDED_DICE, d20AddedDiceDtoSchema, rolledDieShape } from './d20AddedDice.js'
 import { MAX_FORCED_MOVEMENT_DESTINATIONS, spatialPointDtoSchema } from './spatialFacts.js'
+import {
+  offeredRollModeSchema,
+  rollModeKeepSchema,
+  systemVocabularyCodeSchema
+} from './systemVocabularyCode.js'
 
 const uuidSchema = lazySchema(() =>
   z.pipe(
@@ -151,7 +156,11 @@ const d20EvidenceRequestDtoSchema = lazySchema(() =>
       requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
       min: z.literal(1),
       max: z.literal(20),
-      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      rollMode: systemVocabularyCodeSchema,
+      /** Which of the rolled faces the d20 counts; the System derives it from `rollMode`. */
+      keep: rollModeKeepSchema,
+      /** The roll modes the roller may answer with: the System's `rollMode` vocabulary. */
+      rollModes: z.array(offeredRollModeSchema).check(z.minLength(1)),
       /**
        * Why the rules derived `rollMode`: the labels of the contributors that produced it (for
        * example "Flanking" or a feature, item or condition name). Empty for Normal or when the
@@ -180,7 +189,7 @@ const d20EvidenceRequestDtoSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((request, context) => {
-        if (request.heldD20 && request.rollMode !== 'NORMAL')
+        if (request.heldD20 && request.keep !== 'FIRST')
           context.addIssue({
             code: 'custom',
             path: ['rollMode'],
@@ -218,12 +227,15 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
         rollerActorId: uuidSchema,
         actionLabel: triggerLabelSchema,
         requestId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(256)),
+        /** The roll modes the defender may answer with: the System's `rollMode` vocabulary. */
+        rollModes: z.array(offeredRollModeSchema).check(z.minLength(1)),
         checks: z
           .array(
             z.strictObject({
               checkDefinitionId: uuidSchema,
               label: triggerLabelSchema,
-              rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+              rollMode: systemVocabularyCodeSchema,
+              keep: rollModeKeepSchema,
               derivedRollModeReasons: z
                 .array(z.string().check(z.minLength(1)).check(z.maxLength(160)))
                 .check(z.maxLength(32))
@@ -634,6 +646,8 @@ export function contestCheckD20Request(
     min: 1,
     max: 20,
     rollMode: check.rollMode,
+    keep: check.keep,
+    rollModes: pending.rollModes,
     derivedRollModeReasons: check.derivedRollModeReasons
   }
 }

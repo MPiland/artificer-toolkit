@@ -1,7 +1,6 @@
 import { Button, Group, NumberInput, SegmentedControl, Stack, Text } from '@mantine/core'
 import { useState } from 'react'
 import {
-  encounterD20RollModeDtoSchema,
   type EncounterCommandResultDto,
   type EncounterD20RollModeDto,
   type EncounterEvidenceRollDto,
@@ -9,12 +8,9 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
+import { rollModeKeepFaceCount } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
-import {
-  addedDieEntries,
-  keptFaceIndex,
-  rollModeLabels
-} from './CampaignTabletopDecisionDrawer.model'
+import { addedDieEntries, keptFaceIndex } from './CampaignTabletopDecisionDrawer.model'
 import * as styles from './CampaignTabletopEvidenceRollRow.css'
 
 /**
@@ -43,6 +39,8 @@ export function CampaignTabletopEvidenceRollRow({
 }) {
   const { request } = pending
   const derivedMode = pending.kind === 'D20_EVIDENCE' ? pending.request.rollMode : null
+  // The modes the System offers for this roll, each with its label and the face it keeps.
+  const offeredModes = pending.kind === 'D20_EVIDENCE' ? pending.request.rollModes : []
   // The d20 already entered while the server waits for one more; the request then rolls Normal.
   const heldD20 = pending.kind === 'D20_EVIDENCE' ? pending.request.heldD20 : undefined
   // Why the rules recommend the mode, e.g. "Flanking"; empty for a normal roll.
@@ -70,7 +68,10 @@ export function CampaignTabletopEvidenceRollRow({
       ? rolled.evidence
       : restored
   const rollMode = derivedMode === null ? null : (selectedMode ?? latest?.rollMode ?? derivedMode)
-  const faceCount = rollMode === 'ADVANTAGE' || rollMode === 'DISADVANTAGE' ? 2 : 1
+  const derivedLabel = offeredModes.find((mode) => mode.code === derivedMode)?.label ?? derivedMode
+  const offered = offeredModes.find((mode) => mode.code === rollMode)
+  const keep = offered?.keep ?? 'FIRST'
+  const faceCount = rollModeKeepFaceCount(keep)
   const shown = entered ?? (latest ? (rollMode === null ? [latest.value] : latest.faces) : [])
   const values = Array.from({ length: faceCount }, (_, index) => shown[index] ?? '')
   const faces = values.filter((value): value is number => typeof value === 'number')
@@ -80,7 +81,7 @@ export function CampaignTabletopEvidenceRollRow({
   const appRoll =
     entered === null && enteredAdded === null && latest?.rollMode === rollMode ? latest : null
   const complete = faces.length === faceCount && addedFaces.length === addedEntries.length
-  const keptIndex = rollMode === null || faceCount === 1 ? null : keptFaceIndex(rollMode, values)
+  const keptIndex = rollMode === null || faceCount === 1 ? null : keptFaceIndex(keep, values)
 
   async function roll(): Promise<void> {
     setRolling(true)
@@ -132,27 +133,27 @@ export function CampaignTabletopEvidenceRollRow({
         <div>
           <SegmentedControl
             aria-label='Roll mode'
-            data={encounterD20RollModeDtoSchema.options.map((mode) => ({
-              value: mode,
+            data={offeredModes.map(({ code, label }) => ({
+              value: code,
               label:
-                mode === derivedMode ? (
+                code === derivedMode ? (
                   <Text c='orange' fw={700} inherit span>
-                    {rollModeLabels[mode]}
+                    {label}
                   </Text>
                 ) : (
-                  rollModeLabels[mode]
+                  label
                 )
             }))}
             disabled={disabled}
             fullWidth
             size='xs'
             value={rollMode}
-            onChange={(value) => setSelectedMode(encounterD20RollModeDtoSchema.parse(value))}
+            onChange={setSelectedMode}
           />
           <Text c='dimmed' mt={4} size='xs'>
             {rollMode === derivedMode
-              ? `Recommended: ${rollModeLabels[derivedMode]}${derivedReasons.length ? `: ${derivedReasons.join(', ')}` : ''}`
-              : `Changed from ${rollModeLabels[derivedMode]}, the recommended mode`}
+              ? `Recommended: ${derivedLabel}${derivedReasons.length ? `: ${derivedReasons.join(', ')}` : ''}`
+              : `Changed from ${derivedLabel}, the recommended mode`}
           </Text>
         </div>
       ) : null}

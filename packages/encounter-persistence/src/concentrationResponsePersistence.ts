@@ -20,6 +20,7 @@ import {
   damageSaveCheckBoundApplication,
   damageSaveCheckMutatesRun
 } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { requireDerivedD20Mode } from '@artificer-toolkit/rules-runtime/encounterD20ModeValidation'
 import { concentrationOccurrenceId } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
@@ -95,6 +96,12 @@ export async function persistEncounterConcentrationResponse(
   const failed = output.outcome === 'SAVE_FAILURE'
   // The save the roller made: Concentration's derived one, or the effect's frozen policy.
   const save = context.source === 'CONCENTRATION' ? context.save : context.d20Policy
+  requireDerivedD20Mode({
+    gameSystemId: state.gameSystemId,
+    contributors: output.d20.contributors,
+    rollMode: output.d20.derivedRollMode
+  })
+  requireDerivedD20Mode({ gameSystemId: state.gameSystemId, ...save })
   if (
     output.source !== context.source ||
     execution.occurrenceId !== occurrence.id ||
@@ -113,6 +120,7 @@ export async function persistEncounterConcentrationResponse(
     output.d20.requestId !== resolution.requestId ||
     output.d20.requestId !== continuation.request.requestId ||
     output.d20.rollMode !== save.rollMode ||
+    output.d20.keep !== save.keep ||
     output.d20.modifier !== save.modifier ||
     output.d20.contributorChecksum !== save.contributorChecksum ||
     checksumCanonicalJson(output.d20.contributors) !== checksumCanonicalJson(save.contributors) ||

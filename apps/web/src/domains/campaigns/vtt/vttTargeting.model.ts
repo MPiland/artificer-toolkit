@@ -160,12 +160,6 @@ const unseenReasonLabels = {
   INVISIBLE: 'Invisible'
 } as const satisfies Record<NonNullable<VttTargetEntry['unseenReason']>, string>
 
-const rollModeLabels = {
-  ADVANTAGE: 'Advantage',
-  DISADVANTAGE: 'Disadvantage',
-  NORMAL: 'Normal'
-} as const satisfies Record<NonNullable<VttTargetEntry['attack']>['rollMode'], string>
-
 /** What the list and the hover readout say about one creature: its distance, its reach and what the Character believes. */
 export function describeTargetEntry(entry: VttTargetEntry): string {
   return [
@@ -173,7 +167,7 @@ export function describeTargetEntry(entry: VttTargetEntry): string {
     entry.distanceLabel ?? 'Distance unknown',
     entry.band ? bandLabels[entry.band] : null,
     entry.attack
-      ? `${rollModeLabels[entry.attack.rollMode]}${entry.attack.reasons.length ? ` (${entry.attack.reasons.join(', ')})` : ''}`
+      ? `${entry.attack.rollModeLabel}${entry.attack.reasons.length ? ` (${entry.attack.reasons.join(', ')})` : ''}`
       : null
   ]
     .filter(Boolean)

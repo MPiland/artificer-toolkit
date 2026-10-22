@@ -307,7 +307,27 @@ contributors })` (`rollModeCapabilityRegistry.ts`, installed in `platformPolicyM
 closed on a System with no roll-mode policy, an influence code the System does not define, and a
 duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
-`resolveDnd5eRollMode` directly. The schema wire enums still carry the D&D codes until RULES-2.T9.
+`resolveDnd5eRollMode` directly.
+**System vocabulary (RULES-2.T9a, current).** Policy vocabulary is System code strings, not UUID rows:
+the wire types a code as `systemVocabularyCodeSchema` (`schema/shared/systemVocabularyCode.ts`, shape
+only), and the one seam that decides membership is `systemVocabularyRegistry.requireCode(gameSystemId,
+kind, code)` (`systemVocabularyCapability.ts`, installed in `platformPolicyModules.ts`; the D&D lists in
+`systems/dnd5e/vocabulary.ts`). Lists today: `rollInfluence`, `rollMode`, each code with its display
+label. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
+settlement) validates through it; capability registries call it before an adapter sees a code. A
+rule-execution d20 DTO carries `keep` beside its `rollMode`, and `keep` is derived once, by the
+adapter's `keepFor` through `rollModeCapabilityRegistry.resolveRollMode` or `rollModeKeep`, when the
+roll is made; runtime read sites verify a stored or supplied `{ rollMode, keep }` with `requireKeep` or by
+re-resolving its contributors. The client never sends `keep`: `ENTER_DICE` carries `rollMode` and `rawFaces`
+only, and `resolveEncounterD20Answer` derives `keep` from the mode at ingress and stores it on the
+evidence. It refuses a `rollMode` outside the request's offered `rollModes` ("The roll mode ... is not
+offered for this request.") and a face count that differs from the faces `keep` keeps ("The face count
+must match the faces the roll mode keeps."). A pending d20 request (`D20_EVIDENCE`, and `CONTEST_CHECK` at
+its top level) carries `rollModes`, the `{ code, label, keep }` entries of `rollModeCapabilityRegistry.
+offeredRollModes(gameSystemId)` (the System's `rollMode` vocabulary plus the adapter's `keepFor`); the
+web roll picker renders only those entries and keeps no mode table of its own. The D&D passive score (10 plus the modifier, ±5) is the adapter's `passiveScore`.
+**Transitional (until RULES-2.T9a2):** the shared dice evaluator, roll evidence `mode`, manual and
+Campaign roll input, the held d20 and the `D20_MODE_ADJUSTED` record still use the D&D mode codes.
 **System capability registries (RULES-2.T11a–g, current).** Every System capability is one
 `createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
 `require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the

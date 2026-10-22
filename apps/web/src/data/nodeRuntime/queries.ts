@@ -10,6 +10,7 @@ import {
   expandNodeRuntimeResponse,
   type NodeRuntimeCompactResolveResponseDto
 } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
+import { isRecord } from '#app/forms/utils/valueGuards'
 
 const runtimeCopyFieldNames = new Set([
   'body',
@@ -59,8 +60,8 @@ function stableStringify(value: unknown): string {
 
 function sortValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortValue)
-  if (value !== null && typeof value === 'object') {
-    return Object.entries(value as Record<string, unknown>)
+  if (isRecord(value)) {
+    return Object.entries(value)
       .sort(([left], [right]) => left.localeCompare(right))
       .reduce<Record<string, unknown>>((record, [key, child]) => {
         record[key] = sortValue(child)
@@ -74,8 +75,8 @@ function sortValue(value: unknown): unknown {
 function stripCopyOnlyFields(value: unknown, key?: string): unknown {
   if (key && runtimeCopyFieldNames.has(key)) return undefined
   if (Array.isArray(value)) return value.map((item) => stripCopyOnlyFields(item))
-  if (value !== null && typeof value === 'object') {
-    return Object.entries(value as Record<string, unknown>)
+  if (isRecord(value)) {
+    return Object.entries(value)
       .sort(([left], [right]) => left.localeCompare(right))
       .reduce<Record<string, unknown>>((record, [entryKey, child]) => {
         const stripped = stripCopyOnlyFields(child, entryKey)

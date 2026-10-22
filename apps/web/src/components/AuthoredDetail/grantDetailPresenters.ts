@@ -1,6 +1,7 @@
 import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants/proficiency'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared/startingEquipment'
 import { formatEnumLabel } from './detailFormatters'
+import { isRecord } from '#app/forms/utils/valueGuards'
 
 type ReferenceOption = {
   value: string
@@ -385,18 +386,13 @@ function isAllTarget<T extends object>(
   return mode === 'ALL' || (references.length > 0 && ids.length === references.length)
 }
 
-function readGrantIds<T extends object, TKey extends string>(value: T, key: TKey): string[] {
-  if (!(key in value)) return []
-  const ids = (value as Record<TKey, unknown>)[key]
+function readGrantIds(value: object, key: string): string[] {
+  const ids = isRecord(value) ? value[key] : undefined
   return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
 }
 
-function readOptionalString<T extends object, TKey extends string>(
-  value: T,
-  key: TKey
-): string | undefined {
-  if (!(key in value)) return undefined
-  const field = (value as Record<TKey, unknown>)[key]
+function readOptionalString(value: object, key: string): string | undefined {
+  const field = isRecord(value) ? value[key] : undefined
   return typeof field === 'string' ? field : undefined
 }
 

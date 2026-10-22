@@ -60,6 +60,7 @@ async function endOfTurn(
       requestId: paused.continuation.request.requestId,
       rawFaces: [face],
       rollMode: 'NORMAL',
+      keep: 'FIRST',
       addedDice: []
     }
   })

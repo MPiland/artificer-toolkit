@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
 import {
   parseRollExpression,
   parseStandaloneDiceConfiguration,
@@ -29,7 +30,7 @@ export const executeRollInputDtoSchema = lazySchema(() =>
     .strictObject({
       characterId: z.string().check(z.minLength(1)),
       expression: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(200)),
-      rollMode: z.optional(z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'])),
+      rollMode: z.optional(systemVocabularyCodeSchema),
       source: rollSourceDtoSchema
     })
     .check(
@@ -111,7 +112,7 @@ export const rollEvidenceDtoSchema = lazySchema(() =>
   z.object({
     terms: z.array(rollTermEvidenceDtoSchema).check(z.maxLength(10)),
     modifier: z.number().check(z.int()),
-    mode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+    mode: systemVocabularyCodeSchema,
     subtotal: z.number().check(z.int()),
     transform: rollTransformDtoSchema,
     total: z.number().check(z.int())

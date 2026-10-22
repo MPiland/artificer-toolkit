@@ -72,8 +72,8 @@ export function getAuthoringFieldValue(
   let current: unknown = values
 
   for (const segment of parseAuthoringFieldName(fieldName)) {
-    if (typeof current !== 'object' || current === null) return undefined
-    current = (current as Record<string, unknown>)[String(segment)]
+    if (!isRecord(current)) return undefined
+    current = current[String(segment)]
   }
 
   return current
@@ -84,10 +84,8 @@ export function setAuthoringFieldValue(
   fieldName: string,
   value: unknown
 ): Record<string, unknown> {
-  return setAuthoringValueAtPath(values, parseAuthoringFieldName(fieldName), value) as Record<
-    string,
-    unknown
-  >
+  const next = setAuthoringValueAtPath(values, parseAuthoringFieldName(fieldName), value)
+  return isRecord(next) ? next : values
 }
 
 export function hasMeaningfulAuthoringValueAtPaths(

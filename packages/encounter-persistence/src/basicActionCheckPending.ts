@@ -8,6 +8,7 @@ import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
+import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import type { EncounterDocument } from './store.js'
@@ -126,6 +127,8 @@ export function projectNativeBasicActionCheckPending(
       min: 1,
       max: 20,
       rollMode: context.d20.rollMode,
+      keep: context.d20.keep,
+      rollModes: rollModeCapabilityRegistry.offeredRollModes(snapshot.graph.source.gameSystemId),
       derivedRollModeReasons: reasons({
         rollMode: context.d20.rollMode,
         contributors: context.d20.contributors

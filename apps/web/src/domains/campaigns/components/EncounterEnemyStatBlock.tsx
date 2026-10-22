@@ -4,6 +4,7 @@ import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounte
 import { useQuery } from 'convex/react'
 import * as encounterStyles from './encounter.css'
 import { encounterStatBlockDefenses, encounterStatBlockSenses } from './encounterStatBlock.utils'
+import { isRecord } from '#app/forms/utils/valueGuards'
 
 export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto }) {
   // Defenses are vocabulary ids; the System names them.
@@ -94,8 +95,8 @@ function formatTextList(values: unknown[]): string {
 function formatSpeedList(values: unknown[]): string {
   if (!values.length) return '—'
   const speeds = values.flatMap((value) => {
-    if (typeof value !== 'object' || value === null || Array.isArray(value)) return []
-    const speed = value as Record<string, unknown>
+    if (!isRecord(value)) return []
+    const speed = value
     const amount = speed.amount
     if (typeof amount !== 'number' && typeof amount !== 'string') return []
     const unit =

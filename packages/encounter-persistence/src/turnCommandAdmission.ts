@@ -240,6 +240,7 @@ export async function readLiveEncounterTurnAdmission(
                   encounterVersion: row.version
                 })
               : projectNativeTurnPending({
+                  gameSystemId: state.gameSystemId,
                   snapshot,
                   occurrenceId: occurrence.id,
                   occurrenceVersion: occurrence.version,

@@ -1,6 +1,7 @@
 import { CharacterRuleActionTargetDefenseUnavailableError } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
 import { resolveEncounterBelievedAttackPerception } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import { playerSeesActor } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
+import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import {
   encounterActionTargetModifiersDtoSchema,
   type EncounterActionTargetModifiersDto,
@@ -123,8 +124,12 @@ export async function readEncounterActionTargetModifiers(
       return {
         actorId: target.id,
         d20:
-          bound?.d20Roller === 'SOURCE' && bound.d20RollMode && bound.d20Audit
-            ? { rollMode: bound.d20RollMode, contributors: bound.d20Audit.contributors }
+          bound?.d20Roller === 'SOURCE' && bound.d20RollMode && bound.d20Keep && bound.d20Audit
+            ? {
+                rollMode: bound.d20RollMode,
+                keep: bound.d20Keep,
+                contributors: bound.d20Audit.contributors
+              }
             : null
       }
     })
@@ -132,7 +137,16 @@ export async function readEncounterActionTargetModifiers(
   const targets = await withEncounterRollModeReasons(tx, input.run, membership, (reasons) =>
     prepared.map(({ actorId, d20 }) => ({
       actorId,
-      attack: d20 && { rollMode: d20.rollMode, reasons: reasons(d20) }
+      attack: d20 && {
+        rollMode: d20.rollMode,
+        rollModeLabel: systemVocabularyRegistry.requireCode(
+          state.gameSystemId,
+          'rollMode',
+          d20.rollMode
+        ).label,
+        keep: d20.keep,
+        reasons: reasons(d20)
+      }
     }))
   )
   return encounterActionTargetModifiersDtoSchema.parse({

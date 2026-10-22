@@ -18,8 +18,13 @@ import {
   type EncounterStoredEvidenceRoll
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
-import { selectEncounterActionD20Natural } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import {
+  evaluateRollExpression,
+  parseRollExpression,
+  type RollMode
+} from '@artificer-toolkit/shared/rolls'
+import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
+import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import { withAddedDiceTerms } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'
@@ -40,7 +45,21 @@ import type {
 /** Dice the table roll log can show; other integer ranges are recorded without a log entry. */
 export const LOGGED_DICE = new Set([4, 6, 8, 10, 12, 20, 100])
 
-const MODE_LABELS = { NORMAL: 'Normal', ADVANTAGE: 'Advantage', DISADVANTAGE: 'Disadvantage' }
+const MODE_LABELS: Readonly<Record<string, string>> = {
+  NORMAL: 'Normal',
+  ADVANTAGE: 'Advantage',
+  DISADVANTAGE: 'Disadvantage'
+}
+
+/** The table roll log's evaluator rolls only the modes it knows; any other System code is refused. */
+const EVALUATOR_ROLL_MODES: readonly RollMode[] = ['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']
+
+function evaluatorRollMode(rollMode: string | null): RollMode {
+  if (rollMode === null) return 'NORMAL'
+  const mode = EVALUATOR_ROLL_MODES.find((candidate) => candidate === rollMode)
+  if (!mode) throw new Error('The roll log cannot roll this System roll mode.')
+  return mode
+}
 
 function presentEvidenceRoll(roll: EncounterStoredEvidenceRoll): EncounterEvidenceRollDto {
   return encounterEvidenceRollDtoSchema.parse({
@@ -52,6 +71,7 @@ function presentEvidenceRoll(roll: EncounterStoredEvidenceRoll): EncounterEviden
     faces: roll.faces,
     value: roll.value,
     rollMode: roll.rollMode,
+    keep: roll.keep,
     derivedRollMode: roll.derivedRollMode,
     ...(roll.addedFaces ? { addedFaces: roll.addedFaces } : {})
   })
@@ -185,8 +205,11 @@ async function admitEvidenceRoll(
   if (!derivedRollMode && input.rollMode !== null)
     throw new Error('Only a d20 roll takes a roll mode.')
   const rollMode = derivedRollMode ? (input.rollMode ?? derivedRollMode) : null
+  const keep = rollMode
+    ? rollModeCapabilityRegistry.rollModeKeep({ gameSystemId: campaign.gameSystemId, rollMode })
+    : null
   // A held d20 is completed by exactly one more die; the server settles the true mode from it.
-  if ('heldD20' in request && request.heldD20 && rollMode !== 'NORMAL')
+  if ('heldD20' in request && request.heldD20 && keep !== 'FIRST')
     throw new Error('A held d20 takes one Normal die.')
   return {
     kind: 'ROLL' as const,
@@ -199,6 +222,7 @@ async function admitEvidenceRoll(
     rollerActorId,
     derivedRollMode,
     rollMode,
+    keep,
     die: request.min === 1 && LOGGED_DICE.has(request.max) ? request.max : null
   }
 }
@@ -215,15 +239,20 @@ export async function rollEncounterRuleEvidence(
 ): Promise<EncounterCommandResultDto> {
   const admitted = await admitEvidenceRoll(ctx, command, userId)
   if (admitted.kind === 'REPLAY') return admitted.result
-  const { input, run, authority, fingerprint, pending, derivedRollMode, rollMode, die } = admitted
+  const { input, run, authority, fingerprint, pending, derivedRollMode, rollMode, keep, die } =
+    admitted
   const { campaign, membership } = authority
   const evaluated = die
-    ? evaluateRollExpression(parseRollExpression(`1d${die}`), { nextInt }, rollMode ?? 'NORMAL')
+    ? evaluateRollExpression(
+        parseRollExpression(`1d${die}`),
+        { nextInt },
+        evaluatorRollMode(rollMode)
+      )
     : null
   const faces = evaluated
     ? evaluated.evidence.terms[0]!.rolls
     : [admitted.request.min + nextInt(admitted.request.max - admitted.request.min + 1)]
-  const value = rollMode ? selectEncounterActionD20Natural(rollMode, faces) : faces[0]!
+  const value = keep ? rollModeKeptFace(keep, faces) : faces[0]!
   const addedDice = ('addedDice' in admitted.request ? (admitted.request.addedDice ?? []) : []).map(
     (die) => ({
       ...die,
@@ -252,6 +281,7 @@ export async function rollEncounterRuleEvidence(
     faces,
     value,
     rollMode,
+    keep,
     derivedRollMode,
     ...(addedFaces.length > 0 ? { addedFaces } : {}),
     createdAt: now
@@ -268,9 +298,9 @@ export async function rollEncounterRuleEvidence(
     const system = await ctx.ports.requireSystem(campaign.gameSystemId)
     const override =
       rollMode && derivedRollMode && rollMode !== derivedRollMode
-        ? `${MODE_LABELS[rollMode]}, changed from ${MODE_LABELS[derivedRollMode]}`
+        ? `${MODE_LABELS[rollMode] ?? rollMode}, changed from ${MODE_LABELS[derivedRollMode] ?? derivedRollMode}`
         : rollMode && rollMode !== 'NORMAL'
-          ? MODE_LABELS[rollMode]
+          ? (MODE_LABELS[rollMode] ?? rollMode)
           : null
     tableRoll = rollRecordDtoSchema.parse({
       id: roll.id,
@@ -375,6 +405,7 @@ export async function readEncounterSettledAppRoll(
     rollId: roll.id,
     faces: roll.faces,
     rollMode: roll.rollMode,
+    keep: roll.keep,
     ...(roll.addedFaces ? { addedFaces: roll.addedFaces } : {})
   }
 }

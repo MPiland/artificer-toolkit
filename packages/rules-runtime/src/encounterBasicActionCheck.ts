@@ -131,7 +131,11 @@ export function prepareEncounterBasicActionCheck<
         label: input.checkLabel,
         dc: input.check.dc
       },
-      d20: freezeD20Context({ ...facts, modifier: facts.modifier }),
+      d20: freezeD20Context({
+        gameSystemId: input.gameSystemId,
+        ...facts,
+        modifier: facts.modifier
+      }),
       consumedGrants: discoverEncounterEventHooks({
         effects: helper.activeEffects,
         events: [
@@ -210,7 +214,7 @@ export function encounterBasicActionCheckPendingSnapshot(input: {
 export function settledCheckD20MatchesFrozen(
   settled: {
     modifier: number
-    derivedRollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    derivedRollMode: string
     contributorChecksum: string
     selectedNatural: number
     total: number
@@ -236,6 +240,7 @@ export function settledCheckD20MatchesFrozen(
 
 /** Rolls a frozen check's one d20: the natural die plus the roller's modifier, against no DC yet. */
 export async function rollEncounterCheck(input: {
+  gameSystemId: string
   runtime: RulesRuntimeService
   context: Pick<EncounterD20CheckContext, 'd20'>
   continuation: ServerRuleExecutionContinuationDto
@@ -253,6 +258,7 @@ export async function rollEncounterCheck(input: {
   )
     throw new EncounterValidationError('The basic action check evidence is stale.')
   const roll = settleEncounterD20Answer({
+    gameSystemId: input.gameSystemId,
     d20: context.d20,
     answer,
     rollD20: input.rollD20,
@@ -276,6 +282,7 @@ export async function rollEncounterCheck(input: {
     d20: {
       requestId: continuation.request.requestId,
       rollMode: roll.rollMode,
+      keep: roll.keep,
       derivedRollMode: context.d20.rollMode,
       rawFaces: roll.rawFaces,
       selectedNatural: roll.natural,

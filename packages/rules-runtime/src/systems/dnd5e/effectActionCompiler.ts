@@ -93,7 +93,7 @@ import type { EnemyProximity } from '../../encounterEnemyProximity.js'
 import type { MoveToward } from '../../encounterMoveToward.js'
 import { attackRestrictionsMet, oncePerTurnUsageKey } from './attackRestrictions.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
-import { resolveDnd5eRollMode } from './rollModePolicy.js'
+import { DND5E_KEEP_BY_ROLL_MODE, resolveDnd5eRollMode } from './rollModePolicy.js'
 import {
   DND5E_POISON_DAMAGE_TYPE_DEFINITION_ID,
   DND5E_POISONED_CONDITION_DEFINITION_ID
@@ -6935,6 +6935,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           )
         },
         d20RollMode: matches[0]!.rollMode,
+        d20Keep: DND5E_KEEP_BY_ROLL_MODE[matches[0]!.rollMode],
         d20Roller: 'TARGET',
         d20Audit: {
           contributors,
@@ -6982,19 +6983,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           sourceDerivedFacts.attackAdvantageNegated !== true || influence !== 'ADVANTAGE'
       )
       allContributors.sort(compareCanonicalD20Contributors)
-      const hasAdvantage = allContributors.some(
-        (contributor) => contributor.influence === 'ADVANTAGE'
-      )
-      const hasDisadvantage = allContributors.some(
-        (contributor) => contributor.influence === 'DISADVANTAGE'
-      )
-      const rollMode = hasAdvantage
-        ? hasDisadvantage
-          ? 'NORMAL'
-          : 'ADVANTAGE'
-        : hasDisadvantage
-          ? 'DISADVANTAGE'
-          : 'NORMAL'
+      const { rollMode } = resolveDnd5eRollMode(allContributors)
       const contributorChecksum = checksumRuleDocument(allContributors)
       const enemyProximity = sourceDerivedFacts.attackEnemyProximity as EnemyProximity | undefined
       const moveToward = sourceDerivedFacts.attackMoveToward as MoveToward | undefined
@@ -7031,6 +7020,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
             : 'NONE'
         },
         d20RollMode: rollMode,
+        d20Keep: DND5E_KEEP_BY_ROLL_MODE[rollMode],
         d20Roller: 'SOURCE',
         d20Audit: {
           contributors: allContributors,
@@ -7093,6 +7083,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           )
         },
         d20RollMode: rollMode,
+        d20Keep: DND5E_KEEP_BY_ROLL_MODE[rollMode],
         d20Roller: 'TARGET',
         d20Audit: {
           contributors,
@@ -7304,7 +7295,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       facts,
       evidencePolicy: {
         requestNodeId,
-        rollMode: resolveDnd5eRollMode(contributors).rollMode,
+        ...resolveDnd5eRollMode(contributors),
         contributors: [...contributors],
         contributorChecksum,
         modifier: matches[0]!.modifier,

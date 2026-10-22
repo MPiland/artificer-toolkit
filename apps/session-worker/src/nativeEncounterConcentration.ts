@@ -742,6 +742,7 @@ export async function planNativeLiveConcentration(input: {
       refusal: 'The concentration evidence request is unavailable.'
     })
     const evidence = await evaluateNativeConcentrationEvidence({
+      gameSystemId: loaded.published.gameSystemId,
       context,
       continuation,
       resolution,

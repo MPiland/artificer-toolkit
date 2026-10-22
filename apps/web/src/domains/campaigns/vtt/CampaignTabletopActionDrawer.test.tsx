@@ -26,6 +26,7 @@ import {
   wallAreaBoundsInSceneCoordinates
 } from '@artificer-toolkit/shared/vtt'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { offeredRollModes } from '../../../test/offeredRollModes'
 import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { tabletopGmEncounter, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
@@ -989,6 +990,8 @@ describe('CampaignTabletopActionDrawer escapes', () => {
             min: 1,
             max: 20,
             rollMode: 'NORMAL',
+            keep: 'FIRST',
+            rollModes: offeredRollModes,
             derivedRollModeReasons: []
           },
           allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']

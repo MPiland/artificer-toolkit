@@ -10,6 +10,7 @@ import {
   Text
 } from '@mantine/core'
 import type { ImportPreviewResponseDto } from '@artificer-toolkit/schema/api/imports'
+import { findOption } from '../forms/utils/valueGuards'
 import { ImportContentOutcomeSections } from './ImportContentOutcomeSections'
 import { type ImportCustomContentChoice } from './importCustomContentChoiceUtils'
 import { LibraryImportIssues } from './LibraryImportIssues'
@@ -122,9 +123,10 @@ export function LibraryImportPreview({
                       }))}
                       label='Import choice'
                       value={resolutions[item.entryId] ?? item.collision.defaultChoice}
-                      onChange={(value) =>
-                        value && onResolutionChange(item.entryId, value as 'COPY' | 'UPDATE_DRAFT')
-                      }
+                      onChange={(value) => {
+                        const choice = findOption(item.collision?.allowedChoices ?? [], value)
+                        if (choice) onResolutionChange(item.entryId, choice)
+                      }}
                     />
                     {item.collision.hasExistingDraft &&
                     resolutions[item.entryId] === 'UPDATE_DRAFT' ? (

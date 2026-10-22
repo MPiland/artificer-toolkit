@@ -224,8 +224,19 @@ describe('target entries', () => {
       encounterId: '00000000-0000-4000-8000-000000000001',
       encounterVersion: 3,
       targets: [
-        { actorId: 'middle', attack: { rollMode: 'DISADVANTAGE', reasons: ['Long range'] } },
-        { actorId: 'near', attack: { rollMode: 'NORMAL', reasons: [] } }
+        {
+          actorId: 'middle',
+          attack: {
+            rollMode: 'DISADVANTAGE',
+            rollModeLabel: 'Disadvantage',
+            keep: 'LOWER',
+            reasons: ['Long range']
+          }
+        },
+        {
+          actorId: 'near',
+          attack: { rollMode: 'NORMAL', rollModeLabel: 'Normal', keep: 'FIRST', reasons: [] }
+        }
       ]
     }
     const entries = build({ modifiers })

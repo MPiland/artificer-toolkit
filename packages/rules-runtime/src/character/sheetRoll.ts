@@ -13,7 +13,7 @@ import {
 
 type ResolvedRoll = {
   expression: string
-  rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  rollMode: string
   source: RollSourceDto
   /** The ability a check or saving throw is made with: the dice its carried effects add key on it. */
   abilityCode?: string

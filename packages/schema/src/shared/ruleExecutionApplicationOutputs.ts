@@ -493,15 +493,6 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             })
           contributorKeys.add(key)
         }
-        const influences = new Set(
-          (value.d20?.contributors ?? []).map((contributor) => contributor.influence)
-        )
-        const expectedRollMode = influences.size === 1 ? [...influences][0] : 'NORMAL'
-        if (value.d20 && value.d20.rollMode !== expectedRollMode)
-          context.addIssue({
-            code: 'custom',
-            message: 'd20 contributor mode is invalid.'
-          })
         const transitionChanged =
           value.targetTransition.before.currentHitPoints !==
             value.targetTransition.after.currentHitPoints ||

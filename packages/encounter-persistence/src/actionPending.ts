@@ -14,6 +14,7 @@ import {
   noEncounterRollModeReasons,
   type EncounterRollModeReasons
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
+import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { readRunActor, readRunState } from './documents.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
 import type { EncounterDocument, EncounterReadContext } from './store.js'
@@ -408,20 +409,23 @@ export function projectNativeActionPending(
   }
   const { contest } = context
   // A basic action or escape contest's defender picks one of its sealed checks and rolls it (D152).
+  const rollModes = rollModeCapabilityRegistry.offeredRollModes(snapshot.graph.source.gameSystemId)
   if (contest && snapshot.request.nodeId === 'target_d20' && contestDefenderPicksCheck(contest)) {
     if (contest.origin.kind === 'OPTIONAL_COMBAT')
       throw new Error('Stored contest check origin is invalid.')
     return {
       ...common,
       kind: 'CONTEST_CHECK',
+      rollModes,
       rollerActorId: contest.defender.actorId,
       actionLabel: contest.origin.actionLabel,
       requestId: snapshot.request.requestId,
       checks: contest.defender.checks.map(
-        ({ checkDefinitionId, label, rollMode, contributors }) => ({
+        ({ checkDefinitionId, label, rollMode, keep, contributors }) => ({
           checkDefinitionId,
           label,
           rollMode,
+          keep,
           derivedRollModeReasons: reasons({ rollMode, contributors })
         })
       ),
@@ -453,6 +457,11 @@ export function projectNativeActionPending(
         min: 1,
         max: 20,
         rollMode: 'NORMAL',
+        keep: rollModeCapabilityRegistry.rollModeKeep({
+          gameSystemId: snapshot.graph.source.gameSystemId,
+          rollMode: 'NORMAL'
+        }),
+        rollModes,
         derivedRollModeReasons: [],
         heldD20: {
           faces: context.heldD20.faces,
@@ -472,6 +481,8 @@ export function projectNativeActionPending(
           min: 1,
           max: 20,
           rollMode: shown.rollMode,
+          keep: shown.keep,
+          rollModes,
           derivedRollModeReasons: reasons({
             rollMode: shown.rollMode,
             contributors: shown.contributors

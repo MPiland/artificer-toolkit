@@ -2,6 +2,7 @@ import { Button, NumberInput, Text, TextInput } from '@mantine/core'
 import { useState } from 'react'
 
 import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
+import { findOption } from '#app/forms/utils/valueGuards'
 import { AppSelect } from '#ui/primitives/Select'
 import * as inputStyles from '#ui/primitives/Select/Select.css'
 import * as inspectorEditorStyles from './inspectorEditor.css'
@@ -102,8 +103,8 @@ function SpellCustomizationRow({
             searchable={false}
             value={mode}
             onChange={(nextMode) => {
-              if (!nextMode) return
-              const typedMode = nextMode as CustomizationMode
+              const typedMode = findOption(option.supportedModes, nextMode)
+              if (!typedMode) return
               setMode(typedMode)
               if (configured) void commit(typedMode)
             }}
@@ -206,7 +207,9 @@ export function CharacterSheetSpellCustomizationEditor({
           searchable={false}
           value={null}
           onChange={(category) =>
-            setDraftCategory(category as CustomizationOption['category'] | null)
+            setDraftCategory(
+              available.find((option) => option.category === category)?.category ?? null
+            )
           }
         />
       ) : null}

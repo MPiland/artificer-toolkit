@@ -45,6 +45,13 @@ import {
   ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
+import {
+  rollModeKeepFaceCount,
+  rollModeKeepSchema,
+  rollModeKeptFace,
+  systemVocabularyCodeSchema,
+  type RollModeKeep
+} from './systemVocabularyCode.js'
 
 /** The exact Legendary Resistance source a failed save is offered, pinned when it is offered. */
 export const encounterLegendaryResistancePinDtoSchema = lazySchema(() =>
@@ -181,8 +188,9 @@ export const directActionTwoPhaseDtoSchema = lazySchema(() =>
         testRollEvidence: z
           .strictObject({
             requestId: z.string().check(z.minLength(1)).check(z.maxLength(256)),
-            rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-            derivedRollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+            rollMode: systemVocabularyCodeSchema,
+            keep: rollModeKeepSchema,
+            derivedRollMode: systemVocabularyCodeSchema,
             rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
             selectedNatural: pendingD20FaceSchema,
             /** Set when the server settled the TEST d20 in a mode other than the one rolled (ATTACK-10.1). */
@@ -192,16 +200,9 @@ export const directActionTwoPhaseDtoSchema = lazySchema(() =>
           })
           .check(
             z.superRefine((value, context) => {
-              const expectedFaces = value.rollMode === 'NORMAL' ? 1 : 2
-              const expectedSelected =
-                value.rollMode === 'ADVANTAGE'
-                  ? Math.max(...value.rawFaces)
-                  : value.rollMode === 'DISADVANTAGE'
-                    ? Math.min(...value.rawFaces)
-                    : value.rawFaces[0]
               if (
-                value.rawFaces.length !== expectedFaces ||
-                value.selectedNatural !== expectedSelected
+                value.rawFaces.length !== rollModeKeepFaceCount(value.keep) ||
+                value.selectedNatural !== rollModeKeptFace(value.keep, value.rawFaces)
               )
                 context.addIssue({
                   code: 'custom',
@@ -229,6 +230,7 @@ export const directActionTwoPhaseDtoSchema = lazySchema(() =>
           evidence !== null &&
           (evidence.requestNodeId !== policy.requestNodeId ||
             evidence.rollMode !== policy.rollMode ||
+            evidence.keep !== policy.keep ||
             evidence.contributorChecksum !== policy.contributorChecksum ||
             evidence.modifier !== policy.modifier ||
             evidence.defenseOrDc !== policy.dc)
@@ -307,7 +309,8 @@ export const encounterCharacterRuleActionPendingContextDtoSchema = lazySchema(()
     targetStateChecksum: checksumSchema,
     d20: z.nullable(
       z.strictObject({
-        rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+        rollMode: systemVocabularyCodeSchema,
+        keep: rollModeKeepSchema,
         contributors: z
           .array(receiptD20ContributorSchema)
           .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
@@ -371,7 +374,8 @@ export const encounterActorRuleActionPendingContextDtoSchema = lazySchema(() =>
         kind: z.literal('ACTION_EVIDENCE'),
         d20: z.nullable(
           z.strictObject({
-            rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+            rollMode: systemVocabularyCodeSchema,
+            keep: rollModeKeepSchema,
             contributors: z
               .array(receiptD20ContributorSchema)
               .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
@@ -481,7 +485,8 @@ export const encounterCreatureRuleActionPendingContextDtoSchema = lazySchema(() 
         kind: z.literal('ACTION_EVIDENCE'),
         d20: z.nullable(
           z.strictObject({
-            rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+            rollMode: systemVocabularyCodeSchema,
+            keep: rollModeKeepSchema,
             contributors: z
               .array(receiptD20ContributorSchema)
               .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
@@ -576,7 +581,8 @@ export type EncounterConcealmentCheckPendingContextDto = {
   actorId: z.infer<typeof uuidSchema>
   check: { checkDefinitionId: z.infer<typeof uuidSchema>; label: z.infer<typeof identifierSchema> }
   d20: {
-    rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+    rollMode: string
+    keep: RollModeKeep
     contributors: z.infer<typeof canonicalConcentrationContributorsDtoSchema>
     contributorChecksum: z.infer<typeof checksumSchema>
     modifier: z.infer<typeof integerSchema>
@@ -728,7 +734,8 @@ export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySche
       save: z.strictObject({
         savingThrowAbilityDefinitionId: uuidSchema,
         modifier: integerSchema,
-        rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+        rollMode: systemVocabularyCodeSchema,
+        keep: rollModeKeepSchema,
         contributors: canonicalConcentrationContributorsDtoSchema,
         contributorChecksum: checksumSchema,
         /** Dice the holder rolls with the save (D156); absent when it rolls none. */
@@ -755,7 +762,7 @@ export const encounterEffectRepeatSavePendingContextDtoSchema = lazySchema(() =>
         lifecycleChecksum: checksumSchema
       }),
       /** How the effect's trigger tilts the roll; applied on top of the holder's own influences. */
-      rollInfluence: z.nullable(z.enum(['ADVANTAGE', 'DISADVANTAGE'])),
+      rollInfluence: z.nullable(systemVocabularyCodeSchema),
       /** The pinned frozen save, taken from the paused kernel request. */
       d20Policy: z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)
     })

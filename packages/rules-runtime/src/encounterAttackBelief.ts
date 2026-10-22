@@ -18,11 +18,11 @@ import {
   mergeCanonicalD20Contributors,
   type EncounterRelationshipD20Contributor
 } from './encounterRelationshipActionFacts.js'
-import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
+import { rollModeCapabilityRegistry, systemVocabularyRegistry } from './platformPolicyModules.js'
 
 type D20Policy = Pick<
   ServerRuleExecutionD20PolicyDto,
-  'rollMode' | 'contributors' | 'contributorChecksum'
+  'rollMode' | 'keep' | 'contributors' | 'contributorChecksum'
 >
 
 /** What the roller's own facts imply for an attack's d20, shown at the roll prompt. */
@@ -34,6 +34,7 @@ export type EncounterAttackD20Belief = ServerRuleExecutionD20BeliefDto
  * target the saver.
  */
 export type EncounterPreparedAttackSight = {
+  gameSystemId: string
   subject: 'ATTACK' | 'SAVE'
   actual: EncounterAttackPerception
   believed: EncounterAttackPerception
@@ -66,11 +67,13 @@ export function encounterAttackD20Belief(input: {
   )
   const contributorChecksum = checksumRuleDocument(contributors)
   if (contributorChecksum === input.policy.contributorChecksum) return null
+  const { rollMode, keep } = rollModeCapabilityRegistry.resolveRollMode({
+    gameSystemId: input.gameSystemId,
+    contributors
+  })
   return {
-    rollMode: rollModeCapabilityRegistry.resolveRollMode({
-      gameSystemId: input.gameSystemId,
-      contributors
-    }).rollMode,
+    rollMode,
+    keep,
     contributors: [...contributors],
     contributorChecksum
   }
@@ -150,11 +153,14 @@ export function encounterAttackSightCaptions(input: {
 export function encounterSaveSightCaptions(
   sight: Pick<
     EncounterPreparedAttackSight,
-    'actual' | 'trueSight' | 'believedSight' | 'attackerLabel' | 'targetLabel'
+    'gameSystemId' | 'actual' | 'trueSight' | 'believedSight' | 'attackerLabel' | 'targetLabel'
   >
 ): { playerCaption: string; gmReason: string } | null {
   const held = (from: readonly EncounterRelationshipD20Contributor[]) =>
-    from.map(({ influence }) => (influence === 'ADVANTAGE' ? 'Advantage' : 'Disadvantage'))
+    from.map(
+      ({ influence }) =>
+        systemVocabularyRegistry.requireCode(sight.gameSystemId, 'rollInfluence', influence).label
+    )
   const missing = (
     side: readonly EncounterRelationshipD20Contributor[],
     other: readonly EncounterRelationshipD20Contributor[]

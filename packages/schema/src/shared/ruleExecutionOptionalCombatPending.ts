@@ -31,12 +31,18 @@ import {
 } from './ruleExecutionPrimitives.js'
 import { MAX_SPATIAL_CANDIDATES, spatialPointDtoSchema } from './spatialFacts.js'
 import { AUTHORED_LIMITS, MAX_ENCOUNTER_ACTORS } from './authoredLimits.js'
+import {
+  rollModeKeepFaceCount,
+  rollModeKeepSchema,
+  systemVocabularyCodeSchema
+} from './systemVocabularyCode.js'
 
 /** One sealed contest d20 roll: its mode, contributors and modifier. */
 const contestD20RollDtoSchema = lazySchema(() =>
   z
     .strictObject({
-      rollMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      rollMode: systemVocabularyCodeSchema,
+      keep: rollModeKeepSchema,
       contributors: z
         .array(receiptD20ContributorSchema)
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
@@ -442,8 +448,7 @@ export const serverContestCheckPendingContextDtoSchema = lazySchema(() =>
           path: 'initiator' | 'defender'
         ) => {
           if (evidence === null || !policy) return
-          const expectedFaces = policy.rollMode === 'NORMAL' ? 1 : 2
-          if (evidence.rawFaces.length !== expectedFaces) {
+          if (evidence.rawFaces.length !== rollModeKeepFaceCount(policy.keep)) {
             context.addIssue({
               code: 'custom',
               path: ['rollEvidence', path, 'rawFaces'],

@@ -24,6 +24,7 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import RichTextEditor from '#app/ui/primitives/RichTextEditor/RichTextEditor'
 import { renderSanitizedRichHtml } from '#app/lib/richText'
+import { findOption } from '#app/forms/utils/valueGuards'
 import type { CampaignSessionNoteSectionDto } from '@artificer-toolkit/schema/api/campaignSessions'
 import { CampaignNoteByline, CampaignNoteVisibilitySelect } from './CampaignNoteVisibility'
 import { SessionSectionEditor } from './CampaignSessionNotes'
@@ -100,7 +101,7 @@ function CampaignNotesContent({
         ]}
         fullWidth
         value={view}
-        onChange={(value) => setView(value as typeof view)}
+        onChange={(value) => setView(findOption(['campaign', 'sessions'], value) ?? view)}
       />
 
       {view === 'campaign' ? (
