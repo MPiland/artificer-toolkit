@@ -194,6 +194,21 @@ test that resolved to another path commits nothing. Under a test, two outcomes s
 teleport, which takes its reach from a self-targeted action's range, and `CANCEL_TRIGGERING_EVENT`, which belongs to a
 spell-cast reaction and a spell-cast reaction is never a test activation.
 
+**Direct outcome dispatch (current, RULES-2.T6e).** `supported()` checks the action's shape once, then hands the
+authored outcome to `DND5E_DIRECT_OUTCOMES`: one entry per authored outcome kind, with no ladder around it. A kind with
+no entry is not a direct outcome. An entry receives the resolved inputs (`onList`, `selfTeleport`, whether a grant, link
+or form plan exists), and `offList` keeps the rule that a chosen-creatures list runs only hit-point, departure, grant,
+link and creature-form outcomes. Every compiled graph is published through one helper, `publishedGraph`. Two
+admissions changed:
+
+- A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
+  `effectActionTargetPolicy` is the one predicate for that rule, shared by the direct shape check, the test activation
+  check and the single-target range policy. So a charged free save option (Wing Attack's authored shape) compiles under
+  its save.
+- A direct entry authored as a sequence of one outcome (Haste) resolves as a single result does. Only a `CHOICE` group
+  is refused there. The recurring-plan sites still require `SINGLE`, because no SRD record authors a recurring sequence
+  of one.
+
 ## Ownership and publication
 
 Game System adapters own rules vocabulary and policy, including D&D 2014. Reusable mechanics remain
