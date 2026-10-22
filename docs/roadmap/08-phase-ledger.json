@@ -4224,7 +4224,7 @@
             },
             {
               "id": "RULES-2.T9n",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4234,9 +4234,8 @@
                 "after": []
               },
               "text": "SRD import adapter (importedEquipmentTerms) maps GP, Walk, Stealth and Dwarven to their source-data definition IDs instead of code constants; it stays in the importer.",
-              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845550346"
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343). Merged in m351.",
+              "mergedAt": "2026-10-22T20:16:56Z"
             },
             {
               "id": "RULES-2.T9o",
@@ -15133,10 +15132,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 1,
+                "size": 5,
                 "after": ["SPELLS-33.T6e", "SPELLS-4.T2m1", "SPELLS-4.T2m1b2b"]
               },
-              "text": "Vampire Charm: repeat save when harmed by the source side through the SPELLS-4.T2m on-damage repeat timing (1 kind). Authoring-parity proof; deletes its kind (2026-10-18 ruling on the T6e design; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
+              "text": "Vampire Charm: a generic follow-up-save timing that repeats only on its repeatTriggers (no turn-end save), with the duration still counted down by the turn kernel (D176); Charm repeats its save when the source side harms it. Authoring-parity proof; deletes its kind (2026-10-18 ruling on the T6e design; workbook slice-spells-33.md). No SRD_CREATURE_ATTACK_UNSUPPORTED entry depends on Charm; Vampire Bite stays a separate kind.",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
@@ -15426,7 +15425,7 @@
               "note": "Merged m326 (68e28ea27)."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "id": "SPELLS-33.T4i1f",
               "text": "Legendary discovery compiles through compileCastChoicePlans (split from RULES-2.T6e 2026-10-22, G6): a legendary action option carries its cast-choice pick through the room, so Vampire Unarmed Strike is offered as a legendary action.",
               "closes": ["SPELLS-33.1"],
@@ -15437,8 +15436,8 @@
                 "size": 3,
                 "after": ["RULES-2.T6e"]
               },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39845550346"
+              "mergedAt": "2026-10-22T20:16:56Z",
+              "note": "Merged in m351."
             },
             {
               "id": "SPELLS-33.T4i3e",

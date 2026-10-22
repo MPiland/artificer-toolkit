@@ -1105,6 +1105,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Primeval Awareness** is Sheet-only: spending the slot through the generic `USE_SPELL_SLOT` is the whole mechanic.
   - **Expanded spell lists:** `access: 'CAST' | 'CLASS_LIST_ONLY'` plus `classListIds`, merged by one function (`spellClassListAdditions.ts`). The Builder owns the merged list, and the Sheet only reads it. Inconsistent shapes are refused at compile time.
   - **Deleted kinds:** `CLASS_WARLOCK_INVOCATION_PACT_SLOT_COST`, `CLASS_RANGER_PRIMEVAL_AWARENESS`, `CLASS_FIEND_EXPANDED_SPELL_LIST`.
+* **D176** (2026-10-22) A repeat save that fires only on its triggers (SPELLS-33.T6e2, AC SPELLS-33.1; [slice-spells-33.md](slice-spells-33.md)). Orchestrator ruling.
+  - **Problem:** `repeatTriggers` (with the generic `SOURCE_SIDE` damager check) ride only the turn-end repeat plan, so an effect that repeats its save only when harmed, such as Vampire Charm, would also save at every turn end.
+  - **Option:** a generic follow-up-save timing that requires `repeatTriggers` and plans no turn-end save. The effect keeps its frozen repeat-save graph for the damage hook, and the turn kernel still counts a fixed duration down without rolling a save, so a 24-hour duration expires. Schema, node map, web defaults, compiler, the kernel's tick path and the persistence checksum change together.
+  - **Not in this slice:** Vampire Bite's own kind. Charm's clauses the SRD option set cannot express (ends when the source is destroyed or on another plane, the source's bonus action to end it, "a humanoid that can see it") stay description-only; see [future enhancements](../roadmap/future-enhancements.md#effects-that-end-with-their-source).
+  - **Rejected:** an indefinite Charm with no tick count (drops the expiry), and deferring T6e2 until SPELLS-4 adds the timing.
 
 ## Approved implementation decisions
 
