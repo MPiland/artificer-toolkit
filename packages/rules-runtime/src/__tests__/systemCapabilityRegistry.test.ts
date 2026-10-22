@@ -3,14 +3,24 @@ import { describe, expect, it } from 'vitest'
 import {
   abilityScoreCapabilityRegistry,
   actionEconomyCapabilityRegistry,
+  characterActionCapabilityRegistry,
+  characterProgressionCapabilityRegistry,
   creatureConditionCapabilityRegistry
 } from '../platformPolicyModules.js'
 import {
   armorClassCapabilityRegistry,
+  attackProfileCapabilityRegistry,
+  characterRuleActionSystemAdapterRegistry,
   contestCheckCapabilityRegistry,
   d20TestDefinitionCapabilityRegistry,
+  encounterFeatureActionCapabilityRegistry,
+  executionOutcomeCapabilityRegistry,
   initiativeCapabilityRegistry,
-  optionalCombatPolicyCapabilityRegistry
+  legendaryActionEligibilityCapabilityRegistry,
+  modifierScopeCapabilityRegistry,
+  movementReactionEligibilityCapabilityRegistry,
+  optionalCombatPolicyCapabilityRegistry,
+  sceneGridPolicyCapabilityRegistry
 } from '../platformEncounterPolicy.js'
 import { createSystemCapabilityRegistry } from '../systemCapabilityRegistry.js'
 import {
@@ -86,6 +96,18 @@ describe('installed D&D capability adapters', () => {
         DND5E_BONUS_ACTION_ALLOWANCE_DEFINITION_ID
       ].sort()
     )
+  })
+
+  it('character progression gives the 5e hit die, level hit points and proficiency bonus', () => {
+    const progression = characterProgressionCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    expect(['d10', '1d8', '2d6', ''].map(progression.hitDieSize)).toEqual([10, 8, null, null])
+    expect(progression.hitDieAverage(10)).toBe(6)
+    expect(
+      [1, 2].map((characterLevel) =>
+        progression.hitPointGain({ die: 10, characterLevel, fixed: true, roll: null, modifier: 2 })
+      )
+    ).toEqual([12, 8])
+    expect([1, 4, 5, 17].map(progression.proficiencyBonus)).toEqual([2, 2, 3, 6])
   })
 
   it('ability scores give the 5e modifier and keep the mental abilities in a Creature form', () => {
@@ -165,7 +187,50 @@ describe('installed D&D capability adapters', () => {
         passageAlreadyUsedThisTurn: false
       })
     ).toEqual({ kind: 'INERT' })
+    expect(
+      policy.prepareDisarmContest({
+        automationMode: 'MANUAL',
+        gameSystemId: DND5E_SYSTEM_ID,
+        optionalCombatSnapshot: null,
+        optionalCombatSnapshotChecksum: null,
+        attackerActorId: '00000000-0000-4000-8000-000000000703',
+        attackerSize: null,
+        heldItemId: null,
+        targetActorId: '00000000-0000-4000-8000-000000000702',
+        targetCheckDefinitionId: null,
+        targetEquipment: null,
+        targetItemOwnerState: null,
+        targetSize: null,
+        triggerCode: null,
+        sourceEquipment: null,
+        attack: null
+      })
+    ).toEqual({ kind: 'INERT' })
     expect(optionalCombatPolicyCapabilityRegistry.find(UNKNOWN_SYSTEM_ID)).toBeUndefined()
+  })
+
+  it('installs the D&D attack profile: kinds, domains and the traits a feature attack carries', () => {
+    const profile = attackProfileCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    expect(profile.attackKind('MELEE_SPELL_ATTACK')).toBe('MELEE_SPELL')
+    expect(profile.attackKind('SAVING_THROW')).toBeNull()
+    expect(profile.attackDomain('RANGED_SPELL')).toBe('SPELL')
+    expect(profile.attackDomain('UNARMED')).toBe('UNARMED')
+    expect(profile.featureAttackTraits('RANGED_SPELL', [])).toEqual({
+      magical: true,
+      silvered: false,
+      adamantine: false
+    })
+    expect(profile.featureAttackTraits('MELEE', ['SILVERED'])).toEqual({
+      magical: false,
+      silvered: true,
+      adamantine: false
+    })
+  })
+
+  it('installs the D&D modifier scope', () => {
+    expect(modifierScopeCapabilityRegistry.require(DND5E_SYSTEM_ID).gameSystemId).toBe(
+      DND5E_SYSTEM_ID
+    )
   })
 
   it.each([
@@ -173,10 +238,37 @@ describe('installed D&D capability adapters', () => {
     ['armor-class', armorClassCapabilityRegistry],
     ['d20-test-definition', d20TestDefinitionCapabilityRegistry],
     ['contest-check', contestCheckCapabilityRegistry],
-    ['optional-combat', optionalCombatPolicyCapabilityRegistry]
+    ['optional-combat', optionalCombatPolicyCapabilityRegistry],
+    ['attack-profile', attackProfileCapabilityRegistry],
+    ['modifier-scope', modifierScopeCapabilityRegistry],
+    ['character-action', characterActionCapabilityRegistry],
+    ['character-progression', characterProgressionCapabilityRegistry],
+    ['character-rule-action', characterRuleActionSystemAdapterRegistry],
+    ['encounter-feature-action', encounterFeatureActionCapabilityRegistry],
+    ['execution-outcome', executionOutcomeCapabilityRegistry],
+    ['legendary-action', legendaryActionEligibilityCapabilityRegistry],
+    ['movement-reaction', movementReactionEligibilityCapabilityRegistry],
+    ['scene-grid', sceneGridPolicyCapabilityRegistry]
   ] as const)('%s fails closed on a System that does not install it', (capability, registry) => {
     expect(() => registry.require(UNKNOWN_SYSTEM_ID)).toThrow(
       `The Game System does not provide ${capability} policy.`
     )
+  })
+
+  it.each([
+    ['character-action', characterActionCapabilityRegistry],
+    ['character-progression', characterProgressionCapabilityRegistry],
+    ['character-rule-action', characterRuleActionSystemAdapterRegistry],
+    ['encounter-feature-action', encounterFeatureActionCapabilityRegistry],
+    ['execution-outcome', executionOutcomeCapabilityRegistry],
+    ['legendary-action', legendaryActionEligibilityCapabilityRegistry],
+    ['movement-reaction', movementReactionEligibilityCapabilityRegistry],
+    ['scene-grid', sceneGridPolicyCapabilityRegistry]
+  ] as const)('installs the D&D %s capability', (_capability, registry) => {
+    expect(registry.require(DND5E_SYSTEM_ID).gameSystemId).toBe(DND5E_SYSTEM_ID)
+  })
+
+  it('leaves the optional scene grid policy absent for a System that does not install it', () => {
+    expect(sceneGridPolicyCapabilityRegistry.find(UNKNOWN_SYSTEM_ID)).toBeUndefined()
   })
 })

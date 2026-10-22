@@ -1,5 +1,6 @@
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 
 /**
@@ -34,7 +35,9 @@ export type EncounterEvent =
    * The holder takes damage. `AFTER`, it survived the holder's defenses and intercepts: of these types
    * (null for a source that dealt several), from `damagerActorId` (null when nobody dealt it).
    * `BEFORE`, it is about to land as the batch settling it plans it, taking the holder's current hit
-   * points from `before` to `after`; an intercept it meets changes where it lands.
+   * points from `before` to `after`; an intercept it meets changes where it lands. `damageTaken` is the
+   * whole blow after resistance, vulnerability and immunity (not the overflow past 0), of
+   * `damageTypeId`, and `critical` when it came from a critical hit.
    */
   | {
       kind: 'DAMAGED'
@@ -43,7 +46,14 @@ export type EncounterEvent =
       damageTypeIds: readonly (string | null)[]
       dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
     }
-  | { kind: 'DAMAGED'; phase: 'BEFORE'; hitPoints: { before: number; after: number } }
+  | {
+      kind: 'DAMAGED'
+      phase: 'BEFORE'
+      hitPoints: { before: number; after: number }
+      damageTaken: number
+      damageTypeId: string | null
+      critical: boolean
+    }
   /** An effect is about to kill the holder outright. */
   | { kind: 'KILLED' }
   /**
@@ -52,6 +62,10 @@ export type EncounterEvent =
    */
   | { kind: 'HARMFUL_ACTION_AIMED'; attackerCreatureTypeId: string | null }
   | { kind: 'HIT_POINTS_REGAINED' }
+  /** The holder is defeated (dead, or at 0 hit points as its kind defeats). */
+  | { kind: 'DEFEATED' }
+  /** A held effect bars the holder from maintaining a link (the System's casting lock). */
+  | { kind: 'MAINTENANCE_BARRED' }
   /** The holder is incapacitated or defeated, or the sources named are. */
   | { kind: 'INCAPACITATED'; of: 'HOLDER' }
   | { kind: 'INCAPACITATED'; of: 'SOURCE'; sourceActorIds: ReadonlySet<string> }
@@ -99,6 +113,8 @@ export type EncounterEventSubscription =
         | 'ATTACKED'
         | 'HIT'
         | 'HIT_POINTS_REGAINED'
+        | 'DEFEATED'
+        | 'MAINTENANCE_BARRED'
         | 'ITEM_RELEASED'
         | 'IDLE_TURN'
         | 'MOVED'
@@ -113,6 +129,18 @@ export type EncounterEffectHook =
       subscription: Extract<EncounterEventSubscription, { event: 'DAMAGED' }>
       trigger: ActiveEffectRepeatTrigger
     }
+
+/**
+ * What a maintenance link (Concentration) does when an event meets one of its subscriptions: it
+ * breaks for `reason`, or its holder owes a save. The System supplies the hooks in priority order.
+ */
+export type MaintenanceLinkHook =
+  | {
+      hook: 'BREAK'
+      reason: Exclude<ConcentrationEndReason, 'CHOSEN'>
+      subscription: EncounterEventSubscription
+    }
+  | { hook: 'SAVE'; subscription: Extract<EncounterEventSubscription, { event: 'DAMAGED' }> }
 
 /**
  * A reaction an event offers its holder, by the event and the authored trigger it met. A damage-type
@@ -133,7 +161,13 @@ export type EncounterReactionHook =
  * subscription: it intercepts damage about to take its holder from above 0 hit points to 0, and an
  * outright kill when `negatesKill`.
  */
-export type DamageInterceptionSubscription = { negatesKill: boolean }
+export type DamageInterceptionSubscription = {
+  negatesKill: boolean
+  /** A blow of these types, or a critical hit, is not met. */
+  excludes?: { damageTypeIds: readonly string[]; critical: boolean }
+  /** A blow taking more than this many hit points is not met. */
+  maxDamageTaken?: number
+}
 
 /**
  * A held incoming gate (`INCOMING_ATTACK_GATE`) by its authored payload, which is its subscription: it

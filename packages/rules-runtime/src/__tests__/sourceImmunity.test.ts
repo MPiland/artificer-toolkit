@@ -9,7 +9,7 @@ import {
 
 import { buildCharacterSpellCastRuleFacts } from '../character/characterSpellCastRuleFacts.js'
 import { buildCharacterSpellRuleFacts } from '../character/characterSpellRuleFacts.js'
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
@@ -184,8 +184,7 @@ describe('immunity to a source after a successful save (SPELLS-31.T5l, D156)', (
   it('refuses the same roarer’s Roar against the holder, not another roarer’s', async () => {
     const saved = await roar(19)
     const immunity = saved.effects.riderEffect
-    if (immunity?.definition.schemaVersion !== 2)
-      throw new Error('The successful save planned no immunity.')
+    if (!immunity) throw new Error('The successful save planned no immunity.')
     const held = [
       {
         ...activeEffect({
@@ -349,7 +348,7 @@ describe('SRD Chains of Carceri: a grant that locks each target out (SPELLS-31.T
 
   it('refuses the locked-out creature this Warlock’s next at-will cast', () => {
     const lockout = planned('ON_SAVE_SUCCESS').riderEffect
-    if (lockout?.definition.schemaVersion !== 2) throw new Error('The cast planned no lockout.')
+    if (!lockout) throw new Error('The cast planned no lockout.')
     const holderEffects = [
       {
         ...activeEffect({

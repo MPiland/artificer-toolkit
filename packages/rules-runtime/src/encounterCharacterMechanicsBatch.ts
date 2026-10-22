@@ -27,6 +27,8 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import {
   hitPointsAfterDamage,
+  interceptionChargeMatches,
+  interceptionChargeReceipt,
   killInterception,
   type HeldDamageInterception
 } from './encounterDamageInterception.js'
@@ -318,11 +320,15 @@ export function foldCharacterMechanicsApplications<
       const spent = killInterception(unspentInterceptions)
       if (spent === undefined || spent.effectId !== application.negatedBy)
         throw new EncounterValidationError('The Character kill negation is invalid.')
+      if (!interceptionChargeMatches(application.interceptionCharge, spent))
+        throw new EncounterValidationError('The Character kill negation charge is invalid.')
       unspentInterceptions.splice(unspentInterceptions.indexOf(spent), 1)
+      const interceptionCharge = interceptionChargeReceipt(spent)
       receipt.push({
         ordinal,
         kind: 'KILL_NEGATED',
         negatedBy: application.negatedBy,
+        ...(interceptionCharge && { interceptionCharge }),
         sourceNodeId: application.sourceNodeId,
         sourceOperationKey: application.sourceOperationKey,
         authoredPath: application.authoredPath,
@@ -521,14 +527,36 @@ export function foldCharacterMechanicsApplications<
         temporaryLost
       ).sourceEffectId
       const currentLost = Math.min(current, resolvedAmount - temporaryLost)
-      const { after: afterCurrent, interception } = hitPointsAfterDamage({
+      const {
+        after: afterCurrent,
+        interception,
+        saves
+      } = hitPointsAfterDamage({
         current,
         currentLost,
         maximum,
+        damageTaken: resolvedAmount,
+        damageTypeId: application.damageTypeId,
+        critical: application.critical,
         interceptions: unspentInterceptions
       })
       const intercepted = interception !== undefined
-      if (intercepted !== (application.interceptedBy !== undefined))
+      const recordedSaves = application.interceptionSaves ?? []
+      if (
+        intercepted !== (application.interceptedBy !== undefined) ||
+        !interceptionChargeMatches(application.interceptionCharge, interception) ||
+        recordedSaves.length !== saves.length ||
+        saves.some((save, index) => {
+          const recorded = recordedSaves[index]
+          return (
+            recorded?.effectId !== save.effectId ||
+            recorded.rawDie !== save.rawDie ||
+            recorded.addedTotal !== save.addedTotal ||
+            recorded.dc !== save.dc ||
+            recorded.passed !== save.passed
+          )
+        })
+      )
         throw new EncounterValidationError('The Character damage interception is invalid.')
       if (intercepted) unspentInterceptions.splice(unspentInterceptions.indexOf(interception), 1)
       if (

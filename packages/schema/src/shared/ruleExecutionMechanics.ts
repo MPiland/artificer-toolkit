@@ -21,6 +21,48 @@ import {
   ruleExecutionReceiptOrdinalSchema as receiptOrdinalSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
+/** A save a damage interception asked of its holder: the dice rolled, the DC they met and the result. */
+export type DamageInterceptionSaveDto = {
+  effectId: string
+  rawDie: number
+  addedTotal: number
+  dc: number
+  passed: boolean
+}
+
+/** Typed explicitly so the receipts embedding it stay within the declaration size limit (TS7056). */
+const damageInterceptionSaveDtoSchema: z.ZodMiniType<DamageInterceptionSaveDto> = lazySchema(() =>
+  z.strictObject({
+    effectId: uuidSchema,
+    rawDie: integerSchema.check(z.gte(1)),
+    addedTotal: integerSchema,
+    dc: integerSchema,
+    passed: z.boolean()
+  })
+)
+/** The charge a feature-held damage interception spent: the holder's own feature resource and its before/after counts. */
+export type DamageInterceptionChargeDto = {
+  ownerFeatureId: string
+  chargeId: string
+  cost: number
+  beforeUsed: number
+  afterUsed: number
+  beforeRemaining: number
+  afterRemaining: number
+}
+
+const damageInterceptionChargeDtoSchema: z.ZodMiniType<DamageInterceptionChargeDto> = lazySchema(
+  () =>
+    z.strictObject({
+      ownerFeatureId: authoredIdentifierSchema,
+      chargeId: authoredIdentifierSchema,
+      cost: integerSchema.check(z.gte(1)),
+      beforeUsed: integerSchema.check(z.gte(0)),
+      afterUsed: integerSchema.check(z.gte(0)),
+      beforeRemaining: integerSchema.check(z.gte(0)),
+      afterRemaining: integerSchema.check(z.gte(0))
+    })
+)
 const characterMechanicsApplicationTraceDtoSchema = lazySchema(() =>
   z.strictObject({
     sourceNodeId: identifierSchema,
@@ -107,6 +149,10 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
       critical: z.boolean(),
       /** The held effect whose damage interception left the target above 0 hit points instead. */
       interceptedBy: z.optional(uuidSchema),
+      /** The saves the blow's interceptions asked of the target, in the order they were rolled. */
+      interceptionSaves: z.optional(z.array(damageInterceptionSaveDtoSchema)),
+      /** The charge the intercepting feature spent, when it is limited-use. */
+      interceptionCharge: z.optional(damageInterceptionChargeDtoSchema),
       ...characterMechanicsApplicationTraceDtoSchema.shape
     }),
     z.strictObject({
@@ -150,6 +196,8 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
       kind: z.literal('KILL_NEGATED'),
       /** The held effect whose damage interception negated the kill; it spent a use. */
       negatedBy: uuidSchema,
+      /** The charge the negating feature spent, when it is limited-use. */
+      interceptionCharge: z.optional(damageInterceptionChargeDtoSchema),
       ...characterMechanicsApplicationTraceDtoSchema.shape
     }),
     z.strictObject({

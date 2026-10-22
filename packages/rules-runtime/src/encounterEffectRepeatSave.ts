@@ -12,7 +12,6 @@ import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/sche
 import type { ServerRuleExecutionD20PolicyDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { damageSaveTargetCharacterPins } from './encounterConcentration.js'
 import { concentrationOccurrenceId } from './encounterConcentrationIdentity.js'
 import type { EncounterEvidenceAnswer } from './encounterEvidenceAnswer.js'
@@ -106,8 +105,7 @@ export function effectRepeatSaveExecutionInput(input: {
     ...activeEffectTargetFacts(input.target),
     perception: null,
     rollInfluence: input.rollInfluence,
-    runtime: input.runtime,
-    adapters: characterRuleActionSystemAdapterRegistry
+    runtime: input.runtime
   }
 }
 

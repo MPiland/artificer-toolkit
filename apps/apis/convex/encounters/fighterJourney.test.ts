@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
-import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
+import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscovery'
 import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { greataxe } from '@artificer-toolkit/source-data/srd/equipment/greataxe.js'
-import { checkpointLiveRoom, queueRoomRolls, useLocalRoomWorker } from '../../tests/fixtures/localRoomWorker'
+import {
+  checkpointLiveRoom,
+  queueRoomRolls,
+  useLocalRoomWorker
+} from '../../tests/fixtures/localRoomWorker'
 import { homebrewCopy } from '../../tests/fixtures/homebrewCopy'
 import { rejection } from '../../tests/fixtures/roomRefusals'
 import { actOnRun, executeOnRun, setupWolfRun } from '../../tests/fixtures/srdWolfRun'
@@ -144,7 +148,9 @@ async function fighterState(fixture: Fixture) {
 
 const ACTION_ECONOMY_UNAVAILABLE = {
   reason: 'RULE_WARNINGS',
-  warnings: expect.arrayContaining([expect.objectContaining({ code: 'ACTION_ECONOMY_UNAVAILABLE' })])
+  warnings: expect.arrayContaining([
+    expect.objectContaining({ code: 'ACTION_ECONOMY_UNAVAILABLE' })
+  ])
 }
 
 describe.each(FIGHTERS)('$name uses class features in an Encounter (ATTACK-9.T3)', ({ source }) => {
@@ -152,11 +158,17 @@ describe.each(FIGHTERS)('$name uses class features in an Encounter (ATTACK-9.T3)
     const { actions, chargeIds } = await setup(source)
     expect(actions.secondWind.activation).toMatchObject({ code: 'BONUS_ACTION' })
     expect(actions.secondWind.entry).toMatchObject({
-      compilation: { kind: 'COMPILED', resourceBinding: { chargeId: chargeIds.secondWind, cost: 1 } }
+      compilation: {
+        kind: 'COMPILED',
+        resourceBinding: { chargeId: chargeIds.secondWind, cost: 1 }
+      }
     })
     expect(actions.actionSurge.activation).toMatchObject({ code: 'FREE' })
     expect(actions.actionSurge.entry).toMatchObject({
-      compilation: { kind: 'COMPILED', resourceBinding: { chargeId: chargeIds.actionSurge, cost: 1 } }
+      compilation: {
+        kind: 'COMPILED',
+        resourceBinding: { chargeId: chargeIds.actionSurge, cost: 1 }
+      }
     })
   }, 60000)
 
@@ -254,9 +266,7 @@ describe.each(FIGHTERS)('$name uses class features in an Encounter (ATTACK-9.T3)
       expect((await fighterState(fixture)).actionSurgeChargesUsed).toBe(0)
 
       const first = await missesTheWolf(fixture, reverted)
-      expect(await rejection(swingAtWolf(fixture, first))).toMatchObject(
-        ACTION_ECONOMY_UNAVAILABLE
-      )
+      expect(await rejection(swingAtWolf(fixture, first))).toMatchObject(ACTION_ECONOMY_UNAVAILABLE)
     }, 120000)
   })
 })

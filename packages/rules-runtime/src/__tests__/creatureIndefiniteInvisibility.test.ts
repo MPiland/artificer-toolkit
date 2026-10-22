@@ -9,8 +9,7 @@ import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans
 import { compileEncounterFeatureActionPlan } from '../encounterActionEntryPointCompiler.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 import { actionEndedEffects } from '../encounterEndedEffectRelease.js'
-import { createEncounterFeatureActionCapabilityDiscoveryRegistry } from '../encounterFeatureActionCapabilityDiscovery.js'
-import { dnd5eEncounterFeatureActionCapabilityAdapter } from '../systems/dnd5e/encounterFeatureActionCapabilityDiscovery.js'
+import { discoverUncompiledEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import {
   ENCOUNTER_ID,
@@ -23,9 +22,6 @@ import {
 const INVISIBLE = srdSystemRecord.conditionTypes.find(({ code }) => code === 'INVISIBLE')!.id
 const conditionDefinitionIds = srdSystemRecord.conditionTypes.map(({ id }) => id)
 const abilityDefinitions = (srdSystemRecord.abilities ?? []).map(({ id, code }) => ({ id, code }))
-const discovery = createEncounterFeatureActionCapabilityDiscoveryRegistry([
-  dnd5eEncounterFeatureActionCapabilityAdapter
-])
 
 /** SRD text: the Imp and Quasit end on an attack; the Sprite and Green Hag also end on a cast. */
 const TRAITS = [
@@ -62,9 +58,12 @@ function compiledTrait(
     : srdCreature
   const feature = creatureFeature(creature, featureLabel)
   const actor = srdCreatureActor({ id: testUuid(0x2000), creature })
-  const capability = discovery
-    .discover({ spells: new Map(), actor, conditionDefinitionIds, abilityDefinitions })
-    .available.find((candidate) => candidate.ownerFeatureId === feature.id)
+  const capability = discoverUncompiledEncounterFeatureActions({
+    spells: new Map(),
+    actor,
+    conditionDefinitionIds,
+    abilityDefinitions
+  }).available.find((candidate) => candidate.ownerFeatureId === feature.id)
   if (!capability) throw new Error(`${creatureLabel} ${featureLabel} is not offered as an action.`)
   const executionPlan = compileEncounterFeatureActionPlan(
     dnd5eCharacterRuleActionSystemAdapter,

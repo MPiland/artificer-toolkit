@@ -6,6 +6,10 @@ import type {
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 
+import type { CharacterAttack } from '../../attackProfileCapability.js'
+import type { ModifierScopeCapabilityAdapter } from '../../modifierScopeCapability.js'
+import { DND5E_SYSTEM_ID } from './identity.js'
+
 type ItemCondition = CharacterGrantFoldRestriction[number]['conditions'][number]
 type AttackFacts = Pick<Dnd5eModifierTarget, 'item' | 'attackAbility' | 'activation'>
 
@@ -166,6 +170,13 @@ export function dnd5eModifierApplies(
   )
 }
 
+export const dnd5eModifierScopeCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  appliesCharacterWide: (modifier) =>
+    dnd5eModifierApplies(dnd5eAcceptedModifierApplicability(modifier), DND5E_CHARACTER_WIDE_TARGET),
+  saveRequiresSourceSight: dnd5eSaveRequiresSourceSight
+} as const satisfies ModifierScopeCapabilityAdapter
+
 export function dnd5eAcceptedModifierApplicability(
   modifier: CharacterGrantFoldOutput['modifiers'][number]
 ): Dnd5eModifierApplicability {
@@ -219,6 +230,14 @@ export function dnd5eCharacterActionTarget(
     attackAbility: null,
     activation: candidate.mechanicFacts.invocation.activation?.code ?? null,
     spellId: candidate.mechanicsOwner.kind === 'SPELL' ? candidate.mechanicsOwner.id : null
+  }
+}
+
+/** One Character attack's target: its action's sources and item, and the ability it attacks with. */
+export function dnd5eCharacterAttackTarget(attack: CharacterAttack): Dnd5eModifierTarget {
+  return {
+    ...dnd5eCharacterActionTarget(attack.candidate, attack.ammunition),
+    attackAbility: attack.attackAbility
   }
 }
 

@@ -11,14 +11,16 @@ import {
   deadCharacterIdsOfTargets,
   isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
-import { nearestAbleEnemyProximity } from '@artificer-toolkit/rules-runtime/encounterEnemyProximity'
-import { movedTowardTarget } from '@artificer-toolkit/rules-runtime/encounterMoveToward'
+import {
+  nearestAbleEnemyProximity,
+  type EnemyProximity
+} from '@artificer-toolkit/rules-runtime/encounterEnemyProximity'
+import {
+  movedTowardTarget,
+  type MoveToward
+} from '@artificer-toolkit/rules-runtime/encounterMoveToward'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import type { CurrentReusableDefinitionSource } from '@artificer-toolkit/rules-runtime/ruleCapabilityStateService'
-import type {
-  Dnd5eEnemyProximity,
-  Dnd5eMoveToward
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackRestrictions'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 import { readNativeLiveTurnLastMove } from './nativeTurnUses.js'
 
@@ -38,9 +40,7 @@ type EnemyProximityInput = {
  * How near an enemy stands to an attack's target among the given Scene tokens. Every actor
  * consulted is loaded through `loadTarget`, so its revision joins the commit's read fence.
  */
-export function measureNativeEnemyProximity(
-  input: EnemyProximityInput
-): Promise<Dnd5eEnemyProximity> {
+export function measureNativeEnemyProximity(input: EnemyProximityInput): Promise<EnemyProximity> {
   return nearestAbleEnemyProximity({
     grid: input.grid,
     actors: input.actors,
@@ -72,7 +72,7 @@ export function measureNativeEnemyProximity(
 export async function readNativeLiveEnemyProximity(
   input: Omit<EnemyProximityInput, 'attackerActorId' | 'targetActorId' | 'grid' | 'tokens'> &
     LiveAttackScene
-): Promise<Dnd5eEnemyProximity | null> {
+): Promise<EnemyProximity | null> {
   const { sceneContext } = input
   if (!sceneContext) return null
   const tokens = await captureActionSceneTokens(input, sceneContext)
@@ -90,9 +90,7 @@ export async function readNativeLiveEnemyProximity(
  * the live Scene the action locked and the room's turn record (D164). Null for an action without
  * Scene positions, which leaves the check unanswerable.
  */
-export async function readNativeLiveMoveToward(
-  input: LiveAttackScene
-): Promise<Dnd5eMoveToward | null> {
+export async function readNativeLiveMoveToward(input: LiveAttackScene): Promise<MoveToward | null> {
   const { sceneContext } = input
   if (!sceneContext) return null
   const tokens = await captureActionSceneTokens(input, sceneContext)

@@ -7,7 +7,7 @@ import { buildEncounterActorRuleFacts } from './encounterActorRuleFacts.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import { defeatedEncounterActorIds, type DeadCharacterIds } from './encounterActorDefeat.js'
 import { CharacterRuleActionUnsupportedCompilationError } from './characterRuleActionSystemAdapter.js'
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
+import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 import {
   buildCompiledActionTargetPolicy,
   compileEncounterFeatureActionPlan
@@ -53,8 +53,8 @@ function optionForCandidate(
   actorIds: readonly string[]
 ): LegendaryActionChoiceGroupDto['options'][number] | null {
   const resource = candidate.action.featureResourceUse
-  const adapter = characterRuleActionSystemAdapterRegistry.get(candidate.gameSystemId)
-  if (!resource || !adapter) throw new Error('The Legendary Action source cannot be executed.')
+  if (!resource) throw new Error('The Legendary Action source cannot be executed.')
+  const adapter = characterRuleActionSystemAdapterRegistry.require(candidate.gameSystemId)
   const plan = compileOrNull(() => compileEncounterFeatureActionPlan(adapter, candidate.action))
   if (!plan) return null
   const targetPolicy = buildCompiledActionTargetPolicy(candidate.action)

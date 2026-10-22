@@ -27,7 +27,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterDefaultAttack'
 import { snapshotCreatureEquipmentItems } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { encounterActorHeldItems } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
-import { dnd5eAttackKind } from '@artificer-toolkit/rules-runtime/systems/dnd5e/attackKind'
+import { attackProfileCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import {
   characterActionDrawWeapon,
   creatureActionDrawWeapon,
@@ -308,7 +308,11 @@ export async function readEncounterActionChoices(
         )
         const weapon = characterActionDrawWeapon(
           candidate?.equipment ?? null,
-          candidate ? dnd5eAttackKind(candidate.mechanicFacts.invocation.triggerCode) : null
+          candidate
+            ? attackProfileCapabilityRegistry
+                .require(state.gameSystemId)
+                .attackKind(candidate.mechanicFacts.invocation.triggerCode)
+            : null
         )
         const draw = handReleaseFor(weapon)
         if (candidate?.equipment)
@@ -438,7 +442,9 @@ export async function readEncounterActionChoices(
                 creatureActionDrawWeapon(
                   snapshotCreatureEquipmentItems(creature),
                   action.equipmentBinding?.loadoutEntryId,
-                  dnd5eAttackKind(action.mechanicFacts.invocation.triggerCode)
+                  attackProfileCapabilityRegistry
+                    .require(state.gameSystemId)
+                    .attackKind(action.mechanicFacts.invocation.triggerCode)
                 )
               )
             ),
@@ -607,12 +613,9 @@ export async function readEncounterActionChoices(
     : await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))) {
     const { holderEnd } = effect.definition.recurrence
     if (!holderEnd || effect.maintainedEffectStateId !== null) continue
-    const grant =
-      effect.definition.schemaVersion === 2
-        ? effect.definition.stateContributions.find(
-            (contribution) => contribution.kind === 'MODIFIER_GRANT'
-          )
-        : undefined
+    const grant = effect.definition.stateContributions.find(
+      (contribution) => contribution.kind === 'MODIFIER_GRANT'
+    )
     const economy = await readEconomy({ code: holderEnd.activation, amount: 1 })
     heldGrantEnds.push({
       activeEffectId: effect.id,

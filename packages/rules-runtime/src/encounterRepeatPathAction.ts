@@ -3,7 +3,7 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
 import { resolveEffectOffer } from './encounterEffectOffers.js'
-import { bindEncounterEffect } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
+import { bindEncounterEffect } from './encounterFeatureActionCapabilityDiscovery.js'
 
 /**
  * The server-only capability of a repeat a held effect offers its source (D166): the paths of the
@@ -71,12 +71,9 @@ export function discoverEncounterRepeatPath(input: {
   const carrier = input.effectsByHolder
     .get(offer.holderActorId)
     ?.find((effect) => effect.id === offer.effectId)
-  const grant =
-    carrier?.definition.schemaVersion === 2
-      ? carrier.definition.stateContributions.find(
-          (contribution) => contribution.kind === 'MODIFIER_GRANT'
-        )
-      : undefined
+  const grant = carrier?.definition.stateContributions.find(
+    (contribution) => contribution.kind === 'MODIFIER_GRANT'
+  )
   if (!grant) throw new Error('The selected repeat action is stale.')
   const capability: EncounterRepeatPathCapabilityDescriptor = {
     kind: 'REPEAT_PATH',

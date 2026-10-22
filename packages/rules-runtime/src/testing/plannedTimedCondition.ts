@@ -12,7 +12,8 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { buildCharacterSpellCastActions } from '../character/characterSpellCastActions.js'
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import type { CharacterRuleActionSystemAdapter } from '../characterRuleActionSystemAdapter.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { testUuid } from './dnd5eSrdEncounter.js'
@@ -30,8 +31,8 @@ export function compiledTestSpellCast(input: {
   cast: SpellCastCandidate
   decision: Omit<CharacterRulePolicyOutput['spellCastDecisions'][number], 'candidateId'>
   spellAccessCandidates?: readonly SpellAccessCandidate[]
-  /** The System adapters the cast compiles through; the shared registry by default. */
-  registry?: Parameters<typeof compileCharacterActionEntryPoints>[1]
+  /** The System adapter the cast compiles through; the installed one by default. */
+  adapter?: CharacterRuleActionSystemAdapter
 }) {
   const { spell, cast } = input
   const built = buildCharacterSpellCastActions({
@@ -98,7 +99,7 @@ export function compiledTestSpellCast(input: {
         entryPoints: built.entryPoints
       })
     },
-    input.registry
+    input.adapter
   )
   if (
     entry?.kind !== 'CHARACTER_ACTION' ||

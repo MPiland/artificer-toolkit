@@ -1,3 +1,7 @@
+import type { CharacterProgressionCapabilityAdapter } from '../../characterProgressionCapability.js'
+import { DND5E_SYSTEM_ID } from './identity.js'
+import { proficiencyBonus } from './proficiencyBonus.js'
+
 /** The size of a class hit die (`d10`, `1d10`); null when the config is not a single hit die. */
 export function parseHitDie(dieConfig: string | undefined): number | null {
   const match = /^(?:1)?d([1-9]\d*)$/i.exec(dieConfig?.trim() ?? '')
@@ -31,4 +35,12 @@ export function hitPointGain(input: {
         ? hitDieAverage(input.die)
         : (input.roll ?? 1)
   return Math.max(base + input.modifier, 1)
+}
+
+export const dnd5eCharacterProgressionCapabilityAdapter: CharacterProgressionCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  hitDieSize: parseHitDie,
+  hitDieAverage,
+  hitPointGain,
+  proficiencyBonus
 }

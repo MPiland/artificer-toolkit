@@ -12,7 +12,8 @@ import type {
   EncounterEvent,
   EncounterEventSubscription,
   EncounterReactionHook,
-  IncomingGateSubscription
+  IncomingGateSubscription,
+  MaintenanceLinkHook
 } from './encounterEventTable.js'
 
 type HookedEffect = Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>
@@ -129,15 +130,15 @@ function testSpends(
 
 /** The item a grant is bound to (Shillelagh's club); null for an unbound grant. */
 function boundItemInstanceId({ definition }: HookedEffect) {
-  if (definition.schemaVersion !== 2) return null
   for (const contribution of definition.stateContributions)
     if (contribution.kind === 'MODIFIER_GRANT' && contribution.boundItem)
       return contribution.boundItem.itemInstanceId
   return null
 }
 
+/** `effect` is null for a maintenance link, which has no effect record: effect-bound filters are unmet. */
 function subscriptionMet(
-  effect: HookedEffect,
+  effect: HookedEffect | null,
   subscription: EncounterEventSubscription,
   event: EncounterEvent
 ): boolean {
@@ -150,7 +151,7 @@ function subscriptionMet(
         (!subscription.againstEnemyOnly || event.againstEnemy)
       )
     case 'ATTACKED': {
-      if (event.kind !== 'ATTACKED') return false
+      if (event.kind !== 'ATTACKED' || !effect) return false
       const scope = effectEventScope(effect, event.holderActorId)
       return (
         scope !== null &&
@@ -162,6 +163,7 @@ function subscriptionMet(
     }
     case 'TEST':
       return (
+        effect !== null &&
         event.kind === 'TEST' &&
         event.test === subscription.test &&
         testSpends(effect, subscription.valueDomainCode, event.ability)
@@ -173,7 +175,7 @@ function subscriptionMet(
         damageTriggerMet(subscription, {
           onSourceSide: damagerOnSourceSide({
             damagerActorId: event.damagerActorId,
-            sourceActorId: sourceActorIdOf(effect),
+            sourceActorId: effect ? sourceActorIdOf(effect) : null,
             dispositions: event.dispositions
           }),
           damageTypeIds: event.damageTypeIds
@@ -182,7 +184,7 @@ function subscriptionMet(
     case 'INCAPACITATED': {
       if (event.kind !== 'INCAPACITATED' || event.of !== subscription.of) return false
       if (event.of === 'HOLDER') return true
-      const sourceActorId = sourceActorIdOf(effect)
+      const sourceActorId = effect ? sourceActorIdOf(effect) : null
       return sourceActorId !== null && event.sourceActorIds.has(sourceActorId)
     }
     case 'CONDITION_HELD':
@@ -191,7 +193,7 @@ function subscriptionMet(
         subscription.conditionIds.some((conditionId) => event.conditionIds.includes(conditionId))
       )
     case 'ITEM_RELEASED': {
-      if (event.kind !== 'ITEM_RELEASED') return false
+      if (event.kind !== 'ITEM_RELEASED' || !effect) return false
       const boundItemId = boundItemInstanceId(effect)
       return boundItemId !== null && !event.itemInstanceIdsOnActor.includes(boundItemId)
     }
@@ -259,17 +261,24 @@ function reactionHookMet(
 /** A passive feature's subscription to its holder's damage: a grant it gives itself (see `targetEndedEffects`). */
 type DamageGrantSubscription = { damageTypeIds: readonly string[] }
 
-/** Whether a damage interception intercepts the event: a blow about to drop its holder to 0, or a kill. */
+/**
+ * Whether a damage interception intercepts the event: a kill it negates, or a blow about to drop its
+ * holder to 0 that its exclusions and damage cap admit.
+ */
 function damageInterceptionMet(
-  { negatesKill }: DamageInterceptionSubscription,
+  { negatesKill, excludes, maxDamageTaken }: DamageInterceptionSubscription,
   event: EncounterEvent
 ) {
-  return event.kind === 'KILLED'
-    ? negatesKill
-    : event.kind === 'DAMAGED' &&
-        event.phase === 'BEFORE' &&
-        event.hitPoints.before > 0 &&
-        event.hitPoints.after === 0
+  if (event.kind === 'KILLED') return negatesKill
+  return (
+    event.kind === 'DAMAGED' &&
+    event.phase === 'BEFORE' &&
+    event.hitPoints.before > 0 &&
+    event.hitPoints.after === 0 &&
+    (maxDamageTaken === undefined || event.damageTaken <= maxDamageTaken) &&
+    !(excludes?.critical && event.critical) &&
+    !(event.damageTypeId !== null && excludes?.damageTypeIds.includes(event.damageTypeId))
+  )
 }
 
 /** Whether an incoming gate intercepts the event: a harmful action by an attacker of a type it lists. */
@@ -305,6 +314,7 @@ export function discoverEncounterEventHooks<
   reactions?: readonly Reaction[]
   damageInterceptions?: readonly Interception[]
   incomingGates?: readonly Gate[]
+  maintenanceHooks?: readonly MaintenanceLinkHook[]
   events: readonly Event[]
   grantSubscriptions?: readonly Grant[]
 }) {
@@ -341,5 +351,20 @@ export function discoverEncounterEventHooks<
   const incomingGates = (input.incomingGates ?? []).filter((gate) =>
     input.events.some((event) => incomingGateMet(gate, event))
   )
-  return { ended, repeatSaves, grants, reactions, damageInterceptions, incomingGates }
+  // A maintenance link has no effect record, so its hooks meet an event with no effect scope.
+  const maintenance = input.maintenanceHooks ?? []
+  const maintenanceMet = (hook: MaintenanceLinkHook) =>
+    input.events.some((event) => subscriptionMet(null, hook.subscription, event))
+  const maintenanceBreak = maintenance.find((hook) => hook.hook === 'BREAK' && maintenanceMet(hook))
+  const maintenanceSave = maintenance.some((hook) => hook.hook === 'SAVE' && maintenanceMet(hook))
+  return {
+    ended,
+    repeatSaves,
+    grants,
+    reactions,
+    damageInterceptions,
+    incomingGates,
+    maintenanceBreakReason: maintenanceBreak?.hook === 'BREAK' ? maintenanceBreak.reason : null,
+    maintenanceSave
+  }
 }

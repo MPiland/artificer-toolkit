@@ -6,7 +6,6 @@ import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
 import { settleEncounterD20Answer } from './encounterD20Settlement.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
@@ -153,8 +152,7 @@ export function spatialExecutionInput(input: {
     targetDerivedFacts: { ...input.target.targetDerivedFacts, ...input.contactFacts },
     defenses: input.target.defenses,
     conditionImmunityIds: input.target.conditionImmunityIds,
-    runtime: input.runtime,
-    adapters: characterRuleActionSystemAdapterRegistry
+    runtime: input.runtime
   }
 }
 

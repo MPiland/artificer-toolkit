@@ -155,9 +155,25 @@ event owns, which settle no target application). A path-gated proposal's interpr
 literal of its payload, then interprets it as its direct proposal.
 
 `MODIFIER_GRANT`, `ACTOR_LINK`, `CREATURE_FORM`, `CONCEAL` and `DETECT_CONCEALED` have no path-gated form: their state
-lives in an active-effect plan, which cannot yet be gated on a test's result path. Under a test the compiler refuses
-them and names that missing primitive (RULES-2.T6d adds it). `KILL` under a test stays limited to hit-point tiers,
-which is a rule, not a missing primitive.
+lives in an active-effect plan, not in the test graph. A plan authored on a test's result path carries a **result
+gate** (current, RULES-2.T6d1): `resultGate.paths` lists the resolved paths that make it, which the System compiler
+fills from its path rule (`dnd5eResultGate`: an authored `ON_HIT` lists `ON_HIT` and `ON_CRIT`). The neutral
+`prepareRecurringActiveEffect` makes the effect only when the test's `d20.resultPath` is one of them, for every
+contribution kind, with no System import. It replaced the per-kind `grant-authored-path` and `form-authored-path`
+facts; a relationship keeps `relationship-authored-path` only as its application trace's `authoredPath`. So a grant
+on a hit or a miss, and a link or a creature form on either save result, compile under a test. `CONCEAL` and
+`DETECT_CONCEALED` stay refused under an attack or a save, for a rule: they are settled from the holder's own check
+total, which neither test produces. `KILL` under a test stays limited to hit-point tiers, which is also a rule.
+
+**Effect lifetime (current, RULES-2.T6d1).** An active-effect plan's lifetime is its neutral fields: the clock
+(`recurrenceStage`, `initialRemaining`, `tickAnchor`), the repeat (`saveThresholds`, `lifecycle.repeatTriggers`), the
+ends (`lifecycle`) and `resultGate`. D&D builds the repeated save of every follow-up flavour (the action's own
+recurring save, a failed save's or a cast's follow-up, a hit's nested save, and a placed zone's save) through one
+builder, `dnd5eRepeatSave` in `systems/dnd5e/effectActionFollowUp`: ability, pinned DC (a fixed DC in the plan, the
+caster's DC as a cast fact), request node, held and escalating conditions, and the perception roll influence or
+attempt gate. `conditionDurationTurns` there is the one turn count for a timed duration. The compiler picks a plan
+through `repeatingFollowUpSavePlan` (the save repeats) and `timedActiveEffectPlan` (the duration counts) in one order,
+shared by `dnd5eActiveEffectPlans` and the Concentration check.
 
 A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
 `ADD_SPEED_TO_MOVEMENT` and a target's `DEPART` (a linked-location or special-destination teleport), alongside the
@@ -268,7 +284,7 @@ closed on a System with no roll-mode policy, an influence code the System does n
 duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollModePolicy.ts`) defines
 `ADVANTAGE`/`DISADVANTAGE` and their cancellation; `systems/dnd5e` and `character/` code call
 `resolveDnd5eRollMode` directly. The schema wire enums still carry the D&D codes until RULES-2.T9.
-**System capability registries (RULES-2.T11a–c, current).** Every System capability is one
+**System capability registries (RULES-2.T11a–g, current).** Every System capability is one
 `createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
 `require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the
 capability; a duplicate or non-UUID adapter identity throws at install. `find(gameSystemId)` is for
@@ -276,23 +292,56 @@ optional capabilities only, where the rule is valid for a System without the cap
 hit point condition, D63); Encounter callers use `require`. The adapter interfaces live in
 neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `creatureConditionCapability`, `initiativeFactAdapter`, `armorClassCapability`,
-`d20TestDefinitionCapability`, `contestCheckCapability`, `optionalCombatPolicyCapability`), the D&D adapters in `systems/dnd5e/`, and
+`d20TestDefinitionCapability`, `contestCheckCapability`, `optionalCombatPolicyCapability`,
+`attackProfileCapability`, `modifierScopeCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
 `combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
-Creature form keeps) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions).
+Creature form keeps; the web Creature detail, Encounter enemy stat block and Builder hit points read the
+modifier through it), `characterProgressionCapabilityRegistry` (`characterProgressionCapability.ts`: hit die
+size and average, the hit points a level adds and the proficiency bonus, read by the Builder hit point step
+and Class detail) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
+`characterActionCapabilityRegistry` (the Sheet's Character action discovery,
+`discoverCharacterActionCapabilities`).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
-`platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`; `armorClassCapabilityRegistry`
-for a Creature's loadout armor class and the shield a two-handed grip stows;
+`platformEncounterPolicy.ts` instead (`initiativeCapabilityRegistry`, which also reads a declared
+initiative's roll mode back from its graph facts for the roll card; `armorClassCapabilityRegistry`
+for a Creature's loadout armor class (Convex Creature detail reads it too) and the shield a two-handed grip stows;
 `d20TestDefinitionCapabilityRegistry` for the basic action check and death save graphs and their
 added-dice facts, where a System without death saves omits `deathSaveDefinition`;
 `contestCheckCapabilityRegistry` for the two-participant contest graph and its modifier fact keys;
-`optionalCombatPolicyCapabilityRegistry` for Overrun, Tumble and Cleaving, where a sealed passage
-choice uses `require` and Cleaving uses `find`, since a System without optional combat offers no
-Cleaving choice). Sealing and currentness of a pending contest is System-neutral
-(`encounterContestPendingContext.ts`). Installing them there keeps Encounter modules out of
+`optionalCombatPolicyCapabilityRegistry` for Disarm, Overrun, Tumble and Cleaving, where a sealed
+action or passage choice uses `require` and Cleaving uses `find`, since a System without optional combat offers no
+Cleaving choice; `attackProfileCapabilityRegistry` for an attack's kind and modifier domain, the
+traits a holder's grants or a Character's action give it, its critical rules and roll contributors,
+the damage defenses it meets, the itemless restrictions a feature attack reduces and what its compiled
+effect reads and spends; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
+Character-wide, which movement passage and opportunity-attack immunity read, and whether a saving-throw
+grant holds only while the saver sees the effect's source (`encounterActiveGrants`);
+`characterRuleActionSystemAdapterRegistry` for compiling, binding and interpreting rule actions and
+frozen active effects and the success immunity a passed ward leaves on its holder (`encounterWardImmunity`), where entry-point
+compilation and perception use `find` because a System without it plays its entries manually;
+`executionOutcomeCapabilityRegistry` for reading a committed execution's trace back: whether it cancels
+the triggering event, adds speed to a move, or allows a teleport and how far; `encounterFeatureActionCapabilityRegistry` for feature action
+discovery and effect binding (`encounterFeatureActionCapabilityDiscovery.ts`);
+`legendaryActionEligibilityCapabilityRegistry` and `movementReactionEligibilityCapabilityRegistry`
+for eligibility and the capability definitions it requires; `sceneGridPolicyCapabilityRegistry`, an
+optional `find` capability through `resolveEncounterSceneGrid`, where a System without it plays on the
+Scene's own grid). The four `platform*` files are the only composition roots: no other neutral
+module installs an adapter, and a `systems/dnd5e` adapter never value-imports a platform file, so
+`passiveMeleeRetaliationZone` takes the attack kind instead of reading the registry. A `MovementTarget`
+carries its actor's `movementPassage` and `grantedAttackTraits`, resolved once through these
+registries from the Run's `gameSystemId`. Sealing and currentness of a pending contest, the optional action selection contract
+(`encounterOptionalCombatActionSelection.ts`) and the Scene's enemy-proximity and move-toward facts
+are System-neutral (`encounterContestPendingContext.ts`). Encounter persistence rebuilds a stored
+contest's graph through `contestCheckCapabilityRegistry` from the Run's `gameSystemId`. Installing them there keeps Encounter modules out of
 the browser (ADR 0036 S6, `apps/web/src/lib/rulesRuntimeBoundary.test.ts`). Ability id↔code stays System vocabulary data (`system.abilities`).
 Neutral modules reach System behaviour only through these registries; the `systems/*` import
-allowlist (`scripts/systemsImportAllowlist.json`) only shrinks.
+allowlist (`scripts/systemsImportAllowlist.json`) only shrinks and, since RULES-2.T11e, also fences
+Encounter persistence, the Worker, Convex and web; since RULES-2.T11g3 it lists no importer, so only
+the composition roots reach `systems/*` (active grants read the action-economy capability's
+`allowanceDefinitionIdByCountDomain`, which an active zero-count grant suppresses);
+the composition roots above are exempt by name
+([CI validation](ci-validation.md)).
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
@@ -324,7 +373,11 @@ Actions in a Manual Encounter are refused with the
 
 **Active effects and maintained state.** Current active effects are state, not occurrences. Each stores an
 immutable definition (origin, one frozen `SINGLE_GRAPH`, adapter facts, recurrence, perception
-contributions) and a mutable lifecycle (remaining ticks). The pure executor
+contributions, and an aggregate-state `stateContributions` list that is empty for an effect that only ticks)
+and a mutable lifecycle (remaining ticks). The definition has one schema version, `schemaVersion 2`
+(current, RULES-2.T16): version 1, an effect with no `stateContributions`, was deleted outright rather than kept for
+compatibility (pre-launch, no live rows), and every producer, fixture and seed writes version 2. A change to the stored
+definition shape adds the next version and migrates its producers in the same change. The pure executor
 (`targetBoundActiveRuleEffectExecutor`) executes the frozen graph without current-definition lookup and
 returns a lifecycle `UPDATE` or `EXPIRE` proposal for the owner to apply. Maintained-effect state
 (Concentration) is generic persistence keyed by a System maintenance-definition identity; the System
@@ -552,6 +605,17 @@ carry the input, so ungated checksums do not move), the evidence check requires 
 which also covers holy water) and Troll (acid, fire; heals at 0 hit points) author Regeneration this way, and
 `CREATURE_VAMPIRE_REGENERATION` is deleted. Sunlight and running water stay deferred edge cases.
 
+**Reduced-to-0 gate (current, SPELLS-33.T4i3a).** `REDUCED_TO_ZERO_BY { damageOutcomeId }` is the third gate kind: a KILL,
+CONDITION or fixed HEAL outcome follows only if the named damage outcome of the same path took the target from above 0 to 0
+hit points. It is a gate-table entry, not a rung of the `hitPointBand` ladder (ADR 0039). The compiler resolves
+`damageOutcomeId` by `entryId` to the earlier damage group's node id and binds it as the literal `reducedToZeroByNodeId`
+(`''` when unauthored, so the other kinds stay wide open). The graph cannot see damage defenses, so it admits;
+`interpretDirect` holds the proposal back unless a traced DAMAGE application from that node has `beforeCurrentHitPoints > 0`
+and `afterCurrentHitPoints === 0` (`reducedToZeroGateHolds`), so resistance that leaves the target standing withholds it.
+Gate evidence is checked against the hit points the graph's facts were taken at (`startingHitPoints`), not those left by
+earlier applications. A gate naming no earlier damage group of the path is refused at compile time. Adding the input
+changed every gated v2 graph's checksum once.
+
 ### Creature feature attack roll modes near an enemy (current, SPELLS-33.T6d3a, D165)
 
 A Creature's feature `ATTACK_ROLL` advantage or disadvantage grant (`conditionalAttackAdvantageGrants`, Pack Tactics and Assassinate) reaches
@@ -708,7 +772,7 @@ on the window's application. Both replay from that evidence (`retained`), so a s
 re-run rolls no fresh die.
 A creature's passive melee trait with no zone (Remorhaz Heated Body, SPELLS-33 T4k2) is the same zone derived from the
 trait: a PASSIVE effect whose melee attack trigger and distance range say how near a hitter must stand, with direct
-dice damage on `ON_USE`. `passiveMeleeRetaliationZone` stands for it as a SOURCE sphere of that range with one
+dice damage on `ON_USE`. `passiveMeleeRetaliationZone` (given the System's attack kind) stands for it as a SOURCE sphere of that range with one
 `MELEE_HIT_ON_SOURCE` component whose behavior is the trait's own effect, so discovery, placement on the token, the
 selection, the system-rolled plan, persistence and the damage-ends seam are the zone path above. Placement centers every
 passive zone on its holder whatever range its trait authors. A hit by touch is not modeled.
@@ -913,7 +977,7 @@ whatever its pause kind.
 
 **Worker handler layout (current, RULES-2.T4b).** `planNativeLiveEncounterAction` no longer answers pauses inline. `apps/session-worker/src/nativePauseHandlers.ts` holds one exhaustive table, `{ [Kind in NativePauseKind]: NativePauseHandler<Kind> }`, so a new pause kind fails to compile until it has a handler. Each handler has `read` (turn the response into that kind's typed answer, refusing a missing decision or die) and, for the kinds the rules graphs resume, `settle` (continue the action into its execution). One module per kind: `nativePauseLegendaryResistance`, `nativePauseReaction` (`REACTION` and `ON_HIT`, which share the target's current reaction), `nativePauseForcedMovement`, and read-only `nativePauseCastReaction`, `nativePauseIncomingGate`, `nativePauseAttackRetarget`: cast, ward and retarget answers feed their own earlier steps of the planner. Shared types live in `nativePauseTypes.ts`. The planner calls `readNativePauseAnswer` once, then `settleNativePauseAnswer` where it used to branch per kind.
 
-**Live room layout (current, RULES-2.T13a).** `NativeLiveSessionRoom` keeps the Durable Object lifecycle, command dispatch and field wiring; it hands each responsibility to a module with a typed port instead of growing in place. `roomSocket.ts` owns the shared room vocabulary (socket attachment schema, `Admission`, `TransientCache`, `send`, `viewer`, `accountBucket`). `roomSceneCommit.ts` owns the Scene commit paths (fog staging, inline edit/undo/fog publication, geometry and movement-decision commits) and declares `RoomSceneCommitHost`, the stores and room steps (aggregate reload, authorization boundary, fanout, alarm) the room builds once in its constructor. **(T13b)** `roomCommandHost.ts` is now the one definition of what the room lends (`RoomCommandHost`); each module declares the `Pick` it uses (`RoomSceneCommitHost`, `RoomEncounterExecutionHost`, `RoomEncounterBindingHost`). `roomEncounterExecution.ts` runs every Encounter command (the ACTIVE-Run path and the local Encounter path, including movement decisions through `roomSceneCommit.ts`); `roomEncounterBindingCommand.ts` commits the GM's Encounter-to-Scene binding. **(T13c)** `roomCharacterSheetCommands.ts` runs held Character Sheet commands (`RoomCharacterSheetHost`) and `roomChatCommands.ts` runs Campaign chat commands (`RoomCampaignChatHost`), each beside the pure per-command helper it already owned. **(T13d)** `roomAdmissions.ts` (`RoomAdmissions`) owns the socket admission state (admissions, generations, in-flight sign-ins, early-challenge expiries, the one cold admission) and the authenticate, admit, challenge and close steps over it; `roomStorageAuthority.ts` (`RoomStorageAuthority`) owns the single authority activation and the single storage recovery; `roomAggregateLoad.ts` loads and reloads the held aggregate and journals an input reload; `roomActorSweeps.ts` journals actor departures and broken relationships after a commit; `roomLocalPlayAuthorization.ts` overlays unpublished local play onto an authorization read. Each declares the `Pick` of `RoomCommandHost` (plus, for admissions, its own extra steps) it uses. **(T13e)** `roomSceneCache.ts` (`RoomSceneCache`) owns the presented-Scene cache, its generation counter and the persisted copy a woken room restores from; `roomOutbox.ts` (`RoomOutbox`) owns the single publication flush, the checkpoint fence and the chat-backlog save; `roomPreviews.ts` (`RoomPreviews`) owns the transient preview streams, background refreshes and barrier indexes, and fans a sample out from room memory; `roomSceneCommandExecution.ts` runs a live Scene command (replay and rate checks, the write-set, the commit and its fanout). The room is now below the file-size budget; it keeps the lifecycle, socket entry points, command routing and the room-level steps the host lends.
+**Live room layout (current, RULES-2.T13a).** `NativeLiveSessionRoom` keeps the Durable Object lifecycle, command dispatch and field wiring; it hands each responsibility to a module with a typed port instead of growing in place. `roomSocket.ts` owns the shared room vocabulary (socket attachment schema, `Admission`, `TransientCache`, `send`, `viewer`, `accountBucket`). `roomSceneCommit.ts` owns the Scene commit paths (fog staging, inline edit/undo/fog publication, geometry and movement-decision commits) and declares `RoomSceneCommitHost`, the stores and room steps (aggregate reload, authorization boundary, fanout, alarm) the room builds once in its constructor. **(T13b)** `roomCommandHost.ts` is now the one definition of what the room lends (`RoomCommandHost`); each module declares the `Pick` it uses (`RoomSceneCommitHost`, `RoomEncounterExecutionHost`, `RoomEncounterBindingHost`). `roomEncounterExecution.ts` runs every Encounter command (the ACTIVE-Run path and the local Encounter path, including movement decisions through `roomSceneCommit.ts`); `roomEncounterBindingCommand.ts` commits the GM's Encounter-to-Scene binding. **(T13c)** `roomCharacterSheetCommands.ts` runs held Character Sheet commands (`RoomCharacterSheetHost`) and `roomChatCommands.ts` runs Campaign chat commands (`RoomCampaignChatHost`), each beside the pure per-command helper it already owned. **(T13d)** `roomAdmissions.ts` (`RoomAdmissions`) owns the socket admission state (admissions, generations, in-flight sign-ins, early-challenge expiries, the one cold admission) and the authenticate, admit, challenge and close steps over it; `roomStorageAuthority.ts` (`RoomStorageAuthority`) owns the single authority activation and the single storage recovery; `roomAggregateLoad.ts` loads and reloads the held aggregate and journals an input reload; `roomActorSweeps.ts` journals actor departures and broken relationships after a commit; `roomLocalPlayAuthorization.ts` overlays unpublished local play onto an authorization read. Each declares the `Pick` of `RoomCommandHost` (plus, for admissions, its own extra steps) it uses. **(T13e)** `roomSceneCache.ts` (`RoomSceneCache`) owns the presented-Scene cache, its generation counter and the persisted copy a woken room restores from; `roomOutbox.ts` (`RoomOutbox`) owns the single publication flush, the checkpoint fence and the chat-backlog save; `roomPreviews.ts` (`RoomPreviews`) owns the transient preview streams, background refreshes and barrier indexes, and fans a sample out from room memory; `roomSceneCommandExecution.ts` runs a live Scene command (replay and rate checks, the write-set, the commit and its fanout). The room is now below the file-size budget; it keeps the lifecycle, socket entry points, command routing and the room-level steps the host lends. **(T13f)** `completeAreaCommit` in `nativeEncounterAreaRules.ts` is now the thin orchestrator of an area commit: it settles the forced movements and their collisions, then hands the rest to three phase modules. `nativeAreaCommitMaintenance.ts` opens the maintenance and zone planner the commit shares and opens the zone-only Concentration; `nativeAreaCommitPlan.ts` plans each creature's outcome in entry order (effects, joined maintained state, damage-ended effects, mechanics, Legendary Resistance audits, stored execution); `nativeAreaCommitPersistence.ts` settles the write-set (the caster's one spend, the settled actors, the Concentration the damage breaks, the rules after it) and returns the `AREA_COMMIT` plan. The phase modules import only types from `nativeEncounterAreaRules.ts`; the Legendary Resistance lookup is lent to the plan phase as a port. **(T13g)** `nativeEncounterAreaRules.ts` is now the planning entry points (action, answer, Legendary Resistance, removal, commit, forced movement) and the seal steps, below the file-size budget. `nativeAreaPreparation.ts` owns the shared area plan types and the preparation of the caster, Scene, reach, targets and cast window; `nativeAreaRevalidation.ts` owns the Legendary Resistance lookup, the sealed-save replay and the revalidation of a sealed or struck creature against current facts; `nativeAreaCommit.ts` owns `completeAreaCommit`, the forced-movement collision settlement and the commit input builder. Imports run one way: planning entry points → commit → revalidation → preparation; the only import back into the planning file is a type.
 
 ### Event hooks (current, RULES-2.T5a-c; ADR 0039 decision 4)
 
@@ -960,10 +1024,34 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   (`DAMAGE_INTERCEPTION`, Death Ward) meets a `BEFORE` `DAMAGED` taking its holder from above 0 hit points to 0, and a
   `KILLED` when it negates kills: `hitPointsAfterDamage` and `killInterception` (`encounterDamageInterception.ts`)
   ask discovery, and both the planner (`applyDamageInterceptions`) and the fold that validates it call them, so a
-  filter added to the subscription (SPELLS-33.T4i2) reaches both. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
+  filter added to the subscription reaches both. The `BEFORE` `DAMAGED` event carries the whole blow (`damageTaken`,
+  `damageTypeId`, `critical`), and a damage interception may filter on it (SPELLS-33.T4i2a): `excludes` (damage types
+  and critical hits it does not meet) and `maxDamageTaken`. Its optional `save` (ability, DC `base` plus the damage
+  taken when `plusDamageTaken`) is spent only on a pass, with the die on the interception itself (`saveRoll`,
+  `{ rawDie, addedTotal }`): the Worker rolls it once per target before any blow lands (`withInterceptionSaveRolls`,
+  the holder's saving throw and roll mode; a room commit replays the recorded one with
+  `withRecordedInterceptionSaveRolls`). A failure lets the blow meet the next interception, and a missing die is an
+  `EncounterValidationError`. The DAMAGE receipt records every save asked as `interceptionSaves`; the fold recomputes
+  them and refuses a mismatch. A Creature's feature holds interceptions too (SPELLS-33.T4i2b): its passive
+  `DAMAGE_INTERCEPTION` feature grants fold through the creature grant fold and `featureHeldDamageInterceptions` lists
+  them beside the effect-held ones (`buildMovementTarget`). A feature with a limited-use charge (Wereboar Relentless)
+  is held only while the charge has one left; the intercepted blow spends it (`interceptionCharge` on the DAMAGE or
+  KILL_NEGATED application, recomputed by the fold), `withInterceptionChargesSpent` writes it on the plan's actor,
+  rest recovery resets it through `planCreatureRest`, and `actionRevert` restores it. A feature with no charge (Undead
+  Fortitude) is held every time. Known limits: a condition that fails the save outright and added save dice are not read. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
   meets a `HARMFUL_ACTION_AIMED` by an attacker of a listed type: `heldIncomingGate` lists the wards the attacker has not
   passed and asks discovery which one it meets. Counter and targeted-self windows are reactions to
   `SPELL_CAST_BY_OTHER` and `TARGETED_BY_CAST` above; a retarget stays the gate's failure pause.
+- **Maintenance link** (RULES-2.T8; System capability `maintenance-link`, `MaintenanceLinkCapabilityAdapter`). Concentration
+  is a neutral link keyed by the System's `maintenanceDefinitionId`; the 5e adapter (`systems/dnd5e/concentrationPolicy.ts`)
+  supplies `MaintenanceLinkHook`s in priority order: `BREAK` on `DEFEATED`, `INCAPACITATED` of the holder or
+  `MAINTENANCE_BARRED` (a held casting lock), each naming its persisted end reason, and `SAVE` on any `DAMAGED`. Discovery
+  returns `maintenanceBreakReason` (the first break met) and `maintenanceSave`. `encounterConcentrationEndReason` raises
+  one event, short-circuiting in that order, and `concentrationSaveApplications` binds the damage applications that owe a
+  save, from both the Worker and the movement path. The adapter also owns the Constitution ability, the DC formula and the
+  holder's save facts; callers pass the Run's `gameSystemId`, fail-closed. Gate DCs, holder save rows and added saving-throw
+  dice read the `saving-throw` capability (`SavingThrowCapabilityAdapter`), ability codes and modifiers the `ability-score`
+  one, so no Concentration or incoming-gate importer reaches into `systems/dnd5e`.
 
 **One dispatch per event** means one subscription-reading dispatch per event kind, not one raise site. Callers state
 facts (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`) and discovery decides what fires; the release helpers in

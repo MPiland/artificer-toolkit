@@ -1,16 +1,16 @@
-import {
-  dnd5eAttackTraitGrants,
-  type Dnd5eAttackTraitGrant
-} from './systems/dnd5e/attackDamageDefenses.js'
-import { dnd5eAcceptedModifierApplicability } from './systems/dnd5e/modifierApplicability.js'
+import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
-import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
-import { heldBatchInputs, type HeldDamageInterception } from './encounterDamageInterception.js'
+import {
+  featureHeldDamageInterceptions,
+  heldBatchInputs,
+  type HeldDamageInterception
+} from './encounterDamageInterception.js'
 import {
   buildCharacterSpellCastActions,
   type CharacterSpellCastActions,
@@ -52,14 +52,21 @@ import {
   reconcileEncounterActorRuleOutput,
   requireEncounterActorRuleResult
 } from './encounterActorRuleOutput.js'
-import { snapshotCreatureTypeId } from './encounterActorState.js'
+import { snapshotCreatureTypeId, snapshotFeatureDefinitions } from './encounterActorState.js'
 import { characterFormStatBlock, snapshotStatBlock } from './encounterProjection.js'
 import type { TargetBoundActiveRuleEffectExecutionInput } from './targetBoundActiveRuleEffectExecutor.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
-import { evaluateInstalledEncounterActors } from './platformEncounterPolicy.js'
 import { resolveCharacterRulePolicyRollModes } from './character/characterRuleRollProjection.js'
-import type { Dnd5eQualifiedDamageDefense } from './systems/dnd5e/attackDamageDefenses.js'
+import type { QualifiedDamageDefense } from './attackProfileCapability.js'
+import {
+  attackProfileCapabilityRegistry,
+  evaluateInstalledEncounterActors
+} from './platformEncounterPolicy.js'
+import {
+  encounterActorMovementPassage,
+  type EncounterMovementPassage
+} from './encounterMovementPassagePolicy.js'
 import type { PinnedConditionRuleStateDefinitionDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { EncounterConditionMechanic } from './encounterConditionMechanics.js'
 
@@ -119,12 +126,14 @@ export type MovementTarget<
   occupantSaveBonus?: number
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
   /** Defenses that apply only to attacks without their bypassing traits. */
-  qualifiedDefenses: readonly Dnd5eQualifiedDamageDefense[]
+  qualifiedDefenses: readonly QualifiedDamageDefense[]
   conditionImmunityIds: readonly string[]
   /** Conditions the actor always has (see `heldConditionIds`); `state.conditions` holds only those applied to it. */
   innateConditionIds: readonly string[]
-  /** The actor's accepted grant-fold modifiers: a Character's fold, a Creature's feature grants. */
-  attackTraitGrants: readonly Dnd5eAttackTraitGrant[]
+  /** What the actor's own grants let it move through (D154). */
+  movementPassage: EncounterMovementPassage
+  /** The attack traits the actor's grants (a Character's fold, a Creature's features) give every attack. */
+  grantedAttackTraits: readonly DamageDefenseBypassCode[]
   /** A Creature's folded feature grants, whose attack roll modes its attacks read; empty for a Character, whose policy output carries its own. */
   featureModifiers: CharacterGrantFoldOutput['modifiers']
   /** Magic schools whose spells have no effect on the actor. */
@@ -483,7 +492,7 @@ export function buildMovementTarget<
         ...effectiveRulePolicyOutput,
         // The form's ability scores resolve its attacks' damage, as a Creature's stat block does (T4d).
         ...(formStatBlock ? { statBlock: formStatBlock } : {}),
-        savingThrowAddedDice: encounterSavingThrowAddedDice(activeEffects),
+        savingThrowAddedDice: encounterSavingThrowAddedDice(gameSystemId, activeEffects),
         targetProtection: {
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,
@@ -495,10 +504,14 @@ export function buildMovementTarget<
       defenses: effectiveRulePolicyOutput.defenses,
       qualifiedDefenses: [],
       conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
-      attackTraitGrants: dnd5eAttackTraitGrants(
-        effectiveRulePolicyOutput.grantFold.modifiers,
-        dnd5eAcceptedModifierApplicability
+      movementPassage: encounterActorMovementPassage(
+        gameSystemId,
+        actor,
+        effectiveRulePolicyOutput
       ),
+      grantedAttackTraits: attackProfileCapabilityRegistry
+        .require(gameSystemId)
+        .grantedAttackTraits(effectiveRulePolicyOutput.grantFold.modifiers),
       innateConditionIds: innateConditionIds(effectiveRulePolicyOutput.grantFold.modifiers),
       featureModifiers: [],
       spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds,
@@ -536,6 +549,7 @@ export function buildMovementTarget<
   )
   const conditions = readEncounterActorConditionState(actor.conditions ?? [])
   const creatureStatBlock = snapshotStatBlock(actor)
+  const featureDefinitions = snapshotFeatureDefinitions(actor)
   return {
     actor,
     activeEffects,
@@ -550,7 +564,19 @@ export function buildMovementTarget<
       deathSaves: null
     },
     initialConditionRows: conditions.values,
-    ...heldBatchInputs({ baseMaximumHitPoints: actor.maxHitPoints, effects: activeEffects }),
+    ...heldBatchInputs({
+      baseMaximumHitPoints: actor.maxHitPoints,
+      effects: activeEffects,
+      featureInterceptions: featureHeldDamageInterceptions({
+        modifiers: creatureFacts?.modifiers ?? [],
+        featureResources: actorRule.featureResources.map(({ featureId, maximum, used }) => ({
+          featureId,
+          maximum,
+          used,
+          chargeId: featureDefinitions.find(({ id }) => id === featureId)?.charges?.id ?? null
+        }))
+      })
+    }),
     baseScalarValues,
     effectiveScalarValues,
     baseRulePolicyOutput: null,
@@ -567,7 +593,7 @@ export function buildMovementTarget<
         activeEffects,
         creatureFacts?.modifiers ?? []
       ),
-      savingThrowAddedDice: encounterSavingThrowAddedDice(activeEffects),
+      savingThrowAddedDice: encounterSavingThrowAddedDice(gameSystemId, activeEffects),
       featureResources: actorRule.featureResources,
       creatureTypeId: snapshotCreatureTypeId(actor),
       targetProtection,
@@ -580,10 +606,10 @@ export function buildMovementTarget<
     defenses: targetProtection.defenses,
     qualifiedDefenses: targetProtection.qualifiedDefenses,
     conditionImmunityIds: targetProtection.conditionImmunityIds,
-    attackTraitGrants: dnd5eAttackTraitGrants(
-      creatureFacts?.modifiers ?? [],
-      dnd5eAcceptedModifierApplicability
-    ),
+    movementPassage: encounterActorMovementPassage(gameSystemId, actor, null),
+    grantedAttackTraits: attackProfileCapabilityRegistry
+      .require(gameSystemId)
+      .grantedAttackTraits(creatureFacts?.modifiers ?? []),
     innateConditionIds: creatureInnateConditionIds(activeEffects, creatureFacts?.modifiers ?? []),
     featureModifiers: creatureFacts?.modifiers ?? [],
     spellSchoolImmunityIds: targetProtection.spellSchoolImmunityIds,

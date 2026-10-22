@@ -118,8 +118,7 @@ async function wardImmunities(room: SanctuaryRoom) {
   const { characterEffects } = await readRoomHistory(room.room.base.stub)
   return characterEffects.flatMap((effect) => {
     const definition = activeRuleEffectDefinitionDtoSchema.parse(JSON.parse(effect.definitionJson))
-    return definition.schemaVersion === 2 &&
-      definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY') &&
+    return definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY') &&
       definition.origin.kind === 'ENCOUNTER'
       ? [definition.origin.sourceActorId]
       : []

@@ -17,7 +17,7 @@ import type {
 import { encounterMaintainedEffectDescriptorDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { readCharacterSheetState } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscoveryRegistry'
+import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscovery'
 import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { withEncounterRuleUsageUsed } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {

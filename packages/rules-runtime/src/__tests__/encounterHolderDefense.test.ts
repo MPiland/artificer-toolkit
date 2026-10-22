@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
 import {
@@ -170,7 +172,8 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       sourceSightSaves: [],
       conditionDefinitions: [],
       conditionMechanics: [],
-      attackTraitGrants: [],
+      grantedAttackTraits: [],
+      movementPassage: movementPassageOfModifiers(DND5E_SYSTEM_ID, []),
       featureModifiers: [],
       innateConditionIds: []
     }
@@ -302,7 +305,6 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
 
   it('a restriction with a condition other than the holder-state ones fails closed', () => {
     const [activeEffect] = [dodge()]
-    if (activeEffect?.definition.schemaVersion !== 2) throw new Error('A grant is version 2.')
     const closed = activeEffect.definition.stateContributions.map((contribution) =>
       contribution.kind === 'MODIFIER_GRANT'
         ? {

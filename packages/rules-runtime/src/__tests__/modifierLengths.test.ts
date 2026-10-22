@@ -48,9 +48,9 @@ function lengthEffect(
 ): ActiveRuleEffectRecord {
   const effect = longstriderEffect({ id, holderActorId: HOLDER_ID })
   const { definition } = effect
-  const contribution = definition.schemaVersion === 2 ? definition.stateContributions[0] : undefined
+  const [contribution] = definition.stateContributions
   const template = contribution?.kind === 'MODIFIER_GRANT' ? contribution.modifiers[0] : undefined
-  if (definition.schemaVersion !== 2 || contribution?.kind !== 'MODIFIER_GRANT' || !template)
+  if (contribution?.kind !== 'MODIFIER_GRANT' || !template)
     throw new Error('Longstrider plans no modifier to template from.')
   return {
     ...effect,
@@ -72,7 +72,6 @@ function withSenseRange(
   distance: { amount: number; unit: 'FEET' | 'YARDS' }
 ): ActiveRuleEffectRecord {
   const { definition } = effect
-  if (definition.schemaVersion !== 2) throw new Error('Expected a version 2 definition.')
   return {
     ...effect,
     definition: {

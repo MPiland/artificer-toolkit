@@ -4,17 +4,35 @@ import type {
 } from '@artificer-toolkit/schema/api/encounterActorRules'
 
 import type { ArmorClassCapabilityAdapter } from './armorClassCapability.js'
+import type { CharacterRuleActionSystemAdapter } from './characterRuleActionSystemAdapter.js'
+import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
 import type { ContestCheckCapabilityAdapter } from './contestCheckCapability.js'
 import type { D20TestDefinitionCapabilityAdapter } from './d20TestDefinitionCapability.js'
+import type { EncounterFeatureActionCapabilityAdapter } from './encounterFeatureActionCapabilityDiscovery.js'
+import type { ExecutionOutcomeCapabilityAdapter } from './executionOutcomeCapability.js'
 import type { InitiativeFactAdapter } from './initiativeFactAdapter.js'
+import type { LegendaryActionEligibilityAdapter } from './legendaryActionEligibilityService.js'
+import type { ModifierScopeCapabilityAdapter } from './modifierScopeCapability.js'
+import type { MovementReactionEligibilityAdapter } from './movementReactionEligibilityService.js'
 import type { OptionalCombatPolicyCapabilityAdapter } from './optionalCombatPolicyCapability.js'
+import type { EncounterSceneGridPolicyAdapter } from './sceneGridPolicy.js'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
+import { dnd5eAttackProfileCapabilityAdapter } from './systems/dnd5e/attackDamageDefenses.js'
 import { dnd5eArmorClassCapabilityAdapter } from './systems/dnd5e/characterVitals.js'
+import { dnd5eCharacterRuleActionSystemAdapter } from './systems/dnd5e/effectActionCompiler.js'
 import { dnd5eEncounterActorPolicyRegistration } from './systems/dnd5e/encounterActorPolicy.js'
-import { dnd5eD20TestDefinitionCapabilityAdapter } from './systems/dnd5e/encounterLifecyclePolicy.js'
+import { dnd5eEncounterFeatureActionCapabilityAdapter } from './systems/dnd5e/encounterFeatureActionCapabilityDiscovery.js'
+import {
+  dnd5eD20TestDefinitionCapabilityAdapter,
+  dnd5eLegendaryActionEligibilityAdapter
+} from './systems/dnd5e/encounterLifecyclePolicy.js'
+import { dnd5eExecutionOutcomeCapabilityAdapter } from './systems/dnd5e/executionOutcomes.js'
 import { dnd5eInitiativeFactAdapter } from './systems/dnd5e/initiativeFactAdapter.js'
+import { dnd5eModifierScopeCapabilityAdapter } from './systems/dnd5e/modifierApplicability.js'
 import { dnd5eContestCheckCapabilityAdapter } from './systems/dnd5e/optionalCombatContestGraph.js'
+import { dnd5eEncounterSceneGridPolicyAdapter } from './systems/dnd5e/optionalCombatPolicy.js'
 import { dnd5eOptionalCombatPolicyCapabilityAdapter } from './systems/dnd5e/optionalResolutionPolicy.js'
+import { dnd5eMovementReactionEligibilityAdapter } from './systems/dnd5e/reactionEligibilityPolicy.js'
 
 const installedRuntimeModules = [dnd5eEncounterActorPolicyRegistration] as const
 
@@ -38,6 +56,48 @@ export const d20TestDefinitionCapabilityRegistry =
 export const contestCheckCapabilityRegistry =
   createSystemCapabilityRegistry<ContestCheckCapabilityAdapter>('contest-check', [
     dnd5eContestCheckCapabilityAdapter
+  ])
+
+export const attackProfileCapabilityRegistry =
+  createSystemCapabilityRegistry<AttackProfileCapabilityAdapter>('attack-profile', [
+    dnd5eAttackProfileCapabilityAdapter
+  ])
+
+export const modifierScopeCapabilityRegistry =
+  createSystemCapabilityRegistry<ModifierScopeCapabilityAdapter>('modifier-scope', [
+    dnd5eModifierScopeCapabilityAdapter
+  ])
+
+export const characterRuleActionSystemAdapterRegistry =
+  createSystemCapabilityRegistry<CharacterRuleActionSystemAdapter>('character-rule-action', [
+    dnd5eCharacterRuleActionSystemAdapter
+  ])
+
+export const encounterFeatureActionCapabilityRegistry =
+  createSystemCapabilityRegistry<EncounterFeatureActionCapabilityAdapter>(
+    'encounter-feature-action',
+    [dnd5eEncounterFeatureActionCapabilityAdapter]
+  )
+
+export const executionOutcomeCapabilityRegistry =
+  createSystemCapabilityRegistry<ExecutionOutcomeCapabilityAdapter>('execution-outcome', [
+    dnd5eExecutionOutcomeCapabilityAdapter
+  ])
+
+export const legendaryActionEligibilityCapabilityRegistry =
+  createSystemCapabilityRegistry<LegendaryActionEligibilityAdapter>('legendary-action', [
+    dnd5eLegendaryActionEligibilityAdapter
+  ])
+
+export const movementReactionEligibilityCapabilityRegistry =
+  createSystemCapabilityRegistry<MovementReactionEligibilityAdapter>('movement-reaction', [
+    dnd5eMovementReactionEligibilityAdapter
+  ])
+
+/** A System's Scene-grid policy is optional: without one an Encounter plays on its Scene's grid. */
+export const sceneGridPolicyCapabilityRegistry =
+  createSystemCapabilityRegistry<EncounterSceneGridPolicyAdapter>('scene-grid', [
+    dnd5eEncounterSceneGridPolicyAdapter
   ])
 
 /**

@@ -40,17 +40,15 @@ function grantedActionUseKey(effectId: string, offerIndex: number, use: number) 
 /** The offers the effects a holder keeps make, in a stable order. */
 export function heldGrantedActions(effects: readonly HeldEffect[]): HeldGrantedAction[] {
   return effects.flatMap((effect) =>
-    effect.definition.schemaVersion !== 2
-      ? []
-      : effect.definition.stateContributions.flatMap((contribution) =>
-          contribution.kind !== 'MODIFIER_GRANT'
-            ? []
-            : (contribution.grantedActions ?? []).map((offer, offerIndex) => ({
-                effectId: effect.id,
-                offerIndex,
-                offer
-              }))
-        )
+    effect.definition.stateContributions.flatMap((contribution) =>
+      contribution.kind !== 'MODIFIER_GRANT'
+        ? []
+        : (contribution.grantedActions ?? []).map((offer, offerIndex) => ({
+            effectId: effect.id,
+            offerIndex,
+            offer
+          }))
+    )
   )
 }
 

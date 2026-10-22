@@ -15,6 +15,8 @@ import {
   heldBatchInputs,
   heldDamageInterceptions
 } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
+import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import { withRecordedInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/encounterInterceptionSaveRolls'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -94,7 +96,21 @@ export async function applyRoomEncounterMechanicsBatch(input: {
           ...heldBatchInputs({ baseMaximumHitPoints: form.maxHitPoints, effects: heldEffects }),
           sheetMaximumHitPoints: await readCharacterMaximumHitPoints(ctx, character.play)
         }
-      : { damageInterceptions: heldDamageInterceptions(heldEffects) }
+      : {
+          damageInterceptions:
+            read.actor.kind === 'CREATURE'
+              ? withRecordedInterceptionSaveRolls(
+                  buildMovementTarget({
+                    actor: read.actor,
+                    activeEffects: heldEffects,
+                    gameSystemId: read.campaign.gameSystemId,
+                    campaignId,
+                    characterFacts: null
+                  }).damageInterceptions,
+                  batch.applications
+                )
+              : heldDamageInterceptions(heldEffects)
+        }
   const target = {
     ...read,
     input: {

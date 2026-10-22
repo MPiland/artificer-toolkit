@@ -2,29 +2,19 @@ import type { FacetAuthored } from '@artificer-toolkit/shared/authored'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 
 import { normalizeCharacterGrantRestrictions } from '../../character/characterGrantFoldRestrictionFacts.js'
+import type { EnemyProximity } from '../../encounterEnemyProximity.js'
+import type { MoveToward } from '../../encounterMoveToward.js'
 import { dnd5eItemRequirementsMet, type Dnd5eAttackingItem } from './modifierApplicability.js'
 
 export type Dnd5eAttackRollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
-
-/**
- * Who stands near an attack's target, from the Scene: the distance in feet to the nearest creature
- * hostile to the target and able to act, or `null` when there is none.
- */
-export type Dnd5eEnemyProximity = { nearestFeet: number | null }
-
-/**
- * How far the attacker's latest voluntary move this turn closed its distance to the target, from
- * the Scene (D164); 0 when it made none, or has been moved since.
- */
-export type Dnd5eMoveToward = { closedFeet: number }
 
 /** What an attack decides when it rolls, which its path restrictions are held against. */
 export type Dnd5eAttackCircumstances = {
   rollMode: Dnd5eAttackRollMode
   /** Null when the attack has no Scene to measure on, so an enemy-distance check cannot be answered. */
-  enemyProximity: Dnd5eEnemyProximity | null
+  enemyProximity: EnemyProximity | null
   /** Null when the attack has no Scene to measure on, so a movement check cannot be answered. */
-  moveToward: Dnd5eMoveToward | null
+  moveToward: MoveToward | null
   /** The creature type of the target; null for a target with none, such as a Character. */
   targetCreatureTypeId: string | null
 }

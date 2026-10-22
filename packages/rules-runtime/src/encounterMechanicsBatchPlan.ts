@@ -42,6 +42,7 @@ import {
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
 import {
   applyDamageInterceptions,
+  withInterceptionChargesSpent,
   type HeldDamageInterception
 } from './encounterDamageInterception.js'
 import {
@@ -234,7 +235,11 @@ export function planEncounterMechanicsBatch(input: {
     const updated = encounterRunActorStateSchema.parse(
       withActorTemporaryHitPoints(
         {
-          ...withDamageTypesTaken(actor, folded.applications, batch.sourceCommandId),
+          ...withDamageTypesTaken(
+            withInterceptionChargesSpent(actor, folded.applications),
+            folded.applications,
+            batch.sourceCommandId
+          ),
           currentHitPoints: folded.after.currentHitPoints,
           maxHitPoints: folded.after.maximumHitPoints,
           conditions: nextConditions,

@@ -31,17 +31,11 @@ export type EncounterGrantTick = {
 } & ({ kind: 'UPDATE'; remainingTicks: number } | { kind: 'EXPIRE' })
 
 function isModifierGrant(effect: ActiveRuleEffectRecord) {
-  return (
-    effect.definition.schemaVersion === 2 &&
-    effect.definition.stateContributions.some(({ kind }) => kind === 'MODIFIER_GRANT')
-  )
+  return effect.definition.stateContributions.some(({ kind }) => kind === 'MODIFIER_GRANT')
 }
 
 export function ownsCondition(effect: ActiveRuleEffectRecord) {
-  return (
-    effect.definition.schemaVersion === 2 &&
-    effect.definition.stateContributions.some(({ kind }) => kind === 'CONDITION_OWNERSHIP')
-  )
+  return effect.definition.stateContributions.some(({ kind }) => kind === 'CONDITION_OWNERSHIP')
 }
 
 /**
@@ -95,7 +89,6 @@ export function sourceBoundGrants<Effect extends ActiveRuleEffectRecord>(
   return effects.filter(
     (effect) =>
       isModifierGrant(effect) &&
-      effect.definition.schemaVersion === 2 &&
       effect.definition.origin.kind === 'ENCOUNTER' &&
       endSubscriptions(effect).some(
         (subscription) => subscription.event === 'INCAPACITATED' && subscription.of === 'SOURCE'
