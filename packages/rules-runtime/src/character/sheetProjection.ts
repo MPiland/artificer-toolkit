@@ -17,7 +17,6 @@ import {
   formatLengthMeasurement,
   MEASUREMENT_UNIT_REGISTRY,
   VEHICLE_CATEGORY_REGISTRY,
-  type CharacterBuildSnapshot,
   type LengthUnitCode,
   type MeasurementUnitCode
 } from '@artificer-toolkit/shared/core'
@@ -27,7 +26,6 @@ import {
   createCharacterSpellSourceKey,
   clampCharacterCurrentHitPoints,
   resolveCharacterEffectiveMaximumHitPoints,
-  type CharacterResourceOwnerRef,
   type CharacterSheetAdjustment
 } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -77,6 +75,7 @@ import { projectCharacterRulePolicyToSheetProjection } from './characterRulePoli
 import { projectCharacterRuleResources } from './characterRuleResourceProjection.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
 import { getProficiencyTargetKind } from './sheetProficiency.js'
+import { addClassRitualSources, type CharacterSheetSpellSource } from './sheetSpellSource.js'
 import {
   getPreparedAndKnownSpellIds,
   getKnownSpellIdsForClassIntent,
@@ -249,48 +248,13 @@ function formatSlotLabel(slotKey: string, level: number | null): string {
   return level == null ? slotKey : `Level ${level}`
 }
 
-type CharacterSheetSpellSource = {
-  id?: string
-  classId?: string
-  label: string
-  source: {
-    spellId: string
-    sourceKind:
-      | 'BACKGROUND'
-      | 'CLASS'
-      | 'FEAT'
-      | 'FEATURE'
-      | 'ITEM'
-      | 'OPTION'
-      | 'RACE'
-      | 'SUBCLASS'
-    sourceInstanceId: string
-  }
-  canPrepare: boolean
-  prepared: boolean
-  provenance?:
-    | 'CLASS'
-    | 'SUBCLASS'
-    | 'RACE'
-    | 'BACKGROUND'
-    | 'FEAT'
-    | 'FEATURE'
-    | 'OPTION'
-    | 'EQUIPMENT'
-  acquisition?: 'KNOWN' | 'PREPARED' | 'ALWAYS_PREPARED' | 'GRANTED'
-  castMode?: 'SPELL_SLOT' | 'AT_WILL' | 'RITUAL' | 'FIXED_LEVEL' | 'LIMITED_USE'
-  fixedLevel?: number
-  resourceGrantId?: string
-  resourceOwner?: CharacterResourceOwnerRef
-}
-
 /** Labels only title a source on the Sheet; a reader that does not show sources passes none. */
 export function getSpellSourcesBySpellId(
   character: CharacterAuthored,
   sheetSpellIdsByClassId: ReadonlyMap<string, ReadonlySet<string>>,
   preparationCapableClassIds: ReadonlySet<string>,
   spellAccess: readonly CharacterSheetRuleProjection['spellAccess'][number][],
-  classRitualSources: NonNullable<CharacterBuildSnapshot['classRitualSources']>,
+  classRitualSources: Parameters<typeof addClassRitualSources>[1],
   classLabels: ReadonlyMap<string, string> = new Map(),
   featureLabels: ReadonlyMap<string, string> = new Map()
 ): Map<string, CharacterSheetSpellSource[]> {
@@ -413,22 +377,7 @@ export function getSpellSourcesBySpellId(
     }
   }
 
-  for (const { classId, source } of classRitualSources) {
-    const sources =
-      sourcesBySpellId.get(source.spellId) ?? new Map<string, CharacterSheetSpellSource>()
-    sources.set(createCharacterSpellSourceKey(source), {
-      id: source.sourceInstanceId,
-      classId,
-      label: `${classLabels.get(classId) ?? 'Class'} (ritual)`,
-      source,
-      provenance: 'CLASS',
-      acquisition: 'GRANTED',
-      castMode: 'RITUAL',
-      canPrepare: false,
-      prepared: true
-    })
-    sourcesBySpellId.set(source.spellId, sources)
-  }
+  addClassRitualSources(sourcesBySpellId, classRitualSources, classLabels)
 
   for (const access of spellAccess) {
     const sources =
