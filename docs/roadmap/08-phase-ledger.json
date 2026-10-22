@@ -3893,7 +3893,7 @@
             {
               "id": "RULES-2.T6e3b1b",
               "text": "Homebrew check outcomes, prompted roller (D173): the pending check d20, its response, the d20 window and the outcome-dice pause (ACTION_OUTCOME_EVIDENCE with an explicit phase on the context); removes the b1a prompted-roller refusal; parity for prompted dice.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 2,
@@ -3902,7 +3902,7 @@
                 "size": 2,
                 "after": ["RULES-2.T6e3b1a"]
               },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "note": "Merged m332 (e9a3152f1)."
             },
             {
               "id": "RULES-2.T6e3b1c",
@@ -3928,7 +3928,8 @@
                 "rr": 3,
                 "size": 3,
                 "after": ["RULES-2.T6e3b1b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             }
           ]
         }
