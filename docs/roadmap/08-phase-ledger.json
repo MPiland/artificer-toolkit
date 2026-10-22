@@ -10150,7 +10150,8 @@
                 "after": ["SPELLS-4.T2m1b2a", "RULES-2.T3a", "RULES-2.T6d1"]
               },
               "text": "Damage repeat save for the remaining damage sources (area one per holder, turn effects, cleaving, movement, legendary); the shared damage-save reader contract for T2m3 and SPELLS-33.T6e2/T4m; parity proof, area journey and HIDEOUS_LAUGHTER remnant check (D167).",
-              "note": "Split from T2m1b2 2026-10-20 (D167 amendment). Held 2026-10-20 behind RULES-2.T3a and T6d (one d20 settlement, one repeat-save model)."
+              "note": "Split from T2m1b2 2026-10-20 (D167 amendment). Held 2026-10-20 behind RULES-2.T3a and T6d (one d20 settlement, one repeat-save model).",
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             },
             {
               "id": "SPELLS-4.T2m1d",
@@ -14925,7 +14926,8 @@
                 "rr": 2,
                 "size": 3,
                 "after": ["RULES-2.T6e"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             },
             {
               "id": "SPELLS-33.T4i3e",
