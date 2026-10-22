@@ -9,7 +9,7 @@ import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionSpatial'
-import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { resolveEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
 import { executeEncounterMovementPassageContest } from './encounterMovementPassageContest.js'

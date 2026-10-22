@@ -4,7 +4,7 @@ import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/chara
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'

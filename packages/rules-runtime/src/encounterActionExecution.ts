@@ -27,7 +27,7 @@ import {
   type EncounterEvidenceAnswer
 } from './encounterEvidenceAnswer.js'
 import { resumeEncounterD20 } from './encounterD20AddedDice.js'
-import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { actionResponse, settleEncounterD20Answer } from './encounterD20Settlement.js'
 import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import {

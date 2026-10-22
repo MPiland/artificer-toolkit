@@ -27,9 +27,9 @@ import {
   rollModeKeepFaceCount,
   rollModeKeepSchema,
   rollModeKeptFace,
-  systemVocabularyCodeSchema,
+  systemCoreCodeSchema,
   type RollModeKeep
-} from './systemVocabularyCode.js'
+} from './systemCoreCode.js'
 
 export const serverRuleEvidenceResponseDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -75,7 +75,7 @@ export const receiptD20ContributorSchema = lazySchema(() =>
     sourceId: identifierSchema,
     grantId: z.nullable(identifierSchema),
     domainKey: z.nullable(identifierSchema),
-    influence: systemVocabularyCodeSchema,
+    influence: systemCoreCodeSchema,
     source: rollModeContributorSourceDtoSchema
   })
 )
@@ -103,7 +103,7 @@ export const canonicalConcentrationContributorsDtoSchema = lazySchema(() =>
 /** The d20 a single-roll check freezes before it is rolled: the roller's mode, contributors and modifier. */
 export const frozenCheckD20DtoSchema = lazySchema(() =>
   z.strictObject({
-    rollMode: systemVocabularyCodeSchema,
+    rollMode: systemCoreCodeSchema,
     keep: rollModeKeepSchema,
     contributors: canonicalConcentrationContributorsDtoSchema,
     contributorChecksum: checksumSchema,
@@ -120,7 +120,7 @@ export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
   z
     .strictObject({
       requestNodeId: localNodeIdSchema,
-      rollMode: systemVocabularyCodeSchema,
+      rollMode: systemCoreCodeSchema,
       keep: rollModeKeepSchema,
       contributors: z
         .array(receiptD20ContributorSchema)
@@ -152,7 +152,7 @@ export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
     )
 )
 
-const d20RollModeSchema = lazySchema(() => systemVocabularyCodeSchema)
+const d20RollModeSchema = lazySchema(() => systemCoreCodeSchema)
 
 const d20CaptionSchema = lazySchema(() =>
   z.nullable(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)))

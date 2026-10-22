@@ -8,7 +8,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
-import { rollModeKeepFaceCount } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import { rollModeKeepFaceCount } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
 import { addedDieEntries, keptFaceIndex } from './CampaignTabletopDecisionDrawer.model'
 import * as styles from './CampaignTabletopEvidenceRollRow.css'

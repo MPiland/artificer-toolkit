@@ -11,7 +11,7 @@ import {
 import { durationDtoSchema } from '../shared/duration.js'
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { rolledDieShape } from '../shared/d20AddedDice.js'
 import { MAX_ROLLED_DIE_COUNT } from '@artificer-toolkit/shared/core'
 import {
@@ -336,7 +336,7 @@ export const incomingAttackGatePayloadDtoSchema = lazySchema(() =>
 
 /** A code from the Game System's roll-influence vocabulary; the System checks it at ingress. */
 export const rollInfluencePayloadDtoSchema = lazySchema(() =>
-  z.strictObject({ influence: systemVocabularyCodeSchema })
+  z.strictObject({ influence: systemCoreCodeSchema })
 )
 
 /**

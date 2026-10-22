@@ -74,12 +74,12 @@ export function warmFixtureAuthoredSources() {
  * resolve or normalize authored values as the server does.
  */
 export function createSrdNodeRuntimeReader(
-  policyVocabulary: NodeRuntimePolicyVocabulary,
+  coreCodes: NodeRuntimePolicyVocabulary,
   system: SystemAuthoredDto = srdSystemRecord
 ): NodeRuntimeSourceReader {
   return createNodeRuntimeSourceReader({
     system,
-    policyVocabulary,
+    coreCodes,
     readAuthoredRows,
     readReusableDefinitions: async () => SRD_REUSABLE_DEFINITIONS
   })

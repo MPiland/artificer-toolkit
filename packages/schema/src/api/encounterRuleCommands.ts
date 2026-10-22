@@ -9,7 +9,7 @@ import { sizeCodeSchema } from '../shared/enums.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
-import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -424,7 +424,7 @@ const requestIdSchema = lazySchema(() =>
 )
 
 /** A d20 row's roll mode. The rules-derived mode is recommended; the roller may change it. */
-export const encounterD20RollModeDtoSchema = lazySchema(() => systemVocabularyCodeSchema)
+export const encounterD20RollModeDtoSchema = lazySchema(() => systemCoreCodeSchema)
 export type EncounterD20RollModeDto = z.infer<typeof encounterD20RollModeDtoSchema>
 
 /** Faces the roller entered ("Entered by <name>"): two for advantage or disadvantage. */

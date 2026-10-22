@@ -1,4 +1,4 @@
-import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { EncounterValidationError } from './encounterErrors.js'
 import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 

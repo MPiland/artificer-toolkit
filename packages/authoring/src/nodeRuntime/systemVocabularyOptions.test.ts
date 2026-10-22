@@ -6,18 +6,18 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { getRuntimeNodeMap, listRuntimeNodeMapIds } from './mapRegistry.js'
 import { resolveNodeRuntime } from './nodeRuntimeService.js'
 import { nodeRuntimeSourceManifest } from './nodeRuntimeSourceManifest.js'
-import { createNodeRuntimeSourceReader, systemVocabularyRows } from './systemSourceRows.js'
-import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
+import { createNodeRuntimeSourceReader, systemCoreCodeRows } from './systemSourceRows.js'
+import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 const reader = createNodeRuntimeSourceReader({
-  policyVocabulary: dnd5eVocabularyCapabilityAdapter.lists,
+  coreCodes: dnd5eCoreCodeAdapter.lists,
   system: srdSystemRecord,
   readAuthoredRows: () => [],
   readReusableDefinitions: async () => []
 })
 
 const vocabularyTables = Object.keys(
-  systemVocabularyRows(srdSystemRecord, dnd5eVocabularyCapabilityAdapter.lists)
+  systemCoreCodeRows(srdSystemRecord, dnd5eCoreCodeAdapter.lists)
 )
 
 async function optionsOf(mapId: string, nodeId: string, values: Record<string, unknown> = {}) {

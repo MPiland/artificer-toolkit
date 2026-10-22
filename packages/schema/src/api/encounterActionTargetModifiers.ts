@@ -1,7 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { resolveEncounterActionInputDtoSchema } from './encounterRuleCommands.js'
-import { rollModeKeepSchema, systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
+import { rollModeKeepSchema, systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 
@@ -45,7 +45,7 @@ export const encounterActionTargetModifiersDtoSchema = lazySchema(() =>
         /** Null when the action makes no attack roll against this creature. */
         attack: z.nullable(
           z.strictObject({
-            rollMode: systemVocabularyCodeSchema,
+            rollMode: systemCoreCodeSchema,
             /** The System's display label for `rollMode`, so no client keeps a mode table. */
             rollModeLabel: z.string().check(z.minLength(1)).check(z.maxLength(80)),
             keep: rollModeKeepSchema,

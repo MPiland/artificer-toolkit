@@ -1,7 +1,7 @@
 import { CharacterRuleActionTargetDefenseUnavailableError } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
 import { resolveEncounterBelievedAttackPerception } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
 import { playerSeesActor } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
-import { systemVocabularyRegistry } from '@artificer-toolkit/rules-runtime/platformSystemVocabulary'
+import { systemCoreCodeRegistry } from '@artificer-toolkit/rules-runtime/platformSystemCoreCodes'
 import {
   encounterActionTargetModifiersDtoSchema,
   type EncounterActionTargetModifiersDto,
@@ -139,7 +139,7 @@ export async function readEncounterActionTargetModifiers(
       actorId,
       attack: d20 && {
         rollMode: d20.rollMode,
-        rollModeLabel: systemVocabularyRegistry.requireCode(
+        rollModeLabel: systemCoreCodeRegistry.requireCode(
           state.gameSystemId,
           'rollMode',
           d20.rollMode

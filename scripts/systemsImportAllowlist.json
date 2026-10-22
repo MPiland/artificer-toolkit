@@ -4,7 +4,7 @@
     "packages/rules-runtime/src/platformEncounterPolicy.ts": "Installs the Encounter-only System capability adapters (ADR 0036 S6 keeps them out of the Sheet).",
     "packages/rules-runtime/src/platformPolicyModules.ts": "Installs the Sheet-reachable System capability adapters and policy modules.",
     "packages/rules-runtime/src/platformRulesRuntime.ts": "Installs each System's rules runtime registration.",
-    "packages/rules-runtime/src/platformSystemVocabulary.ts": "Installs each System's vocabulary lists; it loads no play execution, so authoring reads it apart from platformPolicyModules."
+    "packages/rules-runtime/src/platformSystemCoreCodes.ts": "Installs each System's vocabulary lists; it loads no play execution, so authoring reads it apart from platformPolicyModules."
   },
   "importers": []
 }

@@ -1,39 +1,39 @@
 import { describe, expect, it } from 'vitest'
 
 import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
-import { createSystemVocabularyRegistry } from '../systemVocabularyCapability.js'
+import { createSystemCoreCodeRegistry } from '../systemCoreCodeCapability.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
-import { systemVocabularyRegistry } from '../platformSystemVocabulary.js'
-import { dnd5eVocabularyCapabilityAdapter } from '../systems/dnd5e/vocabulary.js'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
+import { dnd5eCoreCodeAdapter } from '../systems/dnd5e/coreCodes.js'
 
 const UNKNOWN_SYSTEM_ID = '00000000-0000-4000-8000-0000000000ff'
 
 describe('System vocabulary registry', () => {
   it('returns the code and label the installed System defines', () => {
-    expect(systemVocabularyRegistry.requireCode(DND5E_SYSTEM_ID, 'rollMode', 'ADVANTAGE')).toEqual({
+    expect(systemCoreCodeRegistry.requireCode(DND5E_SYSTEM_ID, 'rollMode', 'ADVANTAGE')).toEqual({
       code: 'ADVANTAGE',
       label: 'Advantage',
       description: 'Roll two d20s and use the higher.'
     })
     expect(
-      systemVocabularyRegistry.entries(DND5E_SYSTEM_ID, 'rollInfluence').map(({ code }) => code)
+      systemCoreCodeRegistry.entries(DND5E_SYSTEM_ID, 'rollInfluence').map(({ code }) => code)
     ).toEqual(['ADVANTAGE', 'DISADVANTAGE'])
   })
 
   it('refuses a code outside the list it is checked against', () => {
     expect(() =>
-      systemVocabularyRegistry.requireCode(DND5E_SYSTEM_ID, 'rollInfluence', 'NORMAL')
+      systemCoreCodeRegistry.requireCode(DND5E_SYSTEM_ID, 'rollInfluence', 'NORMAL')
     ).toThrow('The Game System does not define the roll-mode influence "NORMAL".')
-    expect(() => systemVocabularyRegistry.requireCode(DND5E_SYSTEM_ID, 'rollMode', 'BOON')).toThrow(
+    expect(() => systemCoreCodeRegistry.requireCode(DND5E_SYSTEM_ID, 'rollMode', 'BOON')).toThrow(
       'The Game System does not define the roll mode "BOON".'
     )
     expect(() =>
-      systemVocabularyRegistry.requireCode(DND5E_SYSTEM_ID, 'rollMode', 'AUTO_HIT')
+      systemCoreCodeRegistry.requireCode(DND5E_SYSTEM_ID, 'rollMode', 'AUTO_HIT')
     ).toThrow('The Game System does not define the roll mode "AUTO_HIT".')
   })
 
   it('fails closed on a System with no vocabulary', () => {
-    expect(() => systemVocabularyRegistry.entries(UNKNOWN_SYSTEM_ID, 'rollMode')).toThrow(
+    expect(() => systemCoreCodeRegistry.entries(UNKNOWN_SYSTEM_ID, 'rollMode')).toThrow(
       'The Game System does not provide vocabulary policy.'
     )
   })
@@ -41,11 +41,11 @@ describe('System vocabulary registry', () => {
   it('refuses a list with a duplicate code', () => {
     const advantage = { code: 'ADVANTAGE', label: 'Advantage' }
     expect(() =>
-      createSystemVocabularyRegistry([
+      createSystemCoreCodeRegistry([
         {
-          ...dnd5eVocabularyCapabilityAdapter,
+          ...dnd5eCoreCodeAdapter,
           lists: {
-            ...dnd5eVocabularyCapabilityAdapter.lists,
+            ...dnd5eCoreCodeAdapter.lists,
             rollInfluence: [advantage, advantage]
           }
         }
