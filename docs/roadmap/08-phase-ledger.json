@@ -4263,7 +4263,8 @@
                 "after": ["RULES-2.T9i"]
               },
               "text": "Neutral character files (characterOnHitCosts, characterRulePolicyFacts, characterSpellCastActions, sheetProjection, sheetRest) compare the 'PACT' slot key. The slot pools, with their label and short-rest recovery, come from the dnd5e System's core codes through the capability registry; neutral code holds no pool literal.",
-              "note": "Found in the SPELLS-31.T5p review (D175), 2026-10-22."
+              "note": "Found in the SPELLS-31.T5p review (D175), 2026-10-22.",
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
             }
           ]
         }
@@ -10089,7 +10090,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Reviving a dead creature, with a decaying d20 penalty. Converts REVIVIFY, RAISE_DEAD, RESURRECTION, TRUE_RESURRECTION, REINCARNATE, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Reviving a dead creature, with a decaying d20 penalty. Converts REVIVIFY, RAISE_DEAD, RESURRECTION, TRUE_RESURRECTION, REINCARNATE, with parity proofs; each kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -10102,7 +10104,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Removed-from-play state that returns at a boundary. Converts BANISHMENT, BLINK, ETHEREALNESS, MAZE, IMPRISONMENT, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Removed-from-play state that returns at a boundary. Converts BANISHMENT, BLINK, ETHEREALNESS, MAZE, IMPRISONMENT, with parity proofs; each kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "DONE",
@@ -10220,7 +10223,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Attacker or source qualifiers on grants. Converts PROTECTION_FROM_EVIL_AND_GOOD, HOLY_AURA, DISPEL_EVIL_AND_GOOD, STONESKIN, WIND_WALK, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Attacker or source qualifiers on grants. Converts PROTECTION_FROM_EVIL_AND_GOOD, HOLY_AURA, DISPEL_EVIL_AND_GOOD, STONESKIN, WIND_WALK, with parity proofs; each kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2k1",
