@@ -82,8 +82,7 @@ import {
   buildNodeMap,
   type BuildNodeMap,
   type NodeEntry,
-  type NodeMap,
-  valuesOf
+  type NodeMap
 } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 import {
@@ -200,29 +199,17 @@ const TELEPORT_DESTINATION_KIND_OPTIONS = [
   { code: 'SPECIAL', label: 'Special' }
 ] as const
 
-const SUMMON_DAMAGEABILITY_OPTIONS = valuesOf(
-  Object.fromEntries(
-    Object.values(SUMMON_DAMAGEABILITY_KIND).map((code) => [
-      code,
-      {
-        code,
-        label: code === 'INVULNERABLE' ? 'Invulnerable' : code === 'SPECIAL' ? 'Special' : 'Normal'
-      }
-    ])
-  )
-)
+const SUMMON_DAMAGEABILITY_OPTIONS = [
+  { code: SUMMON_DAMAGEABILITY_KIND.NORMAL, label: 'Normal' },
+  { code: SUMMON_DAMAGEABILITY_KIND.INVULNERABLE, label: 'Invulnerable' },
+  { code: SUMMON_DAMAGEABILITY_KIND.SPECIAL, label: 'Special' }
+] as const
 
-const SUMMON_VISIBILITY_OPTIONS = valuesOf(
-  Object.fromEntries(
-    Object.values(SUMMON_VISIBILITY_KIND).map((code) => [
-      code,
-      {
-        code,
-        label: code === 'INVISIBLE' ? 'Invisible' : code === 'SPECIAL' ? 'Special' : 'Visible'
-      }
-    ])
-  )
-)
+const SUMMON_VISIBILITY_OPTIONS = [
+  { code: SUMMON_VISIBILITY_KIND.VISIBLE, label: 'Visible' },
+  { code: SUMMON_VISIBILITY_KIND.INVISIBLE, label: 'Invisible' },
+  { code: SUMMON_VISIBILITY_KIND.SPECIAL, label: 'Special' }
+] as const
 
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
