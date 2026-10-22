@@ -17,7 +17,8 @@ const snapshotOf = (creature: CreatureAuthored) => ({
     speeds: creature.speeds
   }
 })
-const codeToId = (code: string) => srdSystemRecord.challengeRatings.find((cr) => cr.code === code)!.id
+const codeToId = (code: string) =>
+  srdSystemRecord.challengeRatings.find((cr) => cr.code === code)!.id
 const flySpeedId = srdSystemRecord.speeds.find(({ code }) => code === 'FLY')!.id
 
 const beastToTarget = {

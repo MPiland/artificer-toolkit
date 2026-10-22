@@ -54,6 +54,8 @@ export const nodeRuntimeSourceManifest = {
   races: ['category', 'id', 'label', 'parent_race_id'],
   rarities: ['description', 'id', 'label'],
   reusable_definitions: ['id', 'label'],
+  roll_influences: ['description', 'id', 'label'],
+  roll_modes: ['description', 'id', 'label'],
   senses: ['description', 'id', 'label'],
   skills: ['description', 'id', 'label'],
   speeds: ['description', 'id', 'label'],

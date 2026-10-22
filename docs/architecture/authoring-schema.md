@@ -96,7 +96,9 @@ Maps live in `packages/shared/src/domains/{subjects,features,grants,effects,shar
 executor, registry, and trusted source manifest. It depends on `schema` and `shared`, never the
 database or a client framework. Keeping this package separate avoids a `shared` → `schema` cycle.
 `NodeRuntimeSourceReader` supplies trusted rows for a closed source key, columns, predicate, and
-System UUID; it is not a client-provided query or a new rules language.
+System UUID; it is not a client-provided query or a new rules language. Code-owned policy vocabulary
+(`roll_influences`, `roll_modes`) comes in through the source reader: callers pass the System's lists to
+`createNodeRuntimeSourceReader`, so this package still depends only on `schema` and `shared`.
 
 `resolveNodeRuntime(sourceReader, request)`:
 

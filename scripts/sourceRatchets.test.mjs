@@ -41,6 +41,7 @@ const LEGACY = 'packages/rules-runtime/src/legacyEncounter.ts'
 const NEUTRAL = 'packages/rules-runtime/src/neutralEncounter.ts'
 const SYSTEM_IMPORT = "import { policy } from './systems/dnd5e/policy'\n"
 const ROOT = 'packages/rules-runtime/src/platformProbePolicy.ts'
+const NEW_ROOT = 'packages/rules-runtime/src/platformProbeVocabulary.ts'
 const CONSUMER = 'apps/session-worker/src/nativeProbe.ts'
 const PACKAGE_SYSTEM_IMPORT =
   "import { policy } from '@artificer-toolkit/rules-runtime/systems/dnd5e/policy'\n"
@@ -257,6 +258,40 @@ describe('ratchetProblems (RULES-2.T1)', () => {
     expect(ratchetProblems(root)).toEqual([])
     expect(ratchetProblems(root, { base: 'phase' })).toEqual([
       `${FENCE_ALLOWLIST}: ${NEUTRAL} is new; the allowlist only shrinks.`
+    ])
+  })
+
+  it('passes a new platform composition root that states its reason (RULES-2.T9b)', () => {
+    write(NEW_ROOT, SYSTEM_IMPORT)
+    writeJson(
+      FENCE_ALLOWLIST,
+      allowlist([LEGACY], {
+        [ROOT]: 'Installs the probe adapters.',
+        [NEW_ROOT]: 'Installs a list.'
+      })
+    )
+    commitAll(root, 'name a new platform root')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([])
+  })
+
+  it('fails a new platform composition root without a reason (RULES-2.T9b)', () => {
+    write(NEW_ROOT, SYSTEM_IMPORT)
+    writeJson(
+      FENCE_ALLOWLIST,
+      allowlist([LEGACY], { [ROOT]: 'Installs the probe adapters.', [NEW_ROOT]: ' ' })
+    )
+    commitAll(root, 'name a new platform root without a reason')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${FENCE_ALLOWLIST}: ${NEW_ROOT} is new; the allowlist only shrinks.`
+    ])
+  })
+
+  it('fails a new importer even when it is a platform module (RULES-2.T9b)', () => {
+    write(NEW_ROOT, SYSTEM_IMPORT)
+    writeJson(FENCE_ALLOWLIST, allowlist([LEGACY, NEW_ROOT]))
+    commitAll(root, 'list a platform module as an importer')
+    expect(ratchetProblems(root, { base: 'phase' })).toEqual([
+      `${FENCE_ALLOWLIST}: ${NEW_ROOT} is new; the allowlist only shrinks.`
     ])
   })
 })

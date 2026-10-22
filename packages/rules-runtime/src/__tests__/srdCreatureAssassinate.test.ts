@@ -1,4 +1,4 @@
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
+import { CLOSED_RULE_KIND, modifierRollInfluence } from '@artificer-toolkit/shared/core'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { describe, expect, it } from 'vitest'
 
@@ -48,8 +48,9 @@ describe('Assassinate authored as attack roll advantage on the SRD Assassin (SPE
 
   it('folds one target-has-not-taken-a-turn attack roll advantage per attack domain', () => {
     const grants = modifiersOf('Assassin').filter(
-      ({ valueDomainCode, modifierKind }) =>
-        valueDomainCode === 'ATTACK_ROLL' && modifierKind === 'ADVANTAGE'
+      (modifier) =>
+        modifier.valueDomainCode === 'ATTACK_ROLL' &&
+        modifierRollInfluence(modifier) === 'ADVANTAGE'
     )
     expect(grants.map(({ domain }) => domain.attackDomain).sort()).toEqual(
       [...ATTACK_DOMAINS].sort()

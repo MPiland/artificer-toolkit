@@ -82,9 +82,8 @@ export function evaluateDnd5eCharacterModifiers(
     }
     if (
       [
-        'ADVANTAGE',
-        'DISADVANTAGE',
-        'NEGATE_ADVANTAGE',
+        'ROLL_INFLUENCE',
+        'SUPPRESS_ROLL_INFLUENCE',
         'ADD_OPTION',
         'REMOVE_OPTION',
         'ADD_BONUS_DIE',
@@ -241,7 +240,7 @@ export function evaluateDnd5eCharacterModifiers(
         group.valueDomainCode === 'ATTACKS_PER_ATTACK_ACTION'
         ? 'highest'
         : 'last'
-      : ['ADVANTAGE', 'DISADVANTAGE', 'NEGATE_ADVANTAGE'].includes(group.modifierKind)
+      : ['ROLL_INFLUENCE', 'SUPPRESS_ROLL_INFLUENCE'].includes(group.modifierKind)
         ? 'boolean'
         : 'additive'
     const selected =

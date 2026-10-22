@@ -41,6 +41,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@artificer-toolkit/rules-runtime": "workspace:^",
     "typescript": "^7.0.2"
   }
 }

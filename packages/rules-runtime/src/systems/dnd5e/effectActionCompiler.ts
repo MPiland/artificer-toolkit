@@ -5627,10 +5627,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         positionalFacts,
         sceneContext
       })
-      // A target's grant that negates advantage (Elusive) leaves the attack no advantage at all.
+      // A target's grant that suppresses an influence (Elusive's advantage) leaves the attack none.
+      const suppressed = sourceDerivedFacts.attackSuppressedInfluences
       const allContributors = (flanking ? [...contributors, flanking] : contributors).filter(
-        ({ influence }) =>
-          sourceDerivedFacts.attackAdvantageNegated !== true || influence !== 'ADVANTAGE'
+        ({ influence }) => !Array.isArray(suppressed) || !suppressed.includes(influence)
       )
       allContributors.sort(compareCanonicalD20Contributors)
       const { rollMode } = resolveDnd5eRollMode(allContributors)

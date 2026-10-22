@@ -183,16 +183,20 @@ function attackModifierContributions(
   attackDomain: string,
   valueDomainCode: 'ATTACK_ROLL' | 'DAMAGE',
   modifierKinds: readonly string[],
-  attackAbility: string | null = null
+  attackAbility: string | null = null,
+  influence: string | null = null
 ): ModifierContribution[] {
+  // Domain keys sort their params, so a roll influence's comes last.
+  const influenceParam = influence === null ? '' : `|influence=${influence}`
   return input.modifierGroups
     .filter((group) =>
       modifierKinds.some((kind) => {
         const key = `${valueDomainCode}:${kind}`
         return (
-          group.domainKey === `${key}|attackDomain=${attackDomain}` ||
+          group.domainKey === `${key}|attackDomain=${attackDomain}${influenceParam}` ||
           (attackAbility !== null &&
-            group.domainKey === `${key}|ability=${attackAbility}|attackDomain=${attackDomain}`)
+            group.domainKey ===
+              `${key}|ability=${attackAbility}|attackDomain=${attackDomain}${influenceParam}`)
         )
       })
     )
@@ -256,7 +260,8 @@ export function resolveDnd5eActionMechanic(
     valueDomainCode: 'ATTACK_ROLL' | 'DAMAGE',
     modifierKinds: readonly string[],
     applies: (contribution: ModifierContribution) => boolean = (contribution) =>
-      dnd5eModifierApplies(contribution, target)
+      dnd5eModifierApplies(contribution, target),
+    influence: string | null = null
   ): ModifierContribution[] =>
     attackDomain === null
       ? []
@@ -265,7 +270,8 @@ export function resolveDnd5eActionMechanic(
           attackDomain,
           valueDomainCode,
           modifierKinds,
-          target.attackAbility
+          target.attackAbility,
+          influence
         ).filter(applies)
   const appliedTotal = (contributions: readonly ModifierContribution[]): number =>
     contributions
@@ -353,8 +359,10 @@ export function resolveDnd5eActionMechanic(
   const resolveAttackRollMode = (): ResolvedMechanic['attackRollMode'] => {
     if (attackKind === null) return null
     // Suppressed duplicate grants still count as roll-mode evidence.
-    const advantage = applicable('ATTACK_ROLL', ['ADVANTAGE']).length > 0
-    const disadvantage = applicable('ATTACK_ROLL', ['DISADVANTAGE']).length > 0
+    const influenced = (influence: string): boolean =>
+      applicable('ATTACK_ROLL', ['ROLL_INFLUENCE'], undefined, influence).length > 0
+    const advantage = influenced('ADVANTAGE')
+    const disadvantage = influenced('DISADVANTAGE')
     return advantage === disadvantage ? 'NORMAL' : advantage ? 'ADVANTAGE' : 'DISADVANTAGE'
   }
   /** Weapon and spell attacks add their damage modifiers (ability, +N, Dueling) to the first

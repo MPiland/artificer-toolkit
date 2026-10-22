@@ -1,6 +1,7 @@
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { SystemVocabularySnapshot } from '@artificer-toolkit/schema/projections/systemVocabulary'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
+import { modifierRollInfluence } from '@artificer-toolkit/shared/core'
 import {
   compareCanonicalD20Contributors,
   rollModeContributorSourceOfMechanicSource
@@ -24,17 +25,18 @@ type CharacterRollContributor =
 type ScopedSavingThrow = {
   abilityId: string
   scope: { ruleDefinitionId: string } | { conditionTypeId: string }
-  groups: Map<string, 'BONUS' | 'PENALTY' | 'ADVANTAGE' | 'DISADVANTAGE'>
+  /** Each group's roll influence, or null for a bonus or penalty. */
+  groups: Map<string, string | null>
 }
 
 function scopedSavingThrows(output: CharacterRulePolicyOutput): ScopedSavingThrow[] {
   const scoped = new Map<string, ScopedSavingThrow>()
   for (const modifier of output.grantFold.modifiers) {
+    const influence = modifierRollInfluence(modifier)
     if (
       (modifier.modifierKind !== 'BONUS' &&
         modifier.modifierKind !== 'PENALTY' &&
-        modifier.modifierKind !== 'ADVANTAGE' &&
-        modifier.modifierKind !== 'DISADVANTAGE') ||
+        influence === null) ||
       !dnd5eModifierApplies(
         dnd5eAcceptedModifierApplicability(modifier),
         DND5E_CHARACTER_WIDE_TARGET
@@ -55,7 +57,7 @@ function scopedSavingThrows(output: CharacterRulePolicyOutput): ScopedSavingThro
     if (scope === null) continue
     const key = `${abilityId}:${JSON.stringify(scope)}`
     const entry = scoped.get(key) ?? { abilityId, scope, groups: new Map() }
-    entry.groups.set(modifier.domainKey, modifier.modifierKind)
+    entry.groups.set(modifier.domainKey, influence)
     scoped.set(key, entry)
   }
   return [...scoped.values()]
@@ -169,7 +171,7 @@ export function resolveCharacterRulePolicyRollModes(
     if (!base) continue
     let modifier = base.modifier
     const scopedContributors: CharacterRollContributor[] = []
-    for (const [domainKey, modifierKind] of scoped.groups) {
+    for (const [domainKey, influence] of scoped.groups) {
       const group = resolvedModifierGroups.get(domainKey)
       if (!group) continue
       const contributions = group.contributions.filter((contribution) =>
@@ -178,7 +180,7 @@ export function resolveCharacterRulePolicyRollModes(
           DND5E_CHARACTER_WIDE_TARGET
         )
       )
-      if (modifierKind === 'BONUS' || modifierKind === 'PENALTY') {
+      if (influence === null) {
         modifier += contributions
           .filter((contribution) => contribution.state === 'APPLIED')
           .reduce((sum, contribution) => sum + contribution.value, 0)
@@ -192,7 +194,7 @@ export function resolveCharacterRulePolicyRollModes(
           source: rollModeContributorSourceOfMechanicSource(contribution.source),
           grantId: contribution.grantId,
           domainKey: contribution.domainKey,
-          influence: modifierKind
+          influence
         })
       }
     }

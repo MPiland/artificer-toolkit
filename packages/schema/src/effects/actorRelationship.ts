@@ -11,6 +11,7 @@ import {
 } from '../shared/authoredLimits.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
 
 const moduleBase = lazySchemaParts(() => ({
   id: postgresUuidSchema,
@@ -36,7 +37,7 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
       ...moduleBase(),
       kind: z.literal('SOURCE_ATTACK_ROLL_INFLUENCE'),
       actionEffectIds: uuidList,
-      influence: z.literal('ADVANTAGE')
+      influence: systemVocabularyCodeSchema
     }),
     z.object({ ...moduleBase(), kind: z.literal('SOURCE_FOLLOWS_TARGET') }),
     /** Each creature held this way fills one of the source's free hands (D152). */
@@ -70,7 +71,7 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
     z.object({
       ...moduleBase(),
       kind: z.literal('CONDITIONAL_TARGET_STATE'),
-      whenResolvedAttackD20Mode: z.literal('ADVANTAGE'),
+      whenResolvedAttackD20Mode: systemVocabularyCodeSchema,
       conditionIds: uuidList,
       capabilityDefinitionIds: uuidList
     })

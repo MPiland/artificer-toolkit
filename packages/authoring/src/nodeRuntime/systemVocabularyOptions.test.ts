@@ -7,14 +7,18 @@ import { getRuntimeNodeMap, listRuntimeNodeMapIds } from './mapRegistry.js'
 import { resolveNodeRuntime } from './nodeRuntimeService.js'
 import { nodeRuntimeSourceManifest } from './nodeRuntimeSourceManifest.js'
 import { createNodeRuntimeSourceReader, systemVocabularyRows } from './systemSourceRows.js'
+import { dnd5eVocabularyCapabilityAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/vocabulary'
 
 const reader = createNodeRuntimeSourceReader({
+  policyVocabulary: dnd5eVocabularyCapabilityAdapter.lists,
   system: srdSystemRecord,
   readAuthoredRows: () => [],
   readReusableDefinitions: async () => []
 })
 
-const vocabularyTables = Object.keys(systemVocabularyRows(srdSystemRecord))
+const vocabularyTables = Object.keys(
+  systemVocabularyRows(srdSystemRecord, dnd5eVocabularyCapabilityAdapter.lists)
+)
 
 async function optionsOf(mapId: string, nodeId: string, values: Record<string, unknown> = {}) {
   const result = await resolveNodeRuntime(reader, { mapId, systemId: srdSystemRecord.id, values })

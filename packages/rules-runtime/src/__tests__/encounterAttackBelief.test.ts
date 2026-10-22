@@ -158,7 +158,8 @@ describe('encounter attack d20 belief', () => {
         {
           requiresHolderSeesAttacker: true,
           exemptAttackerSenseDefinitionIds: [],
-          contributor: dodge
+          contributor: dodge,
+          suppressedInfluence: null
         }
       ]
     })
@@ -174,7 +175,8 @@ describe('encounter attack d20 belief', () => {
           {
             requiresHolderSeesAttacker: true,
             exemptAttackerSenseDefinitionIds: [],
-            contributor: dodge
+            contributor: dodge,
+            suppressedInfluence: null
           }
         ]
       })
@@ -223,7 +225,8 @@ describe('encounter attack d20 belief', () => {
         {
           requiresHolderSeesAttacker: true,
           exemptAttackerSenseDefinitionIds: [],
-          contributor: dodge
+          contributor: dodge,
+          suppressedInfluence: null
         }
       ]
     })
@@ -238,7 +241,8 @@ describe('encounter attack d20 belief', () => {
           {
             requiresHolderSeesAttacker: true,
             exemptAttackerSenseDefinitionIds: [],
-            contributor: dodge
+            contributor: dodge,
+            suppressedInfluence: null
           }
         ]
       })

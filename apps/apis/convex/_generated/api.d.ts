@@ -24413,7 +24413,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -35552,7 +35552,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -46700,7 +46700,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -57839,7 +57839,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -69013,7 +69013,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -80152,7 +80152,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -91279,7 +91279,7 @@ export declare const api: {
                 mechanics: Array<
                   | {
                       id: string;
-                      influence: "ADVANTAGE" | "DISADVANTAGE";
+                      influence: string;
                       kind: "D20_ROLL_MODE";
                       minimumLevel: number | null;
                       order: number;
@@ -102282,7 +102282,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -113421,7 +113421,7 @@ export declare const api: {
                   mechanics: Array<
                     | {
                         id: string;
-                        influence: "ADVANTAGE" | "DISADVANTAGE";
+                        influence: string;
                         kind: "D20_ROLL_MODE";
                         minimumLevel: number | null;
                         order: number;
@@ -127963,7 +127963,7 @@ export declare const api: {
                         | "SAVING_THROW";
                       label: string;
                       order: number;
-                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      rollMode?: string;
                     }>;
                     section?:
                       | "TRAIT"
@@ -129084,7 +129084,7 @@ export declare const api: {
                         | "SAVING_THROW";
                       label: string;
                       order: number;
-                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      rollMode?: string;
                     }>;
                     section?:
                       | "TRAIT"
@@ -130048,7 +130048,7 @@ export declare const api: {
                     | "SAVING_THROW";
                   label: string;
                   order: number;
-                  rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rollMode?: string;
                 }>;
                 section?:
                   | "TRAIT"
@@ -130348,7 +130348,7 @@ export declare const api: {
                         | "SAVING_THROW";
                       label: string;
                       order: number;
-                      rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                      rollMode?: string;
                     }>;
                     section?:
                       | "TRAIT"
@@ -130988,7 +130988,7 @@ export declare const api: {
                   | "SAVING_THROW";
                 label: string;
                 order: number;
-                rollMode?: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                rollMode?: string;
               }>;
               section?:
                 | "TRAIT"
@@ -137744,6 +137744,12 @@ export declare const internal: {
               reusable_definitions?: Array<
                 Record<string, string | number | boolean | null>
               >;
+              roll_influences?: Array<
+                Record<string, string | number | boolean | null>
+              >;
+              roll_modes?: Array<
+                Record<string, string | number | boolean | null>
+              >;
               senses?: Array<Record<string, string | number | boolean | null>>;
               skills?: Array<Record<string, string | number | boolean | null>>;
               speeds?: Array<Record<string, string | number | boolean | null>>;
@@ -137814,6 +137820,8 @@ export declare const internal: {
             races?: string;
             rarities?: string;
             reusable_definitions?: string;
+            roll_influences?: string;
+            roll_modes?: string;
             senses?: string;
             skills?: string;
             speeds?: string;

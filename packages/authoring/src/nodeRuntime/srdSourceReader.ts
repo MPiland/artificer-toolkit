@@ -10,7 +10,11 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 import { authoredSourceFacts, authoredSourceKindsByTable } from './authoredSourceFacts.js'
 import type { NodeRuntimeQueryRow, NodeRuntimeSourceReader } from './nodeRuntimeSourceContract.js'
 import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
-import { createNodeRuntimeSourceReader, sortAuthoredSourceRows } from './systemSourceRows.js'
+import {
+  createNodeRuntimeSourceReader,
+  sortAuthoredSourceRows,
+  type NodeRuntimePolicyVocabulary
+} from './systemSourceRows.js'
 
 const { subjects } = srdBaselineContent
 const fixtureVersionId = '00000000-0000-4000-8000-000000000f00'
@@ -70,10 +74,12 @@ export function warmFixtureAuthoredSources() {
  * resolve or normalize authored values as the server does.
  */
 export function createSrdNodeRuntimeReader(
+  policyVocabulary: NodeRuntimePolicyVocabulary,
   system: SystemAuthoredDto = srdSystemRecord
 ): NodeRuntimeSourceReader {
   return createNodeRuntimeSourceReader({
     system,
+    policyVocabulary,
     readAuthoredRows,
     readReusableDefinitions: async () => SRD_REUSABLE_DEFINITIONS
   })
