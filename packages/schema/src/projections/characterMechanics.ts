@@ -38,6 +38,7 @@ import {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   authoredVersionVectorSchema,
+  type AuthoredVersionVector,
   jsonValueSchema,
   projectionChecksumSchema,
   projectionIdentifierSchema,
@@ -891,6 +892,12 @@ const characterRulePolicyOutput: z.ZodMiniType<CharacterRulePolicyOutput> =
   characterRulePolicyOutputSchema
 const characterRuleSnapshot: z.ZodMiniType<CharacterMechanicsRuleSnapshot> =
   characterMechanicsRuleSnapshotSchema
+const versionVector: z.ZodMiniType<AuthoredVersionVector> = authoredVersionVectorSchema
+const initiativeActorFacts: z.ZodMiniType<CharacterInitiativeActorFacts> =
+  characterInitiativeActorFactsSchema
+const pinnedSenseDefinitions: z.ZodMiniType<PinnedSenseDefinition[]> = lazySchema(() =>
+  z.array(pinnedSenseDefinitionSchema).check(z.maxLength(100))
+)
 const characterMechanicsProjectionObjectSchema = lazySchema(() =>
   z.strictObject({
     characterId: projectionIdentifierSchema,
@@ -900,7 +907,7 @@ const characterMechanicsProjectionObjectSchema = lazySchema(() =>
     projectionSchemaVersion: z.literal(2),
     projectionChecksum: projectionChecksumSchema,
     characterStreamVersion: nonNegativeStreamVersionSchema,
-    authoredVersionVector: authoredVersionVectorSchema,
+    authoredVersionVector: versionVector,
     systemVocabularySnapshotId: projectionIdentifierSchema,
     systemVocabularySnapshotVersion: projectionSchemaVersionSchema,
     systemVocabularySnapshotChecksum: projectionChecksumSchema,
@@ -911,12 +918,12 @@ const characterMechanicsProjectionObjectSchema = lazySchema(() =>
     ruleSnapshot: characterRuleSnapshot,
     rulePolicyInput: characterRulePolicyInput,
     rulePolicyOutput: characterRulePolicyOutput,
-    initiativeActorFacts: z._default(characterInitiativeActorFactsSchema, {
+    initiativeActorFacts: z._default(initiativeActorFacts, {
       effectiveSize: null,
       checkTotals: {},
       equippedItems: []
     }),
-    pinnedSenseDefinitions: z.array(pinnedSenseDefinitionSchema).check(z.maxLength(100)),
+    pinnedSenseDefinitions,
     ruleRegistry: z.record(z.string(), jsonValueSchema),
     compiledActionEntryPoints: compiledActionEntryPointsSchema
   })
