@@ -787,27 +787,6 @@ export const ranger: ClassAuthored = {
       label: 'Primeval Awareness',
       description:
         "Beginning at 3rd level, you can use your action and expend one ranger spell slot to focus your awareness on the region around you. For 1 minute per level of the spell slot you expend, you can sense whether the following types of creatures are present within 1 mile of you (or within up to 6 miles if you are in your favored terrain): aberrations, celestials, dragons, elementals, fey, fiends, and undead. This feature doesn't reveal the creatures' location or number.",
-      effects: [
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 6),
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_PRIMEVAL_AWARENESS,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: classRowId(RA, 0x69, 6),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 1,
-              unit: MEASUREMENT_UNIT_CODE.MILES
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: TARGET_DISPOSITION_KIND.ANY
-            }
-          }
-        })
-      ],
       availableAtLevel: 3,
       order: 5
     },

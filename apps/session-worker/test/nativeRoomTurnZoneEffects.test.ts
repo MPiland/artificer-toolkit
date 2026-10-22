@@ -38,7 +38,8 @@ import {
   readSheetStreamVersion,
   readZones,
   choiceOptionIdOf,
-  sendSheetCommand
+  sendSheetCommand,
+  walkerMoves
 } from './placedZoneRoomReads.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
@@ -63,6 +64,7 @@ const FIELD_DIE_DAMAGE = DIE + 1
 const INSIDE_THE_AURA = { x: 150, y: 450 }
 const OUTSIDE_THE_AURA = { x: 150, y: 650 }
 const FIELD_POINT = { x: 250, y: 150 }
+const OUTSIDE_THE_FIELD = { x: 250, y: 650 }
 
 afterEach(() => {
   closeTrackedSockets()
@@ -115,16 +117,18 @@ function endOfTurnCaltrops(): EquipmentAuthored {
 }
 
 /**
- * The Character spreads the caltrops (by default acting at the end of a creature's turn) under the
- * Wolf; `autoRoll` is off when a test answers the dice.
+ * The Character spreads the caltrops (by default acting at the end of a creature's turn) at the
+ * field point, under the Wolf unless it stands at `wolfAt`; `autoRoll` is off when a test answers
+ * the dice.
  */
 function fieldRoom(
   autoRoll?: Parameters<typeof actionRoom>[0]['autoRoll'],
-  caltrops = endOfTurnCaltrops()
+  caltrops = endOfTurnCaltrops(),
+  wolfAt = FIELD_POINT
 ) {
   return actionRoom({
     actors: [casterActor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
-    positions: { [WOLF_ID]: FIELD_POINT },
+    positions: { [WOLF_ID]: wolfAt },
     characterEquipment: [caltrops],
     characterAction: (action) => action.label === caltrops.label,
     autoRoll,
@@ -320,6 +324,71 @@ describe('a room ADVANCE_TURN with turn-boundary zone effects (SPELLS-20 T4b2b2)
     expect(await castersTurn.send()).toEqual(answer)
     expect(room.room.diceDrawn()).toBe(dice)
     expect(await readRoomHistory(room.room.base.stub)).toEqual(held)
+  })
+
+  it('acts on a creature that enters the zone, ends and starts its turn in it, then leaves (RULES-2.T5d)', async () => {
+    // A 1d4 field authored from core options to act on each zone event, with no save.
+    const field = variantEquipment((parts) => {
+      diceDamage('1d4')(parts)
+      noSave(['ENTER_SPACE', 'START_TURN_IN_SPACE', 'END_TURN_IN_SPACE', 'LEAVE_SPACE'])(parts)
+    })
+    const room = await fieldRoom('EVERYONE', field, OUTSIDE_THE_FIELD)
+    const zone = await castOnFirstTurn(room, () => room.startAreaAction(FIELD_POINT))
+    expect(zone.placement).toMatchObject({
+      triggerModes: ['ENTER', 'EXIT'],
+      turnTriggers: ['START_OF_TURN', 'END_OF_TURN']
+    })
+    const hitPointsBefore = (await hitPointsOf(room, WOLF_ID)) ?? 0
+    const wolfsZoneHit = {
+      candidate: { effectId: zone.id, targetActorId: WOLF_ID },
+      applications: [expect.objectContaining({ kind: 'DAMAGE', appliedAmount: FIELD_DIE_DAMAGE })]
+    }
+
+    // The Wolf's turn starts outside the field, which catches no one.
+    const firstStart = await advanceCommand(room)
+    expect((await firstStart.send()).type).toBe('COMMAND_COMMITTED')
+    expect((await storedZonePhases(room, firstStart.commandId)).incoming).toBeUndefined()
+
+    const entering = await walkerMoves(room, [OUTSIDE_THE_FIELD, FIELD_POINT])
+    expect(entering.executions).toEqual([
+      expect.objectContaining({ applications: wolfsZoneHit.applications })
+    ])
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore - FIELD_DIE_DAMAGE)
+
+    // The Wolf ends its turn in the field.
+    const wolfsTurnEnds = await advanceCommand(room)
+    expect((await wolfsTurnEnds.send()).type).toBe('COMMAND_COMMITTED')
+    expect((await storedZonePhases(room, wolfsTurnEnds.commandId)).outgoing).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          candidate: { candidate: { ...wolfsZoneHit.candidate, trigger: 'END_OF_TURN' } },
+          applications: wolfsZoneHit.applications
+        }
+      ]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore - 2 * FIELD_DIE_DAMAGE)
+
+    // The Wolf starts its next turn in the field.
+    const wolfsTurnStarts = await advanceCommand(room)
+    expect((await wolfsTurnStarts.send()).type).toBe('COMMAND_COMMITTED')
+    expect((await storedZonePhases(room, wolfsTurnStarts.commandId)).incoming).toMatchObject({
+      kind: 'EXECUTED',
+      executions: [
+        {
+          candidate: { candidate: { ...wolfsZoneHit.candidate, trigger: 'START_OF_TURN' } },
+          applications: wolfsZoneHit.applications
+        }
+      ]
+    })
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore - 3 * FIELD_DIE_DAMAGE)
+
+    const leaving = await walkerMoves(room, [FIELD_POINT, OUTSIDE_THE_FIELD])
+    expect(leaving.terminalPosition).toEqual(OUTSIDE_THE_FIELD)
+    expect(leaving.executions).toEqual([
+      expect.objectContaining({ applications: wolfsZoneHit.applications })
+    ])
+    expect(await hitPointsOf(room, WOLF_ID)).toBe(hitPointsBefore - 4 * FIELD_DIE_DAMAGE)
   })
 
   it('keeps the stored result free of zone phases for a turn no zone catches anyone in', async () => {

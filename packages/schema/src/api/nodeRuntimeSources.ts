@@ -60,6 +60,7 @@ export const nodeRuntimeSourceManifest = {
   skills: ['description', 'id', 'label'],
   speeds: ['description', 'id', 'label'],
   spell_effects: ['effect_id', 'spell_id'],
+  spell_slot_pools: ['description', 'id', 'label'],
   spells: ['id', 'label', 'magic_school_id']
 } as const satisfies Readonly<Record<string, readonly string[]>>
 

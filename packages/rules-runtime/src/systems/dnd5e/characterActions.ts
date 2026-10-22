@@ -150,6 +150,15 @@ export function evaluateDnd5e2014CharacterActions(
             (pool) => pool.poolId === candidate.resourceOwnerKey && pool.state === 'RESOLVED'
           ) ?? null)
     const resourceRemaining = resource?.remaining ?? null
+    const poolSlot =
+      candidate.slotPoolCode === null
+        ? null
+        : (parsedInput.spellSlots.find(
+            (slot) =>
+              slot.slotKey === candidate.slotPoolCode &&
+              slot.max > 0 &&
+              slot.level >= candidate.castLevel
+          ) ?? null)
     const decision = parsedInput.spellcastingLocked
       ? { status: 'UNAVAILABLE', reasonCode: 'SPELLCASTING_LOCKED' }
       : candidate.spellLevel === 0
@@ -169,12 +178,18 @@ export function evaluateDnd5e2014CharacterActions(
                     reasonCode: 'RESOURCE_OWNER_MISSING'
                   }
                 : candidate.castMode === 'LIMITED_USE' || candidate.castMode === 'FIXED_LEVEL'
-                  ? resourceRemaining !== null && resourceRemaining > 0
-                    ? { status: 'AVAILABLE', reasonCode: 'RESOURCE_REMAINING' }
-                    : {
+                  ? resourceRemaining === null || resourceRemaining <= 0
+                    ? {
                         status: 'UNAVAILABLE',
                         reasonCode: 'RESOURCE_EXHAUSTED'
                       }
+                    : candidate.slotPoolCode === null
+                      ? { status: 'AVAILABLE', reasonCode: 'RESOURCE_REMAINING' }
+                      : poolSlot === null
+                        ? { status: 'UNAVAILABLE', reasonCode: 'NO_ELIGIBLE_SPELL_SLOT' }
+                        : poolSlot.remaining > 0
+                          ? { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING' }
+                          : { status: 'UNAVAILABLE', reasonCode: 'SPELL_SLOT_EXHAUSTED' }
                   : selectedSlot === null
                     ? {
                         status: 'UNAVAILABLE',
@@ -193,9 +208,11 @@ export function evaluateDnd5e2014CharacterActions(
       candidateId: candidate.candidateId,
       ...decision,
       slotKey:
-        candidate.spellLevel > 0 && candidate.castMode === 'SPELL_SLOT' && selectedSlot !== null
-          ? selectedSlot.slotKey
-          : null
+        poolSlot !== null
+          ? poolSlot.slotKey
+          : candidate.spellLevel > 0 && candidate.castMode === 'SPELL_SLOT' && selectedSlot !== null
+            ? selectedSlot.slotKey
+            : null
     }
   })
   return characterActionModelOutputSchema.parse({

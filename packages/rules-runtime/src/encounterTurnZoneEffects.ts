@@ -14,7 +14,7 @@ import {
   type ServerRuleExecutionPendingSnapshotDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { collectSpatialTurnCandidates, type SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
+import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
 import { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
 import { consumeEncounterActionEconomy } from './encounterActionEconomyConsumption.js'
@@ -33,6 +33,7 @@ import {
 } from './encounterSpatialCandidateExecution.js'
 import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
 import { kernelContinuation } from './encounterTurnEffects.js'
+import { zoneTurnContacts } from './encounterZoneContacts.js'
 import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from './encounterZonePlacement.js'
 import type { TurnEffectBoundary } from './encounterTurnEffectState.js'
 import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
@@ -103,7 +104,7 @@ export function selectTurnZoneContacts(input: {
     .flatMap(([tokenId, actorId]) => {
       const own = actorId === input.actorId
       if (!own && !sourced.length) return []
-      return collectSpatialTurnCandidates({
+      return zoneTurnContacts({
         actorIdByTokenId: scene.actorIdByTokenId,
         effects: own ? effects : sourced,
         targetTokenId: tokenId,

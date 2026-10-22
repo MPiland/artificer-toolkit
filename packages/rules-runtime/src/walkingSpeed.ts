@@ -20,8 +20,7 @@ export function resolveSpeedsFeet(
     const speed = speedDtoSchema.parse(entry)
     if (!known.has(speed.speedId))
       throw new Error(`Speed ${speed.speedId} is not in the System speed vocabulary.`)
-    if (!resolved.has(speed.speedId))
-      resolved.set(speed.speedId, lengthMeasurementInFeet(speed))
+    if (!resolved.has(speed.speedId)) resolved.set(speed.speedId, lengthMeasurementInFeet(speed))
   }
   return [...resolved].map(([speedId, feet]) => ({ speedId, feet }))
 }

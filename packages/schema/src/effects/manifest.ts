@@ -182,6 +182,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       'ENTER_OR_PASS_THROUGH',
       'MOVE_ACROSS',
       'ENTER_SPACE',
+      'LEAVE_SPACE',
       'START_TURN_IN_SPACE',
       'END_TURN_IN_SPACE',
       'START_OF_SOURCE_TURN',
