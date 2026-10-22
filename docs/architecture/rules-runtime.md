@@ -220,8 +220,10 @@ spell-cast reaction and a spell-cast reaction is never a test activation.
 **Direct outcome dispatch (current, RULES-2.T6e).** `supported()` checks the action's shape once, then hands the
 authored outcome to `DND5E_DIRECT_OUTCOMES`: one entry per authored outcome kind, with no ladder around it. A kind with
 no entry is not a direct outcome. An entry receives the resolved inputs (`onList`, `selfTeleport`, whether a grant, link
-or form plan exists), and `offList` keeps the rule that a chosen-creatures list runs only hit-point, departure, grant,
-link and creature-form outcomes. Every compiled graph is published through one helper, `publishedGraph`. Two
+or form plan exists). A chosen-creatures list runs the action's one graph on each creature, so it carries any outcome
+that lands on its target (RULES-2.T6e2: condition, kill, stabilize and manual adjudication too); `offList` refuses the
+outcomes that act on the actor or the triggering event (a Dash's added speed, a teleport allowance, conceal, detect,
+cancel). Every compiled graph is published through one helper, `publishedGraph`. Two
 admissions changed:
 
 - A Legendary Action option is `FREE`, and the Feature charge it spends is its cost. `isChargedFreeActivation` in
@@ -231,6 +233,10 @@ admissions changed:
 - A direct entry authored as a sequence of one outcome (Haste) resolves as a single result does. Only a `CHOICE` group
   is refused there. The recurring-plan sites still require `SINGLE`, because no SRD record authors a recurring sequence
   of one.
+- A test path's fixed outcome binds the result block's hit-point gate and damage-type suppression as a direct outcome
+  does (RULES-2.T6e2, `testPathGates`). The gate belongs to a kill, condition or heal outcome
+  (`refuseUnboundGate`, shared with the direct path); an outcome that binds none (dice, a hit-point maximum
+  reduction), or a gate beside hit-point tiers, is refused rather than skipped.
 
 ## Ownership and publication
 
@@ -1445,11 +1451,11 @@ the parent (a timed band's rider is, below). A follow-up save takes a rider, and
 **Timed conditions in a band (current, SPELLS-33.T4i3e, D172; supersedes D149's no-link note for this form).** A
 gated or plain failure band of an immediate `FOLLOW_UP_SAVE` may time its `CONDITION` outcomes: each carries
 its own `duration`, and one may carry `endsWithOutcomeId` naming a sibling condition of the same band that it
-lasts only while. `timedBandConditions` (`systems/dnd5e/effectActionBandConditions.ts`) validates the band and
+lasts only while; a condition the band leaves untimed applies as always. `timedBandConditions` (`systems/dnd5e/effectActionBandConditions.ts`) validates the band and
 the compiler plans the first condition as the recurring effect and the linked one as `marginRider` with
 `linksToPrimary: true` and its own `initialRemaining`. Compile refuses by name a timing outside the failure
-band, a band half timed, more than two timed conditions, a self-link, a link to anything but a sibling
-condition of the band, and two conditions that end with each other. Roots create the rider through one
+band, a link without a duration, more than two timed conditions (an engine limit: the plan holds one primary and
+one rider), a self-link, a link to anything but a timed sibling condition of the band, and two conditions that end with each other. Roots create the rider through one
 function, `linkedRiderPlan` (`encounterActionEffectPlans.ts`), which sets the required-nullable
 `linkedEffectId` of the stored definition to the recurring effect created beside it (the worker settlement,
 area, legendary and movement-reaction roots; a test reads each root to prove it). Ending an effect ends the

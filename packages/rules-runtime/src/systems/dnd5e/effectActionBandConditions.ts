@@ -27,9 +27,10 @@ const timesItself = ({ duration, endsWithOutcomeId }: FollowUpSaveConditionOutco
 
 /**
  * The timed conditions of a failed immediate save's band: one or two conditions that each carry a
- * duration, the second optionally lasting only while the first holds (`endsWithOutcomeId`). Null
- * when the band times none. A timing anywhere else, a band half timed, a third timed condition and
- * a link to anything but a sibling condition of the band (itself, a cycle) are refused by name.
+ * duration, the second optionally lasting only while the first holds (`endsWithOutcomeId`); the
+ * band's other conditions stay untimed. Null when the band times none. A timing anywhere else, a
+ * link without a duration, a third timed condition (the engine holds a primary and one rider) and a
+ * link to anything but a timed sibling condition of the band (itself, a cycle) are refused by name.
  */
 export function timedBandConditions(
   save: Pick<FollowUpSaveOutcome, 'onFailure' | 'onSuccess'>
@@ -40,15 +41,16 @@ export function timedBandConditions(
   if (success.some(timesItself))
     unsupported('D&D timed conditions belong to the band of the save’s failure.')
   if (timed.length === 0) return null
-  if (timed.length !== failure.length || timed.some(({ duration }) => !duration))
-    unsupported('D&D a timed band gives every condition its own duration.')
-  if (timed.length > 2) unsupported('D&D a timed band holds at most two conditions.')
+  // A condition the band leaves untimed applies as it always does; only a timing or a link needs a duration.
+  if (timed.some(({ duration }) => !duration))
+    unsupported('D&D a condition that ends with another or is timed needs its own duration.')
+  if (timed.length > 2) unsupported('D&D a timed band holds at most two timed conditions.')
   for (const condition of timed) {
     const { endsWithOutcomeId } = condition
     if (endsWithOutcomeId === undefined) continue
     if (endsWithOutcomeId === condition.id) unsupported('D&D a condition cannot end with itself.')
     const target = timed.find(({ id }) => id === endsWithOutcomeId)
-    if (!target) unsupported('D&D a condition ends with a sibling condition of its own band.')
+    if (!target) unsupported('D&D a condition ends with a timed sibling condition of its own band.')
     if (target.endsWithOutcomeId === condition.id)
       unsupported('D&D conditions of a band cannot end with each other.')
   }

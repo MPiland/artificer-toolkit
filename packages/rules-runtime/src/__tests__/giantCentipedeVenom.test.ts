@@ -76,6 +76,11 @@ describe('the Giant Centipede’s venom (SPELLS-33 T4i3c)', () => {
     expect(linkedRiderPlan(riderEffect, { id: testUuid(0x2604) })?.definition.linkedEffectId).toBe(
       testUuid(0x2604)
     )
+    // A rider with no poison to follow, and a plan that links to nothing, keep their own lifetime.
+    expect(linkedRiderPlan(riderEffect, null)?.definition.linkedEffectId).toBeNull()
+    expect(
+      linkedRiderPlan(recurringEffect, { id: testUuid(0x2604) })?.definition.linkedEffectId
+    ).toBeNull()
     for (const effect of [recurringEffect, riderEffect]) {
       expect(effect.definition.recurrence).toMatchObject({
         expiration: { kind: 'TICKS', initialRemaining: 600 }
@@ -100,6 +105,54 @@ describe('the Giant Centipede’s venom (SPELLS-33 T4i3c)', () => {
 
   it('does nothing further when the target makes the save', async () => {
     expect(kinds(await bite(SAVE_SUCCEEDS, 20))).toEqual(['DAMAGE'])
+  })
+
+  it('times only the poison when the band leaves the paralysis untimed', async () => {
+    const untimedParalysis: CreatureAuthored = {
+      ...CENTIPEDE,
+      features: CENTIPEDE.features?.map((feature) => ({
+        ...feature,
+        effects: feature.effects?.map((effect) => ({
+          ...effect,
+          paths: effect.paths.map((path) =>
+            path.selectionKind !== 'FIXED'
+              ? path
+              : {
+                  ...path,
+                  resultBlock: {
+                    ...path.resultBlock,
+                    outcomes: path.resultBlock.outcomes.map((outcome) =>
+                      outcome.effectKind !== 'FOLLOW_UP_SAVE' ||
+                      outcome.onFailure.kind !== 'OUTCOMES'
+                        ? outcome
+                        : {
+                            ...outcome,
+                            onFailure: {
+                              ...outcome.onFailure,
+                              outcomes: outcome.onFailure.outcomes.map((banded) =>
+                                banded.effectKind === 'CONDITION' && banded.endsWithOutcomeId
+                                  ? {
+                                      id: banded.id,
+                                      effectKind: banded.effectKind,
+                                      conditionId: banded.conditionId
+                                    }
+                                  : banded
+                              )
+                            }
+                          }
+                    )
+                  }
+                }
+          )
+        }))
+      }))
+    }
+    const result = await bite(SAVE_FAILS, 20, untimedParalysis)
+    expect(kinds(result)).toEqual(kinds(await bite(SAVE_FAILS, 20)))
+    expect(result.effects.recurringEffect?.definition.recurrence).toMatchObject({
+      expiration: { initialRemaining: 600 }
+    })
+    expect(result.effects.riderEffect).toBeNull()
   })
 
   // Parity (ADR 0038): the same venom written out in core options alone plays like the SRD data.

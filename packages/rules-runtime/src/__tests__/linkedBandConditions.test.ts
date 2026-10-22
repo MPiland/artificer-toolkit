@@ -3,7 +3,6 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 import { withLinkedDependents } from '../activeEffectLinks.js'
-import { linkedRiderPlan } from '../encounterActionEffectPlans.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 import { timedBandConditions } from '../systems/dnd5e/effectActionBandConditions.js'
 import { ENCOUNTER_ID, srdCondition, testUuid } from '../testing/dnd5eSrdEncounter.js'
@@ -77,9 +76,9 @@ describe('timedBandConditions (SPELLS-33 T4i3e)', () => {
       /cannot end with itself/
     ],
     [
-      'a link to an outcome that is not a sibling condition',
+      'a link to an outcome that is not a timed sibling condition',
       [condition(FIRST, POISONED, { duration: hour(testUuid(0x2710)), endsWithOutcomeId: THIRD })],
-      /ends with a sibling condition/
+      /ends with a timed sibling condition/
     ],
     [
       'two conditions that end with each other',
@@ -90,20 +89,12 @@ describe('timedBandConditions (SPELLS-33 T4i3e)', () => {
       /cannot end with each other/
     ],
     [
-      'a band half timed',
-      [
-        condition(FIRST, POISONED, { duration: hour(testUuid(0x2710)) }),
-        condition(SECOND, PARALYZED, {})
-      ],
-      /every condition its own duration/
-    ],
-    [
       'a link without a duration',
       [
         condition(FIRST, POISONED, { duration: hour(testUuid(0x2710)) }),
         condition(SECOND, PARALYZED, { endsWithOutcomeId: FIRST })
       ],
-      /every condition its own duration/
+      /needs its own duration/
     ],
     [
       'a third timed condition',
@@ -112,11 +103,36 @@ describe('timedBandConditions (SPELLS-33 T4i3e)', () => {
         condition(SECOND, PARALYZED, { duration: hour(testUuid(0x2711)) }),
         condition(THIRD, POISONED, { duration: hour(testUuid(0x2712)) })
       ],
-      /at most two conditions/
+      /at most two timed conditions/
     ]
   ]
   it.each(refusals)('refuses %s by name', (_name, outcomes, message) => {
     expect(() => timedBandConditions(band(outcomes))).toThrow(message)
+  })
+
+  it('times only the conditions it names, leaving the rest to apply untimed', () => {
+    const timed = timedBandConditions(
+      band([
+        condition(FIRST, POISONED, { duration: hour(testUuid(0x2710)) }),
+        condition(SECOND, PARALYZED, {})
+      ])
+    )
+    expect(timed?.primary).toMatchObject({ condition: { id: FIRST }, turns: 600 })
+    expect(timed?.rider).toBeNull()
+  })
+
+  it('refuses a link to a sibling the band leaves untimed', () => {
+    expect(() =>
+      timedBandConditions(
+        band([
+          condition(FIRST, POISONED, {
+            duration: hour(testUuid(0x2710)),
+            endsWithOutcomeId: SECOND
+          }),
+          condition(SECOND, PARALYZED, {})
+        ])
+      )
+    ).toThrow(/ends with a timed sibling condition/)
   })
 
   it('refuses a timing in the success band', () => {
@@ -127,25 +143,6 @@ describe('timedBandConditions (SPELLS-33 T4i3e)', () => {
           .onFailure
       })
     ).toThrow(/belong to the band of the save/)
-  })
-})
-
-describe('linkedRiderPlan (SPELLS-33 T4i3e)', () => {
-  const rider = (linksToPrimary: boolean) => {
-    const [plan] = [{ id: SECOND, linksToPrimary, definition: { linkedEffectId: null } }]
-    return plan as unknown as NonNullable<Parameters<typeof linkedRiderPlan>[0]>
-  }
-
-  it('links a linking rider to the primary effect created beside it', () => {
-    const plan = linkedRiderPlan(rider(true), { id: FIRST })
-    expect(plan?.definition.linkedEffectId).toBe(FIRST)
-    expect(plan).not.toHaveProperty('linksToPrimary')
-  })
-
-  it('leaves a rider that links to nothing, and a primary that was not created, alone', () => {
-    expect(linkedRiderPlan(rider(false), { id: FIRST })?.definition.linkedEffectId).toBeNull()
-    expect(linkedRiderPlan(rider(true), null)?.definition.linkedEffectId).toBeNull()
-    expect(linkedRiderPlan(null, { id: FIRST })).toBeNull()
   })
 })
 
