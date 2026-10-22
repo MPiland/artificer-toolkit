@@ -18,6 +18,7 @@ function reductionDefinition(
   const entryId = crypto.randomUUID()
   return {
     schemaVersion: 2,
+    linkedEffectId: null,
     origin: {
       kind: 'CHARACTER',
       sourceAggregateId: characterId,

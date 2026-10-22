@@ -10,6 +10,7 @@ import {
   prepareNativeIncomingDamageGrantTriggers
 } from './encounterActionEffects.js'
 import { decoyStrikeEffects } from './encounterAttackDecoys.js'
+import { linkedRiderPlan } from './encounterActionEffectPlans.js'
 import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
 import {
   actionEndedEffects,
@@ -128,7 +129,7 @@ export function planEncounterMovementReactionEffects<
   }
   const state = create('STATE', effects.stateEffect)
   const recurring = create('RECURRING', effects.recurringEffect)
-  const rider = create('RIDER', effects.riderEffect)
+  const rider = create('RIDER', linkedRiderPlan(effects.riderEffect, recurring))
   // The reactor's attack roll or spell cast uses up its grants; the mover's effects that end on
   // damage end, and its own damage triggers give it timed grants, each freeing the conditions it
   // alone held in its holder's own batch.

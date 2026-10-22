@@ -86,6 +86,7 @@ function definition(
   const encounter = origin.kind === 'ENCOUNTER'
   return {
     schemaVersion: 2,
+    linkedEffectId: null,
     origin,
     authoredEffectId: uuid(10),
     compiledEntryId: uuid(11),

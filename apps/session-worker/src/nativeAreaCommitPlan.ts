@@ -14,6 +14,7 @@ import {
   prepareNativeIncomingDamageGrantTriggers
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
+import { linkedRiderPlan } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import {
   buildEncounterJoinedMaintenanceTransition,
   buildEncounterMaintenanceTransition
@@ -223,9 +224,10 @@ export async function planAreaOutcomes(args: {
         ...effectInput,
         maintainedEffectStateId: joined?.id
       })
+    const riderPlan = linkedRiderPlan(effects.riderEffect, recurringEffect)
     const riderEffect =
-      effects.riderEffect &&
-      createNativeActiveEffect(effects.riderEffect, {
+      riderPlan &&
+      createNativeActiveEffect(riderPlan, {
         ...effectInput,
         maintainedEffectStateId: effects.riderMaintained ? joined?.id : undefined
       })

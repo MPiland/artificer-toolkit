@@ -82,6 +82,7 @@ export async function seedSpatialEffect(
     if (!prepared) throw new Error('Frozen graph compilation unavailable')
     const definition = activeRuleEffectDefinitionDtoSchema.parse({
       schemaVersion: 2,
+      linkedEffectId: null,
       stateContributions: [],
       origin: {
         kind: 'ENCOUNTER',

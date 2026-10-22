@@ -17,6 +17,7 @@ import type {
 import { SRD_RULES_CATALOGUE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { writeRunActor } from '@artificer-toolkit/encounter-persistence/documents'
+import { restoreConsumedGrants } from '@artificer-toolkit/encounter-persistence/consumedGrantPersistence'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { fixture } from '../../tests/fixtures/characters'
@@ -105,6 +106,38 @@ async function mechanicsFixture() {
   return { ...base, campaign, run, actor, input, readActor }
 }
 
+type MechanicsFixture = Awaited<ReturnType<typeof mechanicsFixture>>
+
+/** One hit point regained, which ends every effect that lasts until hit points are regained. */
+async function heal(base: MechanicsFixture) {
+  return base.owner.caller.run((ctx) =>
+    applyEncounterMechanicsBatch(ctx, {
+      ...base.input,
+      occurrenceId: crypto.randomUUID(),
+      sourceCommandId: crypto.randomUUID(),
+      commandId: crypto.randomUUID(),
+      applications: [
+        {
+          sourceNodeId: 'native-test',
+          sourceOperationKey: 'heal',
+          authoredPath: null,
+          resolvedPath: 'TEST',
+          kind: 'HEAL',
+          targetActorId: base.actor.id,
+          requestedAmount: 1,
+          resolvedAmount: 1,
+          appliedAmount: 1,
+          beforeCurrentHitPoints: 1,
+          afterCurrentHitPoints: 2,
+          beforeTemporaryHitPoints: 0,
+          afterTemporaryHitPoints: 0,
+          maximumHitPoints: 3
+        }
+      ]
+    })
+  )
+}
+
 describe('applyEncounterMechanicsBatch', () => {
   it('persists a non-Character batch from the current actor row only', async () => {
     const base = await mechanicsFixture()
@@ -151,33 +184,59 @@ describe('applyEncounterMechanicsBatch', () => {
       applyEncounterMechanicsBatch(ctx, base.input)
     )
     expect(damaged.endedGrants).toEqual([])
-    const healed = await base.owner.caller.run((ctx) =>
-      applyEncounterMechanicsBatch(ctx, {
-        ...base.input,
-        occurrenceId: crypto.randomUUID(),
-        sourceCommandId: crypto.randomUUID(),
-        commandId: crypto.randomUUID(),
-        applications: [
-          {
-            sourceNodeId: 'native-test',
-            sourceOperationKey: 'heal',
-            authoredPath: null,
-            resolvedPath: 'TEST',
-            kind: 'HEAL',
-            targetActorId: base.actor.id,
-            requestedAmount: 1,
-            resolvedAmount: 1,
-            appliedAmount: 1,
-            beforeCurrentHitPoints: 1,
-            afterCurrentHitPoints: 2,
-            beforeTemporaryHitPoints: 0,
-            afterTemporaryHitPoints: 0,
-            maximumHitPoints: 3
-          }
-        ]
-      })
-    )
+    const healed = await heal(base)
     expect(healed.endedGrants.map(({ id }) => id)).toEqual([grantId])
+  })
+
+  it('ends an effect linked to an ended one in the same batch, and an undo gives both back (D172)', async () => {
+    const base = await mechanicsFixture()
+    const primaryId = crypto.randomUUID()
+    const linkedId = crypto.randomUUID()
+    const owner = {
+      kind: 'ENCOUNTER_ACTOR' as const,
+      encounterId: base.run.id,
+      targetActorId: base.actor.id
+    }
+    const grant = (lifecycle: { endOnEvents: ['ON_HIT_POINTS_REGAINED'] } | { endOnEvents: [] }) =>
+      plannedModifierGrant({
+        encounterId: base.run.id,
+        sourceActorId: base.actor.id,
+        holderActorId: base.actor.id,
+        lifecycle,
+        rounds: 10,
+        lifetimeScope: 'OWNER'
+      })
+    await base.t.run(async (ctx) => {
+      const store = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
+      const primary = grant({ endOnEvents: ['ON_HIT_POINTS_REGAINED'] })
+      await store.create({
+        id: primaryId,
+        owner,
+        definition: primary.definition,
+        lifecycle: primary.lifecycle
+      })
+      const linked = grant({ endOnEvents: [] })
+      await store.create({
+        id: linkedId,
+        owner,
+        definition: { ...linked.definition, linkedEffectId: primaryId },
+        lifecycle: linked.lifecycle
+      })
+    })
+    await base.owner.caller.run((ctx) => applyEncounterMechanicsBatch(ctx, base.input))
+    const healed = await heal(base)
+    expect(healed.endedGrants.map(({ id }) => id).sort()).toEqual([primaryId, linkedId].sort())
+    const held = () =>
+      base.t.run(async (ctx) =>
+        createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) }).list(owner)
+      )
+    expect(await held()).toEqual([])
+    await base.t.run(async (ctx) =>
+      restoreConsumedGrants({ db: createConvexEncounterStore(ctx) }, healed.endedGrants)
+    )
+    const restored = await held()
+    expect(restored.map(({ id }) => id).sort()).toEqual([primaryId, linkedId].sort())
+    expect(restored.find(({ id }) => id === linkedId)?.definition.linkedEffectId).toBe(primaryId)
   })
 
   it('rejects a stale Run before writing', async () => {

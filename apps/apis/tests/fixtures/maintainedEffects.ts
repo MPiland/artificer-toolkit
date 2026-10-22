@@ -20,6 +20,7 @@ export function definition(
   const compiledEntryId = crypto.randomUUID()
   return {
     schemaVersion: 2,
+    linkedEffectId: null,
     stateContributions: [],
     origin: {
       kind: 'ENCOUNTER',

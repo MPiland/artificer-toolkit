@@ -108,6 +108,7 @@ import {
   FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
   FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
 } from './followUpSaveRepeat.js'
+import { registerConditionOutcomeFields } from './conditionOutcomeFields.js'
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
@@ -133,7 +134,7 @@ type NodeMapBuildApi<NLocal extends object> = Parameters<
 >[1] extends (api: infer TApi) => void
   ? TApi
   : never
-type OutcomeNodeMapApi = NodeMapBuildApi<OutcomeNode>
+export type OutcomeNodeMapApi = NodeMapBuildApi<OutcomeNode>
 type ScalarReductionNodeMapApi = NodeMapBuildApi<ScalarReductionAuthored>
 
 const PATH_SELECTION_KIND_OPTIONS = [
@@ -2261,22 +2262,8 @@ function registerOutcomeFields(
         }
       )
     )
-    .set(
-      'recordsSource',
-      toggle(['recordsSource'], 'The Acting Creature Is Its Source', {
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.CONDITION)
-      })
-    )
-    .set(
-      'fleesSource',
-      toggle(['fleesSource'], 'The Holder Must Dash Away From Its Source', {
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.CONDITION),
-          local.field(['recordsSource']).eq(true)
-        ]),
-        hiddenBehavior: 'CLEAR'
-      })
-    )
+  registerConditionOutcomeFields(map, nodes, cond, logic)
+  map
     .set(
       'grants',
       groupObject(['grants'], 'Grants', () => APPLY_GRANTS_NODE_MAP, {

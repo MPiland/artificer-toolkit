@@ -35,6 +35,7 @@ import {
   forcedMovementProposalNode,
   dnd5eTestMarginConditionProposalOperation
 } from './effectActionOperationRegistry.js'
+import { timedBandConditions } from './effectActionBandConditions.js'
 import { gateNodeInputs } from './effectActionGates.js'
 import { boundedDiceTerm, parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import {
@@ -273,6 +274,8 @@ export function immediateFollowUpSaveGraphDefinition(
   const save = resolved?.saveEntry.outcome
   if (!resolved || !save || !isImmediateFollowUpSave(save) || save.onFailure.kind !== 'OUTCOMES')
     unsupported('D&D immediate follow-up save source is unavailable.')
+  // A band's timings are held by its active effects; this refuses one that cannot be.
+  timedBandConditions(save)
   const dc = save.savingThrow.baseDc
   // An escalating save's repeat is held by its active effect, not proposed by the hit.
   const repeat = escalatingImmediateSave(save)?.repeat
