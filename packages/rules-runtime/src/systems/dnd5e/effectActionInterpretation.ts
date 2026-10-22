@@ -51,6 +51,7 @@ import {
   uuid,
   decodeForcedMovementCollision,
   NESTED_SAVE_MARGIN_NODE_ID,
+  DND5E_NESTED_SAVE_GATE_OPERATION_KEY,
   proposalNodePathCode,
   positive
 } from './effectActionContracts.js'
@@ -66,6 +67,7 @@ import {
   dnd5eTestResultPath,
   dnd5eSaveTestOperation,
   dnd5eMovementInterruptionAuthorizationOperation,
+  dnd5eNestedSaveGateOperation,
   dnd5ePathGatedProposalOperations,
   dnd5eTestMarginConditionProposalOperation,
   dnd5eResultPathSatisfies
@@ -892,6 +894,16 @@ export function interpretDirect(
     let proposal = originalProposal
     let nestedPaths: { authoredPath: string; resolvedPath: string } | null = null
     const proposalNode = graph.nodes.find((node) => node.id === proposal.nodeId)
+    // A gated nested save band reads the save's path through its gate node.
+    const gatedPath = proposalNode?.inputs.resolvedPath
+    const gateNode =
+      gatedPath?.kind === 'NODE_OUTPUT'
+        ? graph.nodes.find(
+            (node) =>
+              node.id === gatedPath.nodeId &&
+              node.operation.key === DND5E_NESTED_SAVE_GATE_OPERATION_KEY
+          )
+        : undefined
     const directOperation = DND5E_DIRECT_OPERATION_BY_PATH_GATED_OPERATION.get(
       proposal.operation.key
     )
@@ -910,6 +922,10 @@ export function interpretDirect(
       const save = input.execution.evidence.trace.find((entry) => entry.nodeId === saveNode?.id)
       const die = input.execution.evidence.trace.find((entry) => entry.nodeId === 'nested-save-d20')
       const path = proposalNode?.inputs.resolvedPath
+      const gateTrace = input.execution.evidence.trace.find(
+        (entry) => entry.nodeId === gateNode?.id
+      )
+      const gateSource = gateNode?.inputs.resultPath
       const protection = proposalNode?.inputs.conditionImmune
       const conditionFacts = conditionImmunityFacts(graph, input.conditionImmunityIds)
       const marginNode = riderCondition
@@ -942,8 +958,15 @@ export function interpretDirect(
         die.inputs.max !== 20 ||
         die.outputs.value !== die.evidence.value ||
         path?.kind !== 'NODE_OUTPUT' ||
-        path.nodeId !== saveNode.id ||
         path.port !== 'resultPath' ||
+        (gateNode
+          ? gateNode.operation.contractVersion !== dnd5eNestedSaveGateOperation.contractVersion ||
+            !gateTrace ||
+            gateSource?.kind !== 'NODE_OUTPUT' ||
+            gateSource.nodeId !== saveNode.id ||
+            gateSource.port !== 'resultPath' ||
+            !gateEvidenceIsValid(input, gateNode, gateTrace)
+          : path.nodeId !== saveNode.id) ||
         (nestedCondition &&
           (protection?.kind !== 'FACT' ||
             input.execution.evidence.facts[protection.factKey] !==
@@ -974,6 +997,9 @@ export function interpretDirect(
         { execute: (inputs: Readonly<Record<string, RuleValue>>) => Record<string, RuleValue> }
       ])[] = [
         [saveNode, save, dnd5eSaveTestOperation],
+        ...(gateNode && gateTrace
+          ? [[gateNode, gateTrace, dnd5eNestedSaveGateOperation] as const]
+          : []),
         ...(marginNode && margin
           ? [[marginNode, margin, compareThresholdRuleOperation] as const]
           : []),
@@ -1016,6 +1042,8 @@ export function interpretDirect(
         )
       if (!proposal.outputs.authorized) continue
       if (nestedCondition) {
+        // A condition gated on damage that reduced the target to 0 is left unapplied when it did not.
+        if (!reducedToZeroGateHolds(gateNode?.inputs ?? proposalNode.inputs, applications)) continue
         if (typeof proposal.outputs.conditionId !== 'string')
           throw new Dnd5eEffectActionCompilerError(
             'The committed D&D nested condition identity is invalid.'
@@ -1074,7 +1102,9 @@ export function interpretDirect(
     )
     // A proposal gated on damage that reduced the target to 0 is left unapplied when it did not.
     const direct =
-      proposalNode && !reducedToZeroGateHolds(proposalNode.inputs, applications) ? [] : interpreted
+      proposalNode && !reducedToZeroGateHolds(gateNode?.inputs ?? proposalNode.inputs, applications)
+        ? []
+        : interpreted
     applications.push(
       ...direct.map((application) =>
         nestedPaths

@@ -69,6 +69,8 @@ import {
   DND5E_HEAL_TOTAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
   DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
+  DND5E_NESTED_SAVE_GATE_OPERATION_KEY,
+  NESTED_SAVE_GATE_CLOSED_PATH,
   DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
   DND5E_CONDITION_DURATION_OPERATION_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
@@ -968,6 +970,28 @@ export const dnd5eMovementInterruptionAuthorizationOperation: PureRuleOperationC
   }
 }
 
+/**
+ * A nested save band's gate: hands its outcomes the save's result path while every gate kind admits
+ * the target, and a path no authored outcome satisfies otherwise.
+ */
+export const dnd5eNestedSaveGateOperation: PureRuleOperationContract = {
+  key: DND5E_NESTED_SAVE_GATE_OPERATION_KEY,
+  contractVersion: 2,
+  executionKind: 'PURE',
+  inputs: { resultPath: RULE_VALUE_KIND.TEXT, ...DND5E_GATE_INPUT_KINDS },
+  outputs: { authorized: RULE_VALUE_KIND.BOOLEAN, resultPath: RULE_VALUE_KIND.TEXT },
+  execute(inputs) {
+    const { resultPath } = inputs
+    const admitted = gatesAdmit(inputs)
+    if (typeof resultPath !== 'string' || !isSpecializedPath(resultPath) || admitted === null)
+      throw new Error('D&D nested save gate requires a result path and the gate inputs.')
+    return {
+      authorized: admitted,
+      resultPath: admitted ? resultPath : NESTED_SAVE_GATE_CLOSED_PATH
+    }
+  }
+}
+
 /** A test's result path selects an outcome authored on it, and a critical hit also selects the hit's. */
 export function dnd5eResultPathSatisfies(resolvedPath: string, authoredPath: string): boolean {
   return resolvedPath === authoredPath || (resolvedPath === 'ON_CRIT' && authoredPath === 'ON_HIT')
@@ -1283,6 +1307,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
         dnd5eAttackTestOperation,
         dnd5eSaveTestOperation,
         dnd5eTestMarginConditionProposalOperation,
+        dnd5eNestedSaveGateOperation,
         dnd5eHitPointGatedKillProposalOperation,
         dnd5eHitPointGatedHealProposalOperation,
         dnd5eHitPointGatedConditionApplyProposalOperation

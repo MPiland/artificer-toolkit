@@ -160,8 +160,8 @@ A test path's fixed outcome now binds the result block's authored gate and damag
 outcome does (`testPathGates` in `effectActionGates.ts`). A gate belongs to a kill, condition or heal outcome
 (`refuseUnboundGate`, now the one home of that rule for direct and test paths). An outcome that binds none (dice, a
 hit-point maximum reduction) refuses a gate rather than skip it, and so does an authored gate beside hit-point tiers.
-Sequential composition and follow-up save templates still refuse a gate. The compiler's size budget dropped from 6260
-to 6258 code lines.
+Sequential composition and follow-up save templates still refuse a gate. The compiler's size budget dropped from 5677
+to 5675 code lines (measured after merging m326).
 
 - Proof: `testPathHitPointGate.test.ts` fails a DC 13 save at 10 and 11 hit points under a gate of 10: the condition
   lands only at 10. A gated dice damage outcome is refused.
