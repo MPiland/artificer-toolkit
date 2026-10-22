@@ -40,6 +40,7 @@ import {
   authoredVersionVectorSchema,
   type AuthoredVersionVector,
   jsonValueSchema,
+  type JsonValue,
   projectionChecksumSchema,
   projectionIdentifierSchema,
   projectionSchemaVersionSchema
@@ -901,39 +902,63 @@ const initiativeActorFacts: z.ZodMiniType<CharacterInitiativeActorFacts> =
 const pinnedSenseDefinitions: z.ZodMiniType<PinnedSenseDefinition[]> = lazySchema(() =>
   z.array(pinnedSenseDefinitionSchema).check(z.maxLength(100))
 )
-const characterMechanicsProjectionObjectSchema = lazySchema(() =>
-  z.strictObject({
-    characterId: projectionIdentifierSchema,
-    commandState: characterCommandStateSchema,
-    commandStateChecksum: projectionChecksumSchema,
-    commandLaneChecksum: projectionChecksumSchema,
-    projectionSchemaVersion: z.literal(2),
-    projectionChecksum: projectionChecksumSchema,
-    characterStreamVersion: nonNegativeStreamVersionSchema,
-    authoredVersionVector: versionVector,
-    systemVocabularySnapshotId: projectionIdentifierSchema,
-    systemVocabularySnapshotVersion: projectionSchemaVersionSchema,
-    systemVocabularySnapshotChecksum: projectionChecksumSchema,
-    ruleRevisionId: projectionIdentifierSchema,
-    ruleRevisionChecksum: projectionChecksumSchema,
-    evaluatorVersion: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),
-    modelContractVersion: z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000)),
-    ruleSnapshot: characterRuleSnapshot,
-    rulePolicyInput: characterRulePolicyInput,
-    rulePolicyOutput: characterRulePolicyOutput,
-    initiativeActorFacts: z._default(initiativeActorFacts, {
-      effectiveSize: null,
-      checkTotals: {},
-      equippedItems: []
-    }),
-    pinnedSenseDefinitions,
-    ruleRegistry: z.record(z.string(), jsonValueSchema),
-    compiledActionEntryPoints: compiledActionEntryPointsSchema
-  })
-)
+/** Written out so the projection schema never needs its inferred shape serialized (TS7056). */
+export type CharacterMechanicsProjection = {
+  characterId: string
+  commandState: CharacterAuthoredDto
+  commandStateChecksum: string
+  commandLaneChecksum: string
+  projectionSchemaVersion: 2
+  projectionChecksum: string
+  characterStreamVersion: number
+  authoredVersionVector: AuthoredVersionVector
+  systemVocabularySnapshotId: string
+  systemVocabularySnapshotVersion: number
+  systemVocabularySnapshotChecksum: string
+  ruleRevisionId: string
+  ruleRevisionChecksum: string
+  evaluatorVersion: string
+  modelContractVersion: number
+  ruleSnapshot: CharacterMechanicsRuleSnapshot
+  rulePolicyInput: CharacterRulePolicyInput
+  rulePolicyOutput: CharacterRulePolicyOutput
+  initiativeActorFacts: CharacterInitiativeActorFacts
+  pinnedSenseDefinitions: PinnedSenseDefinition[]
+  ruleRegistry: Record<string, JsonValue>
+  compiledActionEntryPoints: CompiledActionEntryPoint[]
+}
 
-/** Named so the declaration stays within the compiler's serialization limit (TS7056). */
-export type CharacterMechanicsProjection = z.infer<typeof characterMechanicsProjectionObjectSchema>
+const characterMechanicsProjectionObjectSchema: z.ZodMiniType<CharacterMechanicsProjection> =
+  lazySchema(() =>
+    z.strictObject({
+      characterId: projectionIdentifierSchema,
+      commandState: characterCommandStateSchema,
+      commandStateChecksum: projectionChecksumSchema,
+      commandLaneChecksum: projectionChecksumSchema,
+      projectionSchemaVersion: z.literal(2),
+      projectionChecksum: projectionChecksumSchema,
+      characterStreamVersion: nonNegativeStreamVersionSchema,
+      authoredVersionVector: versionVector,
+      systemVocabularySnapshotId: projectionIdentifierSchema,
+      systemVocabularySnapshotVersion: projectionSchemaVersionSchema,
+      systemVocabularySnapshotChecksum: projectionChecksumSchema,
+      ruleRevisionId: projectionIdentifierSchema,
+      ruleRevisionChecksum: projectionChecksumSchema,
+      evaluatorVersion: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80)),
+      modelContractVersion: z.number().check(z.int()).check(z.gte(1)).check(z.lte(10_000)),
+      ruleSnapshot: characterRuleSnapshot,
+      rulePolicyInput: characterRulePolicyInput,
+      rulePolicyOutput: characterRulePolicyOutput,
+      initiativeActorFacts: z._default(initiativeActorFacts, {
+        effectiveSize: null,
+        checkTotals: {},
+        equippedItems: []
+      }),
+      pinnedSenseDefinitions,
+      ruleRegistry: z.record(z.string(), jsonValueSchema),
+      compiledActionEntryPoints: compiledActionEntryPointsSchema
+    })
+  )
 
 export const characterMechanicsProjectionSchema: z.ZodMiniType<CharacterMechanicsProjection> =
   lazySchema(() =>
