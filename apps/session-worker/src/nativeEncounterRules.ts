@@ -33,8 +33,7 @@ import {
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import {
   deadCharacterIdsOfTargets,
-  isEncounterActorDefeated,
-  isEncounterTargetDying
+  isEncounterActorDefeated
 } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { StaleCharacterActionError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { refuseStaleCharacterAction } from '@artificer-toolkit/encounter-persistence/staleCharacterAction'
@@ -768,13 +767,14 @@ export async function planNativeLiveEncounterAction(
       prepared.target,
       deadCharacterIdsOfTargets(movementTargets.values())
     ),
-    stabilize: mechanicFacts.outcomes.some(
-      (outcome) => outcome.kind === 'EFFECT' && outcome.effectKind === 'STABILIZE'
-    )
-      ? {
-          targetDying: isEncounterTargetDying(targetMovement)
-        }
-      : null,
+    targetPreconditions: {
+      declared: prepared.adapter.outcomeTargetPreconditions({
+        effectKinds: mechanicFacts.outcomes.flatMap((o) =>
+          o.kind === 'EFFECT' ? [o.effectKind] : []
+        )
+      }),
+      target: targetMovement
+    },
     actionEconomy: economy,
     activationCode,
     acknowledged: command.acknowledgedWarnings

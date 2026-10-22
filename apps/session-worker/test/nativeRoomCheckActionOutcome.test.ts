@@ -357,20 +357,18 @@ describe('a homebrew check action whose roller rolls their own dice, in the room
     expect(await room.version()).toBe(before + 1)
   })
 
-  it("refuses to undo a success's outcome, and leaves the Run as it was", async () => {
+  it("undoes a success's outcome through its receipt, restoring the target", async () => {
     const { room, hitPointsBefore } = await strikeRoom(ONE_D6, { autoRoll: false })
     await strike(room)
     await enterD20(room, 12)
     await enterOutcome(room, 4)
+    expect((await settled(room)).targetHitPoints).toBe(hitPointsBefore - 4)
     const before = await room.version()
 
     const reverted = await undo(room)
-    expect(reverted.type).toBe('COMMAND_REJECTED')
-    expect(JSON.stringify(reverted)).toContain(
-      "Undo can't restore a check's outcome; adjust manually."
-    )
-    expect(await room.version()).toBe(before)
-    expect((await settled(room)).targetHitPoints).toBe(hitPointsBefore - 4)
+    expect(reverted.type, JSON.stringify(reverted)).toBe('COMMAND_COMMITTED')
+    expect(await room.version()).toBe(before + 1)
+    expect((await settled(room)).targetHitPoints).toBe(hitPointsBefore)
   })
 
   it('offers a held die once the d20 is seen; spending it turns a miss into a success', async () => {

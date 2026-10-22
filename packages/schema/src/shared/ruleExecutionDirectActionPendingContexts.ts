@@ -504,38 +504,6 @@ export const encounterCreatureRuleActionPendingContextDtoSchema = lazySchema(() 
 )
 
 /**
- * A basic action's pending d20 check (first aid). The Action is already spent; the d20 settles the
- * check against `check.dc`. The target's Character stream is re-read when the answer arrives.
- */
-export const encounterBasicActionCheckPendingContextDtoSchema = lazySchema(() =>
-  z.strictObject({
-    kind: z.literal('ENCOUNTER_BASIC_ACTION_CHECK'),
-    schemaVersion: z.literal(1),
-    commandId: uuidSchema,
-    commandFingerprint: checksumSchema,
-    definition: z.strictObject({
-      id: uuidSchema,
-      version: positiveIntegerSchema,
-      checksum: checksumSchema
-    }),
-    actionLabel: identifierSchema,
-    helperActorId: uuidSchema,
-    targetActorId: uuidSchema,
-    targetCharacterId: uuidSchema,
-    check: z.strictObject({
-      checkDefinitionId: uuidSchema,
-      dc: positiveIntegerSchema,
-      label: identifierSchema
-    }),
-    d20: frozenCheckD20DtoSchema,
-    /** The one-roll grants this check used up (a Help); their rows are gone, so the pending read names them from these. */
-    consumedGrants: z
-      .array(activeRuleEffectRecordSchema)
-      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
-  })
-)
-
-/**
  * A held creature's pending Escape check (D105). The activation is already spent; the d20 settles
  * the check against the fixed `check.dc`, and success ends the holding effect. `actorId` rolls;
  * `heldActorId` is the held creature a rescuer within reach frees, absent when `actorId` escapes.
