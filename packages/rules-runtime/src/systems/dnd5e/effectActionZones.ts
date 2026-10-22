@@ -330,7 +330,7 @@ function lastingZoneEntry(
     castSaveDcFactKey: null,
     perceptionContributions: [],
     maintenance: null,
-    marginRider: null
+    marginRiders: []
   }
   return {
     entry: {
@@ -512,7 +512,7 @@ function zoneComponentPlan(
     castSaveDcFactKey: zoneSave.castSaveDcFactKey,
     perceptionContributions: [],
     maintenance: null,
-    marginRider: null
+    marginRiders: []
   }
   const saveGraph = pieces.compileTestDefinition(
     action,
@@ -705,7 +705,7 @@ function unsavedZonePlacementPlan(
     castSaveDcFactKey: null,
     perceptionContributions: [],
     maintenance: null,
-    marginRider: null
+    marginRiders: []
   }
   const definition = pieces.diceGraphDefinition({
     action,

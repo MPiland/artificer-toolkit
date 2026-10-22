@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { EFFECT_KIND } from '@artificer-toolkit/shared/core'
+import type { FailureMarginRiderAuthored } from '@artificer-toolkit/shared/authored'
 
 import { withLinkedDependents } from '../activeEffectLinks.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
@@ -21,6 +23,7 @@ const PARALYZED = srdCondition('Paralyzed')
 const FIRST = testUuid(0x2700)
 const SECOND = testUuid(0x2701)
 const THIRD = testUuid(0x2702)
+const FOURTH = testUuid(0x2704)
 const hour = (id: string) => ({ id, durationKind: 'HOUR' as const, amount: 1 })
 
 type Save = Parameters<typeof timedBandConditions>[0]
@@ -65,11 +68,44 @@ describe('timedBandConditions (SPELLS-33 T4i3e)', () => {
       ])
     )
     expect(timed?.primary).toMatchObject({ condition: { id: FIRST }, turns: 600 })
-    expect(timed?.rider).toMatchObject({
-      compiledEntryId: SECOND,
-      initialRemaining: 600,
-      linksToPrimary: true
-    })
+    expect(timed?.riders).toMatchObject([
+      {
+        compiledEntryId: SECOND,
+        frozenGraphNodeId: 'rider-condition-duration',
+        initialRemaining: 600,
+        endsWith: 'PRIMARY'
+      }
+    ])
+  })
+
+  it('holds three or more timed conditions, each rider ordered after the one it ends with', () => {
+    // Authored out of order: the chain's last link first, a fan-out rider between.
+    const timed = timedBandConditions(
+      band([
+        condition(THIRD, POISONED, { duration: hour(testUuid(0x2712)), endsWithOutcomeId: SECOND }),
+        condition(FOURTH, PARALYZED, {
+          duration: hour(testUuid(0x2713)),
+          endsWithOutcomeId: FIRST
+        }),
+        condition(SECOND, PARALYZED, {
+          duration: hour(testUuid(0x2711)),
+          endsWithOutcomeId: FIRST
+        }),
+        condition(FIRST, POISONED, { duration: hour(testUuid(0x2710)) })
+      ])
+    )
+    expect(timed?.primary.condition.id).toBe(FIRST)
+    expect(
+      timed?.riders.map(({ compiledEntryId, frozenGraphNodeId, endsWith }) => [
+        compiledEntryId,
+        frozenGraphNodeId,
+        endsWith
+      ])
+    ).toEqual([
+      [FOURTH, 'rider-condition-duration', 'PRIMARY'],
+      [SECOND, 'rider-condition-duration-2', 'PRIMARY'],
+      [THIRD, 'rider-condition-duration-3', 1]
+    ])
   })
 
   const refusals: [string, Condition[], RegExp][] = [
@@ -100,13 +136,16 @@ describe('timedBandConditions (SPELLS-33 T4i3e)', () => {
       /needs its own duration/
     ],
     [
-      'a third timed condition',
+      'a chain of conditions that ends with itself',
       [
         condition(FIRST, POISONED, { duration: hour(testUuid(0x2710)) }),
-        condition(SECOND, PARALYZED, { duration: hour(testUuid(0x2711)) }),
-        condition(THIRD, POISONED, { duration: hour(testUuid(0x2712)) })
+        condition(SECOND, PARALYZED, {
+          duration: hour(testUuid(0x2711)),
+          endsWithOutcomeId: THIRD
+        }),
+        condition(THIRD, POISONED, { duration: hour(testUuid(0x2712)), endsWithOutcomeId: SECOND })
       ],
-      /at most two timed conditions/
+      /cannot end with each other/
     ]
   ]
   it.each(refusals)('refuses %s by name', (_name, outcomes, message) => {
@@ -121,7 +160,7 @@ describe('timedBandConditions (SPELLS-33 T4i3e)', () => {
       ])
     )
     expect(timed?.primary).toMatchObject({ condition: { id: FIRST }, turns: 600 })
-    expect(timed?.rider).toBeNull()
+    expect(timed?.riders).toEqual([])
   })
 
   it('refuses a link to a sibling the band leaves untimed', () => {
@@ -150,18 +189,18 @@ describe('timedBandConditions (SPELLS-33 T4i3e)', () => {
 })
 
 describe('marginRiderPlan (SPELLS-33 T4i3f)', () => {
-  const rider = (endsWithOutcomeId?: string) => ({
+  const rider = (endsWithOutcomeId?: string): FailureMarginRiderAuthored => ({
     id: SECOND,
     failedBy: 5,
     ...(endsWithOutcomeId ? { endsWithOutcomeId } : {}),
-    outcomes: [condition(THIRD, PARALYZED, {})],
+    outcomes: [{ id: THIRD, effectKind: EFFECT_KIND.CONDITION, conditionId: PARALYZED }],
     lifecycle: {}
   })
 
   it('links a rider to the one condition it names, and leaves any other rider unlinked', () => {
-    expect(marginRiderPlan(rider(FIRST), FIRST).linksToPrimary).toBe(true)
-    expect(marginRiderPlan(rider(), FIRST).linksToPrimary).toBe(false)
-    expect(marginRiderPlan(rider()).linksToPrimary).toBe(false)
+    expect(marginRiderPlan(rider(FIRST), FIRST).endsWith).toBe('PRIMARY')
+    expect(marginRiderPlan(rider(), FIRST).endsWith).toBeNull()
+    expect(marginRiderPlan(rider()).endsWith).toBeNull()
   })
 
   it('refuses a link to anything but the save’s one condition, by name', () => {
@@ -177,14 +216,14 @@ describe('the rider-creation roots (SPELLS-33 T4i3e)', () => {
     'packages/rules-runtime/src/encounterTurnLegendaryAction.ts',
     'packages/rules-runtime/src/encounterMovementReactionEffects.ts'
   ]
-  it.each(roots)('%s creates the rider through linkedRiderPlan only', (path) => {
+  it.each(roots)('%s creates the riders through createLinkedRiders only', (path) => {
     const source = readFileSync(
       fileURLToPath(new URL(`../../../../${path}`, import.meta.url)),
       'utf8'
     )
     // A presence check on the planned effects is no creation.
-    const uses = source.match(/(?<!\|\| )effects\.riderEffect/g) ?? []
-    const linked = source.match(/linkedRiderPlan\(\s*effects\.riderEffect/g) ?? []
+    const uses = source.match(/(?<!\|\| )effects\.riderEffects/g) ?? []
+    const linked = source.match(/createLinkedRiders\(\s*effects\.riderEffects/g) ?? []
     expect(linked.length).toBeGreaterThan(0)
     expect(uses.length).toBe(linked.length)
   })

@@ -62,6 +62,7 @@ import {
 } from '../shared/activeRuleEffects.js'
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
 import {
+  MAX_ACTION_RIDERS,
   MAX_ACTIVE_EFFECT_TURNS,
   activeEffectSaveThresholdsSchema,
   activeEffectUsesSchema
@@ -371,37 +372,47 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     ),
     maintenance: z._default(compiledActionMaintenanceSchema, null),
     /**
-     * Conditions a save failed by at least `failedBy` also applies, held by a second active effect
-     * with its own duration node; null for none. Required: plans are recompiled, not read
-     * with a default. A gated band's second timed condition takes this slot with no margin
-     * (`failedBy` null), its own `initialRemaining` and, when it ends with the first, `linksToPrimary` (D172).
+     * The effects beside the plan's own, in creation order: conditions a save failed by at least
+     * `failedBy` also applies, and a gated band's timed conditions after the first (no margin, their
+     * own `initialRemaining`), each held by an active effect with its own duration node. Empty for
+     * none. Required: plans are recompiled, not read with a default.
      */
-    marginRider: z.nullable(
-      z.strictObject({
-        compiledEntryId: serverUuidIdentityDtoSchema,
-        frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
-        failedBy: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(30))),
-        /** Target turns this effect lasts; null shares the plan's. */
-        initialRemaining: z.nullable(
-          z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
-        ),
-        /** The effect ends with the plan's own effect, which created it. */
-        linksToPrimary: z.boolean(),
-        conditionContributions: z
-          .array(
-            z.strictObject({
-              conditionId: serverUuidIdentityDtoSchema,
-              recordsSource: z.boolean(),
-              fleesSource: z.boolean()
-            })
-          )
-          .check(z.minLength(1))
-          .check(z.maxLength(8)),
-        lifecycle: z.strictObject({
-          endOnTriggers: activeEffectEndTriggersSchema
+    marginRiders: z
+      .array(
+        z.strictObject({
+          compiledEntryId: serverUuidIdentityDtoSchema,
+          frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
+          failedBy: z.nullable(z.number().check(z.int()).check(z.gte(1)).check(z.lte(30))),
+          /** Target turns this effect lasts; null shares the plan's. */
+          initialRemaining: z.nullable(
+            z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
+          ),
+          /**
+           * The effect it lasts only while (D172): the plan's own effect (`'PRIMARY'`) or an earlier
+           * rider, by index; null for its own lifetime.
+           */
+          endsWith: z.nullable(
+            z.union([
+              z.literal('PRIMARY'),
+              z.number().check(z.int()).check(z.gte(0)).check(z.lt(MAX_ACTION_RIDERS))
+            ])
+          ),
+          conditionContributions: z
+            .array(
+              z.strictObject({
+                conditionId: serverUuidIdentityDtoSchema,
+                recordsSource: z.boolean(),
+                fleesSource: z.boolean()
+              })
+            )
+            .check(z.minLength(1))
+            .check(z.maxLength(8)),
+          lifecycle: z.strictObject({
+            endOnTriggers: activeEffectEndTriggersSchema
+          })
         })
-      })
-    ),
+      )
+      .check(z.maxLength(MAX_ACTION_RIDERS)),
     /**
      * The immunity a successful save gives the target against this source's action (D156), held by a
      * second active effect under its own frozen graph; null for none.

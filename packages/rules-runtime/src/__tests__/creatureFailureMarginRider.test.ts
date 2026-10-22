@@ -3,7 +3,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/author
 import { SRD_BASIC_ACTION_IDS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 
 import { prepareNativeActionEffectsPlan } from '../encounterActionEffects.js'
-import { linkedRiderPlan } from '../encounterActionEffectPlans.js'
+import { createLinkedRiders } from '../encounterActionEffectPlans.js'
 import { readEncounterActorConditionState } from '../encounterCharacterMechanicsBatch.js'
 import {
   actionUsedOnHolderEndedEffects,
@@ -88,7 +88,7 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
         expiration: { kind: 'TICKS', initialRemaining: turns }
       })
       // The sleep is its own effect: it lasts as long as the poison, or until it is woken.
-      expect(asleep.effects.riderEffect?.definition).toMatchObject({
+      expect(asleep.effects.riderEffects[0]?.definition).toMatchObject({
         recurrence: {
           endOnTriggers: WAKE_TRIGGERS,
           expiration: { kind: 'TICKS', initialRemaining: turns }
@@ -101,7 +101,7 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
       const poisoned = await attackOgre(attacker, feature, [...hit, marginFace + 1])
       expect(poisoned.conditionIds).toEqual([POISONED])
       expect(poisoned.effects.recurringEffect).not.toBeNull()
-      expect(poisoned.effects.riderEffect).toBeNull()
+      expect(poisoned.effects.riderEffects.filter(Boolean)).toEqual([])
     }
   )
 
@@ -112,13 +112,19 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
         ...hit,
         marginFace
       ])
-      const { recurringEffect, riderEffect } = effects
-      if (!recurringEffect || !riderEffect) throw new Error(`${creature} planned no sleep.`)
-      expect(riderEffect.linksToPrimary).toBe(true)
-      expect(recurringEffect.linksToPrimary).toBeFalsy()
+      const { recurringEffect, riderEffects } = effects
+      if (!recurringEffect || !riderEffects[0]) throw new Error(`${creature} planned no sleep.`)
+      expect(riderEffects[0].endsWith).toBe('PRIMARY')
+      expect(recurringEffect).not.toHaveProperty('endsWith')
       const poison = { id: testUuid(0x2208) }
-      expect(linkedRiderPlan(riderEffect, poison)?.definition.linkedEffectId).toBe(poison.id)
-      expect(linkedRiderPlan(riderEffect, null)?.definition.linkedEffectId).toBeNull()
+      const created = (recurring: typeof poison | null) =>
+        createLinkedRiders(
+          riderEffects,
+          recurring,
+          (plan) => plan && { id: testUuid(0x2209), definition: plan.definition }
+        )[0]?.definition
+      expect(created(poison)?.linkedEffectId).toBe(poison.id)
+      expect(created(null)?.linkedEffectId).toBeNull()
     }
   )
 
@@ -204,7 +210,10 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
       'Sting',
       [9, 0, 2]
     )
-    const { recurringEffect, riderEffect } = effects
+    const {
+      recurringEffect,
+      riderEffects: [riderEffect]
+    } = effects
     if (!recurringEffect || !riderEffect) throw new Error('The sting planned no poison or sleep.')
     const owner = {
       kind: 'ENCOUNTER_ACTOR' as const,
@@ -332,12 +341,12 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
     }
     const played = async (creature: CreatureAuthored, saveFace: number) => {
       const { conditionIds, effects } = await attackOgre(creature, 'Shortbow', [9, saveFace])
-      const rider = effects.riderEffect?.definition
+      const rider = effects.riderEffects[0]?.definition
       return {
         conditionIds: [...conditionIds].sort(),
         rider: rider
           ? {
-              linkedTo: effects.riderEffect?.linksToPrimary,
+              linkedTo: effects.riderEffects[0]?.endsWith,
               recurrence: rider.recurrence,
               stateContributions: 'stateContributions' in rider ? rider.stateContributions : null
             }

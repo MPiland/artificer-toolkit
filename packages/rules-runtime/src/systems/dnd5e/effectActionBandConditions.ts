@@ -13,8 +13,8 @@ type Band = Extract<FollowUpSaveOutcome['onFailure'], { kind: 'OUTCOMES' }>['out
 /** The conditions a failed save's band holds, each for its own duration (D172). */
 export interface TimedBandConditions {
   primary: { condition: FollowUpSaveConditionOutcome; turns: number }
-  /** The band's second timed condition, as the second active effect it is held in. */
-  rider: NonNullable<CharacterRuleActionActiveEffectPlan['marginRider']> | null
+  /** The band's other timed conditions, each the active effect it is held in, targets before dependents. */
+  riders: NonNullable<CharacterRuleActionActiveEffectPlan['marginRiders']>[number][]
 }
 
 const bandConditions = (band: Band) =>
@@ -26,11 +26,12 @@ const timesItself = ({ duration, endsWithOutcomeId }: FollowUpSaveConditionOutco
   duration !== undefined || endsWithOutcomeId !== undefined
 
 /**
- * The timed conditions of a failed immediate save's band: one or two conditions that each carry a
- * duration, the second optionally lasting only while the first holds (`endsWithOutcomeId`); the
- * band's other conditions stay untimed. Null when the band times none. A timing anywhere else, a
- * link without a duration, a third timed condition (the engine holds a primary and one rider) and a
- * link to anything but a timed sibling condition of the band (itself, a cycle) are refused by name.
+ * The timed conditions of a failed immediate save's band: any conditions that each carry a
+ * duration, one lasting only while another holds (`endsWithOutcomeId`); the band's other conditions
+ * stay untimed. Null when the band times none. The first timed condition that ends with no other is
+ * the plan's own effect and the rest are riders, ordered so each follows the one it ends with. A
+ * timing anywhere else, a link without a duration and a link to anything but a timed sibling
+ * condition of the band (itself, a cycle) are refused by name.
  */
 export function timedBandConditions(
   save: Pick<FollowUpSaveOutcome, 'onFailure' | 'onSuccess'>
@@ -44,45 +45,58 @@ export function timedBandConditions(
   // A condition the band leaves untimed applies as it always does; only a timing or a link needs a duration.
   if (timed.some(({ duration }) => !duration))
     unsupported('D&D a condition that ends with another or is timed needs its own duration.')
-  if (timed.length > 2) unsupported('D&D a timed band holds at most two timed conditions.')
-  for (const condition of timed) {
-    const { endsWithOutcomeId } = condition
+  for (const { id, endsWithOutcomeId } of timed) {
     if (endsWithOutcomeId === undefined) continue
-    if (endsWithOutcomeId === condition.id) unsupported('D&D a condition cannot end with itself.')
-    const target = timed.find(({ id }) => id === endsWithOutcomeId)
-    if (!target) unsupported('D&D a condition ends with a timed sibling condition of its own band.')
-    if (target.endsWithOutcomeId === condition.id)
-      unsupported('D&D conditions of a band cannot end with each other.')
+    if (endsWithOutcomeId === id) unsupported('D&D a condition cannot end with itself.')
+    if (!timed.some((sibling) => sibling.id === endsWithOutcomeId))
+      unsupported('D&D a condition ends with a timed sibling condition of its own band.')
   }
-  const rider = timed.find(({ endsWithOutcomeId }) => endsWithOutcomeId !== undefined) ?? timed[1]
-  const primary = timed.find((condition) => condition !== rider) ?? timed[0]
-  if (!primary || !UUID.test(primary.id)) unsupported('D&D band condition identity is invalid.')
+  const primary = timed.find(({ endsWithOutcomeId }) => endsWithOutcomeId === undefined)
+  if (!primary) unsupported('D&D conditions of a band cannot end with each other.')
+  if (!UUID.test(primary.id)) unsupported('D&D band condition identity is invalid.')
   const turnsOf = ({ duration }: FollowUpSaveConditionOutcome) => {
     const turns = duration ? conditionDurationTurns(duration) : null
     return turns ?? unsupported('D&D a band condition lasts a whole number of turns.')
   }
+  // Each pass places the conditions whose target is placed, in authored order; a pass that places
+  // none leaves a cycle.
+  const placed = [primary]
+  for (let rest = timed.filter((c) => c !== primary); rest.length > 0;) {
+    const ready = rest.filter(({ endsWithOutcomeId }) =>
+      placed.some(({ id }) => id === endsWithOutcomeId || endsWithOutcomeId === undefined)
+    )
+    if (ready.length === 0) unsupported('D&D conditions of a band cannot end with each other.')
+    placed.push(...ready)
+    rest = rest.filter((condition) => !ready.includes(condition))
+  }
   return {
     primary: { condition: primary, turns: turnsOf(primary) },
-    rider:
-      rider && rider !== primary
-        ? {
-            compiledEntryId: rider.id,
-            frozenGraphNodeId: 'rider-condition-duration',
-            failedBy: null,
-            initialRemaining: turnsOf(rider),
-            linksToPrimary: rider.endsWithOutcomeId !== undefined,
-            conditionContributions: [
-              {
-                conditionId: rider.conditionId,
-                recordsSource: rider.recordsSource === true,
-                fleesSource: rider.fleesSource === true
-              }
-            ],
-            lifecycle: { endOnTriggers: [] }
-          }
-        : null
+    riders: placed.slice(1).map((condition, index) => ({
+      compiledEntryId: condition.id,
+      frozenGraphNodeId: riderGraphNodeId(index),
+      failedBy: null,
+      initialRemaining: turnsOf(condition),
+      endsWith:
+        condition.endsWithOutcomeId === undefined
+          ? null
+          : condition.endsWithOutcomeId === primary.id
+            ? 'PRIMARY'
+            : placed.findIndex(({ id }) => id === condition.endsWithOutcomeId) - 1,
+      conditionContributions: [
+        {
+          conditionId: condition.conditionId,
+          recordsSource: condition.recordsSource === true,
+          fleesSource: condition.fleesSource === true
+        }
+      ],
+      lifecycle: { endOnTriggers: [] }
+    }))
   }
 }
+
+/** A rider's own node of the plan's frozen graph; the first keeps the name every plan has used. */
+const riderGraphNodeId = (index: number) =>
+  index === 0 ? 'rider-condition-duration' : `rider-condition-duration-${index + 1}`
 
 /** The authored end triggers as the stored effect carries them: filters explicit, in canonical order. */
 export function canonicalEndTriggers(
@@ -114,15 +128,15 @@ export function canonicalEndTriggers(
 export function marginRiderPlan(
   rider: FailureMarginRiderAuthored,
   primaryOutcomeId?: string
-): NonNullable<CharacterRuleActionActiveEffectPlan['marginRider']> {
+): NonNullable<CharacterRuleActionActiveEffectPlan['marginRiders']>[number] {
   if (rider.endsWithOutcomeId !== undefined && rider.endsWithOutcomeId !== primaryOutcomeId)
     unsupported('D&D a failure-margin rider ends with the one condition its failed save applies.')
   return {
     compiledEntryId: rider.id,
-    frozenGraphNodeId: 'rider-condition-duration',
+    frozenGraphNodeId: riderGraphNodeId(0),
     failedBy: rider.failedBy,
     initialRemaining: null,
-    linksToPrimary: rider.endsWithOutcomeId !== undefined,
+    endsWith: rider.endsWithOutcomeId === undefined ? null : 'PRIMARY',
     conditionContributions: rider.outcomes.map((outcome) => ({
       conditionId: outcome.conditionId,
       recordsSource: outcome.recordsSource === true,
