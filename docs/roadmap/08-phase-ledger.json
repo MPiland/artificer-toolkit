@@ -3877,18 +3877,31 @@
               }
             },
             {
-              "id": "RULES-2.T6e3b",
-              "text": "Check outcomes end to end (G5, D173): a check TEST phase (actor check modifier vs DC) admits registry outcomes like save tests, with a generic Session Worker check flow and Convex commit contract that replace the bespoke First Aid encounterBasicActionCheck path and its STABILIZED/FAILED/NOT_DYING enum; First Aid re-authored on it with parity; may split when started.",
+              "id": "RULES-2.T6e3b1",
+              "text": "Homebrew check outcomes in the room (G5, D173): a CHECK test kind (actor frozen check modifier vs DC) compiles fixed-DC checks to TEST_OUTCOME with ON_CHECK_SUCCESS/ON_CHECK_FAIL paths, the non-contest check refusal removed; a generic room check flow (immediate and prompted) settles outcomes through planEncounterMechanicsBatch with outcome dice in the action roll window; a generic check receipt output reusing TARGET_OUTCOME, committed and re-applied by Convex with checksum refusal; parity by a real authored homebrew check with damage and a condition. First Aid stays bespoke here.",
               "status": "TODO",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 3,
                 "tc": 1,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["RULES-2.T6e3"]
               },
               "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+            },
+            {
+              "id": "RULES-2.T6e3b2",
+              "text": "First Aid on the generic check flow (D173): parity against the existing First Aid, basic-action check and death-save cases; the BASIC_ACTION_CHECK output, STABILIZED/FAILED/NOT_DYING enum, StabilizeCheckSettlement, bespoke settlement/response persistence and actionRevert branch removed; undo through the generic receipt; a stored old receipt fails closed by name; the not-dying gate generalized as a data-declared outcome precondition warned before the roll (D173 Q1).",
+              "status": "TODO",
+              "closes": ["RULES-2.6"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 3,
+                "size": 3,
+                "after": ["RULES-2.T6e3b1"]
+              }
             }
           ]
         }
