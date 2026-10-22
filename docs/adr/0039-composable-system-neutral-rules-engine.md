@@ -53,3 +53,12 @@ Multi-entry initiative stays out of scope until a feature needs it.
 - About 140 points of refactor PBIs are added to Phase 8.2. They are ranked ahead of the conversions they make cheaper. New conversion cards that lean on the compiler are held until the seams they need land; conversions already in flight finish.
 - Persisted contracts change: the pause union, neutral vocabulary and the maintenance link. Development data is reseeded in the same change.
 - A slice merge review now rejects a new plan shape, a per-feature call site, or a new direct `systems/*` import.
+
+## Amendment 2026-10-22: vocabulary and core codes
+
+User decision, 2026-10-22. Section 5's "vocabulary is System-supplied" splits into two kinds:
+
+- **Vocabulary** is a [reusable definition](../../CONTEXT.md#reusable-definition): it has a stable ID, it is stored on the System record, and a campaign could add one later without new code (skills, conditions, damage types, languages, senses, creature types). It has one home. The contract is in `packages/schema`, and the SRD entries are seed content in `packages/source-data`. Runtime code reads them from the System record or its Encounter snapshot and never holds a list of them; the web app reads them through `apps/apis`. `packages/shared` holds no vocabulary. When System behaviour needs a specific entry, the System capability names its definition ID, so neutral code never branches on a vocabulary code.
+- **Core codes** have no ID, and engine behaviour branches on them (roll modes, spell slot pools, event and outcome kinds). Neutral core codes live in `packages/schema` or `packages/shared` core. System-specific core codes live in `rules-runtime/systems/<id>` behind the capability registry, and authoring may read them through a pure entry point that imports no execution code. A core code that becomes authorable is promoted to vocabulary by giving it an ID.
+
+Consequence: the hard-coded vocabulary lists in `packages/shared/src/domains/vocabulary` and their call sites move to the System record or to capability references under RULES-2.7.
