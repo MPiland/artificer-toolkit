@@ -60,7 +60,14 @@ import {
   hitPointPoolIsAuthored,
   resolveChosenCreaturesTargeting
 } from '../../encounterAreaAction.js'
-import { gateFacts, gateNodeInputs, isGated, type Dnd5eAuthoredGates } from './effectActionGates.js'
+import {
+  gateFacts,
+  gateNodeInputs,
+  isGated,
+  refuseUnboundGate,
+  testPathGates,
+  type Dnd5eAuthoredGates
+} from './effectActionGates.js'
 import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../../hitPointTiers.js'
 import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from '../../encounterZonePlacement.js'
 import { compileDnd5eZonePlacement } from './effectActionZones.js'
@@ -2902,19 +2909,20 @@ type AuthoredOutcomeOf<Kind extends Dnd5eAuthoredOutcome['effectKind']> = Extrac
 function unsupportedDirectOutcome(): never {
   return unsupported('D&D Effect action outcome is not a supported hit-point or condition outcome.')
 }
-// A list runs only a hit-point, departure, grant, link or creature form outcome, but an outcome no
-// cast can run keeps the reason a single target gets, so the list is refused only once it is read.
+// A list runs the action's one graph on each chosen creature, so it carries any outcome that lands
+// on its target. An outcome that acts on the actor (a Dash, a self teleport, a concealment) or on the
+// event a reaction answered has no creature to repeat on; an outcome no cast can run keeps the reason
+// a single target gets, so the list is refused only once it is read.
 function offList<Plan extends Dnd5eDirectOutcome>(plan: Plan, input: DirectOutcomeInput): Plan {
   if (input.onList)
     unsupported(
-      'D&D chosen-creature action outcome must be a heal, damage, teleport, grant, link or creature form.'
+      'D&D chosen-creature action outcome must land on each chosen creature, not on the actor or a triggering event.'
     )
   return plan
 }
-// Each chosen creature departs on its own, so a departure runs on a list too.
 function targetOnlyDirectOutcome(outcome: Dnd5eAuthoredOutcome, input: DirectOutcomeInput) {
   const targetOnly = dnd5eTargetOnlyOutcome(outcome) ?? unsupportedDirectOutcome()
-  return targetOnly.kind === 'DEPART' ? targetOnly : offList(targetOnly, input)
+  return targetOnly.kind === 'ADD_SPEED_TO_MOVEMENT' ? offList(targetOnly, input) : targetOnly
 }
 function positiveFixedAmount(outcome: AuthoredOutcomeOf<'HEAL' | 'DAMAGE'>): number {
   if (
@@ -2951,9 +2959,9 @@ const DND5E_DIRECT_OUTCOMES: {
     uuid(outcome.conditionId, 'D&D condition definition identity')
     if (!(input.action.conditionDefinitionIds ?? []).includes(outcome.conditionId))
       unsupported('D&D Effect action condition is not in the pinned System vocabulary.')
-    return offList({ kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }, input)
+    return { kind: 'CONDITION_APPLY', conditionId: outcome.conditionId }
   },
-  KILL: (_outcome, input) => offList({ kind: 'KILL' }, input),
+  KILL: () => ({ kind: 'KILL' }),
   STABILIZE: targetOnlyDirectOutcome,
   MANUAL_ADJUDICATION: targetOnlyDirectOutcome,
   MOVEMENT_RULE: targetOnlyDirectOutcome,
@@ -3072,9 +3080,8 @@ function supported(
         (grantPlan !== null || conditionPlan !== null || checkAction)))
   // A resolved list of chosen creatures, capped (Mass Healing Word) or naming each creature once
   // (Pass without Trace), inside a round area when it names one (Mass Cure Wounds), resolves the one
-  // outcome on each; only a heal or dice damage that needs no test (Magic Missile), or a plan that
-  // holds one active effect per chosen creature (Pass without Trace), is supported, checked below
-  // once the outcome is read.
+  // outcome on each (Magic Missile's darts, Pass without Trace's one active effect per creature);
+  // an outcome that lands on the actor instead is refused once it is read.
   const supportsChosenCreatures =
     supportsTargetRange &&
     invocation.targeting?.selectionKind === 'CHOSEN_CREATURES' &&
@@ -3834,10 +3841,7 @@ function fixedOutcomeGraphDefinition(input: {
   reducedToZeroByNodeId?: string
 }): RuleGraphDefinition {
   const proposalId = `${input.nodePrefix ?? ''}proposal-${input.entry.pathCode.toLowerCase()}`
-  const gates: Dnd5eAuthoredGates = {
-    ...(input.hitPointBand ? { hitPointBand: input.hitPointBand } : {}),
-    ...(input.reducedToZeroByNodeId ? { reducedToZeroByNodeId: input.reducedToZeroByNodeId } : {})
-  }
+  const gates = testPathGates(input.entry, input.outcome.kind, input)
   // The OUTCOME phase runs only on its selected path, so the push is authorized by construction.
   if (input.outcome.kind === 'FORCED_MOVEMENT') {
     uuid(input.entry.entryId, 'D&D forced movement identity')
@@ -4294,6 +4298,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const entry = entries[0]
     if (!entry) unsupported('D&D selected outcome path is unavailable.')
     const outcome = specializedTestOutcome(entry)
+    // An outcome that binds no gate (dice, a hit-point maximum reduction) refuses one rather than skip it.
+    testPathGates(entry, outcome.kind)
     const groupNodePrefix = groups.length > 1 ? { nodePrefix: `outcome${groupIndex + 1}-` } : {}
     const gate = 'gate' in entry ? entry.gate : undefined
     // The gate's damage outcome is exempt from it; every other outcome of the block follows that damage.
@@ -4740,7 +4746,7 @@ function compileEffectActionGraph(
     )
   if (action.compiledEffect.requiresConcentration && !startsMaintainedEffect(action))
     unsupported('D&D Concentration spell has no supported maintained effect.')
-  // Only a direct outcome honours a gate; every other plan refuses one rather than skip it.
+  // A direct or test-path outcome honours a gate; every other plan refuses one rather than skip it.
   const gates = directGates(action)
   const refuseGate = () => {
     if (gates !== undefined) unsupported('D&D hit-point gate belongs to a direct outcome.')
@@ -4759,7 +4765,6 @@ function compileEffectActionGraph(
   const recurringPlan = supportedRecurringPlan(action) ?? concealmentPlan(action)
   const plan = testPlan(action)
   if (plan) {
-    refuseGate()
     return bindMovementInterruptionOutput({
       action,
       published: compileTestDefinition(action, plan, recurringPlan)
@@ -4767,13 +4772,7 @@ function compileEffectActionGraph(
   }
   const outcome = supported(action)
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
-  if (
-    gates !== undefined &&
-    outcome.kind !== 'KILL' &&
-    outcome.kind !== 'CONDITION_APPLY' &&
-    outcome.kind !== 'HEAL'
-  )
-    unsupported('D&D hit-point gate belongs to a kill, condition or heal outcome.')
+  refuseUnboundGate(gates ?? {}, outcome.kind)
   if (outcome.kind === 'DICE_HEAL') {
     const entry = action.compiledEffect.entries[0]
     if (
