@@ -11270,7 +11270,7 @@
             },
             {
               "id": "SPELLS-4.T1j",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.2"
               ],
@@ -11284,7 +11284,8 @@
                   "ATTACK-7.T7"
                 ]
               },
-              "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18. Also settles dragged paths (ATTACK-7.T7 refuses a drag through a Scene effect until then; D105 drag ruling, 2026-10-18)."
+              "text": "Forced movement through and into zones: roomActionForcedMovement refuses a push or pull whose path touches any Scene effect ('A forced movement through a Scene effect is not available yet.'), so a Thunderwave, Repelling Blast or Shove near Spike Growth, Spirit Guardians or Wall of Fire fails the whole action. Settle the forced path's spatial candidates (entry, per-step damage, the 0 HP stop) in the action's transaction per D139 instead, with a room journey shoving a creature into Spike Growth. Found in T1h review, 2026-10-18. Also settles dragged paths (ATTACK-7.T7 refuses a drag through a Scene effect until then; D105 drag ruling, 2026-10-18).",
+              "note": "Merged m319 (e1e628691)."
             },
             {
               "status": "DONE",
