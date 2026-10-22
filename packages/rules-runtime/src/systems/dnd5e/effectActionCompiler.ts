@@ -71,6 +71,7 @@ import {
 import {
   boundedTestOutcome,
   specializedTestOutcome,
+  positiveFixedAmount,
   validateHealBonuses,
   type SpecializedOutcome
 } from './effectActionTestOutcomes.js'
@@ -2339,20 +2340,6 @@ function targetOnlyDirectOutcome(outcome: Dnd5eAuthoredOutcome, input: DirectOut
   const targetOnly = dnd5eTargetOnlyOutcome(outcome) ?? unsupportedDirectOutcome()
   return targetOnly.kind === 'ADD_SPEED_TO_MOVEMENT' ? offList(targetOnly, input) : targetOnly
 }
-function positiveFixedAmount(outcome: AuthoredOutcomeOf<'HEAL' | 'DAMAGE'>): number {
-  if (
-    outcome.valueKind !== 'FIXED' ||
-    outcome.scalingKind !== 'NONE' ||
-    outcome.bonuses?.length ||
-    !Number.isSafeInteger(outcome.amount) ||
-    outcome.amount <= 0
-  )
-    unsupported(
-      'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.'
-    )
-  return outcome.amount
-}
-
 /**
  * The one dispatch from an authored outcome kind to the direct outcome it compiles to (ADR 0039
  * decision 1). A kind with no entry is not a direct outcome.

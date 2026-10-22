@@ -6,6 +6,7 @@ import {
   damageMultiplier,
   validateDamageBonuses
 } from './effectActionOutcomeNodes.js'
+import type { Dnd5eAuthoredOutcome } from './effectActionOutcomes.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 
@@ -97,6 +98,22 @@ export function specializedTestOutcome(
     return { kind: 'DICE_HEAL', temporary: outcome.temporary ?? false }
   }
   return boundedTestOutcome(entry)
+}
+
+export function positiveFixedAmount(
+  outcome: Extract<Dnd5eAuthoredOutcome, { effectKind: 'HEAL' | 'DAMAGE' }>
+): number {
+  if (
+    outcome.valueKind !== 'FIXED' ||
+    outcome.scalingKind !== 'NONE' ||
+    outcome.bonuses?.length ||
+    !Number.isSafeInteger(outcome.amount) ||
+    outcome.amount <= 0
+  )
+    unsupported(
+      'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.'
+    )
+  return outcome.amount
 }
 
 export function validateHealBonuses(value: unknown): void {

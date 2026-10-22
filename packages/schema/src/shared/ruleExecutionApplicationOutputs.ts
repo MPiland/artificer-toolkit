@@ -3,12 +3,9 @@ import {
   deathSavesAfterDamage,
   deathSavesAfterDeath,
   deathSavesAfterHealing,
-  deathSavesAfterRevive,
-  deathSavesAfterStabilize,
-  isCharacterDead,
-  isCharacterDying,
-  isTargetDead
+  isCharacterDead
 } from './characterDeathSaves.js'
+import { replayDeathStateReceipt } from './ruleExecutionDeathStateReplay.js'
 import {
   temporaryHitPointsAfterGrant,
   temporaryHitPointsAfterLoss,
@@ -273,36 +270,16 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             if (deathSaves !== null) deathSaves = deathSavesAfterDeath()
             continue
           }
-          if (application.kind === 'REVIVE') {
-            const dead = isTargetDead({ currentHitPoints: current, deathSaves })
-            const revivedTo = application.hitPoints === 'ONE' ? Math.min(1, maximum) : maximum
-            if (
-              application.beforeCurrentHitPoints !== current ||
-              application.applied !== dead ||
-              application.afterCurrentHitPoints !== (dead ? revivedTo : current)
-            )
-              context.addIssue({
-                code: 'custom',
-                path: ['applications', index],
-                message: 'Revive receipt must restore a dead target only.'
-              })
-            if (application.applied) {
-              current = application.afterCurrentHitPoints
-              if (deathSaves !== null) deathSaves = deathSavesAfterRevive()
-            }
-            continue
-          }
           if (application.kind === 'KILL_NEGATED' || application.kind === 'DEPART') continue
-          if (application.kind === 'STABILIZE') {
-            const dying = deathSaves !== null && isCharacterDying(deathSaves, current)
-            if (application.applied !== dying)
+          if (application.kind === 'STABILIZE' || application.kind === 'REVIVE') {
+            const replay = replayDeathStateReceipt(application, { current, maximum, deathSaves })
+            if (replay.issue)
               context.addIssue({
                 code: 'custom',
                 path: ['applications', index],
-                message: 'Stabilize receipt must apply to a dying Character only.'
+                message: replay.issue
               })
-            if (deathSaves !== null)
-              deathSaves = deathSavesAfterStabilize({ deathSaves, currentHitPoints: current })
+            ;({ current, deathSaves } = replay)
             continue
           }
           if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') {
