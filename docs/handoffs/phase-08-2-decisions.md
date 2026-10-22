@@ -1067,6 +1067,13 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Request offers the modes:** the pending dice request carries `rollModes: [{ code, label }]`, projected from the System vocabulary for that request's System, as a shared `packages/schema` contract. The web picker renders only those and holds no mode table.
   - **Rejected:** a client-set `keep` (contradicts deriving keep once in the adapter) and a web-local D&D mode table (breaks System neutrality).
 
+* **D170** (2026-10-21) Forced movement through and into zones settles at the commit seam (SPELLS-4.T1j). Orchestrator ruling, following D153's dice rule.
+  - **Rule:** `applyRoomForcedMovements` is the one seam shared by single-target actions, area actions and contests. It settles the zone contacts of each forced path there through the existing spatial candidate execution, and adds the moved creature's mechanics batch to the same terminal commit. Zone damage feeds the same Concentration damage path as other zone damage. A 0 HP stop ends the path where the creature dropped, and that cell becomes its landing.
+  - **Dice:** zone dice and the Concentration saves they cause are system-rolled with the room's seeded dice and recorded, whatever the actor's autoRoll setting. Pausing in the middle of a commit would leave the mover waiting on another player's input (D153).
+  - **Evidence:** each forced-movement landing gains an optional `zoneExecutions` field in `packages/schema`, so a GM revert restores the zone outcomes with the move.
+  - **Rejected:** plan-time evidence in all three planners. It is about three times the surface, overlaps the RULES-2 receipt work, and is needed only for assisted prompts, which D153 already rejects for a mid-action pause.
+  - **Deferred:** assisted Concentration prompts during forced movement (future-enhancements).
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
