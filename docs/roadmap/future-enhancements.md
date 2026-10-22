@@ -509,6 +509,10 @@ Vampire Charm (D176) ships with its damage-triggered repeat save and its 24-hour
 
 Found by SPELLS-33.T6e2 on 2026-10-22; post-launch.
 
+### Time of death and soul state
+
+Revival spells (D177) leave their eligibility to the GM: time since death, death by old age, and a willing or free soul. Resurrection's caster cost after a year of death is description-only too. Candidate: store the time and cause of death on the Character or Creature, check eligibility as an overridable warning, and apply the caster cost from it. Found by SPELLS-4.T2g on 2026-10-22; post-launch.
+
 ## Other future enhancements (parked)
 
 - Eyebite authored from core options (choice of effect, per-turn re-target, distance end) reusing the SPELLS-29 flee rider.

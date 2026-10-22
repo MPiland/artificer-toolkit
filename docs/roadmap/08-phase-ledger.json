@@ -10082,7 +10082,7 @@
             {
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
-              "id": "SPELLS-4.T2g",
+              "id": "SPELLS-4.T2g1",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
@@ -10090,8 +10090,21 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Reviving a dead creature, with a decaying d20 penalty. Converts REVIVIFY, RAISE_DEAD, RESURRECTION, TRUE_RESURRECTION, REINCARNATE, with parity proofs; each kind deleted.",
+              "text": "Generic REVIVE outcome (D177): hit points FIXED or MAXIMUM, resets death saves or clears defeated, TARGET_NOT_DEAD overridable warning, receipt before-state for Undo. Converts REVIVIFY, REINCARNATE (1 hit point; race swap stays GM_CHOICE) and TRUE_RESURRECTION (poison through END_EFFECTS CONDITION), with parity proofs; each kind deleted.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2g2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2g1"]
+              },
+              "text": "Generic effect stepDown { trigger: LONG_REST, step } with a stored remaining counter (D177): each matching rest shrinks the effect's BONUS/PENALTY grant magnitudes and ends it at 0; PENALTY allowed on ABILITY_CHECK; the rest preview lists stepped-down effects. Converts RAISE_DEAD and RESURRECTION (-4 d20 penalty decaying per long rest), with parity proofs; each kind deleted."
             },
             {
               "status": "TODO",
@@ -14442,7 +14455,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2g", "SPELLS-4.T2h"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2g1", "SPELLS-4.T2h"]
               },
               "text": "five Rejuvenations, Ghost and Night Hag Etherealness (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
