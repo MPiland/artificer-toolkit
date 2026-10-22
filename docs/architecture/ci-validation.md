@@ -33,7 +33,7 @@ Typechecks always run in full, and `cancel-on-type-error` still ends the run ear
 Otherwise the changed files are `git diff --name-only --no-renames <merge-base with origin/$PHASE_BRANCH> HEAD`, the whole slice and not only its last push. A test file is selected when the static import graph reaches a changed file from it. The graph is built from tracked source under `apps/`, `packages/` and `scripts/`:
 
 - `import`, `export … from`, dynamic `import()`, `require()` and `vi.mock()` specifiers. Matching is textual, so a specifier in a comment only adds tests.
-- Workspace package `exports` and `imports` resolve to the `src` file their `dist` target is compiled from. That is why Vitest's `--changed` and `vitest related` were not used: tests import packages through `dist` behind `node_modules` symlinks, which Vitest's module graph does not trace back to source, and a package change must also reach the other configs' suites (Convex, Worker, web). If a target cannot be mapped, the whole package is the dependency.
+- Workspace package `exports` and `imports` resolve to the `src` file their `dist` target is compiled from. That is why Vitest's `--changed` and `vitest related` were not used: a package change must also reach the other configs' suites (Convex, Worker, web). If a target cannot be mapped, the whole package is the dependency.
 - `tsconfig.json` `paths` (the web `#app/*` aliases).
 - `new URL('./file', import.meta.url)` file references (a Worker module, the SRD corpus text).
 - `import.meta.glob` patterns: every non-test module a glob matches. convex-test globs every Convex module and runs the ones a test reaches through `ctx.run*` by name at run time, so any Convex module change selects every Convex test that globs the modules (most of the suite), not only the tests that call it.
@@ -52,6 +52,12 @@ The selection decides what a slice's green run proves. The phase branch itself o
 A changed `__snapshots__/<test>.snap` selects its test. A change outside the source roots (docs, the ledger) selects nothing.
 
 ## Outputs
+
+## Tests resolve packages from source
+
+Every workspace package's `exports` and `imports` carry a `source` condition (listed first) pointing at the `src` file the `dist` target is compiled from. Every Vitest config spreads `sourceResolve` from `scripts/vitestSource.mjs`, which prepends `source` to Vite's resolve conditions, and inlines `@artificer-toolkit/*` so Vitest transforms the TypeScript instead of handing it to Node. `tsc`, production builds, `tsx` without `--conditions source` and Node never set the condition, so they keep resolving `dist`. A local test file therefore runs with `yarn vitest run <file>`, with no package build and no lock. `apps/apis`'s `generate:srd:manifest` also runs `tsx --conditions source`, and `schemaBoundary.test.ts` bundles with esbuild `conditions: ['source']`. `scripts/vitestSource.test.mjs` and `apps/apis/convex/workspaceSource.test.ts` prove the resolution against real package code.
+
+The `build` job still builds first: the typecheck jobs and production builds resolve `dist`, so the artifact stays; the test jobs download it but no longer read it. Dropping the build from the test path later is a CI-speed follow-up, not part of this guarantee.
 
 The `build` job runs the selector after the build and exposes, per suite, `run-<suite>` and `<suite>-files` (paths relative to the directory that suite's Vitest runs from), plus `full` and `convex-shards`. Convex spreads any selection over one shard per selected file, up to 4: one Convex file can take as long as a hundred others, so a count budget left 112 heavy files on 2 shards for 18 minutes. A suite with no selected files skips its job, and the step summary lists the counts. `node scripts/affectedTests.mjs --base origin/<phase-branch>` prints the same selection locally.
 
