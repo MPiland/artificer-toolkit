@@ -123542,7 +123542,10 @@ export declare const api: {
             description?: string | null;
             id: string;
             label: string;
+            proficiencyBonus: number;
+            rank: number;
             short?: string | null;
+            xp: number;
           }>;
           conditionTypes: Array<{
             code: string;
@@ -123559,6 +123562,7 @@ export declare const api: {
             short?: string | null;
           }>;
           currencies: Array<{
+            baseValue: number;
             code: string;
             description?: string | null;
             id: string;
@@ -123605,6 +123609,7 @@ export declare const api: {
             short?: string | null;
           }>;
           passives: Array<{
+            abilityDefinitionId: string;
             code: string;
             description?: string | null;
             id: string;

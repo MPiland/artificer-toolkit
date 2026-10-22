@@ -431,13 +431,14 @@ describe('subject schema parsing', () => {
 
   it('requires a v4 passive to name a skill of the same System, or none', () => {
     const skillId = '00000000-0000-0000-000b-000100000000'
+    const abilityId = '00000000-0000-0000-000a-000100000000'
     const v4 = {
       id: 'dnd-5e-srd',
       label: 'D&D 5e SRD',
       rulesetCode: 'dnd5e',
       rulesetVersion: '2014',
       alignments: [],
-      abilities: [],
+      abilities: [{ id: abilityId, code: 'STRENGTH', label: 'Strength' }],
       challengeRatings: [],
       conditionTypes: [],
       creatureTypes: [],
@@ -452,7 +453,8 @@ describe('subject schema parsing', () => {
           id: '00000000-0000-0000-000d-000100000000',
           code: 'PASSIVE_ATHLETICS',
           label: 'Passive Athletics',
-          skillDefinitionId: skillId
+          skillDefinitionId: skillId,
+          abilityDefinitionId: abilityId
         }
       ],
       rarities: [],
@@ -478,6 +480,14 @@ describe('subject schema parsing', () => {
         passives: [{ ...v4.passives[0], skillDefinitionId: null }]
       })
     ).toMatchObject({ schemaVersion: 4 })
+    expect(() =>
+      systemAuthoredDtoSchema.parse({
+        ...v4,
+        passives: [
+          { ...v4.passives[0], abilityDefinitionId: '00000000-0000-0000-000a-000200000000' }
+        ]
+      })
+    ).toThrow()
   })
 
   it('parses feat prerequisites authored on CHARACTER facets', () => {

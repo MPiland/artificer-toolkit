@@ -47,7 +47,7 @@ import {
   pathGatedProposalNode,
   validateDamageBonuses
 } from './effectActionOutcomeNodes.js'
-import type { Dnd5eCompiledEffectActionSource } from './effectActionCompiler.js'
+import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
 
 export type ImmediatePrimaryDamageEntry = CompiledEffectGroup['entries'][number] & {
   resultBlockId: string
