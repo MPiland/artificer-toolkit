@@ -11,7 +11,7 @@ import {
 } from '@mantine/core'
 import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQueries, useQuery } from '@tanstack/react-query'
-import { useConvex } from 'convex/react'
+import { useConvex, useQuery as useConvexQuery } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { Check, Crosshair, Eye, EyeOff, Gamepad2, SlidersHorizontal, Undo2 } from 'lucide-react'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
@@ -73,6 +73,8 @@ import {
   type CampaignVttToolDefinition,
   type SceneTokenNudgeDirection
 } from './CampaignVttStage.model'
+import { CampaignLiveLootPanel } from '../loot/CampaignLiveLootPanel'
+import { listDefeatedCreatureLoot, listSceneLootTables } from '../loot/CampaignLiveLootPanel.model'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
@@ -702,6 +704,22 @@ export function CampaignVttStage({
         })
       )
   })
+  // The GM's own view only: loot is reference data players never receive (SCENE-4).
+  const liveLoot = useConvexQuery(
+    convexApi.loot.tables.live,
+    campaign.role === 'OWNER' && !gmPreviewUserId && scene
+      ? {
+          campaignId: campaign.id,
+          sceneDefinitionId: scene.definitionId,
+          encounterId: activeEncounter?.id ?? null
+        }
+      : 'skip'
+  )
+  const defeatedLoot = useMemo(
+    () => listDefeatedCreatureLoot(liveLoot, activeEncounter?.actors ?? []),
+    [liveLoot, activeEncounter?.actors]
+  )
+  const lootActorIds = useMemo(() => new Set(defeatedLoot.map(({ id }) => id)), [defeatedLoot])
   const tokenPresentations = useMemo(
     () =>
       renderedScene && activeEncounter
@@ -711,6 +729,7 @@ export function CampaignVttStage({
             boundTokenControl,
             currentUserId: viewerUserId,
             encounter: activeEncounter,
+            lootActorIds,
             pending: pendingOccurrence ?? null,
             scene: renderedScene,
             targetableTokenIds: targetEntries ? targetableTokenIds(targetEntries) : undefined
@@ -720,6 +739,7 @@ export function CampaignVttStage({
       activeEncounter,
       actorIdByTokenId,
       boundTokenControl,
+      lootActorIds,
       pendingOccurrence,
       renderedScene,
       targetEntries,
@@ -1521,6 +1541,13 @@ export function CampaignVttStage({
             >
               Use this scene for combat
             </Button>
+          ) : null}
+          {liveLoot ? (
+            <CampaignLiveLootPanel
+              creatures={defeatedLoot}
+              gameSystemId={campaign.gameSystemId}
+              sceneTables={listSceneLootTables(liveLoot)}
+            />
           ) : null}
           {activeEncounter ? (
             <CampaignTabletopEncounterDrawer

@@ -1,6 +1,8 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
 import type {
+  LiveLoot,
+  LiveLootInput,
   LootDocument,
   LootOwner,
   LootTable,
@@ -10,6 +12,7 @@ import type { DeletePreparedEncounterInputDto } from '@artificer-toolkit/schema/
 import { lootTable, setupEncounterLoot } from '../../tests/fixtures/encounterLoot'
 
 const get = makeFunctionReference<'query', { owner: LootOwner }, LootDocument>('loot/tables:get')
+const live = makeFunctionReference<'query', LiveLootInput, LiveLoot>('loot/tables:live')
 const save = makeFunctionReference<'mutation', SaveLootInput, LootDocument>('loot/tables:save')
 const deletePrepared = makeFunctionReference<
   'mutation',
@@ -74,4 +77,24 @@ it('deleting the prepared Encounter deletes its placements’ loot', async () =>
     expectedVersion: base.run.version
   })
   await expect(lootRows()).resolves.toEqual([])
+})
+
+it('the live Loot panel reads the creatures that have tables, for the GM only', async () => {
+  const { base, gm, first, second, ownerOf } = await setupEncounterLoot()
+  const sceneDefinitionId = crypto.randomUUID()
+  const input = { campaignId: base.campaign.id, sceneDefinitionId, encounterId: base.run.id }
+  await expect(gm.query(live, input)).resolves.toEqual({ documents: [] })
+
+  const saved = await gm.mutation(save, {
+    owner: ownerOf(first.id),
+    expectedVersion: 0,
+    tables: [lootTable()]
+  })
+  await gm.mutation(save, { owner: ownerOf(second.id), expectedVersion: 0, tables: [lootTable()] })
+  await gm.mutation(save, { owner: ownerOf(second.id), expectedVersion: 1, tables: [] })
+  await expect(gm.query(live, input)).resolves.toEqual({ documents: [saved] })
+  await expect(gm.query(live, { ...input, encounterId: null })).resolves.toEqual({ documents: [] })
+  await expect(base.owner.caller.query(live, input)).rejects.toThrow(
+    'Loot tables are only available to the Campaign owner.'
+  )
 })

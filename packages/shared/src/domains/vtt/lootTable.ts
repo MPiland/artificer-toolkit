@@ -17,6 +17,14 @@ export function formatLootRange({ min, max }: LootRollRange) {
   return max === null ? `${min}+` : min === max ? `${min}` : `${min}–${max}`
 }
 
+/** The range holding a roll, or undefined when the roll falls in a gap. Ranges are exclusive, so at most one matches. */
+export function findLootRangeForRoll<Range extends LootRollRange>(
+  ranges: readonly Range[],
+  roll: number
+): Range | undefined {
+  return ranges.find((range) => roll >= range.min && (range.max === null || roll <= range.max))
+}
+
 /**
  * The first refusal among a table's ranges, or null when they are exclusive. Ranges share a roll
  * when they hold a common integer, so 5–10 and 10–15 overlap while 5–10 and 11–15 do not. Gaps are
