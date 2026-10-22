@@ -2,6 +2,8 @@ import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/cha
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/api/characterActionRules'
 
+import { characterActionCapabilityRegistry } from './platformPolicyModules.js'
+
 /**
  * Server-only executable Effect capability. Aggregate-specific descriptors
  * extend this boundary without creating a second Effect compiler.
@@ -49,19 +51,12 @@ export interface CharacterActionCapabilityDescriptor extends EffectActionCapabil
 
 export interface CharacterActionCapabilityAdapter {
   gameSystemId: string
-  authoredRootKind: 'effect'
   discover(input: {
     candidates: readonly CharacterActionCandidate[]
     conditionDefinitionIds?: readonly string[]
     abilityDefinitions?: readonly { id: string; code: string }[]
     entryPoints: readonly CharacterActionRuleEntryPoint[]
   }): readonly CharacterActionCapabilityDescriptor[]
-}
-
-function keyOf(
-  adapter: Pick<CharacterActionCapabilityAdapter, 'gameSystemId' | 'authoredRootKind'>
-) {
-  return `${adapter.gameSystemId}\u0000${adapter.authoredRootKind}`
 }
 
 function requireCanonicalUuid(value: string, label: string): string {
@@ -148,41 +143,21 @@ function assertExactCandidateMapping(input: {
   }
 }
 
-export function createCharacterActionCapabilityDiscoveryRegistry(
-  adapters: readonly CharacterActionCapabilityAdapter[]
-) {
-  const adaptersByKey = new Map<string, CharacterActionCapabilityAdapter>()
-  for (const adapter of adapters) {
-    requireCanonicalUuid(
-      adapter.gameSystemId,
-      'Character action capability adapter System identity'
-    )
-    const key = keyOf(adapter)
-    if (adaptersByKey.has(key)) {
-      throw new Error(`Duplicate Character action capability adapter: ${adapter.gameSystemId}.`)
-    }
-    adaptersByKey.set(key, adapter)
-  }
-
-  return {
-    discover(input: {
-      gameSystemId: string
-      candidates: readonly CharacterActionCandidate[]
-      conditionDefinitionIds?: readonly string[]
-      abilityDefinitions?: readonly { id: string; code: string }[]
-      entryPoints: readonly CharacterActionRuleEntryPoint[]
-    }): readonly CharacterActionCapabilityDescriptor[] {
-      requireCanonicalUuid(input.gameSystemId, 'Character action capability System identity')
-      const adapter = adaptersByKey.get(keyOf({ ...input, authoredRootKind: 'effect' }))
-      if (!adapter) return []
-      const descriptors = adapter.discover({
-        candidates: input.candidates,
-        conditionDefinitionIds: input.conditionDefinitionIds ?? [],
-        abilityDefinitions: input.abilityDefinitions ?? [],
-        entryPoints: input.entryPoints
-      })
-      assertExactCandidateMapping({ ...input, descriptors })
-      return descriptors
-    }
-  }
+export function discoverCharacterActionCapabilities(input: {
+  gameSystemId: string
+  candidates: readonly CharacterActionCandidate[]
+  conditionDefinitionIds?: readonly string[]
+  abilityDefinitions?: readonly { id: string; code: string }[]
+  entryPoints: readonly CharacterActionRuleEntryPoint[]
+}): readonly CharacterActionCapabilityDescriptor[] {
+  requireCanonicalUuid(input.gameSystemId, 'Character action capability System identity')
+  const adapter = characterActionCapabilityRegistry.require(input.gameSystemId)
+  const descriptors = adapter.discover({
+    candidates: input.candidates,
+    conditionDefinitionIds: input.conditionDefinitionIds ?? [],
+    abilityDefinitions: input.abilityDefinitions ?? [],
+    entryPoints: input.entryPoints
+  })
+  assertExactCandidateMapping({ ...input, descriptors })
+  return descriptors
 }

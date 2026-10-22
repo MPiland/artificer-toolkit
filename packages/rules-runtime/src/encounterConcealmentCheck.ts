@@ -29,7 +29,7 @@ import { turnEffectOwner } from './encounterTurnEffectState.js'
 import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import { actorContestFacts, checkAbilityCode } from './encounterMovementPassagePreparation.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
-import { characterRuleActionSystemAdapterRegistry } from './characterRuleActionSystemAdapterRegistry.js'
+import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 
 type ConcealmentResolution = EncounterConcealmentCheckPendingContextDto['resolution']
 type ConcealmentCheckDc = { kind: 'PASSIVE'; passiveDefinitionId: string } | { kind: 'CONCEALMENT' }
@@ -248,7 +248,7 @@ export function createEncounterConcealmentEffect(input: {
   concealmentTotal: number
   observerActorIds: readonly string[]
 }): ActiveRuleEffectRecord | null {
-  const adapter = characterRuleActionSystemAdapterRegistry.get(input.gameSystemId)
+  const adapter = characterRuleActionSystemAdapterRegistry.find(input.gameSystemId)
   if (!adapter)
     throw new EncounterValidationError('The Encounter Game System cannot execute this action.')
   const plan = compileEncounterFeatureActionPlan(adapter, input.capability)

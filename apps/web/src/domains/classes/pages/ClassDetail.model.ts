@@ -10,11 +10,7 @@ import {
   type GrantDetailLine
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import {
-  hitDieAverage,
-  parseHitDie
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/hitPointRules'
-import { proficiencyBonus } from '@artificer-toolkit/rules-runtime/systems/dnd5e/proficiencyBonus'
+import { characterProgressionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type { ClassResponseDto } from '@artificer-toolkit/schema/api/content'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
 
@@ -94,9 +90,10 @@ export function getClassParentLabel(
 function formatHitPointHtml(classRecord: ClassAuthoringInputDto): string {
   if (!classRecord.hitpoint) return ''
 
-  const dieSize = parseHitDie(classRecord.hitpoint.dieConfig)
+  const progression = characterProgressionCapabilityRegistry.require(classRecord.systemId)
+  const dieSize = progression.hitDieSize(classRecord.hitpoint.dieConfig)
   const hitDie = dieSize ? `1d${dieSize}` : classRecord.hitpoint.dieConfig
-  const average = dieSize ? hitDieAverage(dieSize) : null
+  const average = dieSize ? progression.hitDieAverage(dieSize) : null
   const className = classRecord.label.toLowerCase()
   const ability = formatEnumLabel(classRecord.hitpoint.ability)
 
@@ -155,6 +152,7 @@ function formatClassProgressionHtml(classRecord: ClassAuthoringInputDto): string
   const maxLevel = getProgressionMaxLevel(classRecord)
   if (maxLevel <= 0) return ''
 
+  const { proficiencyBonus } = characterProgressionCapabilityRegistry.require(classRecord.systemId)
   const rows = Array.from({ length: maxLevel }, (_, index) => index + 1)
   const spellLimitsByLevel = new Map(
     (classRecord.spellcasting?.spellLimits ?? []).map((limit) => [limit.classLevel, limit])

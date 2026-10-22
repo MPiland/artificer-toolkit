@@ -6,7 +6,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
-import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscoveryRegistry.js'
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
 import { evaluateEncounterCharacterActionWieldConflict } from '../encounterWieldConflict.js'
 import { evaluateSrdCharacter, itemAction } from '../testing/dnd5eSrdCharacter.js'

@@ -1,6 +1,11 @@
+import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { damageInterceptionPayloadDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
-import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import {
+  resolveDispositionDamage,
+  type DamageInterceptionChargeDto,
+  type DamageInterceptionSaveDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 
 import {
   temporaryHitPointsAfterGrant,
@@ -14,19 +19,45 @@ import {
   listActiveEffectGrants
 } from './character/activeEffectGrantTotals.js'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
+import { withFeatureChargeUsed } from './encounterActorState.js'
+import { EncounterValidationError } from './encounterErrors.js'
 import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 
 /**
- * A held `DAMAGE_INTERCEPTION` grant (Death Ward; Undead Fortitude and Relentless Endurance reuse
- * it): damage that would drop the holder to 0 hit points leaves it at `dropToHitPoints`, and an
- * instant-death effect is negated when `negatesKill`. Each interception spends one of the holding
- * effect's `uses`; the last use ends the effect (persistence, like attack decoys).
+ * A held `DAMAGE_INTERCEPTION` grant (Death Ward; Undead Fortitude and Relentless reuse it): damage
+ * that would drop the holder to 0 hit points leaves it at `dropToHitPoints`, and an instant-death
+ * effect is negated when `negatesKill`. An effect-held interception spends one of the holding
+ * effect's `uses`; the last use ends the effect (persistence, like attack decoys). A feature-held
+ * one (`charge` set) spends a charge of the feature instead, and is spent for good only if the
+ * feature has none left to give; a feature with no charge is held every time.
  */
 export type HeldDamageInterception = {
+  /** The holding effect's id, or the holding feature's id for a feature-held interception. */
   effectId: string
+  /** The limited-use feature charge this interception spends, with its counts as they stand. */
+  charge?: {
+    ownerFeatureId: string
+    chargeId: string
+    cost: number
+    used: number
+    amount: number
+  }
+  /** The holder's save die for the save this interception asks, rolled before the blow lands. */
+  saveRoll?: InterceptionSaveRoll
   dropToHitPoints: number
   negatesKill: boolean
+  /** The save the holder must pass to be intercepted; its DC may grow with the damage taken. */
+  save?: { ability: string; dc: { base: number; plusDamageTaken: boolean } }
+  /** Damage this interception does not meet (`DamageInterceptionSubscription`). */
+  excludes?: { damageTypeIds: readonly string[]; critical: boolean }
+  maxDamageTaken?: number
 }
+
+/**
+ * One save die the caller rolled for a save an interception asks of its holder: the kept d20 and the
+ * signed total of everything added to it (the save modifier and any added dice).
+ */
+export type InterceptionSaveRoll = { rawDie: number; addedTotal: number }
 
 /**
  * The holder's interceptions in the order they are spent: lowest effect id first, so every replay
@@ -47,33 +78,193 @@ export function heldDamageInterceptions(
             return {
               effectId: effect.id,
               dropToHitPoints: payload.dropToHitPoints,
-              negatesKill: payload.negatesKill
+              negatesKill: payload.negatesKill,
+              ...(payload.save && { save: payload.save }),
+              ...(payload.excludes && { excludes: payload.excludes }),
+              ...(payload.maxDamageTaken !== undefined && {
+                maxDamageTaken: payload.maxDamageTaken
+              })
             }
           })
       )
     )
 }
 
+/** One of a Creature's feature resources as its actor rules report it: the cap and what is spent. */
+export type FeatureChargeAvailability = {
+  featureId: string
+  /** The feature's charge identity; null for a feature that has no charge. */
+  chargeId: string | null
+  maximum: number | null
+  used: number
+}
+
+/**
+ * The interceptions a Creature's passive features hold (`DAMAGE_INTERCEPTION` feature grants, Undead
+ * Fortitude and Relentless), in feature then grant id order so every replay picks the same. A
+ * feature with a charge is held while it has one left and spends one when it intercepts; a feature
+ * with none is held every time.
+ */
+export function featureHeldDamageInterceptions(input: {
+  modifiers: CharacterGrantFoldOutput['modifiers']
+  featureResources: readonly FeatureChargeAvailability[]
+}): HeldDamageInterception[] {
+  return input.modifiers
+    .flatMap((modifier) =>
+      modifier.valueDomainCode === 'DAMAGE_INTERCEPTION' &&
+      modifier.source.kind === 'AUTHORED' &&
+      modifier.source.sourceKind === 'FEATURE'
+        ? [{ modifier, featureId: modifier.source.definitionId }]
+        : []
+    )
+    .sort(
+      (left, right) =>
+        left.featureId.localeCompare(right.featureId) ||
+        left.modifier.grantId.localeCompare(right.modifier.grantId)
+    )
+    .flatMap(({ modifier, featureId }) => {
+      const resource = input.featureResources.find((entry) => entry.featureId === featureId)
+      const payload = damageInterceptionPayloadDtoSchema.parse(modifier.payload)
+      const held = {
+        effectId: featureId,
+        dropToHitPoints: payload.dropToHitPoints,
+        negatesKill: payload.negatesKill,
+        ...(payload.save && { save: payload.save }),
+        ...(payload.excludes && { excludes: payload.excludes }),
+        ...(payload.maxDamageTaken !== undefined && { maxDamageTaken: payload.maxDamageTaken })
+      }
+      if (resource?.chargeId == null) return [held]
+      // A charge the rules cannot size is not given out.
+      if (resource.maximum === null || resource.maximum - resource.used < 1) return []
+      return [
+        {
+          ...held,
+          charge: {
+            ownerFeatureId: featureId,
+            chargeId: resource.chargeId,
+            cost: 1,
+            used: resource.used,
+            amount: resource.maximum
+          }
+        }
+      ]
+    })
+}
+
 /**
  * The hit points damage leaves the holder at, and the interception that decided them: the first
- * unspent interception the damage's `BEFORE` event meets (it would drop the holder from above 0 to 0)
- * holds it at its hit points; with none, the plain result. `currentLost` is what the damage takes off
- * current hit points after temporary hit points.
+ * unspent interception the damage's `BEFORE` event meets (it would drop the holder from above 0 to 0,
+ * and its exclusions and damage cap admit the blow) holds it at its hit points; with none, the plain
+ * result. `currentLost` is what the damage takes off current hit points after temporary hit points;
+ * `damageTaken` is the whole blow, which sets a save's DC. An interception that asks a save is spent
+ * only on a pass, with the die it carries (`saveRoll`); a failure lets the blow meet the next
+ * interception. `saves` records every save asked.
  */
 export function hitPointsAfterDamage(input: {
   current: number
   currentLost: number
   maximum: number
+  damageTaken: number
+  damageTypeId: string | null
+  critical: boolean
   interceptions: readonly HeldDamageInterception[]
 }) {
   const after = input.current - input.currentLost
-  const [interception] = discoverEncounterEventHooks({
+  const met = discoverEncounterEventHooks({
     damageInterceptions: input.interceptions,
-    events: [{ kind: 'DAMAGED', phase: 'BEFORE', hitPoints: { before: input.current, after } }]
+    events: [
+      {
+        kind: 'DAMAGED',
+        phase: 'BEFORE',
+        hitPoints: { before: input.current, after },
+        damageTaken: input.damageTaken,
+        damageTypeId: input.damageTypeId,
+        critical: input.critical
+      }
+    ]
   }).damageInterceptions
-  return interception === undefined
-    ? { after, interception }
-    : { after: Math.min(interception.dropToHitPoints, input.maximum), interception }
+  const saves: DamageInterceptionSaveDto[] = []
+  for (const candidate of met) {
+    if (candidate.save === undefined)
+      return {
+        after: Math.min(candidate.dropToHitPoints, input.maximum),
+        interception: candidate,
+        saves
+      }
+    const roll = candidate.saveRoll
+    if (roll === undefined)
+      throw new EncounterValidationError('A damage interception save has no die.')
+    const dc = candidate.save.dc.base + (candidate.save.dc.plusDamageTaken ? input.damageTaken : 0)
+    const passed = roll.rawDie + roll.addedTotal >= dc
+    saves.push({ effectId: candidate.effectId, ...roll, dc, passed })
+    if (passed)
+      return {
+        after: Math.min(candidate.dropToHitPoints, input.maximum),
+        interception: candidate,
+        saves
+      }
+  }
+  return { after, interception: undefined, saves }
+}
+
+/**
+ * The charge receipt a spent feature-held interception writes on its application, or undefined for
+ * an effect-held one. The planner writes it and the fold recomputes it, so both read the same counts.
+ */
+export function interceptionChargeReceipt(
+  spent: HeldDamageInterception
+): DamageInterceptionChargeDto | undefined {
+  const { charge } = spent
+  if (charge === undefined) return undefined
+  return {
+    ownerFeatureId: charge.ownerFeatureId,
+    chargeId: charge.chargeId,
+    cost: charge.cost,
+    beforeUsed: charge.used,
+    afterUsed: charge.used + charge.cost,
+    beforeRemaining: charge.amount - charge.used,
+    afterRemaining: charge.amount - charge.used - charge.cost
+  }
+}
+
+/**
+ * The actor with the feature charges its batch's interceptions spent marked used, so the plan carries
+ * the spend and persistence writes it with the rest of the actor.
+ */
+export function withInterceptionChargesSpent<TActor extends { resources?: unknown }>(
+  actor: TActor,
+  applications: readonly { kind: string; interceptionCharge?: DamageInterceptionChargeDto }[]
+): TActor {
+  const spent = applications.flatMap(({ interceptionCharge }) =>
+    interceptionCharge ? [interceptionCharge] : []
+  )
+  if (spent.length === 0) return actor
+  return {
+    ...actor,
+    resources: spent.reduce(
+      (resources, charge) =>
+        withFeatureChargeUsed({ resources }, charge.ownerFeatureId, charge.afterUsed),
+      actor.resources
+    )
+  }
+}
+
+/** Whether a recorded charge receipt is the one the spent interception writes. */
+export function interceptionChargeMatches(
+  recorded: DamageInterceptionChargeDto | undefined,
+  spent: HeldDamageInterception | undefined
+) {
+  const expected = spent && interceptionChargeReceipt(spent)
+  return recorded === undefined
+    ? expected === undefined
+    : expected !== undefined &&
+        recorded.ownerFeatureId === expected.ownerFeatureId &&
+        recorded.chargeId === expected.chargeId &&
+        recorded.cost === expected.cost &&
+        recorded.beforeUsed === expected.beforeUsed &&
+        recorded.afterUsed === expected.afterUsed &&
+        recorded.beforeRemaining === expected.beforeRemaining &&
+        recorded.afterRemaining === expected.afterRemaining
 }
 
 /** The first unspent interception that negates a kill about to land on its holder. */
@@ -118,7 +309,13 @@ export function applyDamageInterceptions(input: {
       }
       unspent.splice(unspent.indexOf(spent), 1)
       const { kind: _kind, ...trace } = application
-      return { ...trace, kind: 'KILL_NEGATED', negatedBy: spent.effectId }
+      const interceptionCharge = interceptionChargeReceipt(spent)
+      return {
+        ...trace,
+        kind: 'KILL_NEGATED',
+        negatedBy: spent.effectId,
+        ...(interceptionCharge && { interceptionCharge })
+      }
     }
     if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') {
       pool = temporaryHitPointsAfterRelease(pool, application.sourceActiveEffectId)
@@ -166,15 +363,19 @@ export function applyDamageInterceptions(input: {
     )
     const temporaryLost = Math.min(pool.amount, resolvedAmount)
     const currentLost = Math.min(current, resolvedAmount - temporaryLost)
-    const { after, interception } = hitPointsAfterDamage({
+    const { after, interception, saves } = hitPointsAfterDamage({
       current,
       currentLost,
       maximum: application.maximumHitPoints,
+      damageTaken: resolvedAmount,
+      damageTypeId: application.damageTypeId,
+      critical: application.critical,
       interceptions: unspent
     })
     const intercepted = interception !== undefined
     if (intercepted) unspent.splice(unspent.indexOf(interception), 1)
     rebased ||= intercepted
+    const interceptionCharge = interception && interceptionChargeReceipt(interception)
     const result = {
       ...application,
       appliedAmount: temporaryLost + current - after,
@@ -182,7 +383,9 @@ export function applyDamageInterceptions(input: {
       afterCurrentHitPoints: after,
       beforeTemporaryHitPoints: pool.amount,
       afterTemporaryHitPoints: pool.amount - temporaryLost,
-      ...(intercepted && { interceptedBy: interception.effectId })
+      ...(intercepted && { interceptedBy: interception.effectId }),
+      ...(saves.length > 0 && { interceptionSaves: saves }),
+      ...(interceptionCharge && { interceptionCharge })
     }
     current = after
     pool = temporaryHitPointsAfterLoss(pool, temporaryLost)
@@ -198,9 +401,14 @@ export function applyDamageInterceptions(input: {
 export function heldBatchInputs(input: {
   baseMaximumHitPoints: number
   effects: readonly ActiveRuleEffectRecord[]
+  /** A Creature's feature-held interceptions (`featureHeldDamageInterceptions`), after its effects'. */
+  featureInterceptions?: readonly HeldDamageInterception[]
 }) {
   return {
     effectiveMaximumHitPoints: effectiveHitPointMaximum(input.baseMaximumHitPoints, input.effects),
-    damageInterceptions: heldDamageInterceptions(input.effects)
+    damageInterceptions: [
+      ...heldDamageInterceptions(input.effects),
+      ...(input.featureInterceptions ?? [])
+    ]
   }
 }

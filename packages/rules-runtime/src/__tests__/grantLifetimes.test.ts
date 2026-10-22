@@ -928,7 +928,6 @@ describe('a grant bound to an item that ends when it is let go (SPELLS-4.T2e)', 
       id: 0xc3a2,
       holderId: TARGET_ID
     })
-    if (record.definition.schemaVersion !== 2) throw new Error('Expected a v2 grant definition.')
     return {
       ...record,
       definition: {
@@ -1160,13 +1159,11 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
     expect(activeEffectEndsOnRest(effect, 'SHORT')).toBe(false)
   })
 
-  it('reads a version-one effect through the same subscriptions', () => {
+  it('reads an effect with no state contributions through the same subscriptions', () => {
     const stored = subscribed({ endOnEvents: ['ON_LONG_REST', 'ON_MOVE'] }).definition
-    if (stored.schemaVersion !== 2) throw new Error('The stored grant is version two.')
-    const { stateContributions: _stateContributions, ...definition } = stored
     const effect: ActiveRuleEffectRecord = {
       ...plain,
-      definition: activeRuleEffectDefinitionDtoSchema.parse({ ...definition, schemaVersion: 1 })
+      definition: activeRuleEffectDefinitionDtoSchema.parse({ ...stored, stateContributions: [] })
     }
     expect(activeEffectEndsOnRest(effect, 'LONG')).toBe(true)
     expect(activeEffectEndsOnRest(effect, 'SHORT')).toBe(false)
@@ -1626,7 +1623,6 @@ describe('planCarriedOverEffects', () => {
     })
   const formEffect = (id: number, remainingTicks: number | null) => {
     const effect = grant(id, remainingTicks ?? 1)
-    if (effect.definition.schemaVersion !== 2) throw new Error('Expected a version two grant.')
     return {
       ...effect,
       lifecycle: { ...effect.lifecycle, remainingTicks },

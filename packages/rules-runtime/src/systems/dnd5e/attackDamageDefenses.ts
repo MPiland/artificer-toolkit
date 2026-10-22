@@ -1,34 +1,38 @@
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
+import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { AttackKind } from '@artificer-toolkit/schema/shared/enums'
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 
-import { dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './attackKind.js'
+import type {
+  AttackDamageDefense,
+  AttackProfileCapabilityAdapter,
+  AttackTraits,
+  QualifiedDamageDefense
+} from '../../attackProfileCapability.js'
+import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eSpellAttackKind } from './attackKind.js'
+import {
+  effectReadsEnemyProximity,
+  effectReadsMoveToward,
+  effectReadsTurnUses,
+  reduceEffectRestrictions,
+  spentTurnUses
+} from './attackRestrictions.js'
+import { dnd5eAttackCriticalRules } from './characterCriticalRules.js'
+import { dnd5eAttackRollContributors } from './characterRollModes.js'
+import { DND5E_SYSTEM_ID } from './identity.js'
 import {
   dnd5eAcceptedModifierApplicability,
   dnd5eCharacterActionTarget,
+  dnd5eCharacterAttackTarget,
+  DND5E_CHARACTER_WIDE_TARGET,
   dnd5eModifierApplies,
   type Dnd5eModifierApplicability,
   type Dnd5eModifierTarget
 } from './modifierApplicability.js'
 
-type DamageDefense = {
-  kind: 'RESISTANCE' | 'IMMUNITY' | 'VULNERABILITY'
-  damageTypeId: string
-  /** Applies only to damage from actions owned by this authored content; absent or empty: any. */
-  sourceEffectIds?: readonly string[]
-}
-
-/** A defense such as "bludgeoning, piercing, and slashing from nonmagical attacks". */
-export type Dnd5eQualifiedDamageDefense = {
-  readonly kind: 'RESISTANCE' | 'IMMUNITY'
-  readonly damageTypeId: string
-  readonly bypassedBy: readonly DamageDefenseBypassCode[]
-}
-
-type Dnd5eAttackTraits = Readonly<Record<'magical' | 'silvered' | 'adamantine', boolean>>
-
-const TRAIT_BY_BYPASS: Record<DamageDefenseBypassCode, keyof Dnd5eAttackTraits> = {
+const TRAIT_BY_BYPASS: Record<DamageDefenseBypassCode, keyof AttackTraits> = {
   MAGICAL: 'magical',
   SILVERED: 'silvered',
   ADAMANTINE: 'adamantine'
@@ -42,11 +46,11 @@ const TRAIT_BY_BYPASS: Record<DamageDefenseBypassCode, keyof Dnd5eAttackTraits> 
  * (`sourceId`); it comes back as a plain defense.
  */
 export function dnd5eAttackDamageDefenses(
-  defenses: readonly DamageDefense[],
-  qualified: readonly Dnd5eQualifiedDamageDefense[],
-  traits: Dnd5eAttackTraits | null,
+  defenses: readonly AttackDamageDefense[],
+  qualified: readonly QualifiedDamageDefense[],
+  traits: AttackTraits | null,
   sourceId: string | null
-): { kind: DamageDefense['kind']; damageTypeId: string }[] {
+): { kind: AttackDamageDefense['kind']; damageTypeId: string }[] {
   const applicable = new Map(
     defenses
       .filter(
@@ -109,7 +113,7 @@ export function dnd5eCharacterAttackTraits(input: {
   >
   attackKind: AttackKind | null
   policy: Pick<CharacterRulePolicyOutput, 'itemMechanics' | 'grantFold'>
-}): Dnd5eAttackTraits {
+}): AttackTraits {
   const equipment = input.candidate.equipment
   const item =
     equipment === null
@@ -137,3 +141,45 @@ export function dnd5eCharacterAttackTraits(input: {
     adamantine: item?.properties.adamantine === true || granted.has('ADAMANTINE')
   }
 }
+
+/** The attack traits a holder's grants give every attack it makes, whatever it attacks with. */
+function dnd5eHolderAttackTraits(
+  modifiers: CharacterGrantFoldOutput['modifiers']
+): DamageDefenseBypassCode[] {
+  return [
+    ...dnd5eGrantedAttackTraits(
+      dnd5eAttackTraitGrants(modifiers, dnd5eAcceptedModifierApplicability),
+      DND5E_CHARACTER_WIDE_TARGET
+    )
+  ]
+}
+
+export const dnd5eAttackProfileCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  attackKind: dnd5eAttackKind,
+  attackDomain: dnd5eAttackModifierDomain,
+  grantedAttackTraits: dnd5eHolderAttackTraits,
+  // A spell attack is magical; any other non-Character-action attack is only what its grants make it.
+  featureAttackTraits: (kind, granted) => ({
+    magical: isDnd5eSpellAttackKind(kind) || granted.includes('MAGICAL'),
+    silvered: granted.includes('SILVERED'),
+    adamantine: granted.includes('ADAMANTINE')
+  }),
+  characterAttackTraits: dnd5eCharacterAttackTraits,
+  characterAttackCriticalRules: (policy, domain, attack) =>
+    dnd5eAttackCriticalRules(policy, domain, dnd5eCharacterAttackTarget(attack)),
+  characterAttackRollContributors: (policy, domain, attack) =>
+    dnd5eAttackRollContributors(policy, domain, dnd5eCharacterAttackTarget(attack)),
+  attackDamageDefenses: dnd5eAttackDamageDefenses,
+  reduceItemlessAttackRestrictions: (effect) => reduceEffectRestrictions(effect, null),
+  compiledAttackReads: (compiledEffect) => {
+    const effect = compiledEffect as CompiledEffectGroup
+    return {
+      enemyProximity: effectReadsEnemyProximity(effect),
+      moveToward: effectReadsMoveToward(effect),
+      turnUses: effectReadsTurnUses(effect)
+    }
+  },
+  spentTurnUses: (compiledEffect, dealtEntryIds) =>
+    spentTurnUses(compiledEffect as CompiledEffectGroup, dealtEntryIds)
+} as const satisfies AttackProfileCapabilityAdapter

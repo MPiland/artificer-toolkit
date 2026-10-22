@@ -359,7 +359,7 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
       ).toEqual({ kind: 'ACTORS', maxTargets: 1, area: null, choosesCreatureForm: true })
       expect(formPlan(POLYMORPH)).toMatchObject({
         initialRemaining: 600,
-        adapterFacts: { 'dnd5e.form-authored-path': 'ON_SAVE_FAIL' },
+        resultGate: { paths: ['ON_SAVE_FAIL'] },
         creatureFormContribution: {
           excessDamageCarriesOver: true,
           forms: [],

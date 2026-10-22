@@ -15,6 +15,7 @@ import {
 } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { dnd5eRollModeCapabilityAdapter } from './rollModePolicy.js'
+import { DND5E_ROLL_MODES } from './vocabulary.js'
 
 const DND5E_SPEED_FACTOR_INITIATIVE_GRAPH_DEFINITION_ID = '00000000-0000-4000-8000-0000000000eb'
 
@@ -307,6 +308,13 @@ export function dnd5eDeclaredInitiativeRollFacts(rollMode: string) {
 
 export const dnd5eInitiativeFactAdapter: InitiativeFactAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
+  declaredRollMode(facts) {
+    const keep = facts[DND5E_INITIATIVE_FACT_KEYS.keep]
+    return (
+      DND5E_ROLL_MODES.find(({ code }) => dnd5eRollModeCapabilityAdapter.keepFor(code) === keep)
+        ?.code ?? null
+    )
+  },
   bindActor(source) {
     if (source.kind === 'CUSTOM') return { automatic: false }
     const { modifier, rollMode } = readInitiativeSourceRoll(source)

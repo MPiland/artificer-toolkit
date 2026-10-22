@@ -30,23 +30,22 @@ type ActionEconomyTarget = Pick<
 
 /** The capabilities an actor's active relationship effects and grants (D99) suppress. */
 export function activeEffectCapabilitySuppressions(
+  gameSystemId: string,
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 ) {
   return [
     ...effects.flatMap((effect) =>
-      effect.definition.schemaVersion === 2
-        ? effect.definition.stateContributions.flatMap((contribution) =>
-            contribution.kind === 'ACTOR_RELATIONSHIP'
-              ? contribution.capabilitySuppressions.map((suppression) => ({
-                  activeEffectId: effect.id,
-                  contributionId: suppression.contributionId,
-                  capabilityDefinitionIds: suppression.capabilityDefinitionIds
-                }))
-              : []
-          )
-        : []
+      effect.definition.stateContributions.flatMap((contribution) =>
+        contribution.kind === 'ACTOR_RELATIONSHIP'
+          ? contribution.capabilitySuppressions.map((suppression) => ({
+              activeEffectId: effect.id,
+              contributionId: suppression.contributionId,
+              capabilityDefinitionIds: suppression.capabilityDefinitionIds
+            }))
+          : []
+      )
     ),
-    ...encounterActiveGrantCapabilitySuppressions(effects)
+    ...encounterActiveGrantCapabilitySuppressions(gameSystemId, effects)
   ]
 }
 export async function stageEncounterActionEconomyRefreshes(input: {
@@ -138,7 +137,10 @@ async function resolveActionAllowance(input: ActionEconomyInput) {
     gameSystemId: input.state.gameSystemId,
     activeConditionDefinitionIds: heldConditionIds(target),
     capabilityDefinitionIds: [binding.capabilityDefinitionId],
-    activeEffectSuppressions: activeEffectCapabilitySuppressions(target.activeEffects)
+    activeEffectSuppressions: activeEffectCapabilitySuppressions(
+      input.state.gameSystemId,
+      target.activeEffects
+    )
   })
   const capability = capabilityState.capabilities[0]
   const usage = capability?.capability.document.usage

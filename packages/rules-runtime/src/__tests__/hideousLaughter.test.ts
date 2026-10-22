@@ -6,7 +6,6 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
-import { characterRuleActionSystemAdapterRegistry } from '../characterRuleActionSystemAdapterRegistry.js'
 import {
   executeTargetBoundActiveRuleEffectWithPause,
   resumeTargetBoundActiveRuleEffectWithPause
@@ -114,8 +113,7 @@ describe('Hideous Laughter authored from core options', () => {
           ]
         },
         defenses: [],
-        runtime: createSrdRulesRuntime(),
-        adapters: characterRuleActionSystemAdapterRegistry
+        runtime: createSrdRulesRuntime()
       } as const
       const paused = await executeTargetBoundActiveRuleEffectWithPause(input)
       if (!('continuation' in paused)) throw new Error('The holder is asked for its save.')

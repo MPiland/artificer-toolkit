@@ -145,7 +145,7 @@ describe('an attack’s hit applies its grant (SPELLS-5.5)', () => {
         recurrenceStage: 'START_OF_TURN',
         initialRemaining: 1,
         tickAnchor: 'HOLDER',
-        adapterFacts: { 'dnd5e.grant-authored-path': 'ON_HIT' }
+        resultGate: { paths: ['ON_HIT', 'ON_CRIT'] }
       }
     ])
   })
@@ -161,6 +161,12 @@ describe('an attack’s hit applies its grant (SPELLS-5.5)', () => {
     expect(plannedGrant('ON_CRIT', { grantPaths: ['ON_CRIT'] })).toMatchObject(appliedGrant)
   })
 
+  it('applies a miss’s grant only on a miss (RULES-2.T6d)', () => {
+    expect(plannedGrant('ON_MISS', { grantPaths: ['ON_MISS'] })).toMatchObject(appliedGrant)
+    expect(plannedGrant('ON_HIT', { grantPaths: ['ON_MISS'] })).toBeNull()
+    expect(plannedGrant('ON_CRIT', { grantPaths: ['ON_MISS'] })).toBeNull()
+  })
+
   it('refuses an attack that applies more than one grant on a hit', () => {
     expect(() => compileGauntlet({ grantPaths: ['ON_HIT', 'ON_CRIT'] })).toThrow(
       'D&D attacks apply at most one grant on a hit.'
@@ -174,7 +180,7 @@ describe('a creature that can’t take reactions (SPELLS-5.5)', () => {
     if (!grant) throw new Error('No grant was planned.')
     const effect = { id: testUuid(0xf55), definition: grant.definition }
 
-    expect(encounterActiveGrantCapabilitySuppressions([effect])).toEqual([
+    expect(encounterActiveGrantCapabilitySuppressions(SRD_SYSTEM_ID, [effect])).toEqual([
       {
         activeEffectId: effect.id,
         contributionId: expect.any(String),
@@ -191,7 +197,7 @@ describe('a creature that can’t take reactions (SPELLS-5.5)', () => {
       definition: grant.definition
     }))
 
-    const suppressions = encounterActiveGrantCapabilitySuppressions(effects)
+    const suppressions = encounterActiveGrantCapabilitySuppressions(SRD_SYSTEM_ID, effects)
     const availability = resolveRuleCapabilityAvailability({
       gameSystemId: SRD_SYSTEM_ID,
       capabilityDefinitionId: DND5E_REACTION_ALLOWANCE_DEFINITION_ID,
@@ -209,7 +215,7 @@ describe('a creature that can’t take reactions (SPELLS-5.5)', () => {
     if (!grant) throw new Error('No grant was planned.')
 
     expect(
-      encounterActiveGrantCapabilitySuppressions([
+      encounterActiveGrantCapabilitySuppressions(SRD_SYSTEM_ID, [
         { id: testUuid(0xf55), definition: grant.definition }
       ])
     ).toEqual([])

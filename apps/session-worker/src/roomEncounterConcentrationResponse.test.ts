@@ -290,7 +290,8 @@ it('atomically resolves a failed native Concentration save, retains the private 
     maintainedEffectStateId: slot.id,
     lifecycle: { schemaVersion: 1, remainingTicks: 3 },
     definition: activeRuleEffectDefinitionDtoSchema.parse({
-      schemaVersion: 1,
+      schemaVersion: 2,
+      stateContributions: [],
       origin: {
         kind: 'ENCOUNTER',
         sourceAggregateId: encounterId,
@@ -445,6 +446,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
   })
   if (!current) throw new Error('Missing maintained Character concentration.')
   const pending = createNativeConcentrationContext({
+    gameSystemId: state.gameSystemId,
     current,
     parentOccurrenceId,
     parentCommandFingerprint: parentFingerprint,

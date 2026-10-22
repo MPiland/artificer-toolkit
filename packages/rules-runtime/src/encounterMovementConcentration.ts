@@ -24,6 +24,7 @@ import {
   nativeConcentrationDamageApplications
 } from './encounterConcentrationDamage.js'
 import {
+  concentrationSaveApplications,
   createNativeConcentrationContext,
   completeNativeConcentrationResult,
   evaluateNativeConcentrationEvidence,
@@ -292,10 +293,20 @@ export async function prepareEncounterMovementConcentration<
       adoptEnd(ended, found.maintainedState.id)
       retainChildren()
     }
-    for (const application of source.applications) {
-      const current = await callbacks.loadState(application.targetActorId, targets, projection)
-      if (current) remaining.push({ ...application, maintainedStateId: current.maintained.id })
+    const maintainedStateIds = new Map<string, string>()
+    for (const { targetActorId } of source.applications) {
+      const current = await callbacks.loadState(targetActorId, targets, projection)
+      if (current) maintainedStateIds.set(targetActorId, current.maintained.id)
     }
+    remaining.push(
+      ...concentrationSaveApplications({
+        gameSystemId: input.state.gameSystemId,
+        applications: source.applications,
+        maintainedStateIds,
+        damagerActorId: null,
+        dispositions: new Map()
+      })
+    )
   }
   const runtime = remaining.length ? await callbacks.runtime() : null
   let resume = input.resume
@@ -306,6 +317,7 @@ export async function prepareEncounterMovementConcentration<
     if (!current || current.maintained.id !== maintainedStateId)
       throw new Error('The movement Concentration state changed before its check.')
     const { context, facts } = createNativeConcentrationContext({
+      gameSystemId: input.state.gameSystemId,
       current,
       parentOccurrenceId: input.occurrenceId,
       parentCommandFingerprint: remainder.root.commandFingerprint,

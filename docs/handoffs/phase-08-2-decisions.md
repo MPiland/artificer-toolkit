@@ -1062,6 +1062,23 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Generic only:** no feature names in code. Each parity proof includes a homebrew variant with a different die, trigger or resource that runs through the same path with no code change.
   - **Split:** T4c1 covers the result window and the after-roll consume mode, converting Dark One's Own Luck and Peerless Skill. T4c2 covers dice scaled by the granting creature, converting Bardic Inspiration (one die per holder, 10 minutes, consumed by one check, attack or save). T4c3 covers subtracting a die (including from damage) and another creature's reaction in the window, with its hearing and charm-immunity target restrictions, converting Cutting Words. T4c2 and T4c3 come after T4c1. The Guidance and Resistance "before or after the roll" deferred edge case may move onto the window later. That is not in scope here.
 
+* **D169** (2026-10-21) Roll-mode choice in entered dice is System-supplied (RULES-2.T9a, ADR 0039). Orchestrator ruling.
+  - **Server derives keep:** `ENTER_DICE` no longer carries `keep`. At ingress the server derives it from the chosen `rollMode` through the System's roll-mode capability. It refuses a mode the request did not offer, and a face count that does not match keep, each with a named message. Evidence stores the derived keep.
+  - **Request offers the modes:** the pending dice request carries `rollModes: [{ code, label }]`, projected from the System vocabulary for that request's System, as a shared `packages/schema` contract. The web picker renders only those and holds no mode table.
+  - **Rejected:** a client-set `keep` (contradicts deriving keep once in the adapter) and a web-local D&D mode table (breaks System neutrality).
+
+* **D170** (2026-10-21) Forced movement through and into zones settles at the commit seam (SPELLS-4.T1j). Orchestrator ruling, following D153's dice rule.
+  - **Rule:** `applyRoomForcedMovements` is the one seam shared by single-target actions, area actions and contests. It settles the zone contacts of each forced path there through the existing spatial candidate execution, and adds the moved creature's mechanics batch to the same terminal commit. Zone damage feeds the same Concentration damage path as other zone damage. A 0 HP stop ends the path where the creature dropped, and that cell becomes its landing.
+  - **Dice:** zone dice and the Concentration saves they cause are system-rolled with the room's seeded dice and recorded, whatever the actor's autoRoll setting. Pausing in the middle of a commit would leave the mover waiting on another player's input (D153).
+  - **Evidence:** each forced-movement landing gains an optional `zoneExecutions` field in `packages/schema`, so a GM revert restores the zone outcomes with the move.
+  - **Rejected:** plan-time evidence in all three planners. It is about three times the surface, overlaps the RULES-2 receipt work, and is needed only for assisted prompts, which D153 already rejects for a mid-action pause.
+  - **Deferred:** assisted Concentration prompts during forced movement (future-enhancements).
+
+* **D171** (2026-10-21) Spell components and ritual casting in an Encounter (SPELLS-8.T10 and T11, AC 8.1). Orchestrator ruling.
+  - **Components:** each cast choice shows its components, including the material description, for example "V, S, M (a pearl worth 100 gp)". Material and somatic components are not enforced: there is no cost, consumed or focus data, and free-hand enforcement is already deferred under "Hands for spellcasting". Verbal raises the shared overridable warning only when the caster has a state that the System's data marks as preventing speech. If no such data exists, Verbal is shown only, and no unused capability is added.
+  - **Ritual:** a spell the caster may cast as a ritual is offered as a separate ritual choice. It spends no slot and shows the ritual casting time (normal time plus 10 minutes). Eligibility (a feature granting ritual casting, and whether the spell must be prepared or only known) comes from the System's capability and data, with no class names in code. Ritual casting is refused with a named message while initiative is running. Out of initiative it is allowed. It advances a clock only if one already exists.
+  - **Deferred:** material cost and consumed flags with gating, for example Revivify's diamonds (future-enhancements).
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

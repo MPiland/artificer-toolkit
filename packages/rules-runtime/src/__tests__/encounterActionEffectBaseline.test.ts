@@ -3,12 +3,16 @@ import { describe, expect, it } from 'vitest'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ServerCompletedRuleExecutionDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { giantInsect } from '@artificer-toolkit/source-data/srd/spells/giant-insect.js'
 import { telepathicBond } from '@artificer-toolkit/source-data/srd/spells/telepathic-bond.js'
 import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
-import { SRD_CONDITION_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITIES,
+  SRD_CONDITION_TYPES
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   ACTIVATION_CODE,
   EFFECT_KIND,
@@ -23,6 +27,7 @@ import type { EncounterFeatureActionCapabilityDescriptor } from '../encounterFea
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
+import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import {
   ACTION_EFFECT_ID,
   characterActionDescriptor
@@ -250,7 +255,7 @@ function relationshipEffect(definition: RelationshipDefinition, baselinePresent:
 
 function relationshipDefinition(result: ReturnType<typeof planWith>) {
   const definition = result.recurringEffect?.definition
-  if (definition?.schemaVersion !== 2) throw new Error('Expected relationship state contributions.')
+  if (!definition) throw new Error('Expected relationship state contributions.')
   return definition
 }
 
@@ -397,7 +402,7 @@ describe('a contest win holds the target (Grapple, D152)', () => {
       resultPath: 'ON_CHECK_SUCCESS',
       sealedReachFeet: 10
     }).recurringEffect?.definition
-    if (definition?.schemaVersion !== 2) throw new Error('Expected state contributions.')
+    if (!definition) throw new Error('Expected state contributions.')
     expect(definition.stateContributions).toContainEqual(
       expect.objectContaining({ kind: 'ACTOR_RELATIONSHIP', sealedReachFeet: 10 })
     )
@@ -505,7 +510,7 @@ describe('encounter actor link plan (SPELLS-28)', () => {
 
   it('freezes every bonded creature, sorted, into the bond each target holds', () => {
     const definition = bondPlan([ids.target, ids.source, ids.occurrence])?.definition
-    if (definition?.schemaVersion !== 2) throw new Error('Expected state contributions.')
+    if (!definition) throw new Error('Expected state contributions.')
     expect(definition.stateContributions).toEqual([
       expect.objectContaining({
         kind: 'ACTOR_LINK',
@@ -517,5 +522,123 @@ describe('encounter actor link plan (SPELLS-28)', () => {
 
   it('leaves no bond when fewer than two creatures were reached', () => {
     expect(bondPlan([ids.target])).toBeNull()
+  })
+})
+
+describe('plan-owned outcomes on a test result path (RULES-2.T6d)', () => {
+  type SpellEffect = NonNullable<typeof telepathicBond.effects>[number]
+  const CONSTITUTION = SRD_ABILITIES.find(({ code }) => code === 'CONSTITUTION')!.id
+
+  /** `effect` cast as a Constitution save of one target, its outcome authored on `pathCode`. */
+  const asSave = (effect: SpellEffect | undefined, pathCode: string): SpellEffect => {
+    if (!effect) throw new Error('The spell has no effect.')
+    return JSON.parse(
+      JSON.stringify({
+        ...effect,
+        id: ACTION_EFFECT_ID,
+        invocation: {
+          kind: 'ACTION',
+          triggerCode: TRIGGER.SAVING_THROW,
+          savingThrow: {
+            id: '00000000-0000-4000-8000-000000000906',
+            dcMethod: 'FIXED_DC',
+            abilityDefinitionId: CONSTITUTION,
+            baseDc: 13
+          },
+          ...('activation' in effect.invocation && { activation: effect.invocation.activation }),
+          range: { id: '00000000-0000-4000-8000-000000000907', rangeKind: RANGE_KIND.UNLIMITED },
+          targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
+        },
+        paths: (effect.paths ?? []).map((path) => ({ ...path, pathCode }))
+      })
+    ) as SpellEffect
+  }
+
+  /** The save action's one active-effect plan, compiled as a Character action is. */
+  const savePlan = (effect: SpellEffect) => {
+    const action = {
+      ...characterActionDescriptor(compileEffect(effect), 4),
+      conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id)
+    }
+    const executionPlan = dnd5eCharacterRuleActionSystemAdapter.compileExecutionPlan?.({
+      action,
+      compilerSource: buildCompiledActionCompilerSource(action)
+    })
+    if (executionPlan?.kind !== 'TEST_OUTCOME') throw new Error('The save is not a TEST/OUTCOME.')
+    const [plan, ...rest] = dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans!({
+      action,
+      published: executionPlan.test.published
+    })
+    expect(rest).toEqual([])
+    if (!plan) throw new Error('The save has no active-effect plan.')
+    return { plan, published: executionPlan.test.published }
+  }
+
+  /** The effect the room makes once the save resolves to `resultPath`. */
+  const madeOn = (
+    compiled: ReturnType<typeof savePlan>,
+    resultPath: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
+  ) =>
+    prepareEncounterActionEffectPlans({
+      encounterId: ids.encounter,
+      occurrenceId: ids.occurrence,
+      commandId: ids.command,
+      sourceActorId: ids.source,
+      sourceLabel: null,
+      sourceHidden: false,
+      currentActorId: null,
+      target: {
+        actorId: ids.target,
+        conditionIds: [],
+        effectiveSize: 'MEDIUM',
+        lifetimeScope: 'ENCOUNTER',
+        activeEffects: []
+      },
+      activeEffectsByActorId: new Map(),
+      activeEffectPlan: compiled.plan,
+      link: { memberActorIds: [ids.source, ids.target] },
+      form: {
+        creatureId: compiled.plan.creatureFormContribution?.forms[0]?.creatureId ?? ids.target
+      },
+      published: compiled.published,
+      execution: execution(),
+      d20: {
+        requestId: ids.command,
+        rollMode: 'NORMAL',
+        keep: 'FIRST',
+        derivedRollMode: 'NORMAL',
+        rawFaces: [5],
+        selectedNatural: 5,
+        contributors: [],
+        contributorChecksum: 'c'.repeat(64),
+        modifier: 0,
+        total: 5,
+        defenseOrDc: 13,
+        resultPath
+      },
+      applications: []
+    }).recurringEffect
+
+  const stateKinds = (effect: ReturnType<typeof madeOn>) =>
+    effect?.definition.stateContributions.map(({ kind }) => kind) ?? null
+
+  it('bonds a creature that fails the save, and no creature that makes it', () => {
+    const compiled = savePlan(asSave(telepathicBond.effects?.[0], PATH_CODE.ON_SAVE_FAIL))
+    expect(compiled.plan).toMatchObject({
+      resultGate: { paths: ['ON_SAVE_FAIL'] },
+      actorLinkContribution: { linkKind: 'TELEPATHIC' }
+    })
+    expect(stateKinds(madeOn(compiled, 'ON_SAVE_FAIL'))).toEqual(['ACTOR_LINK'])
+    expect(madeOn(compiled, 'ON_SAVE_SUCCESS')).toBeNull()
+  })
+
+  it('swaps a creature that makes the save into the chosen form, and no creature that fails it', () => {
+    const compiled = savePlan(asSave(giantInsect.effects?.[0], PATH_CODE.ON_SAVE_SUCCESS))
+    expect(compiled.plan).toMatchObject({
+      resultGate: { paths: ['ON_SAVE_SUCCESS'] },
+      creatureFormContribution: { excessDamageCarriesOver: false }
+    })
+    expect(stateKinds(madeOn(compiled, 'ON_SAVE_SUCCESS'))).toEqual(['CREATURE_FORM'])
+    expect(madeOn(compiled, 'ON_SAVE_FAIL')).toBeNull()
   })
 })

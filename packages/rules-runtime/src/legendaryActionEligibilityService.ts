@@ -12,6 +12,7 @@ import { ruleGraphDefinitionDtoSchema } from '@artificer-toolkit/schema/api/rule
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CurrentReusableDefinitionSource } from './ruleCapabilityStateService.js'
+import { legendaryActionEligibilityCapabilityRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 
 export interface LegendaryActionEligibilitySource {
@@ -66,69 +67,65 @@ export interface LegendaryActionEligibilityAdapter {
  * immutable Features and owns current resource/turn facts; this seam only
  * maps those frozen facts through the selected System graph.
  */
-export function createLegendaryActionEligibilityService(
-  adapters: readonly LegendaryActionEligibilityAdapter[]
-) {
-  const adaptersBySystemId = new Map<string, LegendaryActionEligibilityAdapter>()
-  for (const adapter of adapters) {
-    if (adaptersBySystemId.has(adapter.gameSystemId)) {
-      throw new Error(`Duplicate Legendary Action eligibility adapter: ${adapter.gameSystemId}.`)
+export async function evaluateLegendaryActionEligibility<
+  TSource extends LegendaryActionEligibilitySource
+>(input: {
+  runtime: RulesRuntimeService
+  definitions: CurrentReusableDefinitionSource
+  occurrenceId: string
+  candidates: readonly { source: TSource; facts: LegendaryActionEligibilityFacts }[]
+}): Promise<readonly EvaluatedLegendaryActionCandidate<TSource>[]> {
+  const evaluated: EvaluatedLegendaryActionCandidate<TSource>[] = []
+  for (const entry of input.candidates) {
+    if (entry.source.gameSystemId !== entry.facts.capabilityState.gameSystemId) {
+      throw new Error('Legendary Action source does not match its resolved capability System.')
     }
-    adaptersBySystemId.set(adapter.gameSystemId, adapter)
-  }
-  return async function evaluateLegendaryActionEligibility<
-    TSource extends LegendaryActionEligibilitySource
-  >(input: {
-    runtime: RulesRuntimeService
-    definitions: CurrentReusableDefinitionSource
-    occurrenceId: string
-    candidates: readonly { source: TSource; facts: LegendaryActionEligibilityFacts }[]
-  }): Promise<readonly EvaluatedLegendaryActionCandidate<TSource>[]> {
-    const evaluated: EvaluatedLegendaryActionCandidate<TSource>[] = []
-    for (const entry of input.candidates) {
-      if (entry.source.gameSystemId !== entry.facts.capabilityState.gameSystemId) {
-        throw new Error('Legendary Action source does not match its resolved capability System.')
-      }
-      const adapter = adaptersBySystemId.get(entry.source.gameSystemId)
-      if (!adapter) continue
-      const { lifecycle } = entry.source
-      const current = await input.definitions.requireCurrent(lifecycle.eligibilityGraphDefinitionId)
-      const graph = ruleGraphDefinitionDtoSchema.safeParse(current.document)
-      if (
-        !graph.success ||
-        current.id !== lifecycle.eligibilityGraphDefinitionId ||
-        current.gameSystemId !== entry.source.gameSystemId ||
-        current.version !== lifecycle.eligibilityGraphDefinitionVersion ||
-        current.checksum !== lifecycle.eligibilityGraphDefinitionChecksum ||
-        checksumRuleDocument(current.document) !== current.checksum
-      ) {
-        throw new Error('Legendary Action eligibility graph pin is stale.')
-      }
-      const result = await adapter.evaluate({
-        runtime: input.runtime,
-        occurrenceId: input.occurrenceId,
-        graph: serverPublishedRuleDefinitionDtoSchema.parse({
-          id: current.id,
-          gameSystemId: current.gameSystemId,
-          definitionFamilyKey: current.definitionFamilyKey,
-          checksum: current.checksum,
-          definition: graph.data
-        }),
-        ...entry
-      })
-      if (
-        result.evidence.source.definitionId !==
-          entry.source.lifecycle.eligibilityGraphDefinitionId ||
-        result.evidence.source.gameSystemId !== entry.source.gameSystemId
-      ) {
-        throw new Error('Legendary Action eligibility evidence does not match its exact graph pin.')
-      }
-      evaluated.push({
-        source: entry.source,
-        policy: legendaryActionEligibilityOutputDtoSchema.parse(result.policy),
-        evidence: result.evidence
-      })
+    const adapter = legendaryActionEligibilityCapabilityRegistry.require(entry.source.gameSystemId)
+    const { lifecycle } = entry.source
+    const current = await input.definitions.requireCurrent(lifecycle.eligibilityGraphDefinitionId)
+    const graph = ruleGraphDefinitionDtoSchema.safeParse(current.document)
+    if (
+      !graph.success ||
+      current.id !== lifecycle.eligibilityGraphDefinitionId ||
+      current.gameSystemId !== entry.source.gameSystemId ||
+      current.version !== lifecycle.eligibilityGraphDefinitionVersion ||
+      current.checksum !== lifecycle.eligibilityGraphDefinitionChecksum ||
+      checksumRuleDocument(current.document) !== current.checksum
+    ) {
+      throw new Error('Legendary Action eligibility graph pin is stale.')
     }
-    return evaluated
+    const result = await adapter.evaluate({
+      runtime: input.runtime,
+      occurrenceId: input.occurrenceId,
+      graph: serverPublishedRuleDefinitionDtoSchema.parse({
+        id: current.id,
+        gameSystemId: current.gameSystemId,
+        definitionFamilyKey: current.definitionFamilyKey,
+        checksum: current.checksum,
+        definition: graph.data
+      }),
+      ...entry
+    })
+    if (
+      result.evidence.source.definitionId !== entry.source.lifecycle.eligibilityGraphDefinitionId ||
+      result.evidence.source.gameSystemId !== entry.source.gameSystemId
+    ) {
+      throw new Error('Legendary Action eligibility evidence does not match its exact graph pin.')
+    }
+    evaluated.push({
+      source: entry.source,
+      policy: legendaryActionEligibilityOutputDtoSchema.parse(result.policy),
+      evidence: result.evidence
+    })
   }
+  return evaluated
+}
+
+export function requireLegendaryActionCapabilityDefinitionIds(
+  gameSystemId: string
+): readonly string[] {
+  return [
+    ...legendaryActionEligibilityCapabilityRegistry.require(gameSystemId)
+      .requiredCapabilityDefinitionIds
+  ]
 }

@@ -12,8 +12,18 @@ import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 const ward = { effectId: 'ward', dropToHitPoints: 1, negatesKill: true }
 const plainWard = { effectId: 'plain-ward', dropToHitPoints: 3, negatesKill: false }
 
-const before = (hitPoints: { before: number; after: number }) =>
-  ({ kind: 'DAMAGED', phase: 'BEFORE', hitPoints }) as const
+const before = (
+  hitPoints: { before: number; after: number },
+  blow: { damageTaken?: number; damageTypeId?: string; critical?: boolean } = {}
+) =>
+  ({
+    kind: 'DAMAGED',
+    phase: 'BEFORE',
+    hitPoints,
+    damageTaken: blow.damageTaken ?? hitPoints.before - hitPoints.after,
+    damageTypeId: blow.damageTypeId ?? null,
+    critical: blow.critical ?? false
+  }) as const
 
 const interceptionsMet = (events: readonly EncounterEvent[]) =>
   discoverEncounterEventHooks({ damageInterceptions: [plainWard, ward], events })
@@ -45,6 +55,46 @@ describe('damage interception hooks', () => {
 
   it('intercepts a kill only when it negates one', () => {
     expect(interceptionsMet([{ kind: 'KILLED' }])).toEqual([ward])
+  })
+
+  describe('exclusions and the damage cap', () => {
+    const picky = {
+      effectId: 'picky',
+      dropToHitPoints: 1,
+      negatesKill: false,
+      excludes: { damageTypeIds: ['radiant'], critical: true },
+      maxDamageTaken: 14
+    }
+    const met = (blow: Parameters<typeof before>[1]) =>
+      discoverEncounterEventHooks({
+        damageInterceptions: [picky],
+        events: [before({ before: 5, after: 0 }, blow)]
+      }).damageInterceptions
+
+    it('meets a blow of another type that is not a critical hit and is within the cap', () => {
+      expect(met({ damageTypeId: 'fire', damageTaken: 14 })).toEqual([picky])
+    })
+
+    it('does not meet a blow of an excluded damage type', () => {
+      expect(met({ damageTypeId: 'radiant', damageTaken: 6 })).toEqual([])
+    })
+
+    it('does not meet a critical hit', () => {
+      expect(met({ damageTypeId: 'fire', critical: true })).toEqual([])
+    })
+
+    it('does not meet a blow over the cap, by the whole blow rather than the overflow past 0', () => {
+      expect(met({ damageTypeId: 'fire', damageTaken: 15 })).toEqual([])
+    })
+
+    it('excludes nothing when it names no exclusion', () => {
+      expect(
+        discoverEncounterEventHooks({
+          damageInterceptions: [ward],
+          events: [before({ before: 5, after: 0 }, { damageTypeId: 'radiant', critical: true })]
+        }).damageInterceptions
+      ).toEqual([ward])
+    })
   })
 })
 

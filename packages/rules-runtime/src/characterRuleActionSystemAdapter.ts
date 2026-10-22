@@ -1,3 +1,4 @@
+import type { CompiledDuration } from '@artificer-toolkit/shared/compilers'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import {
@@ -44,7 +45,11 @@ import type {
 } from '@artificer-toolkit/shared/vtt'
 import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
-import type { DamageDispositionDto } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import type {
+  DamageDispositionDto,
+  DamageInterceptionChargeDto,
+  DamageInterceptionSaveDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { HitPointMaximumReductionRecoveryTag } from '@artificer-toolkit/schema/effects/hitPointMaximumReduction'
 import type {
   CompiledActionActiveEffectPlan,
@@ -79,6 +84,11 @@ export interface CharacterRuleActionActiveEffectPlan {
   recurrenceStage: 'NONE' | 'START_OF_TURN' | 'END_OF_TURN'
   /** Set on a repeat save counted to thresholds; the room stores it in the effect's recurrence. */
   saveThresholds?: ActiveEffectSaveThresholds
+  /**
+   * The test result paths the effect is made on, which the System lists for the path its outcome is
+   * authored on; absent for an effect every resolution makes.
+   */
+  resultGate?: { paths: readonly string[] }
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
   /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
@@ -374,6 +384,10 @@ export type CharacterHitPointOutcomeApplication =
       critical: boolean
       /** The held effect whose damage interception left the target above 0 hit points instead. */
       interceptedBy?: string
+      /** The saves the blow's interceptions asked of the holder, in the order they were rolled. */
+      interceptionSaves?: DamageInterceptionSaveDto[]
+      /** The charge the intercepting feature spent, when it is limited-use. */
+      interceptionCharge?: DamageInterceptionChargeDto
     })
 
 export interface CharacterConditionApplyOutcomeApplication {
@@ -443,6 +457,8 @@ export interface CharacterKillNegatedOutcomeApplication {
   kind: 'KILL_NEGATED'
   targetActorId: string
   negatedBy: string
+  /** The charge the negating feature spent, when it is limited-use. */
+  interceptionCharge?: DamageInterceptionChargeDto
 }
 
 /** A System-authorized departure: the target leaves the Run's play (D128). */
@@ -632,6 +648,15 @@ export interface CharacterRuleActionSystemAdapter {
   passiveDamageGrantPlan?(input: {
     action: EffectActionCapabilityDescriptor
   }): CharacterRuleActionActiveEffectPlan | null
+  /**
+   * The immunity a creature that passes a holder's ward leaves on that holder (Nature's Sanctuary),
+   * keyed by the ward's grant, or null when the System cannot count the duration.
+   */
+  incomingGateImmunityPlan?(input: { wardId: string; duration: CompiledDuration }): null | {
+    authoredEffectId: string
+    capabilityContractVersion: number
+    immunity: NonNullable<CharacterRuleActionActiveEffectPlan['sourceImmunity']>
+  }
   requiresConditionDefinitionValidation?(input: {
     published: ServerPublishedRuleDefinitionDto
   }): boolean

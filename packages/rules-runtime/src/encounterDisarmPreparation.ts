@@ -48,15 +48,15 @@ import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
 } from './encounterCreatureEquipmentSources.js'
-import { dnd5eAttackKind } from './systems/dnd5e/attackKind.js'
-import { dnd5eAttackRollContributors } from './systems/dnd5e/characterRollModes.js'
-import { dnd5eCharacterActionTarget } from './systems/dnd5e/modifierApplicability.js'
 import {
-  createDnd5eOptionalCombatActionSelectionDescriptor,
-  resolveDnd5eOptionalCombatActionSelection
-} from './systems/dnd5e/optionalCombatActionSelection.js'
-import { createDnd5eOptionalCombatContestGraph } from './systems/dnd5e/optionalCombatContestGraph.js'
-import { prepareDnd5eDisarmContest } from './systems/dnd5e/optionalActionPolicy.js'
+  contestCheckCapabilityRegistry,
+  optionalCombatPolicyCapabilityRegistry
+} from './platformEncounterPolicy.js'
+import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
+import {
+  createOptionalCombatActionSelectionDescriptor,
+  resolveOptionalCombatActionSelection
+} from './encounterOptionalCombatActionSelection.js'
 import {
   isEncounterContestPendingContextCurrent,
   prepareEncounterContestPendingContext
@@ -161,6 +161,7 @@ export function readEncounterDisarmSelection(input: {
       : source.capability.mechanicFacts.invocation
   if (invocation.activation?.code !== 'ACTION' || invocation.activation.amount !== 1)
     throw new Error('Disarm requires one normalized ACTION activation.')
+  const profile = attackProfileCapabilityRegistry.require(prepared.adapter.gameSystemId)
 
   const sourcePolicyFacts = (() => {
     if (source.kind === 'CHARACTER_ACTION') {
@@ -177,12 +178,13 @@ export function readEncounterDisarmSelection(input: {
         throw new Error('Optional combat Character action policy is stale.')
       const equipment = source.candidate.equipment
       // The same scoped contributors that resolved this action's roll mode.
-      const actionTarget = {
-        ...dnd5eCharacterActionTarget(source.candidate),
+      const attack = {
+        candidate: source.candidate,
+        ammunition: null,
         attackAbility: decisions[0].mechanic.attackAbility
       }
       const contributors = (attackKind: 'MELEE' | 'RANGED' | 'SPELL' | 'UNARMED') =>
-        dnd5eAttackRollContributors(source.effectivePolicyOutput, attackKind, actionTarget)
+        profile.characterAttackRollContributors(source.effectivePolicyOutput, attackKind, attack)
       return {
         // A carried weapon used to attack is drawn for the attack unless its action requires equipping.
         equipment:
@@ -261,7 +263,7 @@ export function readEncounterDisarmSelection(input: {
           prepared.relationshipContributors,
           creatureActiveGrantAttackContributors(
             actor.id,
-            dnd5eAttackKind(source.capability.compiledEffect.invocation.triggerCode ?? '') ?? '',
+            profile.attackKind(source.capability.compiledEffect.invocation.triggerCode ?? '') ?? '',
             creatureAttackAbility(source.capability.mechanicFacts.outcomes),
             sourceFacts.activeEffects
           )
@@ -305,7 +307,7 @@ export function readEncounterDisarmSelection(input: {
       size: facts?.size ?? null
     }
   })()
-  const descriptor = createDnd5eOptionalCombatActionSelectionDescriptor({
+  const descriptor = createOptionalCombatActionSelectionDescriptor({
     actionId: input.actionId,
     actorId: actor.id,
     definition: input.definition,
@@ -338,7 +340,7 @@ export function prepareEncounterDisarmContest(input: {
   const { source, sourceFacts, plan } = prepared
   if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH')
     throw new Error('Disarm requires a weapon attack action.')
-  const selection = resolveDnd5eOptionalCombatActionSelection({
+  const selection = resolveOptionalCombatActionSelection({
     definition: input.definition,
     descriptor,
     intent
@@ -355,26 +357,28 @@ export function prepareEncounterDisarmContest(input: {
       ? defenderFacts.equipment.find((item) => item.itemInstanceId === heldItemId)
       : targetContext?.equipment
   if (!targetItem) throw new Error('Disarm item is no longer held.')
-  const preparation = prepareDnd5eDisarmContest({
-    automationMode: state.automationMode,
-    gameSystemId: state.gameSystemId,
-    optionalCombatSnapshot: state.optionalCombatSnapshot,
-    optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
-    attackerActorId: actor.id,
-    attackerSize: sourcePolicyFacts.size,
-    heldItemId,
-    targetActorId: target.id,
-    targetCheckDefinitionId: checkDefinitionId,
-    targetEquipment: { properties: targetItem.properties },
-    targetItemOwnerState: defenderFacts.ownerState,
-    targetSize: defenderFacts.size,
-    triggerCode:
-      source.kind === 'CHARACTER_ACTION'
-        ? (source.candidate.mechanicFacts.invocation.triggerCode ?? null)
-        : (source.capability.compiledEffect.invocation.triggerCode ?? null),
-    sourceEquipment: sourcePolicyFacts.equipment,
-    attack: sourcePolicyFacts.attack
-  })
+  const preparation = optionalCombatPolicyCapabilityRegistry
+    .require(state.gameSystemId)
+    .prepareDisarmContest({
+      automationMode: state.automationMode,
+      gameSystemId: state.gameSystemId,
+      optionalCombatSnapshot: state.optionalCombatSnapshot,
+      optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+      attackerActorId: actor.id,
+      attackerSize: sourcePolicyFacts.size,
+      heldItemId,
+      targetActorId: target.id,
+      targetCheckDefinitionId: checkDefinitionId,
+      targetEquipment: { properties: targetItem.properties },
+      targetItemOwnerState: defenderFacts.ownerState,
+      targetSize: defenderFacts.size,
+      triggerCode:
+        source.kind === 'CHARACTER_ACTION'
+          ? (source.candidate.mechanicFacts.invocation.triggerCode ?? null)
+          : (source.capability.compiledEffect.invocation.triggerCode ?? null),
+      sourceEquipment: sourcePolicyFacts.equipment,
+      attack: sourcePolicyFacts.attack
+    })
   if (preparation.kind !== 'PROPOSED')
     throw new Error('Disarm cannot be resolved from the selected facts.')
   const modifier = sourcePolicyFacts.attack.modifier
@@ -385,10 +389,9 @@ export function prepareEncounterDisarmContest(input: {
     !Number.isSafeInteger(targetCheckTotal)
   )
     throw new Error('Disarm contest modifier is unavailable.')
-  const graph = createDnd5eOptionalCombatContestGraph({
-    ...preparation.proposal.pin,
-    moduleContractVersion: 1
-  })
+  const graph = contestCheckCapabilityRegistry
+    .require(state.gameSystemId)
+    .optionalCombatContestGraph(preparation.proposal.pin)
   const published = plan.kind === 'SINGLE_GRAPH' ? plan.published : plan.test.published
   const sourceContext =
     source.kind === 'CHARACTER_ACTION'
@@ -454,8 +457,7 @@ export function prepareEncounterDisarmContest(input: {
       actionKind: 'DISARM',
       pin: {
         snapshotChecksum: state.optionalCombatSnapshotChecksum,
-        ...preparation.proposal.pin,
-        moduleContractVersion: 1
+        ...preparation.proposal.pin
       },
       optionId: descriptor.optionId,
       selectionContractChecksum: descriptor.selectionContract,

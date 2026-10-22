@@ -126,7 +126,6 @@ type CharacterActorForm = NonNullable<EncounterRunCharacterActorState['form']>
 /** The creature form a Character's effect holds (D130), or null when the effect holds none. */
 export function creatureFormContribution(effect: Pick<ActiveRuleEffectRecord, 'definition'>) {
   const { definition } = effect
-  if (definition.schemaVersion !== 2) return null
   for (const contribution of definition.stateContributions)
     if (contribution.kind === 'CREATURE_FORM') return contribution
   return null

@@ -39,13 +39,11 @@ export function conditionBaselinePresent(
   conditionId: string
 ): boolean {
   const existingBaselines = holder.activeEffects.flatMap((effect) =>
-    effect.definition.schemaVersion === 2
-      ? effect.definition.stateContributions.flatMap((contribution) =>
-          contribution.kind === 'CONDITION_OWNERSHIP' && contribution.conditionId === conditionId
-            ? [contribution.baselinePresent]
-            : []
-        )
-      : []
+    effect.definition.stateContributions.flatMap((contribution) =>
+      contribution.kind === 'CONDITION_OWNERSHIP' && contribution.conditionId === conditionId
+        ? [contribution.baselinePresent]
+        : []
+    )
   )
   const baselinePresent = existingBaselines[0] ?? holder.conditionIds.includes(conditionId)
   if (existingBaselines.some((existing) => existing !== baselinePresent))
@@ -205,7 +203,6 @@ export function relationshipConditionApplications(input: {
   resolvedPath: string
 }): Extract<CharacterRuleActionApplication, { kind: 'CONDITION_APPLY' }>[] {
   const { definition } = input
-  if (definition.schemaVersion !== 2) return []
   const authoredPath = definition.adapterFacts['dnd5e.relationship-authored-path']
   if (
     authoredPath !== 'ON_HIT' &&
@@ -235,29 +232,6 @@ export function relationshipConditionApplications(input: {
         ]
       : []
   )
-}
-
-/**
- * A hit outcome applies on any hit, a critical-hit outcome only on a critical hit, a save outcome
- * only on its save result, and a contest-win relationship (Grapple) only on the win.
- */
-function reachesAuthoredPath(
-  authoredPath: unknown,
-  resultPath: string | undefined,
-  outcome: 'grant' | 'relationship'
-): boolean {
-  if (
-    outcome === 'grant' &&
-    (authoredPath === 'ON_SAVE_FAIL' || authoredPath === 'ON_SAVE_SUCCESS')
-  )
-    return resultPath === authoredPath
-  if (outcome === 'relationship' && authoredPath === 'ON_CHECK_SUCCESS')
-    return resultPath === 'ON_CHECK_SUCCESS'
-  // A relationship an action simply creates (Engulf) has no roll to reach.
-  if (outcome === 'relationship' && authoredPath === 'ON_USE') return true
-  if (authoredPath !== 'ON_HIT' && authoredPath !== 'ON_CRIT')
-    throw new EncounterActionEffectPlanError(`Encounter ${outcome} authored path is unavailable.`)
-  return resultPath === 'ON_CRIT' || (authoredPath === 'ON_HIT' && resultPath === 'ON_HIT')
 }
 
 /**
@@ -348,6 +322,9 @@ export function prepareRecurringActiveEffect(
     ).length !== 1
   )
     throw new EncounterActionEffectPlanError('Encounter Feature recurring-effect plan is stale.')
+  // An effect authored on a test's result path is made only when the test resolved to one of its paths.
+  if (plan.resultGate && !plan.resultGate.paths.some((path) => path === input.d20?.resultPath))
+    return null
   const conditionContributions = plan.conditionContributions ?? []
   const endLifecycle = plan.lifecycle
   const relationshipContribution = plan.actorRelationshipContribution ?? null
@@ -371,10 +348,6 @@ export function prepareRecurringActiveEffect(
   const linkMemberActorIds = linkContribution ? (input.link?.memberActorIds ?? []) : []
   if (linkContribution && linkMemberActorIds.length < 2) return null
   const formContribution = plan.creatureFormContribution ?? null
-  // A form after a saving throw (Polymorph) is entered only by a creature that failed it.
-  if (formContribution && plan.adapterFacts['dnd5e.form-authored-path'] === 'ON_SAVE_FAIL') {
-    if (input.d20?.resultPath !== 'ON_SAVE_FAIL') return null
-  }
   if (formContribution) {
     if (!input.form)
       throw new EncounterActionEffectPlanError('A form plan requires its chosen form.')
@@ -386,10 +359,8 @@ export function prepareRecurringActiveEffect(
       throw new EncounterActionEffectPlanError('The chosen form is not one the action authors.')
     // An actor already in a form keeps it: the new form does not stack on it.
     if (
-      input.target.activeEffects.some(
-        (effect) =>
-          effect.definition.schemaVersion === 2 &&
-          effect.definition.stateContributions.some(({ kind }) => kind === 'CREATURE_FORM')
+      input.target.activeEffects.some((effect) =>
+        effect.definition.stateContributions.some(({ kind }) => kind === 'CREATURE_FORM')
       )
     )
       throw new EncounterActionEffectPlanError('The target cannot take a creature form.')
@@ -398,23 +369,7 @@ export function prepareRecurringActiveEffect(
   const grantLabel = input.sourceLabel?.trim() ?? ''
   if (grantContribution && !grantLabel)
     throw new EncounterActionEffectPlanError('A modifier grant requires a source label.')
-  const grantHitPath = grantContribution
-    ? plan.adapterFacts['dnd5e.grant-authored-path']
-    : undefined
-  if (
-    grantHitPath !== undefined &&
-    !reachesAuthoredPath(grantHitPath, input.d20?.resultPath, 'grant')
-  )
-    return null
   if (relationshipContribution) {
-    if (
-      !reachesAuthoredPath(
-        plan.adapterFacts['dnd5e.relationship-authored-path'],
-        input.d20?.resultPath,
-        'relationship'
-      )
-    )
-      return null
     const { appliesWhen } = relationshipContribution
     if (
       appliesWhen &&
@@ -505,16 +460,7 @@ export function prepareRecurringActiveEffect(
       ? plan.initialRemaining + 1
       : plan.initialRemaining
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
-    schemaVersion:
-      conditionContributions.length > 0 ||
-      relationshipContribution ||
-      grantContribution ||
-      concealment ||
-      linkContribution ||
-      formContribution ||
-      ownsTemporaryHitPoints
-        ? 2
-        : 1,
+    schemaVersion: 2,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,
@@ -569,115 +515,101 @@ export function prepareRecurringActiveEffect(
               anchor: tickAnchor
             }
     },
-    ...(conditionContributions.length > 0 ||
-    relationshipContribution ||
-    grantContribution ||
-    concealment ||
-    linkContribution ||
-    formContribution ||
-    ownsTemporaryHitPoints
-      ? {
-          stateContributions: [
-            ...(ownsTemporaryHitPoints
-              ? [{ kind: 'TEMPORARY_HIT_POINTS_OWNERSHIP' as const }]
-              : []),
-            ...(formContribution && input.form
-              ? [
-                  {
-                    kind: 'CREATURE_FORM' as const,
-                    formOutcomeId: formContribution.formOutcomeId,
-                    creatureId: input.form.creatureId,
-                    excessDamageCarriesOver: formContribution.excessDamageCarriesOver
-                  }
-                ]
-              : []),
-            ...(linkContribution
-              ? [
-                  {
-                    kind: 'ACTOR_LINK' as const,
-                    linkOutcomeId: linkContribution.linkOutcomeId,
-                    linkKind: linkContribution.linkKind,
-                    memberActorIds: [...linkMemberActorIds].sort()
-                  }
-                ]
-              : []),
-            ...(concealment
-              ? [
-                  {
-                    kind: 'LOCATION_CONCEALMENT' as const,
-                    concealmentTotal: concealment.concealmentTotal
-                  }
-                ]
-              : []),
-            ...(grantContribution
-              ? [
-                  {
-                    kind: 'MODIFIER_GRANT' as const,
-                    applyGrantOutcomeId: grantContribution.applyGrantOutcomeId,
-                    modifiers: grantContribution.modifiers.flatMap((modifier) =>
-                      bindTriggerDamageTypes(modifier, input.trigger?.damageTypeIds ?? [])
-                    ),
-                    senses: grantContribution.senses,
-                    sourceLabel: grantLabel,
-                    sourceHidden: input.sourceHidden,
-                    ...(boundItem && { boundItem }),
-                    ...(grantContribution.onEnd && { onEnd: grantContribution.onEnd }),
-                    ...(grantContribution.grantedActions && {
-                      grantedActions: grantContribution.grantedActions
-                    }),
-                    ...(grantContribution.effectOffers && {
-                      effectOffers: grantContribution.effectOffers.map((offer) =>
-                        offer.kind === 'REPEAT_SOURCE_PATH'
-                          ? frozenRepeatOffer(offer, input)
-                          : offer
-                      )
-                    })
-                  }
-                ]
-              : []),
-            ...conditionContributions.map((contribution) => ({
-              kind: 'CONDITION_OWNERSHIP' as const,
-              conditionId: contribution.conditionId,
-              baselinePresent: conditionBaselinePresent(input.target, contribution.conditionId),
-              ...(contribution.recordsSource && {
-                sourceActorId: input.sourceActorId,
-                ...(contribution.fleesSource && { fleesSource: true })
-              })
-            })),
-            ...relationshipConditionIds.map((conditionId) => ({
-              kind: 'CONDITION_OWNERSHIP' as const,
-              conditionId,
-              baselinePresent: conditionBaselinePresent(input.target, conditionId)
-            })),
-            ...(relationshipContribution
-              ? [
-                  {
-                    kind: 'ACTOR_RELATIONSHIP' as const,
-                    relationshipOutcomeId: relationshipContribution.relationshipOutcomeId,
-                    sealedReachFeet,
-                    modules: relationshipContribution.modules,
-                    conditionIds: relationshipConditionIds,
-                    capabilitySuppressions: [
-                      ...relationshipContribution.capabilitySuppressions,
-                      ...(input.d20?.rollMode === 'ADVANTAGE'
-                        ? relationshipContribution.modules.flatMap((module) =>
-                            module.kind === 'CONDITIONAL_TARGET_STATE'
-                              ? [
-                                  {
-                                    contributionId: module.id,
-                                    capabilityDefinitionIds: module.capabilityDefinitionIds
-                                  }
-                                ]
-                              : []
-                          )
-                        : [])
-                    ]
-                  }
-                ]
-              : [])
+    stateContributions: [
+      ...(ownsTemporaryHitPoints ? [{ kind: 'TEMPORARY_HIT_POINTS_OWNERSHIP' as const }] : []),
+      ...(formContribution && input.form
+        ? [
+            {
+              kind: 'CREATURE_FORM' as const,
+              formOutcomeId: formContribution.formOutcomeId,
+              creatureId: input.form.creatureId,
+              excessDamageCarriesOver: formContribution.excessDamageCarriesOver
+            }
           ]
-        }
-      : {})
+        : []),
+      ...(linkContribution
+        ? [
+            {
+              kind: 'ACTOR_LINK' as const,
+              linkOutcomeId: linkContribution.linkOutcomeId,
+              linkKind: linkContribution.linkKind,
+              memberActorIds: [...linkMemberActorIds].sort()
+            }
+          ]
+        : []),
+      ...(concealment
+        ? [
+            {
+              kind: 'LOCATION_CONCEALMENT' as const,
+              concealmentTotal: concealment.concealmentTotal
+            }
+          ]
+        : []),
+      ...(grantContribution
+        ? [
+            {
+              kind: 'MODIFIER_GRANT' as const,
+              applyGrantOutcomeId: grantContribution.applyGrantOutcomeId,
+              modifiers: grantContribution.modifiers.flatMap((modifier) =>
+                bindTriggerDamageTypes(modifier, input.trigger?.damageTypeIds ?? [])
+              ),
+              senses: grantContribution.senses,
+              sourceLabel: grantLabel,
+              sourceHidden: input.sourceHidden,
+              ...(boundItem && { boundItem }),
+              ...(grantContribution.onEnd && { onEnd: grantContribution.onEnd }),
+              ...(grantContribution.grantedActions && {
+                grantedActions: grantContribution.grantedActions
+              }),
+              ...(grantContribution.effectOffers && {
+                effectOffers: grantContribution.effectOffers.map((offer) =>
+                  offer.kind === 'REPEAT_SOURCE_PATH' ? frozenRepeatOffer(offer, input) : offer
+                )
+              })
+            }
+          ]
+        : []),
+      ...conditionContributions.map((contribution) => ({
+        kind: 'CONDITION_OWNERSHIP' as const,
+        conditionId: contribution.conditionId,
+        baselinePresent: conditionBaselinePresent(input.target, contribution.conditionId),
+        ...(contribution.recordsSource && {
+          sourceActorId: input.sourceActorId,
+          ...(contribution.fleesSource && { fleesSource: true })
+        })
+      })),
+      ...relationshipConditionIds.map((conditionId) => ({
+        kind: 'CONDITION_OWNERSHIP' as const,
+        conditionId,
+        baselinePresent: conditionBaselinePresent(input.target, conditionId)
+      })),
+      ...(relationshipContribution
+        ? [
+            {
+              kind: 'ACTOR_RELATIONSHIP' as const,
+              relationshipOutcomeId: relationshipContribution.relationshipOutcomeId,
+              sealedReachFeet,
+              modules: relationshipContribution.modules,
+              conditionIds: relationshipConditionIds,
+              capabilitySuppressions: [
+                ...relationshipContribution.capabilitySuppressions,
+                ...(input.d20?.rollMode === 'ADVANTAGE'
+                  ? relationshipContribution.modules.flatMap((module) =>
+                      module.kind === 'CONDITIONAL_TARGET_STATE'
+                        ? [
+                            {
+                              contributionId: module.id,
+                              capabilityDefinitionIds: module.capabilityDefinitionIds
+                            }
+                          ]
+                        : []
+                    )
+                  : [])
+              ]
+            }
+          ]
+        : [])
+    ]
   })
   return {
     definition,

@@ -8,10 +8,10 @@ import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
-import { abilityModifier } from './systems/dnd5e/abilityModifier.js'
-import { dnd5eConcentrationHolderSaves } from './systems/dnd5e/concentrationPolicy.js'
-import { resolveSavingThrowDc } from './systems/dnd5e/savingThrowDc.js'
-import { derivedAddedDice } from './systems/dnd5e/d20AddedDiceGraph.js'
+import {
+  abilityScoreCapabilityRegistry,
+  savingThrowCapabilityRegistry
+} from './platformPolicyModules.js'
 
 type IncomingGatePayload = ReturnType<typeof incomingAttackGatePayloadDtoSchema.parse>
 
@@ -86,11 +86,13 @@ export function heldIncomingGate(input: {
  * from their ability modifiers and proficiency bonus. Null when the owner lacks what the DC reads.
  */
 export function incomingGateSaveDc(
+  gameSystemId: string,
   savingThrow: IncomingGatePayload['savingThrow'],
   owner: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'effectiveScalarValues'>
 ): number | null {
   const derived = owner.effectiveRulePolicyOutput?.derivedStats
-  return resolveSavingThrowDc(savingThrow, {
+  const { abilityModifier } = abilityScoreCapabilityRegistry.require(gameSystemId)
+  return savingThrowCapabilityRegistry.require(gameSystemId).resolveDc(savingThrow, {
     spellSaveDc: derived?.spellcasting?.saveDc.effective ?? null,
     proficiencyBonus: derived?.proficiencyBonus.effective ?? null,
     abilityModifier: (abilityDefinitionId) => {
@@ -113,19 +115,22 @@ export function incomingGateOffer(input: {
   attacker: Pick<MovementTarget, 'effectiveRulePolicyOutput' | 'targetDerivedFacts'>
 }): EncounterIncomingGateOfferDto {
   const { savingThrow } = input.held.payload
-  const dc = incomingGateSaveDc(savingThrow, input.owner)
+  const dc = incomingGateSaveDc(input.gameSystemId, savingThrow, input.owner)
   if (dc === null)
     throw new EncounterValidationError('The owner of the incoming attack gate has no save DC.')
-  const rows = (dnd5eConcentrationHolderSaves(input.attacker).savingThrowDefinitions ?? []).filter(
-    (row) =>
-      row.abilityDefinitionId === savingThrow.abilityDefinitionId &&
-      row.ruleDefinitionId === undefined &&
-      row.conditionTypeId === undefined
-  )
+  const savingThrows = savingThrowCapabilityRegistry.require(input.gameSystemId)
+  const rows = savingThrows
+    .holderSaves(input.attacker)
+    .filter(
+      (row) =>
+        row.abilityDefinitionId === savingThrow.abilityDefinitionId &&
+        row.ruleDefinitionId === undefined &&
+        row.conditionTypeId === undefined
+    )
   const [row] = rows
   if (rows.length !== 1 || row === undefined || !Number.isSafeInteger(row.modifier))
     throw new EncounterValidationError('The attacker has no saving throw for the incoming gate.')
-  const addedDice = derivedAddedDice(
+  const addedDice = savingThrows.addedDice(
     input.attacker.targetDerivedFacts.savingThrowAddedDice,
     savingThrow.abilityDefinitionId
   )

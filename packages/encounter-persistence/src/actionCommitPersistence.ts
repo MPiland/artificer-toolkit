@@ -17,7 +17,7 @@ import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-tool
 import { attackedHostileCreature } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
-import { executionAddsSpeedToMovement } from '@artificer-toolkit/rules-runtime/systems/dnd5e/addSpeedToMovement'
+import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readLiveEncounterActionAdmission } from './liveActionAdmission.js'
 import { insertActionEvidenceReceipt } from './actionEvidenceReceipt.js'
@@ -37,7 +37,6 @@ import { endEffects, receiptConsumedGrants, spendEffectUses } from './consumedGr
 import { persistEncounterMeleeRetaliation } from './meleeRetaliationPersistence.js'
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
-import { executionTeleportAllowance } from '@artificer-toolkit/rules-runtime/systems/dnd5e/teleportAllowance'
 import { recordTurnSpeedBonus, recordTurnTeleportAllowance, spendTurnUses } from './turnMovement.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import {
@@ -537,10 +536,11 @@ export async function persistEncounterActionCommit(
     }
   })
   // A Dash adds the actor's speed to this turn's movement; the stored execution proves it resolved.
-  const addsSpeed = executionAddsSpeedToMovement(execution)
+  const outcomes = executionOutcomeCapabilityRegistry.require(state.gameSystemId)
+  const addsSpeed = outcomes.addsSpeedToMovement(execution)
   if (addsSpeed) await recordTurnSpeedBonus(ctx, { state, actorId: source.id })
   // A teleport spell (Misty Step) grants a one-shot allowance keyed by this cast; the move consumes it.
-  const teleport = executionTeleportAllowance(execution)
+  const teleport = outcomes.teleportAllowance(execution)
   const teleportAllowanceTurn = teleport
     ? await recordTurnTeleportAllowance(ctx, {
         state,

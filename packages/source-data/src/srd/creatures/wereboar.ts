@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { damageInterceptionGrants } from './damageInterceptionGrants.js'
 import * as S from './shared.js'
 export const wereboar: CreatureAuthored = {
   id: S.CREATURE_IDS.WEREBOAR,
@@ -87,18 +88,19 @@ export const wereboar: CreatureAuthored = {
       label: 'Relentless (Recharges after a Short or Long Rest)',
       description:
         'Relentless (Recharges after a Short or Long Rest). If the wereboar takes 14 damage or less that would reduce it to 0 hit points, it is reduced to 1 hit point instead.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(288, 204),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(288, 205), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEREBOAR_RELENTLESS
-        })
-      ],
+      attributes: [S.FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: S.actionId(288, 206),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: S.SCALING.NONE,
+        resetKind: S.CHARGE_RESET_KIND.SHORT_REST,
+        amount: 1
+      },
+      grants: damageInterceptionGrants(S.actionId(288, 204), {
+        dropToHitPoints: 1,
+        negatesKill: false,
+        maxDamageTaken: 14
+      }),
       order: 3
     },
     {

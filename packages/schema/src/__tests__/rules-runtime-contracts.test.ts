@@ -1107,7 +1107,8 @@ describe('rules runtime contracts', () => {
     const compiledEntryId = '00000000-0000-4000-8000-000000000012'
     const activeState = {
       definition: {
-        schemaVersion: 1,
+        schemaVersion: 2,
+        stateContributions: [],
         origin: {
           kind: 'CHARACTER',
           sourceAggregateId: '00000000-0000-4000-8000-000000000013',

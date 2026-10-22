@@ -727,8 +727,6 @@ describe('native Cleaving action settlement', () => {
       character: { id: base.characterId }
     })
     const dependentDefinition = seeded.dependent.definition
-    if (dependentDefinition.schemaVersion !== 2)
-      throw new Error('Expected a current active-effect definition.')
     const candidateEffectId = await base.t.run(async (ctx) => {
       const dexterity = srdSystemRecord.abilities?.find((ability) => ability.code === 'DEXTERITY')
       if (!dexterity) throw new Error('Missing Cleaving candidate Dexterity.')

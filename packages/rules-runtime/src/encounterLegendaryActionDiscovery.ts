@@ -24,7 +24,7 @@ import type {
 import {
   evaluateLegendaryActionEligibility,
   requireLegendaryActionCapabilityDefinitionIds
-} from './legendaryActionEligibilityRegistry.js'
+} from './legendaryActionEligibilityService.js'
 import type { LegendaryActionEligibilitySource } from './legendaryActionEligibilityService.js'
 import { resolveEncounterRuleCapabilityStates } from './encounterRuleCapabilityState.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'

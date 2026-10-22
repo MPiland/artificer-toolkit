@@ -60,7 +60,10 @@ export async function resolveEncounterRuleCapabilityStates(input: {
         gameSystemId: input.encounter.gameSystemId,
         activeConditionDefinitionIds,
         capabilityDefinitionIds: input.capabilityDefinitionIds,
-        activeEffectSuppressions: activeEffectCapabilitySuppressions(activeEffects)
+        activeEffectSuppressions: activeEffectCapabilitySuppressions(
+          input.encounter.gameSystemId,
+          activeEffects
+        )
       }),
       ruleUsage: encounterRuleUsageSnapshot(actor)
     })

@@ -1,4 +1,5 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 
 /** Exact optional-combat policy identity a proposal and its contest graph are sealed against. */
 export interface OptionalCombatPolicyPin {
@@ -107,9 +108,65 @@ export interface CleavingProposal {
   readonly visitedTargetActorIds: readonly string[]
 }
 
-/** A System's optional-combat policy modules: movement passage contests and Cleaving. */
+export type OptionalCombatD20Contributor = Readonly<ReceiptD20ContributorDto>
+/** A code from the System's `rollMode` vocabulary. */
+type OptionalCombatD20Mode = string
+
+/** Exact Disarm facts; the System alone interprets sizes, item properties and the trigger. */
+export interface DisarmPreparationInput extends OptionalCombatPolicyInput {
+  readonly attackerActorId: string
+  readonly attackerSize: string | null
+  readonly heldItemId: string | null
+  readonly targetActorId: string
+  readonly targetCheckDefinitionId: string | null
+  readonly targetEquipment: { readonly properties: readonly string[] } | null
+  readonly targetItemOwnerState: 'CHARACTER_SHEET' | 'ENCOUNTER_ACTOR' | null
+  readonly targetSize: string | null
+  /** Exact authored action trigger. */
+  readonly triggerCode: string | null
+  /** Exact selected action's Equipment binding; labels never participate. */
+  readonly sourceEquipment: {
+    readonly category: string | null
+    readonly id: string
+    readonly properties: readonly string[]
+    readonly state: 'EQUIPPED' | 'HELD'
+  } | null
+  /** Exact source policy plus target-specific active relationship contributors. */
+  readonly attack: {
+    readonly modifier: number | null
+    readonly rollMode: OptionalCombatD20Mode | null
+    readonly baseContributors: Readonly<
+      Record<'MELEE' | 'RANGED' | 'SPELL' | 'UNARMED', readonly OptionalCombatD20Contributor[]>
+    > | null
+    readonly relationshipContributors: readonly OptionalCombatD20Contributor[]
+  } | null
+}
+
+/** A sealed Disarm contest before either participant rolls. */
+export interface DisarmContestProposal {
+  readonly contest: {
+    readonly targetCheckDefinitionId: string
+    readonly initiatorMode: OptionalCombatD20Mode
+    readonly targetMode: OptionalCombatD20Mode
+    readonly initiatorContributors: readonly OptionalCombatD20Contributor[]
+    readonly targetContributors: readonly OptionalCombatD20Contributor[]
+  }
+  readonly disposition: {
+    readonly placement: 'JUDGMENT_REQUIRED'
+    readonly heldItemId: string
+    readonly ownerActorId: string
+    readonly ownerState: 'CHARACTER_SHEET' | 'ENCOUNTER_ACTOR'
+    readonly transition: 'NO_LONGER_HELD'
+  }
+  readonly pin: OptionalCombatPolicyPin
+}
+
+/** A System's optional-combat policy modules: Disarm, movement passage contests and Cleaving. */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
+  prepareDisarmContest(
+    input: DisarmPreparationInput
+  ): OptionalCombatResolution<DisarmContestProposal>
   prepareOverrunContest(
     input: OverrunPreparationInput
   ): OptionalCombatResolution<OverrunContestProposal>

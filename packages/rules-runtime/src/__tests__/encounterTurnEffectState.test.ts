@@ -95,14 +95,16 @@ describe('turnEffectRetainedConditions', () => {
     ).toEqual([])
   })
 
-  it('returns no retained conditions for a schema-version-1 effect', async () => {
-    const legacyShape = await effect(1)
+  it('returns no retained conditions for an effect with no state contributions', async () => {
+    const withoutContributions = await effect(1)
     const other = await effect(2, {
       conditionOwnership: [{ conditionId: CONDITION_A, baselinePresent: true }]
     })
 
-    expect(legacyShape.definition.schemaVersion).toBe(1)
-    expect(turnEffectRetainedConditions(legacyShape, [legacyShape, other], new Set())).toEqual([])
+    expect(withoutContributions.definition.stateContributions).toEqual([])
+    expect(
+      turnEffectRetainedConditions(withoutContributions, [withoutContributions, other], new Set())
+    ).toEqual([])
   })
 })
 

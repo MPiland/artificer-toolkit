@@ -50,7 +50,8 @@ function placement() {
 
 function effectDefinition() {
   return {
-    schemaVersion: 1 as const,
+    schemaVersion: 2 as const,
+    stateContributions: [],
     origin: {
       kind: 'ENCOUNTER' as const,
       sourceAggregateId: ids.effect,

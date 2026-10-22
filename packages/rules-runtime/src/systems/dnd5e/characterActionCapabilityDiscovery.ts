@@ -28,7 +28,6 @@ export function resolveDnd5eSavingThrowAbilityDefinitionId(input: {
 
 export const dnd5eCharacterActionCapabilityAdapter: CharacterActionCapabilityAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
-  authoredRootKind: 'effect',
   discover: ({ candidates, conditionDefinitionIds = [], abilityDefinitions = [], entryPoints }) =>
     candidates.map((candidate, index) => {
       const entryPoint = entryPoints[index]

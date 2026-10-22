@@ -1,15 +1,6 @@
 import { v } from 'convex/values'
-import {
-  DND5E_MOVEMENT_REACTION_CHOICE_DEFINITION_ID,
-  DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/reactionEligibilityPolicy'
 import { internalMutation } from '../lib/mutations'
 import { requireFixtureAccount } from '../lib/developmentFixtures'
-
-const legacyMovementReactionDefinitionIds = new Set([
-  DND5E_OPPORTUNITY_REACTION_ELIGIBILITY_DEFINITION_ID,
-  DND5E_MOVEMENT_REACTION_CHOICE_DEFINITION_ID
-])
 
 export const removeFixtureState = internalMutation({
   args: {
@@ -131,10 +122,7 @@ export const removeFixtureState = internalMutation({
           definition.gameSystemId !== source.gameSystemId ||
           definition.version !== 1 ||
           (!definition.label.startsWith('V08 lifecycle ') &&
-            !(
-              definition.label === 'Movement reaction browser fixture' &&
-              legacyMovementReactionDefinitionIds.has(definition.id)
-            )) ||
+            definition.label !== 'Movement reaction browser fixture') ||
           !['rules-runtime-graph', 'initiative-policy'].includes(definition.definitionFamilyKey)
       ) ||
       catalogues.some(

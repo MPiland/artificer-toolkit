@@ -17,9 +17,10 @@ import {
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { RULE_RUNTIME_GRAPH_FAMILY_KEY } from '@artificer-toolkit/schema/shared/reusableDefinitionIdentity'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import type { MaintenanceLinkCapabilityAdapter } from '../../maintenanceLinkCapability.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from './concentrationIdentity.js'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
+import { derivedAddedDice, dnd5eAddedDiceFacts, dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import { DND5E_KEEP_BY_ROLL_MODE } from './rollModePolicy.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
@@ -293,4 +294,37 @@ export function createDnd5eConcentrationCheckDefinition() {
     checksum: checksumRuleDocument(definition),
     definition
   })
+}
+
+/** 5e Concentration: breaks when defeated, incapacitated or casting-locked; any damage owes a Constitution save. */
+export const dnd5eMaintenanceLinkCapabilityAdapter: MaintenanceLinkCapabilityAdapter = {
+  gameSystemId: DND5E_SYSTEM_ID,
+  maintenanceDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+  hooks: [
+    { hook: 'BREAK', reason: 'DEFEATED', subscription: { event: 'DEFEATED' } },
+    {
+      hook: 'BREAK',
+      reason: 'INCAPACITATED',
+      subscription: { event: 'INCAPACITATED', of: 'HOLDER' }
+    },
+    { hook: 'BREAK', reason: 'SPELLCASTING_LOCKED', subscription: { event: 'MAINTENANCE_BARRED' } },
+    { hook: 'SAVE', subscription: { event: 'DAMAGED', by: 'ANYONE', damageTypeIds: null } }
+  ],
+  saveAbilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
+  saveDc: dnd5eConcentrationDamageDc,
+  saveFacts(input) {
+    const addedDice = derivedAddedDice(
+      input.target.targetDerivedFacts.savingThrowAddedDice,
+      DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
+    )
+    return {
+      addedDice,
+      ...resolveDnd5eConcentrationSaveFacts({
+        appliedDamage: input.appliedDamage,
+        targetActorId: input.targetActorId,
+        rulePolicyOutput: dnd5eConcentrationHolderSaves(input.target),
+        addedDice
+      })
+    }
+  }
 }
