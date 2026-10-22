@@ -843,9 +843,8 @@ export function projectCharacterSheetBundle(
     ruleEvaluation.facts
   )
   const displayedSpellIds = new Set(knownSpellIds)
-  for (const spellIds of sheetSpellIdsByClassId.values()) {
+  for (const spellIds of sheetSpellIdsByClassId.values())
     for (const spellId of spellIds) displayedSpellIds.add(spellId)
-  }
   const preparationCapableClassIds = getPreparationCapableClassIds(ruleEvaluation.output)
   const ruleProjection = projectCharacterRulePolicyToSheetProjection(ruleEvaluation)
   const itemMechanicsByInstanceId = new Map(
