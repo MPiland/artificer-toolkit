@@ -1,10 +1,18 @@
-import { assertNever, compileSuccess, unwrapCompileResult, type CompileResult } from '#utils'
+import {
+  assertNever,
+  COMPILE_DIAGNOSTIC_SEVERITY,
+  compileFailure,
+  compileSuccess,
+  unwrapCompileResult,
+  type CompileResult
+} from '#utils'
 
 import type { FacetAuthored, GrantPayloadAuthored, SpellGrantAuthored } from '#authored'
 import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
+  SPELL_GRANT_ACCESS,
   type NodeSubjectCode
 } from '#core'
 import { compileChargeUse } from '#compilers'
@@ -25,6 +33,9 @@ export type CompiledSpellGrant = CompiledScalingGrant<
   restrictions?: FacetAuthored
   allowedCreatureTypeIds?: string[]
   perTargetLockout?: SpellGrantAuthored['perTargetLockout']
+  slotCost?: SpellGrantAuthored['slotCost']
+  access?: SpellGrantAuthored['access']
+  classListIds?: string[]
 }
 
 function compileSpellTarget(
@@ -46,6 +57,29 @@ function compileSpellTarget(
 export function compileSpellGrantResult(
   authored: SpellGrantAuthored
 ): CompileResult<CompiledSpellGrant> {
+  const listOnly = authored.access === SPELL_GRANT_ACCESS.CLASS_LIST_ONLY
+  if (listOnly !== Boolean(authored.classListIds?.length)) {
+    return compileFailure({
+      code: listOnly ? 'SPELL_GRANT_CLASS_LIST_MISSING' : 'SPELL_GRANT_CLASS_LIST_UNUSED',
+      message: listOnly
+        ? 'A class-list-only spell grant must name the class spell lists it joins.'
+        : 'Only a class-list-only spell grant may name class spell lists.',
+      severity: COMPILE_DIAGNOSTIC_SEVERITY.ERROR,
+      path: ['classListIds']
+    })
+  }
+  if (
+    listOnly &&
+    (authored.scalingKind !== SCALING.NONE ||
+      authored.authoringModeKind !== AUTHORING_MODE_KIND.SELECTED)
+  ) {
+    return compileFailure({
+      code: 'SPELL_GRANT_CLASS_LIST_SHAPE',
+      message: 'A class-list-only spell grant must name its spells and not scale.',
+      severity: COMPILE_DIAGNOSTIC_SEVERITY.ERROR,
+      path: ['access']
+    })
+  }
   const base = {
     id: authored.id,
     castAtLevel: authored.castAtLevel,
@@ -59,6 +93,8 @@ export function compileSpellGrantResult(
       ? { allowedCreatureTypeIds: authored.allowedCreatureTypeIds }
       : {}),
     ...(authored.perTargetLockout ? { perTargetLockout: authored.perTargetLockout } : {}),
+    ...(authored.slotCost ? { slotCost: authored.slotCost } : {}),
+    ...(listOnly ? { access: authored.access, classListIds: authored.classListIds } : {}),
     order: authored.order
   }
 

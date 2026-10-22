@@ -1,15 +1,19 @@
 import {
   ACTIVATION_CODE,
+  AUTHORING_MODE_KIND,
+  AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  GRANT_KIND,
   PATH_CODE,
   RANGE_KIND,
   SCALING,
+  SPELL_GRANT_ACCESS,
   TARGET_SELECTION_KIND,
   TRIGGER,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
-import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
+import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { closedRuleEffect } from './mechanics.js'
 
@@ -39,18 +43,32 @@ export const theFiend: ClassAuthored = {
         'The Fiend lets you choose from an expanded list of spells when you learn a warlock spell. The following spells are added to the warlock spell list for you.',
       availableAtLevel: 1,
       order: 0,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(W, 20, 1),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(W, 21, 1), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: CLOSED_RULE_KIND.CLASS_FIEND_EXPANDED_SPELL_LIST
-        })
-      ]
+      grants: {
+        spells: [
+          {
+            id: classRowId(W, 23, 1),
+            grantKind: GRANT_KIND.SPELL_GRANT,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            scalingKind: SCALING.NONE,
+            authoringModeKind: AUTHORING_MODE_KIND.SELECTED,
+            spellIds: [
+              SPELL_IDS.BURNING_HANDS,
+              SPELL_IDS.COMMAND,
+              SPELL_IDS.BLINDNESS_DEAFNESS,
+              SPELL_IDS.SCORCHING_RAY,
+              SPELL_IDS.FIREBALL,
+              SPELL_IDS.STINKING_CLOUD,
+              SPELL_IDS.FIRE_SHIELD,
+              SPELL_IDS.WALL_OF_FIRE,
+              SPELL_IDS.FLAME_STRIKE,
+              SPELL_IDS.HALLOW
+            ],
+            access: SPELL_GRANT_ACCESS.CLASS_LIST_ONLY,
+            classListIds: [CLASS_IDS.WARLOCK],
+            order: 0
+          }
+        ]
+      }
     },
     {
       id: classRowId(W, 11, 3),

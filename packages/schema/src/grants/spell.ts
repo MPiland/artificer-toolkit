@@ -8,9 +8,11 @@ import {
 import {
   abilityCodeSchema,
   authoringModeKindSchema,
+  spellGrantAccessSchema,
   spellGrantAttributeSchema
 } from '../shared/enums.js'
 import { spellFacetDtoSchema } from '../shared/facet.js'
+import { systemVocabularyCodeSchema } from '../shared/systemVocabularyCode.js'
 import { createScalingGrantDtoSchema, staticGrantBaseDtoSchema } from './grant.js'
 
 const spellGrantTargetDtoSchema = lazySchema(() =>
@@ -37,7 +39,10 @@ export const spellGrantDtoSchema = lazySchema(() =>
       allowedCreatureTypeIds: z.optional(
         authoredReferenceCollectionSchema(authoredIdentifierSchema)
       ),
-      perTargetLockout: z.optional(z.object({ until: z.literal('SOURCE_LONG_REST') }))
+      perTargetLockout: z.optional(z.object({ until: z.literal('SOURCE_LONG_REST') })),
+      slotCost: z.optional(z.object({ poolCode: systemVocabularyCodeSchema })),
+      access: z.optional(spellGrantAccessSchema),
+      classListIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema))
     }),
     createScalingGrantDtoSchema(spellGrantTargetDtoSchema)
   )
