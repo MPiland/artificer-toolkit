@@ -942,7 +942,7 @@
               },
               "text": "withValidationLock.ps1 writes the owner PID and process start time into each lock; a waiter reclaims a lock whose owner is gone or whose start time differs (PID reuse). A test plants a dead-owner lock and a live-owner lock. AGENTS.md drops the report-do-not-delete rule for dead owners.",
               "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39839658336"
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39841195147"
             }
           ]
         },
@@ -4176,7 +4176,7 @@
               "text": "Challenge rating, currency and passives read from the System record: xp, proficiencyBonus and rank on each CR entry, baseValue on currency, the passive ability on its entry, all seeded from source-data. creatureRuleFacts, encounterFormChoice and collectionPresentation read the record; delete packages/shared/src/domains/vocabulary.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
               "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39839658336"
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39841195147"
             },
             {
               "id": "RULES-2.T9k",
@@ -4233,8 +4233,7 @@
               },
               "text": "SRD import adapter (importedEquipmentTerms) maps GP, Walk, Stealth and Dwarven to their source-data definition IDs instead of code constants; it stays in the importer.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39839658336"
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
             },
             {
               "id": "RULES-2.T9o",
@@ -11362,7 +11361,8 @@
                 "size": 3,
                 "after": ["SPELLS-8.T11"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-8-t9.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39842110784"
             }
           ]
         },
@@ -15419,7 +15419,8 @@
                 "size": 3,
                 "after": ["RULES-2.T6e"]
               },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md",
+              "merging": "https://github.com/MPiland/artificer-toolkit/actions/runs/39842110784"
             },
             {
               "id": "SPELLS-33.T4i3e",
