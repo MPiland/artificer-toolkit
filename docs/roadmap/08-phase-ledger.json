@@ -3382,7 +3382,7 @@
             },
             {
               "id": "RULES-2.T5d",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.5"],
               "wsjf": {
                 "bv": 5,
@@ -3392,7 +3392,7 @@
                 "after": ["RULES-2.T5a", "RULES-2.T6f"]
               },
               "text": "Generic event hooks (split 2026-10-21): zone interactions (enter, leave, start and end of turn in a zone) through the event table.",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "note": "Merged in m345."
             },
             {
               "id": "RULES-2.T6a",
@@ -4161,7 +4161,7 @@
                 "size": 1,
                 "after": ["RULES-2.T9j", "RULES-2.T9k", "RULES-2.T9l", "RULES-2.T9m", "RULES-2.T9n"]
               },
-              "text": "Boundary guard test: no production file outside source-data holds an SRD vocabulary list or compares a vocabulary code literal.",
+              "text": "Boundary guard test: no production file outside source-data holds an SRD vocabulary list or compares a vocabulary code literal. Also: creatureFormFilterRefusal (encounterFormChoice.ts) finds a level's challenge rating by the code pattern `CR_${level}`; compare a numeric value on the System's challenge-rating entries instead (found in the T9j review).",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343)."
             },
             {
