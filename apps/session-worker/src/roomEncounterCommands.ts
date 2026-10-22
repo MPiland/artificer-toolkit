@@ -273,11 +273,9 @@ export async function executeRoomEncounterCommand(input: {
       ? (
           await context.db
             .query('encounterRuleOccurrences')
-            .withIndex('by_encounterId_state', (q) =>
-              q.eq('encounterId', beforeRun.id).eq('state', 'PENDING')
-            )
-            .take(2)
-        ).find((occurrence) => occurrence.id === command.occurrenceId.toLowerCase())?.rootCommandId
+            .withIndex('by_publicId', (q) => q.eq('id', command.occurrenceId.toLowerCase()))
+            .unique()
+        )?.rootCommandId
       : undefined
   const rawResult =
     command.type === 'START' || command.type === 'ADVANCE_TURN'
