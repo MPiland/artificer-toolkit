@@ -1,4 +1,3 @@
-import type { EncounterD20RollModeDto } from '@artificer-toolkit/schema/api/encounters'
 import type { ConcealmentListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
@@ -67,12 +66,6 @@ export function passiveSkillDefinitionId(system: SystemAuthoredDto, passiveDefin
   const passives: readonly { id: string; skillDefinitionId?: string | null }[] = system.passives
   return passives.find(({ id }) => id === passiveDefinitionId)?.skillDefinitionId ?? null
 }
-
-const PASSIVE_ROLL_MODE_ADJUSTMENT = { NORMAL: 0, ADVANTAGE: 5, DISADVANTAGE: -5 } as const
-
-/** A passive score: 10 plus the skill's check modifier, 5 more with advantage and 5 less with disadvantage. */
-export const encounterPassiveScore = (skillModifier: number, rollMode: EncounterD20RollModeDto) =>
-  10 + skillModifier + PASSIVE_ROLL_MODE_ADJUSTMENT[rollMode]
 
 /**
  * The observers a Stealth total hides its roller from. Ties go to the observer: an observer

@@ -43,6 +43,11 @@ import {
   spatialPositiveDistanceDtoSchema,
   zoneMovementCostMultiplierSchema
 } from '../shared/spatial.js'
+import {
+  rollModeKeepFaceCount,
+  rollModeKeepSchema,
+  systemVocabularyCodeSchema
+} from '../shared/systemVocabularyCode.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -286,7 +291,7 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
 
 export { encounterRuleOccurrenceSummaryDtoSchema, pendingEncounterRuleOccurrenceSummaryDtoSchema }
 
-const d20RollModeSchema = lazySchema(() => z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']))
+const d20RollModeSchema = lazySchema(() => systemVocabularyCodeSchema)
 
 /**
  * One "Roll dice" attempt for a prompt row, recorded by the server and settled later only by its
@@ -304,6 +309,8 @@ export const encounterEvidenceRollDtoSchema = lazySchema(() =>
       value: z.number().check(z.int()),
       /** The mode the d20 was rolled with; null for any other roll. */
       rollMode: z.nullable(d20RollModeSchema),
+      /** Which of `faces` a d20 counts; null exactly when `rollMode` is. */
+      keep: z.nullable(rollModeKeepSchema),
       /** The rules-derived mode the row recommended; differs from `rollMode` when overridden. */
       derivedRollMode: z.nullable(d20RollModeSchema),
       /** The faces of the request's added dice (D156), rolled with the d20. */
@@ -311,12 +318,15 @@ export const encounterEvidenceRollDtoSchema = lazySchema(() =>
     })
     .check(
       z.superRefine((value, context) => {
-        if ((value.rollMode === null) !== (value.derivedRollMode === null))
+        if (
+          (value.rollMode === null) !== (value.derivedRollMode === null) ||
+          (value.rollMode === null) !== (value.keep === null)
+        )
           context.addIssue({
             code: 'custom',
             message: 'Only d20 rolls carry roll modes.'
           })
-        if (value.faces.length !== (value.rollMode && value.rollMode !== 'NORMAL' ? 2 : 1))
+        if (value.faces.length !== (value.keep ? rollModeKeepFaceCount(value.keep) : 1))
           context.addIssue({
             code: 'custom',
             path: ['faces'],
@@ -336,6 +346,7 @@ export const encounterSettledAppRollDtoSchema = lazySchema(() =>
     rollId: uuidSchema,
     faces: z.array(z.number().check(z.int())).check(z.minLength(1)).check(z.maxLength(2)),
     rollMode: z.nullable(d20RollModeSchema),
+    keep: z.nullable(rollModeKeepSchema),
     addedFaces: z.optional(d20AddedFacesDtoSchema)
   })
 )

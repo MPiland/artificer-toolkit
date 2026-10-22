@@ -4,16 +4,24 @@ import {
   type D20RolledAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import type {
   ServerCompletedRuleExecutionDto,
   ServerRuleExecutionContinuationDto,
   ServerRuleExecutionResultDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
+import type {
+  ServerRuleExecutionD20EvidenceDto,
+  ServerRuleExecutionD20PolicyDto
+} from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { resolveEncounterAddedDice, resumeEncounterD20 } from './encounterD20AddedDice.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
+import { settleSightGovernedD20, type SightGovernedD20 } from './encounterSightGovernedD20.js'
 import {
   resolveEncounterD20Answer,
+  resolveEncounterIntegerAnswer,
   type EncounterD20RollMode,
   type EncounterEvidenceAnswer,
   type EncounterResponseAnswer
@@ -24,10 +32,11 @@ import {
 // graph resumes with the kept natural and the added dice's total, then is checked against them.
 
 /**
- * A d20 test's frozen context: the roller's mode, contributors (with their checksum) and modifier,
- * plus the dice its effects add (D156) and the floor they put on the d20, named only when present.
+ * A d20 test's frozen context: the roller's mode and the keep its System derives from it,
+ * contributors (with their checksum) and modifier, plus the dice its effects add (D156) and the floor they put on the d20, named only when present.
  */
 export function freezeD20Context<TContributor>(facts: {
+  gameSystemId: string
   rollMode: EncounterD20RollMode
   contributors: readonly TContributor[]
   modifier: number
@@ -36,6 +45,7 @@ export function freezeD20Context<TContributor>(facts: {
 }) {
   return {
     rollMode: facts.rollMode,
+    keep: rollModeCapabilityRegistry.rollModeKeep(facts),
     contributors: [...facts.contributors],
     contributorChecksum: checksumRuleDocument(facts.contributors),
     modifier: facts.modifier,
@@ -48,6 +58,7 @@ export function freezeD20Context<TContributor>(facts: {
 export type EncounterD20Roll = {
   rawFaces: number[]
   rollMode: EncounterD20RollMode
+  keep: RollModeKeep
   natural: number
   addedDice: D20RolledAddedDieDto[]
 }
@@ -58,13 +69,15 @@ export type EncounterD20Roll = {
  * test that freezes no added dice refuses an answer that carries added faces.
  */
 export function settleEncounterD20Answer(input: {
-  d20: { rollMode: EncounterD20RollMode; addedDice?: readonly D20AddedDieDto[] }
+  gameSystemId: string
+  d20: { rollMode: EncounterD20RollMode; keep: RollModeKeep; addedDice?: readonly D20AddedDieDto[] }
   answer: EncounterEvidenceAnswer | EncounterResponseAnswer
   rollD20: () => number
   random: (maxExclusive: number) => number
 }): EncounterD20Roll {
-  const { faces, rollMode, natural } = resolveEncounterD20Answer({
-    derivedRollMode: input.d20.rollMode,
+  const { faces, rollMode, keep, natural } = resolveEncounterD20Answer({
+    gameSystemId: input.gameSystemId,
+    derived: input.d20,
     answer: input.answer,
     rollD20: input.rollD20
   })
@@ -73,7 +86,7 @@ export function settleEncounterD20Answer(input: {
     answer: input.answer,
     random: input.random
   })
-  return { rawFaces: faces, rollMode, natural, addedDice }
+  return { rawFaces: faces, rollMode, keep, natural, addedDice }
 }
 
 /**
@@ -109,4 +122,88 @@ export async function settleEncounterD20Test(input: {
   )
     throw input.refusal()
   return execution
+}
+
+export type SettledActionResponse = {
+  kind: 'SETTLED'
+  value: number
+  faces: number[] | null
+  rollMode: EncounterD20RollMode | null
+  keep: RollModeKeep | null
+  modeAdjustment?: ServerRuleExecutionD20EvidenceDto['modeAdjustment']
+  /** The d20 policy's added dice with their faces; none for an integer request. */
+  addedDice: D20RolledAddedDieDto[]
+}
+
+export type ActionResponse = SettledActionResponse | { kind: 'NEEDS_EXTRA_D20'; heldFace: number }
+
+export type ActionResponseInput = {
+  gameSystemId: string
+  continuation: ServerRuleExecutionContinuationDto
+  policy: ServerRuleExecutionD20PolicyDto | null
+  resolution: EncounterEvidenceAnswer
+  random: (maximum: number) => number
+}
+
+export function actionResponse(
+  input: ActionResponseInput & { sightGoverned?: null }
+): SettledActionResponse
+export function actionResponse(
+  input: ActionResponseInput & { sightGoverned: SightGovernedD20 | null }
+): ActionResponse
+export function actionResponse(
+  input: ActionResponseInput & { sightGoverned?: SightGovernedD20 | null }
+): ActionResponse {
+  if (input.resolution.requestId !== input.continuation.request.requestId)
+    throw new Error('The action evidence request is stale.')
+  const rollD20 = () => input.random(20) + 1
+  const { policy, resolution, sightGoverned } = input
+  // The answer that settles the d20 carries its added dice; a held d20 waits for the next answer.
+  const addedDice = () =>
+    resolveEncounterAddedDice({
+      dice: policy?.addedDice ?? [],
+      answer: resolution,
+      random: input.random
+    })
+  if (policy !== null && sightGoverned) {
+    const settled = settleSightGovernedD20({
+      gameSystemId: input.gameSystemId,
+      appliedMode: policy.rollMode,
+      sightGoverned,
+      resolution,
+      rollD20
+    })
+    return settled.kind === 'SETTLED' ? { ...settled, addedDice: addedDice() } : settled
+  }
+  if (policy !== null) {
+    const d20 = settleEncounterD20Answer({
+      gameSystemId: input.gameSystemId,
+      d20: policy,
+      answer: resolution,
+      rollD20,
+      random: input.random
+    })
+    return {
+      kind: 'SETTLED',
+      value: d20.natural,
+      faces: d20.rawFaces,
+      rollMode: d20.rollMode,
+      keep: d20.keep,
+      addedDice: d20.addedDice
+    }
+  }
+  const { request } = input.continuation
+  return {
+    kind: 'SETTLED',
+    value: resolveEncounterIntegerAnswer({
+      min: request.min,
+      max: request.max,
+      answer: resolution,
+      random: input.random
+    }),
+    faces: null,
+    rollMode: null,
+    keep: null,
+    addedDice: addedDice()
+  }
 }

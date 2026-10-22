@@ -26,6 +26,8 @@ import {
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import { createEmptySpellcasting } from '../classAuthoring.utils'
+import { toFeatures } from '#forms/guided/guidedValues'
+import { isRecord } from '#forms/utils/valueGuards'
 
 type GuidedClassAuthoringProps = {
   onAdvanced: (() => void) | undefined
@@ -354,9 +356,9 @@ function optionFor(item: { id: string; label: string }) {
 }
 
 function readClassValues(values: object) {
-  const record = values as Record<string, unknown>
+  const record: Record<string, unknown> = isRecord(values) ? values : {}
   const proficiencies = Array.isArray(record.proficiencies)
-    ? (record.proficiencies as ProficiencyGrantDto[])
+    ? record.proficiencies.filter(isProficiencyGrant)
     : []
   const startingEquipment = isStartingEquipment(record.startingEquipment)
     ? record.startingEquipment
@@ -382,7 +384,7 @@ function readClassValues(values: object) {
           (set) => set.groups.length > 1 || set.groups.some((group) => group.options.length > 1)
         ))
     ),
-    features: Array.isArray(record.features) ? (record.features as FeatureDto[]) : [],
+    features: toFeatures(record.features),
     hasSpellcasting: Boolean(spellcasting),
     label: typeof record.label === 'string' ? record.label.trim() : '',
     parentClassId: typeof record.parentClassId === 'string' ? record.parentClassId : '',
@@ -425,8 +427,8 @@ function isStartingEquipment(value: unknown): value is StartingEquipmentDto {
   return isRecord(value) && Array.isArray(value.sets)
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
+function isProficiencyGrant(value: unknown): value is ProficiencyGrantDto {
+  return isRecord(value) && value.grantKind === 'PROFICIENCY_GRANT'
 }
 
 const BASE_STEPS = [

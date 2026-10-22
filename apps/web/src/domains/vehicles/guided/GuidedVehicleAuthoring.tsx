@@ -10,6 +10,7 @@ import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import * as styles from '#forms/guided/guidedAuthoring.css'
+import { readField } from '#forms/guided/guidedValues'
 
 const STEPS = ['Basics', 'Performance', 'Capacity and cost', 'Features', 'Review'] as const
 const TITLES = [
@@ -219,12 +220,12 @@ export const GuidedVehicleAuthoring = withForm({
 })
 
 function readString(values: object, key: string): string {
-  const value = (values as Record<string, unknown>)[key]
+  const value = readField(values, key)
   return typeof value === 'string' ? value : ''
 }
 
 function readFeatures(values: object): FeatureDto[] {
-  const value = (values as Record<string, unknown>).features
+  const value = readField(values, 'features')
   return Array.isArray(value)
     ? value.filter(
         (item): item is FeatureDto =>
@@ -234,12 +235,12 @@ function readFeatures(values: object): FeatureDto[] {
 }
 
 function summaryStat(values: object, key: string, label: string): string {
-  const value = (values as Record<string, unknown>)[key]
+  const value = readField(values, key)
   return typeof value === 'number' ? `${label} ${value}` : `${label} —`
 }
 
 function hasAdvancedData(values: object): boolean {
-  const value = (values as Record<string, unknown>).properties
+  const value = readField(values, 'properties')
   const features = readFeatures(values)
   return (
     (Array.isArray(value) && value.length > 0) ||

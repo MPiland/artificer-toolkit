@@ -48,7 +48,7 @@ export async function reconstructNativeMovementResistanceTest(input: {
   execution: LegendaryResistancePhase['originalExecution']
   d20: Pick<
     ServerRuleExecutionD20EvidenceDto,
-    'requestId' | 'rawFaces' | 'rollMode' | 'selectedNatural'
+    'requestId' | 'rawFaces' | 'rollMode' | 'keep' | 'selectedNatural'
   >
 }) {
   return reconstructNativeActionTest({

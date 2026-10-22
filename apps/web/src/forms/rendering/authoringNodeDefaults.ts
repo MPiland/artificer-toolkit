@@ -816,13 +816,10 @@ function createDefaultPath(
   }
 }
 
-function createRange(rangeKind = 'SELF', amount = 30): RangeDto {
+function createRange(rangeKind: 'SELF' | 'DISTANCE' = 'SELF', amount = 30): RangeDto {
   return rangeKind === 'DISTANCE'
     ? { id: crypto.randomUUID(), rangeKind: 'DISTANCE', amount, unit: 'FEET' }
-    : {
-        id: crypto.randomUUID(),
-        rangeKind: rangeKind as Exclude<RangeDto['rangeKind'], 'DISTANCE'>
-      }
+    : { id: crypto.randomUUID(), rangeKind }
 }
 
 export function createTargeting(selectionKind = 'SELF'): TargetingDto {

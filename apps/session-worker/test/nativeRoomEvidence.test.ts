@@ -2,7 +2,6 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import { liveSessionWebSocketClientMessageDtoSchema } from '@artificer-toolkit/schema/api/liveSessions'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -142,32 +141,18 @@ describe('room d20 evidence', () => {
     const room = await wolvesRoom(biteWolf('ATTACK'))
     const decision = await startedWithPrompt(room)
     expect(decision.pending.rollerActorId).toBe(SOURCE_ID)
-    const frame = (rawFaces: number[]) => ({
-      type: 'COMMAND',
-      expectedSessionSequence: 0,
-      command: {
-        scope: 'ENCOUNTER',
-        command: room.resolveCommand(decision, {
-          kind: 'ENTER_DICE',
-          requestId: decision.pending.request.requestId,
-          rawFaces,
-          rollMode: 'ADVANTAGE'
-        })
-      }
-    })
-    // The room drops a frame the wire contract refuses, so a forged face count never reaches it.
-    expect(liveSessionWebSocketClientMessageDtoSchema.safeParse(frame([18])).success).toBe(false)
-    expect(liveSessionWebSocketClientMessageDtoSchema.safeParse(frame([3, 18])).success).toBe(true)
-    expect(
-      (
-        await room.resolve(decision, {
-          kind: 'ENTER_DICE',
-          requestId: decision.pending.request.requestId,
-          rawFaces: [3, 18],
-          rollMode: 'ADVANTAGE'
-        })
-      ).type
-    ).toBe('COMMAND_COMMITTED')
+    const enter = (rawFaces: number[]) =>
+      room.resolve(decision, {
+        kind: 'ENTER_DICE',
+        requestId: decision.pending.request.requestId,
+        rawFaces,
+        rollMode: 'ADVANTAGE'
+      })
+    // The wire checks shape only; the System derives the face count, so the room refuses a forged one.
+    const before = await readRoomHistory(room.room.base.stub)
+    expect((await enter([18])).type).toBe('COMMAND_REJECTED')
+    expect(await readRoomHistory(room.room.base.stub)).toEqual(before)
+    expect((await enter([3, 18])).type).toBe('COMMAND_COMMITTED')
     expect(storedD20Evidence(await readRoomHistory(room.room.base.stub))).toEqual([
       expect.objectContaining({
         rawFaces: [3, 18],

@@ -11,11 +11,14 @@ import {
 import { EncounterValidationError } from '../encounterErrors.js'
 import { executeEncounterOptionalContestAction } from '../encounterOptionalContestActionExecution.js'
 import { createDnd5eContestGraph } from '../systems/dnd5e/optionalCombatContestGraph.js'
+import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
 import { SRD_SYSTEM_ID, createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
 const BLESS: D20AddedDieDto = { label: 'Bless', count: 1, faces: 4, sign: 'ADD' }
 const BANE: D20AddedDieDto = { label: 'Bane', count: 1, faces: 4, sign: 'SUBTRACT' }
 const CONTRIBUTORS = [{ id: 'a' }, { id: 'b' }]
+const keepOf = (rollMode: string) =>
+  rollModeCapabilityRegistry.rollModeKeep({ gameSystemId: SRD_SYSTEM_ID, rollMode })
 const noRandom = () => {
   throw new Error('This answer rolls nothing.')
 }
@@ -47,6 +50,7 @@ describe('freezeD20Context', () => {
   it('freezes the roller facts with their contributor checksum and names only present dice', () => {
     expect(
       freezeD20Context({
+        gameSystemId: SRD_SYSTEM_ID,
         rollMode: 'ADVANTAGE',
         contributors: CONTRIBUTORS,
         modifier: 3,
@@ -55,6 +59,7 @@ describe('freezeD20Context', () => {
       })
     ).toEqual({
       rollMode: 'ADVANTAGE',
+      keep: keepOf('ADVANTAGE'),
       contributors: CONTRIBUTORS,
       contributorChecksum: checksumRuleDocument(CONTRIBUTORS),
       modifier: 3
@@ -62,6 +67,7 @@ describe('freezeD20Context', () => {
     const minimumRoll = { amount: 15, label: 'Glibness', sourceEffectId: testUuid(701) }
     expect(
       freezeD20Context({
+        gameSystemId: SRD_SYSTEM_ID,
         rollMode: 'NORMAL',
         contributors: [],
         modifier: -1,
@@ -70,6 +76,7 @@ describe('freezeD20Context', () => {
       })
     ).toEqual({
       rollMode: 'NORMAL',
+      keep: keepOf('NORMAL'),
       contributors: [],
       contributorChecksum: checksumRuleDocument([]),
       modifier: -1,
@@ -84,7 +91,8 @@ describe('settleEncounterD20Answer', () => {
     const random = sequence(3, 1, 0)
     expect(
       settleEncounterD20Answer({
-        d20: { rollMode: 'ADVANTAGE', addedDice: [BLESS] },
+        gameSystemId: SRD_SYSTEM_ID,
+        d20: { rollMode: 'ADVANTAGE', keep: keepOf('ADVANTAGE'), addedDice: [BLESS] },
         answer: { kind: 'AUTO_ROLL', requestId: 'r' },
         rollD20: () => random(20) + 1,
         random
@@ -92,6 +100,7 @@ describe('settleEncounterD20Answer', () => {
     ).toEqual({
       rawFaces: [4, 2],
       rollMode: 'ADVANTAGE',
+      keep: keepOf('ADVANTAGE'),
       natural: 4,
       addedDice: [{ ...BLESS, rolledFaces: [1] }]
     })
@@ -100,7 +109,8 @@ describe('settleEncounterD20Answer', () => {
   it('keeps entered dice in the roller mode with their added faces', () => {
     expect(
       settleEncounterD20Answer({
-        d20: { rollMode: 'NORMAL', addedDice: [BLESS, BANE] },
+        gameSystemId: SRD_SYSTEM_ID,
+        d20: { rollMode: 'NORMAL', keep: keepOf('NORMAL'), addedDice: [BLESS, BANE] },
         answer: {
           kind: 'ENTER_DICE',
           requestId: 'r',
@@ -114,6 +124,7 @@ describe('settleEncounterD20Answer', () => {
     ).toEqual({
       rawFaces: [17, 9],
       rollMode: 'DISADVANTAGE',
+      keep: keepOf('DISADVANTAGE'),
       natural: 9,
       addedDice: [
         { ...BLESS, rolledFaces: [4] },
@@ -125,8 +136,14 @@ describe('settleEncounterD20Answer', () => {
   it('refuses an answer without a face for each added die', () => {
     expect(() =>
       settleEncounterD20Answer({
-        d20: { rollMode: 'NORMAL', addedDice: [BLESS] },
-        answer: { kind: 'ENTER_DICE', requestId: 'r', rollMode: 'NORMAL', rawFaces: [12] },
+        gameSystemId: SRD_SYSTEM_ID,
+        d20: { rollMode: 'NORMAL', keep: keepOf('NORMAL'), addedDice: [BLESS] },
+        answer: {
+          kind: 'ENTER_DICE',
+          requestId: 'r',
+          rollMode: 'NORMAL',
+          rawFaces: [12]
+        },
         rollD20: noRandom,
         random: noRandom
       })
@@ -138,6 +155,7 @@ describe('a two-d20 contest answer', () => {
   it('refuses added faces, since a contest rolls no added dice', async () => {
     const policy = {
       rollMode: 'NORMAL' as const,
+      keep: 'FIRST' as const,
       contributors: [],
       contributorChecksum: checksumRuleDocument([]),
       modifier: 2

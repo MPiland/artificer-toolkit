@@ -26,6 +26,7 @@ const gate = {
   d20: {
     requestId: 'request',
     rollMode: 'NORMAL',
+    keep: 'FIRST',
     derivedRollMode: 'NORMAL',
     rawFaces: [3],
     selectedNatural: 3,

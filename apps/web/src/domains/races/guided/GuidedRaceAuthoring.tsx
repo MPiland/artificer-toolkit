@@ -13,6 +13,8 @@ import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import { toGuidedRaceParentOptions } from './guidedRaceParents'
+import { toFeatures } from '#forms/guided/guidedValues'
+import { isRecord } from '#forms/utils/valueGuards'
 
 type GuidedRaceAuthoringProps = {
   onAdvanced: (() => void) | undefined
@@ -187,13 +189,13 @@ function Summary({ label, value }: { label: string; value: string }) {
 }
 
 function readRaceValues(values: object) {
-  const record = values as Record<string, unknown>
+  const record: Record<string, unknown> = isRecord(values) ? values : {}
   return {
     category:
       record.category === RACE_CATEGORY_CODE.SUBRACE
         ? RACE_CATEGORY_CODE.SUBRACE
         : RACE_CATEGORY_CODE.BASE,
-    features: Array.isArray(record.features) ? (record.features as FeatureDto[]) : [],
+    features: toFeatures(record.features),
     label: typeof record.label === 'string' ? record.label.trim() : '',
     parentRaceId: typeof record.parentRaceId === 'string' ? record.parentRaceId : ''
   }

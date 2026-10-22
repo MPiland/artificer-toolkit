@@ -1,4 +1,5 @@
 import { useLocalStorage } from '@mantine/hooks'
+import { findOption, isRecord } from '../forms/utils/valueGuards'
 
 export const DICE_SHADOW_QUALITIES = ['LOW', 'MEDIUM', 'HIGH'] as const
 
@@ -23,9 +24,9 @@ function deserializeDicePreferences(value: string | undefined): DicePresentation
 
   try {
     const parsed: unknown = JSON.parse(value)
-    if (!parsed || typeof parsed !== 'object') return DEFAULT_DICE_PRESENTATION_PREFERENCES
+    if (!isRecord(parsed)) return DEFAULT_DICE_PRESENTATION_PREFERENCES
 
-    const candidate = parsed as Record<string, unknown>
+    const candidate = parsed
     return {
       animate3d:
         typeof candidate.animate3d === 'boolean'
@@ -35,9 +36,9 @@ function deserializeDicePreferences(value: string | undefined): DicePresentation
         typeof candidate.postProcessing === 'boolean'
           ? candidate.postProcessing
           : DEFAULT_DICE_PRESENTATION_PREFERENCES.postProcessing,
-      shadowQuality: DICE_SHADOW_QUALITIES.includes(candidate.shadowQuality as DiceShadowQuality)
-        ? (candidate.shadowQuality as DiceShadowQuality)
-        : DEFAULT_DICE_PRESENTATION_PREFERENCES.shadowQuality
+      shadowQuality:
+        findOption(DICE_SHADOW_QUALITIES, candidate.shadowQuality) ??
+        DEFAULT_DICE_PRESENTATION_PREFERENCES.shadowQuality
     }
   } catch {
     return DEFAULT_DICE_PRESENTATION_PREFERENCES

@@ -122,6 +122,7 @@ async function settle(
     occurrenceId: OCCURRENCE_ID
   })
   const evaluated = await evaluateEncounterBasicActionCheck({
+    gameSystemId: SRD_SYSTEM_ID,
     runtime,
     context: prepared.context,
     continuation,

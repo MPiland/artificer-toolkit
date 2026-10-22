@@ -636,9 +636,10 @@ export async function readEncounterActionChoices(
   // The choices effects held by other creatures offer the actor, such as moving a mark off a downed
   // creature (D160).
   const effectOffers: EncounterActionChoicesDto['effectOffers'] = []
+  const effectsByHolder = await readActiveEffectsByActorId(tx, state.id, runActors)
   for (const offer of liveEffectOffers({
     actorId: actor.id,
-    effectsByHolder: await readActiveEffectsByActorId(tx, state.id, runActors),
+    effectsByHolder,
     zeroHitPointActorIds: await readZeroHitPointActorIds(tx, runActors)
   })) {
     const economy = await readEconomy({ code: offer.activation, amount: 1 })
@@ -649,15 +650,30 @@ export async function readEncounterActionChoices(
       activation: offer.activation,
       warnings: economy.warnings
     }
-    effectOffers.push(
-      offer.kind === 'MOVE_HELD_EFFECT'
-        ? { ...shared, kind: offer.kind, range: offer.range }
-        : {
-            ...shared,
-            kind: offer.kind,
-            actionId: repeatPathActionId(actor.id, offer.effectId, offer.offerIndex)
-          }
-    )
+    if (offer.kind === 'MOVE_HELD_EFFECT') {
+      effectOffers.push({ ...shared, kind: offer.kind, range: offer.range })
+      continue
+    }
+    const carrier = effectsByHolder
+      .get(offer.holderActorId)
+      ?.find(({ id }) => id === offer.effectId)?.definition
+    const grant =
+      carrier?.schemaVersion === 2
+        ? carrier.stateContributions.find((contribution) => contribution.kind === 'MODIFIER_GRANT')
+        : undefined
+    const { invocation } = offer.effect
+    effectOffers.push({
+      ...shared,
+      kind: offer.kind,
+      actionId: repeatPathActionId(actor.id, offer.effectId, offer.offerIndex),
+      label:
+        grant && !(grant.sourceHidden && membership.role !== 'OWNER')
+          ? grant.sourceLabel
+          : 'Repeat',
+      ...(offer.castLevel === undefined ? {} : { castLevel: offer.castLevel }),
+      ...('savingThrow' in invocation &&
+        invocation.savingThrow.dcMethod === 'FIXED_DC' && { dc: invocation.savingThrow.baseDc })
+    })
   }
   const attackActionThisTurn =
     openAttackAction && openAttackAction.turnSequence === state.turnSequence

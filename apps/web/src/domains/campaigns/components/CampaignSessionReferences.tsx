@@ -24,6 +24,7 @@ import {
   campaignSessionReferenceHref,
   type AuthoredReferenceTarget
 } from './campaignSessionReferences.model'
+import { findOption } from '../../../forms/utils/valueGuards'
 import * as sharedStyles from '../campaigns.css'
 import * as sessionsStyles from '../campaignSessions.css'
 
@@ -160,7 +161,9 @@ export function CampaignSessionReferences({
               { label: 'Authored record', value: 'AUTHORED_ROUTE' }
             ]}
             value={targetKind}
-            onChange={(value) => setTargetKind(value as typeof targetKind)}
+            onChange={(value) =>
+              setTargetKind(findOption(['CAMPAIGN_NOTE', 'AUTHORED_ROUTE'], value) ?? targetKind)
+            }
           />
           {targetKind === 'CAMPAIGN_NOTE' ? (
             <Stack gap='xs'>
@@ -193,7 +196,8 @@ export function CampaignSessionReferences({
                 value={routeSubjectKind}
                 onChange={(value) =>
                   setRouteSubjectKind(
-                    (value as AuthoredReferenceTarget['routeSubjectKind']) ?? 'CREATURE'
+                    authoredReferenceSubjectOptions.find((option) => option.value === value)
+                      ?.value ?? 'CREATURE'
                   )
                 }
               />

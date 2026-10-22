@@ -86,6 +86,7 @@ export function prepareEncounterCastReactionCheck<
   return {
     checkDefinitionId: definition.id,
     d20: freezeD20Context({
+      gameSystemId: input.gameSystemId,
       rollMode: d20.rollMode,
       contributors: d20.contributors,
       modifier: d20.modifier

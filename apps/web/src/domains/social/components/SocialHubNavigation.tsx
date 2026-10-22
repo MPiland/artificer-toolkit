@@ -1,6 +1,7 @@
 import { Button, Drawer, Tabs, UnstyledButton } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { Check, ChevronDown } from 'lucide-react'
+import { findOption } from '../../../forms/utils/valueGuards'
 import { socialViewLabels, socialViews, type SocialView } from '../socialModels'
 import * as styles from './SocialHubNavigation.css'
 
@@ -24,7 +25,8 @@ export function SocialHubNavigation({
         className={styles.desktopNavigation}
         value={view}
         onChange={(value) => {
-          if (socialViews.includes(value as SocialView)) selectView(value as SocialView)
+          const nextView = findOption(socialViews, value)
+          if (nextView) selectView(nextView)
         }}
       >
         <Tabs.List aria-label='Social Hub views'>

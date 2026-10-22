@@ -9,6 +9,7 @@ import {
   serverKernelRuleExecutionPendingSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionSpatial'
+import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { resolveEncounterMovementPassageChoice } from './encounterMovementPassageChoice.js'
 import { executeEncounterMovementPassageContest } from './encounterMovementPassageContest.js'
@@ -117,18 +118,18 @@ function receipt(input: {
   const movement = input.pending.origin.movementContinuation
   if (!economy || !movement) throw new Error('Movement passage allowance is unavailable.')
   const participant = (
-    policy: { rollMode: PassagePending['initiator']['rollMode']; modifier: number },
+    policy: {
+      rollMode: PassagePending['initiator']['rollMode']
+      keep: PassagePending['initiator']['keep']
+      modifier: number
+    },
     rawFaces: readonly number[],
     total: number
   ) => ({
     rollMode: policy.rollMode,
+    keep: policy.keep,
     rawFaces: [...rawFaces],
-    selectedNatural:
-      policy.rollMode === 'ADVANTAGE'
-        ? Math.max(...rawFaces)
-        : policy.rollMode === 'DISADVANTAGE'
-          ? Math.min(...rawFaces)
-          : rawFaces[0]!,
+    selectedNatural: rollModeKeptFace(policy.keep, rawFaces),
     modifier: policy.modifier,
     total
   })

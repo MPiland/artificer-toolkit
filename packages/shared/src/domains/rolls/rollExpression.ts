@@ -11,7 +11,11 @@ export type RollTransform =
   | { kind: 'DOUBLE' }
   | { kind: 'MULTIPLY'; value: number }
 
-export type RollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+/**
+ * A System roll-mode code; the evaluator still branches on the D&D codes until RULES-2.T9a2 replaces
+ * this with `keep`.
+ */
+export type RollMode = string
 export type RollSelection = {
   kind: 'DROP_HIGHEST' | 'DROP_LOWEST' | 'KEEP_HIGHEST' | 'KEEP_LOWEST'
   count: number

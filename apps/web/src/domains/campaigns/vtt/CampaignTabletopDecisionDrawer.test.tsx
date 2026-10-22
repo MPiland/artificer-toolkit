@@ -12,6 +12,7 @@ import {
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
+import { offeredRollModes } from '../../../test/offeredRollModes'
 import { validated } from '../../../test/validatedFixture'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
 import { tabletopGmEncounter } from './CampaignTabletop.stories.fixtures'
@@ -133,6 +134,8 @@ const d20Pending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)({
     min: 1,
     max: 20,
     rollMode: 'NORMAL' as const,
+    keep: 'FIRST' as const,
+    rollModes: offeredRollModes,
     derivedRollModeReasons: []
   },
   allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
@@ -686,6 +689,7 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
     request: {
       ...d20Pending.request,
       rollMode: 'ADVANTAGE' as const,
+      keep: 'HIGHER' as const,
       derivedRollModeReasons: ['Flanking', 'Reckless Attack']
     }
   })
@@ -700,6 +704,7 @@ describe('CampaignTabletopDecisionDrawer roll rows', () => {
       faces,
       value: Math.max(...faces),
       rollMode: 'ADVANTAGE',
+      keep: 'HIGHER',
       derivedRollMode: 'ADVANTAGE'
     }
   }
@@ -963,17 +968,20 @@ describe('CampaignTabletopDecisionDrawer contest check', () => {
     rollerActorId: tabletopGmEncounter.actors[1]!.id,
     actionLabel: 'Grapple',
     requestId: 'target_d20',
+    rollModes: offeredRollModes,
     checks: [
       {
         checkDefinitionId: '77777777-7777-4777-8777-777777777791',
         label: 'Strength (Athletics)',
         rollMode: 'NORMAL' as const,
+        keep: 'FIRST' as const,
         derivedRollModeReasons: []
       },
       {
         checkDefinitionId: '77777777-7777-4777-8777-777777777792',
         label: 'Dexterity (Acrobatics)',
         rollMode: 'ADVANTAGE' as const,
+        keep: 'HIGHER' as const,
         derivedRollModeReasons: ['Bless']
       }
     ],
@@ -988,6 +996,7 @@ describe('CampaignTabletopDecisionDrawer contest check', () => {
     faces: [6, 15],
     value: 15,
     rollMode: 'ADVANTAGE',
+    keep: 'HIGHER',
     derivedRollMode: 'ADVANTAGE'
   }
 
@@ -1050,6 +1059,8 @@ describe('CampaignTabletopDecisionDrawer area saves', () => {
     min: 1 as const,
     max: 20 as const,
     rollMode: 'NORMAL' as const,
+    keep: 'FIRST' as const,
+    rollModes: offeredRollModes,
     derivedRollModeReasons: []
   })
   // Not a contract-valid summary alone (no save, choice or caught creature); every derived area is parsed in openArea.

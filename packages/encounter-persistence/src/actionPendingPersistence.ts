@@ -12,6 +12,7 @@ import { encounterStoredRuleOccurrenceSchema } from '@artificer-toolkit/schema/p
 import { requireServerKernelRuleExecutionPendingSnapshot } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { encounterAreaCaughtSettled } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
+import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import {
   requireAreaActionAnswer,
   requireAreaActionForcedMovement,
@@ -305,7 +306,18 @@ export async function persistEncounterActionPending(
               pending: {
                 kind: 'D20_EVIDENCE',
                 // The receipt is a recipient-visible record, so it keeps what the roller was shown.
-                rollMode: evidence?.heldD20 ? 'NORMAL' : (evidence?.d20Belief ?? d20Policy).rollMode
+                ...(evidence?.heldD20
+                  ? {
+                      rollMode: 'NORMAL',
+                      keep: rollModeCapabilityRegistry.rollModeKeep({
+                        gameSystemId: state.gameSystemId,
+                        rollMode: 'NORMAL'
+                      })
+                    }
+                  : {
+                      rollMode: (evidence?.d20Belief ?? d20Policy).rollMode,
+                      keep: (evidence?.d20Belief ?? d20Policy).keep
+                    })
               }
             }
           : {})

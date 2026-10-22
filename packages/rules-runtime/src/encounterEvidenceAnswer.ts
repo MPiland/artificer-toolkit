@@ -1,8 +1,15 @@
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterSettledAppRollDto } from '@artificer-toolkit/schema/api/encounterData'
+import {
+  rollModeKeepFaceCount,
+  rollModeKeptFace,
+  type RollModeKeep
+} from '@artificer-toolkit/schema/shared/systemVocabularyCode'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 import { EncounterValidationError } from './encounterErrors.js'
 
-export type EncounterD20RollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+/** A code from the System's `rollMode` vocabulary; the faces a roll rolls follow its `keep`. */
+export type EncounterD20RollMode = string
 
 type ApiResolution = ResolveRuleOccurrenceInputDto['resolution']
 
@@ -14,6 +21,8 @@ export type EncounterAppRollAnswer = Extract<ApiResolution, { kind: 'SYSTEM_ROLL
   faces: readonly number[]
   /** The mode a d20 was rolled with; null for any other roll. */
   rollMode: EncounterD20RollMode | null
+  /** Which of `faces` a d20 counts; null exactly when `rollMode` is. */
+  keep: RollModeKeep | null
   /** The faces of a d20 test's added dice (D156), rolled with the d20. */
   addedFaces?: readonly number[]
 }
@@ -50,6 +59,7 @@ export function withEncounterAppRoll(
     ...resolution,
     faces: appRoll.faces,
     rollMode: appRoll.rollMode,
+    keep: appRoll.keep,
     ...(appRoll.addedFaces ? { addedFaces: appRoll.addedFaces } : {})
   }
 }
@@ -63,20 +73,57 @@ export type EncounterEvidenceAnswer =
   | { kind: 'AUTO_ROLL'; requestId: string }
 
 /**
- * The d20 faces an answer settles with and the mode that keeps one of them. The rules-derived mode
- * applies to an auto-roll; entered dice and app rolls keep the mode the roller chose.
+ * The mode entered dice are rolled under and the `keep` its System derives from it. A request offers
+ * the System's `rollMode` vocabulary, so a code outside it is refused.
+ */
+function enteredDiceMode(
+  gameSystemId: string,
+  answer: Extract<ApiResolution, { kind: 'ENTER_DICE' }>
+): { rollMode: EncounterD20RollMode; keep: RollModeKeep } {
+  const offered = rollModeCapabilityRegistry
+    .offeredRollModes(gameSystemId)
+    .find(({ code }) => code === answer.rollMode)
+  if (!offered)
+    throw new EncounterValidationError(
+      `The roll mode "${answer.rollMode}" is not offered for this request.`
+    )
+  return { rollMode: offered.code, keep: offered.keep }
+}
+
+/**
+ * The d20 faces an answer settles with and the mode and keep that choose one of them. The
+ * rules-derived mode applies to an auto-roll; entered dice and app rolls keep the mode the roller
+ * chose, and the System must derive their `keep` from that mode.
  */
 export function resolveEncounterD20Answer(input: {
-  derivedRollMode: EncounterD20RollMode
+  gameSystemId: string
+  derived: { rollMode: EncounterD20RollMode; keep: RollModeKeep }
   answer: EncounterEvidenceAnswer | EncounterResponseAnswer
   rollD20: () => number
-}): { faces: number[]; rollMode: EncounterD20RollMode; natural: number } {
+}): { faces: number[]; rollMode: EncounterD20RollMode; keep: RollModeKeep; natural: number } {
   const { answer } = input
   if (answer.kind !== 'ENTER_DICE' && answer.kind !== 'SYSTEM_ROLL' && answer.kind !== 'AUTO_ROLL')
     throw new EncounterValidationError('A d20 request needs d20 faces.')
-  const rollMode = answer.kind === 'AUTO_ROLL' ? input.derivedRollMode : answer.rollMode
-  if (rollMode === null) throw new EncounterValidationError('The app roll is not a d20 roll.')
-  const count = rollMode === 'NORMAL' ? 1 : 2
+  const { rollMode, keep } =
+    answer.kind === 'AUTO_ROLL'
+      ? input.derived
+      : answer.kind === 'ENTER_DICE'
+        ? enteredDiceMode(input.gameSystemId, answer)
+        : answer
+  if (rollMode === null || keep === null)
+    throw new EncounterValidationError('The app roll is not a d20 roll.')
+  if (answer.kind === 'SYSTEM_ROLL') {
+    try {
+      rollModeCapabilityRegistry.requireKeep({ gameSystemId: input.gameSystemId, rollMode, keep })
+    } catch (error) {
+      throw new EncounterValidationError(
+        error instanceof Error ? error.message : 'The d20 keep does not match its roll mode.'
+      )
+    }
+  }
+  const count = rollModeKeepFaceCount(keep)
+  if (answer.kind === 'ENTER_DICE' && answer.rawFaces.length !== count)
+    throw new EncounterValidationError('The face count must match the faces the roll mode keeps.')
   const faces =
     answer.kind === 'AUTO_ROLL'
       ? Array.from({ length: count }, input.rollD20)
@@ -88,7 +135,7 @@ export function resolveEncounterD20Answer(input: {
     faces.some((face) => !Number.isSafeInteger(face) || face < 1 || face > 20)
   )
     throw new EncounterValidationError('The d20 evidence is invalid.')
-  return { faces, rollMode, natural: selectEncounterActionD20Natural(rollMode, faces) }
+  return { faces, rollMode, keep, natural: rollModeKeptFace(keep, faces) }
 }
 
 /** The integer an answer settles an integer-range request with. */
@@ -118,7 +165,10 @@ export function resolveEncounterIntegerAnswer(input: {
   return value
 }
 
-/** The kept face: the higher with advantage, the lower with disadvantage. */
+/**
+ * The kept face for a roll mode of the installed System. Held-d20 code and the roll log still
+ * read a D&D roll-mode word (RULES-2.T9a2); rule-execution d20s use `rollModeKeptFace`.
+ */
 export function selectEncounterActionD20Natural(
   rollMode: EncounterD20RollMode,
   faces: readonly number[]

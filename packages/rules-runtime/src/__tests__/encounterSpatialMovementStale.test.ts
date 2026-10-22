@@ -89,7 +89,12 @@ function evaluate(options: Evaluation = {}) {
   const resolution =
     context?.currentCandidate.diceStage && request?.kind === 'INTEGER_RANGE'
       ? { kind: 'ENTER_INTEGER' as const, requestId, value: request.min }
-      : { kind: 'ENTER_DICE' as const, requestId, rawFaces: [1], rollMode: 'NORMAL' as const }
+      : {
+          kind: 'ENTER_DICE' as const,
+          requestId,
+          rawFaces: [1],
+          rollMode: 'NORMAL' as const
+        }
   return evaluateEncounterSpatialMovementRuleBatch({
     actorUserId: GM_USER_ID,
     autoRoll: {},

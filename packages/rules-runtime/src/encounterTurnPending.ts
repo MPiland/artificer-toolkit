@@ -3,6 +3,7 @@ import {
   type EncounterRollModeReasons
 } from './encounterRollModeReasons.js'
 import { spatialPendingRollerActorId } from './encounterSpatialPendingRoller.js'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
 import {
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
   type PendingEncounterRuleOccurrenceSummaryDto
@@ -73,6 +74,7 @@ export function requireDeathSavePending(snapshot: ServerRuleExecutionPendingSnap
 }
 
 function projectNativeDeathSavePending(input: {
+  gameSystemId: string
   snapshot: ServerRuleExecutionPendingSnapshotDto
   occurrenceId: string
   occurrenceVersion: number
@@ -102,6 +104,11 @@ function projectNativeDeathSavePending(input: {
       min: 1,
       max: 20,
       rollMode: 'NORMAL',
+      keep: rollModeCapabilityRegistry.rollModeKeep({
+        gameSystemId: input.gameSystemId,
+        rollMode: 'NORMAL'
+      }),
+      rollModes: rollModeCapabilityRegistry.offeredRollModes(input.gameSystemId),
       derivedRollModeReasons: [],
       ...(context.candidate.addedDice.length ? { addedDice: context.candidate.addedDice } : {})
     },
@@ -139,6 +146,7 @@ function projectNativeRechargePending(input: {
 }
 
 export function projectNativeLegendaryPending(input: {
+  gameSystemId: string
   snapshot: ServerRuleExecutionPendingSnapshotDto
   occurrenceId: string
   occurrenceVersion: number
@@ -192,6 +200,8 @@ export function projectNativeLegendaryPending(input: {
             min: 1,
             max: 20,
             rollMode: d20Policy.rollMode,
+            keep: d20Policy.keep,
+            rollModes: rollModeCapabilityRegistry.offeredRollModes(input.gameSystemId),
             derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
               rollMode: d20Policy.rollMode,
               contributors: d20Policy.contributors
@@ -232,6 +242,8 @@ export function projectNativeTurnPending(
         min: 1,
         max: 20,
         rollMode: context.currentCandidate.d20Policy.rollMode,
+        keep: context.currentCandidate.d20Policy.keep,
+        rollModes: rollModeCapabilityRegistry.offeredRollModes(input.gameSystemId),
         derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
           rollMode: context.currentCandidate.d20Policy.rollMode,
           contributors: context.currentCandidate.d20Policy.contributors
@@ -274,6 +286,8 @@ export function projectNativeTurnPending(
               min: 1,
               max: 20,
               rollMode: candidate.d20Policy.rollMode,
+              keep: candidate.d20Policy.keep,
+              rollModes: rollModeCapabilityRegistry.offeredRollModes(input.gameSystemId),
               derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
                 rollMode: candidate.d20Policy.rollMode,
                 contributors: candidate.d20Policy.contributors

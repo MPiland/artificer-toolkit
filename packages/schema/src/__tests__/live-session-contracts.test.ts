@@ -668,7 +668,15 @@ describe('live-session contracts', () => {
       encounterId: ids.session,
       encounterVersion: 4,
       targets: [
-        { actorId: ids.user, attack: { reasons: ['Long range'], rollMode: 'DISADVANTAGE' } },
+        {
+          actorId: ids.user,
+          attack: {
+            reasons: ['Long range'],
+            rollMode: 'DISADVANTAGE',
+            rollModeLabel: 'Disadvantage',
+            keep: 'LOWER'
+          }
+        },
         { actorId: ids.session, attack: null }
       ]
     }
@@ -680,13 +688,19 @@ describe('live-session contracts', () => {
         version: 4
       }).type
     ).toBe('ENCOUNTER_READ_RESULT')
-    // The true roll mode is never part of the answer: only the three player-facing modes parse.
-    expect(
+    // The wire checks code shape only; the System vocabulary decides which modes exist.
+    const attackWithMode = (rollMode: string) =>
       encounterActionTargetModifiersDtoSchema.safeParse({
         ...modifiers,
-        targets: [{ actorId: ids.user, attack: { reasons: [], rollMode: 'AUTO_HIT' } }]
+        targets: [
+          {
+            actorId: ids.user,
+            attack: { reasons: [], rollMode, rollModeLabel: 'Auto hit', keep: 'FIRST' }
+          }
+        ]
       }).success
-    ).toBe(false)
+    expect(attackWithMode('AUTO_HIT')).toBe(true)
+    expect(attackWithMode('auto_hit')).toBe(false)
   })
 
   it('preserves existing authentication and transient server messages', () => {

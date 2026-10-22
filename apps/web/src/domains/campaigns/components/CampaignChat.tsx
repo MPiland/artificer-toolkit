@@ -11,6 +11,7 @@ import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCo
 import { getCampaignConversations } from '#app/data/campaigns/queries'
 import { useCampaignChatHistory } from '#app/data/campaigns/useCampaignChatHistory'
 import { getRollHistory } from '#app/data/rolls'
+import { findOption } from '#app/forms/utils/valueGuards'
 import { errorMessage } from '#app/lib/errorMessage'
 import { useCampaignChatRoom } from '../vtt/useCampaignChatRoom'
 import { CampaignChatHistory } from './CampaignChatHistory'
@@ -281,7 +282,7 @@ export function CampaignChat({
               size='xs'
               value={mode}
               onChange={(value) => {
-                const nextMode = (value as typeof mode) ?? 'OOC'
+                const nextMode = findOption(['OOC', 'ROLEPLAY'], value) ?? 'OOC'
                 setMode(nextMode)
                 window.localStorage.setItem(chatModeKey, nextMode)
               }}

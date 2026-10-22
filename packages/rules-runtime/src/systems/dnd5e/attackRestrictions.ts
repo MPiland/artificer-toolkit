@@ -6,7 +6,7 @@ import type { EnemyProximity } from '../../encounterEnemyProximity.js'
 import type { MoveToward } from '../../encounterMoveToward.js'
 import { dnd5eItemRequirementsMet, type Dnd5eAttackingItem } from './modifierApplicability.js'
 
-export type Dnd5eAttackRollMode = 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+export type Dnd5eAttackRollMode = string
 
 /** What an attack decides when it rolls, which its path restrictions are held against. */
 export type Dnd5eAttackCircumstances = {

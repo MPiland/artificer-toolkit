@@ -42,7 +42,10 @@ import {
   dnd5eOutcomeDefinition,
   type Dnd5eRegisteredOutcome
 } from '../systems/dnd5e/effectActionOutcomes.js'
-import { dnd5ePathGatedTargetProposalOperations } from '../systems/dnd5e/effectActionOperationRegistry.js'
+import {
+  dnd5ePathGatedTargetProposalOperations,
+  dnd5eTestDamageProposalOperation
+} from '../systems/dnd5e/effectActionOperationRegistry.js'
 import { executionTeleportAllowance } from '../systems/dnd5e/teleportAllowance.js'
 import {
   ACTION_EFFECT_ID,
@@ -454,4 +457,20 @@ describe('outcomes under a test (RULES-2.T6c2)', () => {
       expect(commits(other.execution)).toBe(false)
     }
   )
+})
+
+describe('a path-gated damage proposal (RULES-2.T6d2)', () => {
+  // SRD: "half as much damage on a successful one" — half of a rolled 1 rounds down to 0.
+  it('proposes the 0 damage a made save leaves of a halved roll of 1', () => {
+    expect(
+      dnd5eTestDamageProposalOperation.execute({
+        targetActorId: TARGET_ID,
+        resolvedPath: 'ON_SAVE_SUCCESS',
+        authoredPath: 'ON_SAVE_SUCCESS',
+        targetStateChecksum: 'a'.repeat(64),
+        amount: 0,
+        damageTypeId: 'poison'
+      })
+    ).toMatchObject({ authorized: true, applicationCandidate: true, amount: 0 })
+  })
 })

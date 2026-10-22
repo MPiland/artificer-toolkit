@@ -9,6 +9,7 @@ import type { MaintenanceLinkCapabilityAdapter } from './maintenanceLinkCapabili
 import type { SavingThrowCapabilityAdapter } from './savingThrowCapability.js'
 import { createRollModeCapabilityRegistry } from './rollModeCapabilityRegistry.js'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
+import { createSystemVocabularyRegistry } from './systemVocabularyCapability.js'
 import { dnd5eAbilityScoreCapabilityAdapter } from './systems/dnd5e/abilityModifier.js'
 import { dnd5eActionEconomyCapabilityAdapter } from './systems/dnd5e/actionEconomyPolicy.js'
 import { dnd5eCharacterActionCapabilityAdapter } from './systems/dnd5e/characterActionCapabilityDiscovery.js'
@@ -20,12 +21,18 @@ import { dnd5eCreatureConditionCapabilityAdapter } from './systems/dnd5e/identit
 import { dnd5ePolicyModuleRegistration } from './systems/dnd5e/policyModuleRegistration.js'
 import { dnd5eRollModeCapabilityAdapter } from './systems/dnd5e/rollModePolicy.js'
 import { dnd5eSavingThrowCapabilityAdapter } from './systems/dnd5e/savingThrowPolicy.js'
+import { dnd5eVocabularyCapabilityAdapter } from './systems/dnd5e/vocabulary.js'
 
 const installedRuntimeModules = [dnd5ePolicyModuleRegistration] as const
 
-export const rollModeCapabilityRegistry = createRollModeCapabilityRegistry([
-  dnd5eRollModeCapabilityAdapter
+export const systemVocabularyRegistry = createSystemVocabularyRegistry([
+  dnd5eVocabularyCapabilityAdapter
 ])
+
+export const rollModeCapabilityRegistry = createRollModeCapabilityRegistry(
+  [dnd5eRollModeCapabilityAdapter],
+  systemVocabularyRegistry
+)
 
 export const combatPerceptionCapabilityRegistry =
   createSystemCapabilityRegistry<CombatPerceptionCapabilityAdapter>('combat-perception', [

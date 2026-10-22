@@ -1,4 +1,5 @@
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemVocabularyCode'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import type { MaintenanceLinkHook } from './events/encounterEventTable.js'
@@ -8,7 +9,9 @@ export type MaintenanceLinkSaveFacts = {
   /** The dice the holder rolls with the save (D156). */
   addedDice: readonly D20AddedDieDto[]
   facts: Record<string, string | number | boolean>
-  rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'
+  /** A code from the System's `rollMode` vocabulary, with the face its adapter keeps. */
+  rollMode: string
+  keep: RollModeKeep
   modifier: number
   contributors: ReadonlyArray<ReceiptD20ContributorDto>
   contributorChecksum: string
