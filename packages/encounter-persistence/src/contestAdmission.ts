@@ -281,13 +281,15 @@ export async function readContestAdmission(
     response && occurrence
       ? await readEncounterSettledAppRoll(ctx, { occurrence, response, userId })
       : null
+  // A won contest's outcome dice may also be entered as a total; its d20 phases still refuse one (D173).
   if (
     response &&
     response.resolution.kind !== 'ENTER_DICE' &&
+    response.resolution.kind !== 'ENTER_INTEGER' &&
     response.resolution.kind !== 'SYSTEM_ROLL' &&
     response.resolution.kind !== 'CONTEST_CHECK'
   )
-    throw new Error('A contest participant answers with d20 evidence.')
+    throw new Error('A contest participant answers with its roll evidence.')
   return {
     ...scope,
     kind: 'READY' as const,

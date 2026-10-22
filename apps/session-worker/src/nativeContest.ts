@@ -20,6 +20,7 @@ import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/sche
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { serverRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
+import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { prepareEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
@@ -58,7 +59,13 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
-import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import {
+  withEncounterAppRoll,
+  type EncounterEvidenceAnswer
+} from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { requireActionContinuation } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
+import { resumeEncounterD20 } from '@artificer-toolkit/rules-runtime/encounterD20AddedDice'
+import { actionResponse } from '@artificer-toolkit/rules-runtime/encounterD20Settlement'
 import { planEncounterMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { resolveEncounterActionPhaseExecution } from '@artificer-toolkit/rules-runtime/encounterActionPhaseExecution'
 import type { CharacterRuleActionApplication } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
@@ -205,36 +212,78 @@ function planNativeContestTargetMechanics(
 
 /**
  * What a won basic action contest whose win is its picked outcome (Shove, D105) settles on its
- * target: the sealed ON_CHECK_SUCCESS graph run on the prepared facts, its conditions applied here
- * and in Convex, and its forced movements landed on the Scene in the commit (D157).
+ * target: the sealed ON_CHECK_SUCCESS graph run on the prepared facts, its dice rolled by the
+ * initiator in the action roll window, every application in one mechanics batch here and in Convex,
+ * and its forced movements landed on the Scene in the commit (D157, D173). An initiator who rolls
+ * their own dice leaves the outcome PENDING on its paused continuation.
  */
 async function planNativeContestOutcome(
-  input: ContestWin & { execution: ContestRolls['execution']; runtime: RulesRuntimeService }
+  input: ContestWin & {
+    execution: ContestRolls['execution']
+    runtime: RulesRuntimeService
+    autoRoll: boolean
+    /** The initiator's answer to the outcome's paused dice request, once given. */
+    answered: {
+      continuation: ServerRuleExecutionContinuationDto
+      answer: EncounterEvidenceAnswer
+    } | null
+    random(maximum: number): number
+  }
 ) {
-  const { prepared, occurrenceId } = input
+  const { prepared, occurrenceId, runtime } = input
   const { adapter, plan, binding } = prepared
-  // The compiler admits only a condition or a forced movement as a contest outcome, which no
-  // scaling fact specializes.
+  if (plan.kind !== 'TEST_OUTCOME') throw new Error('The contest win outcome is unavailable.')
   const outcome = resolveEncounterActionPhaseExecution({
     plan,
     phase: 'TEST',
     execution: input.execution,
     adapter,
-    facts: {},
+    facts: adapter.bindFacts({ ...binding, published: plan.test.published }).facts,
     testRollMode: 'NORMAL',
     effectivePath: 'ON_CHECK_SUCCESS'
   })
   if (outcome.kind !== 'OUTCOME') throw new Error('The contest win outcome is unavailable.')
   const { published } = outcome.outcome
-  const execution = await input.runtime.executeResolved({
-    command: {
-      definitionId: published.id,
+  const { facts } = adapter.bindFacts({ ...binding, published })
+  const answer = (
+    continuation: ServerRuleExecutionContinuationDto,
+    resolution: EncounterEvidenceAnswer
+  ) => {
+    const response = actionResponse({
+      gameSystemId: published.gameSystemId,
+      continuation,
+      policy: null,
+      resolution,
+      random: input.random
+    })
+    return resumeEncounterD20({
+      continuation,
+      natural: response.value,
+      addedDice: response.addedDice,
+      resume: (step) => runtime.resume(step)
+    })
+  }
+  if (input.answered)
+    requireActionContinuation({
+      continuation: input.answered.continuation,
       occurrenceId,
-      facts: adapter.bindFacts({ ...binding, published }).facts
-    },
-    published
-  })
-  if (execution.status === 'PAUSED') throw new Error('A contest win outcome rolls no dice.')
+      published,
+      facts
+    })
+  let execution = input.answered
+    ? await answer(input.answered.continuation, input.answered.answer)
+    : await runtime.executeResolved({
+        command: { definitionId: published.id, occurrenceId, facts },
+        published
+      })
+  while (execution.status === 'PAUSED') {
+    if (!input.autoRoll) return { kind: 'PENDING' as const, continuation: execution.continuation }
+    execution = await answer(execution.continuation, {
+      kind: 'AUTO_ROLL',
+      requestId: execution.continuation.request.requestId
+    })
+  }
+  if (execution.status !== 'COMPLETE') throw new Error('The contest win outcome did not settle.')
   const applications = adapter.interpret({
     execution,
     occurrenceId,
@@ -246,40 +295,31 @@ async function planNativeContestOutcome(
     defenses: binding.defenses,
     conditionImmunityIds: binding.conditionImmunityIds
   })
-  const conditionApplications = applications.flatMap((application) =>
-    application.kind === 'CONDITION_APPLY' ? [application] : []
-  )
-  if (conditionApplications.length !== applications.length)
-    throw new Error('A contest win outcome applies only conditions.')
   const forcedMovements = interpretForcedMovements(prepared, {
     execution,
     occurrenceId,
     published,
     targetActorId: prepared.target.id
   })
-  const [movement, ...more] = forcedMovements
-  if (more.length || (movement && conditionApplications.length))
-    throw new Error('A contest win outcome is one condition or one forced movement.')
-  const mechanics = planNativeContestTargetMechanics(input, conditionApplications)
+  const mechanics = applications.length
+    ? planNativeContestTargetMechanics(input, applications)
+    : null
   return {
-    actor: mechanics.updatedActor,
-    conditionApplications,
+    kind: 'SETTLED' as const,
+    actor: mechanics?.updatedActor ?? prepared.target,
     forcedMovements,
-    stateTransition: movement
-      ? {
-          kind: 'FORCED_MOVEMENT' as const,
-          direction: movement.direction,
-          feet: movement.feet,
-          upTo: movement.upTo
-        }
-      : {
-          kind: 'CONDITIONS_APPLIED' as const,
-          appliedConditionIds: mechanics.receiptApplications.flatMap((application) =>
-            application.kind === 'CONDITION_APPLY' && application.applied
-              ? [application.conditionId]
-              : []
-          )
-        }
+    stateTransition: {
+      kind: 'TARGET_OUTCOME' as const,
+      mechanics: mechanics && {
+        targetTransition: mechanics.targetTransition,
+        applications: mechanics.receiptApplications
+      },
+      forcedMovements: forcedMovements.map(({ direction, feet, upTo }) => ({
+        direction,
+        feet,
+        upTo
+      }))
+    }
   }
 }
 
@@ -721,13 +761,42 @@ export async function planNativeLiveContestRolls(input: {
     contest.origin.kind === 'OPTIONAL_COMBAT' ? (prepared?.attackSight ?? null) : null
   const pending = ready.snapshot
   const response = command.type === 'RESOLVE_RULE_OCCURRENCE' ? command : null
-  const resumed =
+  const answered =
     response && pending && priorContext
+      ? (() => {
+          const {
+            snapshotKind: _snapshotKind,
+            applicationContext: _applicationContext,
+            optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
+            phaseReceipts: _phaseReceipts,
+            deferredCleaving: _deferredCleaving,
+            ...continuation
+          } = pending
+          // An app roll settles with the faces Convex recorded for it, never client-supplied values.
+          return { continuation, answer: withEncounterAppRoll(response.resolution, ready.appRoll) }
+        })()
+      : null
+  // A won contest's outcome pauses on its own graph once both checks settled (D173); it can share
+  // the contest's definition id, so its checksum tells the two apart.
+  const outcomeAnswered =
+    answered && answered.continuation.graph.source.checksum !== preparation.published.checksum
+      ? (() => {
+          const { continuation, answer } = answered
+          if (
+            answer.kind !== 'ENTER_DICE' &&
+            answer.kind !== 'ENTER_INTEGER' &&
+            answer.kind !== 'SYSTEM_ROLL'
+          )
+            throw new EncounterValidationError('A contest outcome answers with its dice.')
+          return { continuation, answer }
+        })()
+      : null
+  const resumed =
+    answered && pending && priorContext && !outcomeAnswered
       ? (() => {
           const participant: 'INITIATOR' | 'DEFENDER' =
             pending.request.nodeId === contest.initiator.requestNodeId ? 'INITIATOR' : 'DEFENDER'
-          // An app roll settles with the faces Convex recorded for it, never client-supplied values.
-          const answer = withEncounterAppRoll(response.resolution, ready.appRoll)
+          const { continuation, answer } = answered
           // A defender offered several checks picks one and rolls it in one answer (D152).
           const picksCheck = participant === 'DEFENDER' && contestDefenderPicksCheck(contest)
           if (picksCheck !== (answer.kind === 'CONTEST_CHECK'))
@@ -740,14 +809,6 @@ export async function planNativeLiveContestRolls(input: {
             answer.kind === 'CONTEST_CHECK' ? answer.roll : answer,
             'A contest requires d20 evidence.'
           )
-          const {
-            snapshotKind: _snapshotKind,
-            applicationContext: _applicationContext,
-            optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
-            phaseReceipts: _phaseReceipts,
-            deferredCleaving: _deferredCleaving,
-            ...continuation
-          } = pending
           return {
             participant,
             continuation,
@@ -769,7 +830,8 @@ export async function planNativeLiveContestRolls(input: {
           }
         })()
       : null
-  if (response && !resumed) throw new Error('The contest answer is unavailable.')
+  if (response && !resumed && !outcomeAnswered)
+    throw new Error('The contest answer is unavailable.')
   const {
     checkDefinitionId: defenderCheckDefinitionId,
     label: _label,
@@ -811,6 +873,33 @@ export async function planNativeLiveContestRolls(input: {
       : {})
   })
   const planned = { ...scope, command, revisions: input.revisions }
+  // The contest waits on the roller's answer to `continuation`'s request, its rolls so far sealed.
+  const pendingContest = (
+    continuation: ServerRuleExecutionContinuationDto,
+    rolled: Pick<ContestPendingContext, 'rollerActorId' | 'd20Belief' | 'heldD20'>
+  ) => ({
+    kind: 'PENDING' as const,
+    input: liveSessionEncounterContestPendingInputSchema.parse({
+      ...planned,
+      snapshot: serverRuleExecutionPendingSnapshotDtoSchema.parse({
+        ...continuation,
+        snapshotKind: 'KERNEL_EVIDENCE',
+        optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+        applicationContext: {
+          kind: 'ENCOUNTER_ACTION',
+          schemaVersion: 1,
+          commandJson: JSON.stringify(root),
+          commandFingerprint: ready.fingerprint,
+          initiatorUserId: ready.initiatorUserId,
+          currentnessChecksum: checksumRuleDocument({ actor, target, sceneContext, contest }),
+          d20Policy: null,
+          twoPhase: null,
+          contest,
+          ...rolled
+        }
+      })
+    })
+  })
   if (execution.kind === 'PENDING') {
     // The answered participant's settled faces stay with the contest, unless a held die waits for one more.
     if (resumed && !execution.held)
@@ -832,32 +921,12 @@ export async function planNativeLiveContestRolls(input: {
             believedSight: attackSight.believedSight
           })
         : null
-    return {
-      kind: 'PENDING' as const,
-      input: liveSessionEncounterContestPendingInputSchema.parse({
-        ...planned,
-        snapshot: serverRuleExecutionPendingSnapshotDtoSchema.parse({
-          ...execution.continuation,
-          snapshotKind: 'KERNEL_EVIDENCE',
-          optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
-          applicationContext: {
-            kind: 'ENCOUNTER_ACTION',
-            schemaVersion: 1,
-            commandJson: JSON.stringify(root),
-            commandFingerprint: ready.fingerprint,
-            initiatorUserId: ready.initiatorUserId,
-            rollerActorId:
-              execution.participant === 'INITIATOR' ? contest.initiator.actorId : defender.actorId,
-            currentnessChecksum: checksumRuleDocument({ actor, target, sceneContext, contest }),
-            d20Policy: null,
-            twoPhase: null,
-            contest,
-            ...(d20Belief ? { d20Belief } : {}),
-            ...(execution.held ? { heldD20: execution.held } : {})
-          }
-        })
-      })
-    }
+    return pendingContest(execution.continuation, {
+      rollerActorId:
+        execution.participant === 'INITIATOR' ? contest.initiator.actorId : defender.actorId,
+      ...(d20Belief ? { d20Belief } : {}),
+      ...(execution.held ? { heldD20: execution.held } : {})
+    })
   }
   if (resumed)
     record(
@@ -865,7 +934,8 @@ export async function planNativeLiveContestRolls(input: {
       resumed.resolution.requestId,
       (resumed.participant === 'INITIATOR' ? execution.initiator : execution.defender).rawFaces
     )
-  else
+  // An answer to a won contest's outcome dice finds both checks already recorded.
+  else if (!outcomeAnswered)
     for (const [participant, roll] of [
       ['INITIATOR', execution.initiator],
       ['DEFENDER', execution.defender]
@@ -914,9 +984,15 @@ export async function planNativeLiveContestRolls(input: {
       ? await planNativeContestOutcome({
           ...win,
           execution: execution.execution,
-          runtime: input.runtime
+          runtime: input.runtime,
+          autoRoll: ready.autoRollByActorId[contest.initiator.actorId] === true,
+          answered: outcomeAnswered,
+          random: input.random
         })
       : null
+  // The initiator rolls the won outcome's dice in the action roll window (D173).
+  if (outcome?.kind === 'PENDING')
+    return pendingContest(outcome.continuation, { rollerActorId: contest.initiator.actorId })
   const settledTarget =
     success?.kind === 'CREATURE' ? success.actor : (hold?.actor ?? outcome?.actor ?? target)
   // A won escape frees its source from the holding effect and the conditions only it held.
@@ -1002,7 +1078,6 @@ export async function planNativeLiveContestRolls(input: {
         }).ended
       ],
       createdEffect: hold?.record ?? null,
-      conditionApplications: outcome?.conditionApplications ?? [],
       forcedMovements: outcome?.forcedMovements ?? [],
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',

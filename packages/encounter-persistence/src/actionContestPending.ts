@@ -33,17 +33,34 @@ export async function readNativeContestPending(
         contest.actionId !== command.actionId ||
         contest.targetActorId !== actionTargetActorId(command.target)) ||
     contest.sourceActorId !== command.actorId ||
-    snapshot.graph.source.definitionId !== contest.contestGraph.definitionId ||
-    snapshot.graph.source.checksum !== contest.contestGraph.checksum ||
     snapshot.request.kind !== 'INTEGER_RANGE' ||
-    snapshot.request.min !== 1 ||
-    snapshot.request.max !== 20 ||
     contest.initiator.requestNodeId !== 'initiator_d20' ||
     contest.defender.requestNodeId !== 'target_d20' ||
     context.d20Policy !== null ||
     context.twoPhase !== null ||
     snapshot.phaseReceipts !== undefined
   )
+    throw new Error('Stored action contest context is invalid.')
+  // A won basic action contest's outcome waits on its initiator's dice, both checks rolled (D173).
+  if (
+    snapshot.graph.source.definitionId !== contest.contestGraph.definitionId ||
+    snapshot.graph.source.checksum !== contest.contestGraph.checksum
+  ) {
+    if (
+      origin?.kind !== 'BASIC_ACTION' ||
+      contest.rollEvidence.initiator === null ||
+      contest.rollEvidence.defender === null
+    )
+      throw new Error('Stored action contest outcome evidence is invalid.')
+    return {
+      ...pending,
+      contest,
+      participant: 'OUTCOME' as const,
+      policy: null,
+      rollerActorId: contest.initiator.actorId
+    }
+  }
+  if (snapshot.request.min !== 1 || snapshot.request.max !== 20)
     throw new Error('Stored action contest context is invalid.')
   const participant =
     snapshot.request.nodeId === 'initiator_d20'
@@ -61,7 +78,7 @@ export async function readNativeContestPending(
     throw new Error('Stored action contest participant evidence is invalid.')
   const policy =
     participant === 'INITIATOR' ? contest.initiator : contestDefenderPolicy(contest.defender, null)
-  return { ...pending, contest, participant, policy }
+  return { ...pending, contest, participant, policy, rollerActorId: policy.actorId }
 }
 
 /** Shared by the pending query and the response guard so their audience cannot diverge. */
@@ -79,7 +96,7 @@ export async function projectNativeContestPendingForMember(
     )
   if (membership.role === 'OWNER') return project()
   const actor = (await readRunActors(ctx, readRunState(run))).find(
-    (entry) => entry.id === pending.policy.actorId
+    (entry) => entry.id === pending.rollerActorId
   )
   return actor && (await readEncounterActorControl(ctx, { campaign, membership, actor }))
     ? project()

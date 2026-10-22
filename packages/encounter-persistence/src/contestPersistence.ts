@@ -169,9 +169,9 @@ export async function persistEncounterContestPending(
         occurrenceId: stored.id,
         occurrenceVersion,
         request: snapshot.request,
-        // A defender that picks its check is asked for no single d20 (D152).
+        // A defender that picks its check, or a won outcome's dice, is asked for no single d20 (D152).
         pending:
-          participant === 'DEFENDER' && contestDefenderPicksCheck(contest)
+          !policy || (participant === 'DEFENDER' && contestDefenderPicksCheck(contest))
             ? null
             : { kind: 'D20_EVIDENCE', rollMode: policy.rollMode, keep: policy.keep }
       })
@@ -199,7 +199,8 @@ export async function persistEncounterContestCommit(
       : null
   const occurrenceVersion = occurrence ? occurrence.version + 1 : 0
   // A won basic action contest holds its target (Grapple) or runs its picked outcome (Shove, D105).
-  const pickedOutcome = input.conditionApplications.length > 0 || input.forcedMovements.length > 0
+  const pickedOutcome =
+    outputs?.stateTransition.kind === 'TARGET_OUTCOME' || input.forcedMovements.length > 0
   const settlesWin = input.createdEffect !== null || pickedOutcome
   if (
     execution.status !== 'COMPLETE' ||
@@ -301,7 +302,7 @@ export async function persistEncounterContestCommit(
     actionEconomy: outputs.actionEconomyTransition,
     attackAction: outputs.attackActionTransition ?? null,
     createdEffect: input.createdEffect,
-    conditionApplications: input.conditionApplications,
+    plannedStateTransition: outputs.stateTransition,
     forcedMovements: input.forcedMovements,
     campaign,
     applyMechanics: callbacks.applyMechanics,

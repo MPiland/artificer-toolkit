@@ -3168,15 +3168,6 @@ function supported(
   if (supportsHitPointPoolArea && outcome.effectKind !== 'CONDITION')
     unsupported('D&D hit-point pool area outcome must be a timed condition.')
   if (
-    contestAction &&
-    outcome.effectKind !== 'ACTOR_RELATIONSHIP' &&
-    outcome.effectKind !== 'CONDITION' &&
-    outcome.effectKind !== 'FORCED_MOVEMENT'
-  )
-    unsupported(
-      'D&D contest check action outcome must be an actor relationship, a condition or a forced movement.'
-    )
-  if (
     checkAction &&
     !contestAction &&
     outcome.effectKind !== 'STABILIZE' &&

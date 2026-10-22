@@ -59,7 +59,7 @@ The 20 refusals at site 4453:
 | G1  | The test activation check refused `FREE` outright, but the shape check accepts `FREE` with a charge | Done in T6e                                        |
 | G2  | A direct entry authored as a sequence of one outcome was refused, but a single result passes        | Done in T6e                                        |
 | G3  | The list gate refuses condition, kill, target-only, teleport allowance, conceal and cancel outcomes | Done in RULES-2.T6e2                               |
-| G4  | A contest refuses outcomes other than a relationship, a condition or forced movement                | RULES-2.T6e3                                       |
+| G4  | A contest refuses outcomes other than a relationship, a condition or forced movement                | Done in RULES-2.T6e3                               |
 | G5  | A non-contest check refuses registry outcomes                                                       | RULES-2.T6e3                                       |
 | G6  | Legendary discovery drops choice options instead of planning them as a cast choice                  | SPELLS-33.T4i1f (fix is in discovery and the room) |
 | G7  | A hit-point gate under a test path is refused                                                       | Done in RULES-2.T6e2                               |

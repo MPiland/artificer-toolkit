@@ -1,5 +1,4 @@
 import { z, lazySchema } from '../zod.js'
-import { forcedMovementDirectionSchema } from './enums.js'
 import { encounterAttackActionTransitionDtoSchema } from '../projections/encounterAttackAction.js'
 import {
   deathSavesAfterDamage,
@@ -39,6 +38,7 @@ import {
   characterMechanicsApplicationDtoSchema,
   characterMechanicsResourceReceiptDtoSchema,
   characterMechanicsTargetStateDtoSchema,
+  characterMechanicsTargetTransitionDtoSchema,
   encounterActorActiveEffectCreateReceiptDtoSchema,
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
@@ -46,6 +46,7 @@ import {
   sourceApplicationsChangeState,
   sourceApplicationsDtoSchema,
   stateEffectCreateReceiptDtoSchema,
+  targetOutcomeTransitionDtoSchema,
   validateMaintainedEffectCreation,
   validateStateEffectTransitions
 } from './ruleExecutionMechanics.js'
@@ -737,11 +738,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         z.array(stateEffectCreateReceiptDtoSchema).check(z.maxLength(1)),
         []
       ),
-      targetTransition: z.strictObject({
-        checksum: checksumSchema,
-        before: characterMechanicsTargetStateDtoSchema,
-        after: characterMechanicsTargetStateDtoSchema
-      }),
+      targetTransition: characterMechanicsTargetTransitionDtoSchema,
       applications: z
         .array(characterMechanicsApplicationDtoSchema)
         .check(z.maxLength(RULE_GRAPH_LIMITS.NODES)),
@@ -1322,20 +1319,7 @@ export const contestedActionApplicationOutputDtoSchema = lazySchema(() =>
         z.strictObject({ kind: z.literal('NONE') }),
         characterItemUseStateTransitionDtoSchema,
         encounterActorItemUseStateTransitionDtoSchema,
-        /** The conditions a won contest's picked outcome newly applied to the target (Shove, D105). */
-        z.strictObject({
-          kind: z.literal('CONDITIONS_APPLIED'),
-          appliedConditionIds: z
-            .array(uuidSchema)
-            .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
-        }),
-        /** The push a won contest's picked outcome settles on the target (Shove, D105, D157). */
-        z.strictObject({
-          kind: z.literal('FORCED_MOVEMENT'),
-          direction: forcedMovementDirectionSchema,
-          feet: z.number().check(z.positive()),
-          upTo: z.boolean()
-        }),
+        targetOutcomeTransitionDtoSchema,
         /** The relationship effect the win created and the conditions it newly applied to the target. */
         z.strictObject({
           kind: z.literal('ACTOR_RELATIONSHIP'),
@@ -1652,13 +1636,7 @@ export const cleavingDamageApplicationOutputDtoSchema = lazySchema(() =>
         resolvedAmount: positiveIntegerSchema,
         appliedAmount: nonNegativeIntegerSchema
       }),
-      targetTransition: z.nullable(
-        z.strictObject({
-          checksum: checksumSchema,
-          before: characterMechanicsTargetStateDtoSchema,
-          after: characterMechanicsTargetStateDtoSchema
-        })
-      )
+      targetTransition: z.nullable(characterMechanicsTargetTransitionDtoSchema)
     })
     .check(
       z.superRefine((value, context) => {

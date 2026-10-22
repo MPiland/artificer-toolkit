@@ -10,13 +10,15 @@ import {
 import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_ATHLETICS_SKILL_ID,
-  SRD_CONDITION_TYPES
+  SRD_CONDITION_TYPES,
+  SRD_DAMAGE_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { castChoiceOptions } from '../encounterCastChoice.js'
 import {
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
+  DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
 } from '../systems/dnd5e/effectActionContracts.js'
@@ -28,6 +30,7 @@ import {
 
 const ATHLETICS_ID = SRD_ATHLETICS_SKILL_ID
 const STRENGTH_ID = SRD_ABILITY_DEFINITION_IDS.STRENGTH
+const SRD_BLUDGEONING_ID = SRD_DAMAGE_TYPES.find(({ code }) => code === 'BLUDGEONING')!.id
 
 /** Every operation key the compiled output names, wherever it nests. */
 function operationKeys(value: unknown): string[] {
@@ -56,6 +59,26 @@ function firstAidEffect(): EffectAuthored {
 function withCheck(check: unknown): EffectAuthored {
   const effect = firstAidEffect()
   return { ...effect, invocation: { ...effect.invocation, check } } as EffectAuthored
+}
+
+/** First Aid as an Athletics contest whose win settles `outcome` on its target. */
+function contestWinning(outcome: Record<string, unknown>): EffectAuthored {
+  const effect = withCheck({
+    checks: { skillIds: [ATHLETICS_ID], abilityDefinitionIds: [] },
+    dc: { kind: 'CONTEST', checks: { skillIds: [ATHLETICS_ID], abilityDefinitionIds: [] } }
+  })
+  const [path] = effect.paths
+  if (path?.selectionKind !== 'FIXED') throw new Error('First Aid has no fixed result path.')
+  const [authored] = path.resultBlock.outcomes
+  return {
+    ...effect,
+    paths: [
+      {
+        ...path,
+        resultBlock: { ...path.resultBlock, outcomes: [{ id: authored!.id, ...outcome }] }
+      }
+    ]
+  } as EffectAuthored
 }
 
 /** An action under the SRD System, whose condition vocabulary a relationship outcome names. */
@@ -87,15 +110,10 @@ describe('the CHECK action test compiles through the dnd5e adapter', () => {
       ).toContain(DND5E_STABILIZE_PROPOSAL_OPERATION_KEY)
   })
 
-  it('refuses a contest whose success is not a relationship', () => {
-    expect(() =>
-      compile(
-        withCheck({
-          checks: { skillIds: [ATHLETICS_ID], abilityDefinitionIds: [] },
-          dc: { kind: 'CONTEST', checks: { skillIds: [ATHLETICS_ID], abilityDefinitionIds: [] } }
-        })
-      )
-    ).toThrow('check action outcome')
+  it('refuses a contest whose win kills its target outright, which no gate admits', () => {
+    expect(() => compile(contestWinning({ effectKind: 'KILL' }))).toThrow(
+      'D&D test action outcome is not supported.'
+    )
   })
 
   it('compiles the SRD Grapple, a contest, to the two-roller contest graph', () => {
@@ -192,5 +210,29 @@ describe('the SRD Shove, a contest whose win its shover picks (D105)', () => {
     )
     expect(operationKeys(prone?.published)).toEqual([DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY])
     expect(operationKeys(push?.published)).toEqual([DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY])
+  })
+})
+
+describe('a contest whose win settles any outcome on its target (D173)', () => {
+  const adapter = dnd5eCharacterRuleActionSystemAdapter
+
+  it.each([
+    ['dice damage', { valueKind: 'DICE', scalingKind: 'NONE', diceConfig: '1d6' }],
+    ['fixed damage', { valueKind: 'FIXED', scalingKind: 'NONE', amount: 3 }]
+  ])('specializes the win to %s', (_name, amount) => {
+    const action = srdAction(
+      contestWinning({ effectKind: 'DAMAGE', damageTypeId: SRD_BLUDGEONING_ID, ...amount })
+    )
+    const compilerSource = buildCompiledActionCompilerSource(action)
+    const plan = adapter.compileExecutionPlan?.({ action, compilerSource })
+    if (plan?.kind !== 'TEST_OUTCOME') throw new Error('The contest is not a test and its outcome.')
+    const won = adapter.specializeOutcomeTemplate?.({
+      compilerSource,
+      testTemplate: plan.test,
+      selectedPath: 'ON_CHECK_SUCCESS',
+      facts: {},
+      testRollMode: 'NORMAL'
+    })
+    expect(operationKeys(won?.published)).toContain(DND5E_DAMAGE_PROPOSAL_OPERATION_KEY)
   })
 })

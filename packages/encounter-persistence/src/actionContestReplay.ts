@@ -199,10 +199,13 @@ export function readNativeContestEvidenceReplay(input: {
         // A defender who picks its check answers a CONTEST_CHECK prompt with no sealed roll mode.
         (pending.kind === 'CONTEST_CHECK'
           ? pending.requestId !== payload.request.requestId || payload.pending != null
-          : pending.kind !== 'D20_EVIDENCE' ||
-            pending.request.requestId !== payload.request.requestId ||
-            payload.pending?.kind !== 'D20_EVIDENCE' ||
-            pending.request.rollMode !== payload.pending.rollMode)
+          : // A won outcome's dice carry no roll mode (D173).
+            pending.kind === 'ACTION_OUTCOME_EVIDENCE'
+            ? pending.request.requestId !== payload.request.requestId || payload.pending != null
+            : pending.kind !== 'D20_EVIDENCE' ||
+              pending.request.requestId !== payload.request.requestId ||
+              payload.pending?.kind !== 'D20_EVIDENCE' ||
+              pending.request.rollMode !== payload.pending.rollMode)
   )
     throw new Error('Stored contest evidence response mismatch.')
   return { replayReceipt: metadata.replayReceipt, payload }

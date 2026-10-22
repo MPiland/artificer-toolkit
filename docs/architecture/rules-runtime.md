@@ -2398,15 +2398,18 @@ still free another creature. Undo follows the escape rule: a failure returns the
 **Unsupported:** a `CONTEST` DC with `CREATURE_WITHIN_REACH` is not offered to a rescuer (the contest path is the
 held creature against its holder); `encounterRescues.test.ts` proves the omission.
 
-**Contest outcomes (D105, ATTACK-7.6).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is a
-condition or a forced movement (`isContestOutcomeAction`; Shove) compiles to `TEST_OUTCOME`: the test is the
-contest graph, the outcome the specialized `ON_CHECK_SUCCESS` path. An outcome authored as a CHOICE is picked with
+**Contest outcomes (D105, ATTACK-7.6, D173).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is
+any outcome the test-outcome specializer admits (`isContestOutcomeAction`; Shove, or a homebrew contest whose win deals
+damage) compiles to `TEST_OUTCOME`: the test is the contest graph, the outcome the specialized `ON_CHECK_SUCCESS` path. An outcome authored as a CHOICE is picked with
 the attempt through `target.choiceOptionId`; `prepareEncounterActionSource` narrows a capability source (basic
 action, Creature) to the picked option (`pickedCastChoiceEffect`), and the basic-action choices offer the options.
-On a win the room runs the outcome graph (`planNativeContestOutcome`), applies its conditions to the target in the
-one direct-outcome batch, and settles `CONDITIONS_APPLIED` or `FORCED_MOVEMENT` on the `CONTESTED_ACTION` output.
-`settleContestOutcome` applies the room-planned conditions in Convex, and the commit lands a push through
-`applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
+On a win the room runs the outcome graph (`planNativeContestOutcome`). Its dice roll in the action roll window: an
+initiator who auto-rolls has them rolled at once, otherwise the occurrence pauses on an `ACTION_OUTCOME_EVIDENCE`
+prompt for the initiator, stored as the outcome continuation beside both contest rolls, and the answer resumes it.
+Every application goes through `planEncounterMechanicsBatch` and settles one generic `TARGET_OUTCOME` transition
+(`mechanics`: the target's `targetTransition` and receipt `applications`, or null; `forcedMovements`) on the
+`CONTESTED_ACTION` output. `settleContestOutcome` re-applies the receipt applications in Convex and refuses a checksum
+mismatch, and the commit lands a push through `applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
 contest outcome whose push owes a destination pick fails closed.
 
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
