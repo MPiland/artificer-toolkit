@@ -3879,7 +3879,7 @@
             {
               "id": "RULES-2.T6e3b1a",
               "text": "Homebrew check outcomes, immediate auto-roll (G5, D173): a fixed-DC check whose ON_CHECK_SUCCESS outcome is not STABILIZE/CONCEAL/DETECT compiles TEST_OUTCOME (System d20 check graph under the effect id), the refusal removed; the room freezes, rolls and on success runs the outcome through the outcome planner shared with contests; a generic CHECK_ACTION receipt output (d20, SUCCESS|FAILURE, NONE|TARGET_OUTCOME) re-applied by Convex through the shared TARGET_OUTCOME settler with checksum refusal; a non-auto-roll roller is refused by name until b1b. Parity: fixed damage plus condition, auto-rolled 1d6, miss.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 3,
@@ -3888,7 +3888,7 @@
                 "size": 3,
                 "after": ["RULES-2.T6e3"]
               },
-              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
+              "note": "Merged m331 (61c0b73fd)."
             },
             {
               "id": "RULES-2.T6e3b1b",
@@ -3901,7 +3901,8 @@
                 "rr": 2,
                 "size": 2,
                 "after": ["RULES-2.T6e3b1a"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/rules-2-t6e-refusal-classification.md"
             },
             {
               "id": "RULES-2.T6e3b2",
