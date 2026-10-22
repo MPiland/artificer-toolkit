@@ -2430,18 +2430,28 @@ still free another creature. Undo follows the escape rule: a failure returns the
 held creature against its holder); `encounterRescues.test.ts` proves the omission.
 
 **Contest outcomes (D105, ATTACK-7.6, D173).** A CHECK action with a `CONTEST` dc whose `ON_CHECK_SUCCESS` outcome is
-any outcome the test-outcome specializer admits (`isContestOutcomeAction`; Shove, or a homebrew contest whose win deals
+any outcome the test-outcome specializer admits (`isCheckOutcomeAction`; Shove, or a homebrew contest whose win deals
 damage) compiles to `TEST_OUTCOME`: the test is the contest graph, the outcome the specialized `ON_CHECK_SUCCESS` path. An outcome authored as a CHOICE is picked with
 the attempt through `target.choiceOptionId`; `prepareEncounterActionSource` narrows a capability source (basic
 action, Creature) to the picked option (`pickedCastChoiceEffect`), and the basic-action choices offer the options.
-On a win the room runs the outcome graph (`planNativeContestOutcome`). Its dice roll in the action roll window: an
+On a win the room runs the outcome graph through the shared planner (`planNativeTargetOutcome`, `nativeTargetOutcome.ts`). Its dice roll in the action roll window: an
 initiator who auto-rolls has them rolled at once, otherwise the occurrence pauses on an `ACTION_OUTCOME_EVIDENCE`
 prompt for the initiator, stored as the outcome continuation beside both contest rolls, and the answer resumes it.
 Every application goes through `planEncounterMechanicsBatch` and settles one generic `TARGET_OUTCOME` transition
 (`mechanics`: the target's `targetTransition` and receipt `applications`, or null; `forcedMovements`) on the
-`CONTESTED_ACTION` output. `settleContestOutcome` re-applies the receipt applications in Convex and refuses a checksum
-mismatch, and the commit lands a push through `applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
+`CONTESTED_ACTION` output. The shared settler `settleTargetOutcome` (`targetOutcomeSettlement.ts`) re-applies the
+receipt applications in Convex and refuses a checksum mismatch, and the commit lands a push through `applyForcedMovements`, recorded on the `RESOLVE_ACTION` command (D157). Undo refuses it like other contests. A
 contest outcome whose push owes a destination pick fails closed.
+
+**Check outcomes (D173, RULES-2.T6e3b1a).** A CHECK action with a `FIXED` dc whose `ON_CHECK_SUCCESS` outcome is not a
+check-settled kind (STABILIZE, CONCEAL_FROM_OBSERVERS, DETECT_CONCEALED) compiles to `TEST_OUTCOME` the same way, with
+the d20 check graph (`createDnd5eCheckDefinition`) as its test. The room freezes the actor's check, rolls it, and on a
+success runs the same `planNativeTargetOutcome` (its test roll mode is the check's). It commits one `CHECK_ACTION`
+output (`check`, `d20`, `outcome` SUCCESS or FAILURE, and a `TARGET_OUTCOME` or `NONE` `stateTransition`) in a
+`CheckActionSettlement`, and Convex settles it through `settleEncounterCheckAction`, which re-applies a success through
+`settleTargetOutcome` and lands its pushes like an action's. Until the check can pend (RULES-2.T6e3b1b), a roller whose
+preference does not roll for them, or who holds after-roll check dice, is refused. Undo returns a failed check's
+economy and grants and refuses a success's outcome.
 
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no

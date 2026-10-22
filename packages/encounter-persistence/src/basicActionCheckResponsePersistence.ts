@@ -36,6 +36,7 @@ import {
 } from './basicActionCheckAdmission.js'
 import { projectNativeD20WindowPending } from './basicActionCheckPending.js'
 import { settleEncounterBasicActionCheck } from './basicActionCheckSettlement.js'
+import { isCheckActionSettlement } from './checkActionSettlement.js'
 import { addResponseChangesToRoot, deleteGrants } from './consumedGrantPersistence.js'
 import {
   isConcealmentCheckSettlement,
@@ -111,17 +112,19 @@ export function persistEncounterBasicActionResponse(
         execution.applicationOutputs.kind === 'CONCEALMENT_CHECK')
         ? execution.applicationOutputs.d20.selectedNatural
         : null,
-    settle: (transaction, settleInput) =>
-      isConcealmentCheckSettlement(settleInput.settlement)
-        ? settleEncounterConcealmentCheck(transaction, {
-            ...settleInput,
-            settlement: settleInput.settlement
-          })
+    settle: (transaction, settleInput) => {
+      const { settlement } = settleInput
+      // A check action's d20 does not pend until RULES-2.T6e3b1b, so no answer settles one.
+      if (isCheckActionSettlement(settlement))
+        throw new Error('Live Session check result does not match its pending evidence.')
+      return isConcealmentCheckSettlement(settlement)
+        ? settleEncounterConcealmentCheck(transaction, { ...settleInput, settlement })
         : settleEncounterBasicActionCheck(transaction, {
             ...settleInput,
-            settlement: settleInput.settlement,
+            settlement,
             applyMechanics: callbacks.applyMechanics
-          }),
+          })
+    },
     validateReadFence: callbacks.validateReadFence
   })
 }
@@ -243,7 +246,11 @@ export async function persistEncounterD20WindowAnswer(
   const { context: window, continuation } = pending
   const offered = window.pause.payload
   const { settlement } = input
-  if (isConcealmentCheckSettlement(settlement) || !settlement.window)
+  if (
+    isCheckActionSettlement(settlement) ||
+    isConcealmentCheckSettlement(settlement) ||
+    !settlement.window
+  )
     throw new Error('Live Session check result does not match its pending evidence.')
   const { execution } = settlement
   const selection = encounterD20WindowSelection(response.resolution)

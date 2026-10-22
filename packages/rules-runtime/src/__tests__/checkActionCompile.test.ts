@@ -61,12 +61,14 @@ function withCheck(check: unknown): EffectAuthored {
   return { ...effect, invocation: { ...effect.invocation, check } } as EffectAuthored
 }
 
-/** First Aid as an Athletics contest whose win settles `outcome` on its target. */
-function contestWinning(outcome: Record<string, unknown>): EffectAuthored {
-  const effect = withCheck({
-    checks: { skillIds: [ATHLETICS_ID], abilityDefinitionIds: [] },
-    dc: { kind: 'CONTEST', checks: { skillIds: [ATHLETICS_ID], abilityDefinitionIds: [] } }
-  })
+const CONTEST_DC = {
+  kind: 'CONTEST',
+  checks: { skillIds: [ATHLETICS_ID], abilityDefinitionIds: [] }
+} as const
+
+/** First Aid as an Athletics check against `dc` whose success settles `outcome` on its target. */
+function checkWinning(outcome: Record<string, unknown>, dc: unknown = CONTEST_DC): EffectAuthored {
+  const effect = withCheck({ checks: { skillIds: [ATHLETICS_ID], abilityDefinitionIds: [] }, dc })
   const [path] = effect.paths
   if (path?.selectionKind !== 'FIXED') throw new Error('First Aid has no fixed result path.')
   const [authored] = path.resultBlock.outcomes
@@ -111,7 +113,7 @@ describe('the CHECK action test compiles through the dnd5e adapter', () => {
   })
 
   it('refuses a contest whose win kills its target outright, which no gate admits', () => {
-    expect(() => compile(contestWinning({ effectKind: 'KILL' }))).toThrow(
+    expect(() => compile(checkWinning({ effectKind: 'KILL' }))).toThrow(
       'D&D test action outcome is not supported.'
     )
   })
@@ -221,7 +223,7 @@ describe('a contest whose win settles any outcome on its target (D173)', () => {
     ['fixed damage', { valueKind: 'FIXED', scalingKind: 'NONE', amount: 3 }]
   ])('specializes the win to %s', (_name, amount) => {
     const action = srdAction(
-      contestWinning({ effectKind: 'DAMAGE', damageTypeId: SRD_BLUDGEONING_ID, ...amount })
+      checkWinning({ effectKind: 'DAMAGE', damageTypeId: SRD_BLUDGEONING_ID, ...amount })
     )
     const compilerSource = buildCompiledActionCompilerSource(action)
     const plan = adapter.compileExecutionPlan?.({ action, compilerSource })
@@ -234,5 +236,60 @@ describe('a contest whose win settles any outcome on its target (D173)', () => {
       testRollMode: 'NORMAL'
     })
     expect(operationKeys(won?.published)).toContain(DND5E_DAMAGE_PROPOSAL_OPERATION_KEY)
+  })
+})
+
+describe('a fixed-DC check whose success settles any outcome on its target (D173)', () => {
+  const adapter = dnd5eCharacterRuleActionSystemAdapter
+  const FIXED_DC = { kind: 'FIXED', value: 12 }
+  const plan = (outcome: Record<string, unknown>) => {
+    const action = srdAction(checkWinning(outcome, FIXED_DC))
+    const compilerSource = buildCompiledActionCompilerSource(action)
+    const compiled = adapter.compileExecutionPlan?.({ action, compilerSource })
+    if (compiled?.kind !== 'TEST_OUTCOME')
+      throw new Error('The check is not a test and its outcome.')
+    return { compilerSource, compiled }
+  }
+  const specialize = (outcome: Record<string, unknown>) => {
+    const { compilerSource, compiled } = plan(outcome)
+    return adapter.specializeOutcomeTemplate?.({
+      compilerSource,
+      testTemplate: compiled.test,
+      selectedPath: 'ON_CHECK_SUCCESS',
+      facts: {},
+      testRollMode: 'NORMAL'
+    })
+  }
+  const damage = {
+    effectKind: 'DAMAGE',
+    damageTypeId: SRD_BLUDGEONING_ID,
+    valueKind: 'FIXED',
+    scalingKind: 'NONE',
+    amount: 3
+  }
+
+  it('tests by one d20 check with its added dice, with an outcome only on success', () => {
+    const { compiled } = plan(damage)
+    expect(Object.keys(compiled.test.published.definition.outputs).sort()).toEqual([
+      'addedTotal',
+      'rawDie'
+    ])
+    expect(compiled.outcomes.map(({ pathCode }) => pathCode)).toEqual(['ON_CHECK_SUCCESS'])
+  })
+
+  it.each([
+    ['dice damage', { ...damage, valueKind: 'DICE', diceConfig: '1d6' }],
+    ['fixed damage', damage]
+  ])('specializes the success to %s', (_name, outcome) => {
+    expect(operationKeys(specialize(outcome)?.published)).toContain(
+      DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
+    )
+  })
+
+  it('specializes the success to a condition', () => {
+    const prone = SRD_CONDITION_TYPES.find(({ code }) => code === 'PRONE')!.id
+    expect(
+      operationKeys(specialize({ effectKind: 'CONDITION', conditionId: prone })?.published)
+    ).toEqual([DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY])
   })
 })

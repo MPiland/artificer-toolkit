@@ -12,6 +12,10 @@ import {
   encounterConcealmentCheckPendingContextDtoSchema,
   encounterEscapeCheckPendingContextDtoSchema
 } from '../shared/ruleExecutionDirectActionPendingContexts.js'
+import {
+  type EncounterCheckActionContextDto,
+  encounterCheckActionContextDtoSchema
+} from '../shared/ruleExecutionCheckAction.js'
 import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '../shared/ruleExecutionPendingSnapshots.js'
 import { storedRuleExecutionResultDtoSchema } from '../shared/ruleExecutionResults.js'
@@ -24,6 +28,10 @@ import {
   resolveCheckActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
+import {
+  type LiveSessionForcedMovement,
+  liveSessionForcedMovementsSchema
+} from './liveSessionEncounterAction.js'
 import { liveSessionEncounterRulesInputSchema } from './liveSessionEncounterRules.js'
 import { liveSessionRulesRevisionsSchema } from './liveSessionRulesRevisions.js'
 
@@ -73,8 +81,32 @@ const concealmentCheckSettlementSchema: z.ZodMiniType<ConcealmentCheckSettlement
   })
 )
 
+/**
+ * A settled fixed-DC check action whose success runs an authored outcome (D173): the frozen check,
+ * its stored result, the app roll it used and the pushes a success lands on the Scene (D157).
+ */
+export type CheckActionSettlement = {
+  context: EncounterCheckActionContextDto
+  execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
+  appRollId: z.infer<typeof postgresUuidSchema> | null
+  forcedMovements: LiveSessionForcedMovement[]
+}
+
+const checkActionSettlementSchema: z.ZodMiniType<CheckActionSettlement> = lazySchema(() =>
+  z.strictObject({
+    context: encounterCheckActionContextDtoSchema,
+    execution: storedRuleExecutionResultDtoSchema,
+    appRollId: z.nullable(postgresUuidSchema),
+    forcedMovements: liveSessionForcedMovementsSchema
+  })
+)
+
 const basicActionCheckSettlementSchema = lazySchema(() =>
-  z.union([stabilizeCheckSettlementSchema, concealmentCheckSettlementSchema])
+  z.union([
+    stabilizeCheckSettlementSchema,
+    concealmentCheckSettlementSchema,
+    checkActionSettlementSchema
+  ])
 )
 
 /**

@@ -96,6 +96,20 @@ export async function refuseUnmetBasicActionRestrictions(
     )
 }
 
+/**
+ * Only an authored basic action runs on the check test; a feature or Character action authored
+ * with it would otherwise run its outcome with no check.
+ */
+export function basicActionCheckSource(source: Prepared['source']) {
+  if (source.kind !== 'BASIC_ACTION')
+    throw new LiveSessionDomainRejectionError(422, {
+      code: 'DOMAIN_REJECTED',
+      reason: 'SOURCE_REQUIREMENTS_NOT_MET',
+      message: 'Only a basic action can make a check.'
+    })
+  return source
+}
+
 /** An item action with authored requirements is taken only once they hold (an off-hand attack). */
 export function refuseUnmetItemActionRequirements(
   prepared: Pick<Prepared, 'source' | 'actor'>,
