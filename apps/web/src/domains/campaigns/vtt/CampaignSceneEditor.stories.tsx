@@ -10,7 +10,7 @@ import {
   beginSceneDefinitionInputSchema,
   sceneDefinitionSaveProgressSchema
 } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
-import { sceneLootDocumentSchema } from '@artificer-toolkit/schema/api/sceneLootTables'
+import { lootDocumentSchema } from '@artificer-toolkit/schema/api/lootTables'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { queryKeys } from '#app/lib/queryKeys'
 import { CampaignSceneEditor } from './CampaignSceneEditor'
@@ -110,11 +110,14 @@ const meta = {
     })
     Object.defineProperty(client, 'query', {
       value: fn<ConvexReactClient['query']>().mockImplementation(async (...[reference]) => {
-        if (getFunctionName(reference) !== getFunctionName(api.scenes.lootTables.get))
+        if (getFunctionName(reference) !== getFunctionName(api.loot.tables.get))
           throw new Error(`Unexpected Scene Editor query: ${getFunctionName(reference)}`)
-        return sceneLootDocumentSchema.parse({
-          campaignId: tabletopCampaignId,
-          sceneId: tabletopSceneDefinition.id,
+        return lootDocumentSchema.parse({
+          owner: {
+            kind: 'SCENE',
+            campaignId: tabletopCampaignId,
+            sceneDefinitionId: tabletopSceneDefinition.id
+          },
           tables: [],
           version: 0
         })

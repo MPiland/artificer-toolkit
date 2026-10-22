@@ -1,12 +1,13 @@
 import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import {
-  saveSceneLootInputSchema,
-  sceneLootDocumentSchema,
-  sceneLootLookupInputSchema,
-  type SceneLootDocument,
-  type SceneLootTable
-} from '@artificer-toolkit/schema/api/sceneLootTables'
-import { sceneStoredLootSchema } from '@artificer-toolkit/schema/projections/sceneLootPersistence'
+  saveLootInputSchema,
+  lootDocumentSchema,
+  lootLookupInputSchema,
+  type LootDocument,
+  type LootOwner,
+  type LootTable
+} from '@artificer-toolkit/schema/api/lootTables'
+import { storedLootSchema } from '@artificer-toolkit/schema/projections/lootPersistence'
 import type { QueryCtx } from '../_generated/server'
 import { mutation } from '../lib/mutations'
 import { query } from '../lib/queries'
@@ -21,24 +22,34 @@ function lower(id: string) {
 }
 
 /** Loot tables are GM reference data: only the Campaign owner reads or writes them. */
-async function requireSceneOwner(ctx: QueryCtx, campaignId: string, sceneId: string) {
+async function requireLootOwner(ctx: QueryCtx, owner: LootOwner) {
   const { userId } = await requireIdentity(ctx)
-  const { campaign, membership } = await requireCampaignAuthority(ctx, lower(campaignId), userId)
+  const { campaign, membership } = await requireCampaignAuthority(
+    ctx,
+    lower(owner.campaignId),
+    userId
+  )
   if (membership.role !== 'OWNER')
-    throw new Error('Scene loot tables are only available to the Campaign owner.')
+    throw new Error('Loot tables are only available to the Campaign owner.')
   const definition = await ctx.db
     .query('sceneDefinitions')
-    .withIndex('by_publicId', (q) => q.eq('id', lower(sceneId)))
+    .withIndex('by_publicId', (q) => q.eq('id', lower(owner.sceneDefinitionId)))
     .unique()
   if (!definition || definition.campaignId !== campaign.id)
     throw new Error('Scene definition is unavailable.')
-  return { campaign, userId, sceneId: definition.id }
+  return {
+    campaign,
+    userId,
+    owner: { kind: 'SCENE', campaignId: campaign.id, sceneDefinitionId: definition.id } as const
+  }
 }
 
-async function storedLoot(ctx: QueryCtx, sceneId: string) {
+async function storedLoot(ctx: QueryCtx, owner: LootOwner) {
   return ctx.db
-    .query('sceneLootTables')
-    .withIndex('by_sceneId', (q) => q.eq('sceneId', sceneId))
+    .query('lootTables')
+    .withIndex('by_owner', (q) =>
+      q.eq('owner.kind', owner.kind).eq('owner.sceneDefinitionId', owner.sceneDefinitionId)
+    )
     .unique()
 }
 
@@ -47,7 +58,7 @@ async function requireLootReferences(
   ctx: QueryCtx,
   campaign: { gameSystemId: string },
   userId: string,
-  tables: readonly SceneLootTable[]
+  tables: readonly LootTable[]
 ) {
   const system = await requireSystem(ctx, campaign.gameSystemId)
   const skillIds = new Set(system.skills.map((skill) => skill.id))
@@ -80,43 +91,38 @@ async function requireLootReferences(
 }
 
 export const get = query({
-  args: zodToConvexFields(sceneLootLookupInputSchema.shape),
-  returns: zodToConvex(sceneLootDocumentSchema),
-  handler: async (ctx, args): Promise<SceneLootDocument> => {
-    const input = sceneLootLookupInputSchema.parse(args)
-    const { campaign, sceneId } = await requireSceneOwner(ctx, input.campaignId, input.sceneId)
-    const row = await storedLoot(ctx, sceneId)
-    if (!row) return { campaignId: campaign.id, sceneId, version: 0, tables: [] }
+  args: zodToConvexFields(lootLookupInputSchema.shape),
+  returns: zodToConvex(lootDocumentSchema),
+  handler: async (ctx, args): Promise<LootDocument> => {
+    const input = lootLookupInputSchema.parse(args)
+    const { owner } = await requireLootOwner(ctx, input.owner)
+    const row = await storedLoot(ctx, owner)
+    if (!row) return { owner, version: 0, tables: [] }
     const { _id, _creationTime, updatedAt: _updatedAt, ...document } = row
-    return sceneLootDocumentSchema.parse(document)
+    return lootDocumentSchema.parse(document)
   }
 })
 
 export const save = mutation({
-  args: zodToConvexFields(saveSceneLootInputSchema.shape),
-  returns: zodToConvex(sceneLootDocumentSchema),
-  handler: async (ctx, args): Promise<SceneLootDocument> => {
-    const input = saveSceneLootInputSchema.parse(args)
-    const { campaign, userId, sceneId } = await requireSceneOwner(
-      ctx,
-      input.campaignId,
-      input.sceneId
-    )
+  args: zodToConvexFields(saveLootInputSchema.shape),
+  returns: zodToConvex(lootDocumentSchema),
+  handler: async (ctx, args): Promise<LootDocument> => {
+    const input = saveLootInputSchema.parse(args)
+    const { campaign, userId, owner } = await requireLootOwner(ctx, input.owner)
     if (campaign.status !== 'ACTIVE') throw new Error('Archived Campaigns are read-only.')
-    const row = await storedLoot(ctx, sceneId)
+    const row = await storedLoot(ctx, owner)
     if ((row?.version ?? 0) !== input.expectedVersion)
-      throw new Error('Scene loot tables changed before this save.')
+      throw new Error('Loot tables changed before this save.')
     await requireLootReferences(ctx, campaign, userId, input.tables)
-    const document = sceneStoredLootSchema.parse({
-      campaignId: campaign.id,
-      sceneId,
+    const document = storedLootSchema.parse({
+      owner,
       version: input.expectedVersion + 1,
       tables: input.tables,
       updatedAt: new Date().toISOString()
     })
     if (row) await ctx.db.replace(row._id, document)
-    else await ctx.db.insert('sceneLootTables', document)
+    else await ctx.db.insert('lootTables', document)
     const { updatedAt: _updatedAt, ...saved } = document
-    return sceneLootDocumentSchema.parse(saved)
+    return lootDocumentSchema.parse(saved)
   }
 })

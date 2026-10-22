@@ -3,8 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useConvex, useQuery as useConvexQuery } from 'convex/react'
 import { useMemo, useState } from 'react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import type { SceneLootTable } from '@artificer-toolkit/schema/api/sceneLootTables'
-import { getSceneLoot, saveSceneLoot } from '#app/data/campaigns/sceneLoot'
+import type { LootOwner, LootTable } from '@artificer-toolkit/schema/api/lootTables'
+import { getLoot, saveLoot } from '#app/data/campaigns/loot'
 import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
 import { queryKeys } from '#app/lib/queryKeys'
 import { AppSelect } from '#ui/primitives/Select'
@@ -27,23 +27,23 @@ export function CampaignSceneLootEditor({
 }) {
   const convex = useConvex()
   const queryClient = useQueryClient()
-  const loot = useQuery(getSceneLoot(campaignId, sceneId, convex))
+  const owner: LootOwner = { kind: 'SCENE', campaignId, sceneDefinitionId: sceneId }
+  const loot = useQuery(getLoot(owner, convex))
   const system = useConvexQuery(convexApi.content.systems.get, { id: gameSystemId })
   const items = useContentCatalogue('EQUIPMENT', { systemId: gameSystemId })
-  const [draft, setDraft] = useState<SceneLootTable[] | null>(null)
+  const [draft, setDraft] = useState<LootTable[] | null>(null)
   const tables = draft ?? loot.data?.tables ?? []
   const dirty = draft !== null
 
   const save = useMutation({
     mutationFn: () =>
-      saveSceneLoot(convex, {
-        campaignId,
-        sceneId,
+      saveLoot(convex, {
+        owner,
         expectedVersion: loot.data?.version ?? 0,
         tables
       }),
     onSuccess: async (saved) => {
-      queryClient.setQueryData(queryKeys.campaigns.sceneLoot(campaignId, sceneId), saved)
+      queryClient.setQueryData(queryKeys.campaigns.loot(owner), saved)
       setDraft(null)
     }
   })
@@ -63,11 +63,11 @@ export function CampaignSceneLootEditor({
   )
   const refusal = describeLootDraftRefusal(tables)
 
-  const change = (next: SceneLootTable[]) => {
+  const change = (next: LootTable[]) => {
     save.reset()
     setDraft(next)
   }
-  const setTable = (id: string, next: SceneLootTable) =>
+  const setTable = (id: string, next: LootTable) =>
     change(tables.map((table) => (table.id === id ? next : table)))
 
   return (

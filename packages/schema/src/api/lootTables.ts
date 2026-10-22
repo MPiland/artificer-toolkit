@@ -6,7 +6,7 @@ const uuid = postgresUuidSchema
 const positiveInt = (maximum: number) =>
   z.number().check(z.int()).check(z.gte(1)).check(z.lte(maximum))
 
-export const SCENE_LOOT_LIMITS = {
+export const LOOT_LIMITS = {
   tables: 20,
   rangesPerTable: 20,
   entriesPerRange: 20,
@@ -15,32 +15,32 @@ export const SCENE_LOOT_LIMITS = {
 } as const
 
 /** A reference only: the app never resolves a roll against a table or grants its entries. */
-export const sceneLootEntrySchema = lazySchema(() =>
+export const lootEntrySchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
       kind: z.literal('ITEM'),
       itemId: uuid,
-      quantity: positiveInt(SCENE_LOOT_LIMITS.quantity)
+      quantity: positiveInt(LOOT_LIMITS.quantity)
     }),
     z.strictObject({
       kind: z.literal('COIN'),
       denominationId: uuid,
-      amount: positiveInt(SCENE_LOOT_LIMITS.coins)
+      amount: positiveInt(LOOT_LIMITS.coins)
     })
   ])
 )
 
-export const sceneLootRangeSchema = lazySchema(() =>
+export const lootRangeSchema = lazySchema(() =>
   z.strictObject({
     id: uuid,
     min: z.number().check(z.int()),
     max: z.nullable(z.number().check(z.int())),
-    entries: z.array(sceneLootEntrySchema).check(z.maxLength(SCENE_LOOT_LIMITS.entriesPerRange)),
+    entries: z.array(lootEntrySchema).check(z.maxLength(LOOT_LIMITS.entriesPerRange)),
     note: z.optional(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)))
   })
 )
 
-export const sceneLootTableSchema = lazySchema(() =>
+export const lootTableSchema = lazySchema(() =>
   z
     .strictObject({
       id: uuid,
@@ -48,9 +48,9 @@ export const sceneLootTableSchema = lazySchema(() =>
       /** A skill id from the Campaign System's vocabulary. */
       skillId: z.optional(uuid),
       ranges: z
-        .array(sceneLootRangeSchema)
+        .array(lootRangeSchema)
         .check(z.minLength(1))
-        .check(z.maxLength(SCENE_LOOT_LIMITS.rangesPerTable))
+        .check(z.maxLength(LOOT_LIMITS.rangesPerTable))
     })
     .check(
       z.superRefine((table, ctx) => {
@@ -60,9 +60,9 @@ export const sceneLootTableSchema = lazySchema(() =>
     )
 )
 
-const sceneLootTablesSchema = lazySchema(() =>
-  z.array(sceneLootTableSchema).check(
-    z.maxLength(SCENE_LOOT_LIMITS.tables),
+const lootTablesSchema = lazySchema(() =>
+  z.array(lootTableSchema).check(
+    z.maxLength(LOOT_LIMITS.tables),
     z.superRefine((tables, ctx) => {
       if (new Set(tables.map((table) => table.id)).size !== tables.length)
         ctx.addIssue({ code: 'custom', message: 'Loot table ids must be unique.' })
@@ -70,31 +70,39 @@ const sceneLootTablesSchema = lazySchema(() =>
   )
 )
 
-export const sceneLootLookupInputSchema = lazySchema(() =>
-  z.strictObject({ campaignId: uuid, sceneId: uuid })
+/** Who the loot reference belongs to. Encounter placement adds its own kind here, not a second table. */
+export const lootOwnerSchema = lazySchema(() =>
+  z.discriminatedUnion('kind', [
+    z.strictObject({
+      kind: z.literal('SCENE'),
+      campaignId: uuid,
+      sceneDefinitionId: uuid
+    })
+  ])
 )
 
-/** `version` 0 with no tables is a Scene that has never had loot saved. */
-export const sceneLootDocumentSchema = lazySchema(() =>
+export const lootLookupInputSchema = lazySchema(() => z.strictObject({ owner: lootOwnerSchema }))
+
+/** `version` 0 with no tables is an owner that has never had loot saved. */
+export const lootDocumentSchema = lazySchema(() =>
   z.strictObject({
-    campaignId: uuid,
-    sceneId: uuid,
+    owner: lootOwnerSchema,
     version: z.number().check(z.int()).check(z.nonnegative()),
-    tables: sceneLootTablesSchema
+    tables: lootTablesSchema
   })
 )
 
-export const saveSceneLootInputSchema = lazySchema(() =>
+export const saveLootInputSchema = lazySchema(() =>
   z.strictObject({
-    campaignId: uuid,
-    sceneId: uuid,
+    owner: lootOwnerSchema,
     expectedVersion: z.number().check(z.int()).check(z.nonnegative()),
-    tables: sceneLootTablesSchema
+    tables: lootTablesSchema
   })
 )
 
-export type SceneLootEntry = z.infer<typeof sceneLootEntrySchema>
-export type SceneLootRange = z.infer<typeof sceneLootRangeSchema>
-export type SceneLootTable = z.infer<typeof sceneLootTableSchema>
-export type SceneLootDocument = z.infer<typeof sceneLootDocumentSchema>
-export type SaveSceneLootInput = z.infer<typeof saveSceneLootInputSchema>
+export type LootEntry = z.infer<typeof lootEntrySchema>
+export type LootRange = z.infer<typeof lootRangeSchema>
+export type LootTable = z.infer<typeof lootTableSchema>
+export type LootOwner = z.infer<typeof lootOwnerSchema>
+export type LootDocument = z.infer<typeof lootDocumentSchema>
+export type SaveLootInput = z.infer<typeof saveLootInputSchema>

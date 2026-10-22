@@ -1,24 +1,19 @@
 import { makeFunctionReference } from 'convex/server'
 import { expect, it } from 'vitest'
 import type {
-  SaveSceneLootInput,
-  SceneLootDocument,
-  SceneLootTable
-} from '@artificer-toolkit/schema/api/sceneLootTables'
+  SaveLootInput,
+  LootDocument,
+  LootOwner,
+  LootTable
+} from '@artificer-toolkit/schema/api/lootTables'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { importedSubject, importSeededSubjects } from '../../tests/fixtures/publication'
 import { createSceneDefinitionFixture, publishScene } from '../../tests/fixtures/sceneDefinitions'
 
-const get = makeFunctionReference<
-  'query',
-  { campaignId: string; sceneId: string },
-  SceneLootDocument
->('scenes/lootTables:get')
-const save = makeFunctionReference<'mutation', SaveSceneLootInput, SceneLootDocument>(
-  'scenes/lootTables:save'
-)
+const get = makeFunctionReference<'query', { owner: LootOwner }, LootDocument>('loot/tables:get')
+const save = makeFunctionReference<'mutation', SaveLootInput, LootDocument>('loot/tables:save')
 const removeScene = makeFunctionReference<
   'mutation',
   { campaignId: string; sceneId: string; expectedVersion: number },
@@ -28,11 +23,11 @@ const removeScene = makeFunctionReference<
 const skillId = srdSystemRecord.skills[0]!.id
 const coinId = srdSystemRecord.currencies[0]!.id
 
-function range(
-  min: number,
-  max: number | null,
-  entries: SceneLootTable['ranges'][number]['entries']
-) {
+function ownerOf(campaignId: string, sceneDefinitionId: string) {
+  return { owner: { kind: 'SCENE', campaignId, sceneDefinitionId } } as const
+}
+
+function range(min: number, max: number | null, entries: LootTable['ranges'][number]['entries']) {
   return { id: crypto.randomUUID(), min, max, entries }
 }
 
@@ -44,7 +39,7 @@ async function sceneWithItem() {
   })
   const published = await publishScene(base)
   const sceneId = published.save.sceneId
-  const table: SceneLootTable = {
+  const table: LootTable = {
     id: crypto.randomUUID(),
     name: 'Guard room',
     skillId,
@@ -61,7 +56,7 @@ async function sceneWithItem() {
 
 it('the owner saves loot tables, reopens them, and a stale version is refused', async () => {
   const { base, sceneId, table } = await sceneWithItem()
-  const lookup = { campaignId: base.campaign.id, sceneId }
+  const lookup = ownerOf(base.campaign.id, sceneId)
   const empty = await base.owner.caller.query(get, lookup)
   expect(empty).toEqual({ ...lookup, version: 0, tables: [] })
 
@@ -75,7 +70,7 @@ it('the owner saves loot tables, reopens them, and a stale version is refused', 
 
   await expect(
     base.owner.caller.mutation(save, { ...lookup, expectedVersion: 0, tables: [] })
-  ).rejects.toThrow('Scene loot tables changed before this save.')
+  ).rejects.toThrow('Loot tables changed before this save.')
   const second = await base.owner.caller.mutation(save, {
     ...lookup,
     expectedVersion: 1,
@@ -87,8 +82,8 @@ it('the owner saves loot tables, reopens them, and a stale version is refused', 
 
 it('overlapping or inverted roll ranges are refused with the named message', async () => {
   const { base, sceneId, table } = await sceneWithItem()
-  const lookup = { campaignId: base.campaign.id, sceneId }
-  const attempt = (ranges: SceneLootTable['ranges']) =>
+  const lookup = ownerOf(base.campaign.id, sceneId)
+  const attempt = (ranges: LootTable['ranges']) =>
     base.owner.caller.mutation(save, {
       ...lookup,
       expectedVersion: 0,
@@ -103,8 +98,8 @@ it('overlapping or inverted roll ranges are refused with the named message', asy
 
 it('refuses a check, coin or item the System and catalogue do not offer', async () => {
   const { base, sceneId, table } = await sceneWithItem()
-  const lookup = { campaignId: base.campaign.id, sceneId }
-  const attempt = (next: SceneLootTable) =>
+  const lookup = ownerOf(base.campaign.id, sceneId)
+  const attempt = (next: LootTable) =>
     base.owner.caller.mutation(save, { ...lookup, expectedVersion: 0, tables: [next] })
   const unknown = crypto.randomUUID()
 
@@ -127,29 +122,35 @@ it('refuses a check, coin or item the System and catalogue do not offer', async 
 
 it('players and non-members never read or write loot tables', async () => {
   const { base, sceneId, table } = await sceneWithItem()
-  const lookup = { campaignId: base.campaign.id, sceneId }
+  const lookup = ownerOf(base.campaign.id, sceneId)
   await base.owner.caller.mutation(save, { ...lookup, expectedVersion: 0, tables: [table] })
 
   const player = base.other.caller
   await expect(player.query(get, lookup)).rejects.toThrow(
-    'Scene loot tables are only available to the Campaign owner.'
+    'Loot tables are only available to the Campaign owner.'
   )
   await expect(
     player.mutation(save, { ...lookup, expectedVersion: 1, tables: [] })
-  ).rejects.toThrow('Scene loot tables are only available to the Campaign owner.')
+  ).rejects.toThrow('Loot tables are only available to the Campaign owner.')
   await expect(base.owner.caller.query(get, lookup)).resolves.toMatchObject({ version: 1 })
 })
 
 it('loot is deleted with its Scene', async () => {
   const { base, sceneId, table, version } = await sceneWithItem()
-  const lookup = { campaignId: base.campaign.id, sceneId }
+  const lookup = ownerOf(base.campaign.id, sceneId)
   await base.owner.caller.mutation(save, { ...lookup, expectedVersion: 0, tables: [table] })
-  await base.owner.caller.mutation(removeScene, { ...lookup, expectedVersion: version })
+  await base.owner.caller.mutation(removeScene, {
+    campaignId: base.campaign.id,
+    sceneId,
+    expectedVersion: version
+  })
   await expect(
     base.t.run((ctx) =>
       ctx.db
-        .query('sceneLootTables')
-        .withIndex('by_sceneId', (q) => q.eq('sceneId', sceneId))
+        .query('lootTables')
+        .withIndex('by_owner', (q) =>
+          q.eq('owner.kind', 'SCENE').eq('owner.sceneDefinitionId', sceneId)
+        )
         .collect()
     )
   ).resolves.toEqual([])

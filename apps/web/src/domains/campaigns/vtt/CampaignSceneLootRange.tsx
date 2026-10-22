@@ -1,6 +1,6 @@
 import { ActionIcon, Button, Group, NumberInput, Stack, Textarea } from '@mantine/core'
 import { Trash2 } from 'lucide-react'
-import type { SceneLootEntry, SceneLootRange } from '@artificer-toolkit/schema/api/sceneLootTables'
+import type { LootEntry, LootRange } from '@artificer-toolkit/schema/api/lootTables'
 import { AppSelect } from '#ui/primitives/Select'
 import type { AppSelectOption } from '#ui/primitives/Select/Select.types'
 import { createLootEntry } from './CampaignSceneLootEditor.model'
@@ -18,16 +18,16 @@ export function CampaignSceneLootRange({
   disabled: boolean
   itemOptions: AppSelectOption[]
   label: string
-  range: SceneLootRange
-  onChange: (range: SceneLootRange) => void
+  range: LootRange
+  onChange: (range: LootRange) => void
   onRemove: () => void
 }) {
-  const setEntry = (index: number, entry: SceneLootEntry) =>
+  const setEntry = (index: number, entry: LootEntry) =>
     onChange({
       ...range,
       entries: range.entries.map((current, at) => (at === index ? entry : current))
     })
-  const addEntry = (kind: SceneLootEntry['kind']) => {
+  const addEntry = (kind: LootEntry['kind']) => {
     const fallback = (kind === 'ITEM' ? itemOptions : coinOptions)[0]?.value
     if (fallback)
       onChange({ ...range, entries: [...range.entries, createLootEntry(kind, fallback)] })

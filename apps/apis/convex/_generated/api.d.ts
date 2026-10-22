@@ -131662,6 +131662,76 @@ export declare const api: {
       >;
     };
   };
+  loot: {
+    tables: {
+      get: FunctionReference<
+        "query",
+        "public",
+        { owner: { kind: "SCENE"; campaignId: string; sceneDefinitionId: string } },
+        {
+          owner: { kind: "SCENE"; campaignId: string; sceneDefinitionId: string };
+          tables: Array<{
+            id: string;
+            name: string;
+            ranges: Array<{
+              entries: Array<
+                | { itemId: string; kind: "ITEM"; quantity: number }
+                | { amount: number; denominationId: string; kind: "COIN" }
+              >;
+              id: string;
+              max: number | null;
+              min: number;
+              note?: string;
+            }>;
+            skillId?: string;
+          }>;
+          version: number;
+        }
+      >;
+      save: FunctionReference<
+        "mutation",
+        "public",
+        {
+          expectedVersion: number;
+          owner: { kind: "SCENE"; campaignId: string; sceneDefinitionId: string };
+          tables: Array<{
+            id: string;
+            name: string;
+            ranges: Array<{
+              entries: Array<
+                | { itemId: string; kind: "ITEM"; quantity: number }
+                | { amount: number; denominationId: string; kind: "COIN" }
+              >;
+              id: string;
+              max: number | null;
+              min: number;
+              note?: string;
+            }>;
+            skillId?: string;
+          }>;
+        },
+        {
+          owner: { kind: "SCENE"; campaignId: string; sceneDefinitionId: string };
+          tables: Array<{
+            id: string;
+            name: string;
+            ranges: Array<{
+              entries: Array<
+                | { itemId: string; kind: "ITEM"; quantity: number }
+                | { amount: number; denominationId: string; kind: "COIN" }
+              >;
+              id: string;
+              max: number | null;
+              min: number;
+              note?: string;
+            }>;
+            skillId?: string;
+          }>;
+          version: number;
+        }
+      >;
+    };
+  };
   media: {
     assets: {
       avatar: FunctionReference<
@@ -133196,77 +133266,6 @@ export declare const api: {
           name: string;
           version: number;
           visionRevealMode?: "ON_DRAG" | "ON_DROP";
-        }
-      >;
-    };
-    lootTables: {
-      get: FunctionReference<
-        "query",
-        "public",
-        { campaignId: string; sceneId: string },
-        {
-          campaignId: string;
-          sceneId: string;
-          tables: Array<{
-            id: string;
-            name: string;
-            ranges: Array<{
-              entries: Array<
-                | { itemId: string; kind: "ITEM"; quantity: number }
-                | { amount: number; denominationId: string; kind: "COIN" }
-              >;
-              id: string;
-              max: number | null;
-              min: number;
-              note?: string;
-            }>;
-            skillId?: string;
-          }>;
-          version: number;
-        }
-      >;
-      save: FunctionReference<
-        "mutation",
-        "public",
-        {
-          campaignId: string;
-          expectedVersion: number;
-          sceneId: string;
-          tables: Array<{
-            id: string;
-            name: string;
-            ranges: Array<{
-              entries: Array<
-                | { itemId: string; kind: "ITEM"; quantity: number }
-                | { amount: number; denominationId: string; kind: "COIN" }
-              >;
-              id: string;
-              max: number | null;
-              min: number;
-              note?: string;
-            }>;
-            skillId?: string;
-          }>;
-        },
-        {
-          campaignId: string;
-          sceneId: string;
-          tables: Array<{
-            id: string;
-            name: string;
-            ranges: Array<{
-              entries: Array<
-                | { itemId: string; kind: "ITEM"; quantity: number }
-                | { amount: number; denominationId: string; kind: "COIN" }
-              >;
-              id: string;
-              max: number | null;
-              min: number;
-              note?: string;
-            }>;
-            skillId?: string;
-          }>;
-          version: number;
         }
       >;
     };

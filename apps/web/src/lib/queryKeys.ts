@@ -11,6 +11,8 @@
  *   queryClient.invalidateQueries({ queryKey: queryKeys.characters.all() })
  */
 
+import type { LootOwner } from '@artificer-toolkit/schema/api/lootTables'
+
 type AuthoredDetailQueryOptions = {
   view?: 'active' | 'draft'
   meta?: readonly string[]
@@ -44,8 +46,7 @@ export const queryKeys = {
     scenes: (campaignId: string) => ['campaigns', campaignId, 'scenes'] as const,
     sceneDefinition: (campaignId: string, sceneId: string | null) =>
       ['campaigns', campaignId, 'scenes', 'definition', sceneId] as const,
-    sceneLoot: (campaignId: string, sceneId: string) =>
-      ['campaigns', campaignId, 'scenes', 'loot', sceneId] as const,
+    loot: (owner: LootOwner) => ['campaigns', owner.campaignId, 'loot', owner] as const,
     liveScenes: (campaignId: string) => ['campaigns', campaignId, 'scenes', 'live'] as const,
     session: (campaignId: string, sessionNumber: number) =>
       ['campaigns', campaignId, 'sessions', sessionNumber] as const,

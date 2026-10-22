@@ -2,18 +2,18 @@ import { screen, waitFor } from '@testing-library/react'
 import { queryOptions } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
-import type { SceneLootDocument } from '@artificer-toolkit/schema/api/sceneLootTables'
+import type { LootDocument } from '@artificer-toolkit/schema/api/lootTables'
 import { LOOT_RANGE_REFUSAL } from '@artificer-toolkit/shared/vtt/lootTable'
-import { getSceneLoot, saveSceneLoot } from '#app/data/campaigns/sceneLoot'
+import { getLoot, saveLoot } from '#app/data/campaigns/loot'
 import { queryKeys } from '#app/lib/queryKeys'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignSceneLootEditor } from './CampaignSceneLootEditor'
 
 const campaignId = '11111111-1111-4111-8111-111111111111'
 const sceneId = '22222222-2222-4222-8222-222222222222'
-const stored: SceneLootDocument = {
-  campaignId,
-  sceneId,
+const owner = { kind: 'SCENE', campaignId, sceneDefinitionId: sceneId } as const
+const stored: LootDocument = {
+  owner,
   version: 3,
   tables: [
     {
@@ -48,17 +48,17 @@ vi.mock('convex/react', async (importOriginal) => ({
 vi.mock('#app/data/contentSnapshots/useContentCatalogue', () => ({
   useContentCatalogue: () => ({ items: [{ id: 'club', label: 'Club' }] })
 }))
-vi.mock('#app/data/campaigns/sceneLoot', () => ({
-  getSceneLoot: vi.fn(),
-  saveSceneLoot: vi.fn()
+vi.mock('#app/data/campaigns/loot', () => ({
+  getLoot: vi.fn(),
+  saveLoot: vi.fn()
 }))
 
 afterEach(() => vi.clearAllMocks())
 
 function renderEditor() {
-  vi.mocked(getSceneLoot).mockReturnValue(
+  vi.mocked(getLoot).mockReturnValue(
     queryOptions({
-      queryKey: queryKeys.campaigns.sceneLoot(campaignId, sceneId),
+      queryKey: queryKeys.campaigns.loot(owner),
       queryFn: async () => stored
     })
   )
@@ -84,11 +84,11 @@ it('reopens saved tables, refuses an overlapping range, and saves the corrected 
   await user.type(secondFrom, '12')
   await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
   const saved = { ...stored, version: 4 }
-  vi.mocked(saveSceneLoot).mockResolvedValue(saved)
+  vi.mocked(saveLoot).mockResolvedValue(saved)
   await user.click(screen.getByRole('button', { name: 'Save loot' }))
 
-  await waitFor(() => expect(saveSceneLoot).toHaveBeenCalledTimes(1))
-  const input = vi.mocked(saveSceneLoot).mock.calls[0]![1]
-  expect(input).toMatchObject({ campaignId, sceneId, expectedVersion: 3 })
+  await waitFor(() => expect(saveLoot).toHaveBeenCalledTimes(1))
+  const input = vi.mocked(saveLoot).mock.calls[0]![1]
+  expect(input).toMatchObject({ owner, expectedVersion: 3 })
   expect(input.tables[0]!.ranges[1]).toMatchObject({ min: 12, max: null, note: 'Under the cot' })
 })
