@@ -267,6 +267,18 @@ export async function executeRoomEncounterCommand(input: {
           )
           .unique()
       : null
+  // A turn paused on a decision completes under the answer, yet it began under its root command.
+  const answeredRootCommandId =
+    command.type === 'RESOLVE_RULE_OCCURRENCE'
+      ? (
+          await context.db
+            .query('encounterRuleOccurrences')
+            .withIndex('by_encounterId_state', (q) =>
+              q.eq('encounterId', beforeRun.id).eq('state', 'PENDING')
+            )
+            .take(2)
+        ).find((occurrence) => occurrence.id === command.occurrenceId.toLowerCase())?.rootCommandId
+      : undefined
   const rawResult =
     command.type === 'START' || command.type === 'ADVANCE_TURN'
       ? await executeTurn(command)
@@ -348,11 +360,13 @@ export async function executeRoomEncounterCommand(input: {
   const raisedStartOfTurnEffects =
     currentRun.status === 'ACTIVE' &&
     input.turnExecution &&
-    (command.type === 'START' || command.type === 'ADVANCE_TURN')
+    (command.type === 'START' ||
+      command.type === 'ADVANCE_TURN' ||
+      command.type === 'RESOLVE_RULE_OCCURRENCE')
       ? await raiseRoomStartOfTurnEffects({
           ctx: context,
           encounterId: currentRun.id,
-          parentCommandId: command.commandId.toLowerCase(),
+          parentCommandId: (answeredRootCommandId ?? command.commandId).toLowerCase(),
           execute: executeAction
         })
       : false
