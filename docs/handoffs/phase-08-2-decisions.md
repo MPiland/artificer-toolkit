@@ -1081,7 +1081,8 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Deferred:** material cost and consumed flags with gating, for example Revivify's diamonds (future-enhancements).
 * **D172** (2026-10-22) Timed and linked conditions in a gated band (SPELLS-33.T4i3e). Orchestrator ruling; it supersedes D149's "no `endsWithParent` link" amendment.
   - **Rule:** each timed CONDITION outcome in a gated band compiles to its own active effect with its own `duration`, through the rider's active-effect compile path. A band CONDITION may name a sibling CONDITION outcome with optional authored `endsWithOutcomeId`. That compiles to required-nullable `linkedEffectId` on the compiled plan, and stored plans migrate in the same change.
-  - **Ending:** when a linked-to effect ends (expiry, cure or GM end), the existing active-effect end consumer ends its dependents in the same transaction and the same receipt. Undo and replay restore them together.
+  - **Ending:** when a linked-to effect ends, its dependents end in the same transaction and the same receipt. Undo and replay restore them together.
+  - **As scoped (2026-10-22):** a pure `withLinkedDependents` closure applies this at the existing early-end seams: turn-effect terminal, damage and event ends, the Sheet end and rest. No path today ends a condition effect early through a cure or a GM condition edit, so those wait until one exists (future-enhancements). The rider creation roots set `linkedEffectId` through one shared creation path.
   - **Compile refusals:** a link to an outcome that is not a sibling CONDITION in the same band, a self-link and a cycle each fail closed with a named error.
   - **Follow-up:** the D149 Drow rider adopts the link (SPELLS-33.T4i3f). Its deferred edge case closes when that ships.
   - **Rejected:** per-condition end triggers inside one effect (D149), and an independent 1-hour paralysis that outlives an early cure.
