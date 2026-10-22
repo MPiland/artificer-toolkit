@@ -41,8 +41,7 @@ describe('the removed-from-play effect through the effect node map (SPELLS-4.T2h
     const effects = structuredClone(banishment.effects ?? [])
     const [path] = effects[0]?.paths ?? []
     if (path?.selectionKind !== 'FIXED') throw new Error('Banishment must author a fixed path.')
-    const outcomes: { keepsTurn?: boolean }[] = path.resultBlock.outcomes
-    outcomes[1]!.keepsTurn = true
+    Object.assign(path.resultBlock.outcomes[1]!, { keepsTurn: true })
     const { authored, result } = await normalizeEffects(effects)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
