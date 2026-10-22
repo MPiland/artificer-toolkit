@@ -29,7 +29,8 @@ export async function createSystemSourceReader(
     system,
     policyVocabulary: {
       rollInfluence: systemVocabularyRegistry.entries(systemId, 'rollInfluence'),
-      rollMode: systemVocabularyRegistry.entries(systemId, 'rollMode')
+      rollMode: systemVocabularyRegistry.entries(systemId, 'rollMode'),
+      spellSlotPool: systemVocabularyRegistry.entries(systemId, 'spellSlotPool')
     },
     readAuthoredRows: async (table) => [
       ...(await authored(table)),

@@ -35,7 +35,8 @@ const { entry } = compiledTestSpellCast({
     castMode: 'SPELL_SLOT',
     castLevel: 1,
     baseEntry: true,
-    resourceOwnerKey: null
+    resourceOwnerKey: null,
+    slotPoolCode: null
   },
   decision: { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:1' }
 })

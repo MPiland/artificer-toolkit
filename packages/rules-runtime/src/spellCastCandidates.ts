@@ -45,6 +45,8 @@ export function createSpellCastCandidateList(
         fixedLevel?: number
         /** Narrows a slot-mode spell's cast levels to those the holder can pay for. */
         offersLevel?: (castLevel: number) => boolean
+        /** The slot pool a limited-use cast also spends a slot from (D175); null for none. */
+        slotPoolCode?: SpellCastCandidate['slotPoolCode']
       } = {}
     ) {
       const levels = castLevels(spellLevel, mode, options.fixedLevel)
@@ -63,7 +65,8 @@ export function createSpellCastCandidateList(
           castMode: mode,
           castLevel: level,
           baseEntry: index === 0,
-          resourceOwnerKey
+          resourceOwnerKey,
+          slotPoolCode: options.slotPoolCode ?? null
         })
       }
     }

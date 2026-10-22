@@ -79,3 +79,31 @@ export const SPELL_GRANT_ATTRIBUTE_REGISTRY: Record<
 export const SPELL_GRANT_ATTRIBUTE_OPTIONS = valuesOf(
   SPELL_GRANT_ATTRIBUTE_REGISTRY
 ) as readonly SpellGrantAttributeOption[]
+
+/** What a spell grant gives: the spells to cast, or only a place for them on a class spell list. */
+export const SPELL_GRANT_ACCESS = {
+  CAST: 'CAST',
+  CLASS_LIST_ONLY: 'CLASS_LIST_ONLY'
+} as const
+
+export type SpellGrantAccess = keyof typeof SPELL_GRANT_ACCESS
+
+export type SpellGrantAccessOption = CoreMeta<SpellGrantAccess>
+
+export const SPELL_GRANT_ACCESS_REGISTRY: Record<SpellGrantAccess, SpellGrantAccessOption> = {
+  CAST: {
+    code: SPELL_GRANT_ACCESS.CAST,
+    label: 'Cast',
+    description: 'The Character may learn, prepare or cast the spells.'
+  },
+  CLASS_LIST_ONLY: {
+    code: SPELL_GRANT_ACCESS.CLASS_LIST_ONLY,
+    label: 'Class List Only',
+    description:
+      'The spells join the chosen class spell lists and are not learned, prepared or cast by this grant.'
+  }
+} as const
+
+export const SPELL_GRANT_ACCESS_OPTIONS = valuesOf(
+  SPELL_GRANT_ACCESS_REGISTRY
+) as readonly SpellGrantAccessOption[]

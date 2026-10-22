@@ -22,6 +22,10 @@ import { buildCharacterSpellActionRuleFacts } from './characterSpellActionRuleFa
 import { buildCharacterSpellMechanicsRuleFacts } from './characterSpellMechanicsRuleFacts.js'
 import { buildCharacterSpellPreparationRuleFacts } from './characterSpellPreparationRuleFacts.js'
 import { buildCharacterSpellRuleFacts } from './characterSpellRuleFacts.js'
+import {
+  buildCharacterSpellClassListAdditions,
+  withClassListAdditions
+} from './spellClassListAdditions.js'
 import { buildCharacterSpellSlotRuleFacts } from './characterSpellSlotRuleFacts.js'
 import { compileCharacterGrantFoldRuleFacts } from './characterGrantFoldRuleFacts.js'
 import {
@@ -70,7 +74,13 @@ export function composeCharacterRulePolicyFacts(
   const spellPreparationFacts = buildCharacterSpellPreparationRuleFacts(
     character,
     context.registry,
-    context.catalog,
+    {
+      ...context.catalog,
+      spells: withClassListAdditions(
+        context.catalog.spells,
+        buildCharacterSpellClassListAdditions(snapshot, registry)
+      )
+    },
     snapshot,
     input.spellPreparationRequest ?? null
   )
