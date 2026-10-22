@@ -1,5 +1,7 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { conditionTypeId } from '../equipment/shared.js'
 export const giantCentipede: CreatureAuthored = {
   id: S.CREATURE_IDS.GIANT_CENTIPEDE,
   label: 'Giant Centipede',
@@ -83,25 +85,53 @@ export const giantCentipede: CreatureAuthored = {
                     valueKind: S.DAMAGE_VALUE_KIND.DICE,
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d4+2'
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(117, 4),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(117, 4) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
+                  },
                   {
                     id: S.actionId(117, 4),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: 'GIANT_CENTIPEDE_VENOM' as const
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
+                    savingThrow: {
+                      id: S.actionId(117, 5),
+                      dcMethod: 'FIXED_DC' as const,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 11
+                    },
+                    attempts: { kind: 'ONCE' as const },
+                    onSuccess: { kind: 'END' as const },
+                    onFailure: {
+                      kind: 'OUTCOMES' as const,
+                      endCurrent: false,
+                      resultKind: 'SEQUENCE' as const,
+                      gate: {
+                        kind: 'REDUCED_TO_ZERO_BY' as const,
+                        damageOutcomeId: S.actionId(117, 6)
+                      },
+                      outcomes: [
+                        {
+                          id: S.actionId(117, 6),
+                          effectKind: S.EFFECT_KIND.DAMAGE,
+                          damageTypeId: S.damageTypeId('POISON'),
+                          valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                          scalingKind: S.SCALING.NONE,
+                          diceConfig: '3d6'
+                        },
+                        {
+                          id: S.actionId(117, 7),
+                          effectKind: S.EFFECT_KIND.STABILIZE,
+                          requiresZeroHitPoints: true as const
+                        },
+                        {
+                          id: S.actionId(117, 8),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('POISONED')
+                        },
+                        {
+                          id: S.actionId(117, 9),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('PARALYZED')
+                        }
+                      ]
+                    }
                   }
                 ]
               }
