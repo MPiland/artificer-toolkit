@@ -3,6 +3,7 @@
 # branch, so the merge logic comes from the phase branch and not from the slice:
 #   gh workflow run merge-slice.yml --ref codex/phase-08-2-convex-cutover \
 #     -f branch=ci/<slice> -f sha=<tip> -f title='Merge <PBI>.<task>: <summary>'
+# Several slices merge as one batch: pass -f slices='ci/<a>@<tip> ci/<b>@<tip>' instead of branch and sha.
 # It refuses, pushing nothing, when the tip moved, Tests or Live is not green on that SHA, or the merge
 # conflicts; a batch that goes red leaves only its ci/merge-m<N> branch. Plain pushes only, never main.
 name: Merge slice
@@ -15,11 +16,14 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: The approved ci/<slice> branch
-        required: true
+        description: The approved ci/<slice> branch (or use slices)
+        default: ''
       sha:
         description: Its approved tip (full SHA)
-        required: true
+        default: ''
+      slices:
+        description: 'Several approved slices as one batch: ci/<slice>@<tip> pairs, space or comma separated, merged in order'
+        default: ''
       title:
         description: Merge commit title; the workflow appends (m<N>)
         required: true
@@ -41,7 +45,7 @@ concurrency:
 
 jobs:
   merge:
-    name: Merge ${{ inputs.branch }} into ${{ inputs.target }}
+    name: Merge ${{ inputs.slices || inputs.branch }} into ${{ inputs.target }}
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     # A batch waits for a full Tests run and a Live run.
@@ -62,12 +66,13 @@ jobs:
           GH_REPO: ${{ github.repository }}
           BRANCH: ${{ inputs.branch }}
           SHA: ${{ inputs.sha }}
+          SLICES: ${{ inputs.slices }}
           TITLE: ${{ inputs.title }}
           TARGET: ${{ inputs.target }}
           BATCH_PREFIX: ${{ inputs.batch_prefix }}
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          node scripts/mergeSlice.mjs --branch "$BRANCH" --sha "$SHA" --title "$TITLE" \
+          node scripts/mergeSlice.mjs --branch "$BRANCH" --sha "$SHA" --slices "$SLICES" --title "$TITLE" \
             --target "$TARGET" --batch-prefix "$BATCH_PREFIX" 2>&1 | tee -a "$GITHUB_STEP_SUMMARY"
           exit "${PIPESTATUS[0]}"
