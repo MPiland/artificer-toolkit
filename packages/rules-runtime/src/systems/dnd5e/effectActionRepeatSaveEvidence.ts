@@ -1,3 +1,7 @@
+import type {
+  ActiveEffectSaveThresholds,
+  ActiveRuleEffectLifecycleDto
+} from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { ServerRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionProtocol'
 import { type CompiledRuleGraph } from '@artificer-toolkit/shared/rules'
 import type { CharacterRuleActionSystemAdapter } from '../../characterRuleActionSystemAdapter.js'
@@ -26,6 +30,30 @@ export function repeatSaveGated(
     DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in adapterFacts ||
     DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY in adapterFacts ||
     saveThresholds !== undefined
+  )
+}
+
+/**
+ * Whether a repeat save may be attempted now: not once a thresholds tally has resolved (its duration
+ * still runs out), only when its perception gate is met, and for a triggers-only save only when a
+ * damage trigger runs it, never on the turn tick.
+ */
+export function repeatSaveAttemptAllowed(input: {
+  adapterFacts: Readonly<Record<string, unknown>>
+  thresholds: ActiveEffectSaveThresholds | undefined
+  lifecycle: ActiveRuleEffectLifecycleDto
+  gateMet: boolean
+  onTrigger: boolean | undefined
+}) {
+  const { thresholds } = input
+  const resolved =
+    thresholds !== undefined &&
+    (input.lifecycle.saveTally?.failures ?? 0) >= thresholds.failuresToResolve
+  return (
+    !resolved &&
+    input.gateMet &&
+    (input.onTrigger === true ||
+      !(DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY in input.adapterFacts))
   )
 }
 

@@ -1,7 +1,6 @@
 import {
   type ActiveEffectSaveTally,
-  type ActiveEffectSaveThresholds,
-  type ActiveRuleEffectLifecycleDto
+  type ActiveEffectSaveThresholds
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
@@ -152,7 +151,6 @@ import {
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
-  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY,
   DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
@@ -201,6 +199,7 @@ import {
 } from './effectActionInterpretation.js'
 import {
   repeatedFollowUpSaveResultPath,
+  repeatSaveAttemptAllowed,
   repeatSaveGated
 } from './effectActionRepeatSaveEvidence.js'
 import {
@@ -1977,16 +1976,6 @@ function repeatingDirectFollowUpSavePlan(
 
 function isTallyCount(count: number) {
   return Number.isSafeInteger(count) && count >= 1 && count <= 255
-}
-
-/** A thresholds effect that has counted its failures stops saving; its duration still runs out. */
-function repeatSaveSettled(
-  thresholds: ActiveEffectSaveThresholds | undefined,
-  lifecycle: ActiveRuleEffectLifecycleDto
-) {
-  return (
-    thresholds !== undefined && (lifecycle.saveTally?.failures ?? 0) >= thresholds.failuresToResolve
-  )
 }
 
 /** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
@@ -5107,12 +5096,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     ) {
       throw new Dnd5eEffectActionCompilerError('D&D recurring save request binding is invalid.')
     }
-    const attemptAllowed =
-      !repeatSaveSettled(definition.recurrence.saveThresholds, lifecycle) &&
-      (!gate || perception?.satisfied === (gate.allow === 'WHEN_MET')) &&
-      // A triggers-only save rolls when its damage trigger runs it, never on the turn tick.
-      (!(DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY in definition.adapterFacts) ||
-        onTrigger === true)
+    const attemptAllowed = repeatSaveAttemptAllowed({
+      adapterFacts: definition.adapterFacts,
+      thresholds: definition.recurrence.saveThresholds,
+      lifecycle,
+      gateMet: !gate || perception?.satisfied === (gate.allow === 'WHEN_MET'),
+      onTrigger
+    })
     const successImmunity =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]
     // A zone that needs sight of its source is saved against unrolled by an occupant without it.

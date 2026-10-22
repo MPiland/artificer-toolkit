@@ -1004,7 +1004,7 @@
 00000000-0002-00e6-0070-011500000000 CREATURE Bite (Bat or Vampire Form Only) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-00e6-0070-013100000000 CREATURE Breath Weapons (Recharge 5-6) | TEST_OUTCOME test=b30f2fcbdc911e619955c1e8b17a621cfdbc08dab02b1f9f185527136d3a5cb6 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=f6ec1a5bb8ddc9fe5a59aadcc6c690b945d419cee469ae650d3e76ee281a9019]
 00000000-0002-00e6-0070-013200000000 CREATURE Breath Weapons (Recharge 5-6) | TEST_OUTCOME test=eec6bffc217b7d4eb1e3e01147765c7080410688905e14df6e04d129a1beee49 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=e1010cb07753f9249e07a5fd2ce75086a4a711ec1a5addd93c786dfac6bc8567]
-00000000-0002-00ed-0070-011500000000 CREATURE Charm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
+00000000-0002-00ed-0070-011500000000 CREATURE Charm | TEST_OUTCOME test=6bffb2831489a8f152adfc002945036a2f8a14d352c1cd05b4124af3f2496271 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=3e5bafede02bb59d1f2d4d203dc8e3d40cfc0d5df4e43da7c71c6dd239cd6082]
 00000000-0002-00f0-0070-011500000000 CREATURE Children of the Night (1/Day) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0002-00f2-0070-011500000000 CREATURE Move | NOT_A_DISCOVERED_ACTION
 00000000-0002-00f6-0070-010500000000 CREATURE Sneak Attack (1/Turn) | NOT_A_DISCOVERED_ACTION
