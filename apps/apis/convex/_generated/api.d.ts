@@ -131740,6 +131740,94 @@ export declare const api: {
       >;
     };
   };
+  loot: {
+    tables: {
+      get: FunctionReference<
+        "query",
+        "public",
+        {
+          owner: {
+            campaignId: string;
+            kind: "SCENE";
+            sceneDefinitionId: string;
+          };
+        },
+        {
+          owner: {
+            campaignId: string;
+            kind: "SCENE";
+            sceneDefinitionId: string;
+          };
+          tables: Array<{
+            id: string;
+            name: string;
+            ranges: Array<{
+              entries: Array<
+                | { itemId: string; kind: "ITEM"; quantity: number }
+                | { amount: number; denominationId: string; kind: "COIN" }
+              >;
+              id: string;
+              max: number | null;
+              min: number;
+              note?: string;
+            }>;
+            skillId?: string;
+          }>;
+          version: number;
+        }
+      >;
+      save: FunctionReference<
+        "mutation",
+        "public",
+        {
+          expectedVersion: number;
+          owner: {
+            campaignId: string;
+            kind: "SCENE";
+            sceneDefinitionId: string;
+          };
+          tables: Array<{
+            id: string;
+            name: string;
+            ranges: Array<{
+              entries: Array<
+                | { itemId: string; kind: "ITEM"; quantity: number }
+                | { amount: number; denominationId: string; kind: "COIN" }
+              >;
+              id: string;
+              max: number | null;
+              min: number;
+              note?: string;
+            }>;
+            skillId?: string;
+          }>;
+        },
+        {
+          owner: {
+            campaignId: string;
+            kind: "SCENE";
+            sceneDefinitionId: string;
+          };
+          tables: Array<{
+            id: string;
+            name: string;
+            ranges: Array<{
+              entries: Array<
+                | { itemId: string; kind: "ITEM"; quantity: number }
+                | { amount: number; denominationId: string; kind: "COIN" }
+              >;
+              id: string;
+              max: number | null;
+              min: number;
+              note?: string;
+            }>;
+            skillId?: string;
+          }>;
+          version: number;
+        }
+      >;
+    };
+  };
   media: {
     assets: {
       avatar: FunctionReference<

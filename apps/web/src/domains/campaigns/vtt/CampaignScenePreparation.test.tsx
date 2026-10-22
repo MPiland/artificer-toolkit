@@ -100,6 +100,7 @@ describe('CampaignScenePreparation unsaved navigation', () => {
         <CampaignScenePreparation
           campaignId={sceneHeader.campaignId}
           currentUserId='22222222-2222-4222-8222-222222222222'
+          gameSystemId='11111111-1111-4111-8111-111111111111'
           memberships={[]}
         />
         <NavigationProbe />
@@ -257,6 +258,7 @@ async function chooseMapFile({ failFirstFinalization }: { failFirstFinalization:
       <CampaignScenePreparation
         campaignId={sceneHeader.campaignId}
         currentUserId='22222222-2222-4222-8222-222222222222'
+        gameSystemId='11111111-1111-4111-8111-111111111111'
         memberships={[]}
       />
     </TestRouterProvider>
@@ -282,6 +284,7 @@ async function renderDirtySceneEditor(status: 'Exhausted' | 'CanLoadMore' = 'Exh
       <CampaignScenePreparation
         campaignId='11111111-1111-4111-8111-111111111111'
         currentUserId='22222222-2222-4222-8222-222222222222'
+        gameSystemId='11111111-1111-4111-8111-111111111111'
         memberships={[]}
       />
       <NavigationProbe />

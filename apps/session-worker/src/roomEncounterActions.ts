@@ -29,7 +29,8 @@ import { buildNativeLiveEncounterCounteredCastCommitInput } from './nativeEncoun
 import { buildNativeLiveEncounterGatedActionCommitInput } from './nativeEncounterIncomingGate.js'
 import { persistRoomEncounterCheckAction } from './roomEncounterBasicActions.js'
 import { persistRoomEncounterContest } from './roomEncounterContest.js'
-import { readRoomEncounterTurnCapture } from './roomEncounterTurnCapture.js'
+import type { MovementSettlementContext } from './roomMovementSettlementCallbacks.js'
+import { roomLiveCaptureReads } from './roomLiveCaptureReads.js'
 import { assertRoomEncounterRulesRevisions } from './roomEncounterTurns.js'
 import { readRoomMaintenanceCapture } from './roomMaintenanceCapture.js'
 import { buildNativeLiveEncounterAreaActionPendingInput } from './nativeEncounterAreaRules.js'
@@ -38,18 +39,19 @@ import {
   readRoomActionAreaSceneInputs,
   readRoomActionSceneInputs
 } from './roomActionSceneInputs.js'
-import { readRoomSceneHeader, readRoomSceneEntities } from './roomSceneRead.js'
-import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { applyRoomForcedMovements, readRoomForcedMovementPick } from './roomActionForcedMovement.js'
 import { persistRoomConcentrationChildren } from './roomConcentrationPersistence.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
+import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 
 /** The existing action planner, evidence and every dependent write use one native transaction. */
 export async function executeRoomEncounterAction(input: {
-  ctx: EncounterWriteTransaction & Parameters<typeof persistRoomConcentrationChildren>[0]
+  ctx: EncounterWriteTransaction &
+    Parameters<typeof persistRoomConcentrationChildren>[0] &
+    MovementSettlementContext
   store: RoomEncounterStore
   transaction: RoomTransaction
   inputs: RoomInputs
@@ -60,32 +62,20 @@ export async function executeRoomEncounterAction(input: {
   random(maximum: number): number
 }) {
   const { ctx, store, transaction, inputs, scope, observed } = input
+  const captures: LiveCaptureReads = {
+    ...roomLiveCaptureReads({ ctx, store, transaction, inputs, observed }),
+    readFormCreature: (gameSystemId, creatureId) =>
+      readActorFormCreature(ctx.ports, {
+        campaignId: scope.campaignId,
+        userId: scope.expectedUserId,
+        gameSystemId,
+        creatureId
+      })
+  }
   const plan = await planNativeLiveEncounterAction(scope, input.command, {
     runtime: input.runtime,
     random: input.random,
-    captures: {
-      encounterRules: (request) =>
-        readRoomEncounterTurnCapture(
-          ctx,
-          inputs,
-          transaction,
-          request,
-          observed.filter((revision) => revision.scope !== 'CHARACTER'),
-          {
-            readSceneHeader: async (sceneId) => readRoomSceneHeader(transaction, sceneId),
-            readSceneEntities: (page) => readRoomSceneEntities(transaction, page)
-          }
-        ),
-      prepareCharacter: (characterScope) =>
-        prepareRoomLiveCharacterSheet(store, inputs, characterScope, observed, transaction),
-      readFormCreature: (gameSystemId, creatureId) =>
-        readActorFormCreature(ctx.ports, {
-          campaignId: scope.campaignId,
-          userId: scope.expectedUserId,
-          gameSystemId,
-          creatureId
-        })
-    },
+    captures,
     forcedMovementPick: (pick) => readRoomForcedMovementPick({ ctx, transaction, ...pick })
   })
   if (plan.kind === 'REPLAY') return plan.result
@@ -98,6 +88,8 @@ export async function executeRoomEncounterAction(input: {
       inputs,
       scope,
       observed,
+      runtime: input.runtime,
+      random: input.random,
       plan: plan.plan
     })
   if (plan.kind === 'CHECK')
@@ -163,7 +155,19 @@ export async function executeRoomEncounterAction(input: {
         batch
       }),
     applyForcedMovements: (movement) =>
-      applyRoomForcedMovements({ ctx, transaction, userId: scope.expectedUserId, movement }),
+      applyRoomForcedMovements({
+        ctx,
+        transaction,
+        store,
+        inputs,
+        scope,
+        observed,
+        captures,
+        runtime: input.runtime,
+        random: input.random,
+        userId: scope.expectedUserId,
+        movement
+      }),
     prepareActionMaintenance: (maintenance) => prepareEncounterActionMaintenance(ctx, maintenance),
     persistActionEffects: (effects) => persistEncounterActionEffects(ctx, effects),
     persistActionChildren: (children) =>

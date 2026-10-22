@@ -52,10 +52,12 @@ import * as styles from './CampaignScenePreparation.css'
 export function CampaignScenePreparation({
   campaignId,
   currentUserId,
+  gameSystemId,
   memberships
 }: {
   campaignId: string
   currentUserId: string
+  gameSystemId: string
   memberships: CampaignDetailDto['memberships']
 }) {
   const convex = useConvex()
@@ -299,6 +301,7 @@ export function CampaignScenePreparation({
         <CampaignSceneEditor
           campaignId={campaignId}
           currentUserId={currentUserId}
+          gameSystemId={gameSystemId}
           memberships={memberships}
           key={definition.data.id}
           scene={definition.data}

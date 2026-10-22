@@ -15,6 +15,7 @@ import { encounterActionEconomyTransitionDtoSchema } from '../shared/ruleExecuti
 import { encounterFailedCounterReceiptDtoSchema } from '../shared/ruleExecutionReactionChoice.js'
 import { encounterRuleOccurrenceSummaryDtoSchema } from '../shared/encounterRuleOccurrence.js'
 import { rollRecordDtoSchema } from '../api/rolls.js'
+import { characterMechanicsTargetStateDtoSchema } from '../shared/ruleExecutionMechanics.js'
 import { MAX_ACTIVE_RULE_EFFECTS_PER_OWNER } from '../shared/activeRuleEffects.js'
 import {
   activeRuleEffectRecordSchema,
@@ -325,7 +326,21 @@ export const encounterForcedMovementLandingSchema = lazySchema(() =>
     targetActorId: postgresUuidSchema,
     feet: z.number().check(z.nonnegative()),
     stoppedBy: z.union([z.literal('NONE'), z.literal('OBJECT'), postgresUuidSchema]),
-    ray: z.nullable(spatialPointDtoSchema)
+    ray: z.nullable(spatialPointDtoSchema),
+    /** D170: the hit points the zone contacts along the path changed, so a GM revert restores them with the move. */
+    zoneDamage: z.optional(
+      z
+        .array(
+          z.strictObject({
+            targetActorId: postgresUuidSchema,
+            before: characterMechanicsTargetStateDtoSchema,
+            after: characterMechanicsTargetStateDtoSchema
+          })
+        )
+        .check(z.maxLength(32))
+    ),
+    /** D170: set when the zone contacts did more than change hit points, which a revert cannot restore. */
+    zoneUndoRefused: z.optional(z.literal(true))
   })
 )
 

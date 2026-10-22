@@ -381,11 +381,15 @@ export async function revertLastEncounterAction(
     cleaving,
     retaliation,
     targetBatches,
+    zoneDamage,
     spend
   }: (typeof plans)[number]) => {
     const source = actorsById.get(spend.sourceActorId)
     if (!source) throw new Error('Stored Encounter action actors are unavailable.')
-    const restoreHitPoints = (actorId: string, transition: ActionBatch['targetTransition']) => {
+    const restoreHitPoints = (
+      actorId: string,
+      transition: Pick<ActionBatch['targetTransition'], 'before' | 'after'>
+    ) => {
       const actor = actorsById.get(actorId)!
       if (actor.kind === 'CHARACTER') throw new Error('Character hit points are not Run state.')
       if (
@@ -408,6 +412,12 @@ export async function revertLastEncounterAction(
       actorsById.set(actorId, next)
     }
 
+    // The zone contacts a forced movement settled came last, so they undo first.
+    for (const { targetActorId, ...transition } of zoneDamage.toReversed()) {
+      if (actorsById.get(targetActorId)?.kind === 'CHARACTER')
+        unavailable("Undo can't restore zone damage to a Character.")
+      restoreHitPoints(targetActorId, transition)
+    }
     // Cleaving children are undone first, in reverse order of application.
     for (const damage of cleaving.toReversed()) {
       const cleaved = damage.targetActorId ? actorsById.get(damage.targetActorId) : undefined
@@ -979,6 +989,10 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
       : []
   if (areaRoot && areaTargetBatches.size !== targetBatches.length)
     throw new Error('Stored Encounter area target receipt is invalid.')
+  // D170: the zone contacts a forced movement settled are kept on its landings and undo with the move.
+  const zoneDamage = root.forcedMovementLandings.flatMap((landing) => landing.zoneDamage ?? [])
+  if (root.forcedMovementLandings.some((landing) => landing.zoneUndoRefused))
+    unsupported.add('the zones a forced movement set off')
   for (const action of targetBatches) {
     if (
       action.applications.some(
@@ -1025,7 +1039,17 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
     })
   if (unsupported.size || !spend)
     unavailable(`Undo can't restore ${[...unsupported].join(', ')}; adjust manually.`)
-  return { root, batch, areaRoot, lostRoot, cleaving, retaliation, targetBatches, spend }
+  return {
+    root,
+    batch,
+    areaRoot,
+    lostRoot,
+    cleaving,
+    retaliation,
+    targetBatches,
+    zoneDamage,
+    spend
+  }
 }
 
 /** Writes the restored actors, the next Run version and the undo's own timeline entry. */
