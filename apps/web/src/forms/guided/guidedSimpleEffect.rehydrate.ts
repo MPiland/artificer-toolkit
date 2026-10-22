@@ -17,10 +17,10 @@ type RehydratedGuidedSpell = {
 }
 
 export function rehydrateGuidedSpell(
-  value: unknown,
+  effects: readonly unknown[] | undefined,
   fallbackIds: GuidedEffectIds
 ): RehydratedGuidedSpell | null {
-  const effect = readGuidedSpellEffect([value])
+  const effect = readGuidedSpellEffect(effects)
   if (!effect) return null
 
   const path = effect.paths[0]
@@ -97,10 +97,6 @@ export function rehydrateGuidedSpell(
     },
     ids
   }
-}
-
-export function canUseGuidedSpellAuthoring(effects: readonly unknown[] | undefined): boolean {
-  return readGuidedSpellEffect(effects) !== null
 }
 
 function readGuidedSpellEffect(effects: readonly unknown[] | undefined): EffectAuthored | null {

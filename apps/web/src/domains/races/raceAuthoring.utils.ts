@@ -60,24 +60,6 @@ export function createEmptyRace(input: CreateEmptyRaceInput): RaceFormValues {
   return createEmptyBaseRace(input)
 }
 
-export function createEmptyDetail(order: number): DetailDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    order
-  }
-}
-
-export function createEmptyFeature(order: number): FeatureDto {
-  return {
-    id: crypto.randomUUID(),
-    label: '',
-    description: '',
-    order
-  }
-}
-
 function createEmptySpeed(): SpeedDto {
   return {
     speedId: '',
@@ -145,13 +127,6 @@ export function normalizeRaceForSubmit(race: RaceFormValues): RaceAuthoringInput
 
 export function resolveCreateRaceSystemId(systems: readonly { id: string }[]): string | null {
   return systems[0]?.id ?? null
-}
-
-export function upsertById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
-  const exists = items.some((current) => current.id === item.id)
-  return exists
-    ? items.map((current) => (current.id === item.id ? item : current))
-    : [...items, item]
 }
 
 function normalizeAncestry(ancestry: RaceFormValues['ancestry']): BaseRaceDto['ancestry'] {

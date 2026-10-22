@@ -2326,8 +2326,13 @@ token moves by the mover's displacement in the same Scene move, spends no moveme
 attack, and the mover's path ignores it as an obstacle. The drag doubles the mover's cost on top of the D154
 maximum (difficult terrain costs ×4) unless every held creature is two or more sizes smaller; an unknown size
 counts as not smaller. A mover stopped mid-path drags only the walked part. The room refuses a drag
-(`MOVEMENT_BLOCKED`, "Release the grapple first.") whose dragged path is blocked, ends on an occupied place, or
-enters, leaves or crosses a Scene effect (a dragged path through a zone is a follow-up seam; a forced push through one is settled, D170).
+(`MOVEMENT_BLOCKED`, "Release the grapple first.") whose dragged path is blocked or ends on an occupied place.
+The Scene effects a drag crosses are not refused (D170, SPELLS-4.T1k): `evaluateEncounterSpatialMovementRuleBatch` takes
+`draggedTokenIds` and, beside the mover's candidates, collects each dragged token's `FORCED` candidates along the mover's path
+translated to its own place, merged in `compareSpatialMovementCandidates` order. They settle in the mover's one spatial pass
+(same dice, pending prompts, Concentration checks, receipts under the move's command and projection), so a dragged creature's
+0 hit points or STOP interruption stops the whole drag at that contact, and the Scene undo refuses the move because it recorded
+receipts. The list is recomputed from the live holds on every segment and resume, so no snapshot field carries it.
 
 **Escape against a fixed DC (D105, ATTACK-7.3).** A holder whose own Encounter effect carries an
 `ESCAPE_CHECK` module (`dc.kind === 'FIXED'`, `actorKinds` including `TARGET`; the authoring schema and node map offer an Escape only `FIXED` and `CONTEST`) can spend the module's

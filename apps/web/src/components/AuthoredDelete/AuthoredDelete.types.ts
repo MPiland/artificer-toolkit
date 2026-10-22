@@ -1,4 +1,4 @@
-export type AuthoredDeleteKind = 'active' | 'draft'
+type AuthoredDeleteKind = 'active' | 'draft'
 
 export interface AuthoredDeleteTarget {
   id: string

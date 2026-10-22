@@ -3,16 +3,10 @@ import type {
   BackgroundAuthoredDto
 } from '@artificer-toolkit/schema/subjects/background'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
-import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants'
 import { createEmptyStartingEquipment } from '#app/forms/rendering/startingEquipmentDefaults'
 
 export {
-  addStartingEquipmentItem,
-  createEmptyStartingEquipment,
   getStartingEquipmentItems,
-  removeStartingEquipmentItem,
-  replaceStartingEquipmentItem,
-  upsertStartingEquipmentItem,
   type StartingEquipmentItemDto
 } from '#app/forms/rendering/startingEquipmentDefaults'
 
@@ -62,18 +56,5 @@ export function createEmptyDetail(order: number): DetailDto {
     label: '',
     description: '',
     order
-  }
-}
-
-export function createEmptyProficiency(order: number): ProficiencyGrantDto {
-  return {
-    grantKind: 'PROFICIENCY_GRANT',
-    id: crypto.randomUUID(),
-    order,
-    selectionKind: 'GRANTED',
-    scalingKind: 'NONE',
-    proficiencyKind: 'SKILL',
-    authoringModeKind: 'ALL',
-    level: 'FULL'
   }
 }

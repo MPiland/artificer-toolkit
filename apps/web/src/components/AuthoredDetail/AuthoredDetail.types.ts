@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 
-export type AuthoredDetailNoticeTone = 'draft' | 'warning' | 'info'
+type AuthoredDetailNoticeTone = 'draft' | 'warning' | 'info'
 
-export type AuthoredDetailActionTone = 'primary' | 'secondary' | 'quiet' | 'danger'
+type AuthoredDetailActionTone = 'primary' | 'secondary' | 'quiet' | 'danger'
 
 export interface AuthoredDetailAction {
   label: string

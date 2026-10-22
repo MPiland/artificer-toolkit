@@ -18,7 +18,7 @@ export type NotificationDestination =
       campaignPublicId: string
     }
 
-export interface NotificationViewModel {
+interface NotificationViewModel {
   body: string
   destination?: NotificationDestination
   id: string
@@ -36,8 +36,6 @@ export interface NotificationFeedViewProps {
   onOpen?: (id: string, destination: NotificationDestination) => void
   onRetry?: () => void
 }
-
-export const notificationHistoryLimit = 25
 
 export function formatNotificationTimestamp(value: string) {
   return new Intl.DateTimeFormat(undefined, {
