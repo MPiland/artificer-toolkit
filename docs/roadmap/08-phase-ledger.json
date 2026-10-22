@@ -15210,7 +15210,7 @@
             },
             {
               "id": "SPELLS-33.T6e2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15220,7 +15220,8 @@
                 "after": ["SPELLS-33.T6e", "SPELLS-4.T2m1", "SPELLS-4.T2m1b2b"]
               },
               "text": "Vampire Charm: a generic follow-up-save timing that repeats only on its repeatTriggers (no turn-end save), with the duration still counted down by the turn kernel (D176); Charm repeats its save when the source side harms it. Authoring-parity proof; deletes its kind (2026-10-18 ruling on the T6e design; workbook slice-spells-33.md). No SRD_CREATURE_ATTACK_UNSUPPORTED entry depends on Charm; Vampire Bite stays a separate kind.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-22T23:53:01Z",
+              "note": "Merged in m356."
             },
             {
               "id": "SPELLS-33.T6f",
