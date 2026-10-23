@@ -83,6 +83,15 @@ export type CheckActionSettlement = {
   appRollId: z.infer<typeof postgresUuidSchema> | null
   forcedMovements: LiveSessionForcedMovement[]
   window?: { spentEffect: ActiveRuleEffectRecord | null }
+  /**
+   * A spell's per-effect check step (D182), present exactly when the context has candidates: the
+   * effects a success ended with the effects linked to them, and the next candidate's pending
+   * snapshot, or null after the last.
+   */
+  candidate?: {
+    endedEffects: ActiveRuleEffectRecord[]
+    next: z.infer<typeof serverKernelRuleExecutionPendingSnapshotDtoSchema> | null
+  }
 }
 
 const checkActionSettlementSchema: z.ZodMiniType<CheckActionSettlement> = lazySchema(() =>
@@ -91,7 +100,15 @@ const checkActionSettlementSchema: z.ZodMiniType<CheckActionSettlement> = lazySc
     execution: storedRuleExecutionResultDtoSchema,
     appRollId: z.nullable(postgresUuidSchema),
     forcedMovements: liveSessionForcedMovementsSchema,
-    window: z.optional(d20WindowSpendSchema)
+    window: z.optional(d20WindowSpendSchema),
+    candidate: z.optional(
+      z.strictObject({
+        endedEffects: z
+          .array(activeRuleEffectRecordSchema)
+          .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+        next: z.nullable(serverKernelRuleExecutionPendingSnapshotDtoSchema)
+      })
+    )
   })
 )
 

@@ -397,7 +397,9 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           kind: z.literal('RULE_OCCURRENCE'),
           ruleOccurrenceId: postgresUuidSchema,
           ruleResultChecksum: projectionChecksumSchema,
-          optionalCombatSnapshotChecksum: projectionChecksumSchema
+          optionalCombatSnapshotChecksum: projectionChecksumSchema,
+          /** A spell cast's own ability-check occurrence (D182); its answers settle under this root. */
+          checkOccurrenceId: z.optional(postgresUuidSchema)
         }),
         z.strictObject({
           kind: z.literal('CHECK'),
