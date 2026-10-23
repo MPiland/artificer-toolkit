@@ -21,7 +21,11 @@ import {
   resolveRaceAuthored
 } from '@artificer-toolkit/shared/subjects/compilers'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd'
-import { SRD_ABILITIES, SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITIES,
+  SRD_SPEEDS,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { buildCharacterActionRuleFacts } from '../character/characterActionRuleFacts.js'
 import { buildCharacterArmorClassRuleFacts } from '../character/characterArmorClassRuleFacts.js'
@@ -70,7 +74,14 @@ function registryWith(
     features: extraFeatures.map(compileFeature)
   }
   return prepareCharacterRuleSources({
-    registry: { ...compiled, system: { skills: [], speeds: [...SRD_SPEEDS] } },
+    registry: {
+      ...compiled,
+      system: {
+        skills: [],
+        speeds: [...SRD_SPEEDS],
+        defaults: srdSystemRecord.defaults
+      }
+    },
     catalog: { spells: [] }
   }).registry
 }

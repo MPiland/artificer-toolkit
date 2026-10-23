@@ -79,7 +79,8 @@ function createAssemblyRegistry(context: CharacterRuleContext): CharacterAssembl
       ? {
           abilities: vocabulary?.abilities ?? [],
           skills: vocabulary?.skills ?? [],
-          speeds: registry.system.speeds ?? []
+          speeds: registry.system.speeds ?? [],
+          defaults: registry.system.defaults
         }
       : undefined
   }

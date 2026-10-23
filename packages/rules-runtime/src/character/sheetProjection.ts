@@ -33,6 +33,7 @@ import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/ch
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import { listActiveGrantListings } from '../activeGrantListings.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
@@ -694,21 +695,14 @@ function formatExtraMeasurement(amount: number, unit: MeasurementUnitCode): stri
 
 function formatExtraSpeedLabel(
   speeds: ReadonlyArray<{ speedId: string; amount: number; unit: LengthUnitCode }> | undefined,
-  speedDefinitions: ReadonlyArray<{ id: string; code?: string; label: string }> | undefined
+  system: Pick<SystemAuthoredDto, 'speeds' | 'defaults'> | null | undefined
 ): string | undefined {
   if (!speeds?.length) return undefined
   const resolvedSpeeds = speeds.map((speed) => {
-    const definition = speedDefinitions?.find(
+    const definition = system?.speeds.find(
       (candidate) => candidate.id === speed.speedId || candidate.code === speed.speedId
     )
-    const normalizedCode = definition?.code?.toUpperCase() ?? speed.speedId.toUpperCase()
-    const normalizedLabel = definition?.label.trim().toLowerCase()
-    const isWalking =
-      normalizedCode === 'WALK' ||
-      normalizedCode === 'WALKING' ||
-      normalizedLabel === 'walk' ||
-      normalizedLabel === 'walking' ||
-      normalizedLabel === 'walking speed'
+    const isWalking = (definition?.id ?? speed.speedId) === system?.defaults?.movementTypeId
     return { definition, isWalking, speed }
   })
   const selected = resolvedSpeeds.find(({ isWalking }) => !isWalking) ?? resolvedSpeeds[0]
@@ -933,9 +927,9 @@ export function projectCharacterSheetBundle(
         ...(mechanics.size ? { size: mechanics.size } : {}),
         ...(mechanics.alignmentId ? { alignmentId: mechanics.alignmentId } : {}),
         ...(mechanics.creatureTypeId ? { creatureTypeId: mechanics.creatureTypeId } : {}),
-        ...(formatExtraSpeedLabel(creature.speeds, resolution.registry.system?.speeds)
+        ...(formatExtraSpeedLabel(creature.speeds, resolution.registry.system)
           ? {
-              speedLabel: formatExtraSpeedLabel(creature.speeds, resolution.registry.system?.speeds)
+              speedLabel: formatExtraSpeedLabel(creature.speeds, resolution.registry.system)
             }
           : {}),
         ...(creature.carryingCapacity
@@ -1062,7 +1056,7 @@ export function projectCharacterSheetBundle(
   )
   const speedValue = formatExtraSpeedLabel(
     primarySpeed ? [primarySpeed] : undefined,
-    resolution.registry.system?.speeds
+    resolution.registry.system
   )
   const sheetReferenceFeatures = resolution.grants.features.filter(isSheetVisibleFeature)
   const mechanicPresentation = createCharacterSheetMechanicPresentationSources(

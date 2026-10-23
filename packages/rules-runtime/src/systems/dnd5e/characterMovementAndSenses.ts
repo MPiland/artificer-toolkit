@@ -171,9 +171,9 @@ export function evaluateDnd5eCharacterMovementAndSenses(
   const primaryMovementSpeedId =
     preference?.mode === 'EXPLICIT' && speeds.some((speed) => speed.speedId === preference.speedId)
       ? preference.speedId
-      : (input.movementFacts?.speeds.find((speed) => speed.code === 'WALK')?.speedId ??
-        speeds[0]?.speedId ??
-        null)
+      : ((
+          speeds.find((speed) => speed.speedId === input.movementFacts?.defaultSpeedId) ?? speeds[0]
+        )?.speedId ?? null)
   const senseIds = [
     ...new Set([
       ...grantFold.senses.map((sense) => sense.senseDefinitionId),

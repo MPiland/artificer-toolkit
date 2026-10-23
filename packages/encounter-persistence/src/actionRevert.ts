@@ -916,6 +916,17 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
       continue
     }
     if (
+      outputs?.kind === 'CHECK_ACTION' &&
+      outputs.source.kind === 'SPELL_CAST' &&
+      outputs.source.castOccurrenceId === ruleOccurrenceId
+    ) {
+      // One of the cast's per-effect checks (D182): a success ended an effect with the conditions
+      // only it held, which the receipt keeps as ids and which undo does not give back.
+      childOccurrenceIds.add(receipt.occurrenceId)
+      if (outputs.outcome === 'SUCCESS') unsupported.add('an effect a dispel ended')
+      continue
+    }
+    if (
       (outputs?.kind !== 'DAMAGE_SAVE_CHECK' &&
         outputs?.kind !== 'CONCENTRATION_END' &&
         outputs?.kind !== 'CLEAVING_DAMAGE') ||

@@ -17,9 +17,6 @@ export function buildCharacterMovementRuleFacts(
   const adjustments = (snapshot.adjustments ?? []).filter(
     (adjustment) => adjustment.family === 'MOVEMENT'
   )
-  const systemCodes = new Map(
-    (registry.system?.speeds ?? []).map((speed) => [speed.id, speed.code])
-  )
   const baseById = new Map(baseSpeeds.map((speed) => [speed.speedId, speed]))
   const orderedIds = [
     ...baseSpeeds.map((speed) => speed.speedId),
@@ -33,7 +30,6 @@ export function buildCharacterMovementRuleFacts(
     const override = adjustments.find((adjustment) => adjustment.speedId === speedId)
     return {
       speedId,
-      code: systemCodes.get(speedId) ?? null,
       base: speed ? { amount: speed.amount, unit: speed.unit } : null,
       override: override ? { sourceId: override.id, value: override.value } : null
     }
@@ -42,6 +38,7 @@ export function buildCharacterMovementRuleFacts(
   return {
     movementFacts: {
       speeds,
+      defaultSpeedId: registry.system?.defaults?.movementTypeId ?? null,
       preference: {
         mode: preference.mode,
         speedId: preference.mode === 'EXPLICIT' ? preference.speedId : null
