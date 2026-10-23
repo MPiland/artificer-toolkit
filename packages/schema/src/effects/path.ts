@@ -193,6 +193,10 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
         modifiers: authoredNestedCollectionSchema(modifierGrantDtoSchema)
       })
     ),
+    /** The d20 that gates the held outcomes each turn; see `PathLifecycleAuthored.turnEndGate`. */
+    turnEndGate: z.optional(
+      z.object({ minimumRoll: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20)) })
+    ),
     /** Actions the holder may take while the effect is held; see `PathLifecycleAuthored.grantedActions`. */
     grantedActions: z.optional(grantedActionsDtoSchema),
     /** Choices offered beside the holder's turns; see `PathLifecycleAuthored.effectOffers`. */
