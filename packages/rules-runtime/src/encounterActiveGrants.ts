@@ -277,6 +277,14 @@ function isHolderStateKind(kind: string): kind is keyof typeof HOLDER_STATE_FLAG
   return Object.hasOwn(HOLDER_STATE_FLAG, kind)
 }
 
+/** Whether a creature of these types meets a creature-type condition, before its constraint. */
+function creatureTypeConditionMatches(
+  condition: Pick<ModifierRestrictions[number]['conditions'][number], 'mode' | 'requiredIds'>,
+  creatureTypeIds: readonly string[]
+): boolean {
+  return condition.mode === 'ALL' || condition.requiredIds.some((id) => creatureTypeIds.includes(id))
+}
+
 /** Whether the holder meets a condition, or `undefined` when it cannot be decided here. */
 function holderConditionMatches(
   condition: ModifierRestrictions[number]['conditions'][number],
@@ -286,10 +294,7 @@ function holderConditionMatches(
     case 'HOLDER_KIND':
       return condition.requiredIds.includes(holderState.kind)
     case 'CREATURE_TYPE':
-      return (
-        condition.mode === 'ALL' ||
-        condition.requiredIds.some((id) => holderState.creatureTypeIds.includes(id))
-      )
+      return creatureTypeConditionMatches(condition, holderState.creatureTypeIds)
     case 'TURN_MOVEMENT': {
       const { usedFeet, speedFeet } = holderState.turnMovement
       return (
@@ -366,8 +371,7 @@ export function sourceQualifierAdmits(
     qualifier.some((group) =>
       group.every(
         (condition) =>
-          (condition.mode === 'ALL' ||
-            condition.requiredIds.some((id) => sourceCreatureTypeIds.includes(id))) ===
+          creatureTypeConditionMatches(condition, sourceCreatureTypeIds) ===
           (condition.constraint === 'INCLUDE')
       )
     )
