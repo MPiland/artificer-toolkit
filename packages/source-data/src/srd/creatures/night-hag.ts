@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 export const nightHag: CreatureAuthored = {
   id: S.CREATURE_IDS.NIGHT_HAG,
@@ -309,8 +310,11 @@ export const nightHag: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(4849, 13),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.NIGHT_HAG_NIGHTMARE_HAUNTING
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Nightmare Haunting',
+                    instructions:
+                      'While the contact persists the target has dreadful visions. If the visions last at least 1 hour, the target gains no benefit from its rest and its hit point maximum is reduced by 5 (1d10); if that reduces it to 0, the target dies. The reduction lasts until removed by greater restoration or similar magic.',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.NARRATIVE_JUDGMENT
                   }
                 ]
               }

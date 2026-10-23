@@ -10921,19 +10921,61 @@
               "note": " D187b (2026-10-23): Spiritual Weapon is a caster-controlled CREATURE manifest; gaps return sized for a user yes. D187b: size 8 to 5; Spiritual Weapon moved to T2v2 (summon tokens)."
             },
             {
-              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
-              "id": "SPELLS-4.T2v2",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "id": "SPELLS-4.T2v2a1",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 5,
-                "size": 20,
-                "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
+                "size": 8,
+                "after": ["SPELLS-4.T1"]
               },
-              "text": "D187b (approved scope growth): summon tokens. A SUMMON manifest holds its stat block on the spell; when the spell is cast, the room creates a token from it, its owner (the caster, or the GM for a GM-controlled caster) controls it through a System-neutral owner-control piece reusable by any System's summons, companions or minions (ADR 0039); its move and attack spend the owner's action economy as the stat block authors it (the D&D data spends the caster's bonus action) using the caster's frozen spell attack bonus with reach from the token, and the token is removed when the spell ends. Converts SPIRITUAL_WEAPON (WEAPON, MOVE_MANIFEST and COMMAND_MANIFEST), Arcane Hand and Mage Hand, each with a parity proof; room journey: cast Spiritual Weapon, then move and attack with it on a later turn. Riders with no automated equivalent stay GM rulings (D187a).",
-              "note": "Registered 2026-10-23 at the user's yes (D187b); size estimate 13 to 21.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "text": "D187b summon piece, part 1: owner contract. Optional owner { ownerActorId, sourceEffectId? } on the Run actor schema; one resolver actorControlledBy replaces direct controllerUserIds reads (controller, viewer, projection, room authorization, reconcile, commands); derived-control refresh in the room authorization cache; projection and redaction; persistence.md and rules-runtime.md. Room proof: the owner's player acts as an owned actor no controller list names; a stranger and a departed owner cannot.",
+              "note": "Split from T2v2a 2026-10-23 (D187b)."
+            },
+            {
+              "closes": ["SPELLS-4.1"],
+              "status": "TODO",
+              "id": "SPELLS-4.T2v2a2",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["SPELLS-4.T2v2a1"]
+              },
+              "text": "D187b summon piece, part 2: create and remove. SUMMON compiles to a summon plan from its statBlock; the cast commit inserts the owned actor (no initiative of its own) and its Scene token and binding in the same room transaction; removal at the effect-end chokepoints (expiry, Concentration end, recast, dispel, undo); replay receipts carry the created actor id. Scene-token ownership boundary recorded in persistence.md.",
+              "note": "Split from T2v2a 2026-10-23 (D187b)."
+            },
+            {
+              "closes": ["SPELLS-4.1"],
+              "status": "TODO",
+              "id": "SPELLS-4.T2v2a3",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 13,
+                "after": ["SPELLS-4.T2v2a2", "SPELLS-4.T2v"]
+              },
+              "text": "D187b summon piece, part 3: drive it. Granted move and attack actions on the summon spend the owner's economy (System-neutral; D&D bonus action only in data), spell attack bonus frozen at cast, reach from the token, damageabilityKind and occupiesSpace honoured; reuses the T2v REPEAT_SOURCE_PATH effectId/target extension. Converts SPIRITUAL_WEAPON (WEAPON, MOVE_MANIFEST and COMMAND_MANIFEST) with a parity proof; room journey: cast, attack, later-turn move and attack on the owner's bonus action, removed at spell end.",
+              "note": "Split from T2v2a 2026-10-23 (D187b)."
+            },
+            {
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "id": "SPELLS-4.T2v2b",
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 8,
+                "after": ["SPELLS-4.T2v2a3"]
+              },
+              "text": "D187b: convert Arcane Hand and Mage Hand to SUMMON actors on the T2v2a summon piece (stat block on the spell, owner control, removed when the spell ends), each with a parity proof and a room test. Riders with no automated equivalent stay GM rulings (D187a).",
+              "note": "Registered 2026-10-23 at the user's yes (D187b split)."
             },
             {
               "status": "TODO",
@@ -10944,7 +10986,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 1,
-                "after": ["SPELLS-4.T1", "SPELLS-4.T2v", "SPELLS-4.T2v2"]
+                "after": ["SPELLS-4.T1", "SPELLS-4.T2v", "SPELLS-4.T2v2a3"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted.",
               "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b: Faithful Hound builds on the T2v2 summon token."
@@ -15181,7 +15223,7 @@
             },
             {
               "id": "SPELLS-33.T6b1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15191,8 +15233,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2f", "SPELLS-4.T2n1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: afflictions and curses with rest and healing denial and a clock (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m386.",
+              "mergedAt": "2026-10-23T20:45:46Z",
+              "proof": "Tests and Live green on tip 1b7e62af; afflictions and curses ship as GM rulings per D187a with authoring-parity proofs; closed kinds (incl. Rakshasa Claw) deleted; SRD data and compile golden updated."
             },
             {
               "id": "SPELLS-33.T6b2",

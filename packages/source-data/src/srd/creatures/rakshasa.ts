@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 
 export const rakshasa: CreatureAuthored = {
@@ -187,8 +188,11 @@ export const rakshasa: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(230, 938),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_RAKSHASA_CLAW
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Rakshasa Curse',
+                    instructions:
+                      "If the target is a creature, it is cursed. The magical curse takes effect whenever the target takes a short or long rest, filling the target's thoughts with horrible images and dreams. The cursed target gains no benefit from finishing a short or long rest. The curse lasts until it is lifted by a remove curse spell or similar magic.",
+                    reasonCode: MANUAL_ADJUDICATION_REASON.NARRATIVE_JUDGMENT
                   }
                 ]
               }
