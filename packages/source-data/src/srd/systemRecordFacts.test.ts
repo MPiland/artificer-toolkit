@@ -83,6 +83,12 @@ describe('SRD System record facts', () => {
     ).toEqual(['EXHAUSTION'])
   })
 
+  it('marks Invisible as the only unseen condition', () => {
+    expect(system.conditionTypes.filter(({ unseen }) => unseen).map(({ code }) => code)).toEqual([
+      'INVISIBLE'
+    ])
+  })
+
   it('rejects a default naming a definition outside the System', () => {
     expect(
       systemAuthoredDtoSchema.safeParse({

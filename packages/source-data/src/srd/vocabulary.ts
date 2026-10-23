@@ -124,6 +124,7 @@ export const SRD_CONDITION_TYPES = [
   {
     id: vocabId(D.conditionType, 8),
     code: 'INVISIBLE',
+    unseen: true,
     label: 'Invisible',
     description:
       'An invisible creature is impossible to see without the aid of magic or a special sense.'

@@ -92,6 +92,7 @@ interface SystemChallengeRatingSeedRecord extends VocabularySeedRecord {
 
 interface SystemConditionTypeSeedRecord extends VocabularySeedRecord {
   levelled?: boolean
+  unseen?: boolean
 }
 
 interface SystemCurrencySeedRecord extends VocabularySeedRecord {

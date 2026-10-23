@@ -72,14 +72,14 @@ export type EncounterPlayerViewer = {
 
 /** The viewer a projection is built for: what they see, plus the Invisible condition types (D131). */
 export type EncounterProjectionViewer = EncounterPlayerViewer & {
-  invisibleConditionTypeIds: ReadonlySet<string>
+  unseenConditionTypeIds: ReadonlySet<string>
 }
 
-/** The ids of the System's Invisible condition types: the one condition fact a player's list carries (D131). */
-export function invisibleConditionTypeIds(
-  conditionTypes: readonly { id: string; code: string }[]
+/** The ids of the System's condition types marked `unseen`: the one condition fact a player's list carries (D131). */
+export function unseenConditionTypeIds(
+  conditionTypes: readonly { id: string; unseen?: boolean }[]
 ): ReadonlySet<string> {
-  return new Set(conditionTypes.flatMap((type) => (type.code === 'INVISIBLE' ? [type.id] : [])))
+  return new Set(conditionTypes.flatMap((type) => (type.unseen ? [type.id] : [])))
 }
 
 /** Whether an actor's stored conditions (a type id, or a record holding one) include any of `typeIds`. */
@@ -209,7 +209,7 @@ export function projectPlayerEncounterProjection(
         const unseenReason =
           controlled || !viewer.unseenActorIds.has(actor.id)
             ? null
-            : carriesConditionType(actor.conditions, viewer.invisibleConditionTypeIds)
+            : carriesConditionType(actor.conditions, viewer.unseenConditionTypeIds)
               ? ('INVISIBLE' as const)
               : ('HIDDEN' as const)
         if (!controlled && actor.reveal === 'UNNAMED' && viewer.unseenActorIds.has(actor.id))

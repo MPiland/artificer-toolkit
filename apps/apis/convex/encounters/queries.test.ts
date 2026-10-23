@@ -256,7 +256,7 @@ describe('native Encounter reads', () => {
         userId: other.userId,
         characters: new Map(),
         unseenActorIds: new Set<string>(),
-        invisibleConditionTypeIds: new Set<string>()
+        unseenConditionTypeIds: new Set<string>()
       })
     )
     expect(playerProjection.currentActorId).toBe(ownerCreature!.id)
@@ -307,7 +307,7 @@ describe('native Encounter reads', () => {
         userId: other.userId,
         characters: new Map(),
         unseenActorIds: new Set<string>(),
-        invisibleConditionTypeIds: new Set<string>()
+        unseenConditionTypeIds: new Set<string>()
       })
     )
     expect(await other.caller.query(list, { campaignId: campaign.id })).toHaveLength(1)
@@ -401,7 +401,7 @@ describe('native Encounter reads', () => {
         userId: owner.userId,
         characters: new Map(),
         unseenActorIds: new Set<string>(),
-        invisibleConditionTypeIds: new Set<string>()
+        unseenConditionTypeIds: new Set<string>()
       })
     )
   }, 30000)

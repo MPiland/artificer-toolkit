@@ -37,9 +37,15 @@ const systemChallengeRatingDtoSchema = lazySchema(() =>
   })
 )
 
-/** A System condition. `levelled` marks a condition tracked as a level, not added or removed as a flag. */
+/**
+ * A System condition. `levelled` marks a condition tracked as a level, not added or removed as a flag;
+ * `unseen` marks one that hides its holder from players who cannot perceive them (D131).
+ */
 const systemConditionTypeDtoSchema = lazySchema(() =>
-  z.extend(vocabularyDtoSchema, { levelled: z.optional(z.boolean()) })
+  z.extend(vocabularyDtoSchema, {
+    levelled: z.optional(z.boolean()),
+    unseen: z.optional(z.boolean())
+  })
 )
 
 /** The definition IDs authoring and the Sheet fall back to when the user has not chosen one. */

@@ -1,6 +1,6 @@
 import type { EncounterGmProjectionDto } from '@artificer-toolkit/schema/api/encounterData'
 import {
-  invisibleConditionTypeIds,
+  unseenConditionTypeIds,
   unseenEncounterActorIds,
   type EncounterPlayerViewer,
   type EncounterProjectionViewer
@@ -115,8 +115,8 @@ export async function readEncounterProjectionViewer(
   // Only an unseen creature needs the System's Invisible condition types, so a table that sees everyone reads no System.
   return {
     ...sight,
-    invisibleConditionTypeIds: sight.unseenActorIds.size
-      ? invisibleConditionTypeIds(
+    unseenConditionTypeIds: sight.unseenActorIds.size
+      ? unseenConditionTypeIds(
           (await ctx.ports.requireSystem(projection.gameSystemId)).conditionTypes
         )
       : new Set()

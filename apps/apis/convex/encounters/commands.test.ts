@@ -1320,7 +1320,7 @@ describe('native Encounter Run commands', () => {
         userId: other.userId,
         characters: new Map(),
         unseenActorIds: new Set<string>(),
-        invisibleConditionTypeIds: new Set<string>()
+        unseenConditionTypeIds: new Set<string>()
       })
     )
     expect(settledRows.rounds).toMatchObject([{ status: 'ACTIVE', version: 1 }])
@@ -1472,7 +1472,7 @@ describe('native Encounter Run commands', () => {
           userId: other.userId,
           characters: new Map(),
           unseenActorIds: new Set<string>(),
-          invisibleConditionTypeIds: new Set<string>()
+          unseenConditionTypeIds: new Set<string>()
         }
       )
     )
