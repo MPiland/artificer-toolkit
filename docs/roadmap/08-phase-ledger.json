@@ -10675,7 +10675,7 @@
             },
             {
               "id": "SPELLS-4.T2m1b2c",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10685,7 +10685,8 @@
                 "after": ["SPELLS-4.T2m1b2b"]
               },
               "text": "Damage taken from movement (per-step zone and hazard damage) joins the repeat-save and Concentration chain that T2m1b2b built for the other damage sources, through the per-step movement Concentration stack. Also: turn-effect damage names its source instead of a null damager, so a repeat save triggered only by a named source fires on it (found in the T2m1b2b review).",
-              "note": "Split from SPELLS-4.T2m1b2b at the session's report, 2026-10-22."
+              "note": "Split from SPELLS-4.T2m1b2b at the session's report, 2026-10-22.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2m1d",
@@ -10914,17 +10915,16 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 8,
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
               },
               "text": "D187b scope: WEAPON manifests in Encounters with a granted repeatable attack action (the T2l granted-action option, REPEAT_SOURCE_PATH carrier pattern). Converts FLAME_BLADE and PRODUCE_FLAME (the optional later hurl that ends the spell may ship as a GM ruling), each with a parity proof and a room test; kinds deleted. Spiritual Weapon moved to SPELLS-4.T2v2.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": " D187b (2026-10-23): Spiritual Weapon is a caster-controlled CREATURE manifest; gaps return sized for a user yes. D187b: size 8 to 5; Spiritual Weapon moved to T2v2 (summon tokens)."
+              "note": " D187b (2026-10-23): Spiritual Weapon is a caster-controlled CREATURE manifest; gaps return sized for a user yes. D187b: size 8 to 5; Spiritual Weapon moved to T2v2 (summon tokens). 2026-10-23: builds the repeat attack mechanic (frozen attack bonus as attackMechanic on REPEAT_PATH, REPEAT_SOURCE_PATH effectId and HOLDER/INVOCATION target) that T2v2a3 reuses; size back to 8 (D187b)."
             },
             {
               "closes": ["SPELLS-4.1"],
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "status": "DONE",
               "id": "SPELLS-4.T2v2a1",
               "wsjf": {
                 "bv": 8,
@@ -10934,21 +10934,52 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "D187b summon piece, part 1: owner contract. Optional owner { ownerActorId, sourceEffectId? } on the Run actor schema; one resolver actorControlledBy replaces direct controllerUserIds reads (controller, viewer, projection, room authorization, reconcile, commands); derived-control refresh in the room authorization cache; projection and redaction; persistence.md and rules-runtime.md. Room proof: the owner's player acts as an owned actor no controller list names; a stranger and a departed owner cannot.",
-              "note": "Split from T2v2a 2026-10-23 (D187b)."
+              "note": "Split from T2v2a 2026-10-23 (D187b). Merged in m388.",
+              "mergedAt": "2026-10-23T21:23:38Z",
+              "proof": "Tests and Live green on tip 7f78d641; owned Run actor with owner { ownerActorId, sourceEffectId? }, cycle-safe actorOwnerChain resolver and controlsActorOrOwner replace direct controller reads; persistence, projection and room-authorization-cache tests; persistence.md and rules-runtime.md updated."
             },
             {
               "closes": ["SPELLS-4.1"],
+              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A).",
+              "status": "IN_PROGRESS",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "id": "SPELLS-4.T2v2a2a",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["SPELLS-4.T2v2a1"]
+              },
+              "text": "D187b summon piece, part 2a: SUMMON manifest compiles to a summon plan from its summonStatBlockDtoSchema stat block (actor shape, owner link, no initiative), with compile tests."
+            },
+            {
+              "closes": ["SPELLS-4.1"],
+              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A).",
               "status": "TODO",
-              "id": "SPELLS-4.T2v2a2",
+              "id": "SPELLS-4.T2v2a2b",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 5,
                 "size": 13,
-                "after": ["SPELLS-4.T2v2a1"]
+                "after": ["SPELLS-4.T2v2a2a"]
               },
-              "text": "D187b summon piece, part 2: create and remove. SUMMON compiles to a summon plan from its statBlock; the cast commit inserts the owned actor (no initiative of its own) and its Scene token and binding in the same room transaction; removal at the effect-end chokepoints (expiry, Concentration end, recast, dispel, undo); replay receipts carry the created actor id. Scene-token ownership boundary recorded in persistence.md.",
-              "note": "Split from T2v2a 2026-10-23 (D187b)."
+              "text": "D187b summon piece, part 2b: the cast commit writes Scene rows (token and binding) in the cast's own room transaction through the staged-Scene planner movement uses; boundary recorded in persistence.md."
+            },
+            {
+              "closes": ["SPELLS-4.1"],
+              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A).",
+              "status": "TODO",
+              "id": "SPELLS-4.T2v2a2c",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-4.T2v2a2b"]
+              },
+              "text": "D187b summon piece, part 2c: create the owned actor and its token on cast and remove both at the effect-end chokepoints (expiry, Concentration end, recast, dispel, undo); replay receipts carry the created actor id."
             },
             {
               "closes": ["SPELLS-4.1"],
@@ -10959,7 +10990,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 13,
-                "after": ["SPELLS-4.T2v2a2", "SPELLS-4.T2v"]
+                "after": ["SPELLS-4.T2v2a2c", "SPELLS-4.T2v"]
               },
               "text": "D187b summon piece, part 3: drive it. Granted move and attack actions on the summon spend the owner's economy (System-neutral; D&D bonus action only in data), spell attack bonus frozen at cast, reach from the token, damageabilityKind and occupiesSpace honoured; reuses the T2v REPEAT_SOURCE_PATH effectId/target extension. Converts SPIRITUAL_WEAPON (WEAPON, MOVE_MANIFEST and COMMAND_MANIFEST) with a parity proof; room journey: cast, attack, later-turn move and attack on the owner's bonus action, removed at spell end.",
               "note": "Split from T2v2a 2026-10-23 (D187b)."
@@ -13917,7 +13948,7 @@
             },
             {
               "id": "SPELLS-31.T4o",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -13927,7 +13958,8 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2o"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2o: Dragon Wings, Unarmored Movement improvement, Second-Story Work. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T4r",
@@ -14975,7 +15007,7 @@
             },
             {
               "id": "SPELLS-33.T4l1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -14985,8 +15017,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2l"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: bonus-action Dash, Disengage and Hide grants, Aggressive, legendary move, Clay Golem Haste (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b (2026-10-23): user approved standing granted actions on Creature traits; size grows, re-estimate at green.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b (2026-10-23): user approved standing granted actions on Creature traits; size grows, re-estimate at green. Merged in m389.",
+              "mergedAt": "2026-10-23T21:37:45Z",
+              "proof": "Tests and Live green on tip 852ebc35; standing granted actions per D188: APPLY_GRANT with no duration on a PASSIVE Creature trait offers lifecycle.grantedActions every turn through the D160 grantedActions resolve and consume path; seven kinds deleted with authoring-parity proofs; Vampire legendary Move ships as a GM ruling."
             },
             {
               "id": "SPELLS-33.T4l2",
@@ -15182,7 +15215,7 @@
             },
             {
               "id": "SPELLS-33.T6a1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15192,7 +15225,8 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: swallowed creatures (containment with total cover, acid each turn, regurgitate on a damage threshold) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Includes Purple Worm Bite (from ATTACK-5.T4d, 2026-10-20).",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Includes the one proof that a creature ON_HIT attack with damage plus MANUAL_ADJUDICATION compiles through the attack sweep, and removes those allowlist entries."
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Includes the one proof that a creature ON_HIT attack with damage plus MANUAL_ADJUDICATION compiles through the attack sweep, and removes those allowlist entries.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6a2",
@@ -15254,7 +15288,7 @@
             },
             {
               "id": "SPELLS-33.T6b3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15264,7 +15298,8 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6b1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: disease (recurring saves, ended by cure effects) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
-              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6c",
@@ -15283,7 +15318,7 @@
             },
             {
               "id": "SPELLS-33.T6d1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15292,7 +15327,9 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: illumination and sunlight predicates on standing modifiers and turn events (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: illumination and sunlight predicates on standing modifiers and turn events (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
+              "note": " D189: Scene daylight flag; 4 live kinds incl. CLOAKER_PHANTASMS."
             },
             {
               "id": "SPELLS-33.T6d2",
