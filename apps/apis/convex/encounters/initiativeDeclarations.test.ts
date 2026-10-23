@@ -1632,7 +1632,7 @@ describe('declared initiative roll cards', () => {
       characterCard!.evidence.terms[0]!.rolls[characterCard!.evidence.terms[0]!.keptRollIndex!]
     ).toBe(15)
     expect(enemyCard?.evidence).toMatchObject({
-      mode: 'NORMAL',
+      keep: 'FIRST',
       total: scores.get(enemyActor.id),
       terms: [{ rolls: [5] }]
     })

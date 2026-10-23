@@ -64,7 +64,8 @@ const DEFERRED_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new 
   'ATTACK_ACTION_OTHER_WEAPON',
   'ENEMY_NEAR_TARGET',
   'TARGET_HAS_NOT_TAKEN_TURN',
-  'SOURCE_CREATURE_TYPE'
+  'SOURCE_CREATURE_TYPE',
+  'SOURCE_TRAIT'
 ])
 
 /**
@@ -252,6 +253,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'TARGET_HAS_NOT_TAKEN_TURN':
       case 'CREATURE_TYPE':
       case 'SOURCE_CREATURE_TYPE':
+      case 'SOURCE_TRAIT':
       case 'UNAVAILABLE':
       case 'UNSUPPORTED':
         return false

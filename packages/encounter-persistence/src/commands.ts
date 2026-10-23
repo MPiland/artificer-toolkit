@@ -22,6 +22,7 @@ import {
   snapshotFeatureDefinitions,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { initiativeRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import {
@@ -625,7 +626,16 @@ async function recordEncounterToolCommand(
         label: enemyActionRollLabel(feature.label, definition.label)
       },
       ruleset: { systemId: system.id, code: system.rulesetCode, version: system.rulesetVersion },
-      ...evaluateRollExpression(parseRollExpression(expression), { nextInt }, definition.rollMode),
+      ...evaluateRollExpression(
+        parseRollExpression(expression),
+        { nextInt },
+        definition.kind === 'DAMAGE' || definition.kind === 'HEALING'
+          ? undefined
+          : rollModeCapabilityRegistry.d20Roll({
+              gameSystemId: system.id,
+              rollMode: definition.rollMode
+            })
+      ),
       createdAt: updatedAt
     })
     const card = await recordRuleRollCard(ctx, {

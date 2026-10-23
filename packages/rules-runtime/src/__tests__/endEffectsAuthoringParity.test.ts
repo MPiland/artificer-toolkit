@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { featureEffectDtoSchema } from '@artificer-toolkit/schema/effects/effect'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { creatureTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -114,5 +115,35 @@ describe('Lesser Restoration is authorable from core options (D174, SPELLS-4.T2f
         ]
       }).success
     ).toBe(false)
+  })
+})
+
+describe('an END_EFFECTS origin creature-type selector is authorable from core options (SPELLS-4.T2j2a)', () => {
+  const srd = srdSpell('Lesser Restoration')
+  const [outcome] = outcomeOf(srd)
+  const selecting = (originCreatureTypeIds: string[]) => ({
+    ...srd,
+    paths: [
+      {
+        ...srd.paths[0],
+        resultBlock: {
+          ...(srd.paths[0]?.selectionKind === 'FIXED' ? srd.paths[0].resultBlock : {}),
+          outcomes: [{ ...outcome, originCreatureTypeIds }]
+        }
+      }
+    ]
+  })
+
+  it('keeps the selector as authored and compiles the same plan shape', () => {
+    const homebrew = selecting(['FEY', 'FIEND'].map(creatureTypeId))
+    const parsed = featureEffectDtoSchema.safeParse(homebrew)
+    expect(parsed.success).toBe(true)
+    expect(JSON.stringify(parsed.data)).toContain(creatureTypeId('FIEND'))
+    const authored = compiledPlan(homebrew as typeof srd)
+    const baseline = compiledPlan(srd)
+    expect(authored?.kind).toBe('SINGLE_GRAPH')
+    if (authored?.kind !== 'SINGLE_GRAPH' || baseline?.kind !== 'SINGLE_GRAPH')
+      throw new Error('Expected single graphs.')
+    expect(Object.keys(authored.published)).toEqual(Object.keys(baseline.published))
   })
 })

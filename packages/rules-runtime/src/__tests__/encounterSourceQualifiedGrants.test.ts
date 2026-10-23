@@ -57,9 +57,13 @@ describe('Protection from Evil and Good as source-qualified grants', () => {
     for (const { sourceQualifier, contributor } of attackAgainstContributors) {
       expect(contributor?.influence).toBe('DISADVANTAGE')
       for (const code of WARDED_TYPES)
-        expect(sourceQualifierAdmits(sourceQualifier, [creatureTypeId(code)])).toBe(true)
-      expect(sourceQualifierAdmits(sourceQualifier, [creatureTypeId('HUMANOID')])).toBe(false)
-      expect(sourceQualifierAdmits(sourceQualifier, [])).toBe(false)
+        expect(
+          sourceQualifierAdmits(sourceQualifier, { creatureTypeIds: [creatureTypeId(code)] })
+        ).toBe(true)
+      expect(
+        sourceQualifierAdmits(sourceQualifier, { creatureTypeIds: [creatureTypeId('HUMANOID')] })
+      ).toBe(false)
+      expect(sourceQualifierAdmits(sourceQualifier, { creatureTypeIds: [] })).toBe(false)
     }
   })
 
@@ -75,7 +79,7 @@ describe('Protection from Evil and Good as source-qualified grants', () => {
       conditionImmunityIdsAgainstSource(
         target.conditionImmunityIds,
         target.sourceConditionImmunities,
-        [creatureTypeId(code)]
+        { creatureTypeIds: [creatureTypeId(code)] }
       )
     expect([...against('FIEND')].sort()).toEqual([charmed, frightened].sort())
     expect(against('HUMANOID')).toEqual([])

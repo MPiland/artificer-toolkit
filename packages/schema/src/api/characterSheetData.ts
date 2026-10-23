@@ -32,7 +32,7 @@ import {
   activeGrantListingDtoSchema,
   concentrationListingDtoSchema
 } from '../shared/activeGrantListing.js'
-import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
+import { offeredRollModeSchema, systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 export { characterSheetReadInputSchema, type CharacterSheetReadInput } from './characterSheet.js'
 
@@ -150,6 +150,8 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
     armorClass: integerSchema,
     initiative: integerSchema,
     initiativeRollMode: systemCoreCodeSchema,
+    /** The roll modes the System offers a roller for a d20 roll, each with the face it keeps. */
+    rollModes: z.array(offeredRollModeSchema).check(z.minLength(1)),
     proficiencyBonus: integerSchema,
     inspiration: z.optional(booleanSchema),
     currentHitPoints: integerSchema,

@@ -28,6 +28,7 @@ import {
   creatureInnateConditionIds,
   withCreatureActiveGrantProtection,
   withCreatureActiveGrantSaves,
+  encounterGrantsEnabledDomain,
   encounterSavingThrowAddedDice
 } from './encounterActiveGrants.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -513,6 +514,7 @@ export function buildMovementTarget<
         // The form's ability scores resolve its attacks' damage, as a Creature's stat block does (T4d).
         ...(formStatBlock ? { statBlock: formStatBlock } : {}),
         savingThrowAddedDice: encounterSavingThrowAddedDice(gameSystemId, activeEffects),
+        healingMaximized: encounterGrantsEnabledDomain(activeEffects, 'HEALING_RECEIVED'),
         targetProtection: {
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,
@@ -615,6 +617,7 @@ export function buildMovementTarget<
         creatureFacts?.modifiers ?? []
       ),
       savingThrowAddedDice: encounterSavingThrowAddedDice(gameSystemId, activeEffects),
+      healingMaximized: encounterGrantsEnabledDomain(activeEffects, 'HEALING_RECEIVED'),
       featureResources: actorRule.featureResources,
       creatureTypeId: snapshotCreatureTypeId(actor),
       targetProtection,

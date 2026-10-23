@@ -70,7 +70,7 @@ async function evaluateOwnerRoll(
     },
     resolved: {
       expression: roll.expression,
-      rollMode: roll.rollMode ?? 'NORMAL',
+      rollMode: roll.rollMode,
       source: roll.source
     },
     nextInt: nextRollInt
@@ -223,7 +223,7 @@ export const executePrivate = mutation({
         (roll.source.kind !== 'MANUAL' ||
           (existing.normalizedExpression ===
             parseRollExpression(roll.expression).normalizedExpression &&
-            existing.evidence.mode === (roll.rollMode ?? 'NORMAL')))
+            existing.evidence.mode === roll.rollMode))
       if (!sameRoll) throw new Error('Roll nonce was used for a different roll.')
       return rollHistoryEntryDtoSchema.parse(
         presentRetainedRoll(existing, existing.characterId ? campaign.contentMaturity : null)

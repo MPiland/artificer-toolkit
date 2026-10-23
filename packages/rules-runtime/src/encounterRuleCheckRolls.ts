@@ -15,6 +15,12 @@ import {
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
+import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
+
+function rollModeEntry(gameSystemId: string, rollMode: string) {
+  const { mode, label } = rollModeCapabilityRegistry.d20Roll({ gameSystemId, rollMode })
+  return { code: mode, label }
+}
 
 const ruleCheckRollNamespace = '6b1f0c7e-3d2a-4f5b-9c8e-1a2b3c4d5e6f'
 
@@ -107,7 +113,10 @@ export function concentrationCheckRollRecord(input: {
     evaluateRollExpression(
       parseRollExpression(`1d20${modifier}`),
       { nextInt: () => faces.shift()! - 1 },
-      d20.rollMode
+      rollModeCapabilityRegistry.d20Roll({
+        gameSystemId: input.ruleset.systemId,
+        rollMode: d20.rollMode
+      })
     ),
     d20.addedDice
   )
@@ -173,7 +182,10 @@ export function actionD20RollRecord(input: {
     evaluateRollExpression(
       parseRollExpression(`1d20${modifier}`),
       { nextInt: () => faces.shift()! - 1 },
-      d20.rollMode
+      rollModeCapabilityRegistry.d20Roll({
+        gameSystemId: input.ruleset.systemId,
+        rollMode: d20.rollMode
+      })
     ),
     d20.addedDice
   )
@@ -220,8 +232,8 @@ export function actionD20RollRecord(input: {
       ? {
           ruleCheck: {
             kind: 'D20_MODE_ADJUSTED',
-            rolledMode: adjustment.rolledMode,
-            appliedMode: d20.rollMode,
+            rolledMode: rollModeEntry(input.ruleset.systemId, adjustment.rolledMode),
+            appliedMode: rollModeEntry(input.ruleset.systemId, d20.rollMode),
             cancelledRollIndexes: adjustment.cancelledRollIndexes,
             addedRollIndexes: adjustment.addedRollIndexes,
             caption: input.reader === 'GM' ? adjustment.gmReason : adjustment.playerCaption
@@ -246,11 +258,7 @@ export function deathSaveRollRecord(input: {
   createdAt: string
 }): RollRecordDto {
   const evaluated = withAddedDiceTerms(
-    evaluateRollExpression(
-      parseRollExpression('1d20'),
-      { nextInt: () => input.rawDie - 1 },
-      'NORMAL'
-    ),
+    evaluateRollExpression(parseRollExpression('1d20'), { nextInt: () => input.rawDie - 1 }),
     input.addedDice
   )
   return rollRecordDtoSchema.parse({
@@ -276,11 +284,9 @@ export function rechargeRollRecord(input: {
   ruleset: RollRecordDto['ruleset']
   createdAt: string
 }): RollRecordDto {
-  const evaluated = evaluateRollExpression(
-    parseRollExpression('1d6'),
-    { nextInt: () => input.rawDie - 1 },
-    'NORMAL'
-  )
+  const evaluated = evaluateRollExpression(parseRollExpression('1d6'), {
+    nextInt: () => input.rawDie - 1
+  })
   return rollRecordDtoSchema.parse({
     id: ruleCheckRollId(input.occurrenceId, 0),
     ...evaluated,
@@ -305,7 +311,8 @@ export function initiativeRollExpression(sides: number, modifier: number) {
 export function initiativeRollRecord(input: {
   id: string
   expression: string
-  rollMode: Parameters<typeof evaluateRollExpression>[2]
+  /** The System roll mode of a d20 initiative; absent when the roll has no mode of its own. */
+  rollMode?: string
   nextInt: (size: number) => number
   characterId: string | null
   rollerLabel: string
@@ -315,7 +322,12 @@ export function initiativeRollRecord(input: {
   const evaluated = evaluateRollExpression(
     parseRollExpression(input.expression),
     { nextInt: input.nextInt },
-    input.rollMode
+    input.rollMode === undefined
+      ? undefined
+      : rollModeCapabilityRegistry.d20Roll({
+          gameSystemId: input.ruleset.systemId,
+          rollMode: input.rollMode
+        })
   )
   return rollRecordDtoSchema.parse({
     id: input.id,
@@ -353,7 +365,10 @@ export function basicActionCheckRollRecord(input: {
       evaluateRollExpression(
         parseRollExpression(`1d20${modifier}`),
         { nextInt: () => faces.shift()! - 1 },
-        d20.rollMode
+        rollModeCapabilityRegistry.d20Roll({
+          gameSystemId: input.ruleset.systemId,
+          rollMode: d20.rollMode
+        })
       ),
       d20.addedDice
     ),
@@ -396,7 +411,7 @@ export function actionDamageRollRecord(input: {
     evidence: {
       terms: [],
       modifier: input.total,
-      mode: 'NORMAL',
+      keep: 'FIRST',
       subtotal: input.total,
       transform: { kind: 'NONE' },
       total: input.total

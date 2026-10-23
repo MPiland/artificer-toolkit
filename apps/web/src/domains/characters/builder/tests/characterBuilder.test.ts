@@ -117,6 +117,7 @@ describe('character builder utilities', () => {
         ],
         modifier: 0,
         mode: 'NORMAL',
+        keep: 'FIRST',
         subtotal: 15,
         transform: { kind: 'NONE' },
         total: 15

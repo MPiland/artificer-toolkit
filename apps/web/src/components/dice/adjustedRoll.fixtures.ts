@@ -1,5 +1,11 @@
 import { rollRecordDtoSchema } from '@artificer-toolkit/schema/api/rolls'
 
+const FIXTURE_MODES = {
+  NORMAL: { code: 'NORMAL', label: 'Normal', keep: 'FIRST' },
+  ADVANTAGE: { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' },
+  DISADVANTAGE: { code: 'DISADVANTAGE', label: 'Disadvantage', keep: 'LOWER' }
+} as const
+
 /** A schema-valid roll record whose d20 the server settled in another mode (ATTACK-10.1). */
 export function createAdjustedRoll({
   addedRollIndexes,
@@ -28,6 +34,8 @@ export function createAdjustedRoll({
       terms: [{ count: rolls.length, die: 20, rolls, subtotal: kept, keptRollIndex }],
       modifier: 3,
       mode: appliedMode,
+      modeLabel: FIXTURE_MODES[appliedMode].label,
+      keep: FIXTURE_MODES[appliedMode].keep,
       subtotal: kept,
       transform: { kind: 'NONE' },
       total: kept + 3
@@ -39,8 +47,8 @@ export function createAdjustedRoll({
     createdAt: '2026-09-18T12:00:00.000Z',
     ruleCheck: {
       kind: 'D20_MODE_ADJUSTED',
-      rolledMode,
-      appliedMode,
+      rolledMode: { code: rolledMode, label: FIXTURE_MODES[rolledMode].label },
+      appliedMode: { code: appliedMode, label: FIXTURE_MODES[appliedMode].label },
       cancelledRollIndexes,
       addedRollIndexes,
       caption

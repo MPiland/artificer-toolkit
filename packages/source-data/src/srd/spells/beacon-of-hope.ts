@@ -1,5 +1,11 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -69,9 +75,33 @@ export const beaconOfHope: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.BEACON_OF_HOPE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'BEACON_OF_HOPE' as const
+                id: spellChildId(SPELL_IDS.BEACON_OF_HOPE, 0x214, 1),
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.BEACON_OF_HOPE, 0x215, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                      domain: { ability: ABILITY_CODE.WISDOM },
+                      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                      payload: { influence: 'ADVANTAGE' },
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 1
+                    },
+                    {
+                      id: spellChildId(SPELL_IDS.BEACON_OF_HOPE, 0x216, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.HEALING_RECEIVED,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.ENABLE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 2
+                    }
+                  ]
+                }
               }
             ]
           }

@@ -18,11 +18,7 @@ import {
   type EncounterStoredEvidenceRoll
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  evaluateRollExpression,
-  parseRollExpression,
-  type RollMode
-} from '@artificer-toolkit/shared/rolls'
+import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { rollModeKeptFace } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { withAddedDiceTerms } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
@@ -44,22 +40,6 @@ import type {
 
 /** Dice the table roll log can show; other integer ranges are recorded without a log entry. */
 export const LOGGED_DICE = new Set([4, 6, 8, 10, 12, 20, 100])
-
-const MODE_LABELS: Readonly<Record<string, string>> = {
-  NORMAL: 'Normal',
-  ADVANTAGE: 'Advantage',
-  DISADVANTAGE: 'Disadvantage'
-}
-
-/** The table roll log's evaluator rolls only the modes it knows; any other System code is refused. */
-const EVALUATOR_ROLL_MODES: readonly RollMode[] = ['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']
-
-function evaluatorRollMode(rollMode: string | null): RollMode {
-  if (rollMode === null) return 'NORMAL'
-  const mode = EVALUATOR_ROLL_MODES.find((candidate) => candidate === rollMode)
-  if (!mode) throw new Error('The roll log cannot roll this System roll mode.')
-  return mode
-}
 
 function presentEvidenceRoll(roll: EncounterStoredEvidenceRoll): EncounterEvidenceRollDto {
   return encounterEvidenceRollDtoSchema.parse({
@@ -246,7 +226,9 @@ export async function rollEncounterRuleEvidence(
     ? evaluateRollExpression(
         parseRollExpression(`1d${die}`),
         { nextInt },
-        evaluatorRollMode(rollMode)
+        rollMode
+          ? rollModeCapabilityRegistry.d20Roll({ gameSystemId: campaign.gameSystemId, rollMode })
+          : undefined
       )
     : null
   const faces = evaluated
@@ -296,11 +278,14 @@ export async function rollEncounterRuleEvidence(
   let tableRoll: RollRecordDto | null = null
   if (evaluated) {
     const system = await ctx.ports.requireSystem(campaign.gameSystemId)
+    const modeLabel = (mode: string) =>
+      rollModeCapabilityRegistry.d20Roll({ gameSystemId: campaign.gameSystemId, rollMode: mode })
+        .label
     const override =
       rollMode && derivedRollMode && rollMode !== derivedRollMode
-        ? `${MODE_LABELS[rollMode] ?? rollMode}, changed from ${MODE_LABELS[derivedRollMode] ?? derivedRollMode}`
-        : rollMode && rollMode !== 'NORMAL'
-          ? (MODE_LABELS[rollMode] ?? rollMode)
+        ? `${modeLabel(rollMode)}, changed from ${modeLabel(derivedRollMode)}`
+        : rollMode && keep !== 'FIRST'
+          ? modeLabel(rollMode)
           : null
     tableRoll = rollRecordDtoSchema.parse({
       id: roll.id,

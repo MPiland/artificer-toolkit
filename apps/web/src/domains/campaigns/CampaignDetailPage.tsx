@@ -207,7 +207,7 @@ export function CampaignDetailPage({
         ) : null}
       </Tabs>
       {campaign.role === 'OWNER' && campaign.status === 'ACTIVE' ? (
-        <CampaignGmRoller campaignId={campaign.id} />
+        <CampaignGmRoller campaignId={campaign.id} rollModes={campaign.rollModes} />
       ) : null}
     </main>
   )
