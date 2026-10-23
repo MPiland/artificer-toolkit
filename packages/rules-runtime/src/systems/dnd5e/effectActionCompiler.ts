@@ -184,6 +184,8 @@ import {
   timedBandConditions
 } from './effectActionBandConditions.js'
 import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
+import { turnEndGateEvidenceBinding, turnEndGatePlan } from './effectActionTurnEndGate.js'
 import {
   effectOutcomeProposalNode,
   effectOutcomeProposalOutputs
@@ -1029,6 +1031,7 @@ function timedConditionPlan(
     consumeOnFirstEvents = [],
     endOnEvents = [],
     endOnTriggers = [],
+    turnEndGate,
     ...otherLifecycle
   } = lead.entry.lifecycle ?? {}
   const maintenance = maintenancePlan(action, lead.entry)
@@ -1078,6 +1081,21 @@ function timedConditionPlan(
     )
   )
     return null
+  const lifecycle = {
+    consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
+    endOnEvents: [...new Set(endOnEvents)].sort(),
+    endOnTriggers: canonicalEndTriggers(endOnTriggers)
+  }
+  if (turnEndGate)
+    return turnEndGatePlan({
+      effectId: action.effectId,
+      entryId: lead.entry.entryId,
+      minimumRoll: turnEndGate.minimumRoll,
+      keepsTurn: removalEntries[0]?.outcome.keepsTurn,
+      heldAlone: outcomeEntries.length === 1 && !turnAnchor && !rider && !maintenance,
+      initialRemaining,
+      lifecycle
+    })
   return {
     authoredEffectId: action.effectId,
     compiledEntryId: lead.entry.entryId,
@@ -1097,11 +1115,7 @@ function timedConditionPlan(
     ...(removalEntries[0] && {
       playAbsenceContribution: { keepsTurn: removalEntries[0].outcome.keepsTurn }
     }),
-    lifecycle: {
-      consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
-      endOnEvents: [...new Set(endOnEvents)].sort(),
-      endOnTriggers: canonicalEndTriggers(endOnTriggers)
-    },
+    lifecycle,
     // A removal held with no condition (Etherealness) has no condition to remove at its end.
     adapterFacts:
       conditionEntries.length > 0 ? { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true } : {},
@@ -1809,105 +1823,6 @@ function repeatingDirectFollowUpSaveLeadEntries(
     : null
 }
 
-function repeatFollowUpSavePublishedGraph(input: {
-  action: Dnd5eCompiledEffectActionSource
-  plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
-}): ServerPublishedRuleDefinitionDto {
-  const abilityDefinitionId =
-    input.plan.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]
-  if (typeof abilityDefinitionId !== 'string' || !UUID.test(abilityDefinitionId)) {
-    throw new Dnd5eEffectActionCompilerError('D&D repeat-save facts are unavailable.')
-  }
-  // A gated repeat settles its d20 without a request on a turn the gate refuses the attempt.
-  const gated = repeatSaveGated(input.plan.adapterFacts, input.plan.saveThresholds)
-  const definition: RuleGraphDefinition = {
-    schemaVersion: 1,
-    id: input.action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'repeat-save-d20',
-        operation: {
-          key: gated ? 'evidence.optional-integer-range' : 'evidence.integer-range',
-          contractVersion: 1
-        },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 },
-          ...(gated
-            ? {
-                enabled: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY
-                }
-              }
-            : {})
-        }
-      },
-      dnd5eAddedDiceNode('repeat-save-d20'),
-      {
-        id: input.plan.frozenGraphNodeId,
-        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },
-        inputs: {
-          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          naturalD20: {
-            kind: 'NODE_OUTPUT',
-            nodeId: 'repeat-save-d20',
-            port: 'value'
-          },
-          addedTotal: {
-            kind: 'NODE_OUTPUT',
-            nodeId: 'repeat-save-d20-added-dice',
-            port: 'value'
-          },
-          modifier: { kind: 'FACT', factKey: DND5E_SAVE_MODIFIER_FACT_KEY },
-          threshold: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY },
-          contributorChecksum: {
-            kind: 'FACT',
-            factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
-          },
-          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
-        }
-      }
-    ],
-    outputs: {
-      targetActorId: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'targetActorId'
-      },
-      naturalD20: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'naturalD20'
-      },
-      total: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'total'
-      },
-      resultPath: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'resultPath'
-      },
-      contributorChecksum: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'contributorChecksum'
-      }
-    },
-    sourceEntryBindings: [
-      {
-        sourceEntryId: input.plan.compiledEntryId,
-        nodeId: input.plan.frozenGraphNodeId
-      }
-    ]
-  }
-  return publishedGraph(definition)
-}
-
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
   const save = immediateFollowUpSaveEntries(action.compiledEffect.entries)?.saveEntry.outcome
   if (!save || !isImmediateFollowUpSave(save) || testPhaseKindOrNull(action) !== 'ATTACK')
@@ -2479,7 +2394,7 @@ function supported(
       grant: grantPlan !== null,
       link: linkPlan !== null,
       form: formPlan !== null,
-      absence: conditionPlan?.playAbsenceContribution != null
+      absence: conditionPlan?.playAbsenceContribution != null || conditionPlan?.turnEndGate != null
     }
   })
 }
@@ -3508,6 +3423,8 @@ function dnd5eActiveEffectPlans(
   if (composed) return [composed]
   const repeatPlan = repeatingFollowUpSavePlan(action)
   const timedPlan = repeatPlan ? null : timedActiveEffectPlan(action)
+  // A turn-end gate is frozen as the d20 test it rolls, not as the duration its child holds.
+  const savePlan = repeatPlan ?? (timedPlan?.turnEndGate ? timedPlan : null)
   const relationship = relationshipPlan(action)
   const plan =
     repeatPlan ??
@@ -3552,8 +3469,8 @@ function dnd5eActiveEffectPlans(
   )
     unsupported('D&D repeat offer needs a maintained chosen-item grant it can ride.')
   if (!plan) return []
-  const frozenGraph = repeatPlan
-    ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
+  const frozenGraph = savePlan
+    ? repeatFollowUpSavePublishedGraph({ action, plan: savePlan })
     : timedPlan
       ? durationPublishedGraph({
           effectId: action.effectId,
@@ -3571,7 +3488,7 @@ function dnd5eActiveEffectPlans(
     ? relationship.recurrenceStage === 'START_OF_TURN'
       ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
       : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
-    : repeatPlan
+    : savePlan
       ? DND5E_SAVE_TEST_OPERATION_KEY
       : timedPlan
         ? DND5E_CONDITION_DURATION_OPERATION_KEY
@@ -4732,6 +4649,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const requestNodeId = definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
     const dc = definition.adapterFacts[DND5E_SAVE_DC_FACT_KEY]
     const saveDc = typeof dc === 'number' && Number.isSafeInteger(dc) ? dc : null
+    if (definition.recurrence.turnEndGate) return turnEndGateEvidenceBinding(definition, baseFacts)
     if (abilityDefinitionId === undefined && requestNodeId === undefined && dc === undefined) {
       return { facts: baseFacts, evidencePolicy: null }
     }
@@ -5032,6 +4950,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       targetActorId: target.targetActorId
     })
     if (repeatedSavePath !== null) {
+      // The gate's d20 only decides whether its child is made; the effect lasts out its duration.
+      if (definition.recurrence.turnEndGate)
+        return {
+          applications: [],
+          terminal: lifecycle.remainingTicks === 1,
+          emptyApplicationAllowed: true
+        }
       const conditionIds = repeatSaveConditionIds(definition.adapterFacts)
       const thresholds = definition.recurrence.saveThresholds
       const saveTally =
