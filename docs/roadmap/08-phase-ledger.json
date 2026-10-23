@@ -3658,7 +3658,7 @@
             },
             {
               "id": "RULES-2.T9c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3668,7 +3668,9 @@
                 "after": ["RULES-2.T9a", "RULES-2.T9i"]
               },
               "text": "System vocabulary (split 2026-10-21): lifecycle consume/end codes and the ATTACK_ROLL and SPELL_CAST traits become System codes with the eventVocabulary table as their one source; neutral structural trigger shapes stay in the schema.",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "mergedAt": "2026-10-23T14:25:01Z",
+              "proof": "Tests and Live green on tip 08f107db; lifecycle consume/end codes and ATTACK_ROLL/SPELL_CAST traits come from the System LIFECYCLE_EVENTS table (systems/dnd5e/lifecycleVocabulary.ts); end-trigger arms persist as {event:ACTION_TRAIT, trait, against}; Sanctuary SRD data updated; rules-runtime.md event vocabulary updated",
+              "note": " Merged in m378."
             },
             {
               "id": "RULES-2.T9d",
