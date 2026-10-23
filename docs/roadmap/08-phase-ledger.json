@@ -12300,12 +12300,12 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 3,
                 "after": [
                   "SPELLS-4.T2f1a"
                 ]
               },
-              "text": "Candidate checks substrate (D182, D182a split of T2f1b): a SPELL_CAST check source, the pending check context with a frozen ordered candidates list and cursor, the CHECK_ACTION output for several checks, and a per-candidate commit shape in encounter-persistence that ends the effect in the same transaction and receipt as the roll, undone by actionRevert and occurrenceVoid; replay-idempotent per context and cursor; unit and integration proofs.",
+              "text": "Candidate checks substrate (D182, D182a split of T2f1b): a SPELL_CAST check source, the pending check context with a frozen ordered candidates list and cursor, the CHECK_ACTION output for several checks, and a per-candidate commit shape in encounter-persistence that ends the effect in the same transaction and receipt as the roll, undone by actionRevert and occurrenceVoid; replay-idempotent per context and cursor; unit and integration proofs. Includes the optional checkOccurrenceId on the RULE_OCCURRENCE cast root (read by storedCheckOccurrenceId, admission and revert) and the Worker response planner for candidate steps (D182a amendment).",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
@@ -12318,12 +12318,12 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": [
                   "SPELLS-4.T2f1b1"
                 ]
               },
-              "text": "Dispel Magic above-level checks (D182a): the Worker cast path pends into the T2f1b1 candidate checks; levelCheck authored through the node map, DTO, compiler and character rule facts with a TARGET_EFFECT_LEVEL DC; converts DISPEL_MAGIC on a creature or object target with a golden proof and room journey; kind deleted; check-flow section of docs/architecture/rules-runtime.md updated."
+              "text": "Dispel Magic above-level checks (D182a): the Worker cast-time planner pends the cast into the T2f1b1 candidate checks; levelCheck authored through the node map, DTO, compiler and character rule facts with a TARGET_EFFECT_LEVEL DC; converts DISPEL_MAGIC on a creature or object target with a golden proof and room journey; kind deleted; check-flow section of docs/architecture/rules-runtime.md updated."
             },
             {
               "status": "DONE",
