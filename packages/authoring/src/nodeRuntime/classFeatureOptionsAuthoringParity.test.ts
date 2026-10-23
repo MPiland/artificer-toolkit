@@ -13,6 +13,7 @@ import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
 import { oathOfDevotion } from '@artificer-toolkit/source-data/srd/classes/oath-of-devotion.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
 import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
+import { thiefRoguishArchetype } from '@artificer-toolkit/source-data/srd/classes/thief.js'
 import { warlock } from '@artificer-toolkit/source-data/srd/classes/warlock.js'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { SRD_DAMAGE_TYPES, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -29,6 +30,7 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
  * same core options a Builder author has on a class feature or option, so each must pass the class
  * node map exactly as authored, as must a homebrew variant built from those options. Perfect Self
  * and Superior Inspiration (T5o) are a RESTORE_RESOURCE outcome on a ROLL_INITIATIVE passive.
+ * Thief's Reflexes (T5o2, D187a) is a passive GM ruling.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -340,7 +342,21 @@ const CASES: ReadonlyArray<{
       outcome.whenAtOrBelow = 1
       return variant
     }
-  }))
+  })),
+  {
+    record: thiefRoguishArchetype,
+    label: "Thief's Reflexes",
+    variant: () => {
+      const variant = structuredClone(thiefRoguishArchetype)
+      const path = feature(variant, "Thief's Reflexes").effects?.[0]?.paths[0]
+      const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      if (outcome?.effectKind !== 'MANUAL_ADJUDICATION')
+        throw new Error("Thief's Reflexes must author a manual adjudication.")
+      outcome.reasonCode = 'GM_CHOICE'
+      outcome.instructions = 'The table decides when this feature adds a turn.'
+      return variant
+    }
+  }
 ]
 
 describe('class features resolved from core options through the class node map (SPELLS-31.T3a-T3c, T5s)', () => {
