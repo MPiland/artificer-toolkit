@@ -107,11 +107,10 @@ import {
   type VttAreaAim,
   type VttAreaSize
 } from './vttSceneRenderer.model'
-import { buildVttTokenPresentations } from './vttTokenPresentation.model'
+import { useVttTokenPresentations } from './useVttTokenPresentations'
 import {
   buildTargetEntries,
   describeTargetEntry,
-  targetableTokenIds,
   type VttTargetingRequest
 } from './vttTargeting.model'
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
@@ -220,11 +219,6 @@ export function CampaignVttStage({
     select: encounterSessionStateDtoSchema.parse
   })
   const encounterSessionState = room ? room.state : storedSessionState.data
-  // Actor conditions arrive as type IDs; the System vocabulary names them.
-  const conditionTypes = useQuery({
-    ...convexQuery(convexApi.content.systems.get, { id: campaign.gameSystemId }),
-    select: (system) => system?.conditionTypes
-  }).data
   const {
     encounter: activeEncounter,
     currentActor,
@@ -674,35 +668,18 @@ export function CampaignVttStage({
     gmView: campaign.role === 'OWNER' && !gmPreviewUserId,
     sceneDefinitionId: scene?.definitionId
   })
-  const tokenPresentations = useMemo(
-    () =>
-      renderedScene && activeEncounter
-        ? buildVttTokenPresentations({
-            actorIdByTokenId,
-            artUrls: tokenArtUrls,
-            boundTokenControl,
-            conditionTypes,
-            currentUserId: viewerUserId,
-            encounter: activeEncounter,
-            lootActorIds: liveLoot.lootActorIds,
-            pending: pendingOccurrence ?? null,
-            scene: renderedScene,
-            targetableTokenIds: targetEntries ? targetableTokenIds(targetEntries) : undefined
-          })
-        : undefined,
-    [
-      activeEncounter,
-      actorIdByTokenId,
-      boundTokenControl,
-      conditionTypes,
-      liveLoot.lootActorIds,
-      pendingOccurrence,
-      renderedScene,
-      targetEntries,
-      tokenArtUrls,
-      viewerUserId
-    ]
-  )
+  const tokenPresentations = useVttTokenPresentations({
+    actorIdByTokenId,
+    artUrls: tokenArtUrls,
+    boundTokenControl,
+    currentUserId: viewerUserId,
+    encounter: activeEncounter,
+    gameSystemId: campaign.gameSystemId,
+    lootActorIds: liveLoot.lootActorIds,
+    pending: pendingOccurrence ?? null,
+    scene: renderedScene,
+    targetEntries
+  })
   const rendererAreaAim = useMemo(
     () =>
       aimingArea && areaSize

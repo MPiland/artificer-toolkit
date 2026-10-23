@@ -2,6 +2,10 @@ import {
   campaignDetailDtoSchema,
   type CampaignDetailDto
 } from '@artificer-toolkit/schema/api/campaignCore'
+import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { convexQuery } from '@convex-dev/react-query'
+import type { QueryClient } from '@tanstack/react-query'
+import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { getCampaignCapabilities } from '@artificer-toolkit/shared/campaign/capabilities'
 import type {
@@ -348,6 +352,21 @@ export function createTabletopCampaign(role: 'OWNER' | 'PLAYER'): CampaignDetail
     updatedAt: '2026-08-15T18:00:00.000Z',
     version: 8
   })
+}
+
+/** The product's token presentations, with the SRD condition types that name the fixtures' actor conditions. */
+export function buildTabletopPresentations(
+  input: Omit<Parameters<typeof buildVttTokenPresentations>[0], 'conditionTypes'>
+) {
+  return buildVttTokenPresentations({ ...input, conditionTypes: srdSystemRecord.conditionTypes })
+}
+
+/** Seeds the Campaign's System query, which names its actors' conditions. */
+export function seedTabletopSystem(queryClient: QueryClient, campaign: CampaignDetailDto) {
+  queryClient.setQueryData(
+    convexQuery(convexApi.content.systems.get, { id: campaign.gameSystemId }).queryKey,
+    srdSystemRecord
+  )
 }
 
 /** Actor conditions holding the SRD condition types with these codes, as an Encounter projection carries them. */

@@ -52,11 +52,12 @@ import { validated } from '../../../test/validatedFixture'
 import { reachByKeyboard } from './CampaignTabletop.stories.keyboard'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import {
+  buildTabletopPresentations,
   createTabletopCampaign,
   tabletopCampaignId,
+  seedTabletopSystem,
   tabletopConditions,
   tabletopCurrentUserId,
   tabletopGmEncounter,
@@ -75,7 +76,6 @@ import {
   minimumFocusedTokenScreenSize,
   selectionOutlineColor
 } from './vttSceneRenderer.model'
-import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 
 const liveSessionTokenHandler = http.get('*/api/auth/convex/token', () =>
   HttpResponse.json({ token: 'story-convex-access-token' })
@@ -338,10 +338,9 @@ function wardenPresentationFor(
 ) {
   const scene = projectScene(role, presentedTokensFixtures.liveScene)
   const wardenToken = scene.tokens[1]!
-  const presentation = buildVttTokenPresentations({
+  const presentation = buildTabletopPresentations({
     actorIdByTokenId: new Map([[wardenToken.id, wardenId]]),
     boundTokenControl: new Map(),
-    conditionTypes: srdSystemRecord.conditionTypes,
     currentUserId: tabletopCurrentUserId,
     encounter,
     pending: null,
@@ -1256,10 +1255,7 @@ function renderWindow(
     queryFn: async () => ({ ...header, id: shownScene.sceneId, name: shownScene.sceneName })
   })
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
-  queryClient.setQueryData(
-    convexQuery(convexApi.content.systems.get, { id: campaign.gameSystemId }).queryKey,
-    srdSystemRecord
-  )
+  seedTabletopSystem(queryClient, campaign)
   queryClient.setQueryData(activeEncounterQuery.queryKey, {
     encounter,
     pending: fixtures.pending ?? null,
