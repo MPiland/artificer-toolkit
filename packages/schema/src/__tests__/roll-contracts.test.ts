@@ -53,7 +53,7 @@ describe('roll contracts', () => {
     ).toThrow()
   })
 
-  it('accepts advantage for one d20 and rejects it for other expressions', () => {
+  it('accepts a System roll mode code and rejects a malformed one', () => {
     expect(
       executeRollInputDtoSchema.parse({
         characterId: 'character-1',
@@ -66,8 +66,8 @@ describe('roll contracts', () => {
     expect(() =>
       executeRollInputDtoSchema.parse({
         characterId: 'character-1',
-        expression: '2d20',
-        rollMode: 'DISADVANTAGE',
+        expression: '1d20',
+        rollMode: 'not a code',
         source: { kind: 'MANUAL', label: 'Manual' }
       })
     ).toThrow()

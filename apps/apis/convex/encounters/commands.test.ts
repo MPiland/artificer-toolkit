@@ -839,7 +839,7 @@ describe('native Encounter Run commands', () => {
           label: 'Whirlwind (Recharge 4-6): Table gust'
         },
         normalizedExpression: '2d6',
-        evidence: { mode: 'NORMAL', total: 9 }
+        evidence: { keep: 'FIRST', total: 9 }
       }
     })
     const tableActor = encounterGmProjectionDtoSchema

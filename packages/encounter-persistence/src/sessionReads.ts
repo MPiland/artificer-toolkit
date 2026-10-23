@@ -30,8 +30,8 @@ type Membership = EncounterDocument<'campaignMemberships'>
 
 /**
  * A Run as one member reads it: the GM projection for the GM, the player projection for everyone
- * else, with each live Character's Campaign conditions layered on and condition labels from the
- * System. Convex's reads and the room's pushed session share it, so both show a member the same
+ * else, with each live Character's Campaign conditions layered on. Conditions carry type IDs only;
+ * web names them from the System vocabulary. Convex's reads and the room's pushed session share it, so both show a member the same
  * Run. The GM reads a completed Run's Characters as they were when it completed.
  */
 export async function presentEncounterRun(
@@ -56,52 +56,10 @@ export async function presentEncounterRun(
     read: (characterId) => ctx.ports.readCampaignCharacterConditions(campaign, characterId)
   })
   const projection = await projectEncounterFacts(ctx, state, facts, characterStates)
-  const labelsConditions = projection.actors.some(
-    (actor) =>
-      actor.kind !== 'CHARACTER' &&
-      Array.isArray(actor.conditions) &&
-      actor.conditions.length > 0 &&
-      (role === 'OWNER' || actor.public)
-  )
-  const conditionTypes = labelsConditions
-    ? (await ctx.ports.requireSystem(campaign.gameSystemId)).conditionTypes
-    : []
-  const current = {
-    ...projection,
-    actors: projection.actors.map((actor) => {
-      if (actor.kind === 'CHARACTER' || !Array.isArray(actor.conditions)) return actor
-      if (role === 'PLAYER' && !actor.public) return actor
-      return {
-        ...actor,
-        conditions: actor.conditions.map(
-          (condition: EncounterGmProjectionDto['actors'][number]['conditions']) => {
-            const record =
-              condition !== null && typeof condition === 'object' && !Array.isArray(condition)
-                ? condition
-                : null
-            const conditionTypeId =
-              typeof condition === 'string'
-                ? condition
-                : record && 'conditionTypeId' in record
-                  ? record.conditionTypeId
-                  : null
-            const definition = conditionTypes.find((entry) => entry.id === conditionTypeId)
-            if (!definition) return condition
-            return {
-              ...record,
-              conditionTypeId: definition.id,
-              label: definition.label,
-              ...(definition.description ? { description: definition.description } : {})
-            }
-          }
-        )
-      }
-    })
-  }
-  if (role === 'OWNER') return current
+  if (role === 'OWNER') return projection
   return projectPlayerEncounterProjection(
-    current,
-    await readEncounterProjectionViewer(ctx, current, viewer)
+    projection,
+    await readEncounterProjectionViewer(ctx, projection, viewer)
   )
 }
 

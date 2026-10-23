@@ -15,7 +15,8 @@ export const campaignStoredRecordSchema = lazySchema(() =>
       playerCount: true,
       capabilities: true,
       assignedCharacter: true,
-      memberships: true
+      memberships: true,
+      rollModes: true
     }),
     { ownerUserId: uuidSchema, notebookRevision: z.optional(uuidSchema) }
   )

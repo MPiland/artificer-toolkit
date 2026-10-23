@@ -40,4 +40,18 @@ export function registerEndEffectsOutcomeFields(
         { requiredIf: true, showIf }
       )
     )
+    .set(
+      'endEffectsOriginCreatureTypeIds',
+      selectMulti(
+        ['originCreatureTypeIds'],
+        'Only Effects From Creatures Of Type',
+        {
+          kind: 'DATA',
+          relationship: data.table('creature_types', {
+            selectColumns: ['id', 'label', 'description']
+          })
+        },
+        { showIf }
+      )
+    )
 }

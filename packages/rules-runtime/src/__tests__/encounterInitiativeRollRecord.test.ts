@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { initiativeRollExpression, initiativeRollRecord } from '../encounterRuleCheckRolls.js'
 
-const ruleset = { systemId: '00000000-0000-4000-8000-000000000001', code: 'dnd5e', version: '1' }
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
+
+const ruleset = { systemId: DND5E_SYSTEM_ID, code: 'dnd5e', version: '1' }
 
 function record(rollMode: 'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE', faces: number[], modifier = 3) {
   const remaining = [...faces]

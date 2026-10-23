@@ -2245,12 +2245,13 @@ describe('Assisted soft enforcement', () => {
     const [table] = cards.table
     expect(table!.evidence).toMatchObject({
       mode: 'ADVANTAGE',
+      keep: 'HIGHER',
       terms: [{ rolls: [9, 15], keptRollIndex: 1 }]
     })
     expect(table!.ruleCheck).toEqual({
       kind: 'D20_MODE_ADJUSTED',
-      rolledMode: 'NORMAL',
-      appliedMode: 'ADVANTAGE',
+      rolledMode: { code: 'NORMAL', label: 'Normal' },
+      appliedMode: { code: 'ADVANTAGE', label: 'Advantage' },
       cancelledRollIndexes: [],
       addedRollIndexes: [1],
       caption: "Advantage: the target can't see you"

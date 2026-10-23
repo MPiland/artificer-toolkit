@@ -45,6 +45,7 @@ const roll = {
     terms: [{ count: 2, die: 4, rolls: [3, 4], subtotal: 7 }],
     modifier: 0,
     mode: 'NORMAL',
+    keep: 'FIRST',
     subtotal: 7,
     transform: { kind: 'NONE' },
     total: 7

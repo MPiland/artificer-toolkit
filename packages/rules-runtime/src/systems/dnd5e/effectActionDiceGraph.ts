@@ -5,6 +5,7 @@ import {
   unsupported,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_HEAL_TOTAL_OPERATION_KEY,
+  DND5E_HEALING_MAXIMIZED_FACT_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
@@ -68,6 +69,16 @@ export function diceGraphDefinition(input: {
           },
           inputs: {
             subtotal: rolledSubtotal,
+            ...(outcome.effectKind === 'DAMAGE'
+              ? {}
+              : {
+                  // Only hit point healing takes its maximum (Beacon of Hope); temporary hit points do not.
+                  maximumSubtotal: { kind: 'LITERAL' as const, value: term.count * term.die },
+                  maximized:
+                    outcome.effectKind === 'HEAL' && !outcome.temporary && input.modifierFactKey
+                      ? { kind: 'FACT' as const, factKey: DND5E_HEALING_MAXIMIZED_FACT_KEY }
+                      : { kind: 'LITERAL' as const, value: false }
+                }),
             modifier
           }
         }

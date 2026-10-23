@@ -277,6 +277,7 @@ describe('Creature movement target', () => {
         initiativeModifier: -2,
         savingThrowDefinitions: savingThrows(9, 7),
         savingThrowAddedDice: {},
+        healingMaximized: false,
         featureResources: [],
         targetProtection,
         statBlock: {

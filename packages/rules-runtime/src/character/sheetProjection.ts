@@ -1430,6 +1430,7 @@ export function projectCharacterSheetBundle(
       armorClass: ruleProjection.derivedStats.armorClass,
       initiative: ruleProjection.derivedStats.initiative,
       initiativeRollMode: ruleProjection.rollModes.initiative,
+      rollModes: ruleProjection.offeredRollModes,
       proficiencyBonus,
       inspiration: character.state.inspiration ?? false,
       currentHitPoints: clampCharacterCurrentHitPoints(
