@@ -452,6 +452,8 @@ export const turnEffectExecutionDtoSchema = lazySchema(() =>
     targetActorId: uuidSchema,
     owner: turnEffectExecutionOwnerDtoSchema,
     activeEffectId: uuidSchema,
+    /** The actor that placed the effect, who deals its damage; absent for an effect with no source. */
+    damagerActorId: z.optional(uuidSchema),
     createdOrdinal: positiveIntegerSchema,
     beforeVersion: aggregateVersionSchema,
     definition: z.strictObject({
