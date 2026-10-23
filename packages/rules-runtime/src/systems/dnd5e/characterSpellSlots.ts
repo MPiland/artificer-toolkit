@@ -2,6 +2,7 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
+import { DND5E_PACT_POOL_CODE } from './coreCodes.js'
 
 const multiclassSlotTable = [
   [],
@@ -228,10 +229,13 @@ export function evaluateDnd5eCharacterSpellSlots(
           const slots = pactCaster.selectedSlots.find(
             (slot) => slot.spellLevel === level
           )!.slotCount
-          const usages = (input.spellSlotUsageFacts ?? []).filter((usage) => usage.kind === 'PACT')
+          const usages = (input.spellSlotUsageFacts ?? []).filter(
+            (usage) => usage.kind === 'POOL' && usage.poolCode === DND5E_PACT_POOL_CODE
+          )
           const rawUsed = usages.length === 1 ? usages[0]!.rawUsed : 0
           const effectiveUsed = Math.min(rawUsed, slots)
           return {
+            poolCode: DND5E_PACT_POOL_CODE,
             sourceClassId: pactCaster.classId,
             slots,
             level,

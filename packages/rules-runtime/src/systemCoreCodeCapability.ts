@@ -13,6 +13,8 @@ export interface SystemCoreCodeEntry {
   code: string
   label: string
   description?: string
+  /** A spell slot pool that a short rest refills (a pool without it refills on a long rest only). */
+  recoversOnShortRest?: boolean
 }
 
 /** A System's vocabulary lists: each code unique within its list, labels for display only. */
