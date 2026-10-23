@@ -1,0 +1,103 @@
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join, relative, sep } from 'node:path'
+import { describe, expect, it } from 'vitest'
+
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+
+/**
+ * RULES-2.T9o (ADR 0038): a System's vocabulary is authored data. No production file outside
+ * `source-data` holds a list of vocabulary codes or compares a code from the System record to a
+ * literal; code reads a definition's ID, a property on its entry, or a `defaults` entry instead.
+ */
+
+const REPO = join(__dirname, '..', '..', '..', '..')
+const SCANNED_ROOTS = ['apps', 'packages']
+const SKIPPED_DIRECTORIES = new Set([
+  'node_modules',
+  'dist',
+  '_generated',
+  '__tests__',
+  'testing',
+  'test',
+  'tests',
+  'stories',
+  'source-data',
+  'e2e',
+  '.storybook'
+])
+const NON_PRODUCTION_FILE =
+  /(\.d\.ts|\.test\.tsx?|\.stories\.tsx?|\.fixtures?\.tsx?|\.fixture\.tsx?)$/
+
+function productionFiles(directory: string): string[] {
+  return readdirSync(directory).flatMap((name) => {
+    const path = join(directory, name)
+    if (statSync(path).isDirectory())
+      return SKIPPED_DIRECTORIES.has(name) ? [] : productionFiles(path)
+    return /\.tsx?$/.test(name) && !NON_PRODUCTION_FILE.test(name) ? [path] : []
+  })
+}
+
+const vocabularyDomains: Record<string, readonly { code: string }[]> = Object.fromEntries(
+  Object.entries(srdSystemRecord).filter(
+    (entry): entry is [string, { code: string }[]] =>
+      Array.isArray(entry[1]) &&
+      entry[1].length > 0 &&
+      entry[1].every((item) => typeof (item as { code?: unknown }).code === 'string')
+  )
+)
+const vocabularyCodes = new Set(
+  Object.values(vocabularyDomains).flatMap((entries) => entries.map(({ code }) => code))
+)
+
+/**
+ * Ability code lists (the `AbilityCode` enum, the class and creature pages) move with RULES-2.T9f, which
+ * owns the ability literals across about 70 files. Ability code comparisons are guarded already.
+ */
+const DEFERRED_LIST_DOMAIN = 'abilities'
+
+const codeBeforeLiteral = /[Cc]ode\s*[!=]==?\s*(['"`])([A-Z][A-Z0-9_]*)\1/g
+const literalBeforeCode = /(['"`])([A-Z][A-Z0-9_]*)\1\s*[!=]==?\s*[\w.?]*[Cc]ode\b/g
+const quotedList = /\[\s*(?:(['"])[A-Z][A-Z0-9_]*\1\s*,\s*){2,}(['"])[A-Z][A-Z0-9_]*\2\s*,?\s*\]/g
+const codeTemplate = /`[A-Z]+_\$\{/g
+
+function violations(source: string): string[] {
+  const found: string[] = []
+  for (const match of [
+    ...source.matchAll(codeBeforeLiteral),
+    ...source.matchAll(literalBeforeCode)
+  ])
+    if (vocabularyCodes.has(match[2]!)) found.push(`compares code ${match[2]}`)
+  for (const [list] of source.matchAll(quotedList)) {
+    const members = [...list.matchAll(/['"]([A-Z][A-Z0-9_]*)['"]/g)].map((member) => member[1]!)
+    const domain = Object.entries(vocabularyDomains).some(([key, entries]) => {
+      if (key === DEFERRED_LIST_DOMAIN) return false
+      const codes = new Set(entries.map(({ code }) => code))
+      return members.every((member) => codes.has(member))
+    })
+    if (domain) found.push(`holds the vocabulary list ${members.join(', ')}`)
+  }
+  for (const [template] of source.matchAll(codeTemplate))
+    if ([...vocabularyCodes].some((code) => code.startsWith(template.slice(1, -2))))
+      found.push(`builds a code from ${template}`)
+  return found
+}
+
+describe('System vocabulary boundary (RULES-2.T9o)', () => {
+  it('detects a code comparison, a code list and a built code', () => {
+    expect(violations("speed.code === 'WALK'")).toEqual(['compares code WALK'])
+    expect(violations("['FIRE', 'COLD', 'ACID']")).toHaveLength(1)
+    expect(violations('`CR_${level}`')).toHaveLength(1)
+    expect(violations("kind === 'SPELL_CAST'")).toEqual([])
+  })
+
+  it('keeps production files free of vocabulary lists and code comparisons', () => {
+    const offenders = SCANNED_ROOTS.flatMap((root) => productionFiles(join(REPO, root)))
+      .flatMap((path) =>
+        violations(readFileSync(path, 'utf8')).map(
+          (reason) => `${relative(REPO, path).split(sep).join('/')} ${reason}`
+        )
+      )
+      .sort()
+    expect(offenders).toEqual([])
+  }, 30_000)
+})
