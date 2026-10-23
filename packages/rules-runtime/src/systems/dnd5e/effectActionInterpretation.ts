@@ -1,15 +1,12 @@
 import { type ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import {
-<<<<<<< HEAD
-  damageDispositionOf,
-  resolveDispositionDamage
-} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
-=======
   reviveTraceMatches,
   type ReviveHitPoints
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
-import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
->>>>>>> origin/codex/phase-08-2-convex-cutover
+import {
+  damageDispositionOf,
+  resolveDispositionDamage
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
   compareThresholdRuleOperation,
   type CompiledRuleGraph,
