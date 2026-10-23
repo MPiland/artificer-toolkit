@@ -10569,7 +10569,7 @@
             },
             {
               "id": "SPELLS-4.T2l3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 3,
@@ -10579,7 +10579,8 @@
                 "after": ["SPELLS-4.T2l"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Extra turns (D160, split from T2l): TIME_STOP with 1d4+1 consecutive caster turns, ending on any committed outcome that targets or affects another creature or an object the caster is not wearing or carrying, or on moving more than 1,000 ft (ambiguous objects to manual adjudication). The initiative-insertion design is ruled before coding. Parity proof; TIME_STOP deleted.",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2m1",
@@ -10903,7 +10904,7 @@
               "proof": "Tests and Live green on tip 9deca7c1; Feeblemind compiles TEST_OUTCOME (golden): 4d6 psychic on both Int-save paths, GM_CHOICE MANUAL_ADJUDICATION for score-to-1, casting lock and 30-day lifetime on ON_SAVE_FAIL; manualBesideSpellAuthoringParity case; FEEBLEMIND kind deleted"
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2v",
               "wsjf": {
@@ -10913,7 +10914,8 @@
                 "size": 8,
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
               },
-              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): WEAPON manifests in Encounters with a granted repeatable attack action (the T2l granted-action option) and COMMAND_MANIFEST compiled in rules-runtime. Converts FLAME_BLADE, PRODUCE_FLAME (an optional later hurl that ends the spell) and makes SPIRITUAL_WEAPON playable, each with a parity proof and a room test; the kind deleted."
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): WEAPON manifests in Encounters with a granted repeatable attack action (the T2l granted-action option) and COMMAND_MANIFEST compiled in rules-runtime. Converts FLAME_BLADE, PRODUCE_FLAME (an optional later hurl that ends the spell) and makes SPIRITUAL_WEAPON playable, each with a parity proof and a room test; the kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -14912,7 +14914,7 @@
             },
             {
               "id": "SPELLS-33.T4l1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -14922,7 +14924,8 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2l"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: bonus-action Dash, Disengage and Hide grants, Aggressive, legendary move, Clay Golem Haste (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4l2",
