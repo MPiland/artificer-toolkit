@@ -198,7 +198,15 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
         actionId,
         repeat: {
           effectsByHolder: new Map([
-            [HOLDER_ID, [heldCarrier({ ...compiledOffer(flameBlade), attackBonus })]]
+            [
+              HOLDER_ID,
+              [
+                heldCarrier({
+                  ...compiledOffer(flameBlade),
+                  ...(attackBonus === undefined ? {} : { attackBonus })
+                })
+              ]
+            ]
           ])
         }
       })
