@@ -31,7 +31,8 @@ const HITS = 17
 const BITE_DAMAGE = 8
 /** Resistance to all damage halves the Bite. */
 const MIRRORED_DAMAGE = BITE_DAMAGE / 2
-const CHARACTER_HIT_POINTS = 50
+/** The fixture Character's stored maximum, which caps the current hit points the room seeds. */
+const CHARACTER_HIT_POINTS = 11
 
 const wolf = biteWolf('ATTACK', { damage: BITE_DAMAGE })
 const [bondEffect] = wardingBond.effects ?? []
