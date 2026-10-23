@@ -11,13 +11,17 @@ import {
 } from '../encounterBasicActionCapabilityDiscovery.js'
 import { onEndGrantEffect } from '../encounterEffectOnEnd.js'
 import {
+  firstGrantedActionUseKey,
   grantedActionId,
   heldGrantedActions,
   nextGrantedActionUseKey,
   parseGrantedActionId,
-  resolveGrantedAction
+  resolveGrantedAction,
+  standingGrantedActions
 } from '../encounterGrantedActions.js'
+import { snapshotFeatureDefinitions } from '../encounterActorState.js'
 import {
+  creatureFeature,
   ENCOUNTER_ID,
   SRD_SYSTEM_ID,
   srdCreatureActor,
@@ -104,6 +108,68 @@ describe('the offers a held effect makes', () => {
     const key = nextGrantedActionUseKey(held!, [])
     expect(typeof key).toBe('string')
     expect(nextGrantedActionUseKey(held!, [key as string])).toBeUndefined()
+  })
+
+  it('names the first use key an offer still has, and none once every use is spent', () => {
+    const holds = heldGrantedActions([hasteHeld(), retreatHeld()])
+    const hasteKey = nextGrantedActionUseKey(holds[0]!, [])
+    expect(firstGrantedActionUseKey(holds, [])).toBe(hasteKey)
+    expect(firstGrantedActionUseKey(holds, [hasteKey as string])).toBeNull()
+    expect(firstGrantedActionUseKey([], [])).toBeNull()
+  })
+})
+
+describe('the offers a Creature’s traits make on every turn', () => {
+  const goblin = srdByLabel(SRD.creatures, 'Goblin')
+  const clayGolem = srdByLabel(SRD.creatures, 'Clay Golem')
+  const standingOf = (creature: typeof goblin) =>
+    standingGrantedActions(
+      snapshotFeatureDefinitions(srdCreatureActor({ id: HOLDER_ID, creature }))
+    )
+  const nimbleEscapeId = creatureFeature(goblin, 'Nimble Escape').effects![0]!.id
+
+  it('reads the Goblin’s Nimble Escape: Disengage or Hide as a Bonus Action', () => {
+    expect(standingOf(goblin)).toEqual([
+      {
+        effectId: nimbleEscapeId,
+        offerIndex: 0,
+        offer: {
+          activation: 'BONUS_ACTION',
+          actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DISENGAGE, SRD_BASIC_ACTION_IDS.HIDE]
+        }
+      }
+    ])
+  })
+
+  it('offers nothing for an activated trait, whose grant is timed', () => {
+    expect(standingOf(clayGolem)).toEqual([])
+  })
+
+  it('resolves a standing offer and refuses an action it does not name', () => {
+    const base = (definitionId: string) => `${HOLDER_ID}:BASIC_ACTION:${definitionId}:EFFECT:x`
+    const standing = standingOf(goblin)
+    const resolved = resolveGrantedAction({
+      actionId: grantedActionId(base(SRD_BASIC_ACTION_IDS.HIDE), nimbleEscapeId, 0),
+      heldEffects: [],
+      standing,
+      spentKeys: []
+    })
+    expect(resolved).toMatchObject({ offer: { activation: 'BONUS_ACTION' }, useKey: null })
+    expect(() =>
+      resolveGrantedAction({
+        actionId: grantedActionId(base(SRD_BASIC_ACTION_IDS.DASH), nimbleEscapeId, 0),
+        heldEffects: [],
+        standing,
+        spentKeys: []
+      })
+    ).toThrow('The selected granted action is stale.')
+    expect(() =>
+      resolveGrantedAction({
+        actionId: grantedActionId(base(SRD_BASIC_ACTION_IDS.HIDE), nimbleEscapeId, 0),
+        heldEffects: [],
+        spentKeys: []
+      })
+    ).toThrow('The selected granted action is stale.')
   })
 })
 
