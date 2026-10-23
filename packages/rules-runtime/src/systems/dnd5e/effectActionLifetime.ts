@@ -54,6 +54,10 @@ export const isGrantConsumeEvent = (event: string) => GRANT_CONSUME_EVENTS.has(e
 
 export const isGrantEndEvent = (event: string) => GRANT_END_EVENTS.has(event)
 
+export function activeEffectGraphNodeId(compiledEntryId: string): string {
+  return `active_effect_${compiledEntryId}`
+}
+
 /**
  * The frozen graph of a timed condition or grant: one pure node. A condition's holder turn ends
  * tick it through the turn-effect kernel; a grant is counted by the grant tick planner instead.

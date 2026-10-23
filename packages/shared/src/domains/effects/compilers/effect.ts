@@ -73,6 +73,7 @@ export type CompiledEffectOffer =
       offeredTo: 'SOURCE'
       activation: AuthoredEffectOffer['activation']
       effect: EffectAuthored
+      target?: NonNullable<AuthoredEffectOffer['target']>
     }
 
 export type CompiledPathLifecycle = Omit<PathLifecycleAuthored, 'effectOffers'> & {
@@ -274,7 +275,7 @@ export type CompiledEffectOutcome =
 function compileBehaviors(
   behaviors: ManifestBehaviorAuthored[] | undefined
 ): CompiledEffectGroup[] | undefined {
-  return behaviors?.length ? behaviors.map(compileEffect) : undefined
+  return behaviors?.length ? behaviors.map((effect) => compileEffect(effect)) : undefined
 }
 
 function compileManifestOutcome(outcome: ManifestAuthored): CompiledManifest {
@@ -404,9 +405,32 @@ function groupKindFromResultKind(
   return resultKind === 'SEQUENCE' ? PATH_GROUP_TYPE.SEQUENTIAL : PATH_GROUP_TYPE.SINGLE
 }
 
+/**
+ * The Effect a repeat offer re-runs: the carrier's own Effect narrowed to the named paths, or a
+ * sibling Effect of the same subject whole (its invocation is what the repeat does).
+ */
+function repeatedEffect(
+  effect: EffectAuthored<Trigger, import('#authored').OutcomeAuthored>,
+  offer: AuthoredEffectOffer,
+  siblings: readonly EffectAuthored<Trigger, import('#authored').OutcomeAuthored>[]
+): EffectAuthored<Trigger, import('#authored').OutcomeAuthored> {
+  if (offer.effectId !== undefined) {
+    const sibling = siblings.find(({ id }) => id === offer.effectId)
+    if (!sibling || sibling.id === effect.id)
+      throw new Error(`Repeat offer names an Effect that is not a sibling of Effect ${effect.id}.`)
+    return sibling
+  }
+  const pathIds = new Set(offer.pathIds)
+  const paths = effect.paths.filter((path) => pathIds.has(path.id))
+  if (paths.length !== pathIds.size)
+    throw new Error(`Repeat offer names a path that Effect ${effect.id} does not have.`)
+  return { ...effect, paths }
+}
+
 function compileLifecycle(
   effect: EffectAuthored<Trigger, import('#authored').OutcomeAuthored>,
-  lifecycle: PathLifecycleAuthored
+  lifecycle: PathLifecycleAuthored,
+  siblings: readonly EffectAuthored<Trigger, import('#authored').OutcomeAuthored>[]
 ): CompiledPathLifecycle {
   const { effectOffers, ...rest } = lifecycle
   if (!effectOffers) return rest
@@ -425,11 +449,8 @@ function compileLifecycle(
           range
         }
       }
-      const pathIds = new Set(offer.pathIds)
-      const paths = effect.paths.filter((path) => pathIds.has(path.id))
-      if (paths.length !== pathIds.size)
-        throw new Error(`Repeat offer names a path that Effect ${effect.id} does not have.`)
-      const { invocation } = effect
+      const repeated = repeatedEffect(effect, offer, siblings)
+      const { invocation, paths } = repeated
       if (
         invocation.kind === 'PASSIVE' ||
         invocation.reactionTrigger ||
@@ -437,17 +458,18 @@ function compileLifecycle(
         offer.activation === 'REACTION'
       )
         throw new Error(
-          `Effect ${effect.id} is not an action a repeat offer can charge to ${offer.activation}.`
+          `Effect ${repeated.id} is not an action a repeat offer can charge to ${offer.activation}.`
         )
       return {
         kind: 'REPEAT_SOURCE_PATH',
         offeredTo: 'SOURCE',
         activation: offer.activation,
         effect: {
-          ...effect,
+          ...repeated,
           invocation: { ...invocation, activation: { code: offer.activation, amount: 1 } },
           paths
-        }
+        },
+        ...(offer.target ? { target: offer.target } : {})
       }
     })
   }
@@ -457,6 +479,7 @@ function compileResultBlock(
   effect: EffectAuthored<Trigger, import('#authored').OutcomeAuthored>,
   path: EffectPathAuthored<Trigger, import('#authored').OutcomeAuthored>,
   resultBlock: ResultBlockAuthored,
+  siblings: readonly EffectAuthored<Trigger, import('#authored').OutcomeAuthored>[],
   meta?: {
     entryId?: string
     entryOrderBase?: number
@@ -508,7 +531,7 @@ function compileResultBlock(
         outcome: compiledOutcome,
         ...(duration ? { duration } : {}),
         ...(resultBlock.lifecycle
-          ? { lifecycle: compileLifecycle(effect, resultBlock.lifecycle) }
+          ? { lifecycle: compileLifecycle(effect, resultBlock.lifecycle, siblings) }
           : {}),
         ...(resultBlock.failureMarginRider
           ? { failureMarginRider: resultBlock.failureMarginRider }
@@ -568,7 +591,10 @@ function compileResultBlock(
 export function compileEffectResult<
   TTrigger extends Trigger = Trigger,
   TOutcome extends import('#authored').OutcomeAuthored = import('#authored').OutcomeAuthored
->(effect: EffectAuthored<TTrigger, TOutcome>): CompileResult<CompiledEffectGroup> {
+>(
+  effect: EffectAuthored<TTrigger, TOutcome>,
+  siblings: readonly EffectAuthored[] = []
+): CompileResult<CompiledEffectGroup> {
   const rules: CompiledEffectEntry[] = []
 
   for (const path of effect.paths as EffectPathAuthored<
@@ -577,12 +603,12 @@ export function compileEffectResult<
   >[]) {
     switch (path.selectionKind) {
       case 'FIXED':
-        rules.push(...compileResultBlock(effect, path, path.resultBlock))
+        rules.push(...compileResultBlock(effect, path, path.resultBlock, siblings))
         break
       case 'CHOICE':
         for (const option of path.options) {
           rules.push(
-            ...compileResultBlock(effect, path, option.resultBlock, {
+            ...compileResultBlock(effect, path, option.resultBlock, siblings, {
               entryId: option.id,
               entryOrderBase: option.order * 1000,
               ...(option.label !== undefined ? { label: option.label } : {}),
@@ -594,7 +620,7 @@ export function compileEffectResult<
       case 'HIT_POINT_TIERS':
         for (const row of path.rows) {
           rules.push(
-            ...compileResultBlock(effect, path, row.resultBlock, {
+            ...compileResultBlock(effect, path, row.resultBlock, siblings, {
               entryOrderBase: row.order * 1000,
               hitPointTier: { atMost: row.atMost }
             })
@@ -641,6 +667,7 @@ export function compileEffectResult<
               effect,
               path,
               row.resultBlock,
+              siblings,
               {
                 entryId: row.id,
                 entryOrderBase: row.order * 1000
@@ -672,6 +699,10 @@ export function compileEffectResult<
 export function compileEffect<
   TTrigger extends Trigger = Trigger,
   TOutcome extends import('#authored').OutcomeAuthored = import('#authored').OutcomeAuthored
->(effect: EffectAuthored<TTrigger, TOutcome>): CompiledEffectGroup {
-  return unwrapCompileResult(compileEffectResult(effect))
+>(
+  effect: EffectAuthored<TTrigger, TOutcome>,
+  /** The other Effects of the subject, which a repeat offer's `effectId` names. */
+  siblings: readonly EffectAuthored[] = []
+): CompiledEffectGroup {
+  return unwrapCompileResult(compileEffectResult(effect, siblings))
 }

@@ -10675,7 +10675,7 @@
             },
             {
               "id": "SPELLS-4.T2m1b2c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10685,8 +10685,9 @@
                 "after": ["SPELLS-4.T2m1b2b"]
               },
               "text": "Damage taken from movement (per-step zone and hazard damage) joins the repeat-save and Concentration chain that T2m1b2b built for the other damage sources, through the per-step movement Concentration stack. Also: turn-effect damage names its source instead of a null damager, so a repeat save triggered only by a named source fires on it (found in the T2m1b2b review).",
-              "note": "Split from SPELLS-4.T2m1b2b at the session's report, 2026-10-22.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Split from SPELLS-4.T2m1b2b at the session's report, 2026-10-22. Merged in m391.",
+              "mergedAt": "2026-10-23T22:26:39Z",
+              "proof": "Tests and Live green on tip 251b4ee1; turn-effect, zone and Legendary damage carry a per-application damagerActorId so SOURCE_SIDE repeat saves and Concentration see the named dealer (regression in nativeRoomTurnEffectRepeatSave.test.ts); movement Concentration saves already proven in nativeMovementEvidence.test.ts and nativeMovementConcentrationEnd.test.ts; repeat saves on movement damage deferred as a rare edge case (orchestrator ruling under D187/D187a), listed in future-enhancements."
             },
             {
               "id": "SPELLS-4.T2m1d",
@@ -10908,7 +10909,7 @@
               "proof": "Tests and Live green on tip 9deca7c1; Feeblemind compiles TEST_OUTCOME (golden): 4d6 psychic on both Int-save paths, GM_CHOICE MANUAL_ADJUDICATION for score-to-1, casting lock and 30-day lifetime on ON_SAVE_FAIL; manualBesideSpellAuthoringParity case; FEEBLEMIND kind deleted"
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2v",
               "wsjf": {
@@ -10919,8 +10920,9 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
               },
               "text": "D187b scope: WEAPON manifests in Encounters with a granted repeatable attack action (the T2l granted-action option, REPEAT_SOURCE_PATH carrier pattern). Converts FLAME_BLADE and PRODUCE_FLAME (the optional later hurl that ends the spell may ship as a GM ruling), each with a parity proof and a room test; kinds deleted. Spiritual Weapon moved to SPELLS-4.T2v2.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": " D187b (2026-10-23): Spiritual Weapon is a caster-controlled CREATURE manifest; gaps return sized for a user yes. D187b: size 8 to 5; Spiritual Weapon moved to T2v2 (summon tokens). 2026-10-23: builds the repeat attack mechanic (frozen attack bonus as attackMechanic on REPEAT_PATH, REPEAT_SOURCE_PATH effectId and HOLDER/INVOCATION target) that T2v2a3 reuses; size back to 8 (D187b)."
+              "note": " D187b (2026-10-23): Spiritual Weapon is a caster-controlled CREATURE manifest; gaps return sized for a user yes. D187b: size 8 to 5; Spiritual Weapon moved to T2v2 (summon tokens). 2026-10-23: builds the repeat attack mechanic (frozen attack bonus as attackMechanic on REPEAT_PATH, REPEAT_SOURCE_PATH effectId and HOLDER/INVOCATION target) that T2v2a3 reuses; size back to 8 (D187b). Merged in m394 (commit titled m395).",
+              "mergedAt": "2026-10-23T23:02:05Z",
+              "proof": "Tests and Live green on tip f47b5ca0; Flame Blade and Produce Flame on the carrier pattern; REPEAT_SOURCE_PATH gains effectId and target HOLDER/INVOCATION, and an attack repeat freezes the cast's attack bonus as attackMechanic on the REPEAT_PATH capability (roll mode from live state); Vampiric Touch HOLDER regression; FLAME_BLADE and PRODUCE_FLAME deleted; golden and rules-runtime.md updated."
             },
             {
               "closes": ["SPELLS-4.1"],
@@ -10940,9 +10942,8 @@
             },
             {
               "closes": ["SPELLS-4.1"],
-              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A).",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A). Merged in m392.",
+              "status": "DONE",
               "id": "SPELLS-4.T2v2a2a",
               "wsjf": {
                 "bv": 8,
@@ -10951,12 +10952,14 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2v2a1"]
               },
-              "text": "D187b summon piece, part 2a: SUMMON manifest compiles to a summon plan from its summonStatBlockDtoSchema stat block (actor shape, owner link, no initiative), with compile tests."
+              "text": "D187b summon piece, part 2a: SUMMON manifest compiles to a summon plan from its summonStatBlockDtoSchema stat block (actor shape, owner link, no initiative), with compile tests.",
+              "mergedAt": "2026-10-23T22:33:50Z",
+              "proof": "Tests and Live green on tip 6232dc3d; a timed SUMMON manifest with a stat block compiles to compilation.summonPlacement on the v4 action entry (stat block, carrier entry with duration and maintenance, frozen graph); Arcane Hand compiles; Mage Hand and Spiritual Weapon stay GM-ruled until T2v2a3/T2v2b; rules-runtime.md updated."
             },
             {
               "closes": ["SPELLS-4.1"],
-              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A).",
-              "status": "TODO",
+              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A). 2026-10-23 ruling: the caster picks the summon point (reuse the cast's existing point contract if one fits, else one optional summonPlacement { position }), validated for range, free square and sight; this slice adds the ApplyEncounterSummonTokens callback against a fixture actor id, a2c creates the actor.",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-4.T2v2a2b",
               "wsjf": {
                 "bv": 8,
@@ -10965,7 +10968,8 @@
                 "size": 13,
                 "after": ["SPELLS-4.T2v2a2a"]
               },
-              "text": "D187b summon piece, part 2b: the cast commit writes Scene rows (token and binding) in the cast's own room transaction through the staged-Scene planner movement uses; boundary recorded in persistence.md."
+              "text": "D187b summon piece, part 2b: the cast commit writes Scene rows (token and binding) in the cast's own room transaction through the staged-Scene planner movement uses; boundary recorded in persistence.md.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "closes": ["SPELLS-4.1"],
@@ -13948,7 +13952,7 @@
             },
             {
               "id": "SPELLS-31.T4o",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -13958,8 +13962,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2o"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2o: Dragon Wings, Unarmored Movement improvement, Second-Story Work. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m390.",
+              "mergedAt": "2026-10-23T22:11:56Z",
+              "proof": "Tests and Live green on tip 23893b0b; Dragon Wings is an until-dismissed fly SPEED SET_VALUE { equalsSpeedId: walk } (armor limits stay in the description); Unarmored Movement Improvement and Second-Story Work ship as MANUAL_ADJUDICATION GM rulings (D187a); three kinds deleted with authoring-parity proofs; compile golden updated."
             },
             {
               "id": "SPELLS-31.T4r",
@@ -15288,7 +15293,7 @@
             },
             {
               "id": "SPELLS-33.T6b3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15298,8 +15303,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6b1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: disease (recurring saves, ended by cure effects) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
-              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m393.",
+              "mergedAt": "2026-10-23T22:46:44Z",
+              "proof": "Tests and Live green on tip 0513ff11; Death Dog disease, Giant Rat diseased bite and Aboleth Mucous Cloud ship as MANUAL_ADJUDICATION GM rulings beside the automated attack damage (D187a); three kinds deleted with parity proofs; allowlist and compile golden updated (Mummy Rot already converted in T6b1)."
             },
             {
               "id": "SPELLS-33.T6c",

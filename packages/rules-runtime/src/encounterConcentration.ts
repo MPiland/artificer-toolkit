@@ -256,7 +256,7 @@ export function concentrationSaveApplications<
         {
           kind: 'DAMAGED',
           phase: 'AFTER',
-          damagerActorId: input.damagerActorId,
+          damagerActorId: application.damagerActorId ?? input.damagerActorId,
           damageTypeIds: [application.damageTypeId],
           dispositions: input.dispositions
         }

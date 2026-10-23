@@ -26,7 +26,9 @@ export const concentrationDamageApplicationDtoSchema = lazySchema(() =>
     targetActorId: ruleExecutionUuidSchema,
     /** One source's total damage; a source that dealt several damage types has no single type. */
     appliedAmount: ruleExecutionPositiveIntegerSchema,
-    damageTypeId: z.nullable(ruleExecutionUuidSchema)
+    damageTypeId: z.nullable(ruleExecutionUuidSchema),
+    /** Who dealt this source's damage when it names one; absent, the chain's own damager applies. */
+    damagerActorId: z.optional(ruleExecutionUuidSchema)
   })
 )
 

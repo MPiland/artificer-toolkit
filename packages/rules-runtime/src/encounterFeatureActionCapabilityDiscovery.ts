@@ -822,8 +822,9 @@ export function discoverUncompiledEncounterFeatureActions(input: {
 
 /** The action mechanic of an authored Effect action: a Creature Feature's or an authored basic action's. */
 export function featureActionMechanic(
-  capability: EffectActionCapabilityDescriptor &
-    Partial<Pick<EncounterFeatureActionCapabilityDescriptor, 'attackMechanic'>>
+  capability: EffectActionCapabilityDescriptor & {
+    attackMechanic?: { attackBonus: number; rollMode: string } | null
+  }
 ): Readonly<Record<string, unknown>> {
   const invocation = capability.mechanicFacts.invocation
   const savingThrow = invocation.savingThrow

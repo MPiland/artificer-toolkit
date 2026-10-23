@@ -29,6 +29,7 @@ import {
   zoneMovementCostMultiplierSchema,
   zoneRequiredSightSchema
 } from '../shared/spatial.js'
+import { summonStatBlockDtoSchema } from '../effects/manifest.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import {
@@ -601,6 +602,23 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
 export type CompiledActionZonePlacement = z.infer<typeof compiledActionZonePlacementSchema>
 
 /**
+ * A creature an action summons: the stat block its spell authors, and the timed carrier effect that
+ * ends the summon with the spell's duration or the Concentration the cast opens. The cast creates a
+ * Run actor owned by the caster from the stat block and places it on the Scene at the point the
+ * caster picks (T2v2a2).
+ */
+export const compiledActionSummonPlacementSchema = lazySchema(() =>
+  z.strictObject({
+    summonOutcomeId: serverUuidIdentityDtoSchema,
+    label: z.nullable(z.string().check(z.minLength(1)).check(z.maxLength(160))),
+    statBlock: summonStatBlockDtoSchema,
+    entry: compiledActionActiveEffectPlanSchema
+  })
+)
+
+export type CompiledActionSummonPlacement = z.infer<typeof compiledActionSummonPlacementSchema>
+
+/**
  * The zones an action places when its caster picks one at cast (D140): one plan per option of its
  * ON_USE CHOICE path. The options share what is settled before the pick: where the zone is anchored,
  * whether the caster spares creatures, the Concentration the cast opens and the save DC; each may
@@ -823,6 +841,8 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         zonePlacement: z.nullable(
           z.union([compiledActionZonePlacementSchema, compiledActionZoneChoiceSchema])
         ),
+        /** Set for an action that summons a creature; its `executionPlan` is the carrier's graph. */
+        summonPlacement: z.optional(compiledActionSummonPlacementSchema),
         /**
          * Set for an action whose caster picks an option at cast; the top-level plans hold its first
          * option and are never run unswapped. Null when `zonePlacement` is set.
@@ -1093,6 +1113,18 @@ export const characterMechanicsProjectionSchema: z.ZodMiniType<CharacterMechanic
               code: 'custom',
               message: 'A compiled action picks its option or its zone at cast, never both.',
               path: ['compiledActionEntryPoints', index, 'compilation', 'choice']
+            })
+          }
+          if (
+            entry.compilation.kind === 'COMPILED' &&
+            'summonPlacement' in entry.compilation &&
+            entry.compilation.summonPlacement &&
+            (entry.compilation.choice !== null || entry.compilation.zonePlacement !== null)
+          ) {
+            ctx.addIssue({
+              code: 'custom',
+              message: 'A compiled action summons a creature or places a zone, never both.',
+              path: ['compiledActionEntryPoints', index, 'compilation', 'summonPlacement']
             })
           }
         }

@@ -486,7 +486,7 @@ export async function planNativeLiveConcentration(input: {
     const trigger =
       effect &&
       effectRepeatTrigger(effect, {
-        damagerActorId: repeatSaveDamager ?? null,
+        damagerActorId: application.damagerActorId ?? repeatSaveDamager ?? null,
         dispositions,
         damageTypeId: application.damageTypeId
       })

@@ -91,6 +91,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Repeat saves triggered by damage taken during movement (SPELLS-4.T2m1b2c):** per-step movement damage (zone and hazard contact) settles through `MovementConcentrationSettlement`, whose children are Concentration CHECK and END only, so it raises no effect repeat save. A damage-triggered repeat save (Hideous Laughter) sits on a creature that rarely moves on its own, so it only meets this through forced movement into a zone. The GM adjudicates the repeat save. Movement Concentration saves are proven by `nativeMovementEvidence.test.ts` and `nativeRoomForcedMovementZones.test.ts`.
+
 - **Message's casting time and duration swapped in the corpus (SPELLS-4.T2g1 review):** `packages/source-data/src/srd/spells/message.ts` authors a 1-round casting time and an INSTANTANEOUS duration; the SRD has a 1-action casting time and a 1-round duration. The outcome is a manual-adjudication prompt, so play is unaffected beyond the reply window.
 
 - **Nested save skipped by a branch gate (SPELLS-33.T4i3d):** a gated nested-save band rolls the save even for targets the gate excludes (e.g. a target over the HP band), then discards the outcome. Rolling the save only for in-band targets would need the gate evaluated before the d20 node; no SRD content is affected.
