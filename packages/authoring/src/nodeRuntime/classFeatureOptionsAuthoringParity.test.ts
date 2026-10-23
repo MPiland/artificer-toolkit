@@ -9,6 +9,7 @@ import { circleOfTheLand } from '@artificer-toolkit/source-data/srd/classes/circ
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { hunterConclave } from '@artificer-toolkit/source-data/srd/classes/hunter.js'
 import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/life-domain.js'
+import { draconicBloodlineOrigin } from '@artificer-toolkit/source-data/srd/classes/draconic-bloodline.js'
 import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
 import { oathOfDevotion } from '@artificer-toolkit/source-data/srd/classes/oath-of-devotion.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
@@ -30,7 +31,8 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
  * same core options a Builder author has on a class feature or option, so each must pass the class
  * node map exactly as authored, as must a homebrew variant built from those options. Perfect Self
  * and Superior Inspiration (T5o) are a RESTORE_RESOURCE outcome on a ROLL_INITIATIVE passive.
- * Thief's Reflexes (T5o2, D187a) is a passive GM ruling.
+ * Thief's Reflexes (T5o2, D187a) is a passive GM ruling. Dragon Wings (T4o) is a fly speed equal to
+ * the walking speed; Unarmored Movement Improvement and Second-Story Work (T4o, D187a) are GM rulings.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -356,7 +358,43 @@ const CASES: ReadonlyArray<{
       outcome.instructions = 'The table decides when this feature adds a turn.'
       return variant
     }
-  }
+  },
+  {
+    record: draconicBloodlineOrigin,
+    label: 'Dragon Wings',
+    variant: () => {
+      const variant = structuredClone(draconicBloodlineOrigin)
+      const path = feature(variant, 'Dragon Wings').effects?.[0]?.paths[0]
+      if (path?.selectionKind !== 'FIXED' || path.resultBlock.duration === undefined)
+        throw new Error('Dragon Wings must author a fixed result with a duration.')
+      // A homebrew variant whose wings last an hour.
+      path.resultBlock.duration = {
+        id: path.resultBlock.duration.id,
+        durationKind: 'HOUR',
+        amount: 1
+      }
+      return variant
+    }
+  },
+  ...(
+    [
+      { record: monk, label: 'Unarmored Movement Improvement' },
+      { record: thiefRoguishArchetype, label: 'Second-Story Work' }
+    ] as const
+  ).map(({ record, label }) => ({
+    record,
+    label,
+    variant: () => {
+      const variant = structuredClone(record)
+      const path = feature(variant, label).effects?.[0]?.paths[0]
+      const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      if (outcome?.effectKind !== 'MANUAL_ADJUDICATION')
+        throw new Error(`${label} must author a manual adjudication.`)
+      outcome.reasonCode = 'GM_CHOICE'
+      outcome.instructions = 'The table decides how this applies.'
+      return variant
+    }
+  }))
 ]
 
 describe('class features resolved from core options through the class node map (SPELLS-31.T3a-T3c, T5s)', () => {
