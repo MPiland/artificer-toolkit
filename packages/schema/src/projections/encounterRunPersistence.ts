@@ -475,6 +475,23 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         []
       ),
       /**
+       * The Scene tokens this action conjured, each with the Scene command that created it and the
+       * actor it is bound to. Its undo removes them; a replay finds them here.
+       */
+      summonedTokens: z._default(
+        z
+          .array(
+            z.strictObject({
+              sceneId: postgresUuidSchema,
+              sceneCommandId: postgresUuidSchema,
+              tokenId: postgresUuidSchema,
+              actorId: postgresUuidSchema
+            })
+          )
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
+        []
+      ),
+      /**
        * Where each creature the action moved ended up: the feet it travelled, what stopped it short
        * of its distance, and the random direction rolled for it.
        */

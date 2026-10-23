@@ -37,9 +37,15 @@ import { planSceneFogPublication } from '@artificer-toolkit/encounter-persistenc
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/jsonDelta'
 import { applySceneDelta } from '@artificer-toolkit/shared/vtt'
+import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
+import { encounterSceneBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import { applyRoomSummonTokens } from './roomActionSummonTokens.js'
 import { buildRoomCheckpointRecords } from './roomCheckpointRecords.js'
 import { RoomEncounterStore, SCENE_EVIDENCE_ROW, type RoomRecord } from './roomEncounterStore.js'
-import { persistRoomSceneCommand } from './roomSceneCommandPersistence.js'
+import {
+  persistRoomSceneCommand,
+  persistRoomSceneTokenCreate
+} from './roomSceneCommandPersistence.js'
 import { ROOM_SCENE_DEFINITION_HEADER } from './roomSceneDefinition.js'
 import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
 import { publishRoomSceneUndo } from './roomSceneUndo.js'
@@ -662,5 +668,109 @@ describe('room Scene command persistence', () => {
       })
     ).rejects.toThrow('save ID')
     expect(base.room.sequence).toBe(1)
+  })
+
+  describe('a token an action conjures', () => {
+    const summonId = uuid(50)
+    const origin = { encounterId: uuid(51), commandId: uuid(52) }
+    const create = (base: ReturnType<typeof fixture>, token: object = {}) =>
+      base.room.transact(async (transaction) =>
+        persistRoomSceneTokenCreate({
+          transaction,
+          header: base.input.header,
+          scene: base.input.scene,
+          token: { ...base.input.scene.tokens[0]!, id: summonId, label: 'Summon', ...token },
+          commandId: uuid(53),
+          actorUserId: base.input.actorUserId,
+          presentationVersion: 4,
+          saveId: uuid(54),
+          now: base.input.now,
+          actionOrigin: origin
+        })
+      )
+
+    it('is a new live token whose command names the action as its origin', async () => {
+      const base = fixture()
+      const created = await create(base)
+      expect(created).toMatchObject({
+        version: 2,
+        counts: { tokens: 2 },
+        nextOrdinals: { tokens: 8 }
+      })
+      expect(base.read('sceneLiveEntities', [sceneId, 'tokens', summonId])).toMatchObject({
+        ordinal: 7,
+        version: 2,
+        value: { entity: { label: 'Summon', vision: null } }
+      })
+      expect(
+        parseGeometryCommand(base.read('sceneLiveCommands', [sceneId, uuid(53)]), 2)
+      ).toMatchObject({ actionOrigin: origin })
+    })
+
+    it('is placed on the Encounter Scene and bound to its actor in the cast transaction', async () => {
+      const base = fixture()
+      const memory = createMemoryEncounterStore({ idPrefix: 'summon' })
+      const encounterId = uuid(51)
+      await memory.store.insert(
+        'encounterSceneBindings',
+        encounterSceneBindingSchema.parse({
+          encounterId,
+          campaignId: uuid(4),
+          sceneId,
+          commandId: uuid(55),
+          commandFingerprint: checksumCanonicalJson({ commandId: uuid(55) }),
+          createdAt: '2026-10-23T00:00:00.000Z'
+        })
+      )
+      const actorId = uuid(56)
+      const created = await base.room.transact(async (transaction) =>
+        applyRoomSummonTokens({
+          ctx: { db: memory.store },
+          transaction,
+          userId: base.input.actorUserId,
+          summon: {
+            state: { id: encounterId },
+            commandId: origin.commandId,
+            summons: [
+              { actorId, token: { ...base.input.scene.tokens[0]!, id: summonId, label: 'Summon' } }
+            ]
+          }
+        })
+      )
+      expect(created).toEqual([
+        { sceneId, sceneCommandId: expect.any(String), tokenId: summonId, actorId }
+      ])
+      expect(
+        parseGeometryCommand(
+          base.read('sceneLiveCommands', [sceneId, created[0]!.sceneCommandId]),
+          2
+        )
+      ).toMatchObject({ actionOrigin: origin })
+      expect(
+        await memory.store
+          .query('encounterActorTokenBindings')
+          .withIndex('by_encounterId_actorId', (q) =>
+            q.eq('encounterId', encounterId).eq('actorId', actorId)
+          )
+          .unique()
+      ).toMatchObject({ sceneId, tokenId: summonId })
+    })
+
+    it('refuses an ID already on the Scene and a token that carries vision', async () => {
+      const base = fixture()
+      await expect(create(base, { id: tokenId })).rejects.toThrow('already in use')
+      await expect(
+        create(base, {
+          vision: {
+            brightRange: 30,
+            dimRange: 60,
+            angleDegrees: 360,
+            directionDegrees: 0,
+            enabled: true
+          }
+        })
+      ).rejects.toThrow('cannot carry vision')
+      expect(base.room.sequence).toBe(0)
+    })
   })
 })

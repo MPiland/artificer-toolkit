@@ -54,6 +54,8 @@ import {
 } from '../shared/encounterRuleWarnings.js'
 import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
+import { sceneStoredTokenDtoSchema } from './vttScenes.js'
+import type { SceneToken } from '@artificer-toolkit/shared/vtt'
 
 /** Private DO output; the mutation accepts a sealed action occurrence, never arbitrary writes. */
 export const liveSessionEncounterActionPendingInputSchema = lazySchema(() =>
@@ -378,6 +380,13 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
     })
   )
 
+/** The creature an action conjures: its Scene token, bound to the Encounter actor the cast created. */
+export type LiveSessionSummonedToken = { actorId: string; token: SceneToken }
+
+export const liveSessionSummonedTokenSchema: z.ZodMiniType<LiveSessionSummonedToken> = lazySchema(
+  () => z.strictObject({ actorId: postgresUuidSchema, token: sceneStoredTokenDtoSchema })
+)
+
 /**
  * The terminal outcome of a point-area action or of a cast on a list of chosen creatures: the root
  * with the caster's one spend, one settled outcome per kept creature, and, for an area, its final
@@ -419,6 +428,8 @@ export type LiveSessionEncounterAreaCommitInput = Omit<
   placedZones: LiveSessionPlacedSpatialEffect[]
   /** The timed grant the placed zone gives its placer (D153); null for none. */
   zoneSourceGrant: z.infer<typeof activeRuleEffectRecordSchema> | null
+  /** The creature the cast conjures onto the Encounter's Scene in its own commit; its undo removes it. Empty for none. */
+  summonedTokens: LiveSessionSummonedToken[]
 }
 
 export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessionEncounterAreaCommitInput> =
@@ -447,6 +458,7 @@ export const liveSessionEncounterAreaCommitInputSchema: z.ZodMiniType<LiveSessio
       removal: z.nullable(removeAreaTargetInputDtoSchema),
       placedZones: z.array(liveSessionPlacedSpatialEffectSchema).check(z.maxLength(5)),
       zoneSourceGrant: z.nullable(activeRuleEffectRecordSchema),
+      summonedTokens: z.array(liveSessionSummonedTokenSchema).check(z.maxLength(1)),
       rules: encounterActorRuleOutputSchema,
       resourceConsumption: z.nullable(liveSessionCharacterResourceConsumptionSchema),
       itemConsumption: z.nullable(liveSessionCharacterItemConsumptionSchema),

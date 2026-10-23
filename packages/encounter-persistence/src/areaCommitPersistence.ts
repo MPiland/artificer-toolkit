@@ -57,7 +57,8 @@ import { endEffects, receiptConsumedGrants } from './consumedGrantPersistence.js
 import {
   completeActionOccurrence,
   recordActionRoot,
-  type ApplyEncounterForcedMovements
+  type ApplyEncounterForcedMovements,
+  type ApplyEncounterSummonTokens
 } from './actionCommitRecords.js'
 import {
   combineSpendMutations,
@@ -199,6 +200,7 @@ export async function persistEncounterAreaCommit(
       input: Parameters<typeof persistEncounterConcentrationChildren>[1]
     ): ReturnType<typeof persistEncounterConcentrationChildren>
     applyForcedMovements: ApplyEncounterForcedMovements
+    applySummonTokens: ApplyEncounterSummonTokens
   }
 ): Promise<EncounterCommandResultDto> {
   const admission = await readLiveEncounterActionAdmission(ctx, input)
@@ -914,6 +916,14 @@ export async function persistEncounterAreaCommit(
         rules: input.rules
       })
     : { moves: [], landings: [], actors: settledChildren.actors, rules: input.rules }
+  // The creature the cast conjures stands on the Scene from this commit (D187b).
+  const summoned = input.summonedTokens.length
+    ? await callbacks.applySummonTokens({
+        state,
+        commandId: command.commandId,
+        summons: input.summonedTokens
+      })
+    : []
   const projection = await projectNativeGm(
     ctx,
     nextState,
@@ -997,6 +1007,7 @@ export async function persistEncounterAreaCommit(
       speedBonusTurn: null,
       teleportAllowanceTurn: null,
       forcedMovements: settledMovements.moves,
+      summonedTokens: summoned,
       forcedMovementLandings: settledMovements.landings,
       turnUses: null,
       idleTurnMarkChanges: idleTurnMarkChanges(actors, nextActors),
