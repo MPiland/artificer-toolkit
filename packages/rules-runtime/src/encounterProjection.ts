@@ -260,7 +260,9 @@ export function projectEncounterActorFacts(
       maxHitPoints: actor.maxHitPoints,
       tempHitPoints: actor.tempHitPoints,
       conditions: [
-        ...(Array.isArray(actor.conditions) ? actor.conditions : []),
+        ...(Array.isArray(actor.conditions) ? actor.conditions : []).map((condition) =>
+          typeof condition === 'string' ? { conditionTypeId: condition } : condition
+        ),
         ...creatureInnateConditionRows(actor.snapshot)
       ],
       defeated: actor.defeated,

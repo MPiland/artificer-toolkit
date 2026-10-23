@@ -118,7 +118,7 @@ export const encounterActorRevealDtoSchema = lazySchema(() => z.enum(['UNNAMED',
  */
 const encounterActorConditionDtoSchema = lazySchema(() =>
   z.object({
-    conditionTypeId: uuidSchema,
+    conditionTypeId: postgresUuidSchema,
     notes: z.optional(z.string()),
     innate: z.optional(z.literal(true))
   })
