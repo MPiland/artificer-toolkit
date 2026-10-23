@@ -2556,7 +2556,7 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
         )
       conditionCounts.set(countKey, count)
     }
-    // An outcome sized by damage (a reduction, a derived heal) takes it from one damage outcome of its own result path.
+    // An outcome sized by damage (a reduction, a derived heal) takes it from a damage outcome (one row per scaling level) of its own result path.
     const sourceDamageOutcomeId = damageSourceOutcomeId(outcome)
     if (
       sourceDamageOutcomeId !== undefined &&
@@ -2566,9 +2566,9 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
           candidate.entryId === sourceDamageOutcomeId &&
           'outcome' in candidate &&
           candidate.outcome.effectKind === 'DAMAGE'
-      ).length !== 1
+      ).length === 0
     )
-      unsupported('D&D outcome sized by damage needs one damage outcome on its path.')
+      unsupported('D&D outcome sized by damage needs a damage outcome on its path.')
   }
   for (const pathCode of paths) {
     for (const entries of authoredOutcomeGroups(action, pathCode as SpecializedPath))
