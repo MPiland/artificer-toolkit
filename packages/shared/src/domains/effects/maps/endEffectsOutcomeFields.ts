@@ -67,9 +67,10 @@ const END_EFFECTS_SELECTOR_NODE_MAP = endEffectsSelector.define(
 export function registerEndEffectsOutcomeFields(
   map: OutcomeNodeMapApi['map'],
   nodes: OutcomeNodeMapApi['nodes'],
-  cond: OutcomeNodeMapApi['cond']
+  cond: OutcomeNodeMapApi['cond'],
+  data: OutcomeNodeMapApi['data']
 ) {
-  const { selectSingle, groupArray } = nodes
+  const { selectSingle, selectMulti, groupArray } = nodes
   const showIf = cond.local().field(['effectKind']).eq(EFFECT_KIND.END_EFFECTS)
   map
     .set(

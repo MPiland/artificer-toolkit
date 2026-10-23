@@ -2211,7 +2211,7 @@ function registerOutcomeFields(
         }
       )
     )
-  registerOutcomeKindFields(map, nodes, cond, logic)
+  registerOutcomeKindFields(map, nodes, cond, logic, data)
   map
     .set(
       'grants',

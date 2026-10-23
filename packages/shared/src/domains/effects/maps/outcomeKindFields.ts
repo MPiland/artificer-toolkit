@@ -9,10 +9,11 @@ export function registerOutcomeKindFields(
   map: OutcomeNodeMapApi['map'],
   nodes: OutcomeNodeMapApi['nodes'],
   cond: OutcomeNodeMapApi['cond'],
-  logic: OutcomeNodeMapApi['logic']
+  logic: OutcomeNodeMapApi['logic'],
+  data: OutcomeNodeMapApi['data']
 ) {
   registerConditionOutcomeFields(map, nodes, cond, logic)
-  registerEndEffectsOutcomeFields(map, nodes, cond)
+  registerEndEffectsOutcomeFields(map, nodes, cond, data)
   registerReviveOutcomeFields(map, nodes, cond, logic)
   registerRemoveFromPlayOutcomeFields(map, nodes, cond)
 }
