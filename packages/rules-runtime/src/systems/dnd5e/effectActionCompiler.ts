@@ -143,6 +143,7 @@ import {
   conditionImmuneFactKey,
   DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS,
   DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY,
+  DND5E_HEALING_MAXIMIZED_FACT_KEY,
   DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
   DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
   DND5E_SPELL_CAST_LEVEL_FACT_KEY,
@@ -4273,24 +4274,22 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         )
       }
     }
-    let resolvedHealModifierFacts: Record<string, number> = {}
+    let resolvedHealModifierFacts: Record<string, number | boolean> = {}
     if (requiresHealModifier) {
-      const healingOutcomes = resolvedHealOutcomes.filter(
-        ({ outcomeId }) => outcomeId !== recurringHealOutcomeId
-      )
-      if (healingOutcomes.length !== 1)
+      const heals = resolvedHealOutcomes.filter((o) => o.outcomeId !== recurringHealOutcomeId)
+      if (heals.length !== 1)
         throw new Dnd5eEffectActionCompilerError(
           'D&D dice healing requires one exact resolved healing expression.'
         )
-      const parsed = parseBoundedDiceConfiguration(healingOutcomes[0]!.expression)
+      const { term: resolvedTerm, modifier } = parseBoundedDiceConfiguration(heals[0]!.expression)
       const authoredTerm = authoredHealingDiceTerm(published)
-      const resolvedTerm = parsed.term
       if (resolvedTerm.count !== authoredTerm.count || resolvedTerm.die !== authoredTerm.die)
         throw new Dnd5eEffectActionCompilerError(
           'D&D resolved healing expression does not match the authored dice.'
         )
       resolvedHealModifierFacts = {
-        [DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]: parsed.modifier
+        [DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY]: modifier,
+        [DND5E_HEALING_MAXIMIZED_FACT_KEY]: targetDerivedFacts.healingMaximized === true
       }
     }
     const { spellCastLevel, classLevels, selectedOptionalRiderIds } = actionMechanic
