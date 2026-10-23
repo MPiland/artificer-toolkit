@@ -208,8 +208,17 @@ A `KILL` is admitted in a band only when the band is gated; `REDUCED_TO_ZERO_BY`
 which is dealt ungated, and holds the outcomes after it. Forced movement, HP-maximum reduction and a failure-margin
 rider are unsupported on a gated band. The save is still rolled for targets outside an HP band, with no effect.
 
+**Revive (current, SPELLS-4.T2g1, D177).** `REVIVE { valueKind: 'FIXED', amount } | { valueKind: 'MAXIMUM' }` returns a dead target to a fixed number of hit points (never above its maximum) or to its maximum
+and clears its death saves (`deathSavesAfterRevive`, beside `deathSavesAfterHealing`, which cannot raise a dead Character). A target is
+dead (`isTargetDead`) at 0 hit points with three failed death saves, or with no death saves at all (a Creature). The registry's `DEAD`
+target precondition raises the overridable `TARGET_NOT_DEAD` admission warning; an unmet fold applies nothing (`applied: false`). The
+receipt is a `REVIVE` mechanics row on the existing seam, so Undo restores the dead state; a revived Creature's `defeated` clears through
+`nextEncounterActorDefeated` and initiative needs no new logic. Revivify, Reincarnate (1 hit point; the new form stays a `GM_CHOICE`
+adjudication) and True Resurrection (maximum) are authored from it. Eligibility checks and Resurrection's year-of-death cost stay
+description-only. `stepDown` and the poison and disease clauses are SPELLS-4.T2g2.
+
 A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
-`ADD_SPEED_TO_MOVEMENT` and a target's `DEPART` (a linked-location or special-destination teleport), alongside the
+`ADD_SPEED_TO_MOVEMENT`, a target's `DEPART` (a linked-location or special-destination teleport) and `REVIVE`, alongside the
 damage, heal, condition and hit-point-tier `KILL` outcomes. `dnd5eTargetOnlyOutcome` is the one home for that set, so
 the compiler's direct and test admissions cannot drift. The commit-side readers (`executionAddsSpeedToMovement`,
 `executionTeleportAllowance`, `executionCancelsTriggeringEvent`) find their proposal through

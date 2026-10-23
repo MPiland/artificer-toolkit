@@ -72,7 +72,9 @@ import {
 } from './effectActionResultSequences.js'
 import {
   boundedTestOutcome,
+  hasLifecycleOverride,
   specializedTestOutcome,
+  positiveFixedAmount,
   validateHealBonuses,
   type SpecializedOutcome
 } from './effectActionTestOutcomes.js'
@@ -2117,7 +2119,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
       entry.resolutionKind !== 'DIRECT' ||
       (entry.groupKind !== 'SINGLE' &&
         !(relationshipEntries.length === 1 && entry.groupKind === 'SEQUENTIAL')) ||
-      ((entry.duration || entry.lifecycle) &&
+      (hasLifecycleOverride(entry) &&
         !ownsTimedSaveCondition(action, entry) &&
         (recurringPlan?.compiledEntryId !== entry.resultBlockId || kind !== 'SAVE')) ||
       entry.rangeOverride ||
@@ -2186,20 +2188,6 @@ function targetOnlyDirectOutcome(outcome: Dnd5eAuthoredOutcome, input: DirectOut
   const targetOnly = dnd5eTargetOnlyOutcome(outcome) ?? unsupportedDirectOutcome()
   return targetOnly.kind === 'ADD_SPEED_TO_MOVEMENT' ? offList(targetOnly, input) : targetOnly
 }
-function positiveFixedAmount(outcome: AuthoredOutcomeOf<'HEAL' | 'DAMAGE'>): number {
-  if (
-    outcome.valueKind !== 'FIXED' ||
-    outcome.scalingKind !== 'NONE' ||
-    outcome.bonuses?.length ||
-    !Number.isSafeInteger(outcome.amount) ||
-    outcome.amount <= 0
-  )
-    unsupported(
-      'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.'
-    )
-  return outcome.amount
-}
-
 /**
  * The one dispatch from an authored outcome kind to the direct outcome it compiles to (ADR 0039
  * decision 1). A kind with no entry is not a direct outcome.
@@ -2225,6 +2213,7 @@ const DND5E_DIRECT_OUTCOMES: {
   },
   KILL: () => ({ kind: 'KILL' }),
   STABILIZE: targetOnlyDirectOutcome,
+  REVIVE: targetOnlyDirectOutcome,
   MANUAL_ADJUDICATION: targetOnlyDirectOutcome,
   MOVEMENT_RULE: targetOnlyDirectOutcome,
   TELEPORT: (outcome, input) => {
@@ -2394,6 +2383,13 @@ function supported(
   const entry = effect.entries[0]
   // The condition and the save it repeats (Power Word Stun) are one cast: the lead entry applies now.
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
+  const lastingPlan =
+    repeatPlan ||
+    supportedRecurringPlan(action) ||
+    grantPlan ||
+    conditionPlan ||
+    linkPlan ||
+    formPlan
   if (
     effect.entries.length !== (repeatPlan ? 2 : 1) ||
     !entry ||
@@ -2401,21 +2397,8 @@ function supported(
     // A sequence of one outcome (Haste) resolves as a single result does.
     (entry.groupKind === 'CHOICE' && !repeatPlan) ||
     entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
-    (entry.maintenanceDefinitionId &&
-      !repeatPlan &&
-      !supportedRecurringPlan(action) &&
-      !grantPlan &&
-      !conditionPlan &&
-      !linkPlan &&
-      !formPlan) ||
-    ((entry.duration || entry.lifecycle) &&
-      !repeatPlan &&
-      !supportedRecurringPlan(action) &&
-      !grantPlan &&
-      !conditionPlan &&
-      !linkPlan &&
-      !formPlan &&
-      !concealmentPlan(action)) ||
+    (entry.maintenanceDefinitionId && !lastingPlan) ||
+    (hasLifecycleOverride(entry) && !lastingPlan && !concealmentPlan(action)) ||
     entry.rangeOverride ||
     entry.targetingOverride
   )

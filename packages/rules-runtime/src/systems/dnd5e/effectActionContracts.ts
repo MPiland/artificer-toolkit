@@ -1,3 +1,4 @@
+import type { ReviveHitPoints } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { CharacterRuleActionForcedMovementDirection as ForcedMovementDirection } from '../../characterRuleActionSystemAdapter.js'
 import {
   type CharacterRuleActionForcedMovementCollision,
@@ -27,6 +28,7 @@ export const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
   'dnd5e.temporary-hit-points-proposal'
 export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
 export const DND5E_KILL_PROPOSAL_OPERATION_KEY = 'dnd5e.kill-proposal'
+export const DND5E_REVIVE_PROPOSAL_OPERATION_KEY = 'dnd5e.revive-proposal'
 export const DND5E_DEPART_PROPOSAL_OPERATION_KEY = 'dnd5e.depart-proposal'
 export const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 export const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposal'
@@ -188,6 +190,7 @@ export type Outcome =
   | { kind: 'CONDITION_APPLY'; conditionId: string }
   | { kind: 'STABILIZE' }
   | { kind: 'KILL' }
+  | { kind: 'REVIVE'; hitPoints: ReviveHitPoints }
   | { kind: 'DEPART' }
   | { kind: 'MODIFIER_GRANT' }
   | { kind: 'ACTOR_LINK' }
