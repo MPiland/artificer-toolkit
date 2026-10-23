@@ -46,6 +46,8 @@ export async function seedTurnSaveEffect(input: {
   occurredAt: string
   /** Makes the effect a dependent of this maintained state: its owner and the occurrence that made it. */
   maintainedBy?: { stateId: string; sourceActorId: string; sourceOccurrenceId: string }
+  /** The actor that placed the effect, who deals its damage; the holder itself by default. */
+  sourceActorId?: string
 }) {
   const { actor } = input
   if (actor.kind === 'CHARACTER') throw new Error('Turn save effects target creature actors.')
@@ -144,7 +146,7 @@ export async function seedTurnSaveEffect(input: {
         sourceAggregateId: input.encounterId,
         sourceOccurrenceId: occurrenceId,
         rootCommandId: crypto.randomUUID(),
-        sourceActorId: input.maintainedBy?.sourceActorId ?? actor.id
+        sourceActorId: input.sourceActorId ?? input.maintainedBy?.sourceActorId ?? actor.id
       },
       authoredEffectId: definitionId,
       compiledEntryId: entryId,

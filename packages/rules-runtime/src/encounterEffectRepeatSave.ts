@@ -80,7 +80,12 @@ export function effectRepeatSaveApplications(input: {
           !(
             effect.definition.origin.kind === 'ENCOUNTER' &&
             effect.definition.origin.sourceOccurrenceId === input.parentOccurrenceId
-          ) && effectRepeatTrigger(effect, { ...input, damageTypeId: application.damageTypeId })
+          ) &&
+          effectRepeatTrigger(effect, {
+            ...input,
+            damagerActorId: application.damagerActorId ?? input.damagerActorId,
+            damageTypeId: application.damageTypeId
+          })
       )
       .map((effect) => ({ ...application, activeEffectId: effect.id }))
   })
