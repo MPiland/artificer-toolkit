@@ -400,11 +400,13 @@ export function CampaignEncounterWorkspace({
                   <Text c='dimmed' size='sm'>
                     {actor.absence === 'DEPARTED'
                       ? 'Departed'
-                      : actor.absence === 'GM_REMOVED'
-                        ? 'Out of initiative'
-                        : actor.initiative === null
-                          ? 'Initiative not set'
-                          : `Initiative ${actor.initiative}`}{' '}
+                      : actor.absence === 'EFFECT' || actor.absence === 'EFFECT_KEEPS_TURN'
+                        ? 'Out of play'
+                        : actor.absence === 'GM_REMOVED'
+                          ? 'Out of initiative'
+                          : actor.initiative === null
+                            ? 'Initiative not set'
+                            : `Initiative ${actor.initiative}`}{' '}
                     · {actor.kind === 'CHARACTER' ? 'Character' : 'Enemy'}
                   </Text>
                 </Group>

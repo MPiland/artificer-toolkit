@@ -33,6 +33,7 @@ export const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposa
 export const DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY = 'dnd5e.creature-form-proposal'
 export const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
+export const DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY = 'dnd5e.play-absence-proposal'
 export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-concealed-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
 export const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
@@ -191,6 +192,7 @@ export type Outcome =
   | { kind: 'CREATURE_FORM' }
   | { kind: 'MANUAL_ADJUDICATION' }
   | { kind: 'CONCEAL' }
+  | { kind: 'PLAY_ABSENCE' }
   | { kind: 'DETECT_CONCEALED' }
   | { kind: 'ADD_SPEED_TO_MOVEMENT' }
   | {

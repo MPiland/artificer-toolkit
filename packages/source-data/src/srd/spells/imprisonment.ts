@@ -67,8 +67,8 @@ export const imprisonment: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.IMPRISONMENT, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'IMPRISONMENT' as const
+                effectKind: EFFECT_KIND.REMOVE_FROM_PLAY,
+                keepsTurn: false
               },
               {
                 id: spellChildId(SPELL_IDS.IMPRISONMENT, 0x213, 1),
@@ -77,25 +77,6 @@ export const imprisonment: SpellAuthored = {
                 reasonCode: 'NARRATIVE_JUDGMENT' as const,
                 instructions:
                   'During the casting of the spell, in any of its versions, you can specify a condition that will cause the spell to end and release the target. The condition can be as specific or as elaborate as you choose, but the GM must agree that the condition is reasonable and has a likelihood of coming to pass.'
-              }
-            ]
-          }
-        },
-        {
-          id: spellChildId(SPELL_IDS.IMPRISONMENT, 0x214, 1),
-          order: 2,
-          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-          groupType: PATH_GROUP_TYPE.SINGLE,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.IMPRISONMENT, 0x214, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            outcomes: [
-              {
-                id: spellChildId(SPELL_IDS.IMPRISONMENT, 0x214, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'IMPRISONMENT_FUTURE_CAST_IMMUNITY' as const
               }
             ]
           }

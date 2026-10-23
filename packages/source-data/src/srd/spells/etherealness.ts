@@ -71,8 +71,8 @@ export const etherealness: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.ETHEREALNESS, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'ETHEREALNESS' as const
+                effectKind: EFFECT_KIND.REMOVE_FROM_PLAY,
+                keepsTurn: true
               }
             ]
           }
