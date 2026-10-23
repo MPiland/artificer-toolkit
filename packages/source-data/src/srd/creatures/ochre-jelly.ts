@@ -153,45 +153,6 @@ export const ochreJelly: CreatureAuthored = {
       label: 'Split',
       description:
         "Split. When a jelly that is Medium or larger is subjected to lightning or slashing damage, it splits into two new jellies if it has at least 10 hit points. Each new jelly has hit points equal to half the original jelly's, rounded down. New jellies are one size smaller than the original jelly.",
-      effects: [
-        {
-          id: S.reactionId(1864, 1),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.REACTION,
-              amount: 1
-            },
-            range: {
-              id: S.reactionId(1864, 2),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.reactionId(1864, 3),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.reactionId(1864, 3) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.reactionId(1864, 3),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: 'OOZE_SPLIT' as const
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
       order: 4
     }
   ]

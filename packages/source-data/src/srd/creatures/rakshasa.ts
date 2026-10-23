@@ -47,18 +47,6 @@ export const rakshasa: CreatureAuthored = {
       label: 'Limited Magic Immunity',
       description:
         "Limited Magic Immunity. The rakshasa can't be affected or detected by spells of 6th level or lower unless it wishes to be. It has advantage on saving throws against all other spells and magical effects.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(230, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(230, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_RAKSHASA_LIMITED_MAGIC_IMMUNITY
-        })
-      ],
       order: 1
     },
     {

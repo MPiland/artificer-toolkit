@@ -1929,13 +1929,13 @@ The facet predicate `SOURCE_CREATURE_TYPE` (selectable `creatureTypeIds`, System
 
 ### Ending held effects by authored selection: `END_EFFECTS` (current, SPELLS-4.T2f, D174)
 
-`END_EFFECTS` is a generic authored outcome (`effectKind: 'END_EFFECTS'`, node-map fields `endEffectsScope`, `endEffectsSelectors` and `endEffectsOriginCreatureTypeIds`; the DTO is `endEffects: { scope: 'ALL' | 'ONE_CHOSEN', selectors, originCreatureTypeIds? }`, one to four selectors, a held effect matching any). It ends the **target's own** held effects a selector matches: `CONDITION { conditionIds }` matches an effect that owns one of the conditions; `SPELL_LEVEL { limit: 'SLOT_LEVEL' | 'FIXED', level? }` (SPELLS-4.T2f1a, D182) matches an effect whose stored `originLevel` is at or below the cast's slot level, or the fixed `level`. `originLevel` is stamped on the active-effect definition from the slot a spell was cast at (`spellCastLevel`, 0 for a cantrip) and is null for an effect from no spell cast; a null never matches, and `SLOT_LEVEL` matches nothing when the action is not a spell cast. An outcome's `originCreatureTypeIds` further restricts every selector to effects whose origin creature is of one of those types. A spell-level selector with `scope: 'ALL'` ends every match automatically, with no roll; the ability check Dispel Magic adds for higher-level effects is T2f1b. Lesser Restoration, Greater Restoration (charmed and petrified), and Protection from Poison (poisoned) are authored from it; their closed rule kinds are deleted. The outcome compiles to the target-only `dnd5e.end-effects-proposal` operation and, like `CANCEL_TRIGGERING_EVENT`, stores nothing: the commit does the work.
+`END_EFFECTS` is a generic authored outcome (`effectKind: 'END_EFFECTS'`, node-map fields `endEffectsScope`, `endEffectsSelectors` and `endEffectsOriginCreatureTypeIds`; the DTO is `endEffects: { scope: 'ALL' | 'ONE_CHOSEN', selectors, originCreatureTypeIds? }`, one to four selectors, a held effect matching any). It ends the **target's own** held effects a selector matches: `CONDITION { conditionIds }` matches an effect that owns one of the conditions; `SPELL_LEVEL { limit: 'SLOT_LEVEL' | 'FIXED', level? }` (SPELLS-4.T2f1a, D182) matches an effect whose stored `originLevel` is at or below the cast's slot level, or the fixed `level`. `originLevel` is stamped on the active-effect definition from the slot a spell was cast at (`spellCastLevel`, 0 for a cantrip) and is null for an effect from no spell cast; a null never matches, and `SLOT_LEVEL` matches nothing when the action is not a spell cast. An outcome's `originCreatureTypeIds` further restricts every selector to effects whose origin creature is of one of those types. A spell-level selector with `scope: 'ALL'` ends every match automatically, with no roll; `levelCheck` (SPELLS-4.T2f1b2) adds the ability check Dispel Magic owes for higher-level effects (see "Spell candidate checks"). Lesser Restoration, Greater Restoration (charmed and petrified), and Protection from Poison (poisoned) are authored from it; their closed rule kinds are deleted. The outcome compiles to the target-only `dnd5e.end-effects-proposal` operation and, like `CANCEL_TRIGGERING_EVENT`, stores nothing: the commit does the work.
 
 - **Facts:** `characterActionRuleFacts.ts` carries the authored `endEffects` on the `EFFECT` mechanic fact. The compiler, the character-action facts and the resolved mechanics all use one `actionEffectFactSchema`, so a new field on an EFFECT fact cannot drift between them.
 - **Legal list and pick (server-derived):** `offerEndEffects` (`encounterEndedEffectRelease.ts`) lists the target's held effects the selectors match (`endEffectsCandidates`). `ONE_CHOSEN` resolves through `endEffectsChoice`: a sole match is auto-picked, a cast naming one of several carries it as `command.target.chosenEffectId` (an `ACTOR` target field), several with no legal pick are refused `TARGET_UNAVAILABLE`, and none raises the overridable warning `TARGET_NOTHING_TO_END` (D173; acknowledged like any other, the Action is then spent and nothing ends). There is no pause kind. The worker wiring is `apps/session-worker/src/nativeEndEffects.ts` (`planEndEffects`, `committedEndEffects`).
 - **Commit:** `selectedEndedEffects` returns the ended effects plus the condition releases. Linked dependents (D172 `withLinkedDependents`) end with their effect, and a condition leaves only when the ended effects were its sole owner (`endedEffectReleases`), all in the one transaction and receipt; undo restores both. The System reads its own outcome back through `ExecutionOutcomeCapabilityAdapter.endsEffects`, so the commit stays system-neutral.
 - **Origin selector (SPELLS-4.T2j2a):** `originCreatureTypeIds` narrows the candidates to effects whose origin creature (`definition.origin.sourceActorId`, kind `ENCOUNTER`) is one of the listed creature types; `actorCreatureTypeIdsOf` resolves the types from the encounter's actors and `planEndEffects` carries them to the commit. Proof: `endEffectsAuthoringParity.test.ts` and `encounterEndedEffectRelease.test.ts`.
-- **Not covered:** a condition held without an owning effect is not ended (`CONDITION_REMOVE.sourceActiveEffectId` is required). Tag selectors (curses, ability and hit-point-maximum reductions) and Dispel Magic (T2f1, T2f2) are separate slices; Greater Restoration's exhaustion and attunement clauses and Protection from Poison's grant clauses stay `MANUAL_ADJUDICATION` rulings in a SEQUENTIAL ruling sequence (one executable outcome plus rulings).
+- **Not covered:** a condition held without an owning effect is not ended (`CONDITION_REMOVE.sourceActiveEffectId` is required). Tag selectors (curses, ability and hit-point-maximum reductions) are a separate slice (T2f2); Dispel Magic ships with `levelCheck`; Greater Restoration's exhaustion and attunement clauses and Protection from Poison's grant clauses stay `MANUAL_ADJUDICATION` rulings in a SEQUENTIAL ruling sequence (one executable outcome plus rulings).
 - **Proofs:** `endEffectsAuthoringParity.test.ts` (the SRD Lesser Restoration and a homebrew variant compile to the same plan shape), `encounterEndedEffectRelease.test.ts` (selection, pick, links), `effect-node-maps.test.ts`, and the room journey `apps/session-worker/test/nativeRoomEndEffectsSpell.test.ts`.
 
 ### Granted-action offers (current, SPELLS-4.T2lb, D160)
@@ -2599,7 +2599,19 @@ deleted in the roll's transaction, and the occurrence stays pending with the nex
 that ended before its turn is skipped with no roll (the Worker's `planCandidateStep` chooses `nextCursor`). The cast's
 `RULE_OCCURRENCE` root holds an optional `checkOccurrenceId` so response admission and undo find the check occurrence
 (`storedCheckOccurrenceId`); undo refuses a `SUCCESS` that ended an effect and a pending or void check is answered by
-the roller, never voided silently (`occurrenceVoid`). The cast-time planner that pends this check is SPELLS-4.T2f1b2.
+the roller, never voided silently (`occurrenceVoid`).
+
+**Cast-time pend (SPELLS-4.T2f1b2).** `planEndEffects` returns the ordered `offer.checks` (effects above the slot, by level then
+creation) and the Worker's `planEndEffectsChecks` freezes the caster's d20 for the first entry's DC (`levelCheck`: ability and
+`baseDc`; the DC is `baseDc` plus the effect's `originLevel`) and builds the `CHECK` snapshot under the cast's own command id.
+The commit input carries it as `spellCheck`; `insertSpellCastCheck` validates it against the cast (command, actor, cursor 0, first
+DC, source `SPELL_CAST` naming the cast occurrence, no Concentration pend in the same commit) and inserts the PENDING check
+occurrence, and the cast's result shows the pending d20. Each candidate's roll card id carries its cursor so the shared
+occurrence can card more than one roll. Dispel Magic is authored from this (`END_EFFECTS` `scope: 'ALL'`, a `SLOT_LEVEL`
+selector, `levelCheck`); its closed rule kind is deleted. Limitation: the frozen d20 needs the caster's Character facts, so a
+monster caster cannot yet roll the check. Proofs: `encounterEndedEffectRelease.test.ts`, `endEffectsAuthoringParity.test.ts`,
+`coreOptionSpells.test.ts`, and the room journey `apps/session-worker/test/nativeRoomDispelMagic.test.ts` (same-commit end,
+skip of an ended candidate, replay, undo, void refusal).
 
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no
@@ -2621,6 +2633,13 @@ vocabulary: Character record stats pass `registry.system.speeds`, and `encounter
 `speedDefinitions` (the worker's `INPUTS` capture, persistence's `requireSystem`). Publication owns the refusal, so a
 malformed or out-of-vocabulary speed at read is an invariant failure. Displayed lengths round through the shared
 `roundLengthForDisplay` (three decimals); stored and computed amounts never do.
+
+**Speed equal to another speed (SPELLS-4.T2o).** A `SPEED` `SET_VALUE` payload is either a typed length or `{ equalsSpeedId }`
+(`speedEqualsPayloadSchema`): the granted speed takes the length of the holder's other speed, in that speed's own unit
+(Spider Climb's climbing speed, Alter Self's swimming speed). `widestLengthByKey` resolves it through a `speedLength`
+callback: the Character policy passes the holder's base (or override) speed and `withActiveGrantSpeeds` the holder's
+typed speeds. It names the _base_ speed, so a bonus to the named speed or a replacement of it does not carry over; a
+holder that lacks the named speed gets nothing. Bonus, penalty and fraction payloads stay lengths and fractions.
 
 The Sheet `MOVEMENT` `SPEED_OVERRIDE` adjustment is the same typed length, like the sense `RANGE_OVERRIDE`.
 `buildCharacterMovementRuleFacts` hands the policy each speed as `base` (a length, or `null` when the Character holds

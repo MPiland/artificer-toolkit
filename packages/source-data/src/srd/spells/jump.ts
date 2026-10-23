@@ -68,8 +68,11 @@ export const jump: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.JUMP, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'JUMP' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Triple Jump Distance',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  "The GM triples the target's jump distance for the duration; the engine has no jump or elevation model."
               }
             ]
           }

@@ -294,45 +294,6 @@ export const blackPudding: CreatureAuthored = {
       label: 'Split',
       description:
         "Split. When a pudding that is Medium or larger is subjected to lightning or slashing damage, it splits into two new puddings if it has at least 10 hit points. Each new pudding has hit points equal to half the original pudding's, rounded down. New puddings are one size smaller than the original pudding.",
-      effects: [
-        {
-          id: S.reactionId(5665, 1),
-          order: 1,
-          invocation: {
-            kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
-            activation: {
-              code: S.ACTIVATION_CODE.REACTION,
-              amount: 1
-            },
-            range: {
-              id: S.reactionId(5665, 2),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
-          },
-          paths: [
-            {
-              id: S.reactionId(5665, 3),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.reactionId(5665, 3) + '__result',
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: S.reactionId(5665, 3),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.OOZE_SPLIT
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
       order: 5
     }
   ]

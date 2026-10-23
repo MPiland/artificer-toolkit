@@ -30,6 +30,11 @@ export const authoredLengthAmountSchema = lazySchema(() =>
 export const authoredLengthSchema = lazySchema(() =>
   z.strictObject({ amount: authoredLengthAmountSchema, unit: lengthUnitCodeSchema })
 )
+/** "Your speed is equal to your `equalsSpeedId` speed": the length of another of the holder's speeds. */
+export const speedEqualsPayloadSchema = lazySchema(() =>
+  z.strictObject({ equalsSpeedId: authoredIdentifierSchema })
+)
+
 /** A fraction a value is multiplied by, such as 1/2 for "halved" or 0/1 for "reduced to nothing". */
 export const authoredFractionSchema = lazySchema(() =>
   z.strictObject({

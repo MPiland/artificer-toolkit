@@ -15,7 +15,7 @@ import {
 } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { lengthUnitCodeSchema } from '../shared/enums.js'
-import { reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
+import { higherLevelCheckDtoSchema, reactionTriggerBindingDtoSchema } from '../shared/reaction.js'
 import { facetDtoSchema } from '../shared/facet.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
@@ -264,7 +264,8 @@ const actionEffectFactSchema = lazySchema(() =>
           .check(z.maxLength(4)),
         originCreatureTypeIds: z.optional(
           z.array(identitySchema).check(z.minLength(1)).check(z.maxLength(100))
-        )
+        ),
+        levelCheck: z.optional(higherLevelCheckDtoSchema)
       })
     ),
     label: z.nullable(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)))

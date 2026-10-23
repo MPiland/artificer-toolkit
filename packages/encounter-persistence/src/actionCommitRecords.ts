@@ -108,6 +108,8 @@ export async function recordActionRoot(
     /** Validated by the receipt metadata schema; a single-target result may not carry one. */
     factsChecksum: string | undefined
     result: EncounterCommandResultDto
+    /** The spell cast's own pending ability-check occurrence (D182), when it pended one. */
+    checkOccurrenceId?: string
     commandFields: Pick<
       Extract<z.infer<typeof encounterStoredRunCommandSchema>, { commandType: 'RESOLVE_ACTION' }>,
       | 'label'
@@ -185,7 +187,8 @@ export async function recordActionRoot(
         kind: 'RULE_OCCURRENCE',
         ruleOccurrenceId: execution.occurrenceId,
         ruleResultChecksum,
-        optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum
+        optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+        ...(input.checkOccurrenceId ? { checkOccurrenceId: input.checkOccurrenceId } : {})
       },
       ...input.commandFields,
       commandFingerprint: input.fingerprint,

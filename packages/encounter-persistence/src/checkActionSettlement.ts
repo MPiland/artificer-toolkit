@@ -4,7 +4,10 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { settledCheckD20MatchesFrozen } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { basicActionCheckRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
+import {
+  basicActionCheckRollRecord,
+  ruleCheckRollId
+} from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
 import type { EncounterWriteTransaction } from './ports.js'
@@ -100,6 +103,8 @@ export async function settleEncounterCheckAction(
     const system = await ctx.ports.requireSystem(state.gameSystemId)
     const roll = basicActionCheckRollRecord({
       occurrenceId: execution.occurrenceId,
+      // A spell cast's candidates share one occurrence, so each roll's card is its candidate's.
+      rollId: ruleCheckRollId(execution.occurrenceId, context.candidates?.cursor ?? 0),
       d20: output.d20,
       actionLabel: context.actionLabel,
       checkLabel: context.check.label,

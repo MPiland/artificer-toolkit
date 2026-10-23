@@ -121,6 +121,14 @@ export const sourceEffectIdsFilterDtoSchema = lazySchema(() =>
   z.array(postgresUuidSchema).check(z.maxLength(AUTHORED_LIMITS.nestedCollectionItems))
 )
 
+/** The ability check a higher-level spell owes (Counterspell, Dispel Magic): the DC is `baseDc` plus the spell's level. */
+export const higherLevelCheckDtoSchema = lazySchema(() =>
+  z.strictObject({
+    ability: abilityModifierReferenceSchema,
+    baseDc: z.number().check(z.int()).check(z.nonnegative())
+  })
+)
+
 /** An authored reaction can bind to any supported factual event; each arm is one event kind. */
 export const reactionTriggerBindingDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
@@ -134,12 +142,7 @@ export const reactionTriggerBindingDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('SPELL_CAST'),
-      higherLevelCheck: z.optional(
-        z.strictObject({
-          ability: abilityModifierReferenceSchema,
-          baseDc: z.number().check(z.int()).check(z.nonnegative())
-        })
-      )
+      higherLevelCheck: z.optional(higherLevelCheckDtoSchema)
     }),
     z.strictObject({
       kind: z.literal('DAMAGE_TAKEN'),

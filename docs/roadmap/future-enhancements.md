@@ -99,6 +99,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **A live lock lost in a reclaim race (PLATFORM-13.T19):** in `Enter-ValidationLock`, if a waiter moves a lock aside, finds its owner alive, and cannot move it back because another waiter took the path meanwhile, it deletes the aside file. The live owner then runs without its lock file, so two batches can share a lane once. It needs two waiters and a live owner inside the same few milliseconds.
 - **A cure does not end a condition's effect early (D172, SPELLS-33.T4i3e):** a cure or a GM edit that removes a condition does not end the active effect that applied it, so the effect's linked dependents keep running, for example a Giant Centipede's paralysis after its poison is cured. The GM ends them by hand. Effects that expire or end on their own triggers already end their dependents.
 - **Greater Restoration does not end attunement (D174, SPELLS-4.T2f):** the clause that ends one creature's attunement to a cursed magic item is description only, because Encounters do not track attunement. The GM ends it by hand. It is rare.
+- **A monster caster cannot roll Dispel Magic's ability check (SPELLS-4.T2f1b2):** the check against an effect above the slot level freezes its d20 from Character facts, so a creature casting Dispel Magic is refused when a higher-level effect needs the check; lower-level effects still end. The GM rolls and ends the effect by hand. Monster casters dispelling above their slot level is rare.
 
 - **Haste's lethargy timing (SPELLS-4.T2l-a):** the follow-on grant lasts one end of the holder's turn. A Haste that ends during its holder's own turn (Concentration dropped mid-turn) lets the lethargy end at the end of that same turn, instead of the holder's next. The rules text is "until after its next turn"; it is rare, and the GM can end the lethargy by hand. Related, latent: a follow-on created during the outgoing boundary's turn effects could tick once before `persistEncounterGrantTicks`; `documents.ts` deletes a form-holding effect row directly, bypassing the `onEnd` seam; only the first `MODIFIER_GRANT` contribution's `onEnd` is read. No SRD effect triggers any of these today.
 
@@ -545,7 +546,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Dispel acting on a placed zone.**
 - **Maze escape as a spell-held effect.**
 - **Holy Aura blinding attackers who hit the holder:** retaliation for multi-target holders.
-- **Speed equal to another speed, jumping and elevation:** Fly-style speeds, Dragon Wings, Second-Story Work, Step of the Wind.
+- **Jumping and elevation (3D movement):** the engine has no vertical position, so Jump, Levitate and Reverse Gravity ship as GM rulings (SPELLS-4.T2o, D187a), and Second-Story Work and Step of the Wind wait on it. The speed-equal-to-another-speed value source shipped in SPELLS-4.T2o.
 - **Damage MULTIPLY:** Ray of Enfeeblement.
 - **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
 - **Indefinite non-Concentration lifetimes:** Feeblemind.
@@ -553,7 +554,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Containment:** swallow and engulf (Purple Worm, Tarrasque, Gelatinous Cube).
 - **Auto-hit and reel tails:** Marilith, Roper.
 - **Creature forms beyond Wild Shape:** Change Shape, lycanthrope and vampire shapes, Misty Escape.
-- **Extra reactions and reaction denial; terrain and underwater predicates; deferred Death Throes; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts.**
+- **Extra reactions and reaction denial; terrain and underwater predicates; deferred Death Throes; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts (Hydra heads, Roper tendrils) and damage-triggered splitting (Black Pudding, Ochre Jelly).**
 - **Rare class senses and riders:** Blindsense, Feral Senses, Witch Sight, Retaliation, and the One with Shadows light gate.
 
 ## Other future enhancements (parked)

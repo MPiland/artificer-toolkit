@@ -4,15 +4,32 @@ import {
   isEncounterBasicActionId
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
+  actionEndedEffects,
   actionUsedOnHolderEndedEffects,
+  actsAgainstEnemy,
   actorCreatureTypeIdsOf,
   offerEndEffects,
   selectedEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
-import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
+import {
+  preparedCastsSpell,
+  preparedSpellCastLevel
+} from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import type { CommittedExecutionTrace } from '@artificer-toolkit/rules-runtime/executionOutcomeCapability'
+import {
+  encounterBasicActionCheckPendingSnapshot,
+  startEncounterBasicActionCheck
+} from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { prepareEncounterCastReactionCheck } from '@artificer-toolkit/rules-runtime/encounterCastReactionCheck'
+import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
+import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
+import { encounterCheckActionContextDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCheckAction'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
@@ -51,7 +68,9 @@ export function planEndEffects(
       message: 'Choose which effect on the target this ends.'
     })
   const warnings: EncounterRuleWarningDto[] =
-    endEffects && offer.candidates.length === 0 ? [TARGET_NOTHING_TO_END_WARNING] : []
+    endEffects && offer.candidates.length === 0 && offer.checks.length === 0
+      ? [TARGET_NOTHING_TO_END_WARNING]
+      : []
   return { endEffects, offer, actorCreatureTypeIds, warnings }
 }
 
@@ -92,4 +111,101 @@ export function endedByAction(
         chosenEffectId: offer.pick?.kind === 'CHOSEN' ? offer.pick.effectId : undefined
       })
     : null
+}
+
+/**
+ * A reaction that casts a spell (Shield) ends the reactor's own cast-ended effects too, with the
+ * reactor's one batch: the hit target's, since the reaction answers an attack on its caster.
+ */
+export function reactionCastEnded(
+  reactionUse: {
+    prepared: Parameters<typeof preparedCastsSpell>[0] & {
+      actor: { id: string }
+      target: { id: string }
+    }
+  } | null,
+  activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>,
+  consumedGrants: readonly { id: string }[],
+  dispositions: Parameters<typeof actsAgainstEnemy>[0]['dispositions']
+) {
+  if (!reactionUse || !preparedCastsSpell(reactionUse.prepared)) return null
+  const { actor, target } = reactionUse.prepared
+  return actionEndedEffects({
+    holderActorId: actor.id,
+    held: (activeEffectsByActorId.get(actor.id) ?? []).filter(
+      (effect) => !consumedGrants.some((ended) => ended.id === effect.id)
+    ),
+    makesAttackRoll: false,
+    castsSpell: true,
+    againstEnemy: actsAgainstEnemy({
+      actorId: actor.id,
+      targetActorIds: [target.id],
+      dispositions
+    })
+  })
+}
+
+/**
+ * The pending ability check a cast owes for the higher-level effects it may end (D182): the caster's
+ * frozen d20 against the first candidate's DC, rolled under the cast's own command. Null when the cast
+ * ends nothing by checks. The room persists it with the cast; each answer settles one candidate.
+ */
+export async function planEndEffectsChecks(input: {
+  plan: ReturnType<typeof planEndEffects>
+  executionOptions: { runtime: RulesRuntimeService }
+  system: SystemAuthoredDto
+  state: { gameSystemId: string; optionalCombatSnapshotChecksum: string | null }
+  movementTargets: ReadonlyMap<string, MovementTarget>
+  prepared: {
+    actor: { id: string }
+    target: { id: string }
+    source: Parameters<typeof encounterActionSourceLabel>[0]
+  }
+  castOccurrenceId: string
+  command: ResolveEncounterActionInputDto
+  fingerprint: string
+}) {
+  const { plan, prepared } = input
+  const entries = plan.offer.checks
+  const [first] = entries
+  const caster = input.movementTargets.get(prepared.actor.id)
+  if (!plan.endEffects?.levelCheck || !first || !caster) return null
+  const { checkDefinitionId, d20 } = prepareEncounterCastReactionCheck({
+    requirement: { ability: plan.endEffects.levelCheck.ability, dc: first.dc },
+    gameSystemId: input.state.gameSystemId,
+    system: input.system,
+    reactor: caster
+  })
+  const context = encounterCheckActionContextDtoSchema.parse({
+    kind: 'ENCOUNTER_CHECK_ACTION',
+    schemaVersion: 1,
+    commandId: input.command.commandId,
+    commandFingerprint: input.fingerprint,
+    source: { kind: 'SPELL_CAST', castOccurrenceId: input.castOccurrenceId },
+    actionLabel: encounterActionSourceLabel(prepared.source),
+    actorId: prepared.actor.id,
+    targetActorId: prepared.target.id,
+    check: {
+      checkDefinitionId,
+      dc: first.dc,
+      label: encounterBasicActionCheckLabel(input.system, checkDefinitionId)
+    },
+    d20,
+    consumedGrants: [],
+    candidates: { entries, cursor: 0 }
+  })
+  return encounterBasicActionCheckPendingSnapshot({
+    continuation: await startEncounterBasicActionCheck({
+      runtime: input.executionOptions.runtime,
+      gameSystemId: input.state.gameSystemId,
+      occurrenceId: crypto.randomUUID(),
+      addedDice: d20.addedDice
+    }),
+    context: {
+      ...context,
+      commandJson: JSON.stringify(input.command),
+      phase: { kind: 'CHECK' }
+    },
+    optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum
+  })
 }

@@ -24,16 +24,22 @@ export function seedModifierGrant(input: {
   spellCastLevel?: number
   /** The maintained (Concentration) state the effect depends on, held by `sourceActorId`. */
   maintainedEffectStateId?: string
+  /** The effect's own id, for another effect to link to. */
+  id?: string
+  /** The effect this one depends on: it ends with it. */
+  linkedEffectId?: string
 }): NonNullable<MovementRoomConfig['seed']> {
   return async ({ effects, encounterId, occurredAt }) => {
-    const { ownedConditionId, endsOnCast, maintainedEffectStateId, ...grant } = input
+    const { ownedConditionId, endsOnCast, maintainedEffectStateId, id, linkedEffectId, ...grant } =
+      input
     const planned = plannedModifierGrant({ encounterId, ...grant })
     const { definition } = planned
     await effects.create({
-      id: crypto.randomUUID(),
+      id: id ?? crypto.randomUUID(),
       owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: input.holderActorId },
       definition: {
         ...definition,
+        ...(linkedEffectId && { linkedEffectId }),
         recurrence: endsOnCast
           ? {
               ...definition.recurrence,

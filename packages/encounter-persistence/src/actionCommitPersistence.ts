@@ -38,6 +38,8 @@ import { persistEncounterMeleeRetaliation } from './meleeRetaliationPersistence.
 import { listActiveRuleEffects } from './effectStore.js'
 import { projectNativeGm } from './nativeProjection.js'
 import { recordTurnSpeedBonus, recordTurnTeleportAllowance, spendTurnUses } from './turnMovement.js'
+import { insertSpellCastCheck } from './spellCastCheckPersistence.js'
+import { projectNativeBasicActionCheckPending } from './basicActionCheckPending.js'
 import { presentEncounterResultForMember } from './resultPresentation.js'
 import {
   readMaintenanceOwnerRequests,
@@ -478,6 +480,15 @@ export async function persistEncounterActionCommit(
     resume,
     occurredAt: input.occurredAt
   })
+  const spellCheck = input.spellCheck
+    ? await insertSpellCastCheck(ctx, {
+        snapshot: input.spellCheck,
+        input,
+        nextState,
+        executionOccurrenceId: execution.occurrenceId,
+        sourceActorId: source.id
+      })
+    : null
   nextActors = await callbacks.persistActionChildren({
     input,
     state: nextState,
@@ -544,12 +555,19 @@ export async function persistEncounterActionCommit(
   const result = encounterCommandResultDtoSchema.parse({
     projection,
     roll: null,
-    occurrence: {
-      occurrenceId: execution.occurrenceId,
-      occurrenceVersion,
-      status: 'COMPLETE',
-      pending: null
-    }
+    occurrence: spellCheck
+      ? {
+          occurrenceId: spellCheck.occurrence.id,
+          occurrenceVersion: 0,
+          status: 'PENDING',
+          pending: projectNativeBasicActionCheckPending(spellCheck.occurrence, spellCheck.snapshot)
+        }
+      : {
+          occurrenceId: execution.occurrenceId,
+          occurrenceVersion,
+          status: 'COMPLETE',
+          pending: null
+        }
   })
   // A Dash adds the actor's speed to this turn's movement; the stored execution proves it resolved.
   const outcomes = executionOutcomeCapabilityRegistry.require(state.gameSystemId)
@@ -583,6 +601,7 @@ export async function persistEncounterActionCommit(
     definitionId: input.initialDefinitionId,
     factsChecksum: execution.initialFactsChecksum,
     result,
+    checkOccurrenceId: spellCheck?.occurrence.id,
     commandFields: {
       label: input.label,
       ruleOverrides: input.ruleOverrides,
