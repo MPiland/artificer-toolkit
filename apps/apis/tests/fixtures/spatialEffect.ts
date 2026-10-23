@@ -83,6 +83,7 @@ export async function seedSpatialEffect(
     const definition = activeRuleEffectDefinitionDtoSchema.parse({
       schemaVersion: 2,
       linkedEffectId: null,
+      originLevel: null,
       stateContributions: [],
       origin: {
         kind: 'ENCOUNTER',

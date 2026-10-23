@@ -19,6 +19,7 @@ function reductionDefinition(
   return {
     schemaVersion: 2,
     linkedEffectId: null,
+    originLevel: null,
     origin: {
       kind: 'CHARACTER',
       sourceAggregateId: characterId,

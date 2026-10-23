@@ -1109,6 +1109,7 @@ describe('rules runtime contracts', () => {
       definition: {
         schemaVersion: 2,
         linkedEffectId: null,
+        originLevel: null,
         stateContributions: [],
         origin: {
           kind: 'CHARACTER',

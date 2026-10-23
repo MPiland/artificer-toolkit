@@ -421,7 +421,11 @@ export function normalizeCharacterActionMechanicFacts(
         ? {
             endEffects: {
               scope: outcome.scope,
-              conditionIds: [...outcome.conditionIds],
+              selectors: outcome.selectors.map((selector) =>
+                selector.kind === 'CONDITION'
+                  ? { ...selector, conditionIds: [...selector.conditionIds] }
+                  : { ...selector }
+              ),
               ...(outcome.originCreatureTypeIds?.length
                 ? { originCreatureTypeIds: [...outcome.originCreatureTypeIds] }
                 : {})

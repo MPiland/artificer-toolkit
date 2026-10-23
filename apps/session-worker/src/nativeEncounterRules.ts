@@ -736,13 +736,7 @@ export async function planNativeLiveEncounterAction(
       ? prepared.source.candidate.mechanicFacts
       : prepared.source.capability.mechanicFacts
   const heldOnTarget = activeEffectsByActorId.get(prepared.target.id) ?? []
-  const endPlan = planEndEffects(
-    state.gameSystemId,
-    mechanicFacts.outcomes,
-    heldOnTarget,
-    command.target,
-    prepared.actors
-  )
+  const endPlan = planEndEffects(mechanicFacts.outcomes, heldOnTarget, command.target, prepared)
   const fleeWarnings = encounterFleeActionWarnings({
     sourceActorIds: encounterConditionFleeSources(actorTarget),
     activationCode,

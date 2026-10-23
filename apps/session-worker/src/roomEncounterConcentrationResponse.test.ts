@@ -292,6 +292,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
     definition: activeRuleEffectDefinitionDtoSchema.parse({
       schemaVersion: 2,
       linkedEffectId: null,
+      originLevel: null,
       stateContributions: [],
       origin: {
         kind: 'ENCOUNTER',

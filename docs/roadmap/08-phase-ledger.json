@@ -10098,7 +10098,7 @@
             },
             {
               "id": "SPELLS-4.T2f1a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10107,8 +10107,10 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2f", "RULES-2.T6e3b2"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "text": "Spell level on stored effects (D182): stored originLevel, the SPELL_LEVEL END_EFFECTS selector and the levelCheck shape; candidates at or below the cast level end automatically with no roll. Parity proof and room journey (Dispel-style END_EFFECTS SPELL_LEVEL with no check)."
+              "text": "Spell level on stored effects (D182): stored originLevel, the SPELL_LEVEL END_EFFECTS selector and the levelCheck shape; candidates at or below the cast level end automatically with no roll. Parity proof and room journey (Dispel-style END_EFFECTS SPELL_LEVEL with no check).",
+              "mergedAt": "2026-10-23T05:10:37Z",
+              "proof": "Tests and Live green on tip c70c74b7; endEffectsAuthoringParity and encounterEndedEffectRelease cover END_EFFECTS by cast level with the origin creature-type filter ANDed; nativeRoomEndEffectsSpell covers the Worker path",
+              "note": " Merged in m369."
             },
             {
               "id": "SPELLS-4.T2f1b",
@@ -10489,7 +10491,7 @@
             },
             {
               "id": "SPELLS-4.T2lb2b1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10499,8 +10501,9 @@
                 "after": ["SPELLS-4.T2lb2a"]
               },
               "text": "Eyebite per-turn retarget and Break Enchantment ship as description (GM ruling) per D187a; delete their closed-rule kinds. FRESH-target repeat goes to future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m368.",
+              "mergedAt": "2026-10-23T04:54:28Z",
+              "proof": "Tests and Live green on tip ec39f06d; merged with batch m368"
             },
             {
               "id": "SPELLS-4.T2lb2c",
@@ -10751,7 +10754,7 @@
             },
             {
               "id": "SPELLS-4.T2n4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10761,7 +10764,9 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "Damage mirror (D181): damage the holder actually took is mirrored to the source (never mirrored again), a within-distance-of-source grant restriction, and a lifecycle end on separation or the source at 0 hit points. Converts WARDING_BOND (AC and save bonus, resistance; recast end description-only), with parity and room journey proofs; kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-23T04:54:28Z",
+              "proof": "Tests and Live green on tip f0f818e8; merged with batch m368",
+              "note": " Merged in m368."
             },
             {
               "status": "TODO",

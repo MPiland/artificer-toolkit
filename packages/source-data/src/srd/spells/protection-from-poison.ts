@@ -61,7 +61,9 @@ export const protectionFromPoison: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.PROTECTION_FROM_POISON, 0x212, 1),
                 effectKind: EFFECT_KIND.END_EFFECTS,
                 scope: 'ONE_CHOSEN' as const,
-                conditionIds: [conditionTypeId('POISONED')]
+                selectors: [
+                  { kind: 'CONDITION' as const, conditionIds: [conditionTypeId('POISONED')] }
+                ]
               },
               {
                 id: spellChildId(SPELL_IDS.PROTECTION_FROM_POISON, 0x214, 1),

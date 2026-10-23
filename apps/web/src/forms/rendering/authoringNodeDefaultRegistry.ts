@@ -165,6 +165,7 @@ type AuthoringDefaultKind =
   | 'targeting'
   | 'damageDieCastLevelScaling'
   | 'damageLevelScalingEntry'
+  | 'endEffectsSelector'
   | 'weight'
 
 const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly string[]>> = {
@@ -347,6 +348,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   targeting: ['targeting'],
   damageDieCastLevelScaling: ['damageDieCastLevelScaling'],
   damageLevelScalingEntry: ['damageLevelScalingEntry'],
+  endEffectsSelector: ['endEffectsSelector'],
   weight: ['weight']
 }
 

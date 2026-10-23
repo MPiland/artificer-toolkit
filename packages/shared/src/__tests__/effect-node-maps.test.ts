@@ -100,11 +100,11 @@ describe('effect node maps', () => {
     const outcomeMap =
       typeof outcomesNode.nodes === 'function' ? outcomesNode.nodes() : outcomesNode.nodes
     const scope = outcomeMap.nodes.endEffectsScope
-    const conditionIds = outcomeMap.nodes.endEffectsConditionIds
-    if (!scope?.showIf || !conditionIds?.showIf)
+    const selectors = outcomeMap.nodes.endEffectsSelectors
+    if (!scope?.showIf || !selectors?.showIf)
       throw new Error('Expected both end-effects fields to be conditional')
 
-    for (const { showIf } of [scope, conditionIds]) {
+    for (const { showIf } of [scope, selectors]) {
       expect(evaluateConditionIf(showIf, { values: { effectKind: EFFECT_KIND.END_EFFECTS } })).toBe(
         true
       )

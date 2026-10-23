@@ -260,6 +260,7 @@ describe('native action economy', () => {
         definition: {
           schemaVersion: 2,
           linkedEffectId: null,
+          originLevel: null,
           origin: {
             kind: 'ENCOUNTER',
             sourceAggregateId: base.run.id,

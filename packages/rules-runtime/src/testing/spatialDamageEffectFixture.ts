@@ -193,6 +193,7 @@ export async function buildSpatialDamageEffect(input: {
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
     linkedEffectId: null,
+    originLevel: null,
     stateContributions: [],
     origin: {
       kind: 'ENCOUNTER',

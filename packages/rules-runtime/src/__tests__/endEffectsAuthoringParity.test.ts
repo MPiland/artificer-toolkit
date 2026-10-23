@@ -50,7 +50,12 @@ describe('Lesser Restoration is authorable from core options (D174, SPELLS-4.T2f
       expect.objectContaining({
         effectKind: 'END_EFFECTS',
         scope: 'ONE_CHOSEN',
-        conditionIds: ['BLINDED', 'DEAFENED', 'PARALYZED', 'POISONED'].map(conditionId)
+        selectors: [
+          {
+            kind: 'CONDITION',
+            conditionIds: ['BLINDED', 'DEAFENED', 'PARALYZED', 'POISONED'].map(conditionId)
+          }
+        ]
       })
     ])
     expect(compiledPlan(srd)?.kind).toBe('SINGLE_GRAPH')
@@ -83,7 +88,7 @@ describe('Lesser Restoration is authorable from core options (D174, SPELLS-4.T2f
                 id: testUuid(0x2254),
                 effectKind: 'END_EFFECTS' as const,
                 scope: 'ALL' as const,
-                conditionIds: [conditionId('CHARMED')]
+                selectors: [{ kind: 'CONDITION' as const, conditionIds: [conditionId('CHARMED')] }]
               }
             ]
           }
@@ -99,7 +104,7 @@ describe('Lesser Restoration is authorable from core options (D174, SPELLS-4.T2f
     expect(Object.keys(authored.published)).toEqual(Object.keys(baseline.published))
   })
 
-  it('refuses an end-effects outcome that names no condition', () => {
+  it('refuses an end-effects outcome that names no selector', () => {
     const [outcome] = outcomeOf(srd)
     expect(
       featureEffectDtoSchema.safeParse({
@@ -109,12 +114,73 @@ describe('Lesser Restoration is authorable from core options (D174, SPELLS-4.T2f
             ...srd.paths[0],
             resultBlock: {
               ...(srd.paths[0]?.selectionKind === 'FIXED' ? srd.paths[0].resultBlock : {}),
-              outcomes: [{ ...outcome, conditionIds: [] }]
+              outcomes: [{ ...outcome, selectors: [] }]
             }
           }
         ]
       }).success
     ).toBe(false)
+  })
+})
+
+describe('a spell-level END_EFFECTS outcome is authorable from core options (D182, SPELLS-4.T2f1a)', () => {
+  const homebrew = (selector: {
+    kind: 'SPELL_LEVEL'
+    limit: 'SLOT_LEVEL' | 'FIXED'
+    level?: number
+  }) => ({
+    id: testUuid(0x2260),
+    order: 1,
+    invocation: {
+      kind: 'ACTION' as const,
+      triggerCode: 'ACTIVATED' as const,
+      activation: { code: 'ACTION' as const, amount: 1 },
+      range: { id: testUuid(0x2261), rangeKind: 'TOUCH' as const },
+      targeting: { selectionKind: 'SINGLE_TARGET' as const, dispositionKind: 'ANY' as const }
+    },
+    paths: [
+      {
+        id: testUuid(0x2262),
+        order: 1,
+        pathCode: 'ON_USE' as const,
+        groupType: 'SINGLE' as const,
+        originKind: 'SOURCE' as const,
+        selectionKind: 'FIXED' as const,
+        resultBlock: {
+          id: testUuid(0x2263),
+          resultKind: 'SINGLE' as const,
+          outcomes: [
+            {
+              id: testUuid(0x2264),
+              effectKind: 'END_EFFECTS' as const,
+              scope: 'ALL' as const,
+              selectors: [selector]
+            }
+          ]
+        }
+      }
+    ]
+  })
+
+  it('compiles a slot-level and a fixed-level selector, with no closed rule', () => {
+    for (const selector of [
+      { kind: 'SPELL_LEVEL', limit: 'SLOT_LEVEL' },
+      { kind: 'SPELL_LEVEL', limit: 'FIXED', level: 3 }
+    ] as const) {
+      const effect = homebrew(selector)
+      expect(featureEffectDtoSchema.safeParse(effect).success).toBe(true)
+      expect(JSON.stringify(effect)).not.toContain('CLOSED_RULE')
+      expect(compiledPlan(effect)?.kind).toBe('SINGLE_GRAPH')
+    }
+  })
+
+  it('refuses a fixed limit without a level, and a level without a fixed limit', () => {
+    for (const selector of [
+      { kind: 'SPELL_LEVEL', limit: 'FIXED' },
+      { kind: 'SPELL_LEVEL', limit: 'SLOT_LEVEL', level: 3 },
+      { kind: 'SPELL_LEVEL', limit: 'FIXED', level: 10 }
+    ] as const)
+      expect(featureEffectDtoSchema.safeParse(homebrew(selector)).success).toBe(false)
   })
 })
 

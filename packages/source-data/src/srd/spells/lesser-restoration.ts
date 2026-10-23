@@ -67,7 +67,14 @@ export const lesserRestoration: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.LESSER_RESTORATION, 0x212, 1),
                 effectKind: EFFECT_KIND.END_EFFECTS,
                 scope: 'ONE_CHOSEN' as const,
-                conditionIds: ['BLINDED', 'DEAFENED', 'PARALYZED', 'POISONED'].map(conditionTypeId)
+                selectors: [
+                  {
+                    kind: 'CONDITION' as const,
+                    conditionIds: ['BLINDED', 'DEAFENED', 'PARALYZED', 'POISONED'].map(
+                      conditionTypeId
+                    )
+                  }
+                ]
               }
             ]
           }

@@ -505,6 +505,7 @@ export function prepareRecurringActiveEffect(
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
     linkedEffectId: null,
+    originLevel: input.spellCastLevel ?? null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,
@@ -817,6 +818,7 @@ export function sourceImmunityEffect(input: {
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
     linkedEffectId: null,
+    originLevel: null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: origin.encounterId,
@@ -916,6 +918,7 @@ function prepareTargetStateEffect(
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
     linkedEffectId: null,
+    originLevel: null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,

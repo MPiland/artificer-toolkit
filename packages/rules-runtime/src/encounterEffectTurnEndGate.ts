@@ -23,6 +23,7 @@ export function turnEndGateChildEffect(
     definition: activeRuleEffectDefinitionDtoSchema.parse({
       schemaVersion: 2,
       linkedEffectId: gating.id,
+      originLevel: definition.originLevel,
       origin: definition.origin,
       authoredEffectId: definition.authoredEffectId,
       compiledEntryId: definition.compiledEntryId,
