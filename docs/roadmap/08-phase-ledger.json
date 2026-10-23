@@ -10879,7 +10879,7 @@
               "mergedAt": "2026-10-19T00:16:02Z"
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2u",
               "wsjf": {
@@ -10890,8 +10890,9 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B; T2a2 ruling): A save-gated grant with an indefinite (until dispelled) lifetime without Concentration, ABILITY_SCORE SET_VALUE that sets the score over bonuses for Characters and Creatures, and a casting lock that also holds for Creatures. Converts FEEBLEMIND, with a parity proof; the kind deleted.",
-              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m376.",
+              "mergedAt": "2026-10-23T13:56:53Z",
+              "proof": "Tests and Live green on tip 9deca7c1; Feeblemind compiles TEST_OUTCOME (golden): 4d6 psychic on both Int-save paths, GM_CHOICE MANUAL_ADJUDICATION for score-to-1, casting lock and 30-day lifetime on ON_SAVE_FAIL; manualBesideSpellAuthoringParity case; FEEBLEMIND kind deleted"
             },
             {
               "status": "TODO",
