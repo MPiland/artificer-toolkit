@@ -6,6 +6,7 @@ import {
   AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  DURATION_KIND,
   EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   GRANT_KIND,
@@ -25,7 +26,7 @@ import {
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
-import { SRD_LANGUAGES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_LANGUAGES, SRD_SPEEDS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { closedRuleEffect, equippedCategoryRestriction } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
@@ -42,6 +43,12 @@ function languageId(code: string): string {
 }
 
 const S = 10
+
+const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
+const flySpeedId = SRD_SPEEDS.find((speed) => speed.code === 'FLY')?.id
+if (!walkSpeedId || !flySpeedId) {
+  throw new Error('SRD walk and fly speed vocabulary entries required.')
+}
 
 const DRACONIC_SPECIALIZATIONS = [
   {
@@ -231,20 +238,31 @@ export const draconicBloodlineOrigin: ClassAuthored = {
               selectionKind: 'FIXED',
               resultBlock: {
                 id: classRowId(S, 24, 2),
-                resultKind: 'SEQUENCE',
+                resultKind: 'SINGLE',
+                // The armor and clothing limits stay with the description.
+                duration: {
+                  id: classRowId(S, 0x8b, 1),
+                  durationKind: DURATION_KIND.UNTIL_DISPELLED
+                },
                 outcomes: [
                   {
                     id: classRowId(S, 24, 3),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_DRACONIC_BLOODLINE_DRAGON_WINGS
-                  },
-                  {
-                    id: classRowId(S, 24, 4),
-                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                    label: 'Dragon Wings',
-                    reasonCode: 'EXTERNAL_WORLD_STATE',
-                    instructions:
-                      "You can't manifest your wings while wearing armor unless the armor is made to accommodate them, and clothing not made to accommodate your wings might be destroyed when you manifest them."
+                    effectKind: EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: classRowId(S, 0x8a, 1),
+                          grantKind: GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+                          domain: { speedId: flySpeedId },
+                          modifierKind: MODIFIER_KIND.SET_VALUE,
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { equalsSpeedId: walkSpeedId },
+                          order: 1
+                        }
+                      ]
+                    }
                   }
                 ]
               }

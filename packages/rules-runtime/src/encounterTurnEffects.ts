@@ -44,6 +44,7 @@ import { encounterConditionSaveAutoFailAbilityIds } from './encounterConditionMe
 import type { MovementTarget } from './encounterMovementTargets.js'
 import { expiredEffectReleases } from './encounterEndedEffectRelease.js'
 import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
+import { sourceActorIdOf } from './events/encounterEventHooks.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
   isTurnEffectEligible,
@@ -286,6 +287,7 @@ function completeExecution(input: {
     },
     applications: result.applications
   })
+  const sourceActorId = sourceActorIdOf(effect)
   const execution: TurnExecution = {
     ordinal: input.ordinal,
     boundaryOrdinal: input.boundary.ordinal,
@@ -296,6 +298,7 @@ function completeExecution(input: {
         ? { kind: 'CHARACTER', characterId: target.actor.sourceId }
         : { kind: 'ENCOUNTER_ACTOR' },
     activeEffectId: effect.id,
+    ...(sourceActorId ? { damagerActorId: sourceActorId } : {}),
     createdOrdinal: effect.createdOrdinal,
     beforeVersion: effect.version,
     definition: {

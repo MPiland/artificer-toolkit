@@ -2713,8 +2713,10 @@ effect; an effect the damaging command placed never repeats against its own dama
 both sides with the same inputs: the room passes `repeatSaves: { damagerActorId }` to `planNativeLiveConcentration`,
 and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
 rows so a stale or invented chain is rejected by comparison. Sources wired: single-target action, area (damager is
-the caster), Cleaving (the cleaving creature), and turn effects with Legendary Actions (no damager, so only `ANYONE`
-triggers match). T2m3 and SPELLS-33.T4m add triggers or effects by changing these readers, never by adding a
+the caster), Cleaving (the cleaving creature), and turn effects with Legendary Actions. A damage source that names its dealer (a turn effect's
+origin `sourceActorId`, stored on its execution receipt as `damagerActorId`; a zone's source; a Legendary Action's
+owner) stamps `damagerActorId` on its chain application, which overrides the chain-wide damager, so `SOURCE_SIDE`
+triggers match it; a source naming nobody falls back to the chain's damager (null: only `ANYONE` matches). T2m3 and SPELLS-33.T4m add triggers or effects by changing these readers, never by adding a
 source-specific path. A follow-up save with timing `ON_TRIGGERS_ONLY` (D176, SPELLS-33.T6e2 Vampire Charm) repeats
 on its `repeatTriggers` alone: it requires them, a once-only repeated save, and no `repeatRollInfluence` or
 `repeatAttemptGate`, and is never a `repeatTiming`. It compiles to the same frozen repeat-save graph, gated on the

@@ -16,6 +16,8 @@ type DamageBatch = {
   applications: readonly ReturnType<typeof characterMechanicsApplicationDtoSchema.parse>[]
   /** The spell, action or turn effect that dealt this batch's damage, when it has a name. */
   sourceLabel?: string | null
+  /** The actor that dealt this batch's damage, when its source names one. */
+  damagerActorId?: string
 }
 
 /**
@@ -40,7 +42,8 @@ function collectConcentrationDamage(batches: readonly DamageBatch[], preserveOrd
           appliedAmount: rows.reduce((total, row) => total + row.appliedAmount, 0),
           damageTypeId: rows.every((row) => row.damageTypeId === first.damageTypeId)
             ? first.damageTypeId
-            : null
+            : null,
+          ...(batch.damagerActorId ? { damagerActorId: batch.damagerActorId } : {})
         },
         sourceLabel: batch.sourceLabel ?? null
       }
@@ -109,6 +112,7 @@ export function legendaryActionDamage(
       sourceLabel:
         choice.options.find((option) => option.optionId === resolution.selectedOptionId)?.label ??
         null,
+      damagerActorId: choice.ownerActorId,
       ...(resolution.application.meleeRetaliation
         ? { meleeRetaliation: resolution.application.meleeRetaliation }
         : {})
@@ -120,7 +124,10 @@ export function legendaryActionDamage(
 export function zoneEffectDamage(phase: StagedTurnZonePlanDto | undefined): DamageBatch[] {
   return (phase?.executions ?? []).map(({ candidate, applications }) => ({
     targetActorId: candidate.candidate.targetActorId,
-    applications
+    applications,
+    ...(candidate.candidate.sourceActorId
+      ? { damagerActorId: candidate.candidate.sourceActorId }
+      : {})
   }))
 }
 
