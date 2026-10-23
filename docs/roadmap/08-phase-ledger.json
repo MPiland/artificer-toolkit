@@ -4204,7 +4204,7 @@
             },
             {
               "id": "RULES-2.T9q",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4214,7 +4214,9 @@
                 "after": []
               },
               "text": "Encounter reads leave the System document (D180): the encounter read-budget measure pins _creationTime to a fixed-length stand-in so it is deterministic; the Encounter projection sends condition definition IDs only and web labels them from the System vocabulary; presentEncounterRun no longer reads the System document. The 100-actor read passes its unchanged ceiling.",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "mergedAt": "2026-10-23T03:29:18Z",
+              "note": "Merged in m363.",
+              "proof": "ci/rules-2-t9q @ ca9fadda9: Tests and Live green; presentEncounterRun no longer reads the System, conditions are typed {conditionTypeId, notes?, innate?}, labels resolve in the web vocabulary model."
             },
             {
               "id": "RULES-2.T9k",
