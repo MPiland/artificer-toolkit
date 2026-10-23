@@ -64,8 +64,11 @@ export const removeCurse: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.REMOVE_CURSE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'REMOVE_CURSE' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'End the Curses',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "All curses affecting the target creature or object end. If the object is a cursed magic item, its curse remains, but the spell breaks its owner's attunement to the object so it can be removed or discarded."
               }
             ]
           }

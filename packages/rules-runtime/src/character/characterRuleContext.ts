@@ -37,7 +37,10 @@ export interface CharacterRuleRegistry {
   creatureLoadoutEquipmentById?: Readonly<Record<string, CompiledEquipment>>
   feats?: readonly CompiledFeat[]
   features: readonly CompiledFeature[]
-  system: Pick<NonNullable<CharacterAssemblyRegistry['system']>, 'skills' | 'speeds'> | null
+  system: Pick<
+    NonNullable<CharacterAssemblyRegistry['system']>,
+    'skills' | 'speeds' | 'defaults'
+  > | null
 }
 
 /**

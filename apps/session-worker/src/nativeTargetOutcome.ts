@@ -32,14 +32,26 @@ export function planNativeTargetMechanics(
   input: NativeTargetOutcomeSource,
   applications: readonly CharacterRuleActionApplication[]
 ) {
-  const { prepared, occurrenceId, commandId, occurredAt } = input
+  const { prepared } = input
   const holder = prepared.movementTargets.get(prepared.target.id)
   if (!holder) throw new Error('The action target is unavailable.')
+  return planHolderMechanics({ ...input, state: prepared.state, holder }, applications)
+}
+
+/** The one mechanics batch a won check applies to its target's prepared holder, with or without a prepared action. */
+export function planHolderMechanics(
+  input: Omit<NativeTargetOutcomeSource, 'prepared'> & {
+    state: { id: string; version: number }
+    holder: NonNullable<ReturnType<NativeTargetOutcomeSource['prepared']['movementTargets']['get']>>
+  },
+  applications: readonly CharacterRuleActionApplication[]
+) {
+  const { holder, state, occurrenceId, commandId, occurredAt } = input
   return planEncounterMechanicsBatch({
     batch: {
-      encounterId: prepared.state.id,
+      encounterId: state.id,
       targetActorId: holder.actor.id,
-      expectedEncounterVersion: prepared.state.version,
+      expectedEncounterVersion: state.version,
       occurrenceId,
       sourceCommandId: commandId,
       commandId: deriveEncounterCharacterMechanicsEventCommandId({

@@ -10086,7 +10086,7 @@
             },
             {
               "id": "SPELLS-4.T2f3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10096,8 +10096,9 @@
                 "after": ["SPELLS-4.T2f"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: END_EFFECTS by tag (D174, split from T2f 2026-10-22): a TAG selector backed by a System vocabulary kind for effect tags (T5p recipe). Converts REMOVE_CURSE and Greater Restoration's curse and reduction clauses, with parity proofs; REMOVE_CURSE kind deleted.",
-              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m373.",
+              "mergedAt": "2026-10-23T13:12:22Z",
+              "proof": "Tests and Live green on tip 45745f18; Remove Curse compiles as GM_CHOICE MANUAL_ADJUDICATION (golden updated, removeFromPlayAuthoringParity case); REMOVE_CURSE kind deleted; Greater Restoration already MANUAL_ADJUDICATION"
             },
             {
               "id": "SPELLS-4.T2f1a",
@@ -10117,7 +10118,7 @@
             },
             {
               "id": "SPELLS-4.T2f1b1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10127,7 +10128,9 @@
                 "after": ["SPELLS-4.T2f1a"]
               },
               "text": "Candidate checks substrate (D182, D182a split of T2f1b): a SPELL_CAST check source, the pending check context with a frozen ordered candidates list and cursor, the CHECK_ACTION output for several checks, and a per-candidate commit shape in encounter-persistence that ends the effect in the same transaction and receipt as the roll, undone by actionRevert and occurrenceVoid; replay-idempotent per context and cursor; unit and integration proofs. Includes the optional checkOccurrenceId on the RULE_OCCURRENCE cast root (read by storedCheckOccurrenceId, admission and revert) and the Worker response planner for candidate steps (D182a amendment).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-23T13:27:34Z",
+              "proof": "Tests and Live green on tip ffbc6f8c; candidateStep.test.ts covers readCandidateStep (cursor, skip, order); SPELL_CAST check source, candidates context, per-candidate commit and revert hook land; room-level proofs move to T2f1b2 (they need the cast-time pend)",
+              "note": " Merged in m374."
             },
             {
               "id": "SPELLS-4.T2f1b2",
@@ -10140,7 +10143,7 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2f1b1"]
               },
-              "text": "Dispel Magic above-level checks (D182a): the Worker cast-time planner pends the cast into the T2f1b1 candidate checks; levelCheck authored through the node map, DTO, compiler and character rule facts with a TARGET_EFFECT_LEVEL DC; converts DISPEL_MAGIC on a creature or object target with a golden proof and room journey; kind deleted; check-flow section of docs/architecture/rules-runtime.md updated."
+              "text": "Dispel Magic above-level checks (D182a): the Worker cast-time planner pends the cast into the T2f1b1 candidate checks; levelCheck authored through the node map, DTO, compiler and character rule facts with a TARGET_EFFECT_LEVEL DC; converts DISPEL_MAGIC on a creature or object target with a golden proof and room journey; kind deleted; check-flow section of docs/architecture/rules-runtime.md updated. Owns the room-level proofs T2f1b1 could not run without the cast pend: the effect ends in the same commit and receipt as its roll, an already-ended candidate is skipped, replay is idempotent per context and cursor, undo refusal, and void."
             },
             {
               "status": "DONE",
