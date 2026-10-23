@@ -5,6 +5,7 @@ import {
   authoredFractionSchema,
   authoredIdentifierSchema,
   authoredLengthSchema,
+  speedEqualsPayloadSchema,
   authoredNestedCollectionSchema,
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
@@ -498,6 +499,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     modifierScalarValueDtoSchema,
     modifyChargeLimitPayloadDtoSchema,
     authoredLengthSchema,
+    speedEqualsPayloadSchema,
     authoredFractionSchema,
     amountPayloadDtoSchema,
     armorClassFormulaPayloadDtoSchema,
@@ -919,7 +921,12 @@ const buildModifierGrantVariants = () =>
     ),
     buildModifierGrantVariant('SPEED', 'BONUS', speedParamDtoSchema, authoredLengthSchema),
     buildModifierGrantVariant('SPEED', 'PENALTY', speedParamDtoSchema, authoredLengthSchema),
-    buildModifierGrantVariant('SPEED', 'SET_VALUE', speedParamDtoSchema, authoredLengthSchema),
+    buildModifierGrantVariant(
+      'SPEED',
+      'SET_VALUE',
+      speedParamDtoSchema,
+      z.union([authoredLengthSchema, speedEqualsPayloadSchema])
+    ),
     buildModifierGrantVariant(
       'SPEED',
       'MULTIPLY',

@@ -46,6 +46,7 @@ export function evaluateDnd5eCharacterMovementAndSenses(
         )
       )
     )
+  const factSpeeds = input.movementFacts?.speeds ?? []
   /** "Your speed is X" replaces the base speed; the best applicable one wins, in its authored unit. */
   const speedReplacements = widestLengthByKey(
     modifierGroups
@@ -58,7 +59,11 @@ export function evaluateDnd5eCharacterMovementAndSenses(
               key: speedId,
               payload: grantFold.modifiers[contribution.acceptedModifierIndex]?.payload
             }))
-      })
+      }),
+    (speedId) => {
+      const fact = factSpeeds.find((speed) => speed.speedId === speedId)
+      return fact?.base ?? fact?.override?.value
+    }
   )
   /**
    * Speed and sense range contributions are feet; they add to the base in the base's own unit. A
@@ -112,7 +117,6 @@ export function evaluateDnd5eCharacterMovementAndSenses(
         payload: grantFold.modifiers[contribution.acceptedModifierIndex]?.payload
       }))
     })
-  const factSpeeds = input.movementFacts?.speeds ?? []
   const speeds = [
     ...factSpeeds.map(({ speedId, base, override }) => {
       // A speed is in its base's unit, or in its override's own unit when the Character has no base.

@@ -2634,6 +2634,13 @@ vocabulary: Character record stats pass `registry.system.speeds`, and `encounter
 malformed or out-of-vocabulary speed at read is an invariant failure. Displayed lengths round through the shared
 `roundLengthForDisplay` (three decimals); stored and computed amounts never do.
 
+**Speed equal to another speed (SPELLS-4.T2o).** A `SPEED` `SET_VALUE` payload is either a typed length or `{ equalsSpeedId }`
+(`speedEqualsPayloadSchema`): the granted speed takes the length of the holder's other speed, in that speed's own unit
+(Spider Climb's climbing speed, Alter Self's swimming speed). `widestLengthByKey` resolves it through a `speedLength`
+callback: the Character policy passes the holder's base (or override) speed and `withActiveGrantSpeeds` the holder's
+typed speeds. It names the _base_ speed, so a bonus to the named speed or a replacement of it does not carry over; a
+holder that lacks the named speed gets nothing. Bonus, penalty and fraction payloads stay lengths and fractions.
+
 The Sheet `MOVEMENT` `SPEED_OVERRIDE` adjustment is the same typed length, like the sense `RANGE_OVERRIDE`.
 `buildCharacterMovementRuleFacts` hands the policy each speed as `base` (a length, or `null` when the Character holds
 none) and `override`; a speed with neither is never listed, and `characterMovementAndSenses` throws on a fact with

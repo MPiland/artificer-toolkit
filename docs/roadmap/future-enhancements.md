@@ -546,7 +546,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Dispel acting on a placed zone.**
 - **Maze escape as a spell-held effect.**
 - **Holy Aura blinding attackers who hit the holder:** retaliation for multi-target holders.
-- **Speed equal to another speed, jumping and elevation:** Fly-style speeds, Dragon Wings, Second-Story Work, Step of the Wind.
+- **Jumping and elevation (3D movement):** the engine has no vertical position, so Jump, Levitate and Reverse Gravity ship as GM rulings (SPELLS-4.T2o, D187a), and Second-Story Work and Step of the Wind wait on it. The speed-equal-to-another-speed value source shipped in SPELLS-4.T2o.
 - **Damage MULTIPLY:** Ray of Enfeeblement.
 - **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
 - **Indefinite non-Concentration lifetimes:** Feeblemind.

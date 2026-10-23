@@ -72,8 +72,11 @@ export const levitate: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.LEVITATE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'LEVITATE' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Levitation',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  "The GM tracks the target's altitude (up to 20 feet, changing by up to 20 feet each turn); the engine has no elevation model."
               }
             ]
           }
