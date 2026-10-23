@@ -2,6 +2,7 @@ import type {
   EncounterGmProjectionDto,
   EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounters'
+import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import type { ActiveGrantListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import type { PendingEncounterRuleOccurrenceSummaryDto } from '@artificer-toolkit/schema/shared/encounterRuleOccurrence'
@@ -10,7 +11,6 @@ import {
   activeGrantTimeLeft
 } from '../../../components/activeGrants/activeGrantDisplay'
 import type { VttStatusCategory, VttTokenPresentation } from './vttSceneRenderer.model'
-import { isRecord } from '#app/forms/utils/valueGuards'
 
 const healthColours = {
   BLOODIED: 0xe8590c,
@@ -52,6 +52,8 @@ export function buildVttTokenPresentations(input: {
   actorIdByTokenId: ReadonlyMap<string, string>
   artUrls?: Readonly<Record<string, string>>
   boundTokenControl: ReadonlyMap<string, boolean>
+  /** The System's condition types that name the actors' conditions; undefined while it loads. */
+  conditionTypes?: SystemAuthoredDto['conditionTypes']
   currentUserId: string
   encounter: EncounterGmProjectionDto | EncounterPlayerProjectionDto
   pending: PendingEncounterRuleOccurrenceSummaryDto | null
@@ -75,7 +77,7 @@ export function buildVttTokenPresentations(input: {
     const actor = actorId ? actors.get(actorId) : undefined
     const statuses = actor
       ? [
-          ...actorConditionStatuses(actor.conditions),
+          ...actorConditionStatuses(actor.conditions, input.conditionTypes),
           ...actor.activeGrants.map((grant) => ({
             category: grantCategories[grant.polarity],
             id: `grant:${grant.effectId}`,
@@ -173,19 +175,23 @@ export function deterministicTokenColour(identity: string): number {
   return fallbackColours[Math.abs(hash) % fallbackColours.length]!
 }
 
-function actorConditionStatuses(conditions: unknown): VttTokenPresentation['statuses'] {
-  if (!Array.isArray(conditions)) return []
-  return conditions.flatMap((condition, index) => {
-    if (typeof condition === 'string' && condition.trim()) {
-      return [statusFromValues(`condition:${index}`, 'CONDITION', condition)]
+function actorConditionStatuses(
+  conditions: EncounterGmProjectionDto['actors'][number]['conditions'],
+  conditionTypes: SystemAuthoredDto['conditionTypes'] | undefined
+): VttTokenPresentation['statuses'] {
+  if (!conditionTypes) return []
+  return conditions.map(({ conditionTypeId, innate }) => {
+    const definition = conditionTypes.find((entry) => entry.id === conditionTypeId)
+    if (!definition)
+      throw new Error(`Condition type "${conditionTypeId}" is not defined by the System.`)
+    return {
+      ...statusFromValues(
+        conditionTypeId,
+        'CONDITION',
+        innate ? `${definition.label} (innate)` : definition.label
+      ),
+      ...(definition.description ? { description: definition.description } : {})
     }
-    if (!isRecord(condition)) return []
-    const record = condition
-    const label = firstString(record.label, record.name, record.code)
-    if (!label) return []
-    const id = firstString(record.id, record.conditionTypeId) ?? `condition:${index}`
-    const kind = statusKind(record.kind ?? record.category)
-    return [statusFromValues(id, kind, record.innate === true ? `${label} (innate)` : label)]
   })
 }
 
@@ -195,14 +201,6 @@ function statusFromValues(
   label: string
 ): VttTokenPresentation['statuses'][number] {
   return { category: statusCategories[kind], id, kind, label: label.trim() }
-}
-
-function statusKind(value: unknown): NonGrantStatusKind {
-  if (typeof value !== 'string') return 'CONDITION'
-  const normalized = value.toUpperCase()
-  return normalized === 'INJURY' || normalized === 'MORALE' || normalized === 'REACTION'
-    ? normalized
-    : 'CONDITION'
 }
 
 function compareStatuses(
@@ -220,13 +218,6 @@ function compareStatuses(
     HEALTH: 7
   } as const
   return priority[left.kind] - priority[right.kind] || left.label.localeCompare(right.label)
-}
-
-function firstString(...values: unknown[]): string | null {
-  return (
-    values.find((value): value is string => typeof value === 'string' && value.trim() !== '') ??
-    null
-  )
 }
 
 function titleCase(value: string): string {
