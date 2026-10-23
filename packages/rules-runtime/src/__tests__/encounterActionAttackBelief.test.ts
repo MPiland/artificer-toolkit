@@ -325,13 +325,14 @@ describe('attack d20 believed versus true mode through the action execution', ()
     const gm = card(cancelledStep.d20, 'GM')
     expect(player.evidence).toMatchObject({
       mode: 'NORMAL',
+      keep: 'FIRST',
       total: cancelledStep.d20.total,
       terms: [{ rolls: [4, 16], keptRollIndex: 0 }]
     })
     expect(player.ruleCheck).toEqual({
       kind: 'D20_MODE_ADJUSTED',
-      rolledMode: 'ADVANTAGE',
-      appliedMode: 'NORMAL',
+      rolledMode: { code: 'ADVANTAGE', label: 'Advantage' },
+      appliedMode: { code: 'NORMAL', label: 'Normal' },
       cancelledRollIndexes: [1],
       addedRollIndexes: [],
       caption: 'Advantage cancelled: the target can sense you'
@@ -367,11 +368,12 @@ describe('attack d20 believed versus true mode through the action execution', ()
     const addedCard = card(addedStep.d20, 'PLAYER')
     expect(addedCard.evidence).toMatchObject({
       mode: 'DISADVANTAGE',
+      keep: 'LOWER',
       terms: [{ rolls: [12, 5], keptRollIndex: 1 }]
     })
     expect(addedCard.ruleCheck).toMatchObject({
-      rolledMode: 'NORMAL',
-      appliedMode: 'DISADVANTAGE',
+      rolledMode: { code: 'NORMAL', label: 'Normal' },
+      appliedMode: { code: 'DISADVANTAGE', label: 'Disadvantage' },
       cancelledRollIndexes: [],
       addedRollIndexes: [1]
     })

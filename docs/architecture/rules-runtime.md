@@ -373,8 +373,11 @@ draw these selects from the `roll_influences` and `roll_modes` sources, which ca
 membership is checked where `rollModeCapabilityRegistry` resolves the contributors. A grant's fold group key carries
 its influence (`ATTACK_ROLL:ROLL_INFLUENCE|attackDomain=MELEE|influence=ADVANTAGE`), and a grant's listing polarity
 follows the face the System keeps under its influence.
-**Transitional (until RULES-2.T9a2):** the shared dice evaluator, roll evidence `mode`, manual and
-Campaign roll input, the held d20 and the `D20_MODE_ADJUSTED` record still use the D&D mode codes.
+**Roll evidence (RULES-2.T9a2, current).** The shared dice evaluator takes the d20's `{ mode, label, keep }` from
+`rollModeCapabilityRegistry.d20Roll`; evidence always carries `keep` and carries `mode`/`modeLabel` only for a
+System-governed d20. Manual and Campaign roll input accept any System code, the character sheet and Campaign
+detail DTOs offer the System's `rollModes`, and `D20_MODE_ADJUSTED` names its modes as `{ code, label }`.
+**Transitional (until RULES-2.T9k):** the held d20's `rolledMode` and the sight-governed settlement still use the D&D mode codes.
 **System capability registries (RULES-2.T11a–g, current).** Every System capability is one
 `createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
 `require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the

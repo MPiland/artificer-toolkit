@@ -70,6 +70,11 @@ function sheet(extras: readonly SheetExtra[] = []): CharacterSheetResponseDto {
       armorClass: 14,
       initiative: 2,
       initiativeRollMode: 'NORMAL',
+      rollModes: [
+        { code: 'NORMAL', label: 'Normal', keep: 'FIRST' },
+        { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' },
+        { code: 'DISADVANTAGE', label: 'Disadvantage', keep: 'LOWER' }
+      ],
       proficiencyBonus: 2,
       currentHitPoints: 20,
       maxHitPoints: 20,

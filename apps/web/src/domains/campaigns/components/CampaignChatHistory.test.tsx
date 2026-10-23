@@ -74,6 +74,7 @@ describe('CampaignChatHistory', () => {
           terms: [{ count: 1, die: 20, rolls: [6], subtotal: 6 }],
           modifier: 3,
           mode: 'NORMAL',
+          keep: 'FIRST',
           subtotal: 9,
           transform: { kind: 'NONE' },
           total: 9

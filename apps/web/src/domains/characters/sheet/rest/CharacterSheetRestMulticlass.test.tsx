@@ -30,6 +30,7 @@ const hitDieRoll = rollRecordDtoSchema.parse({
     ],
     modifier: 2,
     mode: 'NORMAL',
+    keep: 'FIRST',
     subtotal: 11,
     transform: { kind: 'NONE' },
     total: 13
