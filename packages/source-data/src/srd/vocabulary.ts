@@ -910,7 +910,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '0 XP',
     xp: 0,
     proficiencyBonus: 2,
-    rank: 0
+    rank: 0,
+    value: 0
   },
   {
     id: vocabId(D.challengeRating, 2),
@@ -920,7 +921,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '25 XP',
     xp: 25,
     proficiencyBonus: 2,
-    rank: 1
+    rank: 1,
+    value: 0.125
   },
   {
     id: vocabId(D.challengeRating, 3),
@@ -930,7 +932,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '50 XP',
     xp: 50,
     proficiencyBonus: 2,
-    rank: 2
+    rank: 2,
+    value: 0.25
   },
   {
     id: vocabId(D.challengeRating, 4),
@@ -940,7 +943,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '100 XP',
     xp: 100,
     proficiencyBonus: 2,
-    rank: 3
+    rank: 3,
+    value: 0.5
   },
   {
     id: vocabId(D.challengeRating, 5),
@@ -950,7 +954,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '200 XP',
     xp: 200,
     proficiencyBonus: 2,
-    rank: 4
+    rank: 4,
+    value: 1
   },
   {
     id: vocabId(D.challengeRating, 6),
@@ -960,7 +965,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '450 XP',
     xp: 450,
     proficiencyBonus: 2,
-    rank: 5
+    rank: 5,
+    value: 2
   },
   {
     id: vocabId(D.challengeRating, 7),
@@ -970,7 +976,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '700 XP',
     xp: 700,
     proficiencyBonus: 2,
-    rank: 6
+    rank: 6,
+    value: 3
   },
   {
     id: vocabId(D.challengeRating, 8),
@@ -980,7 +987,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '1100 XP',
     xp: 1100,
     proficiencyBonus: 2,
-    rank: 7
+    rank: 7,
+    value: 4
   },
   {
     id: vocabId(D.challengeRating, 9),
@@ -990,7 +998,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '1800 XP',
     xp: 1800,
     proficiencyBonus: 3,
-    rank: 8
+    rank: 8,
+    value: 5
   },
   {
     id: vocabId(D.challengeRating, 10),
@@ -1000,7 +1009,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '2300 XP',
     xp: 2300,
     proficiencyBonus: 3,
-    rank: 9
+    rank: 9,
+    value: 6
   },
   {
     id: vocabId(D.challengeRating, 11),
@@ -1010,7 +1020,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '2900 XP',
     xp: 2900,
     proficiencyBonus: 3,
-    rank: 10
+    rank: 10,
+    value: 7
   },
   {
     id: vocabId(D.challengeRating, 12),
@@ -1020,7 +1031,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '3900 XP',
     xp: 3900,
     proficiencyBonus: 3,
-    rank: 11
+    rank: 11,
+    value: 8
   },
   {
     id: vocabId(D.challengeRating, 13),
@@ -1030,7 +1042,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '5000 XP',
     xp: 5000,
     proficiencyBonus: 4,
-    rank: 12
+    rank: 12,
+    value: 9
   },
   {
     id: vocabId(D.challengeRating, 14),
@@ -1040,7 +1053,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '5900 XP',
     xp: 5900,
     proficiencyBonus: 4,
-    rank: 13
+    rank: 13,
+    value: 10
   },
   {
     id: vocabId(D.challengeRating, 15),
@@ -1050,7 +1064,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '7200 XP',
     xp: 7200,
     proficiencyBonus: 4,
-    rank: 14
+    rank: 14,
+    value: 11
   },
   {
     id: vocabId(D.challengeRating, 16),
@@ -1060,7 +1075,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '8400 XP',
     xp: 8400,
     proficiencyBonus: 4,
-    rank: 15
+    rank: 15,
+    value: 12
   },
   {
     id: vocabId(D.challengeRating, 17),
@@ -1070,7 +1086,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '10000 XP',
     xp: 10000,
     proficiencyBonus: 5,
-    rank: 16
+    rank: 16,
+    value: 13
   },
   {
     id: vocabId(D.challengeRating, 18),
@@ -1080,7 +1097,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '11500 XP',
     xp: 11500,
     proficiencyBonus: 5,
-    rank: 17
+    rank: 17,
+    value: 14
   },
   {
     id: vocabId(D.challengeRating, 19),
@@ -1090,7 +1108,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '13000 XP',
     xp: 13000,
     proficiencyBonus: 5,
-    rank: 18
+    rank: 18,
+    value: 15
   },
   {
     id: vocabId(D.challengeRating, 20),
@@ -1100,7 +1119,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '15000 XP',
     xp: 15000,
     proficiencyBonus: 5,
-    rank: 19
+    rank: 19,
+    value: 16
   },
   {
     id: vocabId(D.challengeRating, 21),
@@ -1110,7 +1130,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '18000 XP',
     xp: 18000,
     proficiencyBonus: 6,
-    rank: 20
+    rank: 20,
+    value: 17
   },
   {
     id: vocabId(D.challengeRating, 22),
@@ -1120,7 +1141,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '20000 XP',
     xp: 20000,
     proficiencyBonus: 6,
-    rank: 21
+    rank: 21,
+    value: 18
   },
   {
     id: vocabId(D.challengeRating, 23),
@@ -1130,7 +1152,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '22000 XP',
     xp: 22000,
     proficiencyBonus: 6,
-    rank: 22
+    rank: 22,
+    value: 19
   },
   {
     id: vocabId(D.challengeRating, 24),
@@ -1140,7 +1163,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '25000 XP',
     xp: 25000,
     proficiencyBonus: 6,
-    rank: 23
+    rank: 23,
+    value: 20
   },
   {
     id: vocabId(D.challengeRating, 25),
@@ -1150,7 +1174,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '33000 XP',
     xp: 33000,
     proficiencyBonus: 7,
-    rank: 24
+    rank: 24,
+    value: 21
   },
   {
     id: vocabId(D.challengeRating, 26),
@@ -1160,7 +1185,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '41000 XP',
     xp: 41000,
     proficiencyBonus: 7,
-    rank: 25
+    rank: 25,
+    value: 22
   },
   {
     id: vocabId(D.challengeRating, 27),
@@ -1170,7 +1196,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '50000 XP',
     xp: 50000,
     proficiencyBonus: 7,
-    rank: 26
+    rank: 26,
+    value: 23
   },
   {
     id: vocabId(D.challengeRating, 28),
@@ -1180,7 +1207,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '62000 XP',
     xp: 62000,
     proficiencyBonus: 7,
-    rank: 27
+    rank: 27,
+    value: 24
   },
   {
     id: vocabId(D.challengeRating, 29),
@@ -1190,7 +1218,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '75000 XP',
     xp: 75000,
     proficiencyBonus: 8,
-    rank: 28
+    rank: 28,
+    value: 25
   },
   {
     id: vocabId(D.challengeRating, 30),
@@ -1200,7 +1229,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '90000 XP',
     xp: 90000,
     proficiencyBonus: 8,
-    rank: 29
+    rank: 29,
+    value: 26
   },
   {
     id: vocabId(D.challengeRating, 31),
@@ -1210,7 +1240,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '105000 XP',
     xp: 105000,
     proficiencyBonus: 8,
-    rank: 30
+    rank: 30,
+    value: 27
   },
   {
     id: vocabId(D.challengeRating, 32),
@@ -1220,7 +1251,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '120000 XP',
     xp: 120000,
     proficiencyBonus: 8,
-    rank: 31
+    rank: 31,
+    value: 28
   },
   {
     id: vocabId(D.challengeRating, 33),
@@ -1230,7 +1262,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '135000 XP',
     xp: 135000,
     proficiencyBonus: 9,
-    rank: 32
+    rank: 32,
+    value: 29
   },
   {
     id: vocabId(D.challengeRating, 34),
@@ -1240,7 +1273,8 @@ export const SRD_CHALLENGE_RATINGS = [
     description: '155000 XP',
     xp: 155000,
     proficiencyBonus: 9,
-    rank: 33
+    rank: 33,
+    value: 30
   }
 ]
 

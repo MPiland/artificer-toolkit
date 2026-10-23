@@ -123634,6 +123634,7 @@ export declare const api: {
             proficiencyBonus: number;
             rank: number;
             short?: string | null;
+            value: number;
             xp: number;
           }>;
           conditionTypes: Array<{
@@ -128707,6 +128708,7 @@ export declare const api: {
             allowances: Array<{
               budget: number;
               code: string | null;
+              isDefault: boolean;
               label: string;
               speedId: string;
             }>;
