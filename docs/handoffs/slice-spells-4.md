@@ -399,6 +399,14 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Build on the same seam: another `effectOffers` kind (retarget the held effect to a new target) in `effectOffer.ts`/`storedEffectOffer.ts`, discovered by `encounterEffectOffers.ts`; the carrier stays a plan-level `repeatCarrier`-style rider. Reuse `frozenRepeatOffer` for any frozen cast value; the cast level comes from `preparedSpellCastLevel(prepared)` passed as `spellCastLevel`, not from the TEST-phase execution evidence (which holds only target facts).
 - Do not delete the EYEBITE kind here; T2l2 does, with Panicked and Sickened.
 
+### T2n2 (damage-derived heal, Vampiric Touch; D181)
+
+- Status: implemented; CI on `ci/spells-4-t2n2`.
+- Built: `HEAL` `valueKind: DAMAGE_DEALT` (`damageOutcomeId`, whole positive `fraction`, `recipient: SOURCE`); the heal rounds down and is aimed at the source. Two-stage resolution: the interpreter emits a `DAMAGE_DERIVED_HEAL` application sized by the sibling damage node (`damageSizedOutcomeGraph`, shared with the hit point maximum reduction); `prepareNativeActionMechanicsBatches` converts it into a real HEAL on the source; undo restores source hit points (Character `healedFromCurrentHitPoints`, Creature `updateActor`). Heal fields live in `maps/healOutcomeFields.ts`; the `VAMPIRIC_TOUCH` kind is deleted (`SPELL_IDS.VAMPIRIC_TOUCH` kept).
+- Seam amendment (D166/D181): the repeat carrier seam was Heat Metal-specific (save plus chosen item). Now (1) a repeat offer on a grant with no chosen item is an ordinary grant offer, planned by `modifierGrantPlan` (an offer counts as grant content), and the chosen-item rider (`effectActionRepeatCarrier.ts`) applies only to a chosen-item grant; (2) an attack grant authored alike on the hit and the miss applies either way (as `saveGrantPlan` does), while two grants on hit results are still refused. Nothing is spell-named.
+- Proofs: authoring parity and `coreOptionSpells.test.ts` rows, the golden flip, `nativeRoomCoreOptionSpells.test.ts` Vampiric Touch (heal by half rounded down, undo restores, repeat offer to the caster).
+- Known: the `encounterWriteSets` read budget over its ceiling is the pre-existing D180 failure (T9q).
+
 ### T2i (hit point threshold gates and KILL, D156 class B; design ruled 2026-10-20)
 
 Converts POWER_WORD_KILL, POWER_WORD_STUN and DIVINE_WORD; each kind is deleted. Death Ward and its damage-interception seam move to SPELLS-4.T2i2 (generic "would drop to 0 hit points -> instead N, uses X"; Undead Fortitude in SPELLS-33.T4i and Relentless Endurance need it too). FINGER_OF_DEATH_ZOMBIE moves to SPELLS-33.T6a2 (zombie rise needs a humanoid-type gate and a caster-commanded creature). Divine Word's planar banishment is description-only (no plane model; future-enhancements).
