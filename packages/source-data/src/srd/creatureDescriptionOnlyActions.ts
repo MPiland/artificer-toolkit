@@ -41,6 +41,8 @@ export const SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS: ReadonlyMap<string, string> 
     'Mummy Lord|legendaryActions Whirlwind of Sand (Costs 2 Actions)'
   ]),
   ...entries(DESCRIPTION_ONLY, [
+    'Black Pudding|reactions Split',
+    'Ochre Jelly|reactions Split',
     'Adult Black Dragon|legendaryActions Detect',
     'Adult Blue Dragon|legendaryActions Detect',
     'Adult Brass Dragon|legendaryActions Detect',
