@@ -9,6 +9,7 @@ import type {
 } from './characterRuleActionSystemAdapter.js'
 import { withLinkedDependents } from './activeEffectLinks.js'
 import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
+import { snapshotCreatureTypeId } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type { prepareRecurringActiveEffect } from './encounterActionEffectPlans.js'
 import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
@@ -275,19 +276,52 @@ export function actionUsedOnHolderEndedEffects(input: {
   }
 }
 
-type EndEffectsSelectors = readonly { kind: 'CONDITION'; conditionIds: readonly string[] }[]
+type EndEffectsSelectors = readonly {
+  kind: 'CONDITION'
+  conditionIds: readonly string[]
+  /** Only effects whose origin creature is of one of these types; absent matches every origin. */
+  originCreatureTypeIds?: readonly string[]
+}[]
 
-/** The held effects an END_EFFECTS outcome could end: those owning a condition a selector names. */
+/** The creature type of each Encounter actor that has one, by actor id. */
+export type ActorCreatureTypeIds = ReadonlyMap<string, string>
+
+export function actorCreatureTypeIdsOf(
+  actors: readonly (Parameters<typeof snapshotCreatureTypeId>[0] & { id: string })[]
+): ActorCreatureTypeIds {
+  return new Map(
+    actors.flatMap((actor) => {
+      const creatureTypeId = snapshotCreatureTypeId(actor)
+      return creatureTypeId === null ? [] : [[actor.id, creatureTypeId] as const]
+    })
+  )
+}
+
+/**
+ * The held effects an END_EFFECTS outcome could end: those owning a condition a selector names,
+ * from an origin creature of the selector's types when it names any.
+ */
 export function endEffectsCandidates(
   held: readonly ActiveRuleEffectRecord[],
-  selectors: EndEffectsSelectors
+  selectors: EndEffectsSelectors,
+  actorCreatureTypeIds: ActorCreatureTypeIds
 ) {
-  const named = new Set(selectors.flatMap(({ conditionIds }) => conditionIds))
   return held.filter(({ definition }) =>
-    definition.stateContributions.some(
-      (contribution) =>
-        contribution.kind === 'CONDITION_OWNERSHIP' && named.has(contribution.conditionId)
-    )
+    selectors.some((selector) => {
+      const originTypeId =
+        definition.origin.kind === 'ENCOUNTER' && definition.origin.sourceActorId !== null
+          ? actorCreatureTypeIds.get(definition.origin.sourceActorId)
+          : undefined
+      return (
+        (selector.originCreatureTypeIds === undefined ||
+          (originTypeId !== undefined && selector.originCreatureTypeIds.includes(originTypeId))) &&
+        definition.stateContributions.some(
+          (contribution) =>
+            contribution.kind === 'CONDITION_OWNERSHIP' &&
+            selector.conditionIds.includes(contribution.conditionId)
+        )
+      )
+    })
   )
 }
 
@@ -312,14 +346,27 @@ export function endEffectsChoice(
  * action that ends no effects.
  */
 export function offerEndEffects(input: {
-  endEffects: { scope: 'ALL' | 'ONE_CHOSEN'; conditionIds: readonly string[] } | undefined
+  endEffects:
+    | {
+        scope: 'ALL' | 'ONE_CHOSEN'
+        conditionIds: readonly string[]
+        originCreatureTypeIds?: readonly string[]
+      }
+    | undefined
   held: readonly ActiveRuleEffectRecord[]
+  actorCreatureTypeIds: ActorCreatureTypeIds
   chosenEffectId: string | undefined
 }) {
   const selectors: EndEffectsSelectors = [
-    { kind: 'CONDITION', conditionIds: input.endEffects?.conditionIds ?? [] }
+    {
+      kind: 'CONDITION',
+      conditionIds: input.endEffects?.conditionIds ?? [],
+      originCreatureTypeIds: input.endEffects?.originCreatureTypeIds
+    }
   ]
-  const candidates = input.endEffects ? endEffectsCandidates(input.held, selectors) : []
+  const candidates = input.endEffects
+    ? endEffectsCandidates(input.held, selectors, input.actorCreatureTypeIds)
+    : []
   const pick =
     input.endEffects?.scope === 'ONE_CHOSEN'
       ? endEffectsChoice(candidates, input.chosenEffectId)
@@ -337,11 +384,12 @@ export function selectedEndedEffects(input: {
   holderActorId: string
   held: readonly ActiveRuleEffectRecord[]
   selectors: EndEffectsSelectors
+  actorCreatureTypeIds: ActorCreatureTypeIds
   scope: 'ALL' | 'ONE_CHOSEN'
   /** The effect the cast picked; only `ONE_CHOSEN` reads it. */
   chosenEffectId?: string
 }) {
-  const matching = endEffectsCandidates(input.held, input.selectors)
+  const matching = endEffectsCandidates(input.held, input.selectors, input.actorCreatureTypeIds)
   const selected =
     input.scope === 'ALL' ? matching : matching.filter(({ id }) => id === input.chosenEffectId)
   const endedEffects = withLinkedDependents(selected, input.held)

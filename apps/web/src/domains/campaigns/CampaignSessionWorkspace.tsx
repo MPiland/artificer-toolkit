@@ -128,7 +128,7 @@ export function CampaignSessionWorkspace({
         </Tabs.Panel>
       </Tabs>
       {campaign.role === 'OWNER' && campaign.status === 'ACTIVE' ? (
-        <CampaignGmRoller campaignId={campaign.id} />
+        <CampaignGmRoller campaignId={campaign.id} rollModes={campaign.rollModes} />
       ) : null}
     </main>
   )

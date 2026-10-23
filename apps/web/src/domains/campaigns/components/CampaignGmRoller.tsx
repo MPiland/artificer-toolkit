@@ -3,6 +3,7 @@ import { notifications } from '@mantine/notifications'
 import { useMutation } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
+import type { OfferedRollModeDto } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { useDiscardRollMutation } from '#app/data/rolls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import { useGmRollVisibilityPreference } from '#app/settings/useGmRollVisibilityPreference'
@@ -23,7 +24,13 @@ import { CharacterSheetRollContext } from '#domains/characters/sheet/dice/rollCo
 import { useCampaignChatRoom } from '../vtt/useCampaignChatRoom'
 import * as liveStyles from './campaignLive.css'
 
-export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
+export function CampaignGmRoller({
+  campaignId,
+  rollModes
+}: {
+  campaignId: string
+  rollModes: readonly OfferedRollModeDto[]
+}) {
   const {
     executePrivateRoll,
     executeRoll: executeTableRoll,
@@ -129,7 +136,7 @@ export function CampaignGmRoller({ campaignId }: { campaignId: string }) {
         roll={controller.presentedRoll}
         onRollRevealed={() => undefined}
       />
-      <CharacterSheetManualRoll className={liveStyles.gmDiceButton} />
+      <CharacterSheetManualRoll className={liveStyles.gmDiceButton} rollModes={rollModes} />
     </CharacterSheetRollContext.Provider>
   )
 }

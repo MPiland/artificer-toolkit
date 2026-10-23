@@ -23,6 +23,7 @@ const hitDieRoll = {
     terms: [{ count: 1, die: 10, rolls: [5], subtotal: 5 }],
     modifier: 1,
     mode: 'NORMAL',
+    keep: 'FIRST',
     subtotal: 6,
     transform: { kind: 'NONE' },
     total: 6

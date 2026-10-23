@@ -145,8 +145,8 @@ describe('d20 evidence saving-throw ability (SPELLS-4.T2c2b)', () => {
 describe('roll rule check D20_MODE_ADJUSTED', () => {
   const check = {
     kind: 'D20_MODE_ADJUSTED' as const,
-    rolledMode: 'ADVANTAGE' as const,
-    appliedMode: 'NORMAL' as const,
+    rolledMode: { code: 'ADVANTAGE', label: 'Advantage' },
+    appliedMode: { code: 'NORMAL', label: 'Normal' },
     cancelledRollIndexes: [1],
     addedRollIndexes: [],
     caption: 'Advantage cancelled: the target can sense you'
@@ -158,9 +158,10 @@ describe('roll rule check D20_MODE_ADJUSTED', () => {
     expect(rollRuleCheckDtoSchema.safeParse({ ...check, caption: 'x'.repeat(161) }).success).toBe(
       false
     )
-    expect(rollRuleCheckDtoSchema.safeParse({ ...check, appliedMode: 'SOMETIMES' }).success).toBe(
-      false
-    )
+    expect(
+      rollRuleCheckDtoSchema.safeParse({ ...check, appliedMode: { code: 'SOMETIMES', label: '' } })
+        .success
+    ).toBe(false)
   })
 })
 

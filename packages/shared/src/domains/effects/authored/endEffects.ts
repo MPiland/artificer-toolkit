@@ -10,4 +10,6 @@ export type EndEffectsAuthored = {
   effectKind: typeof EFFECT_KIND.END_EFFECTS
   scope: 'ALL' | 'ONE_CHOSEN'
   conditionIds: string[]
+  /** Ends only effects whose origin creature is of one of these types (Break Enchantment: a fey, a fiend, an undead). */
+  originCreatureTypeIds?: string[]
 }

@@ -1,5 +1,12 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -8,6 +15,7 @@ import {
   RANGE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
+  TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
   type SpellAuthored,
@@ -16,6 +24,25 @@ import {
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { spellChildId } from './shared.js'
+import { attackDisadvantageAgainstHolder } from './protection-from-evil-and-good.js'
+
+// Advantage on every saving throw; other creatures have disadvantage on attack rolls against them.
+const holyAuraModifiers = [
+  ...Object.values(ABILITY_CODE).map((ability) => ({
+    valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+    domain: { ability },
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'ADVANTAGE' as const }
+  })),
+  ...attackDisadvantageAgainstHolder
+].map((modifier, index) => ({
+  id: spellChildId(SPELL_IDS.HOLY_AURA, 0x214, index + 1),
+  order: index + 1,
+  grantKind: GRANT_KIND.MODIFIER_GRANT,
+  scope: MODIFIER_SCOPE_KIND.GLOBAL,
+  selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+  ...modifier
+}))
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
   if (!entry)
@@ -49,10 +76,13 @@ export const holyAura: SpellAuthored = {
         },
         range: {
           id: spellChildId(SPELL_IDS.HOLY_AURA, 0x211, 1),
-          rangeKind: RANGE_KIND.SELF
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 30,
+          unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
-          selectionKind: TARGET_SELECTION_KIND.SELF
+          selectionKind: TARGET_SELECTION_KIND.CHOSEN_CREATURES,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
         }
       },
       paths: [
@@ -73,9 +103,9 @@ export const holyAura: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.HOLY_AURA, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'HOLY_AURA' as const
+                id: spellChildId(SPELL_IDS.HOLY_AURA, 0x215, 1),
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: { modifiers: holyAuraModifiers }
               }
             ]
           }

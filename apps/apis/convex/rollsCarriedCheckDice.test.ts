@@ -54,9 +54,10 @@ async function characterCarrying(spell: CarriedSpell, ability?: 'DEXTERITY') {
     )
   const abilityCheck = async (ability: 'STRENGTH' | 'CHARISMA') => {
     const sheet = (await player.caller.query(api.characters.sheet.get, { id: character.id }))!
-    const modifier = sheet.overview.abilities.find((row) => row.ability === ability)!.modifier
+    const { modifier, rollMode } = sheet.overview.abilities.find((row) => row.ability === ability)!
     return player.caller.mutation(api.rolls.execute, {
       characterId: character.id,
+      rollMode,
       expression:
         modifier === 0 ? '1d20' : `1d20 ${modifier > 0 ? '+' : '-'} ${Math.abs(modifier)}`,
       source: {
@@ -71,6 +72,7 @@ async function characterCarrying(spell: CarriedSpell, ability?: 'DEXTERITY') {
     const modifier = sheet.overview.initiative
     return player.caller.mutation(api.rolls.execute, {
       characterId: character.id,
+      rollMode: sheet.overview.initiativeRollMode,
       expression:
         modifier === 0 ? '1d20' : `1d20 ${modifier > 0 ? '+' : '-'} ${Math.abs(modifier)}`,
       source: { kind: 'INITIATIVE', label: 'Initiative' }
@@ -81,6 +83,7 @@ async function characterCarrying(spell: CarriedSpell, ability?: 'DEXTERITY') {
     const save = sheet.overview.savingThrows.find((row) => row.ability === ability)!
     return player.caller.mutation(api.rolls.execute, {
       characterId: character.id,
+      rollMode: save.rollMode,
       expression:
         save.total === 0 ? '1d20' : `1d20 ${save.total > 0 ? '+' : '-'} ${Math.abs(save.total)}`,
       source: { kind: 'SAVING_THROW', label: `${save.label} saving throw` }

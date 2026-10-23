@@ -74,7 +74,11 @@ async function persist(root: TurnCoordinatorRootDto) {
   const posted: RollRecordDto[] = []
   const ctx = {
     ports: {
-      requireSystem: async () => ({ id: 'system', rulesetCode: 'dnd5e', rulesetVersion: '1' }),
+      requireSystem: async () => ({
+        id: DND5E_SYSTEM_ID,
+        rulesetCode: 'dnd5e',
+        rulesetVersion: '1'
+      }),
       readGmRollVisibility: async () => 'PUBLIC',
       requireCampaignAuthority: async () => ({}),
       insertTableRoll: async (
@@ -107,7 +111,7 @@ describe('persistEncounterInitiativeRollCards', () => {
     const [card, ...others] = await persist(declaredRoot([die('only', 12)], { score: 15 }))
     expect(others).toEqual([])
     expect(card?.source).toEqual({ kind: 'INITIATIVE', label: 'Initiative' })
-    expect(card?.evidence).toMatchObject({ mode: 'NORMAL', terms: [{ rolls: [12] }], total: 15 })
+    expect(card?.evidence).toMatchObject({ keep: 'FIRST', terms: [{ rolls: [12] }], total: 15 })
   })
 
   it('posts one card with both faces and the advantage mode, keeping the higher', async () => {
