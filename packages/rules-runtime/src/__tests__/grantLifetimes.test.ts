@@ -46,9 +46,9 @@ import {
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import {
-  pathLifecycleConsumeEventSchema,
-  pathLifecycleEndEventSchema
-} from '@artificer-toolkit/schema/shared/enums'
+  DND5E_EFFECT_CONSUME_EVENTS,
+  DND5E_EFFECT_END_EVENTS
+} from '../systems/dnd5e/eventVocabulary.js'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { activeEffectEndsOnRest } from '../character/sheetRest.js'
@@ -1144,8 +1144,8 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
 
   it('has a row for every authored lifecycle code', () => {
     const codes = new Set([
-      ...pathLifecycleConsumeEventSchema.options,
-      ...pathLifecycleEndEventSchema.options
+      ...DND5E_EFFECT_CONSUME_EVENTS.map(({ code }) => code),
+      ...DND5E_EFFECT_END_EVENTS.map(({ code }) => code)
     ])
     codes.delete('ON_CHOSEN_ITEM_RELEASED')
     const names = [...rows.map(([name]) => name), 'ON_LONG_REST']
