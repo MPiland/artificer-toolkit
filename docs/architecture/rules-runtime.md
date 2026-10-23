@@ -1638,6 +1638,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   an opportunity attack (salted `${occurrenceId}:${reactorActorId}`, settled through `spentUseGrants` on the REACTION arm) and a Legendary
   attack (salted `${occurrenceId}:legendary:${ordinal}`, `decoyEffectId` in its evidence). An attacker that cannot see the target or has a
   sense in the payload's `exemptAttackerSenseDefinitionIds` (blindsight, truesight) never meets a decoy.
+- **Healing received (SPELLS-4.T2n1, D156/D181).** A `HEALING_RECEIVED` `ENABLE` modifier makes every die of hit point healing the holder
+  receives take its maximum (Beacon of Hope). `encounterGrantsEnabledDomain` folds it into the target fact `healingMaximized`
+  (`encounterMovementTargets.ts`); the dice heal graph's `dnd5e.heal-total` node takes it as the `dnd5e.healing-maximized` fact beside the
+  literal maximum subtotal, so the shared roll is kept and only the total differs per target. Temporary hit points and fixed healing are
+  not maximized. Known limit: Beacon of Hope's death-save advantage is description-only until a death-save target exists on the
+  `SAVING_THROW_MODIFIER` filter (the encounter death save is a separate single-d20 graph).
+
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a

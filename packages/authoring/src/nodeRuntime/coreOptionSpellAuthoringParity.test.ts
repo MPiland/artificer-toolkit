@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { beaconOfHope } from '@artificer-toolkit/source-data/srd/spells/beacon-of-hope.js'
 import { blur } from '@artificer-toolkit/source-data/srd/spells/blur.js'
 import { enthrall } from '@artificer-toolkit/source-data/srd/spells/enthrall.js'
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
@@ -23,9 +24,10 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
-/** D156 T2a3, T2a4, T2e and T2k1: spells converted from closed rules to core options (ADR 0038 parity). */
-describe('spells authored from core options through the effect node map (SPELLS-4.T2a3, T2a4, T2e, T2k1)', () => {
+/** D156 T2a3, T2a4, T2e, T2k1 and T2n1: spells converted from closed rules to core options (ADR 0038 parity). */
+describe('spells authored from core options through the effect node map (SPELLS-4.T2a3, T2a4, T2e, T2k1, T2n1)', () => {
   it.each([
+    ['Beacon of Hope', beaconOfHope],
     ['Blur', blur],
     ['Enthrall', enthrall],
     ['Guiding Bolt', guidingBolt],
@@ -41,6 +43,22 @@ describe('spells authored from core options through the effect node map (SPELLS-
     ['True Strike', trueStrike]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }
+    const result = await normalizeNodeRuntimeValues(reader, {
+      mapId: 'equipment',
+      systemId: srdSystemRecord.id,
+      values: structuredClone(authored) as Record<string, unknown>
+    })
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+  })
+
+  it('authors a homebrew healing-maximizing grant with a different save ability', async () => {
+    const effects = structuredClone(beaconOfHope.effects)
+    const [grant] = effects[0]!.paths![0]!.resultBlock!.outcomes as unknown as [
+      { grants: { modifiers: { domain: { ability?: string } }[] } }
+    ]
+    grant.grants.modifiers[0]!.domain.ability = 'CHARISMA'
+    const authored = { ...structuredClone(caltropsBagOf20), effects }
     const result = await normalizeNodeRuntimeValues(reader, {
       mapId: 'equipment',
       systemId: srdSystemRecord.id,

@@ -114,6 +114,8 @@ export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
 export const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
 export const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
+/** Whether the target's healing dice take their maximum (`HEALING_RECEIVED`, Beacon of Hope). */
+export const DND5E_HEALING_MAXIMIZED_FACT_KEY = 'dnd5e.healing-maximized'
 /** The amount a recurring heal with an ability bonus gives each turn, settled at cast (D156). */
 export const DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY = 'dnd5e.recurring-heal-amount'
 /** The level a spell is cast at, which selects its authored per-level scaling. */
