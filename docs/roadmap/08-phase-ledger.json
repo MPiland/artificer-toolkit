@@ -10088,8 +10088,21 @@
               "text": "END_EFFECTS by tag (D174, split from T2f 2026-10-22): a TAG selector backed by a System vocabulary kind for effect tags (T5p recipe). Converts REMOVE_CURSE and Greater Restoration's curse and reduction clauses, with parity proofs; REMOVE_CURSE kind deleted."
             },
             {
-              "id": "SPELLS-4.T2f1",
-              "text": "Dispel Magic (D174, split from T2f 2026-10-22): SPELL_LEVEL selector with stored originLevel, a levelCheck with the TARGET_EFFECT_LEVEL DC kind, and the check flow widened to spell sources and ordered per-candidate checks in one action through the single d20 settlement. Converts DISPEL_MAGIC on a creature or object target with a parity proof and room journey; kind deleted.",
+              "id": "SPELLS-4.T2f1a",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2f", "RULES-2.T6e3b2"]
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "text": "Spell level on stored effects (D182): stored originLevel, the SPELL_LEVEL END_EFFECTS selector and the levelCheck shape; candidates at or below the cast level end automatically with no roll. Parity proof and room journey (Dispel-style END_EFFECTS SPELL_LEVEL with no check)."
+            },
+            {
+              "id": "SPELLS-4.T2f1b",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
@@ -10097,9 +10110,9 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T2f", "RULES-2.T6e3b2"]
+                "after": ["SPELLS-4.T2f1a"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "text": "Per-candidate level checks (D182): the check flow widened to spell sources; the pending check context holds a frozen ordered candidates list and a cursor, one roller prompt per candidate through the single d20 settlement, replay-idempotent per context and cursor; TARGET_EFFECT_LEVEL DC. Converts DISPEL_MAGIC on a creature or object target with parity proof and room journey; kind deleted; canonical check-flow guide updated."
             },
             {
               "id": "SPELLS-4.T2f2",
@@ -10111,7 +10124,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T2f1"]
+                "after": ["SPELLS-4.T2f1b"]
               }
             },
             {
@@ -10180,7 +10193,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-4.T2h1", "SPELLS-4.T2f1"]
+                "after": ["SPELLS-4.T2h1", "SPELLS-4.T2f1b"]
               },
               "text": "Maze escape (D178): the held creature's action makes a fixed-DC ability check through the generic check flow widened to spell sources (SPELLS-4.T2f1); success ends the owning effect. Replaces the MANUAL_ADJUDICATION, with a parity proof."
             },

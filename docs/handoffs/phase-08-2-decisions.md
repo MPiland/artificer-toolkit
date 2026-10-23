@@ -1142,6 +1142,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Mirror rule:** the source takes the amount the holder actually took (after the holder's resistance); the source's own defenses then apply as ordinary damage. Mirrored damage is never mirrored again (no ping-pong).
   - **Downstream:** SPELLS-31.T4n and SPELLS-33.T4n wait on T2n1 and T2n2; SPELLS-33.T6b1 waits on T2n1.
   - **Rejected:** one broad derived-healing outcome (couples four unrelated seams).
+* **D182** (2026-10-23) Dispel Magic split and per-candidate checks (SPELLS-4.T2f1, AC SPELLS-4.1; [slice-spells-4.md](slice-spells-4.md)). Orchestrator ruling amending D174.
+  - **Finding:** stored `originLevel` and the `SPELL_LEVEL` selector do not exist yet, and the check flow runs only from a CHECK-trigger invocation with one check, one d20 and one fixed DC per context; a spell cast never enters it.
+  - **Split:** T2f1a adds the stored `originLevel`, the `SPELL_LEVEL` selector and the `levelCheck` shape, ending candidates at or below the cast level automatically (no roll). T2f1b widens the check flow to spell sources with ordered per-candidate `TARGET_EFFECT_LEVEL` checks, converts `DISPEL_MAGIC` and deletes the kind. T2f2 (zones) and SPELLS-4.T2h3 (Maze escape) wait on T2f1b.
+  - **Pending context:** the pending check context may hold a `candidates` list and a cursor, with one roller prompt per candidate, each settled through the single d20 settlement. The server derives and freezes the candidate list and its order (deterministic: effect level, then creation order) when the cast commits. Only a settlement advances the cursor. Each candidate's roll is idempotent per context and cursor under replay. A candidate that ended before its turn is skipped with no roll. A successful check ends its effect in the same transaction and receipt as the roll. T2f1b updates the canonical check-flow guide with the new context shape.
+  - **Rejected:** one action per candidate (Dispel is one action); a single shared d20 for every candidate (the SRD rolls each check).
 
 ## Approved implementation decisions
 
