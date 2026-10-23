@@ -77,7 +77,7 @@ export type EncounterProjectionViewer = EncounterPlayerViewer & {
 
 /** The ids of the System's condition types marked `unseen`: the one condition fact a player's list carries (D131). */
 export function unseenConditionTypeIds(
-  conditionTypes: readonly { id: string; unseen?: boolean }[]
+  conditionTypes: readonly { id: string; code: string; unseen?: boolean }[]
 ): ReadonlySet<string> {
   return new Set(conditionTypes.flatMap((type) => (type.unseen ? [type.id] : [])))
 }
