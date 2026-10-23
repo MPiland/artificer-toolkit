@@ -96,6 +96,11 @@ export function prepareEncounterActionEffectPlans(input: {
    * for every action that plans no immunity.
    */
   sourceCharacterId?: string | null
+  /**
+   * How long the acting actor's own effects last; read only by a plan whose repeat carrier the
+   * source holds. Omitted for every other action.
+   */
+  sourceLifetimeScope?: 'OWNER' | 'ENCOUNTER'
   /** Whether the acting actor is hidden from players; frozen with the label. */
   sourceHidden: boolean
   /** The Run's current actor, whose turn the action is taken in; null before the Run starts. */
@@ -149,6 +154,11 @@ export function prepareEncounterActionEffectPlans(input: {
    * `endsWith` indices stay valid. Immunity and riders never meet.
    */
   riderEffects: (EffectPlan | null)[]
+  /**
+   * The effect the acting creature itself holds for the cast's Concentration: the carrier of a
+   * FRESH repeat offer (a spell that picks a new creature each turn). Null when the action plans none.
+   */
+  sourceEffect: EffectPlan | null
   relationshipConditionApplications: readonly Extract<
     CharacterRuleActionApplication,
     { kind: 'CONDITION_APPLY' }
@@ -163,7 +173,7 @@ export function prepareEncounterActionEffectPlans(input: {
     immunity &&
     (immunity.appliesTo === 'EVERY_TARGET' || input.d20?.resultPath === 'ON_SAVE_SUCCESS')
       ? [prepareSourceImmunityEffect(input)]
-      : plan?.repeatCarrier
+      : plan?.repeatCarrier && plan.repeatCarrier.heldBy !== 'SOURCE'
         ? [prepareRepeatCarrierEffect(input)]
         : (plan?.marginRiders ?? []).map((rider) => {
             const effect = prepareRecurringActiveEffect({
@@ -198,6 +208,8 @@ export function prepareEncounterActionEffectPlans(input: {
     stateEffect,
     recurringEffect,
     riderEffects,
+    sourceEffect:
+      plan?.repeatCarrier?.heldBy === 'SOURCE' ? prepareRepeatCarrierEffect(input) : null,
     relationshipConditionApplications: relationshipApplications
   }
 }
@@ -721,30 +733,48 @@ function frozenRepeatOffer(
 }
 
 /**
- * The effect a repeat-offering action leaves on its target beside the recurring effect (D166): the
- * carrier holds the frozen offer, is bound to the chosen item, and is not made once the item is
- * released. Null when the action offers no repeat.
+ * The effect a repeat-offering action leaves beside the recurring effect (D166): the carrier holds
+ * the frozen offer. A holder offer's carrier sits on the target, is bound to the chosen item, and is
+ * not made once the item is released. A FRESH offer's carrier (`heldBy` SOURCE) sits on the acting
+ * creature, binds no item and ends only with the Concentration it is maintained by. Null when the
+ * action offers no repeat of that kind.
  */
 function prepareRepeatCarrierEffect(
   input: Parameters<typeof prepareEncounterActionEffectPlans>[0]
 ): EffectPlan | null {
   const plan = input.activeEffectPlan
   const carrier = plan?.repeatCarrier
-  if (!plan?.chosenItem || !carrier) return null
+  if (!plan || !carrier) return null
+  const sourceHeld = carrier.heldBy === 'SOURCE'
+  const chosenItem = sourceHeld ? null : plan.chosenItem
+  if (!sourceHeld && !chosenItem) return null
+  if (sourceHeld && !input.sourceLifetimeScope)
+    throw new EncounterActionEffectPlanError('A source-held repeat carrier needs its source scope.')
   return prepareRecurringActiveEffect({
     ...input,
+    ...(input.sourceLifetimeScope &&
+      sourceHeld && {
+        target: {
+          actorId: input.sourceActorId,
+          conditionIds: [],
+          effectiveSize: null,
+          lifetimeScope: input.sourceLifetimeScope,
+          activeEffects: []
+        },
+        chosenItem: undefined
+      }),
     activeEffectPlan: {
       ...plan,
       compiledEntryId: carrier.compiledEntryId,
       frozenGraphNodeId: carrier.frozenGraphNodeId,
-      chosenItem: { ...plan.chosenItem, bindsGrant: true, grantUnlessReleased: true },
+      chosenItem: chosenItem && { ...chosenItem, bindsGrant: true, grantUnlessReleased: true },
       modifierGrantContribution: {
         applyGrantOutcomeId: carrier.applyGrantOutcomeId,
         modifiers: [],
         senses: [],
         includesCurrentTurn: false,
         consumeOnFirstEvents: [],
-        endOnEvents: ['ON_CHOSEN_ITEM_RELEASED'],
+        endOnEvents: sourceHeld ? [] : ['ON_CHOSEN_ITEM_RELEASED'],
         endOnConditionIds: [],
         holderEnd: null,
         effectOffers: carrier.effectOffers
@@ -753,6 +783,13 @@ function prepareRepeatCarrierEffect(
       initialRemaining: null,
       recurrenceStage: 'NONE',
       lifecycle: undefined,
+      conditionContributions: [],
+      perceptionContributions: [],
+      resultGate: undefined,
+      saveThresholds: undefined,
+      castSaveDcFactKey: null,
+      castFactKeys: [],
+      sourceImmunity: null,
       marginRiders: [],
       repeatCarrier: null
     }

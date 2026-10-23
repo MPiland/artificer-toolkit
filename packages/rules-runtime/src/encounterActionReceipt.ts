@@ -49,7 +49,12 @@ export function buildEncounterActionStoredExecution(input: {
   occurrenceId: string
   occurrenceVersion: number
   settled: ReturnType<typeof finishNativeActionMechanicsSettlement>
-  effects: ReturnType<typeof projectNativeActionEffectTransitions>
+  effects: ReturnType<typeof projectNativeActionEffectTransitions> & {
+    /** The carrier the acting creature holds for the cast's Concentration, when the action planned one. */
+    sourceEffectTransition?:
+      | ReturnType<typeof projectNativeActionEffectTransitions>['activeEffectTransitions'][number]
+      | null
+  }
   maintainedState: EncounterMaintainedEffectStateRecord | null
   maintenanceTransition: ReturnType<typeof maintainedEffectTransitionDtoSchema.parse> | null
   actionEconomy: EncounterActionEconomyConsumption | null
@@ -122,6 +127,9 @@ export function buildEncounterActionStoredExecution(input: {
         }
       : null
   const parentOccurrenceId = input.area ? { parentOccurrenceId: input.area.parentOccurrenceId } : {}
+  const sourceEffect = input.effects.sourceEffectTransition
+    ? { sourceEffectTransition: input.effects.sourceEffectTransition }
+    : {}
   const sourceCharacterStreamVersion =
     settled.sourceCharacterStreamVersion ??
     (source.kind === 'CHARACTER_ACTION' && actor.id !== target.id
@@ -164,6 +172,7 @@ export function buildEncounterActionStoredExecution(input: {
             activeEffectTransitions: activeEffectTransitions.map((transition) =>
               characterEffectReceipt(transition, input.maintainedState?.id ?? null)
             ),
+            ...sourceEffect,
             reactionEffectTransitions: (input.reactionEffectTransitions ?? []).map((transition) =>
               characterEffectReceipt(transition, null)
             ),
@@ -217,6 +226,7 @@ export function buildEncounterActionStoredExecution(input: {
             actionEconomyTransition,
             ...(input.attackAction ? { attackActionTransition: input.attackAction } : {}),
             activeEffectTransitions,
+            ...sourceEffect,
             grantEffectTransitions: input.grantEffectTransitions ?? [],
             stateEffectTransitions,
             ...(input.maintenanceTransition

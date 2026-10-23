@@ -292,6 +292,8 @@ export function prepareNativeLiveMaintainedState(input: {
     checksumCanonicalJson(input.completedPolicy) !== checksumCanonicalJson(maintenance.policy)
   )
     throw new Error('The completed action maintenance policy changed.')
+  // A repeat joins the live Concentration instead of opening a new one.
+  if (maintenance.joins) return maintenance.prior
   return prepareMaintainedEffectStateRecord({
     id: crypto.randomUUID(),
     encounterId: input.encounterId,

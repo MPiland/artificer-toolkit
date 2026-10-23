@@ -394,6 +394,13 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Not built: the web repeat row (`CampaignTabletopEffectOffers.tsx` lists the offer; starting its `actionId` from the offer row is a follow-up).
 - Proofs: `encounterRepeatPathAction.test.ts` (id form, offer to the source alone, frozen DC and cast level independent of the caster, stale carrier), `nativeRoomCoreOptionSpells.test.ts` Heat Metal (bonus-action repeat on the frozen DC, no slot or Concentration change, carrier gone with the item), the parity and source-data tests.
 
+### T2lb2b1 (fresh repeat target, D186)
+
+- Status: implemented; CI on `ci/spells-4-t2lb2b1`.
+- Built: `target: 'HOLDER' | 'FRESH'` on `REPEAT_SOURCE_PATH`; a source-held carrier maintained by the Concentration (`sourceEffectTransition` in the receipt); `SOURCE_IMMUNITY` `lifetime: 'CONCENTRATION'`; the repeat joins the live Concentration (`joins`, `joinsExistingState`) and an undo leaves it; web "New target" picker in `CampaignTabletopEffectOffers.tsx`. See rules-runtime.md "Fresh repeat".
+- Proofs: homebrew Dread Gaze (`freshRepeatSpell`), `freshRepeatOffer.test.ts`, room journey `nativeRoomFreshRepeat.test.ts`, drawer test.
+- Next: T2lb2b2 (Eyebite Asleep) authors its spell the same way; Break Enchantment (T2j2c) reuses the touch-range path. Panicked/Sickened and the EYEBITE kind deletion stay with T2l2.
+
 #### T2lb2b resume notes (Eyebite's retarget)
 
 - Build on the same seam: another `effectOffers` kind (retarget the held effect to a new target) in `effectOffer.ts`/`storedEffectOffer.ts`, discovered by `encounterEffectOffers.ts`; the carrier stays a plan-level `repeatCarrier`-style rider. Reuse `frozenRepeatOffer` for any frozen cast value; the cast level comes from `preparedSpellCastLevel(prepared)` passed as `spellCastLevel`, not from the TEST-phase execution evidence (which holds only target facts).

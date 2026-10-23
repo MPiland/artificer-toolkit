@@ -94,6 +94,19 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     throw new Error('The active-effect maintenance policy does not match its published definition.')
   const slot = await input.readSlot(policy.definitionId)
   const prior = slot.state
+  // A repeat of a cast's paths joins the Concentration that cast opened; it replaces and ends nothing.
+  if (prepared.source.kind === 'REPEAT_PATH') {
+    if (!prior) throw new Error('The selected repeat action is stale.')
+    return {
+      policy,
+      definitionChecksum: definition.checksum,
+      prior,
+      joins: true as const,
+      removed: [],
+      carried: [],
+      ...(await input.readOwners([], []))
+    }
+  }
   const casterCharacterId = prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null
   const carried = planConcentrationCarriedGrantEnds({
     casterCharacterId: casterCharacterId ?? '',
@@ -110,6 +123,7 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
     policy,
     definitionChecksum: definition.checksum,
     prior,
+    joins: false as const,
     removed,
     carried: sortedCarried,
     ...(await input.readOwners(removed, sortedCarried))
@@ -288,6 +302,7 @@ export function buildEncounterMaintenanceTransition(input: {
   }
   createdState: EncounterMaintainedEffectStateRecord
   createdDependentEffectIds: string[]
+  joinsExistingState?: true
 }) {
   const { maintenance } = input
   const prior = maintenance.prior
@@ -344,7 +359,8 @@ export function buildEncounterMaintenanceTransition(input: {
       ...entry,
       afterStreamVersion: entry.beforeStreamVersion + 1
     })),
-    createdDependentEffectIds: input.createdDependentEffectIds
+    createdDependentEffectIds: input.createdDependentEffectIds,
+    ...(input.joinsExistingState && { joinsExistingState: true })
   })
 }
 

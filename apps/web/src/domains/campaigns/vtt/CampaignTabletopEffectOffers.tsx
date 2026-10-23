@@ -33,7 +33,7 @@ type EffectOffersProps = {
   targetActorId: string | null
   /** The Scene read that measures the offer's range, or null when the Scene cannot place both tokens. */
   sceneContext: (
-    offer: MoveEffectOfferChoice,
+    offer: MoveEffectOfferChoice | RepeatEffectOfferChoice,
     targetActorId: string
   ) => MoveHeldEffectInputDto['sceneContext']
   onChooseOffer: (key: string | null) => void
@@ -103,6 +103,7 @@ function EffectOfferList({
 
   function repeat(
     offer: RepeatEffectOfferChoice,
+    repeatTargetActorId: string,
     acknowledgedWarnings: ResolveEncounterActionInputDto['acknowledgedWarnings']
   ) {
     return run(
@@ -115,9 +116,9 @@ function EffectOfferList({
           expectedVersion: encounterVersion,
           actorId,
           actionId: offer.actionId,
-          target: { kind: 'ACTOR', actorId: offer.holderActorId },
+          target: { kind: 'ACTOR', actorId: repeatTargetActorId },
           acceptedWieldConflict: null,
-          sceneContext: null,
+          sceneContext: offer.target === 'FRESH' ? sceneContext(offer, repeatTargetActorId) : null,
           acknowledgedWarnings
         }),
       { done: () => 'Repeated.', failed: 'The repeat could not be made.' }
@@ -134,7 +135,12 @@ function EffectOfferList({
         {offers.map((offer) => {
           const key = effectOfferKey(offer)
           if (!isMoveEffectOffer(offer)) {
-            const label = `Repeat ${offer.label} on ${holderLabel(offer.holderActorId)}`
+            const fresh = offer.target === 'FRESH'
+            const chosen = fresh && key === chosenOfferKey
+            const label = fresh
+              ? `Repeat ${offer.label} on a new target`
+              : `Repeat ${offer.label} on ${holderLabel(offer.holderActorId)}`
+            const pickedTarget = fresh ? targetActorId : offer.holderActorId
             return (
               <li className={styles.row} key={key}>
                 <Stack gap={4} style={{ flex: 1 }}>
@@ -156,17 +162,48 @@ function EffectOfferList({
                       {offer.warnings.map((warning) => warning.message).join(' ')}
                     </Text>
                   ) : null}
+                  {chosen ? (
+                    <Group align='flex-end' wrap='nowrap'>
+                      <Select
+                        comboboxProps={{ withinPortal: false }}
+                        data={creatures.map(({ id, label: creature }) => ({
+                          label: creature,
+                          value: id
+                        }))}
+                        disabled={busy}
+                        label='New target'
+                        searchable
+                        value={targetActorId}
+                        onChange={onTargetPick}
+                      />
+                      <Button disabled={busy} variant='default' onClick={onPickOnMap}>
+                        Pick on map
+                      </Button>
+                    </Group>
+                  ) : null}
                 </Stack>
-                <Button
-                  aria-label={label}
-                  disabled={busy}
-                  loading={submittingId === key}
-                  size='xs'
-                  variant='default'
-                  onClick={() => void repeat(offer, [])}
-                >
-                  Repeat
-                </Button>
+                {fresh && !chosen ? (
+                  <Button
+                    aria-label={label}
+                    disabled={busy}
+                    size='xs'
+                    variant='default'
+                    onClick={() => onChooseOffer(key)}
+                  >
+                    Choose target
+                  </Button>
+                ) : (
+                  <Button
+                    aria-label={chosen ? undefined : label}
+                    disabled={busy || pickedTarget === null}
+                    loading={submittingId === key}
+                    size='xs'
+                    variant={chosen ? 'filled' : 'default'}
+                    onClick={() => pickedTarget && void repeat(offer, pickedTarget, [])}
+                  >
+                    Repeat
+                  </Button>
+                )}
               </li>
             )
           }
@@ -241,7 +278,11 @@ function EffectOfferList({
           const codes = warnings.map((warning) => warning.code)
           if (isMoveEffectOffer(confirmingOffer)) {
             if (targetActorId) void move(confirmingOffer, targetActorId, codes)
-          } else void repeat(confirmingOffer, codes)
+          } else {
+            const repeatTarget =
+              confirmingOffer.target === 'FRESH' ? targetActorId : confirmingOffer.holderActorId
+            if (repeatTarget) void repeat(confirmingOffer, repeatTarget, codes)
+          }
         }}
       />
     </section>

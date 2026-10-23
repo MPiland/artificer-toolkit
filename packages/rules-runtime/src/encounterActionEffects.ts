@@ -293,6 +293,7 @@ export function prepareNativeActionEffectsPlan<
     sourceActorId: prepared.actor.id,
     sourceLabel: encounterActionSourceLabel(prepared.source),
     sourceCharacterId: prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null,
+    sourceLifetimeScope: prepared.actor.kind === 'CHARACTER' ? 'OWNER' : 'ENCOUNTER',
     sourceHidden: !prepared.actor.public,
     currentActorId: prepared.state.currentActorId,
     target: effectTarget(target),
@@ -398,12 +399,14 @@ export function prepareNativeActionEffectsPlan<
     degradedItem: degradation?.kind === 'DEGRADE' ? degradation : undefined,
     /** The weapon the source hit with that the target's passive corrodes; absent when it corrodes none. */
     sourceDegradedItem: sourceDegradation?.kind === 'DEGRADE' ? sourceDegradation : undefined,
-    // A source immunity outlasts the Concentration its action's effect depends on.
-    riderMaintained: !immune,
-    maintenance: recurringEffect
-      ? (plan?.maintenance ?? null)
-      : hold
-        ? holdingZone.maintenance
-        : null
+    // A source immunity outlasts the Concentration its action's effect depends on, unless it is
+    // authored to last as long as it.
+    riderMaintained: !immune || Boolean(immunity?.underConcentration),
+    maintenance:
+      recurringEffect || effects.sourceEffect || (immune && immunity?.underConcentration)
+        ? (plan?.maintenance ?? null)
+        : hold
+          ? holdingZone.maintenance
+          : null
   }
 }

@@ -2,6 +2,7 @@ import { registerConditionOutcomeFields } from './conditionOutcomeFields.js'
 import { registerEndEffectsOutcomeFields } from './endEffectsOutcomeFields.js'
 import { registerRemoveFromPlayOutcomeFields } from './removeFromPlayOutcomeFields.js'
 import { registerReviveOutcomeFields } from './reviveOutcomeFields.js'
+import { registerSourceImmunityOutcomeFields } from './sourceImmunityOutcomeFields.js'
 import type { OutcomeNodeMapApi } from './path.js'
 
 /** The fields that belong to one outcome effect kind, registered beside the common outcome fields. */
@@ -16,4 +17,5 @@ export function registerOutcomeKindFields(
   registerEndEffectsOutcomeFields(map, nodes, cond, data)
   registerReviveOutcomeFields(map, nodes, cond, logic)
   registerRemoveFromPlayOutcomeFields(map, nodes, cond)
+  registerSourceImmunityOutcomeFields(map, nodes, cond)
 }

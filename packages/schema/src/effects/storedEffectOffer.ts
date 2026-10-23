@@ -7,7 +7,9 @@ import {
   EFFECT_OFFER_ACTIVATION_MESSAGE,
   MAX_EFFECT_OFFERS,
   moveHeldEffectOfferSchema,
-  type MoveHeldEffectOffer
+  repeatOfferTargetSchema,
+  type MoveHeldEffectOffer,
+  type RepeatOfferTarget
 } from './effectOffer.js'
 
 /**
@@ -20,6 +22,7 @@ export interface CompiledRepeatSourcePathOffer {
   kind: 'REPEAT_SOURCE_PATH'
   offeredTo: 'SOURCE'
   activation: z.infer<typeof activationCodeSchema>
+  target?: RepeatOfferTarget
   effect: EffectAuthored
   castLevel?: number
 }
@@ -35,6 +38,7 @@ const compiledRepeatSourcePathOfferSchema = lazySchema(() =>
     kind: z.literal('REPEAT_SOURCE_PATH'),
     offeredTo: z.literal('SOURCE'),
     activation: activationCodeSchema,
+    target: z.optional(repeatOfferTargetSchema),
     effect: embeddedEffectSchema,
     castLevel: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(9)))
   })

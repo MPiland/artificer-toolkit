@@ -6,6 +6,7 @@ import { dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
 import { DND5E_SAVE_TEST_OPERATION_KEY } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
+  DND5E_CONDITION_DURATION_OPERATION_KEY,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
   DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY,
@@ -24,6 +25,7 @@ import { DND5E_SYSTEM_ID } from './identity.js'
 export function repeatFollowUpSavePublishedGraph(input: {
   action: Dnd5eCompiledEffectActionSource
   plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
+  repeatCarrier?: CharacterRuleActionActiveEffectPlan['repeatCarrier']
 }): ServerPublishedRuleDefinitionDto {
   const abilityDefinitionId =
     input.plan.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]
@@ -85,7 +87,16 @@ export function repeatFollowUpSavePublishedGraph(input: {
           },
           outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
         }
-      }
+      },
+      ...(input.repeatCarrier
+        ? [
+            {
+              id: input.repeatCarrier.frozenGraphNodeId,
+              operation: { key: DND5E_CONDITION_DURATION_OPERATION_KEY, contractVersion: 1 },
+              inputs: {}
+            }
+          ]
+        : [])
     ],
     outputs: {
       targetActorId: {
@@ -118,7 +129,15 @@ export function repeatFollowUpSavePublishedGraph(input: {
       {
         sourceEntryId: input.plan.compiledEntryId,
         nodeId: input.plan.frozenGraphNodeId
-      }
+      },
+      ...(input.repeatCarrier
+        ? [
+            {
+              sourceEntryId: input.repeatCarrier.compiledEntryId,
+              nodeId: input.repeatCarrier.frozenGraphNodeId
+            }
+          ]
+        : [])
     ]
   }
   return publishedGraph(definition)

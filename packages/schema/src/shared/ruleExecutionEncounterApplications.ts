@@ -726,6 +726,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
         z.array(encounterActorActiveEffectCreateReceiptDtoSchema).check(z.maxLength(2)),
         []
       ),
+      /** The carrier the acting creature itself holds for the cast's Concentration (a repeat offer's source-held carrier); undo deletes it. */
+      sourceEffectTransition: z.optional(encounterActorActiveEffectCreateReceiptDtoSchema),
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),
       /** Timed grants the target's own passive damage triggers created on it from this hit; undo deletes them. */
       grantEffectTransitions: z._default(
@@ -758,10 +760,8 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
           context
         })
         validateMaintainedEffectCreation({
+          ...value,
           occurrenceId: value.parentOccurrenceId ?? value.occurrenceId,
-          sourceActorId: value.sourceActorId,
-          activeEffectTransitions: value.activeEffectTransitions,
-          maintenanceTransition: value.maintenanceTransition,
           context
         })
         let current = value.targetTransition.before.currentHitPoints

@@ -446,6 +446,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
           initialRemaining: z.nullable(
             z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
           ),
+          /** Lasts as long as the casting's Concentration (an explicit authored lifetime), ending with it. */
+          underConcentration: z._default(z.boolean(), false),
           frozenGraph: serverPublishedRuleDefinitionDtoSchema
         })
       ),
@@ -462,6 +464,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
           compiledEntryId: serverUuidIdentityDtoSchema,
           frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
           applyGrantOutcomeId: serverUuidIdentityDtoSchema,
+          /** A FRESH repeat offer rides a carrier the source holds; any other rides the target. */
+          heldBy: z._default(z.enum(['TARGET', 'SOURCE']), 'TARGET'),
           effectOffers: compiledEffectOffersSchema
         })
       ),

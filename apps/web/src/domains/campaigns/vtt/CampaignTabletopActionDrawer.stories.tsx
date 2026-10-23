@@ -809,6 +809,7 @@ const repeatOffers = validated(encounterActionChoicesDtoSchema.shape.effectOffer
     effectId: '00000000-0000-4000-8000-000000000e32',
     offerIndex: 0,
     kind: 'REPEAT_SOURCE_PATH',
+    target: 'HOLDER',
     holderActorId: targetActor.id,
     activation: 'BONUS_ACTION',
     actionId: `${sourceActor.id}:REPEAT_PATH:00000000-0000-4000-8000-000000000e32:0`,

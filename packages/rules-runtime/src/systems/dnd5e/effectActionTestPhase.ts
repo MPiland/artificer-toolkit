@@ -28,6 +28,7 @@ import {
   DND5E_ATTACK_TEST_OPERATION_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY
 } from './dnd5eTestOperationKeys.js'
+import { dnd5eAttackKind } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { dnd5eAddedDiceNode } from './d20AddedDiceGraph.js'
 import { testContractVersion } from './effectActionOperationRegistry.js'
@@ -239,4 +240,11 @@ export function withMovementInterruption(
     checksum: checksumRuleDocument(definition),
     definition
   })
+}
+
+/** The kind of test a D&D action rolls (an attack or a saving throw), or null when it rolls neither. */
+export function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind | null {
+  const trigger = action.compiledEffect.invocation.triggerCode
+  if (dnd5eAttackKind(trigger) !== null) return 'ATTACK'
+  return trigger === 'SAVING_THROW' ? 'SAVE' : null
 }

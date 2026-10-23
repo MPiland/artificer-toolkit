@@ -547,13 +547,17 @@ export function CampaignTabletopActionDrawer({
     [actorIdByTokenId, sceneTokens, targetActorId]
   )
   const targetTokenId = targetToken?.id ?? null
-  // An effect offer's pick is measured from the effect's holder, and only a live creature other than the holder may take it.
-  const moveOffers = effectOffers.filter(isMoveEffectOffer)
-  const chosenOffer = moveOffers.find((offer) => effectOfferKey(offer) === chosenOfferKey) ?? null
+  // An effect offer's pick is measured from the effect's holder. A move's pick is a live creature other than the holder; a fresh repeat's pick is any live creature.
+  const chosenOffer =
+    effectOffers.find(
+      (offer) =>
+        effectOfferKey(offer) === chosenOfferKey &&
+        (isMoveEffectOffer(offer) || offer.target === 'FRESH')
+    ) ?? null
   const offerTargetActorId =
     chosenOffer &&
     pickedTargetActorId &&
-    pickedTargetActorId !== chosenOffer.holderActorId &&
+    (!isMoveEffectOffer(chosenOffer) || pickedTargetActorId !== chosenOffer.holderActorId) &&
     encounter.actors.some((actor) => actor.id === pickedTargetActorId && !actor.defeated)
       ? pickedTargetActorId
       : null
@@ -777,7 +781,7 @@ export function CampaignTabletopActionDrawer({
   const actionPreview = useMemo<VttActionPreview | null>(
     () =>
       chosenOffer
-        ? offerHolderTokenId
+        ? offerHolderTokenId && isMoveEffectOffer(chosenOffer)
           ? {
               range: { kind: 'WITHIN', distance: chosenOffer.range },
               sourceTokenId: offerHolderTokenId,
@@ -1492,9 +1496,9 @@ export function CampaignTabletopActionDrawer({
                 encounter.actors.find((actor) => actor.id === holderActorId)?.label ?? 'a creature'
               }
               offers={effectOffers}
-              sceneContext={(offer, newHolderActorId) => {
+              sceneContext={(offer, pickedActorId) => {
                 const sourceTokenId = tokenIdOfActor(offer.holderActorId)
-                const targetTokenId = tokenIdOfActor(newHolderActorId)
+                const targetTokenId = tokenIdOfActor(pickedActorId)
                 return scene && sourceTokenId && targetTokenId
                   ? {
                       sceneId: scene.id,

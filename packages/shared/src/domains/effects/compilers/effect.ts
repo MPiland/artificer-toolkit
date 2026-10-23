@@ -72,6 +72,7 @@ export type CompiledEffectOffer =
       kind: 'REPEAT_SOURCE_PATH'
       offeredTo: 'SOURCE'
       activation: AuthoredEffectOffer['activation']
+      target?: AuthoredEffectOffer['target']
       effect: EffectAuthored
     }
 
@@ -443,6 +444,7 @@ function compileLifecycle(
         kind: 'REPEAT_SOURCE_PATH',
         offeredTo: 'SOURCE',
         activation: offer.activation,
+        ...(offer.target ? { target: offer.target } : {}),
         effect: {
           ...effect,
           invocation: { ...invocation, activation: { code: offer.activation, amount: 1 } },

@@ -83,9 +83,11 @@ function classifyCreatedEffects(input: EffectCommitInput) {
   // The target's own rules create timed effects on it beside the action's effects: its damage-trigger
   // grants and the immunity a passed ward leaves on its holder.
   const grantTransition = outputs.grantEffectTransitions
+  // The carrier the acting creature holds for the cast's Concentration, beside the target's effects.
+  const sourceTransition = outputs.sourceEffectTransition ? [outputs.sourceEffectTransition] : []
   // The action's recurring effect may carry its riders' effects after it.
   if (
-    input.createdEffects.length > 7 + MAX_ACTION_RIDERS ||
+    input.createdEffects.length > 8 + MAX_ACTION_RIDERS ||
     stateTransition.length > 1 ||
     activeTransition.length > 1 + MAX_ACTION_RIDERS ||
     reactionTransition.length > 1 ||
@@ -94,7 +96,8 @@ function classifyCreatedEffects(input: EffectCommitInput) {
       stateTransition.length +
         activeTransition.length +
         reactionTransition.length +
-        grantTransition.length
+        grantTransition.length +
+        sourceTransition.length
   )
     throw new Error('Completed action effects do not match the stored receipt.')
   const ids = input.createdEffects.map((effect) => effect.id)
@@ -122,17 +125,28 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     )
     return effect ? [effect] : []
   })
+  const source = sourceTransition.length
+    ? (input.createdEffects.find((effect) => effect.id === sourceTransition[0]!.activeEffectId) ??
+      null)
+    : null
   if (
     grants.length !== grantTransition.length ||
     (stateTransition.length > 0 && !state) ||
     (activeTransition.length > 0 && !recurring) ||
     riders.length !== Math.max(activeTransition.length - 1, 0) ||
     (reactionTransition.length > 0 && !reaction) ||
+    (sourceTransition.length > 0 && !source) ||
     (state && recurring && state.id === recurring.id) ||
-    (reaction && (reaction.id === state?.id || reaction.id === recurring?.id))
+    (reaction && (reaction.id === state?.id || reaction.id === recurring?.id)) ||
+    (source &&
+      (source.id === state?.id ||
+        source.id === recurring?.id ||
+        source.id === reaction?.id ||
+        riders.some(({ id }) => id === source.id) ||
+        grants.some(({ id }) => id === source.id)))
   )
     throw new Error('Completed action effects do not match the stored receipt.')
-  return { state, recurring, riders, reaction, grants, outputs }
+  return { state, recurring, riders, reaction, grants, source, outputs }
 }
 
 /**
@@ -161,7 +175,7 @@ export async function prepareEncounterActionMaintenance(
   ctx: EncounterCharacterWriteTransaction,
   input: EffectCommitInput
 ): Promise<PreparedMaintenance | null> {
-  const { recurring, riders, outputs } = classifyCreatedEffects(input)
+  const { recurring, riders, source, outputs } = classifyCreatedEffects(input)
   if (!input.maintainedState) {
     if (outputs.maintenanceTransition)
       throw new Error('Completed action maintenance receipt has no created state.')
@@ -169,13 +183,20 @@ export async function prepareEncounterActionMaintenance(
   }
   if (!outputs.maintenanceTransition)
     throw new Error('Created maintained effect state has no completed action receipt.')
+  // A repeat joins the state an earlier cast opened; persistence verifies the join instead.
+  const live = await createActiveRuleEffectStore(ctx).findMaintainedState({
+    encounterId: input.state.id,
+    ownerActorId: input.command.actorId,
+    maintenanceDefinitionId: input.maintainedState.maintenanceDefinitionId
+  })
+  if (live?.id === input.maintainedState.id) return null
   return prepareMaintenanceReplacement(ctx, {
     state: input.state,
     command: input.command,
     maintainedState: input.maintainedState,
     sourceOccurrenceId: outputs.parentOccurrenceId ?? input.execution.occurrenceId,
     transition: outputs.maintenanceTransition,
-    createdDependentEffectIds: [recurring, ...riders].flatMap((effect) =>
+    createdDependentEffectIds: [recurring, ...riders, source].flatMap((effect) =>
       effect ? [effect.id] : []
     ),
     authorizedCharacterIds: input.authorizedCharacterIds
@@ -344,7 +365,8 @@ export async function persistEncounterActionEffects(
     occurredAt: string
   }
 ): Promise<EncounterRunActorState[]> {
-  const { state, recurring, riders, reaction, grants, outputs } = classifyCreatedEffects(input)
+  const { state, recurring, riders, reaction, grants, source, outputs } =
+    classifyCreatedEffects(input)
   const target = input.actors.find(
     (actor) => actor.id === actionTargetActorId(input.command.target)
   )
@@ -354,22 +376,26 @@ export async function persistEncounterActionEffects(
     (target.kind !== 'CHARACTER' && outputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH')
   )
     throw new Error('Completed action effect target does not match its receipt.')
-  const owner =
-    target.kind === 'CHARACTER'
-      ? target.sourceId && input.authorizedCharacterIds.has(target.sourceId)
-        ? ({ kind: 'CHARACTER' as const, characterId: target.sourceId } as const)
+  const effectOwner = (holder: EncounterRunActorState) =>
+    holder.kind === 'CHARACTER'
+      ? holder.sourceId && input.authorizedCharacterIds.has(holder.sourceId)
+        ? ({ kind: 'CHARACTER' as const, characterId: holder.sourceId } as const)
         : (() => {
             throw new Error('Encounter Character effect owner is incomplete.')
           })()
       : ({
           kind: 'ENCOUNTER_ACTOR' as const,
           encounterId: input.state.id,
-          targetActorId: target.id
+          targetActorId: holder.id
         } as const)
+  const owner = effectOwner(target)
+  const caster = input.actors.find((actor) => actor.id === input.command.actorId)
+  if (source && !caster) throw new Error('Completed action effect source is unavailable.')
   for (const effect of input.createdEffects) {
     const origin = effect.definition.origin
+    const holderOwner = effect.id === source?.id ? effectOwner(caster!) : owner
     if (
-      checksumCanonicalJson(effect.owner) !== checksumCanonicalJson(owner) ||
+      checksumCanonicalJson(effect.owner) !== checksumCanonicalJson(holderOwner) ||
       origin.kind !== 'ENCOUNTER' ||
       origin.sourceAggregateId !== input.state.id ||
       // A reaction's effect and a damage-trigger grant come from the target itself; the immunity a
@@ -383,11 +409,13 @@ export async function persistEncounterActionEffects(
       origin.rootCommandId !== input.command.commandId ||
       effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId ||
       effect.sourceEncounterId !==
-        (owner.kind === 'CHARACTER'
+        (holderOwner.kind === 'CHARACTER'
           ? sourceEncounterIdForDefinition(effect.definition, effect.maintainedEffectStateId)
           : null) ||
       effect.maintainedEffectStateId !==
-        (effect.id === recurring?.id || riders.some(({ id }) => id === effect.id)
+        (effect.id === recurring?.id ||
+        effect.id === source?.id ||
+        riders.some(({ id }) => id === effect.id)
           ? (input.maintainedState?.id ?? null)
           : null)
     )
@@ -430,7 +458,14 @@ export async function persistEncounterActionEffects(
     ),
     null
   )
+  const sourceReceipt = projectNativeActionEffectTransitions({
+    state: null,
+    recurring: source,
+    targetActorId: input.command.actorId
+  }).activeEffectTransitions[0]
   if (
+    checksumCanonicalJson(sourceReceipt ?? null) !==
+      checksumCanonicalJson(outputs.sourceEffectTransition ?? null) ||
     checksumCanonicalJson(grantReceipts) !==
       checksumCanonicalJson(outputs.grantEffectTransitions) ||
     checksumCanonicalJson(projected.stateEffectTransitions) !==
@@ -455,7 +490,7 @@ export async function persistEncounterActionEffects(
 
   const store = createActiveRuleEffectStore(ctx)
   if (supplied && !input.maintenance) {
-    // One creature of an area whose first creature already created the state its effect depends on.
+    // One creature of an area, or a repeat, whose effect depends on a state an earlier outcome created.
     const existing = await store.findMaintainedState({
       encounterId: input.state.id,
       ownerActorId: input.command.actorId,
@@ -469,9 +504,15 @@ export async function persistEncounterActionEffects(
         checksumCanonicalJson(
           buildEncounterJoinedMaintenanceTransition({
             createdState: supplied,
-            createdDependentEffectIds: [recurring, ...riders].flatMap((effect) =>
+            createdDependentEffectIds: [recurring, ...riders, source].flatMap((effect) =>
               effect ? [effect.id] : []
-            )
+            ),
+            // A repeat joins the state an earlier occurrence opened; an area creature, its own.
+            ...(supplied.descriptor.provenance.kind === 'ACTION' &&
+              supplied.descriptor.provenance.sourceOccurrenceId !==
+                (outputs.parentOccurrenceId ?? input.execution.occurrenceId) && {
+                joinsExistingState: true as const
+              })
           })
         )
     )

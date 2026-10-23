@@ -1544,7 +1544,7 @@ keyed by the grant id, and is `INDEFINITE` (the source's long rest; a Run holds 
 The encounter planner creates the immunity as a second effect on the holder in the plan's `riderEffect` slot
 (`riderMaintained: false`, so it outlives the source's Concentration). It holds one `SOURCE_IMMUNITY` state
 contribution `{ immuneToId, sourceCharacterId, sourceLabel }`. The compiler refuses a save immunity under
-Concentration and a lockout beside a failure-margin rider. Admission (`encounterSourceImmunityLabel`) refuses a
+Concentration unless it says `lifetime: 'CONCENTRATION'` (D186; see "Fresh repeat"), and a lockout beside a failure-margin rider. Admission (`encounterSourceImmunityLabel`) refuses a
 single-target use against an immune holder ("Immune to <label>"), and an area leaves that holder out: the pending
 area seals it as `unaffectedActorIds`, caught but not tested, so the persisted Scene check still matches. It matches
 by source actor, or for a Character by source Character, since a carried effect outlives the Encounter actor.
@@ -1935,6 +1935,16 @@ The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one
 - **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is not built yet (see the handoff).
 - **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. `isSupportedTestActivation` allows a `BONUS_ACTION` saving throw (a repeat's charge).
 - **Node maps:** `LOCAL_COLLECTION` sources take `up` (ancestors, nearest first) so the offer's `pathIds` select from the path list several groups up.
+
+#### Fresh repeat: `target: 'FRESH'` (current, SPELLS-4.T2lb2b1, D186)
+
+A repeat offer may pick a **new** creature each turn instead of repeating on the carrier's holder (`target: 'HOLDER' | 'FRESH'`, default `HOLDER`).
+
+- **Carrier:** a FRESH offer authors its carrier like Heat Metal's, but the carrier is held by the **source** (`repeatCarrier.heldBy: 'SOURCE'`), binds no item, has no end event and is a maintained dependent of the casting's Concentration. It travels in the receipt as `sourceEffectTransition`, separate from the target's `activeEffectTransitions`. `effectOffersFor` already finds a SOURCE-offered effect by `origin.sourceActorId`, so discovery needs nothing new.
+- **Pick:** the repeat action compiles the frozen Effect and its own invocation names the targets (range, sight, touch), so any single-target invocation works, a touch one included (Break Enchantment reuses this). `nativeEncounterRules` holds the target to the holder only when `repeatTarget === 'HOLDER'`. The compiler admits a FRESH carrier only for a `SINGLE_TARGET` invocation under Concentration.
+- **Exclusion:** reuses D156 `SOURCE_IMMUNITY` (`ON_SAVE_SUCCESS`, keyed by the effect id, which equals the repeat's `offer.effect.id`) with the explicit option `lifetime: 'CONCENTRATION'` (`sourceImmunity.underConcentration`). The immunity then ends with the Concentration rather than a turn count. An immunity under Concentration without that option, or a `CONCENTRATION` lifetime without Concentration, is still refused by the compiler. A creature that saved is refused by `encounterSourceImmunityLabel`; the immunity's own carrier survives repeats because the repeat's `pathIds` exclude it.
+- **Join:** a repeat has no maintenance of its own to open. `prepareEncounterActionMaintenance` returns `joins: true` for a `REPEAT_PATH` source, `prepareNativeLiveMaintainedState` returns the live state instead of creating one, and the receipt's `maintenanceTransition` carries `joinsExistingState: true` (its root binding is the earlier cast's occurrence). The Concentration is neither restarted nor replaced, and undoing the repeat deletes only what it created. `discoverEncounterRepeatPath` restores `requiresConcentration` on a FRESH repeat whose carrier is maintained, since the frozen Effect no longer says it.
+- **Proof:** `freshRepeatOffer.test.ts` (compile, touch, rejections, range) and the room journey `nativeRoomFreshRepeat.test.ts`, both on the homebrew `freshRepeatSpell` (Dread Gaze, `rules-runtime/src/testing`).
 
 Initiative is application policy over typed rules evidence. Campaign settings select an allowed
 UUID-backed policy and tie resolver for future Encounters; admission freezes the exact policy and graph

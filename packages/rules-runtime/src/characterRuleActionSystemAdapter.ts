@@ -293,6 +293,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     appliesTo: 'SAVE_SUCCESS' | 'EVERY_TARGET'
     immuneToId: string
     initialRemaining: number | null
+    /** Lasts as long as the casting's Concentration, ending with it. */
+    underConcentration?: boolean
     frozenGraph: ServerPublishedRuleDefinitionDto
   }
   /**
@@ -304,6 +306,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     compiledEntryId: string
     frozenGraphNodeId: string
     applyGrantOutcomeId: string
+    /** The source holds a FRESH offer's carrier; any other rides the target. */
+    heldBy?: 'TARGET' | 'SOURCE'
     effectOffers: readonly CompiledEffectOffer[]
   }
 }

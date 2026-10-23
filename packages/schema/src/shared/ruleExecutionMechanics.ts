@@ -633,7 +633,9 @@ export const maintainedEffectTransitionDtoSchema = lazySchema(() =>
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER * 2)),
       createdDependentEffectIds: z
         .array(uuidSchema)
-        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+        .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+      /** The dependents join a state an earlier occurrence opened (a repeat), which this one replaces and ends nothing of. */
+      joinsExistingState: z.optional(z.literal(true))
     })
     .check(
       z.superRefine((value, context) => {
@@ -722,13 +724,33 @@ export function validateMaintainedEffectCreation(input: {
     activeEffectId: string
     maintainedEffectStateId?: string | null
   }[]
+  /** The effect the acting creature itself holds for the cast's Concentration, beside the target's. */
+  sourceEffectTransition?: {
+    activeEffectId: string
+    targetActorId: string
+    maintainedEffectStateId?: string | null
+  } | null
   maintenanceTransition?: z.infer<typeof maintainedEffectTransitionDtoSchema> | null
   context: z.core.$RefinementCtx
 }) {
   const maintenance = input.maintenanceTransition ?? null
+  const activeEffectTransitions = [
+    ...input.activeEffectTransitions,
+    ...(input.sourceEffectTransition ? [input.sourceEffectTransition] : [])
+  ]
+  if (
+    input.sourceEffectTransition &&
+    input.sourceEffectTransition.targetActorId !== input.sourceActorId
+  )
+    input.context.addIssue({
+      code: 'custom',
+      path: ['sourceEffectTransition'],
+      message: 'A source effect belongs to the acting creature.'
+    })
   if (maintenance) {
     if (
-      maintenance.createdState.sourceOccurrenceId !== input.occurrenceId ||
+      (!maintenance.joinsExistingState &&
+        maintenance.createdState.sourceOccurrenceId !== input.occurrenceId) ||
       maintenance.createdState.sourceActorId !== input.sourceActorId
     )
       input.context.addIssue({
@@ -738,8 +760,8 @@ export function validateMaintainedEffectCreation(input: {
       })
     const dependentIds = new Set(maintenance.createdDependentEffectIds)
     if (
-      input.activeEffectTransitions.length !== dependentIds.size ||
-      input.activeEffectTransitions.some(
+      activeEffectTransitions.length !== dependentIds.size ||
+      activeEffectTransitions.some(
         (transition) =>
           transition.maintainedEffectStateId !== maintenance.createdState.id ||
           !dependentIds.has(transition.activeEffectId)
@@ -751,7 +773,7 @@ export function validateMaintainedEffectCreation(input: {
         message: 'Maintained replacement created dependencies are invalid.'
       })
   } else if (
-    input.activeEffectTransitions.some((transition) => transition.maintainedEffectStateId != null)
+    activeEffectTransitions.some((transition) => transition.maintainedEffectStateId != null)
   )
     input.context.addIssue({
       code: 'custom',

@@ -80,9 +80,15 @@ import {
 } from './effectActionTestOutcomes.js'
 import {
   compileTestDefinition,
+  testPhaseKindOrNull,
   withMovementInterruption,
   type TestPlan
 } from './effectActionTestPhase.js'
+import {
+  authoredAlike,
+  isRepeatCarrierEntry,
+  repeatCarrierPlan
+} from './effectActionRepeatCarrier.js'
 import { compileDnd5eZonePlacement } from './effectActionZones.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
@@ -345,12 +351,6 @@ function isCheckOutcomeAction(action: Dnd5eCompiledEffectActionSource): boolean 
   )
 }
 
-function testPhaseKindOrNull(action: Dnd5eCompiledEffectActionSource): TestKind | null {
-  const trigger = action.compiledEffect.invocation.triggerCode
-  if (dnd5eAttackKind(trigger) !== null) return 'ATTACK'
-  return trigger === 'SAVING_THROW' ? 'SAVE' : null
-}
-
 /**
  * Outcomes a test action leaves to its active-effect plan rather than its TEST/OUTCOME graphs, which
  * the plan makes only on the result paths its `resultGate` lists: an actor relationship, a grant on
@@ -372,6 +372,7 @@ function isActiveEffectPlanOutcome(
     entry.outcome.effectKind === 'SOURCE_IMMUNITY' ||
     entry.outcome.effectKind === 'RELEASE_CHOSEN_ITEM' ||
     entry.outcome.effectKind === 'DEGRADE_EQUIPMENT' ||
+    isRepeatCarrierEntry(entry) ||
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
       (entry.pathCode === 'ON_HIT' ||
         entry.pathCode === 'ON_MISS' ||
@@ -991,7 +992,7 @@ function timedConditionPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   // A manual ruling beside the held entries (Maze's escape) is the GM's, so the effect holds nothing for it.
-  const entries = entriesBesideSourceImmunity(action).filter(
+  const entries = entriesBesideSidecars(action).filter(
     (entry) => !('outcome' in entry && entry.outcome.effectKind === 'MANUAL_ADJUDICATION')
   )
   const outcomeEntries = entries.filter((entry) => 'outcome' in entry)
@@ -1157,10 +1158,15 @@ function ownsTimedSaveCondition(
   )
 }
 
-/** The action's entries without a successful save's immunity, which is planned beside the effect it rides, not held by it. */
-function entriesBesideSourceImmunity(action: Dnd5eCompiledEffectActionSource) {
+/**
+ * The action's entries without a successful save's immunity and a repeat carrier, which are planned
+ * beside the effect they ride, not held by it.
+ */
+function entriesBesideSidecars(action: Dnd5eCompiledEffectActionSource) {
   return action.compiledEffect.entries.filter(
-    (entry) => !('outcome' in entry && entry.outcome.effectKind === 'SOURCE_IMMUNITY')
+    (entry) =>
+      !('outcome' in entry && entry.outcome.effectKind === 'SOURCE_IMMUNITY') &&
+      !isRepeatCarrierEntry(entry)
   )
 }
 
@@ -1198,17 +1204,23 @@ function sourceImmunityPlan(
     }
   }
   if (!entry) return null
-  const initialRemaining = entry.duration ? conditionDurationTurns(entry.duration) : null
+  // An explicit Concentration lifetime replaces the turn count; without it a timed result is required.
+  const underConcentration =
+    entry.outcome.effectKind === 'SOURCE_IMMUNITY' && entry.outcome.lifetime === 'CONCENTRATION'
+  const initialRemaining =
+    entry.duration && !underConcentration ? conditionDurationTurns(entry.duration) : null
   if (
     entries.length > 1 ||
     testPhaseKindOrNull(action) !== 'SAVE' ||
     entry.pathCode !== 'ON_SAVE_SUCCESS' ||
-    initialRemaining === null ||
+    (underConcentration ? entry.duration !== undefined : initialRemaining === null) ||
     Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
     entry.maintenanceDefinitionId ||
     !UUID.test(entry.entryId)
   )
-    unsupported('D&D source immunity is one timed outcome of a successful saving throw.')
+    unsupported(
+      'D&D source immunity is one timed outcome, or one Concentration-lifetime outcome, of a successful saving throw.'
+    )
   const plan = {
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'source-immunity'
@@ -1218,6 +1230,7 @@ function sourceImmunityPlan(
     appliesTo: 'SAVE_SUCCESS',
     immuneToId: action.effectId,
     initialRemaining,
+    underConcentration,
     frozenGraph: durationPublishedGraph({
       effectId: action.effectId,
       plan: { ...plan, marginRiders: [] }
@@ -1341,93 +1354,6 @@ function saveGrantPlan(
     return null
   // A grant on one save result applies only on it; one authored alike on both applies either way.
   return modifierGrantEntryPlan({ action, entry, resultGated: !other, untilEndEvent: false })
-}
-
-/** A grant that carries a repeat offer (D166): planned beside the effect it rides, not as a modifier grant. */
-function isRepeatCarrierEntry(entry: CompiledEffectGroup['entries'][number]): boolean {
-  return (
-    'outcome' in entry &&
-    entry.outcome.effectKind === 'APPLY_GRANT' &&
-    (entry.lifecycle?.effectOffers ?? []).some((offer) => offer.kind === 'REPEAT_SOURCE_PATH')
-  )
-}
-
-/**
- * The effect a save action leaves on its target that offers the source a repeat of the action's paths
- * (Heat Metal's "use a Bonus Action to cause the damage again"), or null when it offers none. The
- * carrier is one grant authored alike on both save results with no modifiers of its own; it is bound
- * to the chosen item and ends when that item is released, and it lasts as long as the action's
- * Concentration. The cast freezes the saving throw DC and the cast level into the offer.
- */
-function repeatCarrierPlan(
-  action: Dnd5eCompiledEffectActionSource
-): CharacterRuleActionActiveEffectPlan['repeatCarrier'] {
-  const [entry, other, ...rest] = action.compiledEffect.entries.flatMap((candidate) =>
-    'outcome' in candidate && isRepeatCarrierEntry(candidate) ? [candidate] : []
-  )
-  if (!entry) return null
-  if (
-    entry.outcome.effectKind !== 'APPLY_GRANT' ||
-    testPhaseKindOrNull(action) !== 'SAVE' ||
-    rest.length > 0 ||
-    (other &&
-      (other.pathCode === entry.pathCode || authoredAlike(entry) !== authoredAlike(other))) ||
-    !entry.chosenItem ||
-    !entry.outcome.bindsChosenItem ||
-    entry.duration === undefined ||
-    !UUID.test(entry.entryId)
-  )
-    unsupported('D&D repeat offer rides one chosen-item grant authored alike on both save results.')
-  const { grants } = entry.outcome
-  const { endOnEvents = [], effectOffers = [], ...otherLifecycle } = entry.lifecycle ?? {}
-  if (
-    grants.modifiers?.length ||
-    grants.senses?.length ||
-    grants.proficiencies?.length ||
-    endOnEvents.length !== 1 ||
-    endOnEvents[0] !== 'ON_CHOSEN_ITEM_RELEASED' ||
-    Object.values(otherLifecycle).some((value) => value !== undefined)
-  )
-    unsupported(
-      'D&D repeat offer carrier grants nothing and ends when its chosen item is released.'
-    )
-  return {
-    compiledEntryId: entry.entryId,
-    frozenGraphNodeId: 'repeat-carrier',
-    applyGrantOutcomeId: entry.outcome.id,
-    effectOffers: effectOffers.map((offer) =>
-      offer.kind === 'MOVE_HELD_EFFECT' ? { ...offer, range: { ...offer.range } } : { ...offer }
-    )
-  }
-}
-
-/**
- * A grant entry as authored, without its identities or its release flag, so two paths' grants
- * compare alike.
- */
-function authoredAlike(
-  entry: Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
-): string {
-  const withoutIdentities = (value: unknown): unknown =>
-    Array.isArray(value)
-      ? value.map(withoutIdentities)
-      : typeof value === 'object' && value !== null
-        ? Object.fromEntries(
-            Object.entries(value).flatMap(([key, field]) =>
-              key === 'id' || key === 'unlessChosenItemReleased'
-                ? []
-                : [[key, withoutIdentities(field)]]
-            )
-          )
-        : value
-  return JSON.stringify(
-    withoutIdentities({
-      outcome: entry.outcome,
-      duration: entry.duration,
-      lifecycle: entry.lifecycle,
-      maintenanceDefinitionId: entry.maintenanceDefinitionId
-    })
-  )
 }
 
 /**
@@ -1655,7 +1581,7 @@ function repeatingDirectFollowUpSavePlan(
   triggerCode: 'SAVING_THROW' | 'ACTIVATED' = 'SAVING_THROW'
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
   const { invocation } = action.compiledEffect
-  const entries = entriesBesideSourceImmunity(action)
+  const entries = entriesBesideSidecars(action)
   const leadEntries = entries.slice(0, -1)
   const leadEntry = leadEntries[0]
   const saveEntry = entries.at(-1)
@@ -1818,9 +1744,7 @@ function countRepeatSave(
 function repeatingDirectFollowUpSaveLeadEntries(
   action: Dnd5eCompiledEffectActionSource
 ): CompiledEffectGroup['entries'] | null {
-  return repeatingDirectFollowUpSavePlan(action)
-    ? entriesBesideSourceImmunity(action).slice(0, -1)
-    : null
+  return repeatingDirectFollowUpSavePlan(action) ? entriesBesideSidecars(action).slice(0, -1) : null
 }
 
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
@@ -3453,24 +3377,36 @@ function dnd5eActiveEffectPlans(
     sourceImmunity &&
     (!plan ||
       (sourceImmunity.appliesTo === 'SAVE_SUCCESS'
-        ? plan.maintenance
+        ? Boolean(plan.maintenance) !== (sourceImmunity.underConcentration ?? false)
         : plan.marginRiders.length > 0))
   )
-    unsupported('D&D source immunity needs a lasting effect it can ride.')
+    unsupported(
+      sourceImmunity.underConcentration
+        ? 'D&D Concentration-lifetime immunity needs the Concentration its action maintains.'
+        : 'D&D source immunity needs a lasting effect it can ride.'
+    )
   const repeatCarrier = repeatCarrierPlan(action)
-  // The carrier takes the failure rider's slot and depends on the Concentration the grant rides.
+  // A target-held carrier takes the failure rider's slot and depends on the Concentration the grant
+  // rides; a source-held one depends on the Concentration the action's own timed effect rides, and
+  // leaves the rider slot to the success immunity.
   if (
     repeatCarrier &&
-    (!timedPlan?.modifierGrantContribution ||
-      !timedPlan.maintenance ||
-      !timedPlan.chosenItem ||
-      timedPlan.marginRiders.length > 0 ||
-      sourceImmunity)
+    (repeatCarrier.heldBy === 'SOURCE'
+      ? action.compiledEffect.invocation.targeting?.selectionKind !== 'SINGLE_TARGET' ||
+        !plan?.conditionContributions?.length ||
+        !plan.maintenance ||
+        plan.chosenItem ||
+        plan.marginRiders.length > 0
+      : !timedPlan?.modifierGrantContribution ||
+        !timedPlan.maintenance ||
+        !timedPlan.chosenItem ||
+        timedPlan.marginRiders.length > 0 ||
+        sourceImmunity)
   )
-    unsupported('D&D repeat offer needs a maintained chosen-item grant it can ride.')
+    unsupported('D&D repeat offer needs a maintained effect it can ride.')
   if (!plan) return []
   const frozenGraph = savePlan
-    ? repeatFollowUpSavePublishedGraph({ action, plan: savePlan })
+    ? repeatFollowUpSavePublishedGraph({ action, plan: savePlan, repeatCarrier })
     : timedPlan
       ? durationPublishedGraph({
           effectId: action.effectId,

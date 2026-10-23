@@ -1,3 +1,4 @@
+import type { RepeatOfferTarget } from '@artificer-toolkit/schema/effects/effectOffer'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
@@ -15,8 +16,10 @@ export interface EncounterRepeatPathCapabilityDescriptor extends EffectActionCap
   /** The held effect that carries the offer, and the offer's place in it. */
   carrierEffectId: string
   offerIndex: number
-  /** The creature the repeat runs against: the one that holds the carrier. */
+  /** The creature a `HOLDER` repeat runs against: the one that holds the carrier. */
   holderActorId: string
+  /** `HOLDER` repeats the paths on the carrier's holder; `FRESH` picks any creature the invocation admits. */
+  repeatTarget: RepeatOfferTarget
   label: string
 }
 
@@ -60,7 +63,17 @@ export function discoverEncounterRepeatPath(input: {
     ...parsed,
     kind: 'REPEAT_SOURCE_PATH'
   })
-  const compiledEffect = compileEffect(offer.effect)
+  const carrier = input.effectsByHolder
+    .get(offer.holderActorId)
+    ?.find((effect) => effect.id === offer.effectId)
+  // A fresh pick rides the Concentration its carrier is maintained by, which the frozen Effect no
+  // longer says; the repeat compiles under it so its results join that Concentration.
+  const compiledEffect = {
+    ...compileEffect(offer.effect),
+    ...(offer.target === 'FRESH' && carrier?.maintainedEffectStateId
+      ? { requiresConcentration: true as const }
+      : {})
+  }
   const normalized = bindEncounterEffect({
     gameSystemId: input.gameSystemId,
     compiledEffect,
@@ -68,9 +81,6 @@ export function discoverEncounterRepeatPath(input: {
     abilityDefinitions: input.abilityDefinitions
   })
   if (normalized === null) throw new Error('The selected repeat action is stale.')
-  const carrier = input.effectsByHolder
-    .get(offer.holderActorId)
-    ?.find((effect) => effect.id === offer.effectId)
   const grant = carrier?.definition.stateContributions.find(
     (contribution) => contribution.kind === 'MODIFIER_GRANT'
   )
@@ -92,7 +102,8 @@ export function discoverEncounterRepeatPath(input: {
     encounterActorId: input.actorId,
     carrierEffectId: offer.effectId,
     offerIndex: offer.offerIndex,
-    holderActorId: offer.holderActorId
+    holderActorId: offer.holderActorId,
+    repeatTarget: offer.target ?? 'HOLDER'
   }
   return {
     capability,

@@ -3,7 +3,8 @@ import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/proje
 import type { MoveHeldEffectOffer } from '@artificer-toolkit/schema/effects/effectOffer'
 import type { CompiledRepeatSourcePathOffer } from '@artificer-toolkit/schema/effects/storedEffectOffer'
 
-type HeldEffect = Pick<ActiveRuleEffectRecord, 'id' | 'definition'>
+type HeldEffect = Pick<ActiveRuleEffectRecord, 'id' | 'definition'> &
+  Partial<Pick<ActiveRuleEffectRecord, 'maintainedEffectStateId'>>
 type EffectsByHolder = ReadonlyMap<string, readonly HeldEffect[]>
 
 /** Where a held offer lives: the effect that carries it, its place in the effect, and its holder. */

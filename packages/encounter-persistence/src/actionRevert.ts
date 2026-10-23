@@ -567,8 +567,21 @@ export async function revertLastEncounterAction(
           expectedVersion: effect.afterVersion,
           removal: 'REMOVED'
         })
+      // The carrier the acting creature holds for the cast's Concentration goes with it.
+      if (action.sourceEffectTransition)
+        await store.deleteCas({
+          id: action.sourceEffectTransition.activeEffectId,
+          owner:
+            source.kind === 'CHARACTER' && source.sourceId !== null
+              ? { kind: 'CHARACTER', characterId: source.sourceId }
+              : { kind: 'ENCOUNTER_ACTOR', encounterId: state.id, targetActorId: source.id },
+          expectedVersion: action.sourceEffectTransition.afterVersion,
+          removal: 'REMOVED'
+        })
+      // A repeat joins the Concentration an earlier cast opened, so undoing it leaves that state.
       const created = action.maintenanceTransition?.createdState
-      if (created) createdStates.set(created.id, created)
+      if (created?.sourceOccurrenceId === (action.parentOccurrenceId ?? action.occurrenceId))
+        createdStates.set(created.id, created)
     }
     for (const action of targetBatches.toReversed()) await invertTarget(action)
     const rootCreated = areaRoot?.maintenanceTransition?.createdState

@@ -13,7 +13,7 @@ import { encounterRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.
 import { shapeMeasurementDtoSchema } from '../shared/shape.js'
 import { basicActionReusableDefinitionDocumentDtoSchema } from '../shared/basicActions.js'
 import { targetingSelfDtoSchema } from '../effects/targeting.js'
-import { effectOfferRangeDtoSchema } from '../effects/effectOffer.js'
+import { effectOfferRangeDtoSchema, repeatOfferTargetSchema } from '../effects/effectOffer.js'
 
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 const labelSchema = lazySchema(() => z.string().check(z.trim()).check(z.minLength(1)))
@@ -390,8 +390,10 @@ export const encounterEffectOfferChoiceDtoSchema = lazySchema(() => {
     z.strictObject({
       ...base,
       kind: z.literal('REPEAT_SOURCE_PATH'),
-      /** The action the client resolves against the holder (D166); it spends the offer's activation. */
+      /** The action the client resolves (D166); it spends the offer's activation. */
       actionId: z.string().check(z.minLength(1)),
+      /** `HOLDER` resolves against the holder; `FRESH` is aimed at any creature the cast could reach. */
+      target: repeatOfferTargetSchema,
       /** The cast's name, e.g. the spell, or a generic name when the source is hidden from the reader. */
       label: labelSchema,
       /** The level the cast froze, when the repeat scales with it. */

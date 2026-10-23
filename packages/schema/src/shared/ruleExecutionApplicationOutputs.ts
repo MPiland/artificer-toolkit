@@ -21,6 +21,7 @@ import {
   characterMechanicsApplicationDtoSchema,
   characterMechanicsResourceReceiptDtoSchema,
   characterMechanicsTargetTransitionDtoSchema,
+  encounterActorActiveEffectCreateReceiptDtoSchema,
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
   resolveDispositionDamage,
@@ -131,6 +132,8 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
         z.array(characterActiveEffectCreateReceiptDtoSchema).check(z.maxLength(4)),
         []
       ),
+      /** The carrier the acting creature itself holds for the cast's Concentration (a repeat offer's source-held carrier); undo deletes it. */
+      sourceEffectTransition: z.optional(encounterActorActiveEffectCreateReceiptDtoSchema),
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),
       d20: z.nullable(serverRuleExecutionD20EvidenceDtoSchema),
       nestedD20: z._default(z.nullable(serverRuleExecutionNestedD20EvidenceDtoSchema), null),
@@ -162,9 +165,19 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
           occurrenceId: value.parentOccurrenceId ?? value.occurrenceId,
           sourceActorId: value.sourceActorId,
           activeEffectTransitions: value.activeEffectTransitions,
+          sourceEffectTransition: value.sourceEffectTransition,
           maintenanceTransition: value.maintenanceTransition,
           context
         })
+        if (
+          value.sourceEffectTransition &&
+          value.sourceEffectTransition.targetActorId !== value.sourceActorId
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['sourceEffectTransition'],
+            message: 'A source effect belongs to the acting creature.'
+          })
         let current = value.targetTransition.before.currentHitPoints
         let temporary = value.targetTransition.before.temporaryHitPoints
         let temporarySource = value.targetTransition.before.temporaryHitPointsSourceEffectId ?? null

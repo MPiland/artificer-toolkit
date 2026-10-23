@@ -14,6 +14,7 @@ import { createLinkedRiders } from '@artificer-toolkit/rules-runtime/encounterAc
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { prepareActiveRuleEffectRecord } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
 import {
+  buildEncounterJoinedMaintenanceTransition,
   buildEncounterMaintenanceTransition,
   planEncounterMaintenanceOwner
 } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
@@ -167,6 +168,21 @@ export function planNativeLiveEncounterSettlement(input: {
   const damageGrantEffects = input.damageGrants.map((grant) =>
     create(grant.plan, undefined, grant.id)
   )
+  // A source-held carrier lands on the acting creature, beside the target's effects, for the cast's Concentration.
+  const sourceEffect = effects.sourceEffect
+    ? createNativeActiveEffect(effects.sourceEffect, {
+        owner: nativeEffectOwner(prepared.actor, prepared.state.id),
+        currentEffects:
+          prepared.actor.id === prepared.target.id
+            ? targetEffects
+            : (input.activeEffectsByActorId.get(prepared.actor.id) ?? []).filter(
+                (effect) => !removedIds.has(effect.id)
+              ),
+        occurredAt: input.occurredAt,
+        maintainedEffectStateId: maintainedState?.id
+      })
+    : null
+  if (sourceEffect) createdEffects.push(sourceEffect)
   const consumedActor = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor: mechanics.settledSource,
@@ -201,6 +217,11 @@ export function planNativeLiveEncounterSettlement(input: {
     ])
   )
   activeEffectsByActorId.set(prepared.target.id, targetEffects)
+  if (sourceEffect && prepared.actor.id !== prepared.target.id)
+    activeEffectsByActorId.set(prepared.actor.id, [
+      ...(activeEffectsByActorId.get(prepared.actor.id) ?? []),
+      sourceEffect
+    ])
   const projectedTargets = new Map(prepared.movementTargets)
   for (const [actorId, target] of prepared.movementTargets) {
     const actor = actors.get(actorId)
@@ -239,10 +260,22 @@ export function planNativeLiveEncounterSettlement(input: {
     riders: riderEffects,
     targetActorId: prepared.target.id
   })
+  const sourceEffectTransition = sourceEffect
+    ? projectNativeActionEffectTransitions({
+        state: null,
+        recurring: sourceEffect,
+        targetActorId: prepared.actor.id
+      }).activeEffectTransitions[0]!
+    : null
+  const createdDependentEffectIds = [
+    ...transitions.activeEffectTransitions,
+    ...(sourceEffectTransition ? [sourceEffectTransition] : [])
+  ].map((effect) => effect.activeEffectId)
   return {
     ...reconciled,
     createdEffects,
     maintainedState,
+    sourceEffectTransition,
     ...transitions,
     reactionActiveEffectTransitions: projectNativeActionEffectTransitions({
       state: null,
@@ -259,13 +292,17 @@ export function planNativeLiveEncounterSettlement(input: {
     ),
     maintenanceTransition:
       maintainedState && maintenance
-        ? buildEncounterMaintenanceTransition({
-            maintenance,
-            createdState: maintainedState,
-            createdDependentEffectIds: transitions.activeEffectTransitions.map(
-              (effect) => effect.activeEffectId
-            )
-          })
+        ? maintenance.joins
+          ? buildEncounterJoinedMaintenanceTransition({
+              createdState: maintainedState,
+              createdDependentEffectIds,
+              joinsExistingState: true
+            })
+          : buildEncounterMaintenanceTransition({
+              maintenance,
+              createdState: maintainedState,
+              createdDependentEffectIds
+            })
         : null
   }
 }

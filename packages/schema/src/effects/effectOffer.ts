@@ -23,11 +23,17 @@ export interface MoveHeldEffectOffer {
   range: z.infer<typeof effectOfferRangeDtoSchema>
 }
 
+export type RepeatOfferTarget = 'HOLDER' | 'FRESH'
+
+export const repeatOfferTargetSchema = lazySchema(() => z.enum(['HOLDER', 'FRESH']))
+
 /** As authored: the paths of the Effect the offer re-runs, named by id. */
 export interface RepeatSourcePathOffer {
   kind: 'REPEAT_SOURCE_PATH'
   offeredTo: 'SOURCE'
   activation: z.infer<typeof activationCodeSchema>
+  /** Whom the re-run targets: the holder again, or any creature the frozen invocation admits (default HOLDER). */
+  target?: RepeatOfferTarget
   pathIds: string[]
 }
 
@@ -48,6 +54,7 @@ const repeatSourcePathOfferSchema = lazySchema(() =>
     kind: z.literal('REPEAT_SOURCE_PATH'),
     offeredTo: z.literal('SOURCE'),
     activation: activationCodeSchema,
+    target: z.optional(repeatOfferTargetSchema),
     pathIds: z
       .array(authoredIdentifierSchema)
       .check(z.minLength(1))

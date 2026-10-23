@@ -199,7 +199,12 @@ import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { serverKernelRuleExecutionPendingSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 
-const TARGET_NOT_PERMITTED_MESSAGE = 'The selected action does not permit this target.'
+const targetNotPermitted = () =>
+  new LiveSessionDomainRejectionError(422, {
+    code: 'DOMAIN_REJECTED',
+    reason: 'TARGET_UNAVAILABLE',
+    message: 'The selected action does not permit this target.'
+  })
 
 /** Computes the action in the DO; the room commits this plan in its own transaction. */
 export async function planNativeLiveEncounterAction(
@@ -390,11 +395,7 @@ export async function planNativeLiveEncounterAction(
     isEncounterBasicActionId(command.actorId, command.actionId) &&
     !resolveCheckActionInputDtoSchema.safeParse(command).success
   )
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: TARGET_NOT_PERMITTED_MESSAGE
-    })
+    throw targetNotPermitted()
   if (command.target.kind !== 'ACTOR') {
     const target = command.target
     // An answer to a counter offered before the cast did anything replays the cast itself.
@@ -633,12 +634,7 @@ export async function planNativeLiveEncounterAction(
     prepare: (attackDecoy) => prepareAttackAs(movementTargets, attackDecoy)
   })
   // A spell that takes a list of creatures is not aimed at one.
-  if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS')
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: TARGET_NOT_PERMITTED_MESSAGE
-    })
+  if (encounterActionTargetKind(prepared.targetPolicy) === 'ACTORS') throw targetNotPermitted()
   refuseActionOutsideItsWindow(prepared)
   // A target immune to this source's use of the action (D156) is refused outright.
   const immunityLabel = encounterSourceImmunityLabel({
@@ -677,16 +673,14 @@ export async function planNativeLiveEncounterAction(
     }
   )
   refuseUnmetItemActionRequirements(prepared, state)
-  // A repeat runs against the creature that holds the offering effect, on the item that cast chose.
+  // A holder repeat runs against the creature that holds the offering effect, on the item that cast
+  // chose; a fresh repeat takes any target the frozen invocation admitted above.
   if (
     prepared.source.kind === 'REPEAT_PATH' &&
+    prepared.source.capability.repeatTarget === 'HOLDER' &&
     prepared.target.id !== prepared.source.capability.holderActorId
   )
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: TARGET_NOT_PERMITTED_MESSAGE
-    })
+    throw targetNotPermitted()
   // A Character action's item choice is known before it rolls; a Creature's plan follows its roll.
   const chosenItemInstanceId =
     prepared.source.kind === 'REPEAT_PATH'
@@ -786,12 +780,7 @@ export async function planNativeLiveEncounterAction(
     activationCode,
     acknowledged: command.acknowledgedWarnings
   })
-  if (ruleWarnings.kind === 'UNSUPPORTED_TARGET')
-    throw new LiveSessionDomainRejectionError(422, {
-      code: 'DOMAIN_REJECTED',
-      reason: 'TARGET_UNAVAILABLE',
-      message: TARGET_NOT_PERMITTED_MESSAGE
-    })
+  if (ruleWarnings.kind === 'UNSUPPORTED_TARGET') throw targetNotPermitted()
   // The same user-safe rejection the Convex fallback raises, so the room forwards it unchanged.
   if (ruleWarnings.kind === 'UNACKNOWLEDGED')
     throw new LiveSessionDomainRejectionError(422, {

@@ -679,6 +679,7 @@ const repeatOfferChoices = validated(encounterActionChoicesDtoSchema.shape.effec
     effectId: '00000000-0000-4000-8000-000000000f22',
     offerIndex: 0,
     kind: 'REPEAT_SOURCE_PATH',
+    target: 'HOLDER',
     holderActorId: '99999999-9999-4999-8999-999999999902',
     activation: 'BONUS_ACTION',
     actionId:
@@ -747,6 +748,37 @@ describe('CampaignTabletopActionDrawer effect offers', () => {
       })
     )
     expect(await screen.findByText('Repeated.')).toBeVisible()
+  })
+
+  it('lets a fresh repeat pick any creature, holder included, and resolves its action against the pick', async () => {
+    const user = userEvent.setup()
+    const onResolve = vi.fn<(command: ResolveEncounterActionInputDto) => Promise<unknown>>()
+    const [holderOffer] = repeatOfferChoices
+    const freshOffers = validated(encounterActionChoicesDtoSchema.shape.effectOffers)([
+      { ...holderOffer, target: 'FRESH', activation: 'ACTION' }
+    ])
+    renderDrawer(onResolve, { effectOffers: freshOffers })
+
+    const section = await screen.findByRole('region', { name: 'Effect choices' })
+    expect(within(section).getByText(/Repeat Heat Metal on a new target/)).toBeVisible()
+
+    await user.click(
+      within(section).getByRole('button', { name: /Repeat Heat Metal on a new target/ })
+    )
+    expect(within(section).getByRole('button', { name: 'Repeat' })).toBeDisabled()
+    await user.click(within(section).getByRole('combobox', { name: 'New target' }))
+    expect(await screen.findByRole('option', { name: 'Vault Warden' })).toBeVisible()
+    await user.click(await screen.findByRole('option', { name: "Ember's Wake" }))
+    await user.click(within(section).getByRole('button', { name: 'Repeat' }))
+
+    expect(onResolve).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        type: 'RESOLVE_ACTION',
+        actionId: freshOffers[0].actionId,
+        target: { kind: 'ACTOR', actorId: '99999999-9999-4999-8999-999999999901' },
+        acknowledgedWarnings: []
+      })
+    )
   })
 
   it('never offers the current holder as the new one', async () => {
