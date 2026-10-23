@@ -1,3 +1,4 @@
+import { reviveTraceMatches } from './characterDeathSaves.js'
 import { z, lazySchema } from '../zod.js'
 
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
@@ -477,6 +478,8 @@ export const storedRuleExecutionResultDtoSchema = lazySchema(() =>
                 return trace.outputs.conditionId === application.conditionId
               if (application.kind === 'SCALAR_REDUCTION')
                 return trace.outputs.amount === application.reductionAmount
+              if (application.kind === 'REVIVE')
+                return reviveTraceMatches(trace.outputs, application.hitPoints)
               if (
                 application.kind === 'STABILIZE' ||
                 application.kind === 'KILL' ||
