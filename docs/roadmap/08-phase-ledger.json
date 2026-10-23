@@ -4222,7 +4222,7 @@
             },
             {
               "id": "RULES-2.T9k",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4232,8 +4232,9 @@
                 "after": ["RULES-2.T9j", "RULES-2.T9q"]
               },
               "text": "One defaults object on the System record naming definition IDs (default damage type, condition and movement type), seeded from source-data and read by web through apis; the Exhaustion filter in ConditionsEditor filters on a levelled condition attribute instead of the code.",
-              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343). Merged in m366.",
+              "mergedAt": "2026-10-23T04:22:01Z",
+              "proof": "System defaults object on the System record (default damage type and movement definition IDs) with schema and consumer tests; 100-actor encounter read budget passes unchanged"
             },
             {
               "id": "RULES-2.T9l",
