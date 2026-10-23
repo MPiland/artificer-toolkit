@@ -165,7 +165,7 @@ describe('a spell-level END_EFFECTS outcome is authorable from core options (D18
     for (const selector of [
       { kind: 'SPELL_LEVEL', limit: 'SLOT_LEVEL' },
       { kind: 'SPELL_LEVEL', limit: 'FIXED', level: 3 }
-    ]) {
+    ] as const) {
       const effect = homebrew(selector)
       expect(featureEffectDtoSchema.safeParse(effect).success).toBe(true)
       expect(JSON.stringify(effect)).not.toContain('CLOSED_RULE')
@@ -178,7 +178,7 @@ describe('a spell-level END_EFFECTS outcome is authorable from core options (D18
       { kind: 'SPELL_LEVEL', limit: 'FIXED' },
       { kind: 'SPELL_LEVEL', limit: 'SLOT_LEVEL', level: 3 },
       { kind: 'SPELL_LEVEL', limit: 'FIXED', level: 10 }
-    ])
+    ] as const)
       expect(featureEffectDtoSchema.safeParse(homebrew(selector)).success).toBe(false)
   })
 })

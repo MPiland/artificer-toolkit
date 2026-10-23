@@ -8,6 +8,7 @@ import {
   offerEndEffects,
   selectedEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import type { CommittedExecutionTrace } from '@artificer-toolkit/rules-runtime/executionOutcomeCapability'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -21,14 +22,13 @@ import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
  * an overridable warning.
  */
 export function planEndEffects(
-  gameSystemId: string,
   outcomes: readonly {
     kind: string
     endEffects?: Parameters<typeof offerEndEffects>[0]['endEffects']
   }[],
   held: readonly ActiveRuleEffectRecord[],
   target: { kind: string; chosenEffectId?: string },
-  castLevel: number | null
+  prepared: Parameters<typeof preparedSpellCastLevel>[0]
 ) {
   const [endEffects] = outcomes.flatMap((outcome) =>
     outcome.kind === 'EFFECT' && outcome.endEffects ? [outcome.endEffects] : []
@@ -37,7 +37,7 @@ export function planEndEffects(
     endEffects,
     held,
     chosenEffectId: target.chosenEffectId,
-    castLevel
+    castLevel: preparedSpellCastLevel(prepared)
   })
   if (offer.pick?.kind === 'UNCHOSEN')
     throw new LiveSessionDomainRejectionError(422, {
@@ -47,7 +47,7 @@ export function planEndEffects(
     })
   const warnings: EncounterRuleWarningDto[] =
     endEffects && offer.candidates.length === 0 ? [TARGET_NOTHING_TO_END_WARNING] : []
-  return { gameSystemId, endEffects, offer, warnings }
+  return { endEffects, offer, warnings }
 }
 
 /**
@@ -60,7 +60,11 @@ export function endedByAction(
   command: { actorId: string; actionId: string },
   execution: CommittedExecutionTrace,
   held: readonly ActiveRuleEffectRecord[],
-  { actor, target }: { actor: { id: string }; target: { id: string } }
+  {
+    actor,
+    target,
+    state
+  }: { actor: { id: string }; target: { id: string }; state: { gameSystemId: string } }
 ) {
   if (isEncounterBasicActionId(command.actorId, command.actionId))
     return actionUsedOnHolderEndedEffects({
@@ -71,7 +75,7 @@ export function endedByAction(
     })
   const { endEffects, offer } = plan
   return endEffects &&
-    executionOutcomeCapabilityRegistry.require(plan.gameSystemId).endsEffects(execution)
+    executionOutcomeCapabilityRegistry.require(state.gameSystemId).endsEffects(execution)
     ? selectedEndedEffects({
         holderActorId: target.id,
         held,

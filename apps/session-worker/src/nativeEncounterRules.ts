@@ -116,10 +116,7 @@ import { readNativePauseAnswer, settleNativePauseAnswer } from './nativePauseHan
 import type { NativePauseAnswer } from './nativePauseTypes.js'
 import { createNativeCurrentReaction } from './nativePauseReaction.js'
 import { advanceNativeIncomingGate, planNativeGatedAction } from './nativeEncounterIncomingGate.js'
-import {
-  preparedCastsSpell,
-  preparedSpellCastLevel
-} from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
+import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import {
   buildEncounterActionPendingSnapshot,
   buildEncounterHeldActionPendingSnapshot
@@ -740,13 +737,7 @@ export async function planNativeLiveEncounterAction(
       ? prepared.source.candidate.mechanicFacts
       : prepared.source.capability.mechanicFacts
   const heldOnTarget = activeEffectsByActorId.get(prepared.target.id) ?? []
-  const endPlan = planEndEffects(
-    state.gameSystemId,
-    mechanicFacts.outcomes,
-    heldOnTarget,
-    command.target,
-    preparedSpellCastLevel(prepared)
-  )
+  const endPlan = planEndEffects(mechanicFacts.outcomes, heldOnTarget, command.target, prepared)
   const fleeWarnings = encounterFleeActionWarnings({
     sourceActorIds: encounterConditionFleeSources(actorTarget),
     activationCode,
