@@ -10174,7 +10174,7 @@
             },
             {
               "id": "SPELLS-4.T2h2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10184,7 +10184,9 @@
                 "after": ["SPELLS-4.T2h1"]
               },
               "text": "Generic turn-end d20 gate (D178): at the end of the holder's turn a d20 at or above a threshold applies a child effect that ends at the holder's next turn start or with the parent. Converts BLINK (REMOVE_FROM_PLAY child), with a parity proof; kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-23T02:47:46Z",
+              "note": "Merged in m361.",
+              "proof": "ci/spells-4-t2h2 @ ff74c2598: Tests 39889764396, Live 39889764401 green; SRD and homebrew parity, nativeRoomTurnEndGate room journey, playAbsencePersistence."
             },
             {
               "id": "SPELLS-4.T2h3",
@@ -10370,7 +10372,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-4.T2j2a", "SPELLS-4.T2lb2b"]
+                "after": ["SPELLS-4.T2j2a", "SPELLS-4.T2lb2b1"]
               },
               "text": "Repeat path on a touch target (D183): a held effect offers a repeat of a source path against a freshly picked touch target (on the T2lb2b fresh target pick). Converts Dispel Evil and Good's Break Enchantment through END_EFFECTS (origin creature-type selector); dismissal description-only. Parity proof and room journey; DISPEL_EVIL_AND_GOOD deleted."
             },
@@ -10525,17 +10527,31 @@
               "mergedAt": "2026-10-21T04:23:05Z"
             },
             {
-              "id": "SPELLS-4.T2lb2b",
+              "id": "SPELLS-4.T2lb2b1",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-4.T2lb2a"]
               },
-              "text": "Per-turn retarget (D160, split 2026-10-20): a repeat offer with a fresh target pick and a persisted already-saved exclusion. Converts Eyebite Asleep and its per-turn retarget, with a parity proof; Panicked and Sickened and the EYEBITE kind deletion stay with T2l2."
+              "text": "Fresh-target repeat (D186, split from T2lb2b): REPEAT_SOURCE_PATH target HOLDER | FRESH; a FRESH offer rides a source-held carrier maintained by the casting's Concentration and picks any target the frozen invocation admits; the already-saved exclusion reuses D156 SOURCE_IMMUNITY (SAVE_SUCCESS) with a Concentration lifetime; retarget results join the live Concentration as maintained dependents without restarting it. Proved on an authored homebrew spell with unit tests and a room journey.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2lb2b2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2lb2b1"]
+              },
+              "text": "Eyebite Asleep (D186, split from T2lb2b): Asleep authored as a CHOICE option like Sleep (Unconscious; ends on DAMAGE_TAKEN or ROUSE) with the FRESH per-turn retarget, with parity proof and the room journey; Panicked and Sickened and the EYEBITE kind deletion stay with T2l2."
             },
             {
               "id": "SPELLS-4.T2lb2c",
@@ -10561,7 +10577,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-4.T2l", "SPELLS-4.T2lb2b"]
+                "after": ["SPELLS-4.T2l", "SPELLS-4.T2lb2b2"]
               },
               "text": "Compelled turns (D160, split from T2l): a turn-start compelled behavior on a held effect. Converts CONFUSION (server-rolled d10 behavior and D159 RANDOM direction, self-move through the movement planner), COMPULSION (direction set by a granted source bonus action), Eyebite Panicked and Sickened, and Contagion’s Mindfire (moved from T2m), with parity proofs; deletes EYEBITE, CONFUSION, COMPULSION, and CONTAGION once T2m has converted its other diseases."
             },
