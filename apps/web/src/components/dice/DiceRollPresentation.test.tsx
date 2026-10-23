@@ -105,6 +105,7 @@ function createRoll(id: string): RollRecordDto {
       terms: [{ count: 1, die: 20, rolls: [14], subtotal: 14 }],
       modifier: 0,
       mode: 'NORMAL',
+      keep: 'FIRST',
       subtotal: 14,
       transform: { kind: 'NONE' },
       total: 14

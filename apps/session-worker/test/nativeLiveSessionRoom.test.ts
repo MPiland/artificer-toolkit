@@ -4646,7 +4646,7 @@ it('commits a warm native initiative roll privately and replays its exact eviden
           characterId: null,
           characterLabel: actors[0]!.label,
           source: { kind: 'INITIATIVE', label: 'Initiative' },
-          evidence: { mode: 'NORMAL', modifier: 0 }
+          evidence: { keep: 'FIRST', modifier: 0 }
         })
         const term = roll.evidence.terms[0]
         expect(roll.evidence.terms).toHaveLength(1)
@@ -4858,7 +4858,7 @@ it('commits a private native enemy roll and its charge once before acknowledgeme
           normalizedExpression: '2d6',
           characterId: null,
           source: { kind: 'DAMAGE', label: 'Whirlwind (Recharge 4-6): Table gust' },
-          evidence: { mode: 'NORMAL', modifier: 0 }
+          evidence: { keep: 'FIRST', modifier: 0 }
         })
         expect(roll.evidence.terms).toHaveLength(1)
         const term = roll.evidence.terms[0]

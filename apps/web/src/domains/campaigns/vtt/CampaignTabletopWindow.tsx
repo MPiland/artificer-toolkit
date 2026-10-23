@@ -67,7 +67,7 @@ export function CampaignTabletopWindow({
         <CampaignVttStage campaign={campaign} currentUserId={currentUserId} />
       </div>
       {campaign.role === 'OWNER' ? (
-        <CampaignGmRoller campaignId={campaign.id} />
+        <CampaignGmRoller campaignId={campaign.id} rollModes={campaign.rollModes} />
       ) : (
         <CampaignShownSceneViewer campaignId={campaign.id} currentUserId={currentUserId} />
       )}

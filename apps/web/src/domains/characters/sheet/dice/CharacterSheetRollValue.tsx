@@ -17,7 +17,7 @@ export function CharacterSheetRollValue({
   const rolling =
     pending &&
     pendingRequest?.expression === request.expression &&
-    (pendingRequest.rollMode ?? 'NORMAL') === (request.rollMode ?? 'NORMAL') &&
+    pendingRequest.rollMode === request.rollMode &&
     pendingRequest.source.kind === request.source.kind &&
     pendingRequest.source.label === request.source.label
 

@@ -118,6 +118,8 @@ export interface VttTokenPresentation {
       | 'MORALE'
       | 'REACTION'
     label: string
+    /** The System's description of a condition, shown on hover. */
+    description?: string
   }>
 }
 

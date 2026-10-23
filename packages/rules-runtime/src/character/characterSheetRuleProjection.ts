@@ -16,6 +16,7 @@ import type {
 } from '@artificer-toolkit/shared/character'
 import type { CompiledChargeUse } from '@artificer-toolkit/shared/compilers'
 import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
+import type { OfferedRollModeDto } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { CharacterClassState } from '@artificer-toolkit/shared/subjects/authored'
 
 /** Sheet-facing presentation data rehydrated from one validated Character rule-policy result. */
@@ -255,6 +256,8 @@ export interface CharacterSheetRuleProjection {
   derivedStats: CharacterRuleDerivedStats
   calculations: CharacterRuleCalculationBreakdowns
   rollModes: CharacterRuleRollModes
+  /** The roll modes the System offers a roller, for the manual-roll controls. */
+  offeredRollModes: OfferedRollModeDto[]
   /** Resolved class-scoped spell state derived from grants */
   spellState?: CharacterClassState[]
   /** Resolved spell-grant access paths derived during the same rule evaluation. */

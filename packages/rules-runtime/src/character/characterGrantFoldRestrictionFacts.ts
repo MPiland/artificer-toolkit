@@ -220,6 +220,11 @@ function normalizeCreatureCondition(
         requiredIds:
           condition.authoringModeKind === 'SELECTED' ? [...condition.creatureTypeIds] : []
       }
+    case 'SOURCE_TRAIT':
+      return {
+        ...baseCondition(condition, 'SOURCE_TRAIT'),
+        requiredIds: condition.authoringModeKind === 'SELECTED' ? [...condition.traits] : []
+      }
     default:
       return baseCondition(condition, 'UNSUPPORTED')
   }
@@ -304,10 +309,14 @@ export function normalizeCharacterGrantRestrictions(
           return normalizeItemContext(context)
         case 'CREATURE': {
           const conditions = context.conditions ?? []
-          // A context that only names the source creature describes no holder, so any holder qualifies.
+          // A context that only names the source describes no holder, so any holder qualifies.
           const sourceOnly =
             conditions.length > 0 &&
-            conditions.every((condition) => condition.predicateCode === 'SOURCE_CREATURE_TYPE')
+            conditions.every(
+              (condition) =>
+                condition.predicateCode === 'SOURCE_CREATURE_TYPE' ||
+                condition.predicateCode === 'SOURCE_TRAIT'
+            )
           return [
             ...(sourceOnly ? [] : [holderKindCondition(context, 'CREATURE')]),
             ...conditions.map(normalizeCreatureCondition)

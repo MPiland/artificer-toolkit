@@ -5,7 +5,6 @@ import type {
   ConditionMechanicDto,
   PinnedConditionRuleStateDefinitionDto
 } from '@artificer-toolkit/schema/shared/ruleState'
-import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 import { measureSceneTokenFootprintDistance, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 
@@ -305,11 +304,11 @@ export function withEncounterConditionCheckContributors(input: {
   mechanics: readonly EncounterConditionMechanic[]
   roll: {
     contributors: readonly EncounterRelationshipD20Contributor[]
-    rollMode: RollMode
+    rollMode: string
   }
 }): {
   contributors: EncounterRelationshipD20Contributor[]
-  rollMode: RollMode
+  rollMode: string
 } {
   const conditionContributors = input.mechanics.flatMap(({ conditionDefinitionId, mechanic }) =>
     mechanic.kind === 'D20_ROLL_MODE' && mechanic.roll.kind === 'ABILITY_CHECKS'

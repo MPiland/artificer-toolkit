@@ -34,6 +34,7 @@ describe('dice presentation utilities', () => {
         terms: [{ count: 2, die: 20, rolls: [7, 16], subtotal: 16, keptRollIndex: 1 }],
         modifier: 3,
         mode: 'ADVANTAGE',
+        keep: 'HIGHER',
         subtotal: 19,
         transform: { kind: 'NONE' },
         total: 19
@@ -97,6 +98,7 @@ describe('dice presentation utilities', () => {
         ],
         modifier: 0,
         mode: 'NORMAL',
+        keep: 'FIRST',
         subtotal: 15,
         transform: { kind: 'NONE' },
         total: 15
@@ -134,6 +136,7 @@ describe('dice presentation utilities', () => {
         ],
         modifier: 4,
         mode: 'NORMAL',
+        keep: 'FIRST',
         subtotal: 15,
         transform: { kind: 'NONE' },
         total: 15

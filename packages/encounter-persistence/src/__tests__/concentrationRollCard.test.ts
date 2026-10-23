@@ -7,6 +7,7 @@ import {
   creatureActor,
   srdEncounterState
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { recordConcentrationCheckRoll } from '../concentrationRollPersistence.js'
 import { insertRunActor } from '../documents.js'
 import { createMemoryEncounterStore } from '../memoryEncounterStore.js'
@@ -109,7 +110,7 @@ async function recordHiddenCheck(options: {
         }
       }),
       requireSystem: async () => ({
-        id: 'system',
+        id: DND5E_SYSTEM_ID,
         rulesetCode: 'dnd5e',
         rulesetVersion: '1'
       }),

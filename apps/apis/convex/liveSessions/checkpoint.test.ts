@@ -783,6 +783,7 @@ it('publishes paired chat checkpoints once and rolls back malformed scope, pairs
         terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
         modifier: 0,
         mode: 'NORMAL',
+        keep: 'FIRST',
         subtotal: 10,
         transform: { kind: 'NONE' },
         total: 10
@@ -1327,6 +1328,7 @@ function makeRetainedRoll(
       terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
       modifier: 0,
       mode: 'NORMAL',
+      keep: 'FIRST',
       subtotal: 10,
       transform: { kind: 'NONE' },
       total: 10

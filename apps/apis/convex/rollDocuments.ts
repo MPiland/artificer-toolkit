@@ -53,7 +53,7 @@ export async function evaluateCharacterRoll(
       )
     : {
         expression: input.expression,
-        rollMode: input.rollMode ?? 'NORMAL',
+        rollMode: input.rollMode,
         source: { kind: 'MANUAL' as const, label: 'Manual roll' }
       }
   // A carried die (Guidance, Resistance) joins a check or save and is spent with it, in the roll's transaction.

@@ -776,6 +776,7 @@ const buildModifierGrantVariants = () =>
     ),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant('HEALING_RECEIVED', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant(
       'ATTACK_DECOYS',

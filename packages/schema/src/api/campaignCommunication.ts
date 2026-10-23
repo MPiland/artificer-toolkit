@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
-import { parseRollExpression, validateRollMode } from '@artificer-toolkit/shared/rolls'
+import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 import { rollRecordDtoSchema, rollRevealModeDtoSchema, rollSourceDtoSchema } from './rolls.js'
 import {
@@ -243,9 +243,9 @@ const executeCampaignRollDetailsSchema = lazySchema(() =>
       source: rollSourceDtoSchema
     })
     .check(
-      z.superRefine(({ expression, rollMode }, context) => {
+      z.superRefine(({ expression }, context) => {
         try {
-          validateRollMode(parseRollExpression(expression), rollMode ?? 'NORMAL')
+          parseRollExpression(expression)
         } catch (error) {
           context.addIssue({
             code: 'custom',

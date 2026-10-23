@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { authoredRichTextSchema } from '../shared/authoredLimits.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { offeredRollModeSchema } from '../shared/systemCoreCode.js'
 import { authoredSubjectKindSchema } from '../projections/identity.js'
 import { entitlementTierDtoSchema } from './accountEntitlements.js'
 export { entitlementTierDtoSchema }
@@ -166,6 +167,8 @@ export const campaignSummariesDtoSchema = lazySchema(() => z.array(campaignSumma
 export const campaignDetailDtoSchema = lazySchema(() =>
   z.extend(campaignBaseDtoSchema, {
     attunementSlotOverride: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+    /** The roll modes the Campaign's System offers a roller for a d20 roll, each with the face it keeps. */
+    rollModes: z.array(offeredRollModeSchema).check(z.minLength(1)),
     memberships: z.array(campaignMembershipDtoSchema)
   })
 )

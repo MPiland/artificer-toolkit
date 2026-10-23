@@ -694,12 +694,12 @@ export async function planNativeLiveEncounterAction(
       : command.target.kind === 'ACTOR'
         ? command.target.boundItemInstanceId
         : undefined
-  const chosenItemTarget = movementTargets.get(prepared.target.id)
+  const targetMovement = movementTargets.get(prepared.target.id)
   const chosenItemRefusal =
-    prepared.source.kind === 'CHARACTER_ACTION' && chosenItemTarget
+    prepared.source.kind === 'CHARACTER_ACTION' && targetMovement
       ? encounterChosenItemRefusal({
           plan: prepared.source.entry.compilation.activeEffectPlan?.chosenItem,
-          target: chosenItemTarget,
+          target: targetMovement,
           itemInstanceId: chosenItemInstanceId
         })
       : null
@@ -711,7 +711,6 @@ export async function planNativeLiveEncounterAction(
     })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
-  const targetMovement = movementTargets.get(prepared.target.id)
   const weaponAttackHolds = heldGrantedActions(
     activeEffectsByActorId.get(prepared.actor.id) ?? []
   ).filter(({ offer }) => offer.weaponAttack)
@@ -741,7 +740,8 @@ export async function planNativeLiveEncounterAction(
     state.gameSystemId,
     mechanicFacts.outcomes,
     heldOnTarget,
-    command.target
+    command.target,
+    prepared.actors
   )
   const fleeWarnings = encounterFleeActionWarnings({
     sourceActorIds: encounterConditionFleeSources(actorTarget),
