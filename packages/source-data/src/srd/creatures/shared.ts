@@ -355,11 +355,16 @@ type GatingPredicate =
   | typeof TARGET_HAS_NOT_TAKEN_TURN
   | ReturnType<typeof holderInBrightLight>
 
-type RollInfluenceGrantInput = {
-  valueDomainCode: typeof VALUE_DOMAIN_CODE.ATTACK_ROLL | typeof VALUE_DOMAIN_CODE.ABILITY_CHECK
-  domain: { attackDomain: AttackDomainCode } | { ability: AbilityCode }
-  influence: 'ADVANTAGE' | 'DISADVANTAGE'
-}
+type RollInfluenceGrantInput = { influence: 'ADVANTAGE' | 'DISADVANTAGE' } & (
+  | {
+      valueDomainCode: typeof VALUE_DOMAIN_CODE.ATTACK_ROLL
+      domain: { attackDomain: AttackDomainCode }
+    }
+  | {
+      valueDomainCode: typeof VALUE_DOMAIN_CODE.ABILITY_CHECK
+      domain: { ability: AbilityCode }
+    }
+)
 
 /**
  * One roll-influence grant gated by one Encounter-state predicate. Takes the five IDs
