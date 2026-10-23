@@ -127835,6 +127835,7 @@ export declare const api: {
                 kind: "REPEAT_SOURCE_PATH";
                 label: string;
                 offerIndex: number;
+                target?: "HOLDER" | "INVOCATION";
                 warnings: Array<{
                   code:
                     | "ACTION_ECONOMY_UNAVAILABLE"
