@@ -10140,7 +10140,7 @@
             },
             {
               "id": "SPELLS-4.T2f1b2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10150,7 +10150,9 @@
                 "after": ["SPELLS-4.T2f1b1"]
               },
               "text": "Dispel Magic above-level checks (D182a): the Worker cast-time planner pends the cast into the T2f1b1 candidate checks; levelCheck authored through the node map, DTO, compiler and character rule facts with a TARGET_EFFECT_LEVEL DC; converts DISPEL_MAGIC on a creature or object target with a golden proof and room journey; kind deleted; check-flow section of docs/architecture/rules-runtime.md updated. Owns the room-level proofs T2f1b1 could not run without the cast pend: the effect ends in the same commit and receipt as its roll, an already-ended candidate is skipped, replay is idempotent per context and cursor, undo refusal, and void.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-23T17:51:20Z",
+              "proof": "Tests and Live green on tip fdf1d088; Dispel Magic authored as END_EFFECTS (SLOT_LEVEL selector + levelCheck, DC = base + effect origin level), DISPEL_MAGIC kind deleted; the Worker pends the cast into candidate checks and the cast root records checkOccurrenceId (D182a); nativeRoomDispelMagic.test.ts (10 tests) proves same-commit end, failed check keeps the effect, ordered walk, linked-candidate skip, replay idempotency, undo, undo refusal after success, void refused, and COMPLETE with no higher effects; fixed the b1 roll-card id collision (keyed by cursor); rules-runtime.md updated. Monster-caster check deferred (future-enhancements).",
+              "note": " Merged in m383."
             },
             {
               "status": "DONE",
