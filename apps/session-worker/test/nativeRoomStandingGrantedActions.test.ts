@@ -80,7 +80,9 @@ describe('room Clay Golem Haste (SPELLS-33.T4l1)', () => {
       ownerFeatureId: hasteFeatureId
     })
     const slamId = room.featureActionId(golem, creatureFeature(clayGolem, 'Slam').id)
-    const slam = () => room.startAction(WOLF_ID, [], null, null, slamId, GOLEM_ID)
+    // The room has no Scene, so the slam's range cannot be checked.
+    const slam = () =>
+      room.startAction(WOLF_ID, ['TARGET_RANGE_UNCHECKED'], null, null, slamId, GOLEM_ID)
 
     const haste = await room.startAction(GOLEM_ID)
     expect(haste.answer.type, JSON.stringify(haste.answer)).toBe('COMMAND_COMMITTED')

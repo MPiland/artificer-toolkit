@@ -11,6 +11,7 @@ import {
 } from '../encounterBasicActionCapabilityDiscovery.js'
 import { onEndGrantEffect } from '../encounterEffectOnEnd.js'
 import {
+  firstGrantedActionUseKey,
   grantedActionId,
   heldGrantedActions,
   nextGrantedActionUseKey,
@@ -107,6 +108,14 @@ describe('the offers a held effect makes', () => {
     const key = nextGrantedActionUseKey(held!, [])
     expect(typeof key).toBe('string')
     expect(nextGrantedActionUseKey(held!, [key as string])).toBeUndefined()
+  })
+
+  it('names the first use key an offer still has, and none once every use is spent', () => {
+    const holds = heldGrantedActions([hasteHeld(), retreatHeld()])
+    const hasteKey = nextGrantedActionUseKey(holds[0]!, [])
+    expect(firstGrantedActionUseKey(holds, [])).toBe(hasteKey)
+    expect(firstGrantedActionUseKey(holds, [hasteKey as string])).toBeNull()
+    expect(firstGrantedActionUseKey([], [])).toBeNull()
   })
 })
 

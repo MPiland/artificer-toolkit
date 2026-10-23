@@ -532,7 +532,7 @@
 00000000-0002-0005-0070-011100000000 CREATURE Stomp | TEST_OUTCOME test=aaf80035045632f3b4ecb8b8894625d4c393dce4da7ee290902ae10bbb359487 nodes=3 outputs=5 outcomes=[ON_CRIT=c5ce9e107b8bff5a4fc50151525db6af1e28287677aa8ba6dd237be265151f2b,ON_HIT=c5ce9e107b8bff5a4fc50151525db6af1e28287677aa8ba6dd237be265151f2b]
 00000000-0002-0005-0070-011400000000 CREATURE Teleport (1/Day) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0002-0005-0070-0a6700000000 CREATURE Invisibility | SINGLE_GRAPH f77878cd1449cc9661b724ef82f4939145b5ae921d929c38522760b1a822a7ad nodes=1 outputs=2
-00000000-0002-0005-0070-0cb800000000 CREATURE Haste (Recharge 5-6) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0002-0005-0070-0cb800000000 CREATURE Haste (Recharge 5-6) | SINGLE_GRAPH 05886bd2d06ea1f54e3763682ecac0524c495d3a45a8d6f0f5df1d9c0bb769d7 nodes=1 outputs=1
 00000000-0002-0005-0070-12f100000000 CREATURE Change Shape | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0002-0005-0070-17ae00000000 CREATURE Breath Weapons (Recharge 5-6) | TEST_OUTCOME test=696e18a8b1477734502784bef755623297007607666df8e56f7b36ebec73c7d2 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=e5c5f535911610573c70d52e2587c800637b274b7576a9f6266ae01f192ffa71,ON_SAVE_SUCCESS=fa0461a383b1e2cbab6c3a89cea283f9be3201ca6911bd5b88bb2c68a3c5e1fc]
 00000000-0002-0005-0070-1ba000000000 CREATURE Tendril | SINGLE_GRAPH ee3616d8832e716ba6b69a26411ce975e64acba371d57806e0535ec3d33d99b5 nodes=3 outputs=5
@@ -958,7 +958,7 @@
 00000000-0002-00d1-0070-010d00000000 CREATURE Heavy Crossbow | TEST_OUTCOME test=24648e1c1b1adeccdd0e83bdc0b726a3a5129ea3adafc583f6160a77b344342b nodes=3 outputs=5 outcomes=[ON_CRIT=5c74fd6b33f8e5177d51badf08a5a0445e50b014700de5cdbd7405ebce82a624,ON_HIT=5c74fd6b33f8e5177d51badf08a5a0445e50b014700de5cdbd7405ebce82a624]
 00000000-0002-00d1-0070-011900000000 CREATURE Talons | TEST_OUTCOME test=88e8e5b4461560fe64ef5e24088e62f4589a28e6b15a0ae04d234bda9c8734be nodes=3 outputs=5 outcomes=[ON_CRIT=f1be83652ce854d34ca2e21577fdcaffefc74827093e51ff540ddbfa6f2dc671,ON_HIT=f1be83652ce854d34ca2e21577fdcaffefc74827093e51ff540ddbfa6f2dc671]
 00000000-0002-00d2-0070-006f00000000 CREATURE Etherealness | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0002-00d2-0070-008000000000 CREATURE Ink Cloud (Recharges after a Short or Long Rest) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-00d2-0070-008000000000 CREATURE Ink Cloud (Recharges after a Short or Long Rest) | SINGLE_GRAPH d8e04f13b886e02463ff3a17178b49715b6081ce29f83aa2bda66e7018d12929 nodes=2 outputs=1
 00000000-0002-00d2-0070-010400000000 CREATURE Invisibility | SINGLE_GRAPH e14dc4260e75bf1b58aa61b20452bd30ce40c468df38f97691d18ab3dac54465 nodes=1 outputs=2
 00000000-0002-00d2-0070-012500000000 CREATURE Longsword | TEST_OUTCOME test=aa4ad201adbdda83c00cff12675e3c0ffe00afd6b4676d1a4a867a02faa212af nodes=3 outputs=5 outcomes=[ON_CRIT=d29bf78602fb2a52410af289bba9faffb2815acc8bae214f92623b59fc542cc7,ON_HIT=d29bf78602fb2a52410af289bba9faffb2815acc8bae214f92623b59fc542cc7]
 00000000-0002-00d2-0070-012a00000000 CREATURE Create Specter | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
@@ -1042,7 +1042,7 @@
 00000000-0002-01f6-0070-00eb00000000 CREATURE Swallow | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-01f6-0070-00ef00000000 CREATURE Grasping Tendrils | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00f800000000 CREATURE Horrific Appearance | NOT_A_DISCOVERED_ACTION
-00000000-0002-01f6-0070-00fa00000000 CREATURE Shadow Stealth | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-01f6-0070-00fa00000000 CREATURE Shadow Stealth | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00fb00000000 CREATURE Engulf | SINGLE_GRAPH f11b15480c75f690168df9b924ef1d6a9584df1785ac176614d2fbf1da129cda nodes=1 outputs=1
 00000000-0002-01f7-0070-00af00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f7-0070-00b200000000 CREATURE Greatsword | TEST_OUTCOME test=cae9397419e8076e8565cfa154bad37bcb2d6f0e0d25101a6cea34e066be378f nodes=3 outputs=5 outcomes=[ON_CRIT=3e5b0abaf6c4dc25e48c0a55b94bbce88527b3e33f7e62a14c2631bddbe09600,ON_HIT=3e5b0abaf6c4dc25e48c0a55b94bbce88527b3e33f7e62a14c2631bddbe09600]
@@ -1108,8 +1108,8 @@
 00000000-0002-07d0-0070-010c00000000 CREATURE Frightful Presence | TEST_OUTCOME test=dfc9314972a241b73e56536c7de2b98c48498b3e50b355cac147a2e9a91fb374 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=665e36a5836754512d04e2ba1b8f3d9244275a9da151db3f83accdfeb7b306e1]
 00000000-0002-07d0-0070-151f00000000 CREATURE Frightful Presence | TEST_OUTCOME test=dcfd7a013d05ba5a68fec87c63b87ae9235ee3aa699d5839732f87861cb59f48 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=812f087aa63bb577d76b3c363bce596ff7eb9efbd9d7fab236543071006b2ac9]
 00000000-0002-07d0-0070-164e00000000 CREATURE Frightful Presence | TEST_OUTCOME test=3fb9ddb3bd088bad9cb5c8fd906e9225a413de5d21ef55d4e7adb736936bdd89 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=aa57e279ac00d1fd96d9a82849ec54b9d03fc7eab5b0dfeea7d9f6ffe1d692fb]
-00000000-0003-00c9-0070-009200000000 CREATURE Nimble Escape | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0003-01f5-0070-00d400000000 CREATURE Aggressive | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0003-00c9-0070-009200000000 CREATURE Nimble Escape | NOT_A_DISCOVERED_ACTION
+00000000-0003-01f5-0070-00d400000000 CREATURE Aggressive | NOT_A_DISCOVERED_ACTION
 00000000-0003-01f5-0070-00e100000000 CREATURE Divine Eminence | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0004-0001-0070-006200000000 CREATURE Parry | SINGLE_GRAPH 4c08fc1a4c2bae2f9b53bbe3076a6400aa7bc5198ab6bcbd378b2e1d5e9cdb5e nodes=1 outputs=1
 00000000-0004-0001-0070-074800000000 CREATURE Split | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

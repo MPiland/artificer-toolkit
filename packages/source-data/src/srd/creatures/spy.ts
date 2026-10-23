@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
+import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
 import * as S from './shared.js'
 
 export const spy: CreatureAuthored = {
@@ -56,7 +57,7 @@ export const spy: CreatureAuthored = {
       description:
         'Cunning Action. On each of its turns, the spy can use a bonus action to take the Dash, Disengage, or Hide action.',
       effects: [
-        S.standingGrantedActionsEffect({
+        standingGrantedActionsEffect({
           id: S.actionId(261, 200),
           invocation: {
             kind: 'PASSIVE',

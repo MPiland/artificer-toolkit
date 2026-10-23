@@ -6,6 +6,7 @@ import {
   encounterBasicActionDefinitionId,
   GRANTED_ACTION_ID_SEPARATOR
 } from './encounterBasicActionCapabilityDiscovery.js'
+import { snapshotFeatureDefinitions } from './encounterActorState.js'
 
 /** One offer of a held effect, with the identity its uses are counted under (D160). */
 export interface HeldGrantedAction {
@@ -73,6 +74,29 @@ export function standingGrantedActions(features: readonly FeatureDto[]): HeldGra
             .map((offer, offerIndex) => ({ effectId: effect.id, offerIndex, offer }))
     )
   )
+}
+
+/** The once-per-turn key the first of these offers with a use left would spend; null when none. */
+export function firstGrantedActionUseKey(
+  holds: readonly HeldGrantedAction[],
+  spentKeys: readonly string[]
+): string | null {
+  return (
+    holds
+      .map((held) => nextGrantedActionUseKey(held, spentKeys))
+      .find((key): key is string => typeof key === 'string') ?? null
+  )
+}
+
+/** Every offer the actor holds: its held effects' and its Creature traits'. */
+export function actorGrantedActions(
+  heldEffects: readonly HeldEffect[],
+  actor: Parameters<typeof snapshotFeatureDefinitions>[0]
+): HeldGrantedAction[] {
+  return [
+    ...heldGrantedActions(heldEffects),
+    ...standingGrantedActions(snapshotFeatureDefinitions(actor))
+  ]
 }
 
 /**

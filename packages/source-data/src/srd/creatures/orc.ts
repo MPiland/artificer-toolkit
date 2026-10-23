@@ -1,6 +1,7 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } from './shared.js'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
+import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
 import * as S from './shared.js'
 
 export const orc: CreatureAuthored = {
@@ -53,7 +54,7 @@ export const orc: CreatureAuthored = {
       effects: [
         // Moving up to its speed is a Dash; the "toward a hostile creature it can see" restriction has
         // no automated equivalent, so the Feature text states it.
-        S.standingGrantedActionsEffect({
+        standingGrantedActionsEffect({
           id: S.bonusActionId(212, 501),
           invocation: {
             kind: 'PASSIVE',

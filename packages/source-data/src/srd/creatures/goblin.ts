@@ -1,6 +1,7 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } from './shared.js'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
+import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
 import * as S from './shared.js'
 
 export const goblin: CreatureAuthored = {
@@ -51,7 +52,7 @@ export const goblin: CreatureAuthored = {
       description:
         'Nimble Escape. The goblin can take the Disengage or Hide action as a bonus action on each of its turns.',
       effects: [
-        S.standingGrantedActionsEffect({
+        standingGrantedActionsEffect({
           id: S.bonusActionId(146, 201),
           invocation: {
             kind: 'PASSIVE',
