@@ -15,6 +15,7 @@ import {
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
@@ -766,7 +767,42 @@ export const monk: ClassAuthored = {
         'At 9th level, you gain the ability to move along vertical surfaces and across liquids on your turn without falling during the move.',
       availableAtLevel: 9,
       order: 15,
-      effects: [selfClassRuleEffect(16, CLOSED_RULE_KIND.CLASS_MONK_UNARMORED_MOVEMENT_IMPROVEMENT)]
+      effects: [
+        {
+          id: classRowId(M, 0x60, 16),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(M, 0x69, 16), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: classRowId(M, 0x93, 16),
+              order: 1,
+              pathCode: PATH_CODE.PASSIVE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(M, 0x94, 16),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(M, 0x95, 16),
+                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Unarmored Movement Improvement',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
+                    instructions:
+                      'You can move along vertical surfaces and across liquids on your turn without falling during the move. The table applies this.'
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       id: classRowId(M, 3, 17),

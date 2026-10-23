@@ -13948,7 +13948,7 @@
             },
             {
               "id": "SPELLS-31.T4o",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -13958,8 +13958,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2o"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2o: Dragon Wings, Unarmored Movement improvement, Second-Story Work. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m390.",
+              "mergedAt": "2026-10-23T22:11:56Z",
+              "proof": "Tests and Live green on tip 23893b0b; Dragon Wings is an until-dismissed fly SPEED SET_VALUE { equalsSpeedId: walk } (armor limits stay in the description); Unarmored Movement Improvement and Second-Story Work ship as MANUAL_ADJUDICATION GM rulings (D187a); three kinds deleted with authoring-parity proofs; compile golden updated."
             },
             {
               "id": "SPELLS-31.T4r",
