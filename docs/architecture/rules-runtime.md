@@ -731,7 +731,7 @@ yet to take a turn, and the attacker's own first-turn clause is not gated. The a
 surprised Creature and the Bugbear's Surprise Attack stay description-only (the engine has no surprise step).
 
 **Holder in bright light (SPELLS-33.T6d1, D189).** Sunlight Sensitivity (Drider, Drow, Duergar, Specter, Wight,
-Wraith) and the Cloaker's Light Sensitivity author `lightSensitivityGrants`: an `ATTACK_ROLL` disadvantage per attack
+Wraith), the Vampire's Sunlight Hypersensitivity and the Cloaker's Light Sensitivity author `lightSensitivityGrants`: an `ATTACK_ROLL` disadvantage per attack
 domain plus one Wisdom `ABILITY_CHECK` disadvantage, each gated by one `HOLDER_IN_BRIGHT_LIGHT { requiresDaylight }`
 equipment condition (daylight for Sunlight Sensitivity, any bright light for the Cloaker). One predicate, one flag,
 not two. It folds to a deferred `HOLDER_IN_BRIGHT_LIGHT` condition; `featureModifiersReadHolderLight` makes the
@@ -744,9 +744,7 @@ preparation call the optional `loadHolderLight` supplier, and `deferredGroupMet`
 at the holder's square, so a torch-lit square on a non-daylit Scene is BRIGHT without being daylit. Deleted kinds:
 `CREATURE_SUNLIGHT_SENSITIVITY`, `CREATURE_CLOAKER_LIGHT_SENSITIVITY`. Limitations: the Wisdom (Perception) check
 disadvantage is authored but has no live consumer (no Creature Perception roll exists; Creature ability checks roll
-only in contests); there is no roof or indoor daylight model (see future-enhancements). `CREATURE_VAMPIRE_SUNLIGHT_HYPERSENSITIVITY`
-(gated start-of-turn damage) and `CREATURE_CLOAKER_PHANTASMS` (illumination end condition) stay closed and are
-tracked as SPELLS-33.T6d1b and T6d1c.
+only in contests); there is no roof or indoor daylight model (see future-enhancements). The Vampire's disadvantage covers every ability. Its 20 radiant start-of-turn damage and the Cloaker Phantasms' bright-light dismissal ship as MANUAL_ADJUDICATION GM rulings (D187a; pieces in future-enhancements). Deleted kinds also include `CREATURE_VAMPIRE_SUNLIGHT_HYPERSENSITIVITY` and `CREATURE_CLOAKER_PHANTASMS`.
 
 ### Caster-centered radius areas (current, SPELLS-22)
 

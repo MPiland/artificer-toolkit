@@ -40,6 +40,10 @@ describe('light sensitivity authored as disadvantage on SRD Creatures (SPELLS-33
   it('no longer has the Sunlight Sensitivity or Light Sensitivity closed rule kinds', () => {
     expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CREATURE_SUNLIGHT_SENSITIVITY')
     expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CREATURE_CLOAKER_LIGHT_SENSITIVITY')
+    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain(
+      'CREATURE_VAMPIRE_SUNLIGHT_HYPERSENSITIVITY'
+    )
+    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('CREATURE_CLOAKER_PHANTASMS')
   })
 
   it('folds one holder-in-bright-light attack roll disadvantage per attack domain', () => {
@@ -62,7 +66,7 @@ describe('light sensitivity authored as disadvantage on SRD Creatures (SPELLS-33
     expect(featureModifiersReadHolderLight(grants)).toBe(true)
   })
 
-  it.each(['Drider', 'Drow', 'Duergar', 'Specter', 'Wight', 'Wraith'])(
+  it.each(['Drider', 'Drow', 'Duergar', 'Specter', 'Vampire', 'Wight', 'Wraith'])(
     'gives the %s disadvantage on every attack domain in daylight only',
     (label) => {
       for (const attackDomain of ATTACK_DOMAINS) {
@@ -90,6 +94,16 @@ describe('light sensitivity authored as disadvantage on SRD Creatures (SPELLS-33
     expect(checks[0].domain).toEqual({ ability: 'WISDOM' })
     expect(modifierRollInfluence(checks[0])).toBe('DISADVANTAGE')
     expect(featureModifiersReadHolderLight(checks)).toBe(true)
+  })
+
+  it('gives the Vampire disadvantage on checks of every ability in daylight', () => {
+    const checks = modifiersOf('Vampire').filter(
+      ({ valueDomainCode }) => valueDomainCode === 'ABILITY_CHECK'
+    )
+    expect(checks.map(({ domain }) => domain.ability).sort()).toEqual(
+      ['CHARISMA', 'CONSTITUTION', 'DEXTERITY', 'INTELLIGENCE', 'STRENGTH', 'WISDOM'].sort()
+    )
+    for (const check of checks) expect(modifierRollInfluence(check)).toBe('DISADVANTAGE')
   })
 
   it('gives a Creature without light sensitivity no light read and no disadvantage', () => {

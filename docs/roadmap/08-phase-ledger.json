@@ -15329,33 +15329,7 @@
               },
               "text": "new: illumination and sunlight predicates on standing modifiers and turn events (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md",
-              "note": "D189: one HOLDER_IN_BRIGHT_LIGHT predicate with requiresDaylight, Scene daylight state. Ships Sunlight Sensitivity and Cloaker Light Sensitivity (2 kinds); Vampire Hypersensitivity and Cloaker Phantasms split to T6d1b and T6d1c."
-            },
-            {
-              "id": "SPELLS-33.T6d1b",
-              "status": "TODO",
-              "closes": ["SPELLS-33.1"],
-              "wsjf": {
-                "bv": 5,
-                "tc": 2,
-                "rr": 3,
-                "size": 3,
-                "after": ["SPELLS-33.T6d1"]
-              },
-              "text": "Vampire Sunlight Hypersensitivity (1 kind): a start-of-turn passive DAMAGE outcome gated by the holder in daylight (HOLDER_IN_BRIGHT_LIGHT requiresDaylight), lifting assertStartOfTurnHealOnly and adding a holder-light gate fact, plus the attack and check disadvantage via lightSensitivityGrants. Authoring-parity proof; deletes CREATURE_VAMPIRE_SUNLIGHT_HYPERSENSITIVITY (D189)."
-            },
-            {
-              "id": "SPELLS-33.T6d1c",
-              "status": "TODO",
-              "closes": ["SPELLS-33.1"],
-              "wsjf": {
-                "bv": 5,
-                "tc": 2,
-                "rr": 3,
-                "size": 3,
-                "after": ["SPELLS-33.T6d1"]
-              },
-              "text": "Cloaker Phantasms (1 kind): ATTACK_DECOYS composed with an active-effect end condition tied to bright light on the holder (no new predicate). Authoring-parity proof; deletes CREATURE_CLOAKER_PHANTASMS (D189)."
+              "note": " D189: Scene daylight flag; 4 live kinds incl. CLOAKER_PHANTASMS."
             },
             {
               "id": "SPELLS-33.T6d2",

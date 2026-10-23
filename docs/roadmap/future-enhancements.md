@@ -543,6 +543,8 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Fresh-target per-turn repeat:** Eyebite retargeting (D186 FRESH); also tag-based ending of enchantments (Break Enchantment).
 - **Compelled turns:** Confusion, Compulsion and Eyebite Panicked.
 - **EXTRA_TURN:** Time Stop (extra consecutive turns and ending conditions; initiative insertion is not built) and Thief's Reflexes.
+- **Gated DAMAGE outcome at start of turn on holder illumination:** the Vampire's Sunlight Hypersensitivity 20 radiant damage (SPELLS-33.T6d1, D189). Needs a gated DAMAGE outcome, lifting the heal-only start-of-turn passive limit, and a holder-light gate fact.
+- **Active-effect end condition on holder illumination:** the Cloaker Phantasms duplicates vanishing in bright light (SPELLS-33.T6d1, D189).
 - **Holder-action save escape:** Irresistible Dance.
 - **Condition suppression:** Calm Emotions.
 - **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits.

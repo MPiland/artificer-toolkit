@@ -444,23 +444,24 @@ export function conditionalAttackAdvantageGrants(
 }
 
 /**
- * A feature's disadvantage on attack rolls of every attack domain, and on `checkAbility` checks
- * (the sight-based Wisdom (Perception) check, which has no narrower domain), while the holder stands
- * in bright light (Light Sensitivity) or in the Scene's daylight (Sunlight Sensitivity). Five IDs per
- * grant from `grantId(creatureIndex, firstLocalIndex)` onward.
+ * A feature's disadvantage on attack rolls of every attack domain, and on checks of each of
+ * `checkAbilities` (the sight-based Wisdom (Perception) check has no narrower domain), while the
+ * holder stands in bright light (Light Sensitivity) or in the Scene's daylight (Sunlight
+ * Sensitivity). Five IDs per grant from `grantId(creatureIndex, firstLocalIndex)` onward.
  */
 export function lightSensitivityGrants(
   creatureIndex: number,
   firstLocalIndex: number,
-  requiresDaylight: boolean
+  requiresDaylight: boolean,
+  checkAbilities: readonly AbilityCode[] = [ABILITY_CODE.WISDOM]
 ): NonNullable<FeatureAuthored['grants']> {
   const inputs: RollInfluenceGrantInput[] = [
     ...ATTACK_ROLL_INPUTS('DISADVANTAGE'),
-    {
+    ...checkAbilities.map((ability): RollInfluenceGrantInput => ({
       valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
-      domain: { ability: ABILITY_CODE.WISDOM },
+      domain: { ability },
       influence: 'DISADVANTAGE'
-    }
+    }))
   ]
   return {
     modifiers: inputs.map((input, order) =>
