@@ -4,10 +4,7 @@ import {
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import {
-  type LiveSessionForcedMovement,
-  type LiveSessionSummonedToken
-} from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import { type LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema,
@@ -88,7 +85,6 @@ export async function settleAreaCommit(args: {
     | null
   attackAction: Awaited<ReturnType<typeof evaluateNativeLiveActionEconomy>>['attackAction']
   forcedMovements: readonly LiveSessionForcedMovement[]
-  summonedTokens: readonly LiveSessionSummonedToken[]
   casterCounterConsumptions: ReturnType<typeof counterConsumptionsOf>
   consumedGrants: ReturnType<typeof actionEndedEffects>['consumedGrants']
   sourceReleases: ReturnType<typeof actionEndedEffects>['sourceReleases']
