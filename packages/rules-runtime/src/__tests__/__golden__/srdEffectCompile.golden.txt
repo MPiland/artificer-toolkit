@@ -1355,7 +1355,7 @@
 00000020-0000-0210-00cf-000000000001 CHARACTER:spells Maze | SINGLE_GRAPH f97a1b43b6aa860121b787369aa192058958201d3abc7bddea22894f0e8459fe nodes=2 outputs=1
 00000020-0000-0210-00d0-000000000001 CHARACTER:spells Meld into Stone | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-00d1-000000000001 CHARACTER:spells Mending | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
-00000020-0000-0210-00d2-000000000001 CHARACTER:spells Message | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-00d2-000000000001 CHARACTER:spells Message | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000020-0000-0210-00d3-000000000001 CHARACTER:spells Meteor Swarm | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=99eeee304c0df0905c4ec72b0f868ef499989bf70137808f269b330907bf7206,ON_SAVE_SUCCESS=14353d40977477563f8ea1e3de467ffbd924a3cda58cd371ce11dad0230f2fdd]
 00000020-0000-0210-00d4-000000000001 CHARACTER:spells Mind Blank | SINGLE_GRAPH c002fff1e552bb1c239fcc5e6d7c13bd6238a9234ee5bdb97dacf2e01a6581b0 nodes=2 outputs=1
 00000020-0000-0210-00d5-000000000001 CHARACTER:spells Minor Illusion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -1392,17 +1392,17 @@
 00000020-0000-0210-00f5-000000000001 CHARACTER:spells Protection from Evil and Good | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-00f6-000000000001 CHARACTER:spells Protection from Poison | SINGLE_GRAPH d843c2ca4efea1f7c7a898134b346573ec8aa265a04732461787eee2eb072316 nodes=2 outputs=1
 00000020-0000-0210-00f7-000000000001 CHARACTER:spells Purify Food and Drink | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000020-0000-0210-00f8-000000000001 CHARACTER:spells Raise Dead | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-00f8-000000000001 CHARACTER:spells Raise Dead | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000020-0000-0210-00f9-000000000001 CHARACTER:spells Ray of Enfeeblement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000020-0000-0210-00fa-000000000001 CHARACTER:spells Ray of Frost | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=07500783ffd83746bb885fc1f754ea318b00b2cc5cb4e29a8dabe2c745820102,ON_HIT=07500783ffd83746bb885fc1f754ea318b00b2cc5cb4e29a8dabe2c745820102]
 00000020-0000-0210-00fc-000000000001 CHARACTER:spells Regenerate | SINGLE_GRAPH b9b339c42a12e3918a371fa4dbf2e38c4666a71713c7f57f1967ae77584f6d32 nodes=9 outputs=3
-00000020-0000-0210-00fd-000000000001 CHARACTER:spells Reincarnate | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000020-0000-0210-00fe-000000000001 CHARACTER:spells Remove Curse | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-00fd-000000000001 CHARACTER:spells Reincarnate | SINGLE_GRAPH de43954bf4e5c5181994fc452a34b4dfe2e090d7495cfc7150fea82a33b02002 nodes=2 outputs=3
+00000020-0000-0210-00fe-000000000001 CHARACTER:spells Remove Curse | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000020-0000-0210-00ff-000000000001 CHARACTER:spells Resilient Sphere | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0100-000000000001 CHARACTER:spells Resistance | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
-00000020-0000-0210-0101-000000000001 CHARACTER:spells Resurrection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-0101-000000000001 CHARACTER:spells Resurrection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000020-0000-0210-0102-000000000001 CHARACTER:spells Reverse Gravity | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000020-0000-0210-0103-000000000001 CHARACTER:spells Revivify | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-0103-000000000001 CHARACTER:spells Revivify | SINGLE_GRAPH 32b98bb6b8215c7f2722777f641209819967b2aa2001c074d2f70a7b0dd98dcc nodes=2 outputs=3
 00000020-0000-0210-0104-000000000001 CHARACTER:spells Rope Trick | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0105-000000000001 CHARACTER:spells Sacred Flame | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=f7534ea550239a5987e9cb4440b5c037547cd8df6bc99d42956bbf74b76c4898]
 00000020-0000-0210-0106-000000000001 CHARACTER:spells Sanctuary | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
@@ -1450,7 +1450,7 @@
 00000020-0000-0210-0133-000000000001 CHARACTER:spells Tiny Hut | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0134-000000000001 CHARACTER:spells Tongues | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0135-000000000001 CHARACTER:spells True Polymorph | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[]
-00000020-0000-0210-0136-000000000001 CHARACTER:spells True Resurrection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000020-0000-0210-0136-000000000001 CHARACTER:spells True Resurrection | SINGLE_GRAPH 3e1da1d54933054141d2fe5233834a828dce046ac3bfaafccd741567b14b535d nodes=2 outputs=3
 00000020-0000-0210-0137-000000000001 CHARACTER:spells True Seeing | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-0138-000000000001 CHARACTER:spells True Strike | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-013a-000000000001 CHARACTER:spells Unseen Servant | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

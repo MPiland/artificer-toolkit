@@ -13,6 +13,7 @@ import type { MoveManifestAuthored } from './moveManifest.js'
 import type { ManualAdjudicationAuthored } from './manualAdjudication.js'
 import type { MovementRuleAuthored } from './movementRule.js'
 import type { ActionEconomyRuleAuthored } from './actionEconomyRule.js'
+import type { ReviveAuthored } from './revive.js'
 import type { StabilizeAuthored } from './stabilize.js'
 import type { KillAuthored } from './kill.js'
 import type { TeleportAuthored } from './teleport.js'
@@ -53,6 +54,7 @@ export type OutcomeAuthored =
   | FollowUpCheckAuthored
   | MovementRuleAuthored
   | ActionEconomyRuleAuthored
+  | ReviveAuthored
   | StabilizeAuthored
   | KillAuthored
   | ArmorClassFloorAuthored

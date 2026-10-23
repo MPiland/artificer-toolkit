@@ -19,6 +19,7 @@ export const EFFECT_KIND = {
   ACTION_ECONOMY_RULE: 'ACTION_ECONOMY_RULE',
   STABILIZE: 'STABILIZE',
   KILL: 'KILL',
+  REVIVE: 'REVIVE',
   ARMOR_CLASS_FLOOR: 'ARMOR_CLASS_FLOOR',
   RESTORE_RESOURCE: 'RESTORE_RESOURCE',
   TELEPATHIC_LINK: 'TELEPATHIC_LINK',
@@ -130,6 +131,11 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     code: EFFECT_KIND.KILL,
     label: 'Kill',
     description: 'The target dies at once.'
+  },
+  [EFFECT_KIND.REVIVE]: {
+    code: EFFECT_KIND.REVIVE,
+    label: 'Revive',
+    description: 'A dead creature returns to life with 1 hit point or all of them.'
   },
   [EFFECT_KIND.ARMOR_CLASS_FLOOR]: {
     code: EFFECT_KIND.ARMOR_CLASS_FLOOR,
