@@ -93,8 +93,11 @@ export const confusion: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CONFUSION, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'CONFUSION' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Confusion Behavior',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "An affected target can't take reactions. At the start of each of its turns it rolls a d10 for that turn: 1 the creature uses all its movement to move in a random direction (roll a d8 for the direction) and takes no action; 2-6 it does not move or take actions; 7-8 it makes one melee attack against a random creature within reach, or does nothing if none is within reach; 9-10 it can act and move normally. At the end of each of its turns it can repeat the Wisdom saving throw to end the effect."
               }
             ]
           }
