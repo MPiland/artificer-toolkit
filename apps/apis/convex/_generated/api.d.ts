@@ -137797,6 +137797,9 @@ export declare const internal: {
               ability_definitions?: Array<
                 Record<string, string | number | boolean | null>
               >;
+              action_traits?: Array<
+                Record<string, string | number | boolean | null>
+              >;
               alignments?: Array<
                 Record<string, string | number | boolean | null>
               >;
@@ -137841,6 +137844,12 @@ export declare const internal: {
                 Record<string, string | number | boolean | null>
               >;
               damages?: Array<Record<string, string | number | boolean | null>>;
+              effect_consume_events?: Array<
+                Record<string, string | number | boolean | null>
+              >;
+              effect_end_events?: Array<
+                Record<string, string | number | boolean | null>
+              >;
               effect_path_choice_options?: Array<
                 Record<string, string | number | boolean | null>
               >;
@@ -137966,6 +137975,7 @@ export declare const internal: {
           expectedDraftUpdatedAt: string;
           sourceChecksums: {
             ability_definitions?: string;
+            action_traits?: string;
             alignments?: string;
             background_features?: string;
             backgrounds?: string;
@@ -137982,6 +137992,8 @@ export declare const internal: {
             currencies?: string;
             damage_types?: string;
             damages?: string;
+            effect_consume_events?: string;
+            effect_end_events?: string;
             effect_path_choice_options?: string;
             effect_path_roll_table_rows?: string;
             effect_paths?: string;
