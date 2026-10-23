@@ -379,13 +379,13 @@ function predicateGatedRollInfluenceGrant(
   predicate: GatingPredicate
 ) {
   const id = (offset: number) => grantId(creatureIndex, firstId + offset)
+  const { influence, ...rollDomain } = input
   return {
     id: id(0),
     grantKind: GRANT_KIND.MODIFIER_GRANT,
-    valueDomainCode: input.valueDomainCode,
-    domain: input.domain,
+    ...rollDomain,
     modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
-    payload: { influence: input.influence },
+    payload: { influence },
     scope: MODIFIER_SCOPE_KIND.GLOBAL,
     selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
     order,
