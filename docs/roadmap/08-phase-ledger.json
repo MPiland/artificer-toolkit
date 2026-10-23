@@ -4253,7 +4253,7 @@
             },
             {
               "id": "RULES-2.T9m",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4263,8 +4263,9 @@
                 "after": ["RULES-2.T9k"]
               },
               "text": "Walk speed by default: characterMovementAndSenses and sheetProjection read the default movement type from the System record defaults instead of the WALK code.",
-              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343). Merged in m375.",
+              "mergedAt": "2026-10-23T13:41:38Z",
+              "proof": "Tests and Live green on tip b57bd817; movementFacts.defaultSpeedId from System defaults.movementTypeId; sheetProjectionSpeed.test.ts proves a Swimming-default System drives the primary speed and label; WALK comparisons removed from characterMovementAndSenses and sheetProjection (remaining WALK_SPEED_CODE uses are T9o guard scope)"
             },
             {
               "id": "RULES-2.T9n",
