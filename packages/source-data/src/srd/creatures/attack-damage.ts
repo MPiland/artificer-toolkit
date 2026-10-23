@@ -723,6 +723,13 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
       ['3d6', 'FIRE']
     ]
   ], // Remorhaz: Bite
+  [
+    '00000000-0002-01f6-0070-00eb00000000',
+    [
+      ['6d10+7', 'PIERCING'],
+      ['3d6', 'FIRE']
+    ]
+  ], // Remorhaz: Swallow (the bite's damage)
   ['00000000-0002-0001-0070-00ec00000000', [['2d8+5', 'BLUDGEONING']]], // Rhinoceros: Gore
   ['00000000-0002-0001-0070-00ed00000000', [['2d4+3', 'BLUDGEONING']]], // Riding Horse: Hooves
   ['00000000-0002-0004-0070-00ee00000000', [['4d8+9', 'PIERCING']]], // Roc: Beak
@@ -815,6 +822,7 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0001-0070-013c00000000', [['2d6', 'PIERCING']]], // Swarm of Rats: Bites
   ['00000000-0002-0001-0070-013d00000000', [['2d6', 'PIERCING']]], // Swarm of Ravens: Beaks
   ['00000000-0002-0001-0070-0ba600000000', [['4d12+10', 'PIERCING']]], // Tarrasque: Bite
+  ['00000000-0002-00e4-0070-010c00000000', [['4d12+10', 'PIERCING']]], // Tarrasque: Swallow (the bite's damage)
   ['00000000-0002-00d1-0070-010c00000000', [['4d8+10', 'SLASHING']]], // Tarrasque: Claw
   ['00000000-0002-00d6-0070-010c00000000', [['4d10+10', 'PIERCING']]], // Tarrasque: Horns
   ['00000000-0002-00db-0070-010c00000000', [['4d6+10', 'BLUDGEONING']]], // Tarrasque: Tail

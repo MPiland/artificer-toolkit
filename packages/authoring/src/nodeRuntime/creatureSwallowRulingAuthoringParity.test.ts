@@ -63,11 +63,16 @@ describe('swallow riders as GM rulings (D187a)', () => {
     }
   )
 
-  it.each([purpleWorm, kraken])(
-    'keeps the $label Bite damage automated beside the ruling',
-    (creature) => {
-      expect(featureOutcomes(creature, 'Bite').map(({ effectKind }) => effectKind)).toEqual([
-        'DAMAGE',
+  it.each([
+    { creature: purpleWorm, label: 'Bite', damage: ['DAMAGE'] },
+    { creature: kraken, label: 'Bite', damage: ['DAMAGE'] },
+    { creature: remorhaz, label: 'Swallow', damage: ['DAMAGE', 'DAMAGE'] },
+    { creature: tarrasque, label: 'Swallow', damage: ['DAMAGE'] }
+  ])(
+    'keeps the $creature.label $label damage automated beside the ruling',
+    ({ creature, label, damage }) => {
+      expect(featureOutcomes(creature, label).map(({ effectKind }) => effectKind)).toEqual([
+        ...damage,
         'MANUAL_ADJUDICATION'
       ])
     }

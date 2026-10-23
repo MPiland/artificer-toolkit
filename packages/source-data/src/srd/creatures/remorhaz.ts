@@ -197,15 +197,68 @@ export const remorhaz: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
+            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: { id: S.actionId(235, 602), rangeKind: S.RANGE_KIND.SPECIAL }
+            range: {
+              id: S.actionId(235, 602),
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+            }
           },
           paths: [
             {
-              id: S.actionId(235, 702),
+              id: S.actionId(235, 703),
               order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(235, 703) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(235, 703),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('PIERCING'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '6d10+7'
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(235, 704),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_HIT,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(235, 704) + '__result',
+                resultKind: 'SEQUENCE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(235, 704),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId('FIRE'),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: '3d6'
+                  }
+                ]
+              }
+            },
+            {
+              id: S.actionId(235, 702),
+              order: 3,
+              pathCode: S.PATH_CODE.ON_HIT,
               groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,

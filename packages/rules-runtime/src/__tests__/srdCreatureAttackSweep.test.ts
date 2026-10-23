@@ -178,8 +178,14 @@ describe('SRD Creature attack sweep', () => {
     expect(mismatches).toEqual({})
   })
 
-  it('sweeps the swallowing Bites as automated damage beside a GM ruling (D187a)', () => {
-    for (const label of ['Purple Worm: Bite', 'Kraken: Bite']) {
+  it('sweeps the swallowing attacks as automated damage beside a GM ruling (D187a)', () => {
+    const damageParts = {
+      'Purple Worm: Bite': 1,
+      'Kraken: Bite': 1,
+      'Remorhaz: Swallow': 2,
+      'Tarrasque: Swallow': 1
+    }
+    for (const [label, parts] of Object.entries(damageParts)) {
       const units = creatures.flatMap(attackUnits).filter((unit) => unit.label === label)
       expect(units).toHaveLength(1)
       const [unit] = units
@@ -188,7 +194,7 @@ describe('SRD Creature attack sweep', () => {
           ? path.resultBlock.outcomes.map(({ effectKind }) => effectKind)
           : []
       )
-      expect(hitKinds).toEqual(['DAMAGE', 'MANUAL_ADJUDICATION'])
+      expect(hitKinds).toEqual([...Array(parts).fill('DAMAGE'), 'MANUAL_ADJUDICATION'])
       expect(SRD_CREATURE_ATTACK_UNSUPPORTED).not.toHaveProperty(unit.effectId)
     }
   })
@@ -301,7 +307,7 @@ describe('SRD Creature attack sweep', () => {
       }
     }
 
-    expect(effectIds.size).toBe(548)
+    expect(effectIds.size).toBe(550)
     expect(failures).toEqual(SRD_CREATURE_ATTACK_UNSUPPORTED)
     expect(hits).toEqual(expectedHits)
     expect(criticalDice).toEqual(expectedCriticalDice)
