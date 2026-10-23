@@ -9,7 +9,6 @@ import {
   CLOSED_RULE_KIND,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
-  MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
@@ -879,26 +878,6 @@ export const rogue: ClassAuthored = {
       label: 'Blindsense',
       description:
         'Starting at 14th level, if you are able to hear, you are aware of the location of any hidden or invisible creature within 10 feet of you.',
-      effects: [
-        closedRuleEffect({
-          id: classRowId(R, 0x60, 16),
-          ruleKind: CLOSED_RULE_KIND.CLASS_ROGUE_BLINDSENSE,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: {
-              id: classRowId(R, 0x69, 16),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: TARGET_DISPOSITION_KIND.ANY
-            }
-          }
-        })
-      ],
       availableAtLevel: 14,
       order: 15
     },
