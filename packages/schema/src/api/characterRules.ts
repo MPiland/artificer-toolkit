@@ -224,7 +224,6 @@ const characterMovementFactsSchema = lazySchema(() =>
       .array(
         z.strictObject({
           speedId: boundedIdentitySchema,
-          code: z.nullable(boundedIdentitySchema),
           base: z.nullable(authoredLengthSchema),
           override: z.nullable(
             z.strictObject({ sourceId: boundedIdentitySchema, value: authoredLengthSchema })
@@ -232,6 +231,8 @@ const characterMovementFactsSchema = lazySchema(() =>
         })
       )
       .check(z.maxLength(100)),
+    /** The System's default movement type, the primary speed under AUTO preference. */
+    defaultSpeedId: z.nullable(boundedIdentitySchema),
     preference: z.strictObject({
       mode: z.enum(['AUTO', 'EXPLICIT']),
       speedId: z.nullable(boundedIdentitySchema)
