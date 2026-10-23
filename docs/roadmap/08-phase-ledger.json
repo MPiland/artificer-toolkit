@@ -3668,7 +3668,7 @@
                 "after": ["RULES-2.T9a", "RULES-2.T9i"]
               },
               "text": "System vocabulary (split 2026-10-21): lifecycle consume/end codes and the ATTACK_ROLL and SPELL_CAST traits become System codes with the eventVocabulary table as their one source; neutral structural trigger shapes stay in the schema.",
-              "activeWorkbook": "local_41ecd98e"
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
             },
             {
               "id": "RULES-2.T9d",
@@ -4249,7 +4249,7 @@
               },
               "text": "Invisible by condition attribute: an unseen attribute on the condition entry drives encounterPlayerProjection; no code compares the Invisible code.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "local_7771d2a3"
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
             },
             {
               "id": "RULES-2.T9m",
@@ -4264,7 +4264,7 @@
               },
               "text": "Walk speed by default: characterMovementAndSenses and sheetProjection read the default movement type from the System record defaults instead of the WALK code.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "local_524f13a2"
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
             },
             {
               "id": "RULES-2.T9n",
@@ -10097,7 +10097,7 @@
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: END_EFFECTS by tag (D174, split from T2f 2026-10-22): a TAG selector backed by a System vocabulary kind for effect tags (T5p recipe). Converts REMOVE_CURSE and Greater Restoration's curse and reduction clauses, with parity proofs; REMOVE_CURSE kind deleted.",
               "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "local_ebf00ced"
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2f1a",
@@ -10116,18 +10116,31 @@
               "note": " Merged in m369."
             },
             {
-              "id": "SPELLS-4.T2f1b",
+              "id": "SPELLS-4.T2f1b1",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-4.T2f1a"]
               },
-              "text": "Per-candidate level checks (D182): the check flow widened to spell sources; the pending check context holds a frozen ordered candidates list and a cursor, one roller prompt per candidate through the single d20 settlement, replay-idempotent per context and cursor; TARGET_EFFECT_LEVEL DC. Converts DISPEL_MAGIC on a creature or object target with parity proof and room journey; kind deleted; canonical check-flow guide updated.",
-              "activeWorkbook": "local_b648a79a"
+              "text": "Candidate checks substrate (D182, D182a split of T2f1b): a SPELL_CAST check source, the pending check context with a frozen ordered candidates list and cursor, the CHECK_ACTION output for several checks, and a per-candidate commit shape in encounter-persistence that ends the effect in the same transaction and receipt as the roll, undone by actionRevert and occurrenceVoid; replay-idempotent per context and cursor; unit and integration proofs. Includes the optional checkOccurrenceId on the RULE_OCCURRENCE cast root (read by storedCheckOccurrenceId, admission and revert) and the Worker response planner for candidate steps (D182a amendment).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2f1b2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2f1b1"]
+              },
+              "text": "Dispel Magic above-level checks (D182a): the Worker cast-time planner pends the cast into the T2f1b1 candidate checks; levelCheck authored through the node map, DTO, compiler and character rule facts with a TARGET_EFFECT_LEVEL DC; converts DISPEL_MAGIC on a creature or object target with a golden proof and room journey; kind deleted; check-flow section of docs/architecture/rules-runtime.md updated."
             },
             {
               "status": "DONE",
@@ -10528,7 +10541,7 @@
             },
             {
               "id": "SPELLS-4.T2l2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10538,8 +10551,9 @@
                 "after": ["SPELLS-4.T2l"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Compelled turns (D160, split from T2l): a turn-start compelled behavior on a held effect. Converts CONFUSION (server-rolled d10 behavior and D159 RANDOM direction, self-move through the movement planner), COMPULSION (direction set by a granted source bonus action), Eyebite Panicked and Sickened, and Contagion’s Mindfire (moved from T2m), with parity proofs; deletes EYEBITE, CONFUSION, COMPULSION, and CONTAGION once T2m has converted its other diseases.",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "local_8f559b5c"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m372.",
+              "mergedAt": "2026-10-23T12:57:18Z",
+              "proof": "Tests and Live green on tip 47c3ba39; Confusion and Compulsion compile with MANUAL_ADJUDICATION behavior, save, Concentration and duration automated; CONFUSION and COMPULSION kinds deleted; CONTAGION deletion stays with T2m3"
             },
             {
               "id": "SPELLS-4.T2l3",
@@ -10873,7 +10887,7 @@
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B; T2a2 ruling): A save-gated grant with an indefinite (until dispelled) lifetime without Concentration, ABILITY_SCORE SET_VALUE that sets the score over bonuses for Characters and Creatures, and a casting lock that also holds for Creatures. Converts FEEBLEMIND, with a parity proof; the kind deleted.",
               "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "local_00dfe62d"
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
