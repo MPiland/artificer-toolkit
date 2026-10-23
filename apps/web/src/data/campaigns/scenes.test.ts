@@ -24,6 +24,7 @@ const scene = sceneDefinitionDtoSchema.parse({
   name: 'Courtyard',
   version: 1,
   ambientIllumination: 'BRIGHT',
+  daylight: false,
   fogMode: 'PER_PLAYER',
   visionRevealMode: 'ON_DRAG',
   grid: { kind: 'GRIDLESS', pixelsPerUnit: 50, unit: 'FEET' },

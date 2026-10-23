@@ -6,6 +6,7 @@ import {
   Menu,
   SegmentedControl,
   Select,
+  Switch,
   Text,
   Tooltip
 } from '@mantine/core'
@@ -1361,6 +1362,25 @@ export function CampaignVttStage({
                   setGmPreviewUserId(value && value !== 'GM' ? value : null)
                   setMode('PLAY')
                   setTool('SELECT')
+                }}
+              />
+              <Switch
+                aria-label='Daylight'
+                checked={scene.daylight}
+                disabled={live.status !== 'CONNECTED'}
+                label='Daylight'
+                size='xs'
+                onChange={(event) => {
+                  const current = sceneRef.current
+                  if (!current) return
+                  dispatchRef.current({
+                    commandId: crypto.randomUUID(),
+                    daylight: event.currentTarget.checked,
+                    expectedSceneVersion: current.version,
+                    illumination: current.ambientIllumination,
+                    sceneId: current.id,
+                    type: 'SET_SCENE_AMBIENT_ILLUMINATION'
+                  })
                 }}
               />
               <Select

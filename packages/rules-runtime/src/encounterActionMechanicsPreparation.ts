@@ -20,10 +20,12 @@ import {
   creatureActiveGrantAttackContributors,
   creatureFeatureAttackContributors,
   featureModifiersReadEnemyProximity,
+  featureModifiersReadHolderLight,
   featureModifiersReadTargetTurn,
   creatureAttackAbility,
   encounterAttackAddedDice,
   conditionImmunityIdsAgainstSource,
+  type EncounterHolderLight,
   type GrantSource,
   sourceQualifierAdmits,
   withSourceSightSave
@@ -357,6 +359,14 @@ export async function prepareEncounterActionMechanics<
   loadTargetHasNotTakenTurn?: (input: {
     targetFacts: MovementTarget<TCharacterFacts>
   }) => Promise<boolean>
+  /**
+   * The light on the attacker's square on the Scene (bright, and whether the Scene's daylight reaches
+   * it), for a Creature whose feature grants ask (Sunlight Sensitivity); null without a Scene.
+   * Called only for such an attack.
+   */
+  loadHolderLight?: (input: {
+    sourceFacts: MovementTarget<TCharacterFacts>
+  }) => Promise<EncounterHolderLight | null>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   loadRelationshipFacts: (input: {
     state: EncounterRunState
@@ -655,6 +665,13 @@ export async function prepareEncounterActionMechanics<
     featureModifiersReadTargetTurn(sourceFacts.featureModifiers)
       ? await input.loadTargetHasNotTakenTurn({ targetFacts })
       : false
+  const holderLight =
+    attackKind !== null &&
+    input.loadHolderLight &&
+    source.kind !== 'CHARACTER_ACTION' &&
+    featureModifiersReadHolderLight(sourceFacts.featureModifiers)
+      ? await input.loadHolderLight({ sourceFacts })
+      : null
   const moveToward =
     attackKind !== null && input.loadMoveToward && compiledReads?.moveToward
       ? await input.loadMoveToward({ sourceFacts, targetFacts })
@@ -821,7 +838,8 @@ export async function prepareEncounterActionMechanics<
                         creatureAttackAbility(source.capability.mechanicFacts.outcomes),
                         sourceFacts.featureModifiers,
                         enemyProximity?.nearestFeet ?? null,
-                        targetHasNotTakenTurn
+                        targetHasNotTakenTurn,
+                        holderLight
                       )
                     ),
                     contributors

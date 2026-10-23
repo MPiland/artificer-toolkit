@@ -337,6 +337,8 @@ const sceneDefinitionObject = lazySchema(() =>
     ambientIllumination: combatPerceptionIlluminationDtoSchema,
     barriers: z.array(sceneBarrierDtoSchema).check(z.maxLength(VTT_SCENE_LIMITS.barriers)),
     campaignId: uuidSchema,
+    /** The Scene is lit by the sun; sunlight at a square is daylight and BRIGHT illumination there. */
+    daylight: z._default(z.boolean(), false),
     darknessZones: z
       .array(sceneDarknessZoneDtoSchema)
       .check(z.maxLength(VTT_SCENE_LIMITS.darknessZones)),
@@ -536,6 +538,7 @@ export const campaignLiveSceneSummaryDtoSchema = lazySchema(() =>
 const sceneAtomicDeltaDtoSchema: z.ZodMiniType<SceneAtomicDelta> = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
+      daylight: z.boolean(),
       illumination: combatPerceptionIlluminationDtoSchema,
       kind: z.literal('AMBIENT_ILLUMINATION_SET')
     }),
@@ -817,6 +820,7 @@ const sceneLiveCommandSchemas = lazySchemaParts(
         measurementId: uuidSchema
       }),
       z.extend(sceneCommandBaseDtoSchema, {
+        daylight: z.boolean(),
         illumination: combatPerceptionIlluminationDtoSchema,
         type: z.literal('SET_SCENE_AMBIENT_ILLUMINATION')
       }),

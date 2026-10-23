@@ -32,6 +32,7 @@ const warden = tabletopLiveScene.tokens[1]!
 const emptyScene = validated(campaignSceneStateDtoSchema)({
   ...tabletopLiveScene,
   ambientIllumination: 'BRIGHT',
+  daylight: false,
   barriers: [],
   darknessZones: [],
   doorStates: {},
@@ -493,6 +494,7 @@ export const AmbientDarkness: Story = {
     scene: {
       ...emptyScene,
       ambientIllumination: 'ORDINARY_DARKNESS',
+      daylight: false,
       lights: [lightAt('77777777-7777-4777-8777-777777777801', 400, 100, 250)]
     }
   },
@@ -518,6 +520,7 @@ export const DarknessZoneKinds: Story = {
     scene: {
       ...emptyScene,
       ambientIllumination: 'DIM',
+      daylight: false,
       darknessZones: darknessKinds,
       lights: [lightAt('77777777-7777-4777-8777-777777777801', 700, 150, 300)]
     }

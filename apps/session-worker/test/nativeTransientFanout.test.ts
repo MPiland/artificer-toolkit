@@ -85,6 +85,7 @@ function member(userId: string, role: 'OWNER' | 'PLAYER', epoch = '2026-09-12T00
 function header(fogLayerCount = 0, visionRevealMode: 'ON_DRAG' | 'ON_DROP' = 'ON_DRAG') {
   return sceneLiveStateHeaderSchema.parse({
     ambientIllumination: 'DIM',
+    daylight: false,
     campaignId,
     counts: {
       annotations: 0,
@@ -176,6 +177,7 @@ function roomSceneCapture(
 function emptyScene(): RoomSceneFixture['scene'] {
   return {
     ambientIllumination: 'DIM',
+    daylight: false,
     annotations: [],
     barriers: [],
     darknessZones: [],

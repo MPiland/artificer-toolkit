@@ -115,6 +115,7 @@ import {
   onHitSpellConsumption
 } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
+import { readNativeLiveHolderLight } from './nativeHolderLight.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
 import { readNativePauseAnswer, settleNativePauseAnswer } from './nativePauseHandlers.js'
 import type { NativePauseAnswer } from './nativePauseTypes.js'
@@ -625,6 +626,13 @@ export async function planNativeLiveEncounterAction(
       loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
       loadTargetHasNotTakenTurn: ({ targetFacts }) =>
         readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
+      loadHolderLight: ({ sourceFacts }) =>
+        readNativeLiveHolderLight({
+          campaignId: state.campaignId,
+          holder: sourceFacts,
+          sceneContext,
+          capture
+        }),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
   const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()

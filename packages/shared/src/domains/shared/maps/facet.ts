@@ -1466,6 +1466,13 @@ function createFacetPredicateNodeMap(
         })
       )
       .set(
+        'requiresDaylight',
+        toggle(['requiresDaylight'], 'Daylight only', {
+          order: 3,
+          showIf: local.field(['predicateCode']).eq('HOLDER_IN_BRIGHT_LIGHT')
+        })
+      )
+      .set(
         'category',
         selectSingle(
           ['category'],

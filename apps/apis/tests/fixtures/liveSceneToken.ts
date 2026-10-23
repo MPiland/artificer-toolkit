@@ -27,6 +27,7 @@ export function liveSceneHead(
     settings: {
       ambientIllumination: {
         value: options.ambientIllumination ?? 'BRIGHT',
+        daylight: false,
         version: options.ambientIllumination === 'DIM' ? options.version : 0
       },
       visionRevealMode: { value: 'ON_DRAG', version: 0 },

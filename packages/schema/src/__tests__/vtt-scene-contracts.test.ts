@@ -35,6 +35,7 @@ function sceneDefinition() {
   return {
     annotations: [],
     ambientIllumination: 'BRIGHT' as const,
+    daylight: false,
     barriers: [],
     campaignId: ids.campaign,
     darknessZones: [],
@@ -143,12 +144,14 @@ describe('VTT scene contracts', () => {
     expect(
       sceneDeltaDtoSchema.safeParse({
         kind: 'AMBIENT_ILLUMINATION_SET',
+        daylight: true,
         illumination: 'DIM'
       }).success
     ).toBe(true)
     expect(
       sceneDeltaDtoSchema.safeParse({
         kind: 'AMBIENT_ILLUMINATION_SET',
+        daylight: false,
         illumination: 'VOID'
       }).success
     ).toBe(false)
@@ -171,10 +174,18 @@ describe('VTT scene contracts', () => {
     expect(
       sceneCommandInputDtoSchema.safeParse({
         ...commandBase,
+        daylight: true,
         illumination: 'DIM',
         type: 'SET_SCENE_AMBIENT_ILLUMINATION'
       }).success
     ).toBe(true)
+    expect(
+      sceneCommandInputDtoSchema.safeParse({
+        ...commandBase,
+        illumination: 'DIM',
+        type: 'SET_SCENE_AMBIENT_ILLUMINATION'
+      }).success
+    ).toBe(false)
     expect(
       sceneCommandInputDtoSchema.safeParse({
         ...commandBase,
@@ -437,6 +448,7 @@ describe('VTT scene contracts', () => {
     const undo = { ...commandBase, type: 'UNDO_LAST_SCENE_MOVE' as const }
     const nonGeometry = {
       ...commandBase,
+      daylight: false,
       illumination: 'DIM' as const,
       type: 'SET_SCENE_AMBIENT_ILLUMINATION' as const
     }

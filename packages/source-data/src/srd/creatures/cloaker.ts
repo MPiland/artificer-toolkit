@@ -73,17 +73,7 @@ export const cloaker: CreatureAuthored = {
       label: 'Light Sensitivity',
       description:
         'Light Sensitivity. While in bright light, the cloaker has disadvantage on attack rolls and Wisdom (Perception) checks that rely on sight.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(65, 105),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(65, 106), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLOAKER_LIGHT_SENSITIVITY
-        })
-      ],
+      grants: S.lightSensitivityGrants(65, 100, false),
       order: 3
     },
     {

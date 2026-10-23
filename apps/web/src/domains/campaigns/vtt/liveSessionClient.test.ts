@@ -35,6 +35,7 @@ const door = {
 const sceneState = validated(campaignSceneStateDtoSchema)({
   annotations: [],
   ambientIllumination: 'BRIGHT',
+  daylight: false,
   barriers: [door],
   campaignId,
   darknessZones: [],

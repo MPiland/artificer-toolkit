@@ -5,6 +5,7 @@ import type { CampaignSceneState, SceneToken } from '../domains/vtt/scene.js'
 import {
   measureSceneTokenFootprintDistance,
   resolveSceneCombatPerceptionEnvironment,
+  resolveSceneDaylightAt,
   resolveSceneIlluminationAt,
   sceneTokenLights
 } from '../domains/vtt/sceneCombatPerception.js'
@@ -379,6 +380,55 @@ describe('Scene combat-perception environment', () => {
       sharedSurface: true,
       invisibleChannels: ['NONVISUAL', 'VISUAL'],
       suppressedChannels: ['AUDITORY']
+    })
+  })
+
+  describe('sunlight at a point (D189)', () => {
+    const point = { x: 50, y: 50 }
+    const torch = {
+      brightRadius: 100,
+      color: '#ffffff',
+      dimRadius: 300,
+      id: crypto.randomUUID(),
+      intensity: 1,
+      kind: 'POINT',
+      position: point
+    } as const
+    const darkZone = {
+      id: crypto.randomUUID(),
+      mechanicalIllumination: 'ORDINARY_DARKNESS',
+      mechanicalObscurement: null,
+      opacity: 1,
+      polygon: {
+        points: [
+          { x: 0, y: 0 },
+          { x: 100, y: 0 },
+          { x: 100, y: 100 },
+          { x: 0, y: 100 }
+        ]
+      }
+    } as const
+    const daylightAt = (overrides: Partial<PerceptionScene>, daylight: boolean) => {
+      const environment = { ...scene(overrides), daylight }
+      return resolveSceneDaylightAt(environment, point, new SceneBarrierIndex(environment.barriers))
+    }
+
+    it('is sunlight where a daylit Scene resolves BRIGHT', () => {
+      expect(daylightAt({}, true)).toBe(true)
+    })
+
+    it('is not sunlight in a darkness zone of a daylit Scene', () => {
+      expect(daylightAt({ darknessZones: [darkZone] }, true)).toBe(false)
+    })
+
+    it('is not sunlight where only a torch makes the square BRIGHT', () => {
+      expect(daylightAt({ ambientIllumination: 'ORDINARY_DARKNESS', lights: [torch] }, false)).toBe(
+        false
+      )
+    })
+
+    it('is not sunlight where a daylit Scene resolves only DIM', () => {
+      expect(daylightAt({ ambientIllumination: 'DIM' }, true)).toBe(false)
     })
   })
 })

@@ -30,6 +30,7 @@ const tokenOf = (actorId: string) => `${actorId.slice(0, -4)}7${actorId.slice(-3
 
 const header = sceneLiveStateHeaderSchema.parse({
   ambientIllumination: 'ORDINARY_DARKNESS',
+  daylight: false,
   campaignId: CAMPAIGN_ID,
   counts: { annotations: 0, barriers: 0, darknessZones: 0, lights: 0, tokens: 0 },
   currentCounts: {

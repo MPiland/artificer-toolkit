@@ -1118,6 +1118,7 @@ export async function verifyCampaignLifecycle(input: {
       campaignId: campaign.id,
       name: 'Native receiving Scene definition',
       ambientIllumination: 'BRIGHT',
+      daylight: false,
       fogMode: 'PER_PLAYER',
       visionRevealMode: 'ON_DRAG',
       grid: sceneOptions.grid,

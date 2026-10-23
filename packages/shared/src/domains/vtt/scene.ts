@@ -250,6 +250,7 @@ export interface SceneDefinition {
   ambientIllumination: CombatPerceptionIllumination
   barriers: SceneBarrier[]
   campaignId: string
+  daylight: boolean
   darknessZones: SceneDarknessZone[]
   fogMode: SceneFogMode
   grid: SceneGrid
@@ -297,6 +298,7 @@ export interface CampaignSceneState {
   ambientIllumination: CombatPerceptionIllumination
   barriers: SceneBarrier[]
   campaignId: string
+  daylight: boolean
   darknessZones: SceneDarknessZone[]
   definitionId: string
   definitionVersion: number
@@ -315,7 +317,11 @@ export interface CampaignSceneState {
 }
 
 export type SceneAtomicDelta =
-  | { kind: 'AMBIENT_ILLUMINATION_SET'; illumination: CombatPerceptionIllumination }
+  | {
+      kind: 'AMBIENT_ILLUMINATION_SET'
+      daylight: boolean
+      illumination: CombatPerceptionIllumination
+    }
   | { kind: 'TOKEN_UPSERTED'; token: SceneToken }
   | { kind: 'TOKEN_REMOVED'; tokenId: string }
   | { kind: 'TOKEN_MOVED'; position: ScenePoint; tokenId: string }

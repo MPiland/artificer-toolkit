@@ -461,7 +461,10 @@ Live Scene rows (see [Live room and checkpoints](#live-room-and-checkpoints)) ar
 `sceneLiveStates` holds the version, settings (including the versioned `fogMode` of `OFF`, `SHARED_PARTY` or
 `PER_PLAYER`, ADR 0034), counts and ordinals; `sceneLiveEntities` holds collection-qualified overrides and
 tombstones over the immutable base. Fog layers reference immutable `sceneFogChunks` through `sceneFogSaves`
-manifests; superseded chunks are retained because layers reference them. Staging uploads for fog never reach
+manifests; superseded chunks are retained because layers reference them. The Scene's `daylight` flag (D189: the
+Scene is lit by the sun; sunlight at a square is `daylight` and BRIGHT illumination there, see
+`resolveSceneDaylightAt`) lives in the `ambientIllumination` live setting beside the illumination value, so the one
+`SET_SCENE_AMBIENT_ILLUMINATION` command changes both under one version. Staging uploads for fog never reach
 Convex. The room's Scene command receipts and geometry saves are described under Scene command evidence. Recipient
 reads (`scenes/recipientReads`, `recipientActions`) and `fogReads` page current entities and fog pinned to one
 Scene version and filter to the viewer's layers.

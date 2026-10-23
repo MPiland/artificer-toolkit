@@ -362,6 +362,7 @@ async function setup(replacement = false, futureReactor = false, assisted = fals
     campaignId: campaign.id,
     name: 'Character response scene',
     ambientIllumination: 'BRIGHT' as const,
+    daylight: false,
     fogMode: 'SHARED_PARTY' as const,
     visionRevealMode: 'ON_DRAG' as const,
     grid: {
