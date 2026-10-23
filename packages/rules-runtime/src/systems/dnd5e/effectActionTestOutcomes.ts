@@ -27,7 +27,10 @@ export type SpecializedOutcome =
     >)
 
 /** An entry that outlasts its use: a lifecycle, or a duration other than instantaneous. */
-export function hasLifecycleOverride(entry: CompiledEffectGroup['entries'][number]): boolean {
+export function hasLifecycleOverride(entry: {
+  lifecycle?: unknown
+  duration?: { durationKind: string }
+}): boolean {
   return Boolean(
     entry.lifecycle || (entry.duration && entry.duration.durationKind !== 'INSTANTANEOUS')
   )

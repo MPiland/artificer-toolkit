@@ -153,7 +153,7 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
         targetPrecondition: 'DEAD'
       }),
       payloadInputs: (outcome) => {
-        const ports = reviveHitPointsPorts(reviveHitPointsOf(outcome))
+        const ports = reviveHitPointsPorts(outcome.hitPoints)
         return {
           hitPointsKind: literal(ports.hitPointsKind),
           hitPointsAmount: literal(ports.hitPointsAmount)
