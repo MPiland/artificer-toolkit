@@ -108,3 +108,5 @@ One authored effect graph checksum each for Banishment, Etherealness, Imprisonme
 - Deviation from the packet: the `absence` enum gains `EFFECT` and `EFFECT_KEEPS_TURN` instead of an `absenceSourceEffectId`. The effect store recomputes absence from the `PLAY_ABSENCE` effects the holder still holds, so overlapping removals work and `GM_REMOVED`/`DEPARTED` are never touched.
 - Imprisonment has no mode pick in the SRD authoring, so it is the removal alone; the future-cast immunity marker is description-only.
 - Not built: the `RETURN_SPACE_OCCUPIED` GM-placement flag. No flag surface exists for effect-driven returns (the token never leaves the Scene), so it needs its own slice.
+
+T2h4 proof notes (2026-10-22): Banishment and Etherealness have room journeys (`nativeRoomRemoveFromPlay.test.ts`). Imprisonment is a one-minute cast, which the room offers no combat action for, so its proof is the golden flip and `removeFromPlayAuthoringParity.test.ts`. A Character-held owner-lifetime effect (Etherealness) has no `sourceEncounterId`, so `syncHolderAbsence` falls back to the Run named by the effect's `ENCOUNTER` origin.

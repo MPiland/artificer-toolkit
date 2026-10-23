@@ -394,7 +394,12 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
     if (!playAbsenceContribution(effect.definition)) return
     await syncPlayAbsence(ctx, {
       owner,
-      sourceEncounterId: effect.sourceEncounterId,
+      // An owner-lifetime effect names no Run, but the Run it was cast in is the one it removes the holder from.
+      sourceEncounterId:
+        effect.sourceEncounterId ??
+        (effect.definition.origin.kind === 'ENCOUNTER'
+          ? effect.definition.origin.sourceAggregateId
+          : null),
       effects: (await listOwner(ctx, owner)).map(({ definition }) => definition)
     })
   }

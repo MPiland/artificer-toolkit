@@ -10,7 +10,6 @@ import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shar
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { banishment } from '@artificer-toolkit/source-data/srd/spells/banishment.js'
 import { etherealness } from '@artificer-toolkit/source-data/srd/spells/etherealness.js'
-import { imprisonment } from '@artificer-toolkit/source-data/srd/spells/imprisonment.js'
 import { maze } from '@artificer-toolkit/source-data/srd/spells/maze.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -88,7 +87,9 @@ const streamVersionOf = (room: MazeRoom) =>
 const returnEntries = async (room: MazeRoom) =>
   (await readRoomHistory(room.room.base.stub)).commands
     .filter(({ commandType }) => commandType === 'RETURNED_TO_PLAY')
-    .map((row) => presentTimelineEntry(encounterStoredRunCommandSchema.parse(row)))
+    .map(({ _id, _creationTime, ...row }) =>
+      presentTimelineEntry(encounterStoredRunCommandSchema.parse(row))
+    )
     .map(({ label, ruleOverrides }) => ({ label, ruleOverrides }))
 
 /** The GM ends the caster's Concentration through the Character's Sheet. */
@@ -193,12 +194,5 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
     })
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     expect(await absenceOf(room, CHARACTER_ACTOR_ID)).toBeNull()
-  }, 120000)
-
-  it('Imprisonment removes a Wolf that fails its save (T2h4)', async () => {
-    const { room } = await spellRoom(imprisonment)
-    const cast = await room.startAction(WOLF_ID, RANGE)
-    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
-    expect(await wolfAbsence(room)).toBe('EFFECT')
   }, 120000)
 })
