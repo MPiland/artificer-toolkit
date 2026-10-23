@@ -1,8 +1,15 @@
 import { type ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import {
+<<<<<<< HEAD
   damageDispositionOf,
   resolveDispositionDamage
 } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+=======
+  reviveTraceMatches,
+  type ReviveHitPoints
+} from '@artificer-toolkit/schema/shared/characterDeathSaves'
+import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+>>>>>>> origin/codex/phase-08-2-convex-cutover
 import {
   compareThresholdRuleOperation,
   type CompiledRuleGraph,
@@ -25,6 +32,7 @@ import {
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
+  DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -514,6 +522,7 @@ export function testApplications(
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
+        application.kind === 'REVIVE' ||
         application.kind === 'KILL_NEGATED' ||
         application.kind === 'DEPART'
       )
@@ -663,6 +672,37 @@ export function interpretDirectProposal(
   }
   if (trace.outputs.authorized !== true)
     throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
+  if (trace.operation.key === DND5E_REVIVE_PROPOSAL_OPERATION_KEY) {
+    const hitPoints = reviveHitPointsFromPorts(outputs)
+    if (
+      trace.outputs.targetActorId !== input.targetActorId ||
+      !hitPoints ||
+      !reviveTraceMatches(trace.outputs, hitPoints) ||
+      publishedNode.inputs.hitPointsKind?.kind !== 'LITERAL' ||
+      publishedNode.inputs.hitPointsAmount?.kind !== 'LITERAL' ||
+      !reviveTraceMatches(
+        {
+          hitPointsKind: publishedNode.inputs.hitPointsKind.value,
+          hitPointsAmount: publishedNode.inputs.hitPointsAmount.value
+        },
+        hitPoints
+      )
+    )
+      throw new Dnd5eEffectActionCompilerError(
+        'The committed D&D revive proposal trace is invalid.'
+      )
+    return [
+      {
+        kind: 'REVIVE',
+        hitPoints,
+        targetActorId: input.targetActorId,
+        sourceNodeId: trace.nodeId,
+        sourceOperationKey: trace.operation.key,
+        authoredPath: null,
+        resolvedPath: null
+      }
+    ]
+  }
   const storedKind =
     trace.operation.key === DND5E_STABILIZE_PROPOSAL_OPERATION_KEY
       ? 'STABILIZE'
@@ -1111,6 +1151,7 @@ export function interpretDirect(
         application.kind === 'HIT_POINT_MAXIMUM_REDUCTION' ||
         application.kind === 'SCALAR_REDUCTION' ||
         application.kind === 'STABILIZE' ||
+        application.kind === 'REVIVE' ||
         application.kind === 'KILL_NEGATED' ||
         application.kind === 'DEPART'
       )
@@ -1317,4 +1358,16 @@ export function interpretSpatial(
       targetStateChecksum: String(value('targetStateChecksum'))
     }
   ]
+}
+
+/** The revive hit points carried by an execution's scalar ports, or null when they are malformed. */
+function reviveHitPointsFromPorts(ports: Record<string, unknown>): ReviveHitPoints | null {
+  const { hitPointsKind, hitPointsAmount } = ports
+  if (hitPointsKind === 'MAXIMUM') return { kind: 'MAXIMUM' }
+  return hitPointsKind === 'FIXED' &&
+    typeof hitPointsAmount === 'number' &&
+    Number.isInteger(hitPointsAmount) &&
+    hitPointsAmount >= 1
+    ? { kind: 'FIXED', amount: hitPointsAmount }
+    : null
 }
