@@ -19,8 +19,8 @@ import {
   prepareEncounterActionMechanics
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
-  heldGrantedActions,
-  nextGrantedActionUseKey,
+  actorGrantedActions,
+  firstGrantedActionUseKey,
   parseGrantedActionId
 } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
@@ -715,15 +715,13 @@ export async function planNativeLiveEncounterAction(
     })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
-  const weaponAttackHolds = heldGrantedActions(
-    activeEffectsByActorId.get(prepared.actor.id) ?? []
+  const weaponAttackHolds = actorGrantedActions(
+    activeEffectsByActorId.get(prepared.actor.id) ?? [],
+    prepared.actor
   ).filter(({ offer }) => offer.weaponAttack)
   const turnUsesSpent =
     weaponAttackHolds.length > 0 ? await readNativeLiveTurnUses(capture, prepared.actor.id) : []
-  const weaponAttackUseKey =
-    weaponAttackHolds
-      .map((held) => nextGrantedActionUseKey(held, turnUsesSpent))
-      .find((key): key is string => typeof key === 'string') ?? null
+  const weaponAttackUseKey = firstGrantedActionUseKey(weaponAttackHolds, turnUsesSpent)
   const { activationCode, economy, suppressed, attackAction, grantedUseKey } =
     await evaluateNativeLiveActionEconomy({
       prepared,
