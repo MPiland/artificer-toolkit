@@ -279,7 +279,7 @@ describe('Three-user Assisted Encounter with auto-roll (ENCOUNTER-5.1)', () => {
       for (const [index, card] of cards.entries()) {
         const advantage = declared[index] !== party.wolf.actorId
         const [term] = card.evidence.terms
-        expect(card.evidence.mode).toBe(advantage ? 'ADVANTAGE' : 'NORMAL')
+        expect(card.evidence.keep).toBe(advantage ? 'HIGHER' : 'FIRST')
         expect(term?.rolls).toHaveLength(advantage ? 2 : 1)
         expect(card.evidence.total).toBe(await scoreOf(declared[index]!))
       }
