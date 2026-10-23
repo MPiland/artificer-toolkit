@@ -4287,7 +4287,7 @@
             },
             {
               "id": "RULES-2.T9o",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4297,7 +4297,8 @@
                 "after": ["RULES-2.T9j", "RULES-2.T9k", "RULES-2.T9l", "RULES-2.T9m", "RULES-2.T9n"]
               },
               "text": "Boundary guard test: no production file outside source-data holds an SRD vocabulary list or compares a vocabulary code literal. Also: creatureFormFilterRefusal (encounterFormChoice.ts) finds a level's challenge rating by the code pattern `CR_${level}`; compare a numeric value on the System's challenge-rating entries instead (found in the T9j review).",
-              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343)."
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
             },
             {
               "id": "RULES-2.T9p",
@@ -10138,7 +10139,7 @@
             },
             {
               "id": "SPELLS-4.T2f1b2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10147,7 +10148,8 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2f1b1"]
               },
-              "text": "Dispel Magic above-level checks (D182a): the Worker cast-time planner pends the cast into the T2f1b1 candidate checks; levelCheck authored through the node map, DTO, compiler and character rule facts with a TARGET_EFFECT_LEVEL DC; converts DISPEL_MAGIC on a creature or object target with a golden proof and room journey; kind deleted; check-flow section of docs/architecture/rules-runtime.md updated. Owns the room-level proofs T2f1b1 could not run without the cast pend: the effect ends in the same commit and receipt as its roll, an already-ended candidate is skipped, replay is idempotent per context and cursor, undo refusal, and void."
+              "text": "Dispel Magic above-level checks (D182a): the Worker cast-time planner pends the cast into the T2f1b1 candidate checks; levelCheck authored through the node map, DTO, compiler and character rule facts with a TARGET_EFFECT_LEVEL DC; converts DISPEL_MAGIC on a creature or object target with a golden proof and room journey; kind deleted; check-flow section of docs/architecture/rules-runtime.md updated. Owns the room-level proofs T2f1b1 could not run without the cast pend: the effect ends in the same commit and receipt as its roll, an already-ended candidate is skipped, replay is idempotent per context and cursor, undo refusal, and void.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "DONE",
@@ -14075,7 +14077,7 @@
             },
             {
               "id": "SPELLS-31.T5m",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -14085,7 +14087,8 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2a5"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): awareness senses; Blindsense, Feral Senses, Witch Sight (reusing the SPELLS-4.T2a5 truesight sense where it fits). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5n",
@@ -14133,7 +14136,7 @@
             },
             {
               "id": "SPELLS-31.T5o2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -14143,7 +14146,8 @@
                 "after": ["SPELLS-31.T5o"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Extra turn (split from T5o, 2026-10-20): an EXTRA_TURN outcome on the ROLL_INITIATIVE trigger, adding a first-round turn-order entry at an initiative offset (Thief's Reflexes: initiative minus 10, round 1 only). Authoring-parity proof and room journey; deletes its kind. Re-sized 3->8 (2026-10-20): a repeated-actor initiative entry needs a participant key other than the actor id, a cursor that tolerates a repeated actor, replay, reinforcement and removal handling; one vertical slice, not an outcome-only split. Rulings: the extra entry is a full turn (turn resources reset, durations counted in the actor's turns tick on it); the surprise clause stays description-only (D165); SIDE_ROLL placement is ruled at start.",
-              "note": "D187a re-plan: size 8 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 8 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5p",
@@ -15151,7 +15155,7 @@
             },
             {
               "id": "SPELLS-33.T6b1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15161,7 +15165,8 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2f", "SPELLS-4.T2n1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: afflictions and curses with rest and healing denial and a clock (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6b2",
@@ -15353,7 +15358,7 @@
             },
             {
               "id": "SPELLS-33.T6e1b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15363,7 +15368,8 @@
                 "after": ["SPELLS-33.T6e1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Balor Death Throes, part 2 (split 2026-10-19): the HP-zero area queues behind a pending Concentration save through a deferred pending-snapshot field (like deferredCleaving), and any defeat roots that T6e1 did not cover through a shared HP-zero seam (retaliation, turn zone, legendary, movement reaction, spatial contact).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6e2",
@@ -15382,7 +15388,7 @@
             },
             {
               "id": "SPELLS-33.T6f",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15392,11 +15398,12 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: incoming spell negation by level or kind, spell storing (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6g",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15406,11 +15413,12 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: partner-bound grants (rider, amulet bearer) and body-control swap (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6h",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15420,7 +15428,8 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: attackable body parts and damage-triggered splitting (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6i",
