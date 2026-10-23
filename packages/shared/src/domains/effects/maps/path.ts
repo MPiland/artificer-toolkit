@@ -220,6 +220,7 @@ const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const pathLifecycleEscape = buildNodeMap<NonNullable<PathLifecycleAuthored['escape']>>()
 const pathLifecycleOnEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['onEnd']>>()
+const pathLifecycleTurnEndGate = buildNodeMap<NonNullable<PathLifecycleAuthored['turnEndGate']>>()
 const pathLifecycleGrantedAction =
   buildNodeMap<NonNullable<PathLifecycleAuthored['grantedActions']>[number]>()
 const pathLifecycleEffectOffer =
@@ -447,6 +448,20 @@ const PATH_LIFECYCLE_ON_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored[
         })
       )
   })
+
+const PATH_LIFECYCLE_TURN_END_GATE_NODE_MAP: NodeMap<
+  NonNullable<PathLifecycleAuthored['turnEndGate']>
+> = pathLifecycleTurnEndGate.define('pathLifecycleTurnEndGate', ({ map, nodes }) => {
+  const { number } = nodes
+
+  map.set(
+    'minimumRoll',
+    number(['minimumRoll'], 'Minimum d20 Roll', {
+      requiredIf: true,
+      constraints: { minimum: 2, maximum: 20 }
+    })
+  )
+})
 
 const PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP: NodeMap<
   NonNullable<PathLifecycleAuthored['grantedActions']>[number]
@@ -770,6 +785,12 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
       .set(
         'onEnd',
         groupObject(['onEnd'], 'When It Ends', () => PATH_LIFECYCLE_ON_END_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+      .set(
+        'turnEndGate',
+        groupObject(['turnEndGate'], 'Turn-End Roll', () => PATH_LIFECYCLE_TURN_END_GATE_NODE_MAP, {
           presentation: 'inline'
         })
       )

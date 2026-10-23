@@ -1027,6 +1027,7 @@ function timedConditionPlan(
     consumeOnFirstEvents = [],
     endOnEvents = [],
     endOnTriggers = [],
+    turnEndGate,
     ...otherLifecycle
   } = lead.entry.lifecycle ?? {}
   const maintenance = maintenancePlan(action, lead.entry)
@@ -1076,6 +1077,54 @@ function timedConditionPlan(
     )
   )
     return null
+  const lifecycle = {
+    consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
+    endOnEvents: [...new Set(endOnEvents)].sort(),
+    endOnTriggers: canonicalEndTriggers(endOnTriggers)
+  }
+  if (turnEndGate) {
+    // The gate rolls its d20 on the holder's turns, so the removal it makes is the only thing held.
+    if (
+      !removalEntries[0] ||
+      outcomeEntries.length !== 1 ||
+      indefinite ||
+      turnAnchor ||
+      rider ||
+      maintenance
+    )
+      unsupported('D&D turn-end roll gates one removal from play held for a timed duration.')
+    return {
+      authoredEffectId: action.effectId,
+      compiledEntryId: lead.entry.entryId,
+      frozenGraphNodeId: 'repeat-save-test',
+      capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+      recurrenceStage: 'END_OF_TURN',
+      initialRemaining,
+      adapterFacts: {
+        [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'repeat-save-d20',
+        [DND5E_SAVE_DC_FACT_KEY]: turnEndGate.minimumRoll
+      },
+      turnEndGate: {
+        minimumRoll: turnEndGate.minimumRoll,
+        child: {
+          frozenGraphNodeId: 'condition-duration',
+          frozenGraph: durationPublishedGraph({
+            effectId: action.effectId,
+            plan: {
+              compiledEntryId: lead.entry.entryId,
+              frozenGraphNodeId: 'condition-duration',
+              marginRiders: []
+            }
+          }),
+          playAbsence: { keepsTurn: removalEntries[0].outcome.keepsTurn }
+        }
+      },
+      lifecycle,
+      perceptionContributions: [],
+      maintenance,
+      marginRiders: []
+    }
+  }
   return {
     authoredEffectId: action.effectId,
     compiledEntryId: lead.entry.entryId,
@@ -1095,11 +1144,7 @@ function timedConditionPlan(
     ...(removalEntries[0] && {
       playAbsenceContribution: { keepsTurn: removalEntries[0].outcome.keepsTurn }
     }),
-    lifecycle: {
-      consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
-      endOnEvents: [...new Set(endOnEvents)].sort(),
-      endOnTriggers: canonicalEndTriggers(endOnTriggers)
-    },
+    lifecycle,
     // A removal held with no condition (Etherealness) has no condition to remove at its end.
     adapterFacts:
       conditionEntries.length > 0 ? { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true } : {},
@@ -1813,7 +1858,11 @@ function repeatFollowUpSavePublishedGraph(input: {
 }): ServerPublishedRuleDefinitionDto {
   const abilityDefinitionId =
     input.plan.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]
-  if (typeof abilityDefinitionId !== 'string' || !UUID.test(abilityDefinitionId)) {
+  // A turn-end gate rolls a bare d20 against its minimum, so it names no saving throw ability.
+  if (
+    !input.plan.turnEndGate &&
+    (typeof abilityDefinitionId !== 'string' || !UUID.test(abilityDefinitionId))
+  ) {
     throw new Dnd5eEffectActionCompilerError('D&D repeat-save facts are unavailable.')
   }
   // A gated repeat settles its d20 without a request on a turn the gate refuses the attempt.
@@ -2496,7 +2545,7 @@ function supported(
       grant: grantPlan !== null,
       link: linkPlan !== null,
       form: formPlan !== null,
-      absence: conditionPlan?.playAbsenceContribution != null
+      absence: conditionPlan?.playAbsenceContribution != null || conditionPlan?.turnEndGate != null
     }
   })
 }
@@ -3525,6 +3574,8 @@ function dnd5eActiveEffectPlans(
   if (composed) return [composed]
   const repeatPlan = repeatingFollowUpSavePlan(action)
   const timedPlan = repeatPlan ? null : timedActiveEffectPlan(action)
+  // A turn-end gate is frozen as the d20 test it rolls, not as the duration its child holds.
+  const savePlan = repeatPlan ?? (timedPlan?.turnEndGate ? timedPlan : null)
   const relationship = relationshipPlan(action)
   const plan =
     repeatPlan ??
@@ -3569,8 +3620,8 @@ function dnd5eActiveEffectPlans(
   )
     unsupported('D&D repeat offer needs a maintained chosen-item grant it can ride.')
   if (!plan) return []
-  const frozenGraph = repeatPlan
-    ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
+  const frozenGraph = savePlan
+    ? repeatFollowUpSavePublishedGraph({ action, plan: savePlan })
     : timedPlan
       ? durationPublishedGraph({
           effectId: action.effectId,
@@ -3588,7 +3639,7 @@ function dnd5eActiveEffectPlans(
     ? relationship.recurrenceStage === 'START_OF_TURN'
       ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
       : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
-    : repeatPlan
+    : savePlan
       ? DND5E_SAVE_TEST_OPERATION_KEY
       : timedPlan
         ? DND5E_CONDITION_DURATION_OPERATION_KEY
@@ -4749,6 +4800,38 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const requestNodeId = definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
     const dc = definition.adapterFacts[DND5E_SAVE_DC_FACT_KEY]
     const saveDc = typeof dc === 'number' && Number.isSafeInteger(dc) ? dc : null
+    // A turn-end gate rolls a bare d20 against its minimum: no ability, modifier or contributors.
+    if (definition.recurrence.turnEndGate) {
+      if (
+        abilityDefinitionId !== undefined ||
+        requestNodeId !== 'repeat-save-d20' ||
+        saveDc !== definition.recurrence.turnEndGate.minimumRoll ||
+        definition.frozenGraph.nodes.filter(
+          (node) =>
+            node.id === requestNodeId &&
+            node.operation.key === 'evidence.integer-range' &&
+            node.operation.contractVersion === 1
+        ).length !== 1
+      )
+        throw new Dnd5eEffectActionCompilerError('D&D turn-end roll binding is invalid.')
+      const contributorChecksum = checksumRuleDocument([])
+      return {
+        facts: {
+          ...baseFacts,
+          [DND5E_SAVE_MODIFIER_FACT_KEY]: 0,
+          [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
+          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: 'NONE'
+        },
+        evidencePolicy: {
+          requestNodeId,
+          ...resolveDnd5eRollMode([]),
+          contributors: [],
+          contributorChecksum,
+          modifier: 0,
+          dc: saveDc
+        }
+      }
+    }
     if (abilityDefinitionId === undefined && requestNodeId === undefined && dc === undefined) {
       return { facts: baseFacts, evidencePolicy: null }
     }
@@ -5049,6 +5132,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       targetActorId: target.targetActorId
     })
     if (repeatedSavePath !== null) {
+      // The gate's d20 only decides whether its child is made; the effect lasts out its duration.
+      if (definition.recurrence.turnEndGate)
+        return {
+          applications: [],
+          terminal: lifecycle.remainingTicks === 1,
+          emptyApplicationAllowed: true
+        }
       const conditionIds = repeatSaveConditionIds(definition.adapterFacts)
       const thresholds = definition.recurrence.saveThresholds
       const saveTally =
