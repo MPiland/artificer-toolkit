@@ -16,6 +16,20 @@ export function isCharacterDead(deathSaves: CharacterDeathSaves): boolean {
   return deathSaves.failures >= DEATH_SAVE_LIMIT
 }
 
+/**
+ * Dead: a Character with three failed death saves at 0 hit points, or any other target (death saves
+ * null) at 0 hit points. The one condition a revive acts on.
+ */
+export function isTargetDead(target: {
+  currentHitPoints: number
+  deathSaves: CharacterDeathSaves | null
+}): boolean {
+  return (
+    target.currentHitPoints === 0 &&
+    (target.deathSaves === null || isCharacterDead(target.deathSaves))
+  )
+}
+
 /** Dying: at 0 hit points, neither stable nor dead. */
 export function isCharacterDying(
   deathSaves: CharacterDeathSaves,
@@ -69,6 +83,42 @@ export function deathSavesAfterHealing(input: {
   return input.appliedAmount > 0 && !isCharacterDead(input.deathSaves)
     ? NO_DEATH_SAVES
     : input.deathSaves
+}
+
+/** A revived Character starts over: the death saves clear, whatever count the death left. */
+export function deathSavesAfterRevive(): CharacterDeathSaves {
+  return NO_DEATH_SAVES
+}
+
+/** The hit points a revive restores: a fixed number or the target's maximum. */
+export type ReviveHitPoints = { kind: 'FIXED'; amount: number } | { kind: 'MAXIMUM' }
+
+/** The current hit points a revived target wakes with; a fixed number never exceeds its maximum. */
+export function reviveRestoredHitPoints(hitPoints: ReviveHitPoints, maximum: number): number {
+  return hitPoints.kind === 'FIXED' ? Math.min(hitPoints.amount, maximum) : maximum
+}
+
+/** A revive's hit points as the rule operation's scalar ports (a maximum carries amount 0). */
+export function reviveHitPointsPorts(hitPoints: ReviveHitPoints): {
+  hitPointsKind: ReviveHitPoints['kind']
+  hitPointsAmount: number
+} {
+  return {
+    hitPointsKind: hitPoints.kind,
+    hitPointsAmount: hitPoints.kind === 'FIXED' ? hitPoints.amount : 0
+  }
+}
+
+/** True when a revive trace's scalar ports carry the receipt's hit points. */
+export function reviveTraceMatches(
+  outputs: Record<string, unknown>,
+  hitPoints: ReviveHitPoints
+): boolean {
+  const ports = reviveHitPointsPorts(hitPoints)
+  return (
+    outputs.hitPointsKind === ports.hitPointsKind &&
+    outputs.hitPointsAmount === ports.hitPointsAmount
+  )
 }
 
 /**
