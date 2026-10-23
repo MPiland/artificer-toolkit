@@ -25,6 +25,7 @@ import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass
 import { damageTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
 import { trueStrike } from '@artificer-toolkit/source-data/srd/spells/true-strike.js'
+import { vampiricTouch } from '@artificer-toolkit/source-data/srd/spells/vampiric-touch.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -546,6 +547,73 @@ describe('room Heat Metal (SPELLS-4.T2e)', () => {
     // The release ended the carrier, so the offer is gone.
     expect((await ogreGrants(fixture.room)).some(({ id }) => id === carrier.id)).toBe(false)
     expect((await fixture.room.actionChoices()).effectOffers).toEqual([])
+  }, 120000)
+})
+
+describe('room Vampiric Touch (SPELLS-4.T2n2, D181)', () => {
+  /** The wounded Character, who prepares Vampiric Touch, then a Wolf. The attack hits; each damage die shows 6. */
+  const vampiricTouchRoom = () =>
+    actionRoom({
+      rolls: [18, 5, 5, 5],
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { currentHitPoints: 1, classLevel: 5 },
+      characterSpellcasting: { spells: [vampiricTouch], prepared: [vampiricTouch.id] },
+      characterAction: (action) => action.label.startsWith(vampiricTouch.label)
+    })
+
+  const characterHitPoints = (room: ActionRoom) =>
+    runInDurableObject(room.room.base.stub, (_instance, context) => {
+      const row = new RoomEncounterStore(context.storage)
+        .documents('characterPlayStates')
+        .find((candidate) => candidate.characterId === CHARACTER_ID)
+      if (!row) throw new Error('Missing room Character play state.')
+      return readCharacterPlay(row).hitpoints.current
+    })
+
+  async function castVampiricTouch(room: ActionRoom) {
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+    return cast.command.commandId
+  }
+
+  it('deals 3d6 necrotic damage and heals the caster by half of it, rounded down', async () => {
+    const room = await vampiricTouchRoom()
+    const wolfBefore = readActorHitPoints(await readRoomHistory(room.room.base.stub), WOLF_ID)
+    const commandId = await castVampiricTouch(room)
+
+    expect(await appliedDamage(room, commandId)).toEqual([[18, damageTypeId('NECROTIC')]])
+    expect(readActorHitPoints(await readRoomHistory(room.room.base.stub), WOLF_ID)).toBe(
+      Math.max(0, wolfBefore - 18)
+    )
+    expect(await characterHitPoints(room)).toBe(1 + 9)
+  }, 120000)
+
+  it('restores the caster’s hit points when the cast is undone', async () => {
+    const room = await vampiricTouchRoom()
+    await castVampiricTouch(room)
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await characterHitPoints(room)).toBe(1)
+  }, 120000)
+
+  it('offers the caster the attack again as an action while it concentrates', async () => {
+    const room = await vampiricTouchRoom()
+    await castVampiricTouch(room)
+
+    const [offer] = (await room.actionChoices()).effectOffers
+    expect(offer).toMatchObject({
+      kind: 'REPEAT_SOURCE_PATH',
+      holderActorId: WOLF_ID,
+      activation: 'ACTION'
+    })
   }, 120000)
 })
 

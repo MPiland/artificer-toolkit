@@ -40,6 +40,7 @@ export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-conce
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
 export const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
   'dnd5e.hit-point-maximum-reduction-proposal'
+export const DND5E_DAMAGE_DERIVED_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-derived-heal-proposal'
 export const DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY = 'dnd5e.scalar-reduction-proposal'
 export const DND5E_FORCED_MOVEMENT_PROPOSAL_OPERATION_KEY = 'dnd5e.forced-movement-proposal'
 export const DND5E_DAMAGE_TOTAL_OPERATION_KEY = 'dnd5e.damage-total'

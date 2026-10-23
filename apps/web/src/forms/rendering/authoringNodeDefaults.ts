@@ -535,6 +535,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return createFollowUpSaveRepeatPerception()
     case 'degradeEquipmentDestroyWhen':
       return { kind: 'PENALTY_REACHES', value: 1 }
+    case 'healFraction':
+      return { numerator: 1, denominator: 2 }
     case 'hitPointMaximumReductionAmountSource':
       return {
         kind: 'DAMAGE_TAKEN',

@@ -41,6 +41,16 @@ export const DAMAGE_VALUE_REGISTRY: Record<DamageValueKind, DamageValueOption> =
 
 export const DAMAGE_VALUE_OPTIONS = valuesOf(DAMAGE_VALUE_REGISTRY) as readonly DamageValueOption[]
 
+/** A heal's value kinds: a damage's, plus a fraction of the damage a sibling outcome dealt. */
+export const HEAL_VALUE_OPTIONS: readonly CoreMeta<DamageValueKind | 'DAMAGE_DEALT'>[] = [
+  ...DAMAGE_VALUE_OPTIONS,
+  {
+    code: 'DAMAGE_DEALT',
+    label: 'Damage Dealt',
+    description: 'Regain a fraction of the damage another outcome of this result dealt.'
+  }
+]
+
 export const DAMAGE_BONUS_KIND = {
   ABILITY_BONUS: 'ABILITY_BONUS',
   SKILL_BONUS: 'SKILL_BONUS',

@@ -72,12 +72,18 @@ import {
 } from './effectActionResultSequences.js'
 import {
   boundedTestOutcome,
+  damageSourceOutcomeId,
   hasLifecycleOverride,
   specializedTestOutcome,
   positiveFixedAmount,
   validateHealBonuses,
   type SpecializedOutcome
 } from './effectActionTestOutcomes.js'
+import {
+  authoredAlike,
+  isRepeatCarrierEntry,
+  repeatCarrierPlan
+} from './effectActionRepeatCarrier.js'
 import {
   compileTestDefinition,
   withMovementInterruption,
@@ -198,8 +204,8 @@ import {
   dnd5eTargetOnlyOutcome,
   type Dnd5eAuthoredOutcome
 } from './effectActionOutcomes.js'
+import { damageSizedOutcomeGraph } from './effectActionDamageSized.js'
 import {
-  hitPointMaximumReductionProposalNode,
   forcedMovementProposalNode,
   dnd5eResultGate,
   dnd5eSaveOutcomeRule,
@@ -1263,14 +1269,24 @@ function modifierGrantPlan(
   const { entries } = action.compiledEffect
   const attack = testPhaseKindOrNull(action) === 'ATTACK'
   const hitGrants = attack
-    ? entries.filter(
-        (entry) =>
-          isActiveEffectPlanOutcome(entry, action) &&
-          'outcome' in entry &&
-          entry.outcome.effectKind === 'APPLY_GRANT'
+    ? entries.flatMap((entry) =>
+        'outcome' in entry &&
+        isActiveEffectPlanOutcome(entry, action) &&
+        entry.outcome.effectKind === 'APPLY_GRANT'
+          ? [entry]
+          : []
       )
     : []
-  if (hitGrants.length > 1) unsupported('D&D attacks apply at most one grant on a hit.')
+  // A grant authored alike on the hit and the miss applies whatever the attack (as on a save).
+  const [hitGrant, otherGrant, ...restGrants] = hitGrants
+  const alikeOnBothResults =
+    hitGrant !== undefined &&
+    otherGrant !== undefined &&
+    restGrants.length === 0 &&
+    (hitGrant.pathCode === 'ON_MISS') !== (otherGrant.pathCode === 'ON_MISS') &&
+    authoredAlike(hitGrant) === authoredAlike(otherGrant)
+  if (hitGrants.length > 1 && !alikeOnBothResults)
+    unsupported('D&D attacks apply at most one grant on a hit.')
   if (
     hitGrants.length === 1 &&
     entries.some((entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP')
@@ -1285,7 +1301,7 @@ function modifierGrantPlan(
           modifierGrantEntryPlan({
             action,
             entry,
-            resultGated: attack,
+            resultGated: attack && !alikeOnBothResults,
             untilEndEvent: !('duration' in entry) || entry.duration === undefined
           })
         : null
@@ -1322,93 +1338,6 @@ function saveGrantPlan(
     return null
   // A grant on one save result applies only on it; one authored alike on both applies either way.
   return modifierGrantEntryPlan({ action, entry, resultGated: !other, untilEndEvent: false })
-}
-
-/** A grant that carries a repeat offer (D166): planned beside the effect it rides, not as a modifier grant. */
-function isRepeatCarrierEntry(entry: CompiledEffectGroup['entries'][number]): boolean {
-  return (
-    'outcome' in entry &&
-    entry.outcome.effectKind === 'APPLY_GRANT' &&
-    (entry.lifecycle?.effectOffers ?? []).some((offer) => offer.kind === 'REPEAT_SOURCE_PATH')
-  )
-}
-
-/**
- * The effect a save action leaves on its target that offers the source a repeat of the action's paths
- * (Heat Metal's "use a Bonus Action to cause the damage again"), or null when it offers none. The
- * carrier is one grant authored alike on both save results with no modifiers of its own; it is bound
- * to the chosen item and ends when that item is released, and it lasts as long as the action's
- * Concentration. The cast freezes the saving throw DC and the cast level into the offer.
- */
-function repeatCarrierPlan(
-  action: Dnd5eCompiledEffectActionSource
-): CharacterRuleActionActiveEffectPlan['repeatCarrier'] {
-  const [entry, other, ...rest] = action.compiledEffect.entries.flatMap((candidate) =>
-    'outcome' in candidate && isRepeatCarrierEntry(candidate) ? [candidate] : []
-  )
-  if (!entry) return null
-  if (
-    entry.outcome.effectKind !== 'APPLY_GRANT' ||
-    testPhaseKindOrNull(action) !== 'SAVE' ||
-    rest.length > 0 ||
-    (other &&
-      (other.pathCode === entry.pathCode || authoredAlike(entry) !== authoredAlike(other))) ||
-    !entry.chosenItem ||
-    !entry.outcome.bindsChosenItem ||
-    entry.duration === undefined ||
-    !UUID.test(entry.entryId)
-  )
-    unsupported('D&D repeat offer rides one chosen-item grant authored alike on both save results.')
-  const { grants } = entry.outcome
-  const { endOnEvents = [], effectOffers = [], ...otherLifecycle } = entry.lifecycle ?? {}
-  if (
-    grants.modifiers?.length ||
-    grants.senses?.length ||
-    grants.proficiencies?.length ||
-    endOnEvents.length !== 1 ||
-    endOnEvents[0] !== 'ON_CHOSEN_ITEM_RELEASED' ||
-    Object.values(otherLifecycle).some((value) => value !== undefined)
-  )
-    unsupported(
-      'D&D repeat offer carrier grants nothing and ends when its chosen item is released.'
-    )
-  return {
-    compiledEntryId: entry.entryId,
-    frozenGraphNodeId: 'repeat-carrier',
-    applyGrantOutcomeId: entry.outcome.id,
-    effectOffers: effectOffers.map((offer) =>
-      offer.kind === 'MOVE_HELD_EFFECT' ? { ...offer, range: { ...offer.range } } : { ...offer }
-    )
-  }
-}
-
-/**
- * A grant entry as authored, without its identities or its release flag, so two paths' grants
- * compare alike.
- */
-function authoredAlike(
-  entry: Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
-): string {
-  const withoutIdentities = (value: unknown): unknown =>
-    Array.isArray(value)
-      ? value.map(withoutIdentities)
-      : typeof value === 'object' && value !== null
-        ? Object.fromEntries(
-            Object.entries(value).flatMap(([key, field]) =>
-              key === 'id' || key === 'unlessChosenItemReleased'
-                ? []
-                : [[key, withoutIdentities(field)]]
-            )
-          )
-        : value
-  return JSON.stringify(
-    withoutIdentities({
-      outcome: entry.outcome,
-      duration: entry.duration,
-      lifecycle: entry.lifecycle,
-      maintenanceDefinitionId: entry.maintenanceDefinitionId
-    })
-  )
 }
 
 /**
@@ -2057,7 +1986,13 @@ function executableAction(action: Dnd5eCompiledEffectActionSource) {
 type Dnd5eDirectOutcome =
   | Exclude<
       SpecializedOutcome,
-      { kind: 'DICE_SCALAR_REDUCTION' | 'HIT_POINT_MAXIMUM_REDUCTION' | 'FORCED_MOVEMENT' }
+      {
+        kind:
+          | 'DICE_SCALAR_REDUCTION'
+          | 'HIT_POINT_MAXIMUM_REDUCTION'
+          | 'DAMAGE_DERIVED_HEAL'
+          | 'FORCED_MOVEMENT'
+      }
     >
   | { kind: 'DIRECT_RELATIONSHIP' }
 /** What a direct outcome reads from its action once `supported` has resolved its targets and plans. */
@@ -2450,18 +2385,19 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
         )
       conditionCounts.set(countKey, count)
     }
-    // A reduction takes its amount from one damage outcome of its own result path.
+    // An outcome sized by damage (a reduction, a derived heal) takes it from a damage outcome (one row per scaling level) of its own result path.
+    const sourceDamageOutcomeId = damageSourceOutcomeId(outcome)
     if (
-      outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
+      sourceDamageOutcomeId !== undefined &&
       action.compiledEffect.entries.filter(
         (candidate) =>
           candidate.pathCode === entry.pathCode &&
-          candidate.entryId === outcome.amountSource.damageOutcomeId &&
+          candidate.entryId === sourceDamageOutcomeId &&
           'outcome' in candidate &&
           candidate.outcome.effectKind === 'DAMAGE'
-      ).length !== 1
+      ).length === 0
     )
-      unsupported('D&D hit point maximum reduction needs one damage outcome on its path.')
+      unsupported('D&D outcome sized by damage needs a damage outcome on its path.')
   }
   for (const pathCode of paths) {
     for (const entries of authoredOutcomeGroups(action, pathCode as SpecializedPath))
@@ -3164,35 +3100,15 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       gate?.kind === 'REDUCED_TO_ZERO_BY' && gate.damageOutcomeId !== entry.entryId
         ? reducedToZeroDamageNodeId(groups, groupIndex, gate.damageOutcomeId, outcome)
         : undefined
-    if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION') {
-      const damageIndex = groups.findIndex(
-        ([candidate]) => candidate?.entryId === outcome.amountSource.damageOutcomeId
-      )
-      const damageEntry = groups[damageIndex]?.[0]
-      if (!damageEntry) unsupported('D&D hit point maximum reduction damage is not owed.')
-      uuid(entry.entryId, 'D&D hit point maximum reduction identity')
-      const proposalId = `${groupNodePrefix.nodePrefix ?? ''}proposal-${entry.pathCode.toLowerCase()}`
-      return {
-        schemaVersion: 1,
-        id: input.action.effectId,
-        gameSystemId: DND5E_SYSTEM_ID,
-        definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-        nodes: [
-          hitPointMaximumReductionProposalNode({
-            id: proposalId,
-            // The OUTCOME phase runs only on its selected path, so the reduction is authorized by construction.
-            resultPath: { kind: 'LITERAL', value: input.selectedPath },
-            authorizedPath: input.selectedPath,
-            sourceDamageNodeId: `outcome${damageIndex + 1}-proposal-${damageEntry.pathCode.toLowerCase()}`,
-            reduction: outcome
-          })
-        ],
-        outputs: {
-          targetActorId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'targetActorId' }
-        },
-        sourceEntryBindings: [{ sourceEntryId: entry.entryId, nodeId: proposalId }]
-      }
-    }
+    if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION' || outcome.kind === 'DAMAGE_DERIVED_HEAL')
+      return damageSizedOutcomeGraph({
+        effectId: input.action.effectId,
+        outcome,
+        entry,
+        groups,
+        nodePrefix: groupNodePrefix.nodePrefix ?? '',
+        selectedPath: input.selectedPath
+      })
     return outcome.kind === 'DICE_DAMAGE' ||
       outcome.kind === 'DICE_HEAL' ||
       outcome.kind === 'DICE_SCALAR_REDUCTION'
@@ -3443,7 +3359,7 @@ function dnd5eActiveEffectPlans(
         : plan.marginRiders.length > 0))
   )
     unsupported('D&D source immunity needs a lasting effect it can ride.')
-  const repeatCarrier = repeatCarrierPlan(action)
+  const repeatCarrier = repeatCarrierPlan(action, testPhaseKindOrNull(action) === 'SAVE')
   // The carrier takes the failure rider's slot and depends on the Concentration the grant rides.
   if (
     repeatCarrier &&

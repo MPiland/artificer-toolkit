@@ -528,6 +528,26 @@ export interface CharacterHitPointMaximumReductionApplication {
   recoveryTags: readonly HitPointMaximumReductionRecoveryTag[]
 }
 
+/**
+ * A fraction of the damage an earlier application of the same result dealt, regained by the action's
+ * source (D181). The adapter knows only the damaged actor; the Encounter settles the heal on the
+ * source's own state, so this never reaches a target batch.
+ */
+export interface CharacterDamageDerivedHealApplication {
+  kind: 'DAMAGE_DERIVED_HEAL'
+  recipient: 'SOURCE'
+  /** The actor that took the damage. */
+  targetActorId: string
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  sourceDamageNodeId: string
+  sourceDamageOperationKey: string
+  sourceDamageOutcomeId: string
+  requestedAmount: number
+}
+
 /** One UUID-backed scalar reduction selected by a pinned System graph. */
 export interface CharacterScalarReductionApplication {
   kind: 'SCALAR_REDUCTION'
@@ -556,6 +576,7 @@ export type CharacterRuleActionApplication =
   | CharacterKillNegatedOutcomeApplication
   | CharacterDepartOutcomeApplication
   | CharacterHitPointMaximumReductionApplication
+  | CharacterDamageDerivedHealApplication
   | CharacterScalarReductionApplication
 
 /**

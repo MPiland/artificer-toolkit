@@ -20,6 +20,7 @@ import type {
 } from '../../characterRuleActionSystemAdapter.js'
 import { isCharacterRuleActionForcedMovementDirection } from '../../characterRuleActionSystemAdapter.js'
 import { requireDnd5eAddedDiceTotal } from './d20AddedDiceGraph.js'
+import { damageDerivedHealApplication } from './effectActionDamageDerivedHeal.js'
 import {
   DND5E_ATTACK_TEST_OPERATION_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY
@@ -521,7 +522,8 @@ export function testApplications(
         application.kind === 'STABILIZE' ||
         application.kind === 'REVIVE' ||
         application.kind === 'KILL_NEGATED' ||
-        application.kind === 'DEPART'
+        application.kind === 'DEPART' ||
+        application.kind === 'DAMAGE_DERIVED_HEAL'
       )
         continue
       input =
@@ -1150,7 +1152,8 @@ export function interpretDirect(
         application.kind === 'STABILIZE' ||
         application.kind === 'REVIVE' ||
         application.kind === 'KILL_NEGATED' ||
-        application.kind === 'DEPART'
+        application.kind === 'DEPART' ||
+        application.kind === 'DAMAGE_DERIVED_HEAL'
       )
         continue
       const startingHitPoints = input.startingHitPoints ?? input.currentHitPoints
@@ -1255,6 +1258,8 @@ export function interpretDirect(
       }
     }
   }
+  const derivedHeal = damageDerivedHealApplication(input, graph, applications)
+  if (derivedHeal) applications.push(derivedHeal)
   return applications
 }
 

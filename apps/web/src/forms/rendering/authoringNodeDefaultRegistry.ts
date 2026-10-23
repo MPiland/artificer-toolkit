@@ -75,6 +75,7 @@ type AuthoringDefaultKind =
   | 'followUpSaveRepeatPerception'
   | 'followUpSaveRepeatRollInfluence'
   | 'followUpSaveRepeatTrigger'
+  | 'healFraction'
   | 'higherLevelCheck'
   | 'degradeEquipmentDestroyWhen'
   | 'hitPointMaximumReductionAmountSource'
@@ -253,6 +254,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   followUpSaveRepeatPerception: ['followUpSaveRepeatPerception'],
   followUpSaveRepeatRollInfluence: ['followUpSaveRepeatRollInfluence'],
   followUpSaveRepeatTrigger: ['followUpSaveRepeatTrigger'],
+  healFraction: ['healFraction'],
   higherLevelCheck: ['higherLevelCheck'],
   degradeEquipmentDestroyWhen: ['degradeEquipmentDestroyWhen'],
   hitPointMaximumReductionAmountSource: ['hitPointMaximumReductionAmountSource'],

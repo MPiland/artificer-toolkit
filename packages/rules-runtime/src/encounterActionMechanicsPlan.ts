@@ -3,7 +3,9 @@ import type { EncounterCharacterMechanicsEventPhase } from './encounterCharacter
 import { featureChargeUsed, withFeatureChargeUsed } from './encounterActorState.js'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type {
+  CharacterDamageDerivedHealApplication,
   CharacterEndedEffectReleaseApplication,
+  CharacterHitPointOutcomeApplication,
   CharacterRuleActionApplication
 } from './characterRuleActionSystemAdapter.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
@@ -137,6 +139,46 @@ function prepareNativeActionMechanicsBatches(
   }
   const sourceReleases = input.sourceReleases ?? []
   const onTargetBatch = actor.id === target.id && spend !== 'ONLY'
+  const outcomeApplications = input.applications.filter(
+    (application) => application.kind !== 'DAMAGE_DERIVED_HEAL'
+  )
+  // The heal lands on the source (D181), after the target's own damage when they are one actor.
+  const sourceHeals = input.applications
+    .filter(
+      (application): application is CharacterDamageDerivedHealApplication =>
+        application.kind === 'DAMAGE_DERIVED_HEAL'
+    )
+    .reduce<CharacterHitPointOutcomeApplication[]>((heals, application) => {
+      const last = [...outcomeApplications, ...heals]
+        .reverse()
+        .find(
+          (candidate): candidate is CharacterHitPointOutcomeApplication =>
+            onTargetBatch && 'afterCurrentHitPoints' in candidate
+        )
+      const current = last?.afterCurrentHitPoints ?? sourceFacts.state.current
+      const temporary = last?.afterTemporaryHitPoints ?? sourceFacts.state.temporary
+      const maximum = sourceFacts.effectiveMaximumHitPoints
+      const appliedAmount = Math.min(application.requestedAmount, maximum - current)
+      return [
+        ...heals,
+        {
+          kind: 'HEAL',
+          requestedAmount: application.requestedAmount,
+          resolvedAmount: application.requestedAmount,
+          appliedAmount,
+          beforeCurrentHitPoints: current,
+          afterCurrentHitPoints: current + appliedAmount,
+          beforeTemporaryHitPoints: temporary,
+          afterTemporaryHitPoints: temporary,
+          maximumHitPoints: maximum,
+          targetActorId: actor.id,
+          sourceNodeId: application.sourceNodeId,
+          sourceOperationKey: application.sourceOperationKey,
+          authoredPath: application.authoredPath,
+          resolvedPath: application.resolvedPath
+        }
+      ]
+    }, [])
   // A Character's basic action spends nothing of its own but may stow a held weapon (D152).
   const sourceResourceBatch: EncounterMechanicsBatchInput | null =
     ((source.kind === 'CHARACTER_ACTION' &&
@@ -144,7 +186,8 @@ function prepareNativeActionMechanicsBatches(
       stow ||
       sourceDegradation ||
       (draw && movesEncounterWeapon(draw)) ||
-      sourceReleases.length) &&
+      sourceReleases.length ||
+      sourceHeals.length) &&
     !onTargetBatch
       ? {
           encounterId: input.encounterId,
@@ -165,7 +208,7 @@ function prepareNativeActionMechanicsBatches(
                   : actor.id
           }),
           occurredAt: input.occurredAt,
-          applications: sourceReleases,
+          applications: [...sourceHeals, ...sourceReleases],
           expectedCharacterStreamVersion:
             source.kind === 'CHARACTER_ACTION'
               ? source.characterStreamVersion
@@ -198,7 +241,8 @@ function prepareNativeActionMechanicsBatches(
     applications: [
       ...(onTargetBatch ? sourceReleases : []),
       ...(input.targetReleases ?? []),
-      ...input.applications,
+      ...outcomeApplications,
+      ...(onTargetBatch ? sourceHeals : []),
       ...(input.damageReleases ?? [])
     ],
     expectedCharacterStreamVersion: targetFacts.characterFacts?.active.play.streamVersion ?? null,

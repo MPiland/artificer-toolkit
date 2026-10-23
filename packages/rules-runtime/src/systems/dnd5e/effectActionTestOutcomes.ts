@@ -1,5 +1,8 @@
 import { unsupported, uuid, multipliedDamageAmount, type Outcome } from './effectActionContracts.js'
-import type { HitPointMaximumReductionAuthored } from '@artificer-toolkit/shared/authored'
+import type {
+  HealDamageDealtPayload,
+  HitPointMaximumReductionAuthored
+} from '@artificer-toolkit/shared/authored'
 import type { CompiledEffectGroup, CompiledDamageEffect } from '@artificer-toolkit/shared/compilers'
 import {
   boundedOutcome,
@@ -25,6 +28,10 @@ export type SpecializedOutcome =
       HitPointMaximumReductionAuthored,
       'amountSource' | 'recoveryTags'
     >)
+  | ({ kind: 'DAMAGE_DERIVED_HEAL' } & Pick<
+      HealDamageDealtPayload,
+      'damageOutcomeId' | 'fraction' | 'recipient'
+    >)
 
 /** An entry that outlasts its use: a lifecycle, or a duration other than instantaneous. */
 export function hasLifecycleOverride(entry: {
@@ -45,6 +52,12 @@ export function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]
     ('gate' in entry && entry.gate?.kind === 'REDUCED_TO_ZERO_BY')
   )
   return boundedOutcome(entry.outcome, killAdmitted)
+}
+
+/** The sibling damage outcome an outcome sized by the damage dealt reads, if it is one. */
+export function damageSourceOutcomeId(outcome: SpecializedOutcome) {
+  if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION') return outcome.amountSource.damageOutcomeId
+  return outcome.kind === 'DAMAGE_DERIVED_HEAL' ? outcome.damageOutcomeId : undefined
 }
 
 /**
@@ -77,6 +90,25 @@ export function specializedTestOutcome(
       kind: 'HIT_POINT_MAXIMUM_REDUCTION',
       amountSource: outcome.amountSource,
       recoveryTags: outcome.recoveryTags
+    }
+  }
+  if (outcome.effectKind === 'HEAL' && outcome.valueKind === 'DAMAGE_DEALT') {
+    uuid(outcome.damageOutcomeId, 'D&D damage-derived heal damage identity')
+    const { numerator, denominator } = outcome.fraction
+    if (
+      !Number.isSafeInteger(numerator) ||
+      !Number.isSafeInteger(denominator) ||
+      numerator < 1 ||
+      denominator < 1 ||
+      outcome.bonuses?.length ||
+      outcome.temporary
+    )
+      unsupported('D&D damage-derived healing takes only a whole positive fraction of the damage.')
+    return {
+      kind: 'DAMAGE_DERIVED_HEAL',
+      damageOutcomeId: outcome.damageOutcomeId,
+      fraction: outcome.fraction,
+      recipient: outcome.recipient
     }
   }
   if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE') {

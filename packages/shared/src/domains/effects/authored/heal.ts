@@ -105,7 +105,23 @@ export type HealPoolPayload =
       | { scalingSource: 'CHARACTER_LEVEL' | 'PARENT_CLASS_LEVEL' | 'SPELL_CAST_LEVEL' }
     ))
 
-export type HealPayload = HealFixedPayload | HealDicePayload | HealPoolPayload
+/**
+ * A fraction, rounded down, of the damage a sibling DAMAGE outcome of the same result block dealt
+ * (after resistance). `recipient` names who regains it; the damage's target is never the recipient.
+ */
+export type HealDamageDealtPayload = {
+  valueKind: 'DAMAGE_DEALT'
+  scalingKind: typeof SCALING.NONE
+  damageOutcomeId: string
+  fraction: { numerator: number; denominator: number }
+  recipient: 'SOURCE'
+}
+
+export type HealPayload =
+  | HealFixedPayload
+  | HealDicePayload
+  | HealPoolPayload
+  | HealDamageDealtPayload
 
 export type HealAuthored = {
   id: string

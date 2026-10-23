@@ -124,7 +124,11 @@ export function modifierGrantEntryPlan(input: {
       : []
   )
   if (
-    modifiers.length + senses.length + (grantedActions?.length ?? 0) === 0 ||
+    modifiers.length +
+      senses.length +
+      (grantedActions?.length ?? 0) +
+      (effectOffers?.length ?? 0) ===
+      0 ||
     grantedSenses.length !== senses.length ||
     modifiers.some(
       ({ payload }) =>

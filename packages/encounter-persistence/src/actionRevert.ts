@@ -38,6 +38,7 @@ import {
   readEncounterActorConditionState,
   targetTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import { concealmentLifecycleFor } from '@artificer-toolkit/rules-runtime/encounterConcealment'
 import { revertDamageTypesTaken } from '@artificer-toolkit/rules-runtime/encounterDamageTypesSinceTurnStart'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
@@ -103,6 +104,8 @@ type GatedRoot = Extract<
 type CleavingDamage = Extract<ServerRuleExecutionApplicationOutputsDto, { kind: 'CLEAVING_DAMAGE' }>
 type CharacterInverse = {
   hitPoints: ActionBatch['targetTransition']['before'] | null
+  /** The current hit points the Character had before the action healed it (D181); null when it did not. */
+  healedFromCurrentHitPoints: number | null
   removedConditionIds: Set<string>
   /** Conditions the action released from the Character, given back by the undo. */
   restoredConditionIds: Set<string>
@@ -134,6 +137,7 @@ function endedConditionReleases(applications: ActionBatch['applications']) {
 function characterInverseAt(expectedStreamVersion: number): CharacterInverse {
   return {
     hitPoints: null,
+    healedFromCurrentHitPoints: null,
     removedConditionIds: new Set(),
     restoredConditionIds: new Set(),
     resource: null,
@@ -649,6 +653,35 @@ export async function revertLastEncounterAction(
       endedConditionReleases(spend.sourceApplications),
       spend.sourceCharacterStreamVersion
     )
+    // The hit points the source regained from its damage (D181) go back, refusing if they changed since.
+    const heals = spend.sourceApplications.filter(
+      (application) => application.kind === 'HEAL' && application.appliedAmount > 0
+    )
+    const firstHeal = heals[0]
+    const lastHeal = heals.at(-1)
+    if (firstHeal?.kind === 'HEAL' && lastHeal?.kind === 'HEAL') {
+      if (source.kind === 'CHARACTER') {
+        if (sourceCharacterId === null || spend.sourceCharacterStreamVersion === null)
+          throw new Error('Stored source Character version is missing.')
+        characterInverse(
+          sourceCharacterId,
+          spend.sourceCharacterStreamVersion
+        ).healedFromCurrentHitPoints = firstHeal.beforeCurrentHitPoints
+      } else {
+        const holder = actorsById.get(source.id)!
+        if (
+          holder.kind === 'CHARACTER' ||
+          holder.currentHitPoints !== lastHeal.afterCurrentHitPoints
+        )
+          revertUnavailable(
+            `${source.label}'s hit points changed after this action; adjust manually.`
+          )
+        updateActor(holder.id, {
+          currentHitPoints: firstHeal.beforeCurrentHitPoints,
+          defeated: nextEncounterActorDefeated(holder, firstHeal.beforeCurrentHitPoints)
+        })
+      }
+    }
     // So do the ones the retaliation's damage released from the attacker; the effects themselves
     // come back with the root's consumed grants, after the grants that damage made are deleted.
     restoreReleasedConditions(source, batch?.meleeRetaliation?.releasedConditionIds ?? [], null)
@@ -1415,6 +1448,11 @@ async function restoreCharacter(
       conditions: (state.conditions ?? []).filter(
         (condition) => !inverse.removedConditionIds.has(condition.conditionTypeId)
       )
+    }
+  if (inverse.healedFromCurrentHitPoints !== null)
+    state = {
+      ...state,
+      hitpoints: { ...state.hitpoints, current: inverse.healedFromCurrentHitPoints }
     }
   if (inverse.restoredConditionIds.size)
     state = {

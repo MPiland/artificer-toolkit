@@ -7,6 +7,7 @@ import { blur } from '@artificer-toolkit/source-data/srd/spells/blur.js'
 import { enthrall } from '@artificer-toolkit/source-data/srd/spells/enthrall.js'
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
+import { vampiricTouch } from '@artificer-toolkit/source-data/srd/spells/vampiric-touch.js'
 import { light } from '@artificer-toolkit/source-data/srd/spells/light.js'
 import { mageArmor } from '@artificer-toolkit/source-data/srd/spells/mage-armor.js'
 import { magicWeapon } from '@artificer-toolkit/source-data/srd/spells/magic-weapon.js'
@@ -43,6 +44,7 @@ describe('spells authored from core options through the effect node map (SPELLS-
     ['Shillelagh', shillelagh],
     ['Magic Weapon', magicWeapon],
     ['Heat Metal', heatMetal],
+    ['Vampiric Touch', vampiricTouch],
     ['True Strike', trueStrike],
     ['Revivify', revivify],
     ['Reincarnate', reincarnate],

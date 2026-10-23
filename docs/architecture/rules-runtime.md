@@ -1964,6 +1964,11 @@ The second `lifecycle.effectOffers` kind lets the effect's **source** repeat one
 - **Pick:** `effectOffers` lists it (`kind: 'REPEAT_SOURCE_PATH'`, `actionId`); the client starts that action id. `nativeEncounterRules` refuses a target other than the holder (`TARGET_UNAVAILABLE`). The web repeat row is not built yet (see the handoff).
 - **Held or worn:** `encounterItemInstanceIdsOnActor` is now "held in hand or worn", so a carrier bound to worn armor outlasts a drop that cannot happen. `isSupportedTestActivation` allows a `BONUS_ACTION` saving throw (a repeat's charge).
 - **Node maps:** `LOCAL_COLLECTION` sources take `up` (ancestors, nearest first) so the offer's `pathIds` select from the path list several groups up.
+- **Carrier kinds (SPELLS-4.T2n2, D181):** a repeat offer on a grant with no chosen item is an ordinary grant's offer: `modifierGrantPlan` plans it (an offer counts as grant content) and the generic modifier-grant path freezes it, so an attack's carrier works (Vampiric Touch). Only a chosen-item grant takes the Heat Metal rider (`effectActionRepeatCarrier.ts`: save, bound to the item, ends on release). An attack grant authored alike on the hit and the miss applies on either result; two grants on hit results are still refused.
+
+#### Damage-derived heal: `HEAL` `valueKind: 'DAMAGE_DEALT'` (current, SPELLS-4.T2n2, D181)
+
+A HEAL sized by a whole positive fraction, rounded down, of the damage a sibling DAMAGE outcome on the same path dealt, aimed at the source. Resolution has two stages: the interpreter emits a `DAMAGE_DERIVED_HEAL` application read from the damage node (`damageSizedOutcomeGraph`, shared with the hit point maximum reduction); `prepareNativeActionMechanicsBatches` turns it into a HEAL on the source. Undo restores the source's hit points (Character `healedFromCurrentHitPoints`, Creature `updateActor`). Further heal value kinds extend `HEAL_VALUE_OPTIONS` and `healOutcomeFields.ts`.
 
 Initiative is application policy over typed rules evidence. Campaign settings select an allowed
 UUID-backed policy and tie resolver for future Encounters; admission freezes the exact policy and graph

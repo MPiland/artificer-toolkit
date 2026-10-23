@@ -5,6 +5,7 @@ import {
   scalingSourceSchema
 } from '../shared/enums.js'
 import { levelScaledValueLevelDtoSchema } from '../shared/scaling.js'
+import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
@@ -176,6 +177,19 @@ const healPoolDtoSchema = lazySchema(() =>
   ])
 )
 
+const healDamageDealtDtoSchema = lazySchema(() =>
+  z.object({
+    valueKind: z.literal('DAMAGE_DEALT'),
+    scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
+    damageOutcomeId: postgresUuidSchema,
+    fraction: z.strictObject({
+      numerator: z.number().check(z.int(), z.positive()),
+      denominator: z.number().check(z.int(), z.positive())
+    }),
+    recipient: z.literal('SOURCE')
+  })
+)
+
 export const healDtoSchema = lazySchema(() =>
   z.intersection(
     z.object({
@@ -184,7 +198,7 @@ export const healDtoSchema = lazySchema(() =>
       temporary: z.optional(z.boolean()),
       bonuses: z.optional(authoredNestedCollectionSchema(healBonusDtoSchema))
     }),
-    z.union([healFixedDtoSchema, healDiceDtoSchema, healPoolDtoSchema])
+    z.union([healFixedDtoSchema, healDiceDtoSchema, healPoolDtoSchema, healDamageDealtDtoSchema])
   )
 )
 
