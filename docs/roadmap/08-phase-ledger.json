@@ -10174,7 +10174,7 @@
             },
             {
               "id": "SPELLS-4.T2h2",
-              "status": "IN_PROGRESS",
+              "status": "TODO",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10184,7 +10184,6 @@
                 "after": ["SPELLS-4.T2h1"]
               },
               "text": "Generic turn-end d20 gate (D178): at the end of the holder's turn a d20 at or above a threshold applies a child effect that ends at the holder's next turn start or with the parent. Converts BLINK (REMOVE_FROM_PLAY child), with a parity proof; kind deleted.",
-              "proof": "nativeRoomTurnEndGate.test.ts (room journey: roll 11+ removes the caster until their next turn starts, 10 leaves them in play), removeFromPlayAuthoringParity.test.ts (SRD and homebrew gate through the effect node map), playAbsencePersistence.test.ts (child id, link, absence), srdEffectCompile golden (Blink line).",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {

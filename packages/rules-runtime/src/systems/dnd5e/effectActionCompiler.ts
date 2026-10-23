@@ -184,6 +184,8 @@ import {
   timedBandConditions
 } from './effectActionBandConditions.js'
 import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
+import { turnEndGateEvidenceBinding, turnEndGatePlan } from './effectActionTurnEndGate.js'
 import {
   effectOutcomeProposalNode,
   effectOutcomeProposalOutputs
@@ -1084,49 +1086,16 @@ function timedConditionPlan(
     endOnEvents: [...new Set(endOnEvents)].sort(),
     endOnTriggers: canonicalEndTriggers(endOnTriggers)
   }
-  if (turnEndGate) {
-    // The gate rolls its d20 on the holder's turns, so the removal it makes is the only thing held.
-    if (
-      !removalEntries[0] ||
-      outcomeEntries.length !== 1 ||
-      indefinite ||
-      turnAnchor ||
-      rider ||
-      maintenance
-    )
-      unsupported('D&D turn-end roll gates one removal from play held for a timed duration.')
-    return {
-      authoredEffectId: action.effectId,
-      compiledEntryId: lead.entry.entryId,
-      frozenGraphNodeId: 'repeat-save-test',
-      capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-      recurrenceStage: 'END_OF_TURN',
+  if (turnEndGate)
+    return turnEndGatePlan({
+      effectId: action.effectId,
+      entryId: lead.entry.entryId,
+      minimumRoll: turnEndGate.minimumRoll,
+      keepsTurn: removalEntries[0]?.outcome.keepsTurn,
+      heldAlone: outcomeEntries.length === 1 && !turnAnchor && !rider && !maintenance,
       initialRemaining,
-      adapterFacts: {
-        [DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]: 'repeat-save-d20',
-        [DND5E_SAVE_DC_FACT_KEY]: turnEndGate.minimumRoll
-      },
-      turnEndGate: {
-        minimumRoll: turnEndGate.minimumRoll,
-        child: {
-          frozenGraphNodeId: 'condition-duration',
-          frozenGraph: durationPublishedGraph({
-            effectId: action.effectId,
-            plan: {
-              compiledEntryId: lead.entry.entryId,
-              frozenGraphNodeId: 'condition-duration',
-              marginRiders: []
-            }
-          }),
-          playAbsence: { keepsTurn: removalEntries[0].outcome.keepsTurn }
-        }
-      },
-      lifecycle,
-      perceptionContributions: [],
-      maintenance,
-      marginRiders: []
-    }
-  }
+      lifecycle
+    })
   return {
     authoredEffectId: action.effectId,
     compiledEntryId: lead.entry.entryId,
@@ -1852,109 +1821,6 @@ function repeatingDirectFollowUpSaveLeadEntries(
   return repeatingDirectFollowUpSavePlan(action)
     ? entriesBesideSourceImmunity(action).slice(0, -1)
     : null
-}
-
-function repeatFollowUpSavePublishedGraph(input: {
-  action: Dnd5eCompiledEffectActionSource
-  plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
-}): ServerPublishedRuleDefinitionDto {
-  const abilityDefinitionId =
-    input.plan.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]
-  // A turn-end gate rolls a bare d20 against its minimum, so it names no saving throw ability.
-  if (
-    !input.plan.turnEndGate &&
-    (typeof abilityDefinitionId !== 'string' || !UUID.test(abilityDefinitionId))
-  ) {
-    throw new Dnd5eEffectActionCompilerError('D&D repeat-save facts are unavailable.')
-  }
-  // A gated repeat settles its d20 without a request on a turn the gate refuses the attempt.
-  const gated = repeatSaveGated(input.plan.adapterFacts, input.plan.saveThresholds)
-  const definition: RuleGraphDefinition = {
-    schemaVersion: 1,
-    id: input.action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'repeat-save-d20',
-        operation: {
-          key: gated ? 'evidence.optional-integer-range' : 'evidence.integer-range',
-          contractVersion: 1
-        },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 },
-          ...(gated
-            ? {
-                enabled: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY
-                }
-              }
-            : {})
-        }
-      },
-      dnd5eAddedDiceNode('repeat-save-d20'),
-      {
-        id: input.plan.frozenGraphNodeId,
-        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },
-        inputs: {
-          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          naturalD20: {
-            kind: 'NODE_OUTPUT',
-            nodeId: 'repeat-save-d20',
-            port: 'value'
-          },
-          addedTotal: {
-            kind: 'NODE_OUTPUT',
-            nodeId: 'repeat-save-d20-added-dice',
-            port: 'value'
-          },
-          modifier: { kind: 'FACT', factKey: DND5E_SAVE_MODIFIER_FACT_KEY },
-          threshold: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY },
-          contributorChecksum: {
-            kind: 'FACT',
-            factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
-          },
-          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
-        }
-      }
-    ],
-    outputs: {
-      targetActorId: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'targetActorId'
-      },
-      naturalD20: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'naturalD20'
-      },
-      total: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'total'
-      },
-      resultPath: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'resultPath'
-      },
-      contributorChecksum: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'contributorChecksum'
-      }
-    },
-    sourceEntryBindings: [
-      {
-        sourceEntryId: input.plan.compiledEntryId,
-        nodeId: input.plan.frozenGraphNodeId
-      }
-    ]
-  }
-  return publishedGraph(definition)
 }
 
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
@@ -4783,38 +4649,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const requestNodeId = definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
     const dc = definition.adapterFacts[DND5E_SAVE_DC_FACT_KEY]
     const saveDc = typeof dc === 'number' && Number.isSafeInteger(dc) ? dc : null
-    // A turn-end gate rolls a bare d20 against its minimum: no ability, modifier or contributors.
-    if (definition.recurrence.turnEndGate) {
-      if (
-        abilityDefinitionId !== undefined ||
-        requestNodeId !== 'repeat-save-d20' ||
-        saveDc !== definition.recurrence.turnEndGate.minimumRoll ||
-        definition.frozenGraph.nodes.filter(
-          (node) =>
-            node.id === requestNodeId &&
-            node.operation.key === 'evidence.integer-range' &&
-            node.operation.contractVersion === 1
-        ).length !== 1
-      )
-        throw new Dnd5eEffectActionCompilerError('D&D turn-end roll binding is invalid.')
-      const contributorChecksum = checksumRuleDocument([])
-      return {
-        facts: {
-          ...baseFacts,
-          [DND5E_SAVE_MODIFIER_FACT_KEY]: 0,
-          [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
-          [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: 'NONE'
-        },
-        evidencePolicy: {
-          requestNodeId,
-          ...resolveDnd5eRollMode([]),
-          contributors: [],
-          contributorChecksum,
-          modifier: 0,
-          dc: saveDc
-        }
-      }
-    }
+    if (definition.recurrence.turnEndGate) return turnEndGateEvidenceBinding(definition, baseFacts)
     if (abilityDefinitionId === undefined && requestNodeId === undefined && dc === undefined) {
       return { facts: baseFacts, evidencePolicy: null }
     }
