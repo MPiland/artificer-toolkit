@@ -4,6 +4,9 @@ import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/autho
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { feeblemind } from '@artificer-toolkit/source-data/srd/spells/feeblemind.js'
+import { jump } from '@artificer-toolkit/source-data/srd/spells/jump.js'
+import { levitate } from '@artificer-toolkit/source-data/srd/spells/levitate.js'
+import { reverseGravity } from '@artificer-toolkit/source-data/srd/spells/reverse-gravity.js'
 import { timeStop } from '@artificer-toolkit/source-data/srd/spells/time-stop.js'
 import { silentImage } from '@artificer-toolkit/source-data/srd/spells/silent-image.js'
 import { teleport } from '@artificer-toolkit/source-data/srd/spells/teleport.js'
@@ -20,6 +23,10 @@ describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-
     ['Feeblemind', feeblemind],
     ['Silent Image', silentImage],
     ['Teleport', teleport],
+    // SPELLS-4.T2o (D187a): no 3D position model, so the movement is a GM ruling.
+    ['Jump', jump],
+    ['Levitate', levitate],
+    ['Reverse Gravity', reverseGravity],
     ['Time Stop', timeStop]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     // Equipment authoring the spell's effects: the effect list every owner shares.

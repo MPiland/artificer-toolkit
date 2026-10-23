@@ -1193,6 +1193,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - Removed: SPELLS-27.T7 (a duplicate of the shipped T2k3, T2k3b and T2k3c), SPELLS-4.T2n1b (already description per D181), and T2f2, T2h3, T2j2b, T2j2c and T2lb2b2 (description-only, no remaining work).
 - Open size went from 459 to 319, and open tasks from 120 to 112. The deferred engine pieces are listed in future-enhancements under "Deferred rules pieces (D187a)". The audit evidence is in `local-validation/audit-d187/`.
 
+### D187b: standing granted actions and summon-like spells (user decision, 2026-10-23)
+
+- **Standing granted actions (SPELLS-33.T4l1, approved scope growth):** an APPLY_GRANT with no duration on a Creature trait offers its `grantedActions` on every turn. Feature discovery picks up PASSIVE traits that carry them, through the existing grantedActions compile and consume path. This covers Nimble Escape, Cunning Action, Shadow Stealth, Aggressive, Vampire legendary Move and Octopus Ink Cloud, beside the timed Clay Golem Haste. Nimble Escape and Aggressive come up in most early fights, so D187a's "rare rider" description route does not apply.
+- **Summon-like spells as creatures (SPELLS-4.T2v, direction):** Spiritual Weapon is modeled as a CREATURE manifest that its caster (or the GM, for a GM-controlled caster) moves and attacks with. It is not a placed spatial effect, so it needs no move-with-undo commit and no non-token range origin. The same pattern serves Arcane Hand and similar summons. Any point that existing creature pieces cannot cover comes back as a sized gap for the user's yes.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

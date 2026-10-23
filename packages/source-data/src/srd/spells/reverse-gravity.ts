@@ -69,8 +69,11 @@ export const reverseGravity: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.REVERSE_GRAVITY, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'REVERSE_GRAVITY' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Reversed Gravity',
+                reasonCode: 'EXTERNAL_WORLD_STATE' as const,
+                instructions:
+                  'The GM rules the upward fall, ceiling impact damage and the end of the effect; the engine has no elevation model.'
               }
             ]
           }

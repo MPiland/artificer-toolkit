@@ -52,18 +52,6 @@ export const roper: CreatureAuthored = {
       label: 'Grasping Tendrils',
       description:
         'Grasping Tendrils. The roper can have up to six tendrils at a time. Each tendril can be attacked (AC 20; 10 hit points; immunity to poison and psychic damage). Destroying a tendril deals no damage to the roper, which can extrude a replacement tendril on its next turn. A tendril can also be broken if a creature takes an action and succeeds on a DC 15 Strength check against it.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(239, 502),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(239, 602), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ROPER_GRASPING_TENDRILS
-        })
-      ],
       order: 2
     },
     {

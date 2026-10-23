@@ -546,7 +546,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Dispel acting on a placed zone.**
 - **Maze escape as a spell-held effect.**
 - **Holy Aura blinding attackers who hit the holder:** retaliation for multi-target holders.
-- **Speed equal to another speed, jumping and elevation:** Fly-style speeds, Dragon Wings, Second-Story Work, Step of the Wind.
+- **Jumping and elevation (3D movement):** the engine has no vertical position, so Jump, Levitate and Reverse Gravity ship as GM rulings (SPELLS-4.T2o, D187a), and Second-Story Work and Step of the Wind wait on it. The speed-equal-to-another-speed value source shipped in SPELLS-4.T2o.
 - **Damage MULTIPLY:** Ray of Enfeeblement.
 - **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
 - **Indefinite non-Concentration lifetimes:** Feeblemind.
@@ -554,7 +554,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Containment:** swallow and engulf (Purple Worm, Tarrasque, Gelatinous Cube).
 - **Auto-hit and reel tails:** Marilith, Roper.
 - **Creature forms beyond Wild Shape:** Change Shape, lycanthrope and vampire shapes, Misty Escape.
-- **Extra reactions and reaction denial; terrain and underwater predicates; deferred Death Throes; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts.**
+- **Extra reactions and reaction denial; terrain and underwater predicates; deferred Death Throes; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts (Hydra heads, Roper tendrils) and damage-triggered splitting (Black Pudding, Ochre Jelly).**
 - **Rare class senses and riders:** Blindsense, Feral Senses, Witch Sight, Retaliation, and the One with Shadows light gate.
 
 ## Other future enhancements (parked)
