@@ -1,7 +1,12 @@
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
-import { DND5E_EFFECT_ACTION_FAMILY_KEY, unsupported, uuid } from './effectActionContracts.js'
+import {
+  DND5E_EFFECT_ACTION_FAMILY_KEY,
+  unsupported,
+  uuid,
+  type SpecializedPath
+} from './effectActionContracts.js'
 import { damageDerivedHealProposalNode } from './effectActionDamageDerivedHeal.js'
 import { hitPointMaximumReductionProposalNode } from './effectActionOperationRegistry.js'
 import { damageSourceOutcomeId, type SpecializedOutcome } from './effectActionTestOutcomes.js'
@@ -22,7 +27,7 @@ export function damageSizedOutcomeGraph(input: {
   groups: readonly (readonly CompiledEffectGroup['entries'][number][])[]
   /** The prefix of this group's node ids when the block owns several groups. */
   nodePrefix: string
-  selectedPath: string
+  selectedPath: SpecializedPath
 }): RuleGraphDefinition {
   const { outcome, entry } = input
   const damageIndex = input.groups.findIndex(

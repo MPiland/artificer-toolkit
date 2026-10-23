@@ -212,7 +212,7 @@ export function damageDerivedHealApplication(
     sourceNodeId: proposal.nodeId,
     sourceOperationKey: proposal.operation.key,
     authoredPath: damage.authoredPath,
-    resolvedPath,
+    resolvedPath: resultPath,
     sourceDamageNodeId,
     sourceDamageOperationKey,
     sourceDamageOutcomeId,

@@ -519,7 +519,8 @@ export function testApplications(
         application.kind === 'STABILIZE' ||
         application.kind === 'REVIVE' ||
         application.kind === 'KILL_NEGATED' ||
-        application.kind === 'DEPART'
+        application.kind === 'DEPART' ||
+        application.kind === 'DAMAGE_DERIVED_HEAL'
       )
         continue
       input =
@@ -1160,7 +1161,8 @@ export function interpretDirect(
         application.kind === 'STABILIZE' ||
         application.kind === 'REVIVE' ||
         application.kind === 'KILL_NEGATED' ||
-        application.kind === 'DEPART'
+        application.kind === 'DEPART' ||
+        application.kind === 'DAMAGE_DERIVED_HEAL'
       )
         continue
       const startingHitPoints = input.startingHitPoints ?? input.currentHitPoints
