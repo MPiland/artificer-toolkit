@@ -10744,8 +10744,21 @@
                 "size": 3,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "Healing received (D181): a HEALING_RECEIVED domain with a maximize-dice modifier on the holder, and a generic death-save target on the SAVING_THROW_MODIFIER filter. Converts BEACON_OF_HOPE (Wisdom and death-save advantage, maximized healing), with parity and room journey proofs; kind deleted.",
+              "text": "Healing received (D181): a HEALING_RECEIVED domain with a maximize-dice modifier on the holder. Converts BEACON_OF_HOPE (Wisdom save advantage, maximized healing; death-save advantage description-only until T2n1b), with parity and room journey proofs; kind deleted.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2n1b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2n1", "RULES-2.T9a2"]
+              },
+              "text": "Roll-mode-aware death save (D181 amendment): the turn death-save graph, TurnDeathSaveExecutionDto (rolled dice and kept index) and its replay, the roll record and the Sheet ROLL_DEATH_SAVE command honour advantage and disadvantage; a death-save target on the SAVING_THROW_MODIFIER filter; Beacon of Hope's death-save advantage authored on it. Parity proof, room journey and Sheet proof."
             },
             {
               "id": "SPELLS-4.T2n2",
