@@ -10288,7 +10288,7 @@
               "mergedAt": "2026-10-20T22:21:23Z"
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2j1",
               "wsjf": {
@@ -10299,7 +10299,9 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "Attacker and source qualifiers (D179): CREATURE_TYPE restriction with subject HOLDER or SOURCE, a SOURCE_TRAIT restriction (MAGICAL), active-effect resistance and immunity with bypassedBy and attack domains, one qualifiedDefenses evaluator. Converts PROTECTION_FROM_EVIL_AND_GOOD (with Purity of Spirit), STONESKIN and WIND_WALK, with parity proofs; each kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-23T01:02:24Z",
+              "note": "Merged in m359.",
+              "proof": "nativeRoomSourceQualifiedGrants.test.ts (PFEG: fiend bite at disadvantage, humanoid normal), encounterSourceQualifiedGrants.test.ts; shared creatureTypeConditionMatches; PFEG, Stoneskin, Wind Walk golden SINGLE_GRAPH."
             },
             {
               "id": "SPELLS-4.T2j2",

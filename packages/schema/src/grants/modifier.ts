@@ -377,17 +377,28 @@ export const damageDiePayloadDtoSchema = lazySchema(() =>
   ])
 )
 
+/** A defense limited to attacks without any of these traits ("from nonmagical attacks"). */
+const bypassedByShape = () => ({
+  bypassedBy: z.optional(
+    z.array(damageDefenseBypassCodeSchema).check(z.minLength(1)).check(z.maxLength(3))
+  )
+})
+
 /** An immunity can be limited to damage from actions owned by the named authored content. */
 const damageImmunityPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
     damageTypeId: authoredIdentifierSchema,
-    sourceEffectIds: z.optional(z.array(authoredIdentifierSchema).check(z.maxLength(100)))
+    sourceEffectIds: z.optional(z.array(authoredIdentifierSchema).check(z.maxLength(100))),
+    ...bypassedByShape()
   })
 )
 
 /** A resistance names its damage type, or takes the type of the damage that triggered it. */
 const damageResistancePayloadDtoSchema = lazySchema(() =>
-  z.union([damageTypePayloadDtoSchema, z.strictObject({ damageTypeSource: z.literal('TRIGGER') })])
+  z.union([
+    z.strictObject({ damageTypeId: authoredIdentifierSchema, ...bypassedByShape() }),
+    z.strictObject({ damageTypeSource: z.literal('TRIGGER') })
+  ])
 )
 
 const conditionTypePayloadDtoSchema = lazySchema(() =>

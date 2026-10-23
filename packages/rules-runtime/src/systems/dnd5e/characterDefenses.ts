@@ -19,8 +19,15 @@ function defenseSourceEffectIds(value: string[] | undefined): string[] | undefin
 export function evaluateDnd5eCharacterDefenses(
   input: CharacterRulePolicyInput,
   grantFold: CharacterGrantFoldOutput
-): Pick<CharacterRulePolicyOutput, 'defenses' | 'conditionImmunityIds' | 'spellSchoolImmunityIds'> {
+): Pick<
+  CharacterRulePolicyOutput,
+  'defenses' | 'qualifiedDefenses' | 'conditionImmunityIds' | 'spellSchoolImmunityIds'
+> {
   const defenses = new Map<string, CharacterRulePolicyOutput['defenses'][number]>()
+  const qualifiedDefenses = new Map<
+    string,
+    CharacterRulePolicyOutput['qualifiedDefenses'][number]
+  >()
   const conditionImmunityIds = new Set<string>()
   const spellSchoolImmunityIds = new Set<string>()
   for (const modifier of grantFold.modifiers) {
@@ -61,6 +68,14 @@ export function evaluateDnd5eCharacterDefenses(
     if (kind === null || payload === undefined || !('damageTypeId' in payload)) continue
     const { damageTypeId } = payload
     if (damageTypeId.trim() === '') continue
+    const bypassedBy = 'bypassedBy' in payload ? payload.bypassedBy : undefined
+    if (bypassedBy?.length) {
+      if (kind === 'VULNERABILITY') continue
+      const key = `${kind}:${damageTypeId}:${[...bypassedBy].sort().join(',')}`
+      if (adding) qualifiedDefenses.set(key, { kind, damageTypeId, bypassedBy })
+      else qualifiedDefenses.delete(key)
+      continue
+    }
     const sourceEffectIds = defenseSourceEffectIds(
       'sourceEffectIds' in payload ? payload.sourceEffectIds : undefined
     )
@@ -83,6 +98,7 @@ export function evaluateDnd5eCharacterDefenses(
   }
   return {
     defenses: [...defenses.values()],
+    qualifiedDefenses: [...qualifiedDefenses.values()],
     conditionImmunityIds: [...conditionImmunityIds],
     spellSchoolImmunityIds: [...spellSchoolImmunityIds]
   }

@@ -1,5 +1,11 @@
 import {
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -14,8 +20,67 @@ import {
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
+import type { ModifierGrantAuthored } from '@artificer-toolkit/shared/authored'
+import { sourceCreatureTypeRestriction } from '../classes/mechanics.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import {
+  conditionTypeId,
+  creatureTypeId,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
+
+const PROTECTED_AGAINST_CREATURE_TYPES = [
+  'ABERRATION',
+  'CELESTIAL',
+  'ELEMENTAL',
+  'FEY',
+  'FIEND',
+  'UNDEAD'
+] as const
+
+/**
+ * What protection from evil and good gives its holder against aberrations, celestials,
+ * elementals, fey, fiends and undead: their attacks have disadvantage and the holder can't be
+ * charmed or frightened by them. The spell and Purity of Spirit share it; `idFor` keeps each
+ * one's ids its own. Possession and the advantage on a new save against an existing charm or
+ * fright stay in the description.
+ */
+export function protectionFromEvilAndGoodGrants(
+  idFor: (part: number, entry: number) => string
+): ModifierGrantAuthored[] {
+  const creatureTypeIds = PROTECTED_AGAINST_CREATURE_TYPES.map(creatureTypeId)
+  const grants = [
+    ...Object.values(ATTACK_DOMAIN_CODE).map((attackDomain) => ({
+      valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
+      domain: { attackDomain, requiresHolderSeesAttacker: false },
+      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+      payload: { influence: 'DISADVANTAGE' as const }
+    })),
+    ...(['CHARMED', 'FRIGHTENED'] as const).map((condition) => ({
+      valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+      domain: {},
+      modifierKind: MODIFIER_KIND.ADD_OPTION,
+      payload: { conditionTypeId: conditionTypeId(condition) }
+    }))
+  ]
+  return grants.map((grant, index) => ({
+    id: idFor(0x30, index + 1),
+    order: index + 1,
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    ...grant,
+    restrictions: sourceCreatureTypeRestriction(
+      (entry) => idFor(0x31 + index, entry + 1),
+      'INCLUDE',
+      creatureTypeIds
+    )
+  })) as ModifierGrantAuthored[]
+}
+
 export const protectionFromEvilAndGood: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.PROTECTION_FROM_EVIL_AND_GOOD,
@@ -68,8 +133,12 @@ export const protectionFromEvilAndGood: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PROTECTION_FROM_EVIL_AND_GOOD, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PROTECTION_FROM_EVIL_AND_GOOD' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: protectionFromEvilAndGoodGrants((part, entry) =>
+                    spellChildId(SPELL_IDS.PROTECTION_FROM_EVIL_AND_GOOD, 0x200 + part, entry)
+                  )
+                }
               }
             ]
           }

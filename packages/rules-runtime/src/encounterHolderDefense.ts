@@ -7,7 +7,10 @@ import {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   encounterAttackAgainstContributors,
+  encounterSourceConditionImmunities,
   encounterSourceSightSaveGrants,
+  hasEffectSourceRestrictedGrants,
+  hasFeatureSourceRestrictedGrants,
   hasEncounterDefensiveGrants,
   hasFeatureHolderStateSkillGrants,
   hasFeatureAttacksAgainstGrants,
@@ -152,6 +155,8 @@ function hasHolderDefenseGrants(gameSystemId: string, target: MovementTarget): b
     hasEncounterDefensiveGrants(target.activeEffects) ||
     hasFeatureAttacksAgainstGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
     hasFeatureHolderStateSkillGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
+    hasFeatureSourceRestrictedGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
+    hasEffectSourceRestrictedGrants(target.activeEffects) ||
     sourceSightSaveGrants(gameSystemId, target).length > 0
   )
 }
@@ -169,6 +174,11 @@ export function withHolderDefenseGrants<T extends MovementTarget>(
     holderState,
     attackAgainstContributors: encounterAttackAgainstContributors({
       holderActorId: target.actor.id,
+      effects: target.activeEffects,
+      grantFold: target.effectiveRulePolicyOutput?.grantFold ?? null,
+      holderState
+    }),
+    sourceConditionImmunities: encounterSourceConditionImmunities({
       effects: target.activeEffects,
       grantFold: target.effectiveRulePolicyOutput?.grantFold ?? null,
       holderState

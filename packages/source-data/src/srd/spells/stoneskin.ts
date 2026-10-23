@@ -15,7 +15,13 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import {
+  nonmagicalWeaponResistanceGrants,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
 export const stoneskin: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.STONESKIN,
@@ -68,8 +74,12 @@ export const stoneskin: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.STONESKIN, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'STONESKIN' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: nonmagicalWeaponResistanceGrants((entry) =>
+                    spellChildId(SPELL_IDS.STONESKIN, 0x214, entry)
+                  )
+                }
               }
             ]
           }

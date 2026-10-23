@@ -28,6 +28,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
+import { protectionFromEvilAndGoodGrants } from '../spells/protection-from-evil-and-good.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { closedRuleEffect } from './mechanics.js'
 
@@ -320,18 +321,11 @@ export const oathOfDevotion: ClassAuthored = {
         'Beginning at 15th level, you are always under the effects of a protection from evil and good spell.',
       availableAtLevel: 15,
       order: 4,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(P, 20, 4),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(P, 21, 4), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: CLOSED_RULE_KIND.PROTECTION_FROM_EVIL_AND_GOOD
-        })
-      ]
+      grants: {
+        modifiers: protectionFromEvilAndGoodGrants((part, entry) =>
+          classRowId(P, 0x90 + part, entry)
+        )
+      }
     },
     {
       id: classRowId(P, 11, 6),

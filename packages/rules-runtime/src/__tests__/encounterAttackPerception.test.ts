@@ -56,6 +56,7 @@ const dodgeAgainst = {
   requiresHolderSeesAttacker: true,
   exemptAttackerSenseDefinitionIds: [],
   eventScope: { actorId: null, turnActorId: null },
+  sourceQualifier: [],
   contributor: dodge,
   suppressedInfluence: null
 }

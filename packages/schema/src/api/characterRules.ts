@@ -26,6 +26,7 @@ import {
 } from './characterActionRules.js'
 import {
   abilityCodeSchema,
+  damageDefenseBypassCodeSchema,
   equipmentCategoryCodeSchema,
   lengthUnitCodeSchema,
   measurementUnitCodeSchema,
@@ -102,6 +103,50 @@ const characterTargetDefenseSchema = lazySchema(() =>
     sourceEffectIds: z.optional(z.array(serverUuidIdentityDtoSchema).check(z.maxLength(100))),
     source: characterMechanicSourceSchema
   })
+)
+
+/** A resistance or immunity that applies only to attacks without any of `bypassedBy`. */
+const characterQualifiedDefenseSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.enum(['RESISTANCE', 'IMMUNITY']),
+    damageTypeId: serverUuidIdentityDtoSchema,
+    bypassedBy: z.array(damageDefenseBypassCodeSchema).check(z.minLength(1)).check(z.maxLength(3))
+  })
+)
+
+const canonicalCharacterQualifiedDefensesSchema = lazySchema(() =>
+  z.pipe(
+    z
+      .array(characterQualifiedDefenseSchema)
+      .check(z.maxLength(100))
+      .check(
+        z.superRefine((defenses, ctx) => {
+          const keys = new Set<string>()
+          defenses.forEach((defense, index) => {
+            const key = `${defense.kind}:${defense.damageTypeId}:${[...defense.bypassedBy].sort().join(',')}`
+            if (keys.has(key)) {
+              ctx.addIssue({
+                code: 'custom',
+                message: 'Character qualified defenses must be unique.',
+                path: [index]
+              })
+            }
+            keys.add(key)
+          })
+        })
+      ),
+    z.transform((defenses) =>
+      [...defenses].sort(
+        (left, right) =>
+          left.damageTypeId.localeCompare(right.damageTypeId) ||
+          left.kind.localeCompare(right.kind) ||
+          [...left.bypassedBy]
+            .sort()
+            .join(',')
+            .localeCompare([...right.bypassedBy].sort().join(','))
+      )
+    )
+  )
 )
 
 const canonicalCharacterTargetDefensesSchema = lazySchema(() =>
@@ -1197,6 +1242,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
       []
     ),
     defenses: canonicalCharacterTargetDefensesSchema,
+    qualifiedDefenses: z._default(canonicalCharacterQualifiedDefensesSchema, []),
     conditionImmunityIds: z._default(canonicalConditionImmunityIdsSchema, []),
     spellSchoolImmunityIds: z._default(canonicalSpellSchoolImmunityIdsSchema, []),
     movement: z._default(
