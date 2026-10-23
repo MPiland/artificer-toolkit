@@ -127,6 +127,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **Collision saves and Legendary Resistance (SPELLS-33.T6k2b4b):** a creature that spends Legendary Resistance on both its caught save and its struck collision save in one cast (or is struck twice) shares an actor-keyed charge audit, so the second charge accounting is unproved. Rare; the GM can adjust the charges by hand.
 
 - **Flyby outside opportunity attacks (SPELLS-33.T5k):** Flyby grants immunity to opportunity attacks only. A creature that leaves reach provokes nothing either way, so the grant is never consulted there, and other "leaves reach" triggers (none authored in the SRD) would not see it. Watch for a homebrew trigger that should respect it.
+- **Deferred Death Throes area (SPELLS-33.T6e1b, D187a):** the HP-zero area (`raiseRoomHpZeroEffects`) runs once per committed command and raises nothing while the Encounter already waits on a decision. A holder defeated in the same commit that opens a Concentration save (or any other pending decision) therefore raises no area, where the target design queues it behind the pending decision in a deferred pending-snapshot field, as `deferredCleaving` does. The other defeat roots (retaliation, turn zone, legendary action, movement reaction, spatial contact) are not proved to reach the same seam. A creature with an HP-zero area dying that way is rare (the Balor is CR 19); the GM resolves its printed Death Throes by hand: each creature within 30 feet makes the Dexterity save and takes the fire damage. Build the pending-snapshot field and one proved HP-zero seam across the roots when a table hits it.
 - **Chained Death Throes (SPELLS-33.T6e1):** a creature reduced to 0 hit points by another creature's HP-zero area (a Balor killed by a second Balor's explosion) does not trigger its own. Two Balors dying together is rare; the GM resolves the second explosion by hand.
 
 - **Bound-item spells (D156, SPELLS-4.T2e):** Shillelagh recast on a new club does not end the first; a Magic Weapon handed to another creature keeps its bonus with the creature it was cast on; a fire-immune creature still gets Heat Metal's disadvantage; unattended objects can't be chosen; Shillelagh on an off-hand club is not modeled apart from the main hand; a Sheet-side unequip ends a bound grant only at the next Encounter action; a Creature can't bind a grant to an item. Each is rare, and the GM can end or adjust the effect by hand.
@@ -538,7 +539,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Long-rest step-down and a flat d20 modifier fold:** Raise Dead's -4 penalty (D185).
 - **Fresh-target per-turn repeat:** Eyebite retargeting (D186 FRESH); also tag-based ending of enchantments (Break Enchantment).
 - **Compelled turns:** Confusion, Compulsion and Eyebite Panicked.
-- **EXTRA_TURN:** Time Stop and Thief's Reflexes.
+- **EXTRA_TURN:** Time Stop (extra consecutive turns and ending conditions; initiative insertion is not built) and Thief's Reflexes.
 - **Holder-action save escape:** Irresistible Dance.
 - **Condition suppression:** Calm Emotions.
 - **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits.
@@ -546,7 +547,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Dispel acting on a placed zone.**
 - **Maze escape as a spell-held effect.**
 - **Holy Aura blinding attackers who hit the holder:** retaliation for multi-target holders.
-- **Speed equal to another speed, jumping and elevation:** Fly-style speeds, Dragon Wings, Second-Story Work, Step of the Wind.
+- **Jumping and elevation (3D movement):** the engine has no vertical position, so Jump, Levitate and Reverse Gravity ship as GM rulings (SPELLS-4.T2o, D187a), and Second-Story Work and Step of the Wind wait on it. The speed-equal-to-another-speed value source shipped in SPELLS-4.T2o.
 - **Damage MULTIPLY:** Ray of Enfeeblement.
 - **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
 - **Indefinite non-Concentration lifetimes:** Feeblemind.
@@ -554,7 +555,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Containment:** swallow and engulf (Purple Worm, Tarrasque, Gelatinous Cube).
 - **Auto-hit and reel tails:** Marilith, Roper.
 - **Creature forms beyond Wild Shape:** Change Shape, lycanthrope and vampire shapes, Misty Escape.
-- **Extra reactions and reaction denial; terrain and underwater predicates; deferred Death Throes; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts.**
+- **Extra reactions and reaction denial; terrain and underwater predicates; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts (Hydra heads, Roper tendrils) and damage-triggered splitting (Black Pudding, Ochre Jelly).**
 - **Rare class senses and riders:** Blindsense, Feral Senses, Witch Sight, Retaliation, and the One with Shadows light gate.
 
 ## Other future enhancements (parked)
