@@ -1,12 +1,8 @@
-import {
-  encounterConcentrationDroppedOutsideInputSchema,
-  encounterStoredRunCommandSchema
-} from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import { encounterConcentrationDroppedOutsideInputSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { carriedConcentration } from '@artificer-toolkit/rules-runtime/activeGrantListings'
 import { planConcentrationCarriedGrantEnds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -18,12 +14,10 @@ import {
   deriveLiveConcentrationCleanup
 } from './concentrationCleanupPersistence.js'
 import { postConcentrationEndMessage } from './concentrationEnd.js'
-import { readRunState } from './documents.js'
 import { rejectDomain } from './domainRejections.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterCharacterWriteTransaction, EncounterWritePorts } from './ports.js'
-import { encounterReplayReceipt } from './replayReceipts.js'
-import { insertRunCommand } from './timelineEntries.js'
+import { appendSystemRunEntry } from './systemRunEntries.js'
 
 /**
  * SPELLS-5.11 (Q1): a caster outside this ACTIVE Run, whose Concentration grants a finished Run
@@ -79,42 +73,18 @@ export async function endOutsideCasterConcentration(
   const notice = `${caster.label} dropped Concentration: ${
     concentration?.label ?? 'an unnamed source'
   } ends on ${holders.join(', ')}`
-  const run = await ctx.db
-    .query('encounterRuns')
-    .withIndex('by_publicId', (query) => query.eq('id', input.state.id))
-    .unique()
-  if (!run) throw new Error('Encounter is unavailable.')
-  const version = run.version + 1
-  const nextState = { ...readRunState(run), version, updatedAt: input.occurredAt }
-  await ctx.db.patch(run._id, {
-    version,
-    updatedAt: input.occurredAt,
-    stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState)
+  await appendSystemRunEntry(ctx, {
+    encounterId: input.state.id,
+    userId: input.userId,
+    occurredAt: input.occurredAt,
+    command: encounterConcentrationDroppedOutsideInputSchema.parse({
+      type: 'CONCENTRATION_DROPPED_OUTSIDE',
+      commandId: input.commandId,
+      encounterId: input.state.id,
+      casterCharacterId
+    }),
+    label: notice
   })
-  const command = encounterConcentrationDroppedOutsideInputSchema.parse({
-    type: 'CONCENTRATION_DROPPED_OUTSIDE',
-    commandId: input.commandId,
-    encounterId: run.id,
-    casterCharacterId
-  })
-  await insertRunCommand(
-    ctx,
-    encounterStoredRunCommandSchema.parse({
-      id: crypto.randomUUID(),
-      campaignId: run.campaignId,
-      encounterId: run.id,
-      commandId: command.commandId,
-      commandType: command.type,
-      commandFingerprint: checksumCanonicalJson(command),
-      actorUserId: input.userId,
-      version,
-      commandJson: JSON.stringify(command),
-      label: notice.slice(0, 160),
-      ...encounterReplayReceipt({ roll: null, occurrence: null }),
-      createdAt: input.occurredAt
-    })
-  )
 }
 
 /**

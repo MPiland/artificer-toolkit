@@ -10,6 +10,7 @@ import {
 import {
   encounterConcentrationDroppedOutsideInputSchema,
   encounterRelationshipsEndedInputSchema,
+  encounterReturnedToPlayInputSchema,
   type encounterStoredRunCommandSchema
 } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -32,7 +33,9 @@ function commandTimelineMetadata(command: StoredCommand) {
             ? encounterConcentrationDroppedOutsideInputSchema.parse(JSON.parse(command.commandJson))
             : command.commandType === 'RELATIONSHIPS_ENDED'
               ? encounterRelationshipsEndedInputSchema.parse(JSON.parse(command.commandJson))
-              : encounterCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
+              : command.commandType === 'RETURNED_TO_PLAY'
+                ? encounterReturnedToPlayInputSchema.parse(JSON.parse(command.commandJson))
+                : encounterCommandInputDtoSchema.parse(JSON.parse(command.commandJson))
   if (
     input !== null &&
     (input.type !== command.commandType ||
@@ -114,14 +117,16 @@ export function presentTimelineEntry(
       command.commandType === 'MOVE_HELD_EFFECT' ||
       command.commandType === 'RELEASE_RELATIONSHIP' ||
       command.commandType === 'RELATIONSHIPS_ENDED' ||
-      command.commandType === 'CONCENTRATION_DROPPED_OUTSIDE'
+      command.commandType === 'CONCENTRATION_DROPPED_OUTSIDE' ||
+      command.commandType === 'RETURNED_TO_PLAY'
         ? command.label
         : null,
     ruleOverrides:
       command.commandType === 'RESOLVE_ACTION' ||
       command.commandType === 'ESCAPE' ||
       command.commandType === 'END_HELD_GRANT' ||
-      command.commandType === 'MOVE_HELD_EFFECT'
+      command.commandType === 'MOVE_HELD_EFFECT' ||
+      command.commandType === 'RETURNED_TO_PLAY'
         ? command.ruleOverrides
         : [],
     issuerLines: command.commandType === 'RESOLVE_ACTION' ? command.issuerLines : [],

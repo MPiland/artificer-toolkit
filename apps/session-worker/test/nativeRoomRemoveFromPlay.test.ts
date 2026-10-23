@@ -6,6 +6,9 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { banishment } from '@artificer-toolkit/source-data/srd/spells/banishment.js'
+import { etherealness } from '@artificer-toolkit/source-data/srd/spells/etherealness.js'
+import { imprisonment } from '@artificer-toolkit/source-data/srd/spells/imprisonment.js'
 import { maze } from '@artificer-toolkit/source-data/srd/spells/maze.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -34,9 +37,10 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** The Character (first in the order) who prepares Maze, and a Wolf to banish. */
-async function mazeRoom() {
+/** The Character (first in the order) who prepares `spell`, and a Wolf to remove from play. */
+async function spellRoom(spell: typeof maze, positions?: Record<string, { x: number; y: number }>) {
   const room = await actionRoom({
+    ...(positions && { positions }),
     actors: [
       {
         ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
@@ -48,24 +52,26 @@ async function mazeRoom() {
     autoRoll: 'BOTH',
     rolls: [14],
     fallbackRoll: 3,
-    characterSpellcasting: { spells: [maze], prepared: [maze.id] },
-    characterAction: (action) => action.label.startsWith(maze.label)
+    characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+    characterAction: (action) => action.label.startsWith(spell.label)
   })
   const club = (await room.actionChoices()).actions.find(({ label }) => label === 'Club')
   if (!club) throw new Error('The Character offers its Club.')
   return { room, clubActionId: club.id }
 }
 
-type MazeRoom = Awaited<ReturnType<typeof mazeRoom>>['room']
+type MazeRoom = Awaited<ReturnType<typeof spellRoom>>['room']
 
-const wolfAbsence = (room: MazeRoom) =>
+const absenceOf = (room: MazeRoom, actorId: string) =>
   runInDurableObject(room.room.base.stub, (_instance, context) => {
     const row = new RoomEncounterStore(context.storage)
       .documents('encounterRunActors')
-      .find(({ id }) => id === WOLF_ID)
-    if (!row) throw new Error('Expected the Wolf in the stored Run.')
+      .find(({ id }) => id === actorId)
+    if (!row) throw new Error('Expected the actor in the stored Run.')
     return readStoredRunActor(row).absence ?? null
   })
+
+const wolfAbsence = (room: MazeRoom) => absenceOf(room, WOLF_ID)
 
 const streamVersionOf = (room: MazeRoom) =>
   runInDurableObject(room.room.base.stub, (_instance, context) => {
@@ -75,6 +81,12 @@ const streamVersionOf = (room: MazeRoom) =>
     if (!row) throw new Error('Missing room Character play state.')
     return row.streamVersion
   })
+
+/** The GM-only history entries that flag a creature returned onto an occupied space. */
+const returnEntries = async (room: MazeRoom) =>
+  (await readRoomHistory(room.room.base.stub)).commands
+    .filter(({ commandType }) => commandType === 'RETURNED_TO_PLAY')
+    .map(({ label, ruleOverrides }) => ({ label, ruleOverrides }))
 
 /** The GM ends the caster's Concentration through the Character's Sheet. */
 async function gmEndsConcentration(room: MazeRoom) {
@@ -93,7 +105,7 @@ async function gmEndsConcentration(room: MazeRoom) {
 
 describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
   it('takes the Wolf out of play and untargetable until the Concentration ends', async () => {
-    const { room, clubActionId } = await mazeRoom()
+    const { room, clubActionId } = await spellRoom(maze)
     const cast = await room.startAction(WOLF_ID, RANGE)
     expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
     expect(await wolfAbsence(room)).toBe('EFFECT')
@@ -114,5 +126,76 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
     await room.advanceTurn()
     const attack = await room.startAction(WOLF_ID, RANGE, null, null, clubActionId)
     expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+  }, 120000)
+
+  it('flags a return onto an occupied space for the GM and leaves the Scene alone (D184)', async () => {
+    // The Wolf's token sits on the Character's, so when the Maze ends there is no free cell for it.
+    const { room } = await spellRoom(maze, {
+      [CHARACTER_ACTOR_ID]: { x: 150, y: 150 },
+      [WOLF_ID]: { x: 150, y: 150 }
+    })
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await returnEntries(room)).toEqual([])
+
+    const ended = await gmEndsConcentration(room)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBeNull()
+    const entries = await returnEntries(room)
+    expect(entries).toHaveLength(1)
+    expect(entries[0]).toMatchObject({
+      label: expect.stringContaining('returned to play onto an occupied space'),
+      ruleOverrides: [{ code: 'RETURN_SPACE_OCCUPIED' }]
+    })
+  }, 120000)
+
+  it('flags nothing when the returning creature has its own space', async () => {
+    const { room } = await spellRoom(maze)
+    await room.startAction(WOLF_ID, RANGE)
+    const ended = await gmEndsConcentration(room)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBeNull()
+    expect(await returnEntries(room)).toEqual([])
+  }, 120000)
+
+  it('Banishment removes a Wolf that fails its save and returns it when the Concentration ends (T2h4)', async () => {
+    const { room } = await spellRoom(banishment)
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBe('EFFECT')
+
+    const ended = await gmEndsConcentration(room)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBeNull()
+  }, 120000)
+
+  it('Etherealness takes the caster out of play and keeps their turn (T2h4)', async () => {
+    const { room } = await spellRoom(etherealness)
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await absenceOf(room, CHARACTER_ACTOR_ID)).toBe('EFFECT_KEEPS_TURN')
+
+    const [effect] = (await readRoomHistory(room.room.base.stub)).characterEffects
+    const commandId = crypto.randomUUID()
+    const ended = await room.room.send(commandId, {
+      scope: 'CHARACTER_SHEET',
+      characterId: CHARACTER_ID,
+      encounterId: room.room.encounterId,
+      command: {
+        type: 'END_ACTIVE_EFFECT',
+        commandId,
+        expectedVersion: await streamVersionOf(room),
+        effectId: effect!.id
+      }
+    })
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await absenceOf(room, CHARACTER_ACTOR_ID)).toBeNull()
+  }, 120000)
+
+  it('Imprisonment removes a Wolf that fails its save (T2h4)', async () => {
+    const { room } = await spellRoom(imprisonment)
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBe('EFFECT')
   }, 120000)
 })

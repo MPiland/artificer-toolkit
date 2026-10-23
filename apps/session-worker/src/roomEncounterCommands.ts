@@ -40,6 +40,10 @@ import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcen
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
 import { raiseRoomHpZeroEffects } from './roomEncounterHpZeroTriggers.js'
+import {
+  actorIdsOutOfPlayByEffect,
+  flagRoomReturnsOntoOccupiedSpace
+} from './roomEncounterReturnsToPlay.js'
 import { raiseRoomStartOfTurnEffects } from './roomEncounterStartOfTurnTriggers.js'
 import { executeRoomEncounterContest } from './roomEncounterContest.js'
 import {
@@ -239,6 +243,7 @@ export async function executeRoomEncounterCommand(input: {
   const defeatedBefore = new Set(
     actorsBefore.flatMap((actor) => (actor.kind === 'CREATURE' && actor.defeated ? [actor.id] : []))
   )
+  const outOfPlayBefore = actorIdsOutOfPlayByEffect(actorsBefore)
   for (const characterId of characters) {
     if (inputs.characterIsCurrent(characterId, observed, transaction)) continue
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
@@ -368,15 +373,24 @@ export async function executeRoomEncounterCommand(input: {
           execute: executeAction
         })
       : false
-  const raisedRun =
-    raisedHpZeroEffects || raisedStartOfTurnEffects
-      ? await context.db
-          .query('encounterRuns')
-          .withIndex('by_publicId', (query) => query.eq('id', state.id))
-          .unique()
-      : null
-  if ((raisedHpZeroEffects || raisedStartOfTurnEffects) && !raisedRun)
-    throw new Error('Committed room Encounter is unavailable.')
+  const flaggedReturn =
+    currentRun.status === 'ACTIVE' &&
+    (await flagRoomReturnsOntoOccupiedSpace({
+      ctx: context,
+      transaction,
+      encounterId: currentRun.id,
+      userId,
+      occurredAt: new Date().toISOString(),
+      outOfPlayBefore
+    }))
+  const reprojected = raisedHpZeroEffects || raisedStartOfTurnEffects || flaggedReturn
+  const raisedRun = reprojected
+    ? await context.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (query) => query.eq('id', state.id))
+        .unique()
+    : null
+  if (reprojected && !raisedRun) throw new Error('Committed room Encounter is unavailable.')
   const presented = raisedRun
     ? { ...result, projection: await readEncounterGmProjection(context, readRunState(raisedRun)) }
     : result

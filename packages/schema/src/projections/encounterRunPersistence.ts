@@ -97,6 +97,19 @@ export const encounterConcentrationDroppedOutsideInputSchema = lazySchema(() =>
 )
 
 /**
+ * The stored input of a Run command the room writes when a command returned an actor to play onto a
+ * space another token holds (D184). Never sent by a client, so it stays outside the Encounter
+ * command union.
+ */
+export const encounterReturnedToPlayInputSchema = lazySchema(() =>
+  z.strictObject({
+    type: z.literal('RETURNED_TO_PLAY'),
+    commandId: postgresUuidSchema,
+    encounterId: postgresUuidSchema
+  })
+)
+
+/**
  * The stored input of a Run command the room writes when relationships end on their own (D152): a
  * source that can't act, or a held creature moved beyond the sealed reach. Never sent by a client,
  * so it stays outside the Encounter command union.
@@ -610,6 +623,13 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       commandType: z.literal('CONCENTRATION_DROPPED_OUTSIDE'),
       /** The GM-only notice: "<caster> dropped Concentration: <label> ends on <holders>". */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('RETURNED_TO_PLAY'),
+      /** The GM-only notice: "<actors> returned to play onto an occupied space: place them by hand". */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      /** `RETURN_SPACE_OCCUPIED`: the GM timeline badges it. No Scene token is moved (D184). */
+      ruleOverrides: encounterRuleWarningsDtoSchema
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('VOID_RULE_OCCURRENCE'),
