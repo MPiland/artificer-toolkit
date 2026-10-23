@@ -17,6 +17,7 @@ export const encounterRuleWarningCodeDtoSchema = lazySchema(() =>
     'TARGET_CREATURE_TYPE_EXCLUDED',
     'TARGET_DISPOSITION',
     'TARGET_INTELLIGENCE_EXCLUDED',
+    'TARGET_NOT_DEAD',
     'TARGET_NOT_DYING',
     'TARGET_NOTHING_TO_END',
     'TARGET_OUT_OF_RANGE',
