@@ -6,7 +6,9 @@ import {
   campaignSceneStateDtoSchema,
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
+  tabletopConditions,
   tabletopCurrentUserId,
   tabletopGmEncounter,
   tabletopLiveScene
@@ -72,15 +74,15 @@ const emberActor = {
       polarity: 'BENEFICIAL' as const
     }
   ],
-  conditions: [
-    { id: 'morale', kind: 'MORALE', label: 'Shaken' },
-    { id: 'injury', kind: 'INJURY', label: 'Lingering wound' },
-    { id: 'condition', kind: 'CONDITION', label: 'Restrained' },
-    { id: 'condition-2', kind: 'CONDITION', label: 'Blinded' },
-    { id: 'condition-3', kind: 'CONDITION', label: 'Deafened' },
-    { id: 'condition-4', kind: 'CONDITION', label: 'Grappled' },
-    { id: 'condition-5', kind: 'CONDITION', label: 'Prone' }
-  ],
+  conditions: tabletopConditions(
+    'FRIGHTENED',
+    'POISONED',
+    'RESTRAINED',
+    'BLINDED',
+    'DEAFENED',
+    'GRAPPLED',
+    'PRONE'
+  ),
   healthBand: 'CRITICAL' as const
 }
 const wardenActor = { ...tabletopGmEncounter.actors[1]!, defeated: true }
@@ -115,6 +117,7 @@ const tokenPresentations = buildVttTokenPresentations({
   ]),
   artUrls: { [scoutToken!.id]: artUrl },
   boundTokenControl: new Map(),
+  conditionTypes: srdSystemRecord.conditionTypes,
   currentUserId: tabletopCurrentUserId,
   encounter: presentationEncounter,
   pending: reactionPending({ actorId: emberActor.id, tokenId: emberToken!.id }),
@@ -358,6 +361,7 @@ const otherTokenReactionPresentations = buildVttTokenPresentations({
     [wardenToken!.id, wardenActor.id]
   ]),
   boundTokenControl: new Map(),
+  conditionTypes: srdSystemRecord.conditionTypes,
   currentUserId: tabletopCurrentUserId,
   encounter: presentationEncounter,
   pending: reactionPending({ actorId: wardenActor.id, tokenId: wardenToken!.id }),
@@ -417,6 +421,7 @@ const neutralScoutPresentations = buildVttTokenPresentations({
     [scoutToken!.id, neutralScoutActor().id]
   ]),
   boundTokenControl: new Map(),
+  conditionTypes: srdSystemRecord.conditionTypes,
   currentUserId: tabletopCurrentUserId,
   encounter: {
     ...presentationEncounter,
@@ -497,6 +502,7 @@ const neighbourPresentations = buildVttTokenPresentations({
     [wardenToken!.id, wardenActor.id]
   ]),
   boundTokenControl: new Map(),
+  conditionTypes: srdSystemRecord.conditionTypes,
   currentUserId: tabletopCurrentUserId,
   encounter: presentationEncounter,
   pending: null,

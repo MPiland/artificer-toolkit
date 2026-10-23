@@ -52,10 +52,12 @@ import { validated } from '../../../test/validatedFixture'
 import { reachByKeyboard } from './CampaignTabletop.stories.keyboard'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import {
   createTabletopCampaign,
   tabletopCampaignId,
+  tabletopConditions,
   tabletopCurrentUserId,
   tabletopGmEncounter,
   tabletopLiveScene,
@@ -339,6 +341,7 @@ function wardenPresentationFor(
   const presentation = buildVttTokenPresentations({
     actorIdByTokenId: new Map([[wardenToken.id, wardenId]]),
     boundTokenControl: new Map(),
+    conditionTypes: srdSystemRecord.conditionTypes,
     currentUserId: tabletopCurrentUserId,
     encounter,
     pending: null,
@@ -1023,10 +1026,7 @@ const defaultTabletopFixtures: TabletopFixtures = {
 }
 
 // VTT_UI-1 journey data: the Warden is in plain view, takes the current turn and carries conditions.
-const wardenConditions = [
-  { id: 'poisoned', kind: 'CONDITION', label: 'Poisoned' },
-  { id: 'frightened', kind: 'CONDITION', label: 'Frightened' }
-]
+const wardenConditions = tabletopConditions('POISONED', 'FRIGHTENED')
 const wardenId = tabletopGmEncounter.actors[1]!.id
 const presentedTokensFixtures: TabletopFixtures = {
   gmEncounter: {
@@ -1099,7 +1099,7 @@ const sentryFixtures: TabletopFixtures = {
       ...presentedTokensFixtures.gmEncounter.actors,
       {
         ...wardenActor,
-        conditions: [{ id: 'prone', kind: 'CONDITION', label: 'Prone' }],
+        conditions: tabletopConditions('PRONE'),
         id: '99999999-9999-4999-8999-999999999903',
         label: 'Vault Sentry'
       }
@@ -1256,6 +1256,10 @@ function renderWindow(
     queryFn: async () => ({ ...header, id: shownScene.sceneId, name: shownScene.sceneName })
   })
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
+  queryClient.setQueryData(
+    convexQuery(convexApi.content.systems.get, { id: campaign.gameSystemId }).queryKey,
+    srdSystemRecord
+  )
   queryClient.setQueryData(activeEncounterQuery.queryKey, {
     encounter,
     pending: fixtures.pending ?? null,

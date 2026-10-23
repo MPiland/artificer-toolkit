@@ -35,12 +35,7 @@ export async function reconcileRunActorDepartures(
       .withIndex('by_characterId', (q) => q.eq('characterId', actor.sourceId))
       .unique()
     if (!play) throw new Error('Character play record is missing.')
-    const { conditionTypes } = await ctx.ports.requireSystem(state.gameSystemId)
-    await freezeEncounterCharacterActor(
-      ctx,
-      actor,
-      await readCharacterPlayProjection(ctx, play, conditionTypes)
-    )
+    await freezeEncounterCharacterActor(ctx, actor, await readCharacterPlayProjection(ctx, play))
   }
   await removeRunActorControllers(ctx, state, departures.isDeparted)
 }

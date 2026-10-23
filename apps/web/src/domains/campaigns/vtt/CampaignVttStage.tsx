@@ -220,6 +220,11 @@ export function CampaignVttStage({
     select: encounterSessionStateDtoSchema.parse
   })
   const encounterSessionState = room ? room.state : storedSessionState.data
+  // Actor conditions arrive as type IDs; the System vocabulary names them.
+  const conditionTypes = useQuery({
+    ...convexQuery(convexApi.content.systems.get, { id: campaign.gameSystemId }),
+    select: (system) => system?.conditionTypes
+  }).data
   const {
     encounter: activeEncounter,
     currentActor,
@@ -676,6 +681,7 @@ export function CampaignVttStage({
             actorIdByTokenId,
             artUrls: tokenArtUrls,
             boundTokenControl,
+            conditionTypes,
             currentUserId: viewerUserId,
             encounter: activeEncounter,
             lootActorIds: liveLoot.lootActorIds,
@@ -688,6 +694,7 @@ export function CampaignVttStage({
       activeEncounter,
       actorIdByTokenId,
       boundTokenControl,
+      conditionTypes,
       liveLoot.lootActorIds,
       pendingOccurrence,
       renderedScene,

@@ -2,6 +2,7 @@ import {
   campaignDetailDtoSchema,
   type CampaignDetailDto
 } from '@artificer-toolkit/schema/api/campaignCore'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { getCampaignCapabilities } from '@artificer-toolkit/shared/campaign/capabilities'
 import type {
   EncounterGmProjectionDto,
@@ -347,4 +348,11 @@ export function createTabletopCampaign(role: 'OWNER' | 'PLAYER'): CampaignDetail
     updatedAt: '2026-08-15T18:00:00.000Z',
     version: 8
   })
+}
+
+/** Actor conditions holding the SRD condition types with these codes, as an Encounter projection carries them. */
+export function tabletopConditions(...codes: string[]) {
+  return codes.map((code) => ({
+    conditionTypeId: srdSystemRecord.conditionTypes.find((type) => type.code === code)!.id
+  }))
 }

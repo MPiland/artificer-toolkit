@@ -111,6 +111,19 @@ export const encounterActorControllerUserIdsDtoSchema = lazySchema(() =>
  */
 export const encounterActorRevealDtoSchema = lazySchema(() => z.enum(['UNNAMED', 'NAMED']))
 
+/**
+ * A condition an actor holds, by its System condition type ID alone: web names it from the System
+ * vocabulary (ADR 0039), so the projection never reads the System document. `innate` marks a
+ * condition part of the Creature, not removable.
+ */
+const encounterActorConditionDtoSchema = lazySchema(() =>
+  z.object({
+    conditionTypeId: uuidSchema,
+    notes: z.optional(z.string()),
+    innate: z.optional(z.literal(true))
+  })
+)
+
 const encounterActorBaseDtoSchema = lazySchema(() =>
   z.strictObject({
     id: uuidSchema,
@@ -124,7 +137,7 @@ const encounterActorBaseDtoSchema = lazySchema(() =>
     disposition: encounterActorDispositionDtoSchema,
     initiative: z.nullable(z.number().check(z.int())),
     manualOrder: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-    conditions: jsonSchema,
+    conditions: z.array(encounterActorConditionDtoSchema),
     /** Active grants with their source and time left; a hidden source's label is null for players (D99). */
     activeGrants: z._default(z.array(activeGrantListingDtoSchema), []),
     /**
