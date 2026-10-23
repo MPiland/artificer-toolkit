@@ -553,7 +553,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Containment:** swallow and engulf (Purple Worm, Tarrasque, Gelatinous Cube).
 - **Auto-hit and reel tails:** Marilith, Roper.
 - **Creature forms beyond Wild Shape:** Change Shape, lycanthrope and vampire shapes, Misty Escape.
-- **Extra reactions and reaction denial; terrain and underwater predicates; deferred Death Throes; spell negation and storing; partner-bound grants; attackable body parts (Hydra heads, Roper tendrils) and damage-triggered splitting (Black Pudding, Ochre Jelly).**
+- **Extra reactions and reaction denial; terrain and underwater predicates; deferred Death Throes; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts (Hydra heads, Roper tendrils) and damage-triggered splitting (Black Pudding, Ochre Jelly).**
 - **Rare class senses and riders:** Blindsense, Feral Senses, Witch Sight, Retaliation, and the One with Shadows light gate.
 
 ## Other future enhancements (parked)

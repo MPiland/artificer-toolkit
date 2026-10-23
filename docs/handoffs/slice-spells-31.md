@@ -398,6 +398,8 @@ Design B (ruled): no rest hook, no planner, no schema relaxation.
 
 ### T5o2 seam notes (Thief's Reflexes, `CLASS_THIEF_THIEFS_REFLEXES`; size 3, depends on T5o)
 
+> **Superseded by D187a (2026-10-23).** Thief's Reflexes shipped as a passive MANUAL_ADJUDICATION GM ruling and `CLASS_THIEF_THIEFS_REFLEXES` is deleted. The EXTRA_TURN engine piece is not built; it is listed in future-enhancements (Deferred rules pieces). The notes below describe that deferred piece.
+
 Thief's Reflexes (thief.ts:130): in the first round of each combat the thief takes two turns, the second at initiative minus 10. Nothing of it is built in T5o.
 
 - **Trigger:** reuse `TRIGGER.ROLL_INITIATIVE` (T5o) as a PASSIVE effect with `PATH_CODE.PASSIVE`; the new outcome is `EXTRA_TURN { initiativeOffset: -10, round: 1 }` (names to be ruled). Do not add a second trigger.
