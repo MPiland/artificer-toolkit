@@ -1,6 +1,7 @@
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import type { EncounterCharacterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import { damageMirrorMechanicsBatch } from '@artificer-toolkit/rules-runtime/encounterDamageMirror'
+import { liveSessionEncounterRulesInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import { damageMirrorLedger } from './roomDamageMirrorCollector.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
@@ -78,7 +79,8 @@ export async function settleDamageMirrors(input: {
     const captures = roomLiveCaptureReads({ ctx, store, transaction, inputs, observed })
     const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
       state: runState,
-      capture: captures.encounterRules
+      capture: (request) =>
+        captures.encounterRules(liveSessionEncounterRulesInputSchema.parse({ ...scope, request }))
     })
     const actor = actors.find(({ id }) => id === sourceActorId)
     if (!actor) continue

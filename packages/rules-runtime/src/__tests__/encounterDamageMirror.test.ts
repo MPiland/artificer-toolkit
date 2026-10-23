@@ -64,7 +64,7 @@ describe('held damage mirrors (SPELLS-4.T2n4)', () => {
       damage(PIERCING, 4),
       damage(FIRE, 0),
       damage(FIRE, 3, true),
-      { kind: 'HEALING' } as ReceiptApplications[number]
+      { kind: 'HEAL', amount: 2 } as unknown as ReceiptApplications[number]
     ]
     expect(pendingDamageMirrors({ holderActorId: HOLDER_ID, mirrors, applications })).toEqual([
       { ...mirrors[0], damageTypeId: PIERCING, amount: 4 }
