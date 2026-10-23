@@ -469,9 +469,10 @@ export async function readTurnMovementView(
   const controlled = await readEncounterControlledActorIds(ctx, { ...input, actors: runActors })
   const actors = runActors.filter((actor) => controlled.has(actor.id))
   const records = await readTurnMovementByActorId(ctx, state)
-  const speedDefinitions = actors.some((actor) => actor.kind !== 'CUSTOM')
-    ? (await ctx.ports.requireSystem(input.campaign.gameSystemId)).speeds
-    : []
+  const system = actors.some((actor) => actor.kind !== 'CUSTOM')
+    ? await ctx.ports.requireSystem(input.campaign.gameSystemId)
+    : null
+  const speedDefinitions = system?.speeds ?? []
   const withGrants = async (actor: (typeof actors)[number], actorSpeeds: readonly unknown[]) =>
     resolveSpeedsFeet(
       withActiveGrantSpeeds(
@@ -549,6 +550,7 @@ export async function readTurnMovementView(
                 {
                   speedId,
                   code: definition.code,
+                  isDefault: speedId === system?.defaults?.movementTypeId,
                   label: definition.label,
                   budget:
                     encounterConditionSpeed({ mechanics, speed: feet }) *

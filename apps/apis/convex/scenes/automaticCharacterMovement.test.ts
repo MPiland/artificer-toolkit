@@ -200,7 +200,9 @@ it("shows a player their own actor's turn movement against its Character walking
     actorId: moverId,
     used: 5,
     speedId: walk.id,
-    allowances: [{ speedId: walk.id, code: 'WALK', label: walk.label, budget: walkingSpeed }],
+    allowances: [
+      { speedId: walk.id, code: 'WALK', isDefault: true, label: walk.label, budget: walkingSpeed }
+    ],
     teleport: [],
     fleeSourceActorIds: []
   }
