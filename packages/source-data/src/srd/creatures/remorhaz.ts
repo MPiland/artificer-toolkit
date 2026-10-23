@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 export const remorhaz: CreatureAuthored = {
   id: S.CREATURE_IDS.REMORHAZ,
@@ -191,26 +192,40 @@ export const remorhaz: CreatureAuthored = {
       description:
         "Swallow. The remorhaz makes one bite attack against a Medium or smaller creature it is grappling. If the attack hits, that creature takes the bite's damage and is swallowed, and the grapple ends. While swallowed, the creature is blinded and restrained, it has total cover against attacks and other effects outside the remorhaz, and it takes 21 (6d6) acid damage at the start of each of the remorhaz's turns. If the remorhaz takes 30 damage or more on a single turn from a creature inside it, the remorhaz must succeed on a DC 15 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, which fall prone in a space within 10 feet of the remorhaz. If the remorhaz dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 15 feet of movement, exiting prone.",
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(235, 502),
+          order: 1,
           invocation: {
-            kind: 'ACTION',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
+            kind: 'ACTION' as const,
+            triggerCode: S.TRIGGER.ACTIVATED,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(235, 602),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
+            range: { id: S.actionId(235, 602), rangeKind: S.RANGE_KIND.SPECIAL }
           },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_REMORHAZ_SWALLOW
-        })
+          paths: [
+            {
+              id: S.actionId(235, 702),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(235, 702) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  {
+                    id: S.actionId(235, 702),
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Resolve the swallow',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      "The remorhaz makes one bite attack against a Medium or smaller creature it is grappling. If the attack hits, that creature takes the bite's damage and is swallowed, and the grapple ends. While swallowed, the creature is blinded and restrained, has total cover against attacks and other effects outside the remorhaz, and takes 21 (6d6) acid damage at the start of each of the remorhaz's turns. If the remorhaz takes 30 damage or more on a single turn from a creature inside it, the remorhaz must succeed on a DC 15 Constitution saving throw at the end of that turn or regurgitate all swallowed creatures, which fall prone in a space within 10 feet of the remorhaz. If the remorhaz dies, a swallowed creature is no longer restrained by it and can escape from the corpse using 15 feet of movement, exiting prone."
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 3
     }

@@ -552,7 +552,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-0005-0070-00b300000000', [['1d4+2', 'BLUDGEONING']]], // Kobold: Sling
   ['00000000-0002-0001-0070-232900000000', [['3d6+10', 'BLUDGEONING']]], // Kraken: Tentacle
   ['00000000-0002-0005-0070-232900000000', [['3d8+10', 'PIERCING']]], // Kraken: Bite
-  ['00000000-0002-01f9-0070-00b400000000', []], // Kraken: Bite (a sibling Effect deals the hit damage)
   ['00000000-0002-01f6-0070-00b500000000', [['2d10+3', 'SLASHING']]], // Lamia: Claws
   ['00000000-0002-01f7-0070-00b500000000', [['1d4+3', 'PIERCING']]], // Lamia: Dagger
   ['00000000-0002-01f8-0070-00b500000000', []], // Lamia: Intoxicating Touch (prints no hit damage)
@@ -724,7 +723,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
       ['3d6', 'FIRE']
     ]
   ], // Remorhaz: Bite
-  ['00000000-0002-01f6-0070-00eb00000000', []], // Remorhaz: Swallow (prints no hit damage)
   ['00000000-0002-0001-0070-00ec00000000', [['2d8+5', 'BLUDGEONING']]], // Rhinoceros: Gore
   ['00000000-0002-0001-0070-00ed00000000', [['2d4+3', 'BLUDGEONING']]], // Riding Horse: Hooves
   ['00000000-0002-0004-0070-00ee00000000', [['4d8+9', 'PIERCING']]], // Roc: Beak
@@ -820,7 +818,6 @@ export const SRD_CREATURE_ATTACK_DAMAGE: ReadonlyMap<
   ['00000000-0002-00d1-0070-010c00000000', [['4d8+10', 'SLASHING']]], // Tarrasque: Claw
   ['00000000-0002-00d6-0070-010c00000000', [['4d10+10', 'PIERCING']]], // Tarrasque: Horns
   ['00000000-0002-00db-0070-010c00000000', [['4d6+10', 'BLUDGEONING']]], // Tarrasque: Tail
-  ['00000000-0002-00e4-0070-010c00000000', []], // Tarrasque: Swallow (prints no hit damage)
   ['00000000-0002-00cc-0070-010d00000000', [['1d6+2', 'BLUDGEONING']]], // Thug: Mace
   ['00000000-0002-00d1-0070-010d00000000', [['1d10', 'PIERCING']]], // Thug: Heavy Crossbow
   ['00000000-0002-0001-0070-010e00000000', [['1d10+3', 'PIERCING']]], // Tiger: Bite
