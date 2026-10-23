@@ -1871,7 +1871,7 @@ export const warlock: ClassAuthored = {
           label: 'Witch Sight',
           description:
             'You can see the true form of any shapechanger or creature concealed by illusion or transmutation magic while the creature is within 30 feet of you and within line of sight.',
-          // Passive sense — description-only.
+          // Passive sense — description-only (GM ruling, D187a).
           // Requires warlock level 15
           restrictions: {
             id: classRowId(W, 6, 68),
@@ -1900,26 +1900,6 @@ export const warlock: ClassAuthored = {
               }
             ]
           },
-          effects: [
-            closedRuleEffect({
-              id: classRowId(W, 0x60, 22),
-              ruleKind: CLOSED_RULE_KIND.CLASS_WARLOCK_WITCH_SIGHT,
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.ACTIVATED,
-                range: {
-                  id: classRowId(W, 0x69, 22),
-                  rangeKind: RANGE_KIND.DISTANCE,
-                  amount: 30,
-                  unit: MEASUREMENT_UNIT_CODE.FEET
-                },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-                  dispositionKind: TARGET_DISPOSITION_KIND.ANY
-                }
-              }
-            })
-          ],
           order: 28
         }
       ]

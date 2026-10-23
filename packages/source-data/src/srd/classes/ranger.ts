@@ -12,7 +12,6 @@ import {
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
-  MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
@@ -972,86 +971,6 @@ export const ranger: ClassAuthored = {
       label: 'Feral Senses',
       description:
         "At 18th level, you gain preternatural senses that help you fight creatures you can't see. When you attack a creature you can't see, your inability to see it doesn't impose disadvantage on your attack rolls against it.\n\nYou are also aware of the location of any invisible creature within 30 feet of you, provided that the creature isn't hidden from you and you aren't blinded or deafened.",
-      effects: [
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 19),
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(RA, 0x69, 19), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x89),
-          order: 2,
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: classRowId(RA, 0x69, 0x89), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x8a),
-          order: 3,
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
-            range: { id: classRowId(RA, 0x69, 0x8a), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x8c),
-          order: 4,
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
-            range: { id: classRowId(RA, 0x69, 0x8c), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(RA, 0x60, 0x85),
-          order: 5,
-          ruleKind: CLOSED_RULE_KIND.CLASS_RANGER_FERAL_SENSES,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: {
-              id: classRowId(RA, 0x69, 0x85),
-              rangeKind: RANGE_KIND.DISTANCE,
-              amount: 30,
-              unit: MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: TARGET_DISPOSITION_KIND.ANY
-            }
-          }
-        })
-      ],
       availableAtLevel: 18,
       order: 19
     },

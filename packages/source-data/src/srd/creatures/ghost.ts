@@ -260,8 +260,11 @@ export const ghost: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(111, 215),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_GHOST_POSSESSION_RECHARGE_6
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Resolve the possession',
+                    reasonCode: 'GM_CHOICE',
+                    instructions:
+                      "The ghost disappears and controls the target's body until the body drops to 0 hit points, the ghost ends it as a bonus action, or the ghost is turned or forced out. When the possession ends, the ghost reappears in an unoccupied space within 5 feet of the body. The target is immune to this ghost's Possession for 24 hours after succeeding on the save or after the possession ends."
                   }
                 ]
               }
