@@ -1172,6 +1172,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Split:** T2lb2b1 (size 5) ships the substrate on an authored homebrew spell with a room journey; T2lb2b2 (size 2) converts Eyebite Asleep. T2j2c waits on T2lb2b1, T2l2 on T2lb2b2.
   - **Rejected:** a new already-saved list on the effect lifecycle (duplicates SOURCE_IMMUNITY).
 
+* **D187** (2026-10-23) Scope freeze and the rare-rider default. User decision.
+  - **Baseline:** the open work is frozen at total open size 464 (ledger at 2026-10-23T04:00Z). No new feature, PBI or acceptance criterion is registered without the user's explicit approval. A split may redistribute a task's size but not grow it. Any growth, including a resize, a widened task or a new follow-up task, is proposed to the user, and the default until the user says otherwise is not to do it.
+  - **Rare riders:** a spell or feature rider that existing core options cannot express, and that is rare in play, ships description-only: its text shows and the GM adjudicates it, as the D181 death-save clause does. The missing engine piece goes to the future-enhancements list. The default applies unless the rider is common in play or an acceptance criterion explicitly requires it automated; either exception goes to the user.
+  - **Audit:** the remaining SPELLS-4 conversions get one verdict each (fits existing core options, needs a named new piece, or description-only), and the open tasks are re-planned against the baseline.
+  - **Exceptions to the freeze:** bugs, CI flakes and safety fixes found during approved work are not scope and may be registered; they are reported to the user.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
