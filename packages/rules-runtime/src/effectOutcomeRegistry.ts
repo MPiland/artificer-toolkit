@@ -11,7 +11,7 @@ type Bindings = Readonly<Record<string, RuleInputBinding>>
  * A state the target must be in for an outcome to do anything (D173 Q1): a target that fails it raises
  * the shared overridable warning at admission, before any roll.
  */
-export type EffectOutcomeTargetPrecondition = 'DYING'
+export type EffectOutcomeTargetPrecondition = 'DYING' | 'DEAD'
 
 /**
  * One outcome kind's proposal (ADR 0039 decision 1). Every phase that proposes the outcome (no test,
