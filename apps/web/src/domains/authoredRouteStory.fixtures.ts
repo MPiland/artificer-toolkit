@@ -170,6 +170,11 @@ export const authoredRouteStorySystem = {
   skills: [],
   speeds: authoredStorySpeeds,
   terrains: [],
+  defaults: {
+    damageTypeId: '00000000-0000-0000-0004-000400000000',
+    conditionTypeId: '00000000-0000-0000-0002-000b00000000',
+    movementTypeId: authoredStoryWalkingSpeedId
+  },
   userId: seedStoryUserId
 } satisfies NonNullable<SystemResponseDto>
 

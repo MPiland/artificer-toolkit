@@ -11,7 +11,7 @@ const systemVocabularyFields = lazySchemaParts(() => ({
   rulesetVersion: z.string(),
   alignments: z.array(vocabularyDtoSchema),
   challengeRatings: z.array(systemChallengeRatingDtoSchema),
-  conditionTypes: z.array(vocabularyDtoSchema),
+  conditionTypes: z.array(systemConditionTypeDtoSchema),
   creatureTypes: z.array(vocabularyDtoSchema),
   currencies: z.array(systemCurrencyDtoSchema),
   damageTypes: z.array(vocabularyDtoSchema),
@@ -34,6 +34,20 @@ const systemChallengeRatingDtoSchema = lazySchema(() =>
     xp: z.number().check(z.int()).check(z.gte(0)),
     proficiencyBonus: z.number().check(z.int()).check(z.gte(0)),
     rank: z.number().check(z.int()).check(z.gte(0))
+  })
+)
+
+/** A System condition. `levelled` marks a condition tracked as a level, not added or removed as a flag. */
+const systemConditionTypeDtoSchema = lazySchema(() =>
+  z.extend(vocabularyDtoSchema, { levelled: z.optional(z.boolean()) })
+)
+
+/** The definition IDs authoring and the Sheet fall back to when the user has not chosen one. */
+const systemDefaultsDtoSchema = lazySchema(() =>
+  z.strictObject({
+    damageTypeId: z.string(),
+    conditionTypeId: z.string(),
+    movementTypeId: z.string()
   })
 )
 
@@ -97,10 +111,28 @@ export const systemAuthoredDtoSchema = lazySchema(() =>
       abilities: z.array(abilityVocabularyDtoSchema).check(z.maxLength(500)),
       skills: z.array(systemCheckDefinitionDtoSchema),
       passives: z.array(systemPassiveDefinitionDtoSchema),
-      initiativePolicy: z.optional(systemInitiativePolicyDtoSchema)
+      initiativePolicy: z.optional(systemInitiativePolicyDtoSchema),
+      defaults: z.optional(systemDefaultsDtoSchema)
     })
     .check(
       z.superRefine((document, context) => {
+        const { defaults } = document
+        if (defaults) {
+          const lists = [
+            ['damageTypeId', document.damageTypes],
+            ['conditionTypeId', document.conditionTypes],
+            ['movementTypeId', document.speeds]
+          ] as const
+          for (const [key, list] of lists) {
+            if (!list.some((entry) => entry.id === defaults[key])) {
+              context.addIssue({
+                code: 'custom',
+                path: ['defaults', key],
+                message: 'System defaults must reference a definition in the same System document.'
+              })
+            }
+          }
+        }
         const abilityIds = new Set<string>()
         const abilityCodes = new Set<string>()
         for (const [index, ability] of document.abilities.entries()) {

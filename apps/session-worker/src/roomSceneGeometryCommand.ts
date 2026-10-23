@@ -269,7 +269,8 @@ export async function executeRoomSceneGeometry(input: {
     campaignId,
     epoch,
     observed,
-    characterIds
+    characterIds,
+    mirrorSettlement: { userId, random: input.random }
   })
   let settled = false
   const settle = async () => {

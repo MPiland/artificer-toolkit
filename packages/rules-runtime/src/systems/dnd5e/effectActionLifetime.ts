@@ -44,9 +44,10 @@ export function maintenancePlan(
   }
 }
 
-/** The end triggers a timed modifier grant carries: its source's incapacitation, or its holder attacking or casting at an enemy (Sanctuary). */
+/** The end triggers a timed modifier grant carries: its source's incapacitation, its holder's separation from the source (Warding Bond), or its holder attacking or casting at an enemy (Sanctuary). */
 export const GRANT_END_TRIGGER_EVENTS: ReadonlySet<string> = new Set([
   'INCAPACITATED',
+  'SEPARATED',
   'ATTACK_ROLL',
   'SPELL_CAST'
 ])

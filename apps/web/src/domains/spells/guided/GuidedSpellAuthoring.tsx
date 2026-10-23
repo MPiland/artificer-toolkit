@@ -71,11 +71,8 @@ export const GuidedSpellAuthoring = withForm({
 
     const applyIntent = (intent: GuidedSpellIntent) => {
       const nextDraft = createGuidedSpellDraft(intent, {
-        damageTypeId:
-          system.damageTypes.find((item) => item.code === 'FIRE')?.id ?? system.damageTypes[0]?.id,
-        conditionTypeId:
-          system.conditionTypes.find((item) => item.code === 'POISONED')?.id ??
-          system.conditionTypes[0]?.id
+        damageTypeId: system.defaults?.damageTypeId ?? system.damageTypes[0]?.id,
+        conditionTypeId: system.defaults?.conditionTypeId ?? system.conditionTypes[0]?.id
       })
       const nextEffectIds = createGuidedEffectIds()
       const nextEffect = mapGuidedSpellEffect(nextDraft, createDefaultEffect(1), nextEffectIds)

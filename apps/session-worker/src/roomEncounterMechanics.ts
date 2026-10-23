@@ -22,6 +22,7 @@ import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/li
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
 import type { RoomInputs } from './roomInputs.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
+import { collectDamageMirrors } from './roomDamageMirrorCollector.js'
 
 /** Applies the existing mechanics plan and receipts inside the admitted room command transaction. */
 export async function applyRoomEncounterMechanicsBatch(input: {
@@ -125,5 +126,17 @@ export async function applyRoomEncounterMechanicsBatch(input: {
     userId: read.userId,
     characterFacts
   })
-  return persistEncounterMechanicsBatchPlan(ctx, target, { actor: read.actor, character, plan })
+  const result = await persistEncounterMechanicsBatchPlan(ctx, target, {
+    actor: read.actor,
+    character,
+    plan
+  })
+  collectDamageMirrors(transaction, {
+    holderActorId: read.actor.id,
+    heldEffects,
+    occurrenceId: batch.occurrenceId,
+    rootCommandId: batch.sourceCommandId,
+    receiptApplications: result.receiptApplications
+  })
+  return result
 }

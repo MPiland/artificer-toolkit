@@ -790,6 +790,7 @@ const buildModifierGrantVariants = () =>
       emptyDomainDtoSchema,
       damageInterceptionPayloadDtoSchema
     ),
+    buildModifierGrantVariant('DAMAGE_MIRROR', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant(
       'INCOMING_ATTACK_GATE',
       'ENABLE',
