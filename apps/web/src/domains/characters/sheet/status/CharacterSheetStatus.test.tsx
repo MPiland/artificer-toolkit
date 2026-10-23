@@ -57,6 +57,26 @@ describe('Character Sheet status', () => {
     })
   })
 
+  it('does not offer a levelled condition in the add-condition list', async () => {
+    const user = userEvent.setup()
+    const sheet = createSheet()
+    sheet.reference.conditionOptions.push({
+      id: 'condition-weariness',
+      code: 'WEARINESS',
+      label: 'Weariness',
+      levelled: true
+    })
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewStatusStrip pending={false} sheet={sheet} submitCommand={vi.fn()} />
+    )
+
+    await user.click(screen.getByRole('button', { name: /add condition/i }))
+    await user.click(await screen.findByPlaceholderText(/add condition/i))
+    expect(await screen.findByText(/poisoned/i)).toBeInTheDocument()
+    expect(screen.queryByText(/weariness/i)).not.toBeInTheDocument()
+  })
+
   it('keeps condition drafts when saving fails', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn().mockResolvedValue(false)

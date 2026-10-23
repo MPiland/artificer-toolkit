@@ -2,6 +2,7 @@ import {
   characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { lesserRestoration } from '@artificer-toolkit/source-data/srd/spells/lesser-restoration.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -143,5 +144,68 @@ describe('Lesser Restoration cast in the room (SPELLS-4.T2f)', () => {
     })
     expect(overridden.type, JSON.stringify(overridden)).toBe('COMMAND_COMMITTED')
     expect(await heldState(room)).toEqual(before)
+  })
+})
+
+/**
+ * SPELLS-4.T2f1a (D182): a Dispel-style spell is one END_EFFECTS outcome with a spell-level
+ * selector and no check; it ends every held effect cast at or below the slot it was cast at.
+ */
+describe('a spell-level END_EFFECTS spell cast in the room (SPELLS-4.T2f1a)', () => {
+  const dispelStyle = structuredClone(lesserRestoration)
+  const outcome = dispelStyle.effects?.[0]?.paths[0]
+  if (outcome?.selectionKind !== 'FIXED') throw new Error('Expected a fixed path.')
+  outcome.resultBlock.outcomes = [
+    {
+      id: outcome.resultBlock.outcomes[0]!.id,
+      effectKind: 'END_EFFECTS' as const,
+      scope: 'ALL' as const,
+      selectors: [{ kind: 'SPELL_LEVEL' as const, limit: 'SLOT_LEVEL' as const }]
+    }
+  ]
+
+  it('ends the effects at or below the cast level and leaves a higher one, with no roll', async () => {
+    const room = await actionRoom({
+      actors: [
+        characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+      ],
+      characterSpellcasting: { spells: [dispelStyle], prepared: [dispelStyle.id] },
+      characterAction: (action) => action.label.startsWith('Lesser Restoration'),
+      seed: async (context) => {
+        for (const spellCastLevel of [1, 2, 4])
+          await seedModifierGrant({
+            sourceActorId: WOLF_ID,
+            holderActorId: WOLF_ID,
+            lifecycle: {},
+            spellCastLevel
+          })(context)
+      }
+    })
+    const before = await readRoomHistory(room.room.base.stub)
+    const levels = (history: typeof before) =>
+      history.activeEffects
+        .map(
+          ({ definitionJson }) =>
+            activeRuleEffectDefinitionDtoSchema.parse(JSON.parse(definitionJson)).originLevel
+        )
+        .sort()
+    expect(levels(before)).toEqual([1, 2, 4])
+
+    const answer = await room.send({
+      type: 'RESOLVE_ACTION',
+      acceptedWieldConflict: null,
+      acknowledgedWarnings: OTHER_RANGE,
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId: CASTER_ACTOR_ID,
+      target: { kind: 'ACTOR', actorId: WOLF_ID },
+      actionId: room.actionId,
+      optionalCombatIntent: null,
+      sceneContext: null
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(levels(await readRoomHistory(room.room.base.stub))).toEqual([4])
   })
 })

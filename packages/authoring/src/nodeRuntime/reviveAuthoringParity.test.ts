@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { reviveDtoSchema } from '@artificer-toolkit/schema/effects/revive'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { raiseDead } from '@artificer-toolkit/source-data/srd/spells/raise-dead.js'
+import { resurrection } from '@artificer-toolkit/source-data/srd/spells/resurrection.js'
 import { revivify } from '@artificer-toolkit/source-data/srd/spells/revivify.js'
+import { trueResurrection } from '@artificer-toolkit/source-data/srd/spells/true-resurrection.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -34,6 +37,21 @@ describe('a homebrew REVIVE outcome through the effect node map (SPELLS-4.T2g1, 
   ])('keeps %s exactly as authored', async (_label, revive) => {
     const authored = withRevive(revive)
     const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+  })
+
+  it.each([
+    ['Revivify', revivify],
+    ['Raise Dead', raiseDead],
+    ['Resurrection', resurrection],
+    ['True Resurrection', trueResurrection]
+  ])('keeps the authored %s effects exactly as authored', async (_label, spell) => {
+    const authored = {
+      ...structuredClone(caltropsBagOf20),
+      effects: structuredClone(spell.effects)
+    }
+    const result = await normalize(authored as ReturnType<typeof withRevive>)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })

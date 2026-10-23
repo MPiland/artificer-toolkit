@@ -69,6 +69,29 @@ describe('SRD System record facts', () => {
     ).toBe(false)
   })
 
+  it('names the default damage type, condition and movement type by definition ID', () => {
+    expect(system.defaults).toEqual({
+      damageTypeId: byCode(system.damageTypes, 'FIRE')?.id,
+      conditionTypeId: byCode(system.conditionTypes, 'POISONED')?.id,
+      movementTypeId: byCode(system.speeds, 'WALK')?.id
+    })
+  })
+
+  it('marks Exhaustion as the only levelled condition', () => {
+    expect(
+      system.conditionTypes.filter(({ levelled }) => levelled).map(({ code }) => code)
+    ).toEqual(['EXHAUSTION'])
+  })
+
+  it('rejects a default naming a definition outside the System', () => {
+    expect(
+      systemAuthoredDtoSchema.safeParse({
+        ...srdSystemRecord,
+        defaults: { ...srdSystemRecord.defaults, damageTypeId: 'not-a-damage-type' }
+      }).success
+    ).toBe(false)
+  })
+
   it('rejects a passive naming an ability outside the System', () => {
     const [first, ...rest] = srdSystemRecord.passives
     expect(

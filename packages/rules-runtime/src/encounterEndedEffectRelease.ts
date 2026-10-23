@@ -276,12 +276,10 @@ export function actionUsedOnHolderEndedEffects(input: {
   }
 }
 
-type EndEffectsSelectors = readonly {
-  kind: 'CONDITION'
-  conditionIds: readonly string[]
-  /** Only effects whose origin creature is of one of these types; absent matches every origin. */
-  originCreatureTypeIds?: readonly string[]
-}[]
+type EndEffectsSelectors = readonly (
+  | { kind: 'CONDITION'; conditionIds: readonly string[] }
+  | { kind: 'SPELL_LEVEL'; limit: 'SLOT_LEVEL' | 'FIXED'; level?: number }
+)[]
 
 /** The creature type of each Encounter actor that has one, by actor id. */
 export type ActorCreatureTypeIds = ReadonlyMap<string, string>
@@ -297,32 +295,48 @@ export function actorCreatureTypeIdsOf(
   )
 }
 
+/** What the ending action brings to a selector match, beside the selectors themselves. */
+type EndEffectsContext = {
+  /** The level the ending action is cast at, which a `SLOT_LEVEL` selector reads. */
+  castLevel: number | null
+  actorCreatureTypeIds: ActorCreatureTypeIds
+  /** Only effects whose origin creature is of one of these types; absent matches every origin. */
+  originCreatureTypeIds?: readonly string[]
+}
+
 /**
- * The held effects an END_EFFECTS outcome could end: those owning a condition a selector names,
- * from an origin creature of the selector's types when it names any.
+ * The held effects an END_EFFECTS outcome could end: those owning a condition a selector names, or
+ * made by a spell cast at or below a level a selector admits, from an origin creature of the
+ * outcome's types when it names any. `castLevel` is the level the ending action is cast at, which a
+ * `SLOT_LEVEL` limit reads (null when it is no cast, so it admits nothing). An effect made by no
+ * spell (null `originLevel`) never matches a spell-level selector.
  */
 export function endEffectsCandidates(
   held: readonly ActiveRuleEffectRecord[],
   selectors: EndEffectsSelectors,
-  actorCreatureTypeIds: ActorCreatureTypeIds
+  context: EndEffectsContext
 ) {
-  return held.filter(({ definition }) =>
-    selectors.some((selector) => {
-      const originTypeId =
-        definition.origin.kind === 'ENCOUNTER' && definition.origin.sourceActorId !== null
-          ? actorCreatureTypeIds.get(definition.origin.sourceActorId)
-          : undefined
-      return (
-        (selector.originCreatureTypeIds === undefined ||
-          (originTypeId !== undefined && selector.originCreatureTypeIds.includes(originTypeId))) &&
-        definition.stateContributions.some(
+  return held.filter(({ definition }) => {
+    const originTypeId =
+      definition.origin.kind === 'ENCOUNTER' && definition.origin.sourceActorId !== null
+        ? context.actorCreatureTypeIds.get(definition.origin.sourceActorId)
+        : undefined
+    if (
+      context.originCreatureTypeIds !== undefined &&
+      (originTypeId === undefined || !context.originCreatureTypeIds.includes(originTypeId))
+    )
+      return false
+    return selectors.some((selector) => {
+      if (selector.kind === 'CONDITION')
+        return definition.stateContributions.some(
           (contribution) =>
             contribution.kind === 'CONDITION_OWNERSHIP' &&
             selector.conditionIds.includes(contribution.conditionId)
         )
-      )
+      const limit = selector.limit === 'SLOT_LEVEL' ? context.castLevel : (selector.level ?? null)
+      return limit !== null && definition.originLevel !== null && definition.originLevel <= limit
     })
-  )
+  })
 }
 
 /**
@@ -349,47 +363,53 @@ export function offerEndEffects(input: {
   endEffects:
     | {
         scope: 'ALL' | 'ONE_CHOSEN'
-        conditionIds: readonly string[]
+        selectors: EndEffectsSelectors
         originCreatureTypeIds?: readonly string[]
       }
     | undefined
   held: readonly ActiveRuleEffectRecord[]
   actorCreatureTypeIds: ActorCreatureTypeIds
   chosenEffectId: string | undefined
+  castLevel: number | null
 }) {
-  const selectors: EndEffectsSelectors = [
-    {
-      kind: 'CONDITION',
-      conditionIds: input.endEffects?.conditionIds ?? [],
-      originCreatureTypeIds: input.endEffects?.originCreatureTypeIds
-    }
-  ]
+  const selectors: EndEffectsSelectors = input.endEffects?.selectors ?? []
   const candidates = input.endEffects
-    ? endEffectsCandidates(input.held, selectors, input.actorCreatureTypeIds)
+    ? endEffectsCandidates(input.held, selectors, {
+        castLevel: input.castLevel,
+        actorCreatureTypeIds: input.actorCreatureTypeIds,
+        originCreatureTypeIds: input.endEffects.originCreatureTypeIds
+      })
     : []
   const pick =
     input.endEffects?.scope === 'ONE_CHOSEN'
       ? endEffectsChoice(candidates, input.chosenEffectId)
       : null
-  return { selectors, candidates, pick }
+  return { selectors, candidates, pick, castLevel: input.castLevel }
 }
 
 /**
- * What an authored END_EFFECTS outcome ends on its target: the held effects owning a condition a
- * selector names (all of them, or only the chosen one), the effects linked to those (D172), and
- * the conditions only they held. The holder's own mechanics batch applies the releases in the same
- * transaction as the effects' deletion.
+ * What an authored END_EFFECTS outcome ends on its target: the held effects a selector matches
+ * (all of them, or only the chosen one), the effects linked to those (D172), and the conditions
+ * only they held. The holder's own mechanics batch applies the releases in the same transaction as
+ * the effects' deletion.
  */
 export function selectedEndedEffects(input: {
   holderActorId: string
   held: readonly ActiveRuleEffectRecord[]
   selectors: EndEffectsSelectors
+  /** The level the ending action is cast at, which a `SLOT_LEVEL` selector reads. */
+  castLevel: number | null
   actorCreatureTypeIds: ActorCreatureTypeIds
+  originCreatureTypeIds?: readonly string[]
   scope: 'ALL' | 'ONE_CHOSEN'
   /** The effect the cast picked; only `ONE_CHOSEN` reads it. */
   chosenEffectId?: string
 }) {
-  const matching = endEffectsCandidates(input.held, input.selectors, input.actorCreatureTypeIds)
+  const matching = endEffectsCandidates(input.held, input.selectors, {
+    castLevel: input.castLevel,
+    actorCreatureTypeIds: input.actorCreatureTypeIds,
+    originCreatureTypeIds: input.originCreatureTypeIds
+  })
   const selected =
     input.scope === 'ALL' ? matching : matching.filter(({ id }) => id === input.chosenEffectId)
   const endedEffects = withLinkedDependents(selected, input.held)

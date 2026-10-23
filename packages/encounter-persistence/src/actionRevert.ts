@@ -272,6 +272,8 @@ export async function revertLastEncounterAction(
         ? 'Only an action can be undone, and something else happened after it.'
         : 'There is no action to undo.'
     )
+  if (root.damageMirrored)
+    revertUnavailable("Undo can't restore damage a mirror passed on; adjust manually.")
   if (root.root.kind === 'CHECK') {
     requireCheckAnswerScan(root.root.checkReceipt.checkOccurrenceId)
     return revertCheckAction(ctx, { ...scope, root, checkReceipt: root.root.checkReceipt })

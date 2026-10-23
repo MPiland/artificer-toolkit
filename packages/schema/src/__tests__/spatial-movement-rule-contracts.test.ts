@@ -1266,6 +1266,7 @@ describe('spatial movement rule contracts', () => {
     const definition = {
       schemaVersion: 2 as const,
       linkedEffectId: null,
+      originLevel: null,
       stateContributions: [],
       origin: {
         kind: 'ENCOUNTER' as const,

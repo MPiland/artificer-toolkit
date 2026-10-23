@@ -21,6 +21,7 @@ export function definition(
   return {
     schemaVersion: 2,
     linkedEffectId: null,
+    originLevel: null,
     stateContributions: [],
     origin: {
       kind: 'ENCOUNTER',

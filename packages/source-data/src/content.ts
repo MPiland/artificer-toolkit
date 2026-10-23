@@ -90,6 +90,10 @@ interface SystemChallengeRatingSeedRecord extends VocabularySeedRecord {
   rank: number
 }
 
+interface SystemConditionTypeSeedRecord extends VocabularySeedRecord {
+  levelled?: boolean
+}
+
 interface SystemCurrencySeedRecord extends VocabularySeedRecord {
   baseValue: number
 }
@@ -103,7 +107,7 @@ export interface SystemSeedRecord {
   rulesetVersion: string
   alignments: VocabularySeedRecord[]
   challengeRatings: SystemChallengeRatingSeedRecord[]
-  conditionTypes: VocabularySeedRecord[]
+  conditionTypes: SystemConditionTypeSeedRecord[]
   creatureTypes: VocabularySeedRecord[]
   currencies: SystemCurrencySeedRecord[]
   damageTypes: VocabularySeedRecord[]
@@ -120,6 +124,7 @@ export interface SystemSeedRecord {
   skills: SystemCheckSeedRecord[]
   passives: SystemPassiveSeedRecord[]
   initiativePolicy?: { defaultDefinitionId: string }
+  defaults?: { damageTypeId: string; conditionTypeId: string; movementTypeId: string }
 }
 
 /**

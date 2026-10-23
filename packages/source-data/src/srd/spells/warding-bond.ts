@@ -1,8 +1,15 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
   SUBJECT,
@@ -13,7 +20,9 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_DAMAGE_TYPES } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+const ABILITY_COUNT = Object.values(ABILITY_CODE).length
 export const wardingBond: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.WARDING_BOND,
@@ -58,11 +67,70 @@ export const wardingBond: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.WARDING_BOND, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.WARDING_BOND, 0x213, 1),
+              durationKind: DURATION_KIND.HOUR,
+              amount: 1
+            },
+            // Separation ends the whole bond (a Character's fold has no positions to restrict one grant);
+            // recasting on either creature stays description-only.
+            lifecycle: {
+              endOnTriggers: [
+                { event: 'INCAPACITATED' as const, of: 'SOURCE' as const },
+                { event: 'SEPARATED' as const, from: 'SOURCE' as const, beyondFeet: 60 }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.WARDING_BOND, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'WARDING_BOND' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    {
+                      id: spellChildId(SPELL_IDS.WARDING_BOND, 0x214, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.ARMOR_CLASS,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.BONUS,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { valueKind: 'FIXED', amount: 1 },
+                      order: 1
+                    },
+                    ...Object.values(ABILITY_CODE).map((ability, index) => ({
+                      id: spellChildId(SPELL_IDS.WARDING_BOND, 0x214, index + 2),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                      domain: { ability },
+                      modifierKind: MODIFIER_KIND.BONUS,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { valueKind: 'FIXED' as const, amount: 1 },
+                      order: 2 + index
+                    })),
+                    ...SRD_DAMAGE_TYPES.map(({ id }, index) => ({
+                      id: spellChildId(SPELL_IDS.WARDING_BOND, 0x215, index + 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.ADD_OPTION,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { damageTypeId: id },
+                      order: 2 + ABILITY_COUNT + index
+                    })),
+                    {
+                      id: spellChildId(SPELL_IDS.WARDING_BOND, 0x216, 1),
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_MIRROR,
+                      domain: {},
+                      modifierKind: MODIFIER_KIND.ENABLE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      order: 2 + ABILITY_COUNT + SRD_DAMAGE_TYPES.length
+                    }
+                  ]
+                }
               }
             ]
           }

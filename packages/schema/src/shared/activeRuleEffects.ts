@@ -34,6 +34,7 @@ import {
   pathLifecycleGrantEndEventSchema
 } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
+import { authoredPositiveLengthAmountSchema } from './authoredLimits.js'
 import { basicActionFilterDtoSchema, damageTypeFilterDtoSchema } from './reaction.js'
 import { compiledRuleGraphDtoSchema } from './ruleExecutionCore.js'
 
@@ -144,6 +145,8 @@ export const activeEffectEndEventsSchema = lazySchema(() =>
  * (rousing a sleeper); the ids are basic-action definitions, sorted and unique. `INCAPACITATED` ends
  * it when the effect's source is incapacitated or defeated (`of: 'SOURCE'`, Knight Leadership),
  * wherever the effect sits; the holder's own incapacitation is the `ON_INCAPACITATED` end event.
+ * `SEPARATED` ends it when the holder's token stands more than `beyondFeet` from the effect source's
+ * token (Warding Bond); the post-commit relationship sweep reads it.
  */
 export const activeEffectEndTriggerSchema = lazySchema(() =>
   z.discriminatedUnion('event', [
@@ -163,6 +166,11 @@ export const activeEffectEndTriggerSchema = lazySchema(() =>
     z.strictObject({
       event: z.literal('INCAPACITATED'),
       of: pathLifecycleEndTriggerOfSchema
+    }),
+    z.strictObject({
+      event: z.literal('SEPARATED'),
+      from: pathLifecycleEndTriggerOfSchema,
+      beyondFeet: authoredPositiveLengthAmountSchema
     })
   ])
 )
@@ -268,6 +276,11 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
      * null for none. Whatever ends the linked effect ends this one in the same transaction.
      */
     linkedEffectId: z.nullable(uuidSchema),
+    /**
+     * The level the spell was cast at (D182; 0 for a cantrip); null when it came from no spell
+     * cast. An `END_EFFECTS` spell-level selector never matches a null.
+     */
+    originLevel: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(9))),
     adapterFacts: activeEffectFactsSchema,
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     recurrence: z.strictObject({

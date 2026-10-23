@@ -394,10 +394,11 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Not built: the web repeat row (`CampaignTabletopEffectOffers.tsx` lists the offer; starting its `actionId` from the offer row is a follow-up).
 - Proofs: `encounterRepeatPathAction.test.ts` (id form, offer to the source alone, frozen DC and cast level independent of the caster, stale carrier), `nativeRoomCoreOptionSpells.test.ts` Heat Metal (bonus-action repeat on the frozen DC, no slot or Concentration change, carrier gone with the item), the parity and source-data tests.
 
-#### T2lb2b resume notes (Eyebite's retarget)
+#### T2lb2b1 (D187a: description-only)
 
-- Build on the same seam: another `effectOffers` kind (retarget the held effect to a new target) in `effectOffer.ts`/`storedEffectOffer.ts`, discovered by `encounterEffectOffers.ts`; the carrier stays a plan-level `repeatCarrier`-style rider. Reuse `frozenRepeatOffer` for any frozen cast value; the cast level comes from `preparedSpellCastLevel(prepared)` passed as `spellCastLevel`, not from the TEST-phase execution evidence (which holds only target facts).
-- Do not delete the EYEBITE kind here; T2l2 does, with Panicked and Sickened.
+- Status: implemented; CI on `ci/spells-4-t2lb2b1`. The D186 engine work (FRESH-target repeat offers, Concentration-lifetime SOURCE_IMMUNITY carrier, `c780b301f`) is withdrawn and not in this tree; T2lb2b2 is removed.
+- Eyebite is one `MANUAL_ADJUDICATION` (`GM_CHOICE`) outcome carrying the Asleep/Panicked/Sickened text and the per-turn retarget; Dispel Evil and Good keeps its attack-disadvantage grant and adds Break Enchantment and Dismissal rulings (`SEQUENCE`). The `EYEBITE` and `DISPEL_EVIL_AND_GOOD` closed-rule kinds are deleted. `HOLY_AURA` stays for T2j2b.
+- The engine pieces (fresh-target repeat, tag-based ending, compelled turns) stay in future-enhancements "Deferred rules pieces (D187a)".
 
 ### T2i (hit point threshold gates and KILL, D156 class B; design ruled 2026-10-20)
 
@@ -505,6 +506,10 @@ Original T2m1b design (now b2):
 
 T2m2: `CONDITION_SUPPRESSION { conditionIds, effectOrigin: ANY | MAGICAL, mode: SUPPRESS | PREVENT }` on an APPLY_GRANT holder; SUPPRESS suppresses held conditions without deleting them (they resume if their duration remains), PREVENT refuses a magical apply with a receipt line. Converts CALM_EMOTIONS (indifference stays manual) and FREEDOM_OF_MOVEMENT. T2m3: lifecycle `onTriggers` `DAMAGE_TAKEN` applying a condition (Slimy Doom's stun) and the Contagion disease rows.
 
+### T2n4 (Warding Bond damage mirror, D181/D184; `ci/spells-4-t2n4`)
+
+Warding Bond is data: +1 AC and saving throws, one `DAMAGE_RESISTANCE` grant per SRD damage type, a `DAMAGE_MIRROR` `ENABLE` grant and a 1-hour duration; the `WARDING_BOND` closed-rule kind is deleted (`SPELL_IDS.WARDING_BOND` stays). The mirror is one post-settlement step, `settleDamageMirrors` (D184); the damage mirror entry in [rules-runtime.md](../architecture/rules-runtime.md) is canonical. Distance is the generic `SEPARATED` end trigger (`beyondFeet`) beside `INCAPACITATED` of the `SOURCE`: separation ends the whole effect, because the Character fold has no positions for a grant restriction. Undo of a root whose damage was mirrored is a typed refusal (`damageMirrored`). Known limits are in [future-enhancements](../roadmap/future-enhancements.md) (Damage mirror source reactions and movement undo). Proofs: the Warding Bond block in `coreOptionSpells.test.ts` (authoring parity, SRD and homebrew), `encounterDamageMirror.test.ts` and `encounterRelationshipEnds.test.ts` (rules), `roomDamageMirrorCollector.test.ts` (a path that skips settlement fails its command) and `nativeRoomWardingBond.test.ts` (room journey: the source's Bite on the holder, no stale-source throw, undo refused, separation ends the bond).
+
 ### T2d3 (web UI for source-side effect offers; merged) and T2d4 (browser journey, resume section)
 
 - **T2d3 shipped:** the actor drawer's "Effect choices" section (`CampaignTabletopEffectOffers.tsx`, `effectOffers.model.ts`) lists `effectOffers[]` with cost and range, picks the new holder in a list or on the map (the Scene targeting request takes `actionId: null` for an offer), and sends `MOVE_HELD_EFFECT` with a holder-to-new-holder Scene read. Proofs: three drawer component tests and the `EffectOfferListed` / `EffectOfferPickingNewHolder` stories. The server side is proved by `apps/session-worker/test/nativeRoomMoveHeldEffect.test.ts`.
@@ -525,3 +530,25 @@ T2m2: `CONDITION_SUPPRESSION { conditionIds, effectOrigin: ANY | MAGICAL, mode: 
   - A built workspace (`yarn install`, then `yarn build:shared` and `yarn build:schema`).
   - Run: `pwsh scripts/runLocalConvexProof.ps1 -Name <attempt> -Proof held-effect-browser`.
 - **Done when:** the journey passes locally, its evidence packet verifies under `validatePreStagingLocal.mjs`, and the slice's acceptance criteria in the ledger are updated.
+
+### T2f1 (Dispel Magic, D174): split proposal, awaiting ruling (2026-10-22)
+
+Findings from reading the shipped T2f code and the check flow:
+
+- `originLevel` and `SPELL_LEVEL` do not exist anywhere yet. `END_EFFECTS` today is `{scope, conditionIds}` only (`packages/schema/src/effects/endEffects.ts`, `shared/.../authored/endEffects.ts`, `endEffectsOutcomeFields.ts`), with selectors hard-typed to `CONDITION` in `encounterEndedEffectRelease.ts` (`endEffectsCandidates`, `offerEndEffects`, `selectedEndedEffects`), `nativeEndEffects.ts` and `characterActionRuleFacts.ts`.
+- The check flow is bound to a `CHECK`-trigger invocation: `checkActionSourceDtoSchema` is `BASIC_ACTION | CREATURE_FEATURE`; `planNativeLiveCheckAction` and `authoredCheckOf` read `invocation.check` with a `FIXED` DC; the pending/settled contexts (`encounterCheckActionContextDtoSchema`, `...PendingContext`, `CHECK_ACTION` output) hold exactly one `check`, one `d20` and one `dc`. A spell cast has an `ACTIVATED` invocation and an `ON_USE` outcome, so it never enters that branch.
+- Dispel Magic therefore needs, in one change: (1) stored `originLevel` on the active-effect definition (schema, cast-time stamping from the slot, plan migration, golden flips), (2) `SPELL_LEVEL` selector and `levelCheck` through the effect node map, DTO, authored type, compiler and character rule facts, (3) a new check-action source for a spell cast, (4) a check context/pending/output that holds an ordered list of candidate checks (each with `effectId`, `dc` = base + `originLevel`, its own d20) and a phase cursor, (5) the response planner iterating candidates and applying `END_EFFECTS` per success in one settlement, (6) Convex commit/persistence/undo for a multi-check receipt, (7) the room journey and parity proofs.
+
+Proposed split (ruling needed):
+
+- **T2f1a** `originLevel` + `SPELL_LEVEL` selector + `levelCheck` authored shape, automatic ending only (`autoUpTo: SLOT_LEVEL`): effects at or below the slot level end with no roll. No check-flow change. Deletes nothing yet.
+- **T2f1b** the check-flow widening: spell source, ordered per-candidate checks with `TARGET_EFFECT_LEVEL`, then convert `DISPEL_MAGIC` and delete the kind, with parity proof and room journey.
+
+Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-check state, may the pending context hold a `candidates` list plus a cursor (one roller prompt per candidate, each settled through the single d20 settlement), rather than one roll window for all candidates? A single window cannot give each candidate its own d20 under the current `d20`-per-context shape.
+
+## T2f1a (D182): `originLevel` and the `SPELL_LEVEL` selector
+
+- `originLevel` (0..9, nullable) is a required-nullable field on the active-effect definition, stamped from `spellCastLevel` for a recurring spell effect and null for every other source. No migration: the field is pre-launch required-nullable like `linkedEffectId`.
+- `END_EFFECTS` now carries `selectors` (1..4) instead of `conditionIds`: `CONDITION { conditionIds }` or `SPELL_LEVEL { limit: SLOT_LEVEL | FIXED, level? }`. The three restoration spells moved to `CONDITION` selectors; behavior unchanged.
+- The planned `levelCheck` field (D174) is deliberately not added here: it has no consumer until T2f1b, and an unconsumed authored field would be dead. T2f1b adds it with the check flow.
+- Proofs: `encounterEndedEffectRelease.test.ts` (selector matching, boundary, null level), `endEffectsAuthoringParity.test.ts` (homebrew slot/fixed selectors through the node map DTO and real compiler), `nativeRoomEndEffectsSpell.test.ts` (Dispel-style spell ends levels 1 and 2, leaves 4, via a real cast).

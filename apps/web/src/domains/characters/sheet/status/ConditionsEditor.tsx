@@ -76,7 +76,7 @@ export function ConditionsEditor({
         <AppSelect
           aria-label='Add condition'
           data={sheet.reference.conditionOptions
-            .filter((option) => option.code !== 'EXHAUSTION')
+            .filter((option) => !option.levelled)
             .map((option) => ({
               value: option.id,
               label: option.label

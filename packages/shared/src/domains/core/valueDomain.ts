@@ -23,6 +23,7 @@ export const VALUE_DOMAIN_CODE = {
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
   ATTACK_DECOYS: 'ATTACK_DECOYS',
   DAMAGE_INTERCEPTION: 'DAMAGE_INTERCEPTION',
+  DAMAGE_MIRROR: 'DAMAGE_MIRROR',
   INCOMING_ATTACK_GATE: 'INCOMING_ATTACK_GATE',
   HEALING_RECEIVED: 'HEALING_RECEIVED',
   ARMOR_CLASS: 'ARMOR_CLASS',
@@ -166,6 +167,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Damage Interception',
     description:
       'Damage that would drop the holder to 0 hit points leaves it at a set hit point total instead; the effect spends one use each time.'
+  },
+
+  [VALUE_DOMAIN_CODE.DAMAGE_MIRROR]: {
+    code: VALUE_DOMAIN_CODE.DAMAGE_MIRROR,
+    label: 'Damage Mirror',
+    description:
+      'Damage the holder takes, after its resistances, is also dealt to the creature that applied the effect, whose own defenses then apply. Mirrored damage is never mirrored again.'
   },
 
   [VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE]: {
@@ -483,6 +491,9 @@ export type ValueDomainParamByCode = {
 
   // Damage that would drop the holder to 0 hit points leaves it at a set total instead (Death Ward).
   DAMAGE_INTERCEPTION: EmptyObject
+
+  // Damage the holder takes is also dealt to the effect source (Warding Bond).
+  DAMAGE_MIRROR: EmptyObject
 
   // A save an attacker must pass before targeting the holder.
   INCOMING_ATTACK_GATE: EmptyObject

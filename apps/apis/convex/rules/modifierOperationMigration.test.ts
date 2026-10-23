@@ -87,6 +87,7 @@ function definition(
   return {
     schemaVersion: 2,
     linkedEffectId: null,
+    originLevel: null,
     origin,
     authoredEffectId: uuid(10),
     compiledEntryId: uuid(11),

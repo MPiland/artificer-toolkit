@@ -60,6 +60,7 @@ function ownerDefinition(characterId: string): ActiveRuleEffectDefinitionDto {
   return {
     schemaVersion: 2,
     linkedEffectId: null,
+    originLevel: null,
     stateContributions: [],
     origin: {
       kind: 'CHARACTER',

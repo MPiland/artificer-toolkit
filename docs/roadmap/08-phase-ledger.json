@@ -4222,7 +4222,7 @@
             },
             {
               "id": "RULES-2.T9k",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4232,8 +4232,9 @@
                 "after": ["RULES-2.T9j", "RULES-2.T9q"]
               },
               "text": "One defaults object on the System record naming definition IDs (default damage type, condition and movement type), seeded from source-data and read by web through apis; the Exhaustion filter in ConditionsEditor filters on a levelled condition attribute instead of the code.",
-              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343). Merged in m366.",
+              "mergedAt": "2026-10-23T04:22:01Z",
+              "proof": "System defaults object on the System record (default damage type and movement definition IDs) with schema and consumer tests; 100-actor encounter read budget passes unchanged"
             },
             {
               "id": "RULES-2.T9l",
@@ -10097,7 +10098,7 @@
             },
             {
               "id": "SPELLS-4.T2f1a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10106,8 +10107,10 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2f", "RULES-2.T6e3b2"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "text": "Spell level on stored effects (D182): stored originLevel, the SPELL_LEVEL END_EFFECTS selector and the levelCheck shape; candidates at or below the cast level end automatically with no roll. Parity proof and room journey (Dispel-style END_EFFECTS SPELL_LEVEL with no check)."
+              "text": "Spell level on stored effects (D182): stored originLevel, the SPELL_LEVEL END_EFFECTS selector and the levelCheck shape; candidates at or below the cast level end automatically with no roll. Parity proof and room journey (Dispel-style END_EFFECTS SPELL_LEVEL with no check).",
+              "mergedAt": "2026-10-23T05:10:37Z",
+              "proof": "Tests and Live green on tip c70c74b7; endEffectsAuthoringParity and encounterEndedEffectRelease cover END_EFFECTS by cast level with the origin creature-type filter ANDed; nativeRoomEndEffectsSpell covers the Worker path",
+              "note": " Merged in m369."
             },
             {
               "id": "SPELLS-4.T2f1b",
@@ -10139,7 +10142,7 @@
             },
             {
               "id": "SPELLS-4.T2g2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10149,8 +10152,9 @@
                 "after": ["SPELLS-4.T2g1"]
               },
               "text": "Raise Dead ships its -4 d20 penalty and long-rest step-down as description (GM ruling) per D187a; delete the closed-rule kind. The stepDown option and the D185 flat-modifier fold go to future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": "D187a re-plan: size 8 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 8 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m367.",
+              "mergedAt": "2026-10-23T04:41:27Z",
+              "proof": "Raise Dead and Resurrection compile REFUSED to SINGLE_GRAPH (srdEffectCompile golden) as REVIVE plus a GM-ruled return-penalty rider; reviveAuthoringParity covers Revivify, Raise Dead, Resurrection and True Resurrection; RAISE_DEAD and RESURRECTION kinds deleted"
             },
             {
               "status": "DONE",
@@ -10487,7 +10491,7 @@
             },
             {
               "id": "SPELLS-4.T2lb2b1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10497,8 +10501,9 @@
                 "after": ["SPELLS-4.T2lb2a"]
               },
               "text": "Eyebite per-turn retarget and Break Enchantment ship as description (GM ruling) per D187a; delete their closed-rule kinds. FRESH-target repeat goes to future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m368.",
+              "mergedAt": "2026-10-23T04:54:28Z",
+              "proof": "Tests and Live green on tip ec39f06d; merged with batch m368"
             },
             {
               "id": "SPELLS-4.T2lb2c",
@@ -10749,7 +10754,7 @@
             },
             {
               "id": "SPELLS-4.T2n4",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10759,7 +10764,9 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "Damage mirror (D181): damage the holder actually took is mirrored to the source (never mirrored again), a within-distance-of-source grant restriction, and a lifecycle end on separation or the source at 0 hit points. Converts WARDING_BOND (AC and save bonus, resistance; recast end description-only), with parity and room journey proofs; kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-23T04:54:28Z",
+              "proof": "Tests and Live green on tip f0f818e8; merged with batch m368",
+              "note": " Merged in m368."
             },
             {
               "status": "TODO",

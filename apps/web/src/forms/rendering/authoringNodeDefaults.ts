@@ -768,6 +768,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         amount: 1,
         diceConfig: '1d6'
       }
+    case 'endEffectsSelector':
+      return { id: crypto.randomUUID(), order, kind: 'CONDITION', conditionIds: [] }
     case 'weight':
       return createMeasurement('POUNDS')
     default:

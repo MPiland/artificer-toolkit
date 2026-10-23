@@ -39,6 +39,7 @@ import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
 import { executeRoomEncounterConcentrationResponse } from './roomEncounterConcentrationResponse.js'
 import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingResponse.js'
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
+import { settleDamageMirrors } from './roomDamageMirror.js'
 import { raiseRoomHpZeroEffects } from './roomEncounterHpZeroTriggers.js'
 import {
   actorIdsOutOfPlayByEffect,
@@ -349,6 +350,20 @@ export async function executeRoomEncounterCommand(input: {
     command.type === 'START' ||
     command.type === 'COMPLETE' ||
     (removed !== null && readStoredRunActor(removed).kind === 'CHARACTER')
+  const settleMirrors = () =>
+    settleDamageMirrors({
+      ctx: context,
+      store,
+      transaction,
+      inputs,
+      campaignId,
+      epoch,
+      userId,
+      observed,
+      encounterId: currentRun.id,
+      random: input.random
+    })
+  const mirroredDamage = await settleMirrors()
   const raisedHpZeroEffects =
     currentRun.status === 'ACTIVE' && input.turnExecution
       ? await raiseRoomHpZeroEffects({
@@ -383,14 +398,21 @@ export async function executeRoomEncounterCommand(input: {
       occurredAt: new Date().toISOString(),
       outOfPlayBefore
     }))
-  const reprojected = raisedHpZeroEffects || raisedStartOfTurnEffects || flaggedReturn
-  const raisedRun = reprojected
+  // What the raised roots dealt to a mirror's holder reaches its source too.
+  const mirroredRaisedDamage = await settleMirrors()
+  const changedRun =
+    mirroredDamage ||
+    mirroredRaisedDamage ||
+    raisedHpZeroEffects ||
+    raisedStartOfTurnEffects ||
+    flaggedReturn
+  const raisedRun = changedRun
     ? await context.db
         .query('encounterRuns')
         .withIndex('by_publicId', (query) => query.eq('id', state.id))
         .unique()
     : null
-  if (reprojected && !raisedRun) throw new Error('Committed room Encounter is unavailable.')
+  if (changedRun && !raisedRun) throw new Error('Committed room Encounter is unavailable.')
   const presented = raisedRun
     ? { ...result, projection: await readEncounterGmProjection(context, readRunState(raisedRun)) }
     : result

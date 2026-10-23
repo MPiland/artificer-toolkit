@@ -69,7 +69,12 @@ export const greaterRestoration: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.GREATER_RESTORATION, 0x212, 1),
                 effectKind: EFFECT_KIND.END_EFFECTS,
                 scope: 'ONE_CHOSEN' as const,
-                conditionIds: ['CHARMED', 'PETRIFIED'].map(conditionTypeId)
+                selectors: [
+                  {
+                    kind: 'CONDITION' as const,
+                    conditionIds: ['CHARMED', 'PETRIFIED'].map(conditionTypeId)
+                  }
+                ]
               },
               {
                 id: spellChildId(SPELL_IDS.GREATER_RESTORATION, 0x214, 1),

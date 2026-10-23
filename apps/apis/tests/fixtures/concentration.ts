@@ -230,6 +230,7 @@ export async function seedConcentration(fixture: {
     const definition = {
       schemaVersion: 2,
       linkedEffectId: null,
+      originLevel: null,
       origin: {
         kind: 'ENCOUNTER' as const,
         sourceAggregateId: fixture.run.id,

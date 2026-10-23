@@ -239,14 +239,29 @@ const actionEffectFactSchema = lazySchema(() =>
     effectKind: identitySchema,
     /** A movement rule's kind, so a consumer can tell Dash (`ADD_SPEED_TO_MOVEMENT`) apart. */
     ruleKind: z.optional(identitySchema),
-    /** What an END_EFFECTS outcome ends: held effects naming these conditions. */
+    /** What an END_EFFECTS outcome ends: held effects any selector matches (D174, D182). */
     endEffects: z.optional(
       z.strictObject({
         scope: z.enum(['ALL', 'ONE_CHOSEN']),
-        conditionIds: z
-          .array(canonicalConditionDefinitionIdSchema)
+        selectors: z
+          .array(
+            z.discriminatedUnion('kind', [
+              z.strictObject({
+                kind: z.literal('CONDITION'),
+                conditionIds: z
+                  .array(canonicalConditionDefinitionIdSchema)
+                  .check(z.minLength(1))
+                  .check(z.maxLength(100))
+              }),
+              z.strictObject({
+                kind: z.literal('SPELL_LEVEL'),
+                limit: z.enum(['SLOT_LEVEL', 'FIXED']),
+                level: z.optional(z.number().check(z.int()).check(z.gte(0)).check(z.lte(9)))
+              })
+            ])
+          )
           .check(z.minLength(1))
-          .check(z.maxLength(100)),
+          .check(z.maxLength(4)),
         originCreatureTypeIds: z.optional(
           z.array(identitySchema).check(z.minLength(1)).check(z.maxLength(100))
         )
