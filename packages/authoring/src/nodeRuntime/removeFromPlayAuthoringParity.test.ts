@@ -6,7 +6,9 @@ import { banishment } from '@artificer-toolkit/source-data/srd/spells/banishment
 import { blink } from '@artificer-toolkit/source-data/srd/spells/blink.js'
 import { etherealness } from '@artificer-toolkit/source-data/srd/spells/etherealness.js'
 import { imprisonment } from '@artificer-toolkit/source-data/srd/spells/imprisonment.js'
+import { greaterRestoration } from '@artificer-toolkit/source-data/srd/spells/greater-restoration.js'
 import { maze } from '@artificer-toolkit/source-data/srd/spells/maze.js'
+import { removeCurse } from '@artificer-toolkit/source-data/srd/spells/remove-curse.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -64,6 +66,18 @@ describe('the turn-end roll gate through the effect node map (SPELLS-4.T2h2)', (
     path.resultBlock.lifecycle = { turnEndGate: { minimumRoll: 15 } }
     Object.assign(path.resultBlock.outcomes[0]!, { keepsTurn: false })
     const { authored, result } = await normalizeEffects(effects)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+  })
+})
+
+/** SPELLS-4.T2f3: curse removal ships as a GM ruling (D187a, ADR 0038 parity). */
+describe('the curse-removal GM rulings through the effect node map (SPELLS-4.T2f3)', () => {
+  it.each([
+    ['Remove Curse', removeCurse],
+    ['Greater Restoration', greaterRestoration]
+  ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
+    const { authored, result } = await normalizeEffects(spell.effects)
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
