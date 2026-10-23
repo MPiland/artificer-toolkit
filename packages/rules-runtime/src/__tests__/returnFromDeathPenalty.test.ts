@@ -1,8 +1,12 @@
+import { deathSavesAfterRoll } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { raiseDead } from '@artificer-toolkit/source-data/srd/spells/raise-dead.js'
 import { describe, expect, it } from 'vitest'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
-import { activeAbilityCheckModifier } from '../character/activeEffectGrantTotals.js'
+import {
+  activeAbilityCheckModifier,
+  activeSavingThrowModifier
+} from '../character/activeEffectGrantTotals.js'
 import { steppedDownEffectState } from '../character/restStepDown.js'
 import { carriedTestDice } from '../character/sheetRoll.js'
 import { withCharacterActiveGrants } from '../encounterActiveGrants.js'
@@ -78,5 +82,16 @@ describe('the return-from-death penalty', () => {
     expect(carriedTestDice(check('WISDOM'), [penalty()]).modifier).toBe(-4)
     expect(carriedTestDice(save('WISDOM'), [penalty()]).modifier).toBe(-4)
     expect(carriedTestDice(check('WISDOM'), []).modifier).toBe(0)
+  })
+
+  it('takes the flat amount off a death save, keeping a natural 1 and 20 natural', () => {
+    const modifier = activeSavingThrowModifier([penalty()], null)
+    const dying = { successes: 0, failures: 0, stable: false }
+    expect(modifier).toBe(-4)
+    expect(activeSavingThrowModifier([], null)).toBe(0)
+    expect(deathSavesAfterRoll(dying, 12, 0).deathSaves.successes).toBe(1)
+    expect(deathSavesAfterRoll(dying, 12, modifier).deathSaves.failures).toBe(1)
+    expect(deathSavesAfterRoll(dying, 14, modifier).deathSaves.successes).toBe(1)
+    expect(deathSavesAfterRoll(dying, 20, modifier).regainsHitPoint).toBe(true)
   })
 })

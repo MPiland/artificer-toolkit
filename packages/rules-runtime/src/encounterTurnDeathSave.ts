@@ -19,7 +19,10 @@ import {
   type D20RolledAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import { activeSavingThrowDice } from './character/activeEffectGrantTotals.js'
+import {
+  activeSavingThrowDice,
+  activeSavingThrowModifier
+} from './character/activeEffectGrantTotals.js'
 import { applyEncounterConditionMechanics } from './encounterConditionMechanics.js'
 import { deriveEncounterCharacterMechanicsEventCommandId } from './encounterCharacterMechanicsBatch.js'
 import { rollModeCapabilityRegistry } from './platformPolicyModules.js'
@@ -77,7 +80,8 @@ function deathSaveCandidate<TCharacterFacts extends ProjectableCharacterFacts>(
     streamVersion: characterFacts.active.play.streamVersion,
     effectiveMaximumHitPoints: target.effectiveMaximumHitPoints,
     deathSaves: state.deathSaves,
-    addedDice: activeSavingThrowDice(target.activeEffects, null)
+    addedDice: activeSavingThrowDice(target.activeEffects, null),
+    modifier: activeSavingThrowModifier(target.activeEffects, null)
   }
 }
 
@@ -117,7 +121,7 @@ function projectDeathSaveTarget<TCharacterFacts extends ProjectableCharacterFact
       forceVersionAdvance: true,
       deathSave: {
         rawDie: input.plan.rawDie,
-        addedTotal: d20AddedDiceTotal(input.plan.addedDice)
+        addedTotal: d20AddedDiceTotal(input.plan.addedDice) + candidate.modifier
       }
     },
     actor: target.actor,
@@ -262,7 +266,11 @@ export async function prepareEncounterTurnDeathSave<
       refusal: () =>
         new EncounterValidationError('The death save graph requested more than its dice.')
     })
-    const after = deathSavesAfterRoll(candidate.deathSaves, rawDie, d20AddedDiceTotal(addedDice))
+    const after = deathSavesAfterRoll(
+      candidate.deathSaves,
+      rawDie,
+      d20AddedDiceTotal(addedDice) + candidate.modifier
+    )
     return {
       candidate,
       execution,

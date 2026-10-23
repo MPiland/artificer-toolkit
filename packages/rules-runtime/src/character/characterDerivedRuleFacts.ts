@@ -171,6 +171,8 @@ export function buildCharacterDerivedRuleFacts(
             operation: 'ADD' as const
           },
           ...abilityModifierBonuses('SAVING_THROW_MODIFIER', abilityId, false),
+          // A save grant naming no ability covers every ability's save.
+          ...modifierBonuses('SAVING_THROW_MODIFIER', {}, false),
           ...manualBonuses.flatMap((adjustment) =>
             typeof adjustment.value === 'number'
               ? [fixedBonus(adjustment.id, adjustment.value)]

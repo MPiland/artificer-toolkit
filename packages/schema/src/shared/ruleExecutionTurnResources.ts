@@ -181,7 +181,9 @@ export const turnDeathSaveCandidateDtoSchema = lazySchema(() =>
     /** The saves before the roll: dying, so not stable and under three failures. */
     deathSaves: characterDeathSavesDtoSchema,
     /** The dice the Character's active effects add to the save (D156): Bless's d4. */
-    addedDice: d20AddedDiceDtoSchema
+    addedDice: d20AddedDiceDtoSchema,
+    /** The net flat bonus or penalty the Character's active effects apply to the save (D185). */
+    modifier: integerSchema
   })
 )
 
@@ -201,7 +203,11 @@ export const turnDeathSaveExecutionDtoSchema = lazySchema(() =>
     .check(
       z.superRefine((value, context) => {
         const before = value.candidate.deathSaves
-        const roll = deathSavesAfterRoll(before, value.rawDie, d20AddedDiceTotal(value.addedDice))
+        const roll = deathSavesAfterRoll(
+          before,
+          value.rawDie,
+          d20AddedDiceTotal(value.addedDice) + value.candidate.modifier
+        )
         const rolledDice = value.addedDice.map(({ rolledFaces: _rolledFaces, ...die }) => die)
         if (
           checksumRuleDocument(rolledDice) !== checksumRuleDocument(value.candidate.addedDice) ||

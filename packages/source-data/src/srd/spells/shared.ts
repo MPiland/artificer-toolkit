@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   AUTHORING_SELECTION_KIND,
   DAMAGE_DEFENSE_BYPASS_CODE,
   GRANT_KIND,
@@ -83,24 +82,23 @@ export function returnFromDeathPenaltyGrants(
     selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
     payload: { valueKind: 'FIXED', amount: 4 }
   } as const
-  const abilities = Object.values(ABILITY_CODE)
   const grantFor = (entry: number) => ({ ...penalty, id: idFor(entry), order: entry })
   const attackDomains = ['MELEE', 'RANGED', 'SPELL', 'UNARMED'] as const
-  // An attack roll penalty names its attack domain and a saving throw penalty its ability, so "all
-  // attack rolls" and "all saving throws" are one grant per domain and per ability.
+  // An attack roll penalty names its attack domain, so "all attack rolls" is one grant per domain.
+  // A saving throw or ability check grant naming no ability covers every one, a death save included.
   return [
     ...attackDomains.map((attackDomain, index) => ({
       ...grantFor(index + 1),
       valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
       domain: { attackDomain }
     })),
-    ...abilities.map((ability, index) => ({
-      ...grantFor(attackDomains.length + index + 1),
-      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-      domain: { ability }
-    })),
     {
-      ...grantFor(attackDomains.length + abilities.length + 1),
+      ...grantFor(attackDomains.length + 1),
+      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+      domain: {}
+    },
+    {
+      ...grantFor(attackDomains.length + 2),
       valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
       domain: {}
     }

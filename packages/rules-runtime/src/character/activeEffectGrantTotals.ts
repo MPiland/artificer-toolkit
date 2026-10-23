@@ -279,12 +279,13 @@ export function activeAbilityCheckModifier(
 }
 
 /**
- * The net of a holder's active fixed bonuses and penalties to its saving throws with one ability.
- * A grant naming no ability covers every save.
+ * The net of a holder's active fixed bonuses and penalties to its saving throws with one ability,
+ * or to an ability-less save (a death save) when `abilityCode` is null. A grant naming no ability
+ * covers every save.
  */
 export function activeSavingThrowModifier(
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
-  abilityCode: string
+  abilityCode: string | null
 ): number {
   return activeFixedGrantTotal(
     effects,
