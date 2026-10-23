@@ -3627,7 +3627,7 @@
             },
             {
               "id": "RULES-2.T9a2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3637,7 +3637,9 @@
                 "after": ["RULES-2.T9a", "RULES-2.T9i"]
               },
               "text": "System vocabulary (split from T9a, 2026-10-21): the shared dice evaluator takes keep; roll evidence gains a required keep and stores mode only for System-governed d20 rolls; manual-roll and Campaign-roll ingress rollMode enums become System codes; dice and evidence labels (web, encounter-persistence) from the vocabulary capability; reseed.",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "mergedAt": "2026-10-23T04:05:06Z",
+              "proof": "Shared dice evaluator keep tests, roll-evidence keep/mode schema tests and manual-roll ingress tests; mode stored only for System-governed d20 rolls",
+              "note": " Merged in m365."
             },
             {
               "id": "RULES-2.T9b",
@@ -10703,7 +10705,7 @@
             },
             {
               "id": "SPELLS-4.T2n1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10713,7 +10715,9 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "Healing received (D181): a HEALING_RECEIVED domain with a maximize-dice modifier on the holder. Converts BEACON_OF_HOPE (Wisdom save advantage, maximized healing; death-save advantage description-only until T2n1b), with parity and room journey proofs; kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-23T04:05:06Z",
+              "proof": "Derived-heal authoring parity and room journey tests (HEAL from sibling DAMAGE fraction)",
+              "note": " Merged in m365."
             },
             {
               "id": "SPELLS-4.T2n2",
