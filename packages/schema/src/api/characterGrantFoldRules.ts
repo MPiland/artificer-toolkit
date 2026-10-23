@@ -95,6 +95,8 @@ const restrictionConditionSchema = lazySchema(() =>
        * comes from. Decided where that source is known, never by the fold.
        */
       'SOURCE_CREATURE_TYPE',
+      /** The source attack carries a trait in `requiredIds` (magical); decided where the attack is known. */
+      'SOURCE_TRAIT',
       'PROFICIENCY',
       'EQUIPMENT_EQUIPPED',
       'SOURCE_STATE',

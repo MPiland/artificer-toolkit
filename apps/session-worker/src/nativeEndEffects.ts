@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
   actionUsedOnHolderEndedEffects,
+  actorCreatureTypeIdsOf,
   offerEndEffects,
   selectedEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -24,15 +25,26 @@ export function planEndEffects(
   gameSystemId: string,
   outcomes: readonly {
     kind: string
-    endEffects?: { scope: 'ALL' | 'ONE_CHOSEN'; conditionIds: readonly string[] }
+    endEffects?: {
+      scope: 'ALL' | 'ONE_CHOSEN'
+      conditionIds: readonly string[]
+      originCreatureTypeIds?: readonly string[]
+    }
   }[],
   held: readonly ActiveRuleEffectRecord[],
-  target: { kind: string; chosenEffectId?: string }
+  target: { kind: string; chosenEffectId?: string },
+  actors: Parameters<typeof actorCreatureTypeIdsOf>[0]
 ) {
   const [endEffects] = outcomes.flatMap((outcome) =>
     outcome.kind === 'EFFECT' && outcome.endEffects ? [outcome.endEffects] : []
   )
-  const offer = offerEndEffects({ endEffects, held, chosenEffectId: target.chosenEffectId })
+  const actorCreatureTypeIds = actorCreatureTypeIdsOf(actors)
+  const offer = offerEndEffects({
+    endEffects,
+    held,
+    actorCreatureTypeIds,
+    chosenEffectId: target.chosenEffectId
+  })
   if (offer.pick?.kind === 'UNCHOSEN')
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
@@ -41,7 +53,7 @@ export function planEndEffects(
     })
   const warnings: EncounterRuleWarningDto[] =
     endEffects && offer.candidates.length === 0 ? [TARGET_NOTHING_TO_END_WARNING] : []
-  return { gameSystemId, endEffects, offer, warnings }
+  return { gameSystemId, endEffects, offer, actorCreatureTypeIds, warnings }
 }
 
 /**
@@ -70,6 +82,7 @@ export function endedByAction(
         holderActorId: target.id,
         held,
         selectors: offer.selectors,
+        actorCreatureTypeIds: plan.actorCreatureTypeIds,
         scope: endEffects.scope,
         chosenEffectId: offer.pick?.kind === 'CHOSEN' ? offer.pick.effectId : undefined
       })

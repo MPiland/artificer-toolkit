@@ -1152,6 +1152,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Split:** T2j2a ships what the substrate supports: the SOURCE_TRAIT (MAGICAL) restriction, an END_EFFECTS origin creature-type selector, both spells' attack-disadvantage grants and Holy Aura's save advantage; both kinds stay closed. T2j2b adds melee-hit retaliation that fires for every holder of an effect (not a placed zone), converts Holy Aura's rider and deletes HOLY_AURA. T2j2c lets a held effect offer a repeat of a source path against a freshly picked touch target (building on the SPELLS-4.T2lb2b fresh target pick), converts Break Enchantment through END_EFFECTS and deletes DISPEL_EVIL_AND_GOOD; dismissal stays description-only.
   - **Downstream:** SPELLS-4.T2m2, SPELLS-31.T4j, SPELLS-32.T4j and SPELLS-33.T4j need only the qualifiers, so they wait on T2j2a.
   - **Rejected:** building both substrates inside T2j2 (well over size 5); faking per-target retaliation with one zone per target.
+  - **T2j2a note (2026-10-23):** Holy Aura and Dispel Evil and Good lose their `CLOSED_RULE` outcomes (the compiler refuses a closed rule beside a grant); the descriptions keep the text, and T2j2b/T2j2c re-author the riders. The enum entries stay. Holy Aura now targets chosen creatures (30 ft).
 
 ## Approved implementation decisions
 

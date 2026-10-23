@@ -5,6 +5,7 @@ import type {
   ChargeResetKind,
   CoreMeta,
   CreatureCategoryCode,
+  DamageDefenseBypassCode,
   DurationKind,
   EquipmentCategoryCode,
   EquipmentPropertyCode,
@@ -174,6 +175,7 @@ export type PredicatePayloadByCode = {
   CREATURE_CATEGORY: Selectable<{ categories: CreatureCategoryCode[] }>
   CREATURE_TYPE: Selectable<{ creatureTypeIds: string[] }>
   SOURCE_CREATURE_TYPE: Selectable<{ creatureTypeIds: string[] }>
+  SOURCE_TRAIT: Selectable<{ traits: DamageDefenseBypassCode[] }>
   CREATURE_SIZE: Selectable<{ sizes: SizeCode[] }>
   CREATURE_IS_MOUNT: EmptyObject
   CREATURE_IS_COMPANION: EmptyObject
@@ -214,6 +216,7 @@ export const SELECTABLE_PREDICATE_CODES = [
   'CREATURE_CATEGORY',
   'CREATURE_TYPE',
   'SOURCE_CREATURE_TYPE',
+  'SOURCE_TRAIT',
   'CREATURE_SIZE',
   'VEHICLE_CATEGORY',
   'VEHICLE_SIZE'
@@ -614,6 +617,14 @@ export const PREDICATE_REGISTRY = {
     label: 'Source Creature Type',
     description:
       'Narrows the grant to the creature that is its source: the attacker for attacks against the holder, the effect source for saves, conditions and ended effects.',
+    subjects: ['CREATURE']
+  },
+
+  SOURCE_TRAIT: {
+    code: 'SOURCE_TRAIT',
+    label: 'Source Trait',
+    description:
+      'Narrows the grant to a source with an attack trait (magical): the attack against the holder, or the attack the effect or condition comes from.',
     subjects: ['CREATURE']
   },
 

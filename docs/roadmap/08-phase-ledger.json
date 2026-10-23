@@ -10344,7 +10344,8 @@
                 "after": ["SPELLS-4.T2j1"]
               },
               "text": "Source trait and origin selector (D183): the SOURCE_TRAIT (MAGICAL) restriction and attack domains on the D179 qualifiers, an END_EFFECTS origin creature-type selector, Holy Aura and Dispel Evil and Good attack-disadvantage grants and Holy Aura save advantage, with parity proofs and a room journey; HOLY_AURA and DISPEL_EVIL_AND_GOOD stay closed.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "proof": "nativeRoomHolyAuraDispelEvil.test.ts (Holy Aura: humanoid bite at disadvantage; Dispel Evil and Good: fiend disadvantage, humanoid normal), encounterHolyAuraDispelEvilGrants.test.ts, sourceTraitAuthoringParity.test.ts, endEffectsAuthoringParity.test.ts; Holy Aura and Dispel Evil and Good golden REFUSED to SINGLE_GRAPH."
             },
             {
               "id": "SPELLS-4.T2j2b",

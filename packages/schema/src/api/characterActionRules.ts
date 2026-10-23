@@ -246,7 +246,10 @@ const actionEffectFactSchema = lazySchema(() =>
         conditionIds: z
           .array(canonicalConditionDefinitionIdSchema)
           .check(z.minLength(1))
-          .check(z.maxLength(100))
+          .check(z.maxLength(100)),
+        originCreatureTypeIds: z.optional(
+          z.array(identitySchema).check(z.minLength(1)).check(z.maxLength(100))
+        )
       })
     ),
     label: z.nullable(stringSchema.check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)))
