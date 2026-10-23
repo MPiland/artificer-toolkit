@@ -500,6 +500,8 @@ Split (orchestrator ruling): **T2m1b1 (done, size 3)** adds `FollowUpSave.repeat
 
 **T2m1b2b done (2026-10-22, ready for CI):** area (damager = caster), Cleaving (the cleaving creature) and turn effects with Legendary Actions (damager null, so only `ANYONE` triggers match) join the chain through `bindEncounterDamageSaveChain` (persistence) and `repeatSaves` on `planNativeLiveConcentration` (room). The reader contract is in [rules-runtime.md](../architecture/rules-runtime.md) ("Damage-save reader contract"). Proofs: `nativeRoomAreaEffectRepeatSave.test.ts` (two holders, one save each, only the made save ends its effect) and `nativeRoomTurnEffectRepeatSave.test.ts`. The `HIDEOUS_LAUGHTER` kind remnant check is the existing `coreOptionSpells.test.ts` assertion that it is not in `CLOSED_RULE_KIND`. Movement damage needs its own task (T2m1b2c, proposed to the orchestrator; the ledger is the orchestrator's) (its own Concentration stack). Not covered: a Cleaving journey test, per-source damagers for turn effects, and the limitations listed below.
 
+**T2m1b2c (current):** turn-effect damage now names its source (`turnEffectExecutionDtoSchema.damagerActorId`, checked for currentness in `turnEffectsPersistence`), and every chain application may carry its own `damagerActorId` (zone source, Legendary owner, turn-effect origin) that overrides the chain damager in `concentrationSaveApplications`, `effectRepeatSaveApplications` and the Worker's `settleEffectRepeatSave`. Proof: `nativeRoomTurnEffectRepeatSave.test.ts` (source-side repeat save fires only for the holder's source side). Movement Concentration evidence: `nativeMovementEvidence.test.ts` (spatial effect, failed Concentration save) and `nativeRoomForcedMovementZones.test.ts` (a zone breaks a concentrating Character's Concentration). Movement damage raising effect repeat saves is deferred (D187), see `future-enhancements.md` Deferred edge cases.
+
 **T2m1b2b (size 5) original scope:**
 
 - Opt in the other six damage sources (area, cleaving, turn effects, movement, and the rest that call `planNativeLiveConcentration` / `bindEncounterConcentrationApplications`): pass `repeatSaves` and bind in persistence; the damager is each source's own actor, not the command actor.
@@ -577,3 +579,9 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - A Run actor may carry `owner: { ownerActorId, sourceEffectId? }`; control of an owned actor is derived through `actorOwnerChain` and never copied into `controllerUserIds` (see [persistence](../architecture/persistence.md), "Owned Run actors"). Persistence reads, the player projection and the room authorization cache all use it; the cache pick carries `owner`.
 - Nothing creates an owned actor yet (T2v2a2 adds the SUMMON cast commit and removal; T2v2a3 the owner-economy move and attack).
 - Proofs: `actorOwnership.test.ts` (chain walk, loop, depth), `encounterPlayerProjection.test.ts` (owner's player lists the owned actor), `roomAuthorization.test.ts` (summon token follows the owner), `playerControl.test.ts` (an owned actor no controller list names: GM and the owner's player control it, a stranger does not).
+
+## T2v2a2a (D187b): SUMMON plan compile
+
+- A timed SUMMON with a stat block compiles to `compilation.summonPlacement` (see [rules-runtime](../architecture/rules-runtime.md) "Summon placement"). Mage Hand (no stat block yet) and Spiritual Weapon (behaviors) stay manual.
+- Nothing reads it at cast yet: a2b adds the staged-Scene cast write, a2c creates and removes the actor.
+- Proof: `characterSpellCastActions.test.ts` "the creature a summon spell conjures".

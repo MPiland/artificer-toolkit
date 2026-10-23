@@ -426,6 +426,24 @@ export function compileCharacterActionEntryPoints(
             }
           }
         }
+        const summonPlacement = adapter.compileSummonPlacement?.({ action: descriptor }) ?? null
+        if (summonPlacement)
+          return {
+            schemaVersion: 4,
+            kind: 'CHARACTER_ACTION',
+            actionId: candidate.actionId,
+            effectId: candidate.effectId,
+            targetPolicy: exactTargetPolicy,
+            compilation: {
+              kind: 'COMPILED',
+              resourceBinding: compiledResourceBinding(candidate),
+              activeEffectPlan: null,
+              zonePlacement: null,
+              summonPlacement,
+              choice: null,
+              executionPlan: { kind: 'SINGLE_GRAPH', published: summonPlacement.entry.frozenGraph }
+            }
+          }
         const { activeEffectPlan, hitPointTierPlans, hitPointTiers, executionPlan, choice } =
           compileCastChoicePlans(adapter, descriptor, exactTargetPolicy)
         return {

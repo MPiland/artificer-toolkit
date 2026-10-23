@@ -57,7 +57,7 @@ export const aboleth: CreatureAuthored = {
       description:
         'Mucous Cloud. While underwater, the aboleth is surrounded by transformative mucus. A creature that touches the aboleth or that hits it with a melee attack while within 5 feet of it must make a DC 14 Constitution saving throw. On a failure, the creature is diseased for 1d4 hours. The diseased creature can breathe only underwater.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(1, 103),
           invocation: {
             kind: 'PASSIVE',
@@ -79,8 +79,10 @@ export const aboleth: CreatureAuthored = {
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
-          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ABOLETH_MUCOUS_CLOUD
+          label: 'Mucous Cloud',
+          reasonCode: MANUAL_ADJUDICATION_REASON.NARRATIVE_JUDGMENT,
+          instructions:
+            'While the aboleth is underwater, a creature that touches it or hits it with a melee attack within 5 feet makes a DC 14 Constitution saving throw. On a failure it is diseased for 1d4 hours and can breathe only underwater.'
         })
       ],
       order: 2

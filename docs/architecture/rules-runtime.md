@@ -1957,6 +1957,18 @@ actor list so a player who controls an actor's owner controls, and sees, the own
 `owner` on each actor. Nothing here is System-specific: the economy an owned actor spends is named for the
 concept (the owner's economy) and a System's data picks the action type (T2v2a3).
 
+### Summon placement (current compile only, SPELLS-4.T2v2a2a)
+
+A spell whose one ON_USE outcome is a timed `SUMMON` manifest with a stat block compiles to `compilation.summonPlacement`
+on the v4 `CHARACTER_ACTION` entry (`compileSummonPlacement` on the System adapter; dnd5e: `effectActionSummons.ts`):
+`{ summonOutcomeId, label, statBlock, entry }`. `entry` is a lasting carrier plan (no contribution, the same shape as a
+zone's lasting entry) that carries the duration in turns and the Concentration the cast opens, and `executionPlan` is
+its frozen graph. It is exclusive with `zonePlacement` and `choice`. A summon that authors `behaviors`, an
+attachment or shape, a lifecycle, no stat block or no bounded duration is refused and the action goes manual (Mage Hand
+until T2v2b authors its stat block, Spiritual Weapon until T2v2a3 models behaviors). Target: **transitional**, nothing
+yet reads `summonPlacement` at cast, so the action is not offered in an Encounter; T2v2a2b adds the staged-Scene cast
+write and T2v2a2c creates and removes the actor.
+
 ### Effect offers: moving a held effect (current, SPELLS-4.T2d2, D160)
 
 `grantedActions` offer a basic action to the effect's holder; `lifecycle.effectOffers` is the second offer family, made to the effect's **source** (or holder) about the effect itself. Generic authored data, never a spell name: `{ kind: 'MOVE_HELD_EFFECT', offeredTo: 'SOURCE' | 'HOLDER', when: 'HOLDER_AT_ZERO_HP', activation (not REACTION or FREE), range { amount, unit } }`, at most 4, `APPLY_GRANT` only. The compiler stores it on the `MODIFIER_GRANT` contribution (`effectOffers`); the `onEnd` follow-on never inherits it. A later kind (T2lb2's `REPEAT_SOURCE_PATH`) is one more `kind` in `packages/schema/src/effects/effectOffer.ts`; discovery, the listing and the pick envelope do not change.
@@ -2711,8 +2723,10 @@ effect; an effect the damaging command placed never repeats against its own dama
 both sides with the same inputs: the room passes `repeatSaves: { damagerActorId }` to `planNativeLiveConcentration`,
 and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
 rows so a stale or invented chain is rejected by comparison. Sources wired: single-target action, area (damager is
-the caster), Cleaving (the cleaving creature), and turn effects with Legendary Actions (no damager, so only `ANYONE`
-triggers match). T2m3 and SPELLS-33.T4m add triggers or effects by changing these readers, never by adding a
+the caster), Cleaving (the cleaving creature), and turn effects with Legendary Actions. A damage source that names its dealer (a turn effect's
+origin `sourceActorId`, stored on its execution receipt as `damagerActorId`; a zone's source; a Legendary Action's
+owner) stamps `damagerActorId` on its chain application, which overrides the chain-wide damager, so `SOURCE_SIDE`
+triggers match it; a source naming nobody falls back to the chain's damager (null: only `ANYONE` matches). T2m3 and SPELLS-33.T4m add triggers or effects by changing these readers, never by adding a
 source-specific path. A follow-up save with timing `ON_TRIGGERS_ONLY` (D176, SPELLS-33.T6e2 Vampire Charm) repeats
 on its `repeatTriggers` alone: it requires them, a once-only repeated save, and no `repeatRollInfluence` or
 `repeatAttemptGate`, and is never a `repeatTiming`. It compiles to the same frozen repeat-save graph, gated on the

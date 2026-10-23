@@ -53,6 +53,7 @@ import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../
 import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from '../../encounterZonePlacement.js'
 import { diceGraphDefinition } from './effectActionDiceGraph.js'
 import {
+  activeEffectGraphNodeId,
   durationPublishedGraph,
   isGrantConsumeEvent,
   maintenancePlan
@@ -89,6 +90,7 @@ import {
   withMovementInterruption,
   type TestPlan
 } from './effectActionTestPhase.js'
+import { compileDnd5eSummonPlacement } from './effectActionSummons.js'
 import { compileDnd5eZonePlacement } from './effectActionZones.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
@@ -266,9 +268,6 @@ const DND5E_ORDINARY_SIGHT_CAPABILITY = {
   physicalConstraints: ['LINE_OF_EFFECT'] as const
 }
 const DND5E_ORDINARY_SIGHT_CHECKSUM = checksumRuleDocument(DND5E_ORDINARY_SIGHT_CAPABILITY)
-function activeEffectGraphNodeId(compiledEntryId: string): string {
-  return `active_effect_${compiledEntryId}`
-}
 
 type Dnd5eEffectActionTemplate = Readonly<{
   phase: 'TEST' | 'OUTCOME'
@@ -3911,6 +3910,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   incomingGateImmunityPlan,
   compileZonePlacement: ({ action, label }) =>
     compileDnd5eZonePlacement(executableAction(action), label),
+  compileSummonPlacement: ({ action }) => compileDnd5eSummonPlacement(executableAction(action)),
   interpretSpatial,
   compileExecutionPlan: ({ action, compilerSource }) => {
     const source = executableAction(dndSourceFromCompilerSource(compilerSource))
