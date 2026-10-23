@@ -1134,6 +1134,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Ruling:** the read measure pins `_creationTime` to a fixed-length stand-in. The Encounter projection sends condition definition IDs only, and web labels them from the System vocabulary it already holds (ADR 0039: labels come from the vocabulary capability). The ceiling is not raised.
   - **Order:** T9q lands before RULES-2.T9k, which then merges its defaults object under the restored budget.
   - **Rejected:** raising the ceiling (weakens the budget assertion), storing labels with each actor condition (stored-shape change and a second copy of System data), and a label cache.
+* **D181** (2026-10-23) Derived and modified healing (SPELLS-4.T2n, AC SPELLS-4.1; packet [slice-spells-4-t2n.md](slice-spells-4-t2n.md)). Orchestrator ruling.
+  - **Split (option A):** T2n becomes four generic options. T2n1: a `HEALING_RECEIVED` domain with a maximize-dice modifier on the holder (Beacon of Hope). T2n2: a heal derived from the damage a sibling `DAMAGE` outcome on the same path actually applied, with a fraction (rounded down) and the source as recipient (Vampiric Touch). T2n3: one roll shared by a max-hit-point bonus and a heal in the same result block, plus a charged granted heal action (Heroes' Feast, Goodberry). T2n4: damage mirrored to the source, a within-distance-of-source grant restriction and a lifecycle end on separation or the source at 0 hit points (Warding Bond). Warding Bond stays in this family: it is one of the kinds T2n owns, and its mirror is its identity.
+  - **Repeat each turn:** Vampiric Touch's later-turn attack uses the existing repeat-source-path offer (D160, D166; SPELLS-4.T2lb2a, Heat Metal). No new granted-action seam.
+  - **Death saves:** no save filter covers them today, so T2n1 adds a generic death-save target to the `SAVING_THROW_MODIFIER` filter; Beacon's death-save advantage is authored on it.
+  - **Heroes' Feast cure:** poisoned ends through the `END_EFFECTS` condition selector (D174); disease stays description-only (no disease model), as do the 1-hour consumption delay, nourishment and Warding Bond's recast end.
+  - **Mirror rule:** the source takes the amount the holder actually took (after the holder's resistance); the source's own defenses then apply as ordinary damage. Mirrored damage is never mirrored again (no ping-pong).
+  - **Downstream:** SPELLS-31.T4n and SPELLS-33.T4n wait on T2n1 and T2n2; SPELLS-33.T6b1 waits on T2n1.
+  - **Rejected:** one broad derived-healing outcome (couples four unrelated seams).
 
 ## Approved implementation decisions
 

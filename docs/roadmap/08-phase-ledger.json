@@ -10695,9 +10695,50 @@
               "text": "Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs. Contagion lasts 7 days, over MAX_ACTIVE_EFFECT_TURNS (14,400); it needs a longer-duration path or a Campaign-clock lifecycle before it compiles as an active effect (found in T2m1c)."
             },
             {
+              "id": "SPELLS-4.T2n1",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
-              "id": "SPELLS-4.T2n",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Healing received (D181): a HEALING_RECEIVED domain with a maximize-dice modifier on the holder, and a generic death-save target on the SAVING_THROW_MODIFIER filter. Converts BEACON_OF_HOPE (Wisdom and death-save advantage, maximized healing), with parity and room journey proofs; kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2n2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Damage-derived heal (D181): HEAL whose amount is a fraction (rounded down) of the damage a sibling DAMAGE outcome on the same path actually applied, aimed at the source; the later-turn attack uses the repeat-source-path offer (D160, D166). Converts VAMPIRIC_TOUCH, with parity and room journey proofs; kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2n3",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2n2"]
+              },
+              "text": "Shared roll and charged heal action (D181): one roll shared by a HIT_POINTS_MAX bonus and a HEAL in the same result block; a charged granted heal action. Converts HEROES_FEAST (poisoned ends via END_EFFECTS, poison and frightened immunity, Wisdom save advantage; disease, delay and nourishment description-only) and GOODBERRY, with parity and room journey proofs; kinds deleted."
+            },
+            {
+              "id": "SPELLS-4.T2n4",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
@@ -10705,7 +10746,7 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Derived or modified healing. Converts BEACON_OF_HOPE, VAMPIRIC_TOUCH, WARDING_BOND, GOODBERRY, HEROES_FEAST, with parity proofs; each kind deleted.",
+              "text": "Damage mirror (D181): damage the holder actually took is mirrored to the source (never mirrored again), a within-distance-of-source grant restriction, and a lifecycle end on separation or the source at 0 hit points. Converts WARDING_BOND (AC and save bonus, resistance; recast end description-only), with parity and room journey proofs; kind deleted.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
@@ -13748,7 +13789,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2n", "SPELLS-4.T2i"]
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
               "text": "Join SPELLS-4.T2n: Disciple of Life, Blessed Healer, Supreme Healing, Preserve Life (with resource use), Song of Rest. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
@@ -14842,7 +14883,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2n"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
               "text": "absorption healing x3, healing denial bites x3 (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
@@ -15041,7 +15082,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2f", "SPELLS-4.T2n"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2f", "SPELLS-4.T2n1"]
               },
               "text": "new: afflictions and curses with rest and healing denial and a clock (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
