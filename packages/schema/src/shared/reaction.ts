@@ -14,6 +14,7 @@ import { spatialPointDtoSchema } from './spatialFacts.js'
 import {
   AUTHORED_LIMITS,
   MAX_ENCOUNTER_ACTORS,
+  authoredPositiveLengthAmountSchema,
   authoredReferenceCollectionSchema
 } from './authoredLimits.js'
 
@@ -100,6 +101,11 @@ export const pathLifecycleEndTriggersDtoSchema = lazySchema(() =>
       z.strictObject({
         event: z.literal('INCAPACITATED'),
         of: pathLifecycleEndTriggerOfSchema
+      }),
+      z.strictObject({
+        event: z.literal('SEPARATED'),
+        from: pathLifecycleEndTriggerOfSchema,
+        beyondFeet: authoredPositiveLengthAmountSchema
       })
     ])
   )

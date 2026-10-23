@@ -412,6 +412,8 @@ export type CharacterHitPointOutcomeApplication =
       interceptionSaves?: DamageInterceptionSaveDto[]
       /** The charge the intercepting feature spent, when it is limited-use. */
       interceptionCharge?: DamageInterceptionChargeDto
+      /** Damage a held damage mirror passed on from another actor; it is never mirrored again. */
+      mirrored?: true
     })
 
 export interface CharacterConditionApplyOutcomeApplication {

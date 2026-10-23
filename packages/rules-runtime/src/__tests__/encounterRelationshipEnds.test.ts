@@ -1,7 +1,10 @@
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
+import { wardingBond } from '@artificer-toolkit/source-data/srd/spells/warding-bond.js'
 import { describe, expect, it } from 'vitest'
 
 import { encounterEndedRelationships } from '../encounterRelationshipEnds.js'
+import { plannedGrantEffect } from './antitoxinEffectFixture.js'
 import { escapeGrappleEffectDefinition } from '../testing/escapeGrappleEffectFixture.js'
 
 /** 100px cells of 5 feet; a Medium token fills one cell and is anchored at its center. */
@@ -39,7 +42,7 @@ const hold = (id: string, grapplerId = GRAPPLER) => ({
 })
 
 function ended(input: {
-  effects: [string, ReturnType<typeof hold>[]][]
+  effects: [string, Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]][]
   tokens?: ReturnType<typeof placed>[] | null
   unable?: readonly string[]
 }) {
@@ -99,6 +102,31 @@ describe('a relationship ends on its own when its hold breaks (D152)', () => {
     expect(unplaced.ends).toEqual([
       { sourceActorId: GRAPPLER, heldActorId: HELD, activeEffectId: 'effect' }
     ])
+  })
+
+  it('ends a bond whose authored separation limit its holder stands beyond, and only that', async () => {
+    const bond = (id: string) =>
+      plannedGrantEffect({
+        id,
+        holderActorId: HELD,
+        effect: wardingBond.effects?.[0],
+        sourceLabel: wardingBond.label,
+        sourceActorId: GRAPPLER
+      })
+    const within = await ended({
+      effects: [[HELD, [bond('bond')]]],
+      tokens: [placed(GRAPPLER, 0), placed(HELD, 12)]
+    })
+    expect(within.ends).toEqual([])
+    const beyond = await ended({
+      effects: [[HELD, [bond('bond')]]],
+      tokens: [placed(GRAPPLER, 0), placed(HELD, 13)]
+    })
+    expect(beyond.ends).toEqual([
+      { sourceActorId: GRAPPLER, heldActorId: HELD, activeEffectId: 'bond' }
+    ])
+    const unplaced = await ended({ effects: [[HELD, [bond('bond')]]], tokens: null })
+    expect(unplaced.ends).toEqual([])
   })
 
   it('ends only the broken hold of a source holding two creatures', async () => {

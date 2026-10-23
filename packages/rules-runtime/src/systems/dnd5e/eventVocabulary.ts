@@ -94,6 +94,9 @@ export const dnd5eEventVocabularyCapabilityAdapter: EventVocabularyCapabilityAda
         case 'INCAPACITATED':
           ends.push({ event: 'INCAPACITATED', of: trigger.of })
           break
+        case 'SEPARATED':
+          ends.push({ event: 'SEPARATED', from: trigger.from, beyondFeet: trigger.beyondFeet })
+          break
       }
     if (recurrence.endOnConditionIds.length > 0)
       ends.push({ event: 'CONDITION_HELD', conditionIds: recurrence.endOnConditionIds })

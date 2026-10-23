@@ -61,7 +61,7 @@ export const dispelEvilAndGood: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.DISPEL_EVIL_AND_GOOD, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.DISPEL_EVIL_AND_GOOD, 0x213, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -79,6 +79,22 @@ export const dispelEvilAndGood: SpellAuthored = {
                     ['CELESTIAL', 'ELEMENTAL', 'FEY', 'FIEND', 'UNDEAD']
                   )
                 }
+              },
+              {
+                id: spellChildId(SPELL_IDS.DISPEL_EVIL_AND_GOOD, 0x215, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Break Enchantment',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'As your action, you may end the spell early to touch a creature you can reach that is charmed, frightened, or possessed by a celestial, an elemental, a fey, a fiend, or an undead. The creature is no longer charmed, frightened, or possessed by such creatures. The GM ends those conditions.'
+              },
+              {
+                id: spellChildId(SPELL_IDS.DISPEL_EVIL_AND_GOOD, 0x216, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Dismissal',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "As your action, you may end the spell early to make a melee spell attack against a celestial, an elemental, a fey, or an undead you can reach. On a hit, the creature must succeed on a Charisma saving throw or be sent back to its home plane (if it isn't there already). Undead not on their home plane are sent to the Shadowfell, and fey to the Feywild. The GM resolves the save and the banishment."
               }
             ]
           }

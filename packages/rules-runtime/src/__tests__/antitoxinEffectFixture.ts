@@ -98,7 +98,7 @@ export function plannedGrantEffect(input: {
     sourceActorId: input.sourceActorId ?? null,
     consumeOnFirstEvents: plan.modifierGrantContribution.consumeOnFirstEvents,
     endOnEvents: plan.modifierGrantContribution.endOnEvents,
-    endOnTriggers: [],
+    endOnTriggers: plan.lifecycle?.endOnTriggers ?? [],
     endOnConditionIds: plan.modifierGrantContribution.endOnConditionIds,
     holderEnd: plan.modifierGrantContribution.holderEnd,
     stateContributions: [

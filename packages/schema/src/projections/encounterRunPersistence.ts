@@ -427,6 +427,8 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         ),
         null
       ),
+      /** True once a held damage mirror passed this action's damage on to its source; undo can't restore that source. */
+      damageMirrored: z._default(z.boolean(), false),
       /** The turn movement record a Dash's speed bonus was added to; its undo removes it. */
       speedBonusTurn: z.nullable(
         z.strictObject({

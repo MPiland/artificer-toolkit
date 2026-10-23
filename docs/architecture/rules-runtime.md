@@ -1147,6 +1147,22 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   meets a `HARMFUL_ACTION_AIMED` by an attacker of a listed type: `heldIncomingGate` lists the wards the attacker has not
   passed and asks discovery which one it meets. Counter and targeted-self windows are reactions to
   `SPELL_CAST_BY_OTHER` and `TARGETED_BY_CAST` above; a retarget stays the gate's failure pause.
+- **Damage mirror** (SPELLS-4.T2n4, D181/D184; `encounterDamageMirror.ts`; Worker: `roomDamageMirrorCollector.ts`,
+  `roomDamageMirror.ts`). A `DAMAGE_MIRROR` `ENABLE` grant on a holder passes the damage the holder took, after the
+  holder's own defenses, to the effect's source (Warding Bond). `heldDamageMirrors` lists the holder's mirrors,
+  `pendingDamageMirrors` filters a receipt's applications (never `mirrored`, never zero, never to the holder itself) and
+  `damageMirrorMechanicsBatch` builds the source's DAMAGE batch (derived command id, phase `DAMAGE_MIRROR`, each
+  application marked `mirrored`, so it is never mirrored again; the source's own defenses apply as ordinary damage). The
+  room collects a holder's pending mirrors when it persists the holder's batch and settles them as one post-settlement
+  step (`settleDamageMirrors`) in the same transaction, from the two commit seams: `executeRoomEncounterCommand` (before
+  and after its follow-up raises) and the voluntary Scene movement callbacks. The source is read fresh, so no upstream
+  copy of it is stale; `RoomEncounterStore.transact` fails a command that collected a mirror it never settled. A source
+  absent from the Run, or a Run no longer ACTIVE, takes nothing. A mirror that landed marks the root `damageMirrored`,
+  and undo of that root is a typed refusal (it can't give the source its damage back). Distance and source-at-0-hp are
+  authored end triggers (`SEPARATED` with `beyondFeet`, measured by the post-commit relationship sweep
+  `encounterSeparatedEffects`; `INCAPACITATED` of the `SOURCE`), so separation ends the whole effect. Known limits:
+  mirrored damage applies hit points and defeat only (no concentration check or damage-ended effect on the source), and
+  a voluntary move's undo transitions omit the mirror's change.
 - **Maintenance link** (RULES-2.T8; System capability `maintenance-link`, `MaintenanceLinkCapabilityAdapter`). Concentration
   is a neutral link keyed by the System's `maintenanceDefinitionId`; the 5e adapter (`systems/dnd5e/concentrationPolicy.ts`)
   supplies `MaintenanceLinkHook`s in priority order: `BREAK` on `DEFEATED`, `INCAPACITATED` of the holder or
@@ -1903,7 +1919,7 @@ A spell the Character may cast only as a ritual (a `RITUAL` spell grant the Shee
 
 The facet predicate `SOURCE_CREATURE_TYPE` (selectable `creatureTypeIds`, System vocabulary ids) limits a grant to sources of certain creature types: the attacker for `ATTACKS_AGAINST`, the effect's origin for `CONDITION_IMMUNITY`. The grant fold keeps it a deferred requirement. `holderStateSourceQualifier` checks the grant's holder conditions when the holder is prepared and leaves the source conditions as a `sourceQualifier`, which `sourceQualifierAdmits` decides where the source is known: `prepareEncounterActionMechanics` filters `attackAgainstContributors` by the attacker's type and adds `sourceConditionImmunities` that admit it (`conditionImmunityIdsAgainstSource`). Turn and spatial effects bind the holder's unqualified immunities only (their origin type is not on those paths).
 
-`SOURCE_TRAIT` (selectable `traits`: `MAGICAL`, `SILVERED`, `ADAMANTINE`; SPELLS-4.T2j2a) is the same deferred source restriction for the attack's traits: `prepareEncounterActionMechanics` passes a `GrantSource` (creature type ids plus the traits of the attack) to `sourceQualifierAdmits`. Holy Aura (attack disadvantage from any attacker on every attack domain, plus advantage on every saving throw, on chosen creatures) and Dispel Evil and Good (the same disadvantage from celestials, elementals, fey, fiends and undead) are authored from these grants; their `CLOSED_RULE` outcomes are removed, and the `HOLY_AURA` and `DISPEL_EVIL_AND_GOOD` kinds stay until T2j2b and T2j2c supply the retaliation and the touch-target repeat. Proofs: `encounterHolyAuraDispelEvilGrants.test.ts`, `sourceTraitAuthoringParity.test.ts`, and the room journey `apps/session-worker/test/nativeRoomHolyAuraDispelEvil.test.ts`.
+`SOURCE_TRAIT` (selectable `traits`: `MAGICAL`, `SILVERED`, `ADAMANTINE`; SPELLS-4.T2j2a) is the same deferred source restriction for the attack's traits: `prepareEncounterActionMechanics` passes a `GrantSource` (creature type ids plus the traits of the attack) to `sourceQualifierAdmits`. Holy Aura (attack disadvantage from any attacker on every attack domain, plus advantage on every saving throw, on chosen creatures) and Dispel Evil and Good (the same disadvantage from celestials, elementals, fey, fiends and undead) are authored from these grants; their `CLOSED_RULE` outcomes are removed, and the `HOLY_AURA` kind stays until T2j2b supplies the retaliation. The `DISPEL_EVIL_AND_GOOD` kind is deleted (T2lb2b1, D187a): Break Enchantment and Dismissal ship as `MANUAL_ADJUDICATION` GM rulings, and the `EYEBITE` kind is deleted the same way (its per-turn retarget is a GM ruling; see future-enhancements "Deferred rules pieces (D187a)"). Proofs: `encounterHolyAuraDispelEvilGrants.test.ts`, `sourceTraitAuthoringParity.test.ts`, and the room journey `apps/session-worker/test/nativeRoomHolyAuraDispelEvil.test.ts`.
 
 `DAMAGE_RESISTANCE` and `DAMAGE_IMMUNITY` payloads take an optional `bypassedBy` (`MAGICAL`, `SILVERED`, `ADAMANTINE`): a Character's fold yields `qualifiedDefenses` on the policy output, a Creature's active grants merge into its stat block's, and `dnd5eAttackDamageDefenses` applies them only to attacks without a bypassing trait. Protection from Evil and Good (and Purity of Spirit), Stoneskin and Wind Walk are authored from these options and their closed rule kinds are deleted.
 

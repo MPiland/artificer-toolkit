@@ -21,6 +21,7 @@ import {
 } from '@artificer-toolkit/schema/api/liveSessionCheckpointJournal'
 import { LIVE_SESSION_CHECKPOINT_MAX_BYTES } from '@artificer-toolkit/schema/api/liveSessionCheckpointFence'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
+import { assertDamageMirrorsSettled } from './roomDamageMirrorCollector.js'
 
 /** The Durable Object SQLite surface the room store uses; `DurableObjectStorage` satisfies it. */
 export type RoomSqlValue = string | number | ArrayBuffer | null
@@ -662,6 +663,7 @@ export class RoomEncounterStore {
     }
     try {
       const result = await work(transaction)
+      assertDamageMirrorsSettled(transaction)
       const writes: RoomWrite[] = [...this.#memory.transaction.writes(), ...staged.values()]
       if (writes.length > 0 || commitDurable)
         this.#logWrites(writes, commitDurable ?? this.#journalUnowned)
