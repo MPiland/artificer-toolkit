@@ -275,7 +275,7 @@ export type CompiledEffectOutcome =
 function compileBehaviors(
   behaviors: ManifestBehaviorAuthored[] | undefined
 ): CompiledEffectGroup[] | undefined {
-  return behaviors?.length ? behaviors.map(compileEffect) : undefined
+  return behaviors?.length ? behaviors.map((effect) => compileEffect(effect)) : undefined
 }
 
 function compileManifestOutcome(outcome: ManifestAuthored): CompiledManifest {
