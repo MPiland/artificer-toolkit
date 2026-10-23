@@ -692,13 +692,13 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant(
       'SAVING_THROW_MODIFIER',
       'BONUS',
-      savingThrowParamDtoSchema,
+      optionalAbilityParamDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(
       'SAVING_THROW_MODIFIER',
       'PENALTY',
-      savingThrowParamDtoSchema,
+      optionalAbilityParamDtoSchema,
       modifierScalarValueDtoSchema
     ),
     buildModifierGrantVariant(

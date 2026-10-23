@@ -600,20 +600,22 @@ export type ModifierDamageDieAuthored = Omit<ModifierRolledDieAuthored, 'sign' |
   )
 
 /**
- * The domain a modifier kind is scoped by. A rolled die on saving throws may omit the ability, so
- * one grant covers every save, death saves included (D156); a rolled damage die may omit the attack
+ * The domain a modifier kind is scoped by. A rolled die, bonus or penalty on saving throws may omit
+ * the ability, so one grant covers every save, death saves included (D156, D185); a rolled damage die may omit the attack
  * domain, so it joins every damage its recipient deals, spells included (Bestow Curse).
  */
 export type ModifierDomainFor<
   V extends ValueDomainCode,
   K extends ModifierKind
-> = K extends 'ADD_BONUS_DIE'
-  ? V extends 'SAVING_THROW_MODIFIER'
+> = V extends 'SAVING_THROW_MODIFIER'
+  ? K extends 'ADD_BONUS_DIE' | 'BONUS' | 'PENALTY'
     ? { ability?: AbilityCode }
-    : V extends 'DAMAGE'
+    : ValueDomainParam<V>
+  : K extends 'ADD_BONUS_DIE'
+    ? V extends 'DAMAGE'
       ? { attackDomain?: AttackDomainCode }
       : ValueDomainParam<V>
-  : ValueDomainParam<V>
+    : ValueDomainParam<V>
 
 /** A fraction a value is multiplied by, rounded down (D94): "your speed is halved" is 1/2. */
 export type ModifierFractionAuthored = { numerator: number; denominator: number }
