@@ -10333,18 +10333,44 @@
               "proof": "nativeRoomSourceQualifiedGrants.test.ts (PFEG: fiend bite at disadvantage, humanoid normal), encounterSourceQualifiedGrants.test.ts; shared creatureTypeConditionMatches; PFEG, Stoneskin, Wind Walk golden SINGLE_GRAPH."
             },
             {
-              "id": "SPELLS-4.T2j2",
+              "id": "SPELLS-4.T2j2a",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-4.T2j1"]
               },
-              "text": "SOURCE_TRAIT (MAGICAL) restriction and attack domains on the D179 qualifiers (moved from T2j1), then Holy Aura and Dispel Evil and Good: Holy Aura's rider against a fiend or undead attacker, Dispel Evil and Good's disadvantage by creature type and its ending of charm and frighten from those types through END_EFFECTS; possession and dismissal stay description-only. Parity proofs; HOLY_AURA and DISPEL_EVIL_AND_GOOD deleted.",
+              "text": "Source trait and origin selector (D183): the SOURCE_TRAIT (MAGICAL) restriction and attack domains on the D179 qualifiers, an END_EFFECTS origin creature-type selector, Holy Aura and Dispel Evil and Good attack-disadvantage grants and Holy Aura save advantage, with parity proofs and a room journey; HOLY_AURA and DISPEL_EVIL_AND_GOOD stay closed.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2j2b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2j2a"]
+              },
+              "text": "Holder melee-hit retaliation (D183): retaliation on a melee hit fires for every holder of an effect (not a placed zone), with the source qualifier on the attacker. Converts Holy Aura's blinding rider, with parity proof and room journey; HOLY_AURA deleted."
+            },
+            {
+              "id": "SPELLS-4.T2j2c",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2j2a", "SPELLS-4.T2lb2b"]
+              },
+              "text": "Repeat path on a touch target (D183): a held effect offers a repeat of a source path against a freshly picked touch target (on the T2lb2b fresh target pick). Converts Dispel Evil and Good's Break Enchantment through END_EFFECTS (origin creature-type selector); dismissal description-only. Parity proof and room journey; DISPEL_EVIL_AND_GOOD deleted."
             },
             {
               "id": "SPELLS-4.T2k1",
@@ -10682,7 +10708,7 @@
                   "SPELLS-4.T2lb",
                   "SPELLS-4.T2m1",
                   "SPELLS-4.T2j1",
-                  "SPELLS-4.T2j2"
+                  "SPELLS-4.T2j2a"
                 ]
               },
               "text": "Condition suppression (split from T2m, 2026-10-20): a CONDITION_SUPPRESSION modifier (conditionIds, effect origin any or magical, SUPPRESS keeps the condition counting down, PREVENT blocks it). Converts CALM_EMOTIONS and FREEDOM_OF_MOVEMENT with parity proofs; kinds deleted. The magical-origin filter reuses the D179 SOURCE_TRAIT restriction."
@@ -13678,7 +13704,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2j1", "SPELLS-4.T2j2"]
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2j1", "SPELLS-4.T2j2a"]
               },
               "text": "Join SPELLS-4.T2j: Multiattack Defense, Nature's Ward, both Land's Stride. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
@@ -14255,7 +14281,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-32.T1", "SPELLS-4.T2j1", "SPELLS-4.T2j2"]
+                "after": ["SPELLS-32.T1", "SPELLS-4.T2j1", "SPELLS-4.T2j2a"]
               },
               "text": "Fey Ancestry, Gnome Cunning (\"against magic\" qualifier, built with SPELLS-33.T4j) and Dwarven Resilience (\"against poison\": the POISONED condition or poison damage, the same qualifier family) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
             },
@@ -14815,7 +14841,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2j1", "SPELLS-33.T3a2", "SPELLS-4.T2j2"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2j1", "SPELLS-33.T3a2", "SPELLS-4.T2j2a"]
               },
               "text": "Magic Resistance, Fey Ancestry, Gnome Cunning, Duergar Resilience, angelic and hellish weapons, Turn Resistance (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
