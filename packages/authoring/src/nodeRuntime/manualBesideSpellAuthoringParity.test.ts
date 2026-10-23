@@ -7,6 +7,7 @@ import { feeblemind } from '@artificer-toolkit/source-data/srd/spells/feeblemind
 import { jump } from '@artificer-toolkit/source-data/srd/spells/jump.js'
 import { levitate } from '@artificer-toolkit/source-data/srd/spells/levitate.js'
 import { reverseGravity } from '@artificer-toolkit/source-data/srd/spells/reverse-gravity.js'
+import { timeStop } from '@artificer-toolkit/source-data/srd/spells/time-stop.js'
 import { silentImage } from '@artificer-toolkit/source-data/srd/spells/silent-image.js'
 import { teleport } from '@artificer-toolkit/source-data/srd/spells/teleport.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -17,7 +18,7 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
-describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-4.T2a5, SPELLS-4.T2u, D156)', () => {
+describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-4.T2a5, SPELLS-4.T2u, SPELLS-4.T2l3, D156)', () => {
   it.each([
     ['Feeblemind', feeblemind],
     ['Silent Image', silentImage],
@@ -25,7 +26,8 @@ describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-
     // SPELLS-4.T2o (D187a): no 3D position model, so the movement is a GM ruling.
     ['Jump', jump],
     ['Levitate', levitate],
-    ['Reverse Gravity', reverseGravity]
+    ['Reverse Gravity', reverseGravity],
+    ['Time Stop', timeStop]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     // Equipment authoring the spell's effects: the effect list every owner shares.
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }

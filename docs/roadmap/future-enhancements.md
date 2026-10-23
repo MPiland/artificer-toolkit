@@ -539,7 +539,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Long-rest step-down and a flat d20 modifier fold:** Raise Dead's -4 penalty (D185).
 - **Fresh-target per-turn repeat:** Eyebite retargeting (D186 FRESH); also tag-based ending of enchantments (Break Enchantment).
 - **Compelled turns:** Confusion, Compulsion and Eyebite Panicked.
-- **EXTRA_TURN:** Time Stop and Thief's Reflexes.
+- **EXTRA_TURN:** Time Stop (extra consecutive turns and ending conditions; initiative insertion is not built) and Thief's Reflexes.
 - **Holder-action save escape:** Irresistible Dance.
 - **Condition suppression:** Calm Emotions.
 - **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits.

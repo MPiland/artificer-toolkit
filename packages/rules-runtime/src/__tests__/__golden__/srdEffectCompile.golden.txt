@@ -1432,7 +1432,7 @@
 00000020-0000-0210-012d-000000000001 CHARACTER:spells Teleport | SINGLE_GRAPH 8ac966f4bc4ac95561eacb03b141a7151b85df3fd27c92c1f00141102dd66a15 nodes=2 outputs=1
 00000020-0000-0210-012e-000000000001 CHARACTER:spells Teleportation Circle | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0131-000000000001 CHARACTER:spells Thunderwave | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=c60a5f1c9371eb836a167302fbc7372a23b4ba4a8286619efbcc01cf4b941bb6,ON_SAVE_SUCCESS=4f3c5a701d2c9fb235c82d3aa8ad3825c7fe02c21afe4116d438b5f537a2529d]
-00000020-0000-0210-0132-000000000001 CHARACTER:spells Time Stop | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000020-0000-0210-0132-000000000001 CHARACTER:spells Time Stop | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000020-0000-0210-0133-000000000001 CHARACTER:spells Tiny Hut | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0134-000000000001 CHARACTER:spells Tongues | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0135-000000000001 CHARACTER:spells True Polymorph | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[]

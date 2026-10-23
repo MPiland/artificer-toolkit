@@ -57,8 +57,11 @@ export const timeStop: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.TIME_STOP, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'TIME_STOP' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Take Extra Turns',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'You take 1d4 + 1 turns in a row while no time passes for other creatures. The spell ends if one of your actions or effects during this period affects a creature other than you or an object worn or carried by someone else, or if you move more than 1,000 feet from where you cast it.'
               }
             ]
           }
