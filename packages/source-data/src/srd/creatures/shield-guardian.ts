@@ -104,17 +104,6 @@ export const shieldGuardian: CreatureAuthored = {
       label: 'Spell Storing',
       description:
         "Spell Storing. A spellcaster who wears the shield guardian's amulet can cause the guardian to store one spell of 4th level or lower. To do so, the wearer must cast the spell on the guardian. The spell has no effect but is stored within the guardian. When commanded to do so by the wearer or when a situation arises that was predefined by the spellcaster, the guardian casts the stored spell with any parameters set by the original caster, requiring no components. When the spell is cast or a new spell is stored, any previously stored spell is lost.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(252, 208),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(252, 209), rangeKind: S.RANGE_KIND.SPECIAL }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHIELD_GUARDIAN_SPELL_STORING
-        })
-      ],
       order: 3
     },
     {
