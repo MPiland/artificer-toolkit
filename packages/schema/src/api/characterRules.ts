@@ -493,7 +493,8 @@ const characterSpellSlotUsageFactsSchema = lazySchema(() =>
           rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647))
         }),
         z.strictObject({
-          kind: z.literal('PACT'),
+          kind: z.literal('POOL'),
+          poolCode: boundedIdentitySchema,
           rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647))
         })
       ])
@@ -503,7 +504,7 @@ const characterSpellSlotUsageFactsSchema = lazySchema(() =>
       z.superRefine((usage, context) => {
         const keys = new Set<string>()
         for (const [index, entry] of usage.entries()) {
-          const key = entry.kind === 'STANDARD' ? `STANDARD:${entry.spellLevel}` : entry.kind
+          const key = entry.kind === 'STANDARD' ? `STANDARD:${entry.spellLevel}` : entry.poolCode
           if (keys.has(key)) {
             context.addIssue({
               code: 'custom',
@@ -1493,6 +1494,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
       ),
       pactMagic: z.nullable(
         z.strictObject({
+          poolCode: boundedIdentitySchema,
           sourceClassId: boundedIdentitySchema,
           slots: integerSchema.check(z.gte(0)),
           level: integerSchema.check(z.gte(1)).check(z.lte(9)),

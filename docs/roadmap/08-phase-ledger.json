@@ -4273,7 +4273,7 @@
             },
             {
               "id": "RULES-2.T9p",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4283,8 +4283,8 @@
                 "after": ["RULES-2.T9i"]
               },
               "text": "Neutral character files (characterOnHitCosts, characterRulePolicyFacts, characterSpellCastActions, sheetProjection, sheetRest) compare the 'PACT' slot key. The slot pools, with their label and short-rest recovery, come from the dnd5e System's core codes through the capability registry; neutral code holds no pool literal.",
-              "note": "Found in the SPELLS-31.T5p review (D175), 2026-10-22.",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "note": "Found in the SPELLS-31.T5p review (D175), 2026-10-22. Merged in m357.",
+              "mergedAt": "2026-10-23T00:20:57Z"
             }
           ]
         }

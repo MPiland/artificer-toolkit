@@ -6,6 +6,7 @@ import type { CompiledCreature, CompiledSpell } from '@artificer-toolkit/shared/
 import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
 
 import { buildCharacterArmorClassRuleFacts } from './characterArmorClassRuleFacts.js'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import { buildCharacterHandRuleFacts } from './characterHandRuleFacts.js'
 import { buildCharacterActionRuleFacts } from './characterActionRuleFacts.js'
 import { buildCharacterCompanionMechanicsRuleFacts } from './characterCompanionMechanicsRuleFacts.js'
@@ -133,7 +134,10 @@ export function composeCharacterRulePolicyFacts(
     }),
     spellcastingClasses: buildCharacterSpellSlotRuleFacts(snapshot, registry),
     spellSlotUsageFacts: (character.state.spellSlots ?? []).map((slot) => {
-      if (slot.slotKey === 'PACT') return { kind: 'PACT' as const, rawUsed: slot.used }
+      const pool = systemCoreCodeRegistry
+        .entries(snapshot.systemId, 'spellSlotPool')
+        .find(({ code }) => code === slot.slotKey)
+      if (pool) return { kind: 'POOL' as const, poolCode: pool.code, rawUsed: slot.used }
       const match = /^STANDARD:([1-9])$/.exec(slot.slotKey)
       if (!match) throw new Error(`Unsupported spell slot usage key: ${slot.slotKey}`)
       return { kind: 'STANDARD' as const, spellLevel: Number(match[1]), rawUsed: slot.used }

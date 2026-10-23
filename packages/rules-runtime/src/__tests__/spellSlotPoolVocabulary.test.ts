@@ -53,7 +53,7 @@ function registryWithPool(poolCode: string): CharacterAssemblyRegistry {
 describe('spell slot pool vocabulary', () => {
   it('lists the System pools the dnd5e System defines', () => {
     expect(systemCoreCodeRegistry.entries(DND5E_SYSTEM_ID, 'spellSlotPool')).toEqual([
-      { code: 'PACT', label: 'Pact Magic' }
+      { code: 'PACT', label: 'Pact Magic', recoversOnShortRest: true }
     ])
   })
 
@@ -69,5 +69,16 @@ describe('spell slot pool vocabulary', () => {
     expect(() =>
       buildCharacterSpellRuleFacts(character.snapshot, registryWithPool('ARCANE_BOON'))
     ).toThrow('The Game System does not define the spell slot pool "ARCANE_BOON".')
+  })
+})
+
+describe('spell slot pool recovery (RULES-2.T9p)', () => {
+  it('names the Pact pool as the one a short rest refills', () => {
+    expect(
+      systemCoreCodeRegistry
+        .entries(DND5E_SYSTEM_ID, 'spellSlotPool')
+        .filter((pool) => pool.recoversOnShortRest)
+        .map(({ code }) => code)
+    ).toEqual(['PACT'])
   })
 })

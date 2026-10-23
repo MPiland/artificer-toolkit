@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it } from 'vitest'
 
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
@@ -344,6 +344,12 @@ const CASES: ReadonlyArray<{
 ]
 
 describe('class features resolved from core options through the class node map (SPELLS-31.T3a-T3c, T5s)', () => {
+  // The first normalize of each SRD class pays a one-time cold load of the node map and the dnd5e
+  // graph from source; paying it here keeps it out of the first case's 5 s budget.
+  beforeAll(async () => {
+    for (const record of new Set(CASES.map((entry) => entry.record))) await normalize(record)
+  }, 60_000)
+
   it.each(CASES)('keeps the SRD $label exactly as authored, with no closed rule', async (entry) => {
     const nodes = caseNodes(entry.record, entry.label, entry.parent)
     expect(nodes.length).toBeGreaterThan(0)
