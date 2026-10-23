@@ -1179,6 +1179,17 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Audit:** the remaining SPELLS-4 conversions get one verdict each (fits existing core options, needs a named new piece, or description-only), and the open tasks are re-planned against the baseline.
   - **Exceptions to the freeze:** bugs, CI flakes and safety fixes found during approved work are not scope and may be registered; they are reported to the user.
 
+### D187a: re-plan after the D187 audit (user decision, 2026-10-23)
+
+- The user amended SPELLS-4.1, SPELLS-31.1 and SPELLS-33.1: a rider that is rare in play and whose state change is not automated anywhere else ships as its description, shown as a GM ruling (MANUAL_ADJUDICATION). This matches existing precedents: Command, Dominate Person, Bestow Curse, Chill Touch's healing clause and Mummy Rot.
+- Consistency rule: when an equivalent state change is already automated, the rider is authored with those options and is not cut. Examples: Freedom of Movement immunity (CONDITION_IMMUNITY), save-gated drop to 0 HP (the Solar Slaying Longbow kill), and Stirge or Mimic attach (the Darkmantle ACTOR_RELATIONSHIP pattern).
+- ATTACK-5.1 and ATTACK-5.15: swallow, engulf, curse, disease, lycanthropy and healing-block wounds resolve as a GM ruling beside the attack's damage. SPELLS-33.T6a1 carries the one proof that a creature ON_HIT attack with damage and MANUAL_ADJUDICATION compiles through the attack sweep. Drain was already automated.
+- Kept automated by user ruling: Wild Shape forms (T2s), non-save auras (T2r), the Dispel Magic above-level check (T2f1b), Concentration on zone damage (T2m1b2c), and the creature staples Sunlight Sensitivity, Charge and Magic Resistance (SPELLS-33.T6d1 and T5n2).
+- Raise Dead (T2g2) ships its -4 penalty and long-rest step-down as description. The D185 flat-modifier fold is withdrawn with it.
+- Eyebite and Break Enchantment (T2lb2b1) ship as description. D186's FRESH target is withdrawn and HOLDER stays.
+- Removed: SPELLS-27.T7 (a duplicate of the shipped T2k3, T2k3b and T2k3c), SPELLS-4.T2n1b (already description per D181), and T2f2, T2h3, T2j2b, T2j2c and T2lb2b2 (description-only, no remaining work).
+- Open size went from 459 to 319, and open tasks from 120 to 112. The deferred engine pieces are listed in future-enhancements under "Deferred rules pieces (D187a)". The audit evidence is in `local-validation/audit-d187/`.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
