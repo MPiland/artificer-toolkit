@@ -10092,7 +10092,7 @@
                 "size": 1,
                 "after": ["SPELLS-4.T2f"]
               },
-              "text": "END_EFFECTS by tag (D174, split from T2f 2026-10-22): a TAG selector backed by a System vocabulary kind for effect tags (T5p recipe). Converts REMOVE_CURSE and Greater Restoration's curse and reduction clauses, with parity proofs; REMOVE_CURSE kind deleted.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: END_EFFECTS by tag (D174, split from T2f 2026-10-22): a TAG selector backed by a System vocabulary kind for effect tags (T5p recipe). Converts REMOVE_CURSE and Greater Restoration's curse and reduction clauses, with parity proofs; REMOVE_CURSE kind deleted.",
               "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10526,7 +10526,7 @@
                 "size": 1,
                 "after": ["SPELLS-4.T2l"]
               },
-              "text": "Compelled turns (D160, split from T2l): a turn-start compelled behavior on a held effect. Converts CONFUSION (server-rolled d10 behavior and D159 RANDOM direction, self-move through the movement planner), COMPULSION (direction set by a granted source bonus action), Eyebite Panicked and Sickened, and Contagion’s Mindfire (moved from T2m), with parity proofs; deletes EYEBITE, CONFUSION, COMPULSION, and CONTAGION once T2m has converted its other diseases.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Compelled turns (D160, split from T2l): a turn-start compelled behavior on a held effect. Converts CONFUSION (server-rolled d10 behavior and D159 RANDOM direction, self-move through the movement planner), COMPULSION (direction set by a granted source bonus action), Eyebite Panicked and Sickened, and Contagion’s Mindfire (moved from T2m), with parity proofs; deletes EYEBITE, CONFUSION, COMPULSION, and CONTAGION once T2m has converted its other diseases.",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10540,7 +10540,7 @@
                 "size": 1,
                 "after": ["SPELLS-4.T2l"]
               },
-              "text": "Extra turns (D160, split from T2l): TIME_STOP with 1d4+1 consecutive caster turns, ending on any committed outcome that targets or affects another creature or an object the caster is not wearing or carrying, or on moving more than 1,000 ft (ambiguous objects to manual adjudication). The initiative-insertion design is ruled before coding. Parity proof; TIME_STOP deleted.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Extra turns (D160, split from T2l): TIME_STOP with 1d4+1 consecutive caster turns, ending on any committed outcome that targets or affects another creature or an object the caster is not wearing or carrying, or on moving more than 1,000 ft (ambiguous objects to manual adjudication). The initiative-insertion design is ruled before coding. Parity proof; TIME_STOP deleted.",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10658,7 +10658,7 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2m1"]
               },
-              "text": "Holder-action repeat save (split from T2m1, ruled 2026-10-20): a save variant of the D105/D146 lifecycle.escape seam (prepare, verify, plan, offers, outputs) beside any held condition, not only spatial; DC pinned at cast through the T2i3 castFactKeys save-DC pin (no second pin path). Converts IRRESISTIBLE_DANCE with a parity proof and room journey; kind deleted. Propose a split at start if still size 8.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Holder-action repeat save (split from T2m1, ruled 2026-10-20): a save variant of the D105/D146 lifecycle.escape seam (prepare, verify, plan, offers, outputs) beside any held condition, not only spatial; DC pinned at cast through the T2i3 castFactKeys save-DC pin (no second pin path). Converts IRRESISTIBLE_DANCE with a parity proof and room journey; kind deleted. Propose a split at start if still size 8.",
               "note": "D187a re-plan: size 8 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10679,7 +10679,7 @@
                   "SPELLS-4.T2j2a"
                 ]
               },
-              "text": "Condition suppression (split from T2m, 2026-10-20): a CONDITION_SUPPRESSION modifier (conditionIds, effect origin any or magical, SUPPRESS keeps the condition counting down, PREVENT blocks it). Converts CALM_EMOTIONS and FREEDOM_OF_MOVEMENT with parity proofs; kinds deleted. The magical-origin filter reuses the D179 SOURCE_TRAIT restriction.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Condition suppression (split from T2m, 2026-10-20): a CONDITION_SUPPRESSION modifier (conditionIds, effect origin any or magical, SUPPRESS keeps the condition counting down, PREVENT blocks it). Converts CALM_EMOTIONS and FREEDOM_OF_MOVEMENT with parity proofs; kinds deleted. The magical-origin filter reuses the D179 SOURCE_TRAIT restriction.",
               "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10700,7 +10700,7 @@
                   "SPELLS-4.T2m1b2c"
                 ]
               },
-              "text": "Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs. Contagion lasts 7 days, over MAX_ACTIVE_EFFECT_TURNS (14,400); it needs a longer-duration path or a Campaign-clock lifecycle before it compiles as an active effect (found in T2m1c).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs. Contagion lasts 7 days, over MAX_ACTIVE_EFFECT_TURNS (14,400); it needs a longer-duration path or a Campaign-clock lifecycle before it compiles as an active effect (found in T2m1c).",
               "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10744,7 +10744,7 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2n2"]
               },
-              "text": "Shared roll and charged heal action (D181): one roll shared by a HIT_POINTS_MAX bonus and a HEAL in the same result block; a charged granted heal action. Converts HEROES_FEAST (poisoned ends via END_EFFECTS, poison and frightened immunity, Wisdom save advantage; disease, delay and nourishment description-only) and GOODBERRY, with parity and room journey proofs; kinds deleted.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Shared roll and charged heal action (D181): one roll shared by a HIT_POINTS_MAX bonus and a HEAL in the same result block; a charged granted heal action. Converts HEROES_FEAST (poisoned ends via END_EFFECTS, poison and frightened immunity, Wisdom save advantage; disease, delay and nourishment description-only) and GOODBERRY, with parity and room journey proofs; kinds deleted.",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10772,7 +10772,7 @@
                 "size": 2,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Speed equal to another speed, jumping, elevation and vertical forced movement. Converts SPIDER_CLIMB, ALTER_SELF, JUMP, LEVITATE, REVERSE_GRAVITY, with parity proofs; each kind deleted.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B), ruled before coding: Speed equal to another speed, jumping, elevation and vertical forced movement. Converts SPIDER_CLIMB, ALTER_SELF, JUMP, LEVITATE, REVERSE_GRAVITY, with parity proofs; each kind deleted.",
               "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10786,7 +10786,7 @@
                 "size": 2,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Directional and vertical movement and damage multiplication. Converts GUST_OF_WIND, TELEKINESIS, RAY_OF_ENFEEBLEMENT, SUNBEAM, GASEOUS_FORM, with parity proofs; each kind deleted.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B), ruled before coding: Directional and vertical movement and damage multiplication. Converts GUST_OF_WIND, TELEKINESIS, RAY_OF_ENFEEBLEMENT, SUNBEAM, GASEOUS_FORM, with parity proofs; each kind deleted.",
               "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10800,7 +10800,7 @@
                 "size": 2,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Armed, staged or deferred zones. Converts GLYPH_OF_WARDING, SYMBOL, STORM_OF_VENGEANCE, DELAYED_BLAST_FIREBALL, EARTHQUAKE, with parity proofs; each kind deleted.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B), ruled before coding: Armed, staged or deferred zones. Converts GLYPH_OF_WARDING, SYMBOL, STORM_OF_VENGEANCE, DELAYED_BLAST_FIREBALL, EARTHQUAKE, with parity proofs; each kind deleted.",
               "note": "D187a re-plan: size 8 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10855,7 +10855,7 @@
                 "size": 1,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): A save-gated grant with an indefinite (until dispelled) lifetime without Concentration, ABILITY_SCORE SET_VALUE that sets the score over bonuses for Characters and Creatures, and a casting lock that also holds for Creatures. Converts FEEBLEMIND, with a parity proof; the kind deleted.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B; T2a2 ruling): A save-gated grant with an indefinite (until dispelled) lifetime without Concentration, ABILITY_SCORE SET_VALUE that sets the score over bonuses for Characters and Creatures, and a casting lock that also holds for Creatures. Converts FEEBLEMIND, with a parity proof; the kind deleted.",
               "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -10882,7 +10882,7 @@
                 "size": 1,
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2v"]
               },
-              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted.",
               "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -11406,7 +11406,7 @@
             },
             {
               "id": "SPELLS-8.T4",
-              "text": "Every SRD APPLY_GRANT spell casts in an Encounter.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Every SRD APPLY_GRANT spell casts in an Encounter.",
               "status": "TODO",
               "closes": ["SPELLS-8.3"],
               "wsjf": {
@@ -11448,7 +11448,7 @@
             },
             {
               "id": "SPELLS-8.T7",
-              "text": "Multi-Effect spells (Arcane Sword, Faithful Hound, Grease, Spiritual Weapon) cast in an Encounter.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Multi-Effect spells (Arcane Sword, Faithful Hound, Grease, Spiritual Weapon) cast in an Encounter.",
               "status": "TODO",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
@@ -13395,7 +13395,7 @@
                 "size": 2,
                 "after": ["SPELLS-30.T1", "SPELLS-4.T1b"]
               },
-              "text": "Blade Barrier: the cast choice picks a straight wall (up to 100 ft long) or a ring (up to 60 ft across), 20 ft high and 5 ft thick, using the SPELLS-4.T1b wall geometry. It gives three-quarters cover and difficult terrain, and a creature entering it or starting its turn there makes a Dexterity save (6d10 slashing, half on a success). Proved on the SRD spell with a room journey.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Blade Barrier: the cast choice picks a straight wall (up to 100 ft long) or a ring (up to 60 ft across), 20 ft high and 5 ft thick, using the SPELLS-4.T1b wall geometry. It gives three-quarters cover and difficult terrain, and a creature entering it or starting its turn there makes a Dexterity save (6d10 slashing, half on a success). Proved on the SRD spell with a room journey.",
               "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             }
           ]
@@ -13535,7 +13535,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T5ra"]
               },
-              "text": "Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind.",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13549,7 +13549,7 @@
                 "size": 2,
                 "after": ["SPELLS-31.T4c1a", "RULES-2.T3a"]
               },
-              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site.",
               "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13563,7 +13563,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T4a"]
               },
-              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union.",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13608,7 +13608,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1b"]
               },
-              "text": "D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted.",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13665,7 +13665,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2d", "SPELLS-4.T2t"]
               },
-              "text": "Join SPELLS-4.T2i: Survivor, Colossus Slayer, Quivering Palm, Dark One's Blessing. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2i: Survivor, Colossus Slayer, Quivering Palm, Dark One's Blessing. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13679,7 +13679,7 @@
                 "size": 2,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2j1", "SPELLS-4.T2j2a"]
               },
-              "text": "Join SPELLS-4.T2j: Multiattack Defense, Nature's Ward, both Land's Stride. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2j: Multiattack Defense, Nature's Ward, both Land's Stride. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13778,7 +13778,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-31.T4l1", "SPELLS-4.T2l"]
               },
-              "text": "Join SPELLS-4.T2l: Martial Arts, Open Hand Technique, Horde Breaker, Retaliation. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Also owns the Monk Ki-Empowered Strikes room journey moved from T4e: an unarmed strike deals full damage to a nonmagical-resistant target while a weapon attack is resisted (2026-10-19 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2l: Martial Arts, Open Hand Technique, Horde Breaker, Retaliation. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Also owns the Monk Ki-Empowered Strikes room journey moved from T4e: an unarmed strike deals full damage to a nonmagical-resistant target while a weapon attack is resisted (2026-10-19 ruling).",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13805,7 +13805,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
-              "text": "Join SPELLS-4.T2n: Disciple of Life, Blessed Healer, Supreme Healing, Preserve Life (with resource use), Song of Rest. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2n: Disciple of Life, Blessed Healer, Supreme Healing, Preserve Life (with resource use), Song of Rest. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13819,7 +13819,7 @@
                 "size": 1,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2o"]
               },
-              "text": "Join SPELLS-4.T2o: Dragon Wings, Unarmored Movement improvement, Second-Story Work. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2o: Dragon Wings, Unarmored Movement improvement, Second-Story Work. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13833,7 +13833,7 @@
                 "size": 2,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2r", "SPELLS-4.T2j1", "SPELLS-31.T5l"]
               },
-              "text": "Join SPELLS-4.T2r: Aura of Courage and Aura of Devotion (with the 18th-level range), Holy Nimbus, Countercharm, Draconic Presence (with resource use). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2r: Aura of Courage and Aura of Devotion (with the 18th-level range), Holy Nimbus, Countercharm, Draconic Presence (with resource use). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13866,7 +13866,7 @@
                   "SPELLS-4.T2l"
                 ]
               },
-              "text": "Join SPELLS-4.T2v: Pact of the Blade, Lifedrinker, Pact of the Chain, Voice of the Chain Master. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2v: Pact of the Blade, Lifedrinker, Pact of the Chain, Voice of the Chain Master. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13906,7 +13906,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (ruling at start): d20 test overrides (reroll, floor, outcome); Indomitable, Diamond Soul, Reliable Talent, Indomitable Might, Stroke of Luck (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Reliable Talent reuses SPELLS-4.T2c3's MINIMUM_ROLL option but needs a proficiency condition on the grant (floor only on checks the holder is proficient in), which T2c3 did not add.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): d20 test overrides (reroll, floor, outcome); Indomitable, Diamond Soul, Reliable Talent, Indomitable Might, Stroke of Luck (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Reliable Talent reuses SPELLS-4.T2c3's MINIMUM_ROLL option but needs a proficiency condition on the grant (floor only on checks the holder is proficient in), which T2c3 did not add.",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13974,7 +13974,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-31.T5g"]
               },
-              "text": "New option (ruling at start): cast parameters; Distant, Extended, Quickened Spell, Overchannel. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): cast parameters; Distant, Extended, Quickened Spell, Overchannel. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -13988,7 +13988,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-31.T5k"]
               },
-              "text": "New option (ruling at start): spell-scoped riders and modifiers; Repelling Blast, Eldritch Spear, Empowered Evocation, Potent Cantrip, Elemental Affinity. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): spell-scoped riders and modifiers; Repelling Blast, Eldritch Spear, Empowered Evocation, Potent Cantrip, Elemental Affinity. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14002,7 +14002,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (ruling at start): resource and slot recovery and conversion; Flexible Casting, Sorcerous Restoration, Eldritch Master (with charges), Arcane Recovery, Natural Recovery. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): resource and slot recovery and conversion; Flexible Casting, Sorcerous Restoration, Eldritch Master (with charges), Arcane Recovery, Natural Recovery. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14016,7 +14016,7 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2j1"]
               },
-              "text": "New option (ruling at start): a stored feature choice other options read; Favored Enemy, Foe Slayer, Dragon Ancestor, Fiendish Resilience. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): a stored feature choice other options read; Favored Enemy, Foe Slayer, Dragon Ancestor, Fiendish Resilience. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14045,7 +14045,7 @@
                 "size": 1,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2a5"]
               },
-              "text": "New option (ruling at start): awareness senses; Blindsense, Feral Senses, Witch Sight (reusing the SPELLS-4.T2a5 truesight sense where it fits). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): awareness senses; Blindsense, Feral Senses, Witch Sight (reusing the SPELLS-4.T2a5 truesight sense where it fits). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14074,7 +14074,7 @@
                 "size": 1,
                 "after": ["SPELLS-31.T5n"]
               },
-              "text": "Scene-light activation gate (split from T5n, ruled 2026-10-20): ACTION_SCENE reads the holder cell's illumination (scene lights, zones, barriers) so an activation can require dim light or darkness; One with Shadows gains the gate (converted ungated in T5n). Generic predicate, no feature-specific code.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Scene-light activation gate (split from T5n, ruled 2026-10-20): ACTION_SCENE reads the holder cell's illumination (scene lights, zones, barriers) so an activation can require dim light or darkness; One with Shadows gains the gate (converted ungated in T5n). Generic predicate, no feature-specific code.",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14103,7 +14103,7 @@
                 "size": 1,
                 "after": ["SPELLS-31.T5o"]
               },
-              "text": "Extra turn (split from T5o, 2026-10-20): an EXTRA_TURN outcome on the ROLL_INITIATIVE trigger, adding a first-round turn-order entry at an initiative offset (Thief's Reflexes: initiative minus 10, round 1 only). Authoring-parity proof and room journey; deletes its kind. Re-sized 3->8 (2026-10-20): a repeated-actor initiative entry needs a participant key other than the actor id, a cursor that tolerates a repeated actor, replay, reinforcement and removal handling; one vertical slice, not an outcome-only split. Rulings: the extra entry is a full turn (turn resources reset, durations counted in the actor's turns tick on it); the surprise clause stays description-only (D165); SIDE_ROLL placement is ruled at start.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Extra turn (split from T5o, 2026-10-20): an EXTRA_TURN outcome on the ROLL_INITIATIVE trigger, adding a first-round turn-order entry at an initiative offset (Thief's Reflexes: initiative minus 10, round 1 only). Authoring-parity proof and room journey; deletes its kind. Re-sized 3->8 (2026-10-20): a repeated-actor initiative entry needs a participant key other than the actor id, a cursor that tolerates a repeated actor, replay, reinforcement and removal handling; one vertical slice, not an outcome-only split. Rulings: the extra entry is a full turn (turn resources reset, durations counted in the actor's turns tick on it); the surprise clause stays description-only (D165); SIDE_ROLL placement is ruled at start.",
               "note": "D187a re-plan: size 8 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14817,7 +14817,7 @@
                 "size": 2,
                 "after": ["SPELLS-33.T4i4a", "RULES-2.T6c2"]
               },
-              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry.",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry.",
               "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14873,7 +14873,7 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2l"]
               },
-              "text": "bonus-action Dash, Disengage and Hide grants, Aggressive, legendary move, Clay Golem Haste (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: bonus-action Dash, Disengage and Hide grants, Aggressive, legendary move, Clay Golem Haste (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14887,7 +14887,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4l1", "SPELLS-31.T5n"]
               },
-              "text": "extra reactions, reaction denial, charge-and-knock-prone follow-ups, Wing Attack (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: extra reactions, reaction denial, charge-and-knock-prone follow-ups, Wing Attack (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14914,7 +14914,7 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
-              "text": "absorption healing x3, healing denial bites x3 (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: absorption healing x3, healing denial bites x3 (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14954,7 +14954,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2s"]
               },
-              "text": "Change Shape and Shapechanger polymorphs into listed forms (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Change Shape and Shapechanger polymorphs into listed forms (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14968,7 +14968,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
               },
-              "text": "lycanthrope and vampire shapechanging, Misty Escape (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: lycanthrope and vampire shapechanging, Misty Escape (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14982,7 +14982,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
               },
-              "text": "Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion and Mimic Grappler (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion and Mimic Grappler (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -14996,7 +14996,7 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2w"]
               },
-              "text": "Animate Chains, Animate Trees, Children of the Night, Create Specter (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Animate Chains, Animate Trees, Children of the Night, Create Specter (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15079,7 +15079,7 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: swallowed creatures (containment with total cover, acid each turn, regurgitate on a damage threshold) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Includes Purple Worm Bite (from ATTACK-5.T4d, 2026-10-20).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: swallowed creatures (containment with total cover, acid each turn, regurgitate on a damage threshold) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Includes Purple Worm Bite (from ATTACK-5.T4d, 2026-10-20).",
               "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Includes the one proof that a creature ON_HIT attack with damage plus MANUAL_ADJUDICATION compiles through the attack sweep, and removes those allowlist entries."
             },
             {
@@ -15093,7 +15093,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6a1"]
               },
-              "text": "new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Also converts FINGER_OF_DEATH_ZOMBIE (humanoid killed rises as a caster-commanded zombie; moved from SPELLS-4.T2i, 2026-10-20).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Also converts FINGER_OF_DEATH_ZOMBIE (humanoid killed rises as a caster-commanded zombie; moved from SPELLS-4.T2i, 2026-10-20).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15107,7 +15107,7 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: held-creature relationship options (damage to or from the held creature, auto-hit, attach drain, reel) (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: held-creature relationship options (damage to or from the held creature, auto-hit, attach drain, reel) (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
               "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15121,7 +15121,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2f", "SPELLS-4.T2n1"]
               },
-              "text": "new: afflictions and curses with rest and healing denial and a clock (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: afflictions and curses with rest and healing denial and a clock (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15135,7 +15135,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6b1", "SPELLS-33.T4s2"]
               },
-              "text": "new: lycanthropy curse on a failed save (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: lycanthropy curse on a failed save (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15149,7 +15149,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6b1"]
               },
-              "text": "new: disease (recurring saves, ended by cure effects) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: disease (recurring saves, ended by cure effects) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
               "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15191,7 +15191,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6d1"]
               },
-              "text": "new: terrain and underwater predicates (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: terrain and underwater predicates (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15323,7 +15323,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T6e1"]
               },
-              "text": "Balor Death Throes, part 2 (split 2026-10-19): the HP-zero area queues behind a pending Concentration save through a deferred pending-snapshot field (like deferredCleaving), and any defeat roots that T6e1 did not cover through a shared HP-zero seam (retaliation, turn zone, legendary, movement reaction, spatial contact).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Balor Death Throes, part 2 (split 2026-10-19): the HP-zero area queues behind a pending Concentration save through a deferred pending-snapshot field (like deferredCleaving), and any defeat roots that T6e1 did not cover through a shared HP-zero seam (retaliation, turn zone, legendary, movement reaction, spatial contact).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15352,7 +15352,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: incoming spell negation by level or kind, spell storing (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: incoming spell negation by level or kind, spell storing (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15366,7 +15366,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: partner-bound grants (rider, amulet bearer) and body-control swap (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: partner-bound grants (rider, amulet bearer) and body-control swap (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15380,7 +15380,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: attackable body parts and damage-triggered splitting (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: attackable body parts and damage-triggered splitting (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15544,7 +15544,7 @@
                 "size": 1,
                 "after": ["SPELLS-33.T6k2b", "SPELLS-33.T5n2"]
               },
-              "text": "new: Bulette Deadly Leap, a target-chosen saving-throw ability (players choose, creatures take the higher modifier) and landing in an occupied space through the T6k1 passage rule, with prone as the fallback (1 kind, D159 split). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: Bulette Deadly Leap, a target-chosen saving-throw ability (players choose, creatures take the higher modifier) and landing in an occupied space through the T6k1 passage rule, with prone as the fallback (1 kind, D159 split). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15573,7 +15573,7 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: subtype and can-hear target filters, ordinal use variants, wake action, stacking recurring damage, tree size (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: subtype and can-hear target filters, ordinal use variants, wake action, stacking recurring damage, tree size (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
@@ -15616,7 +15616,7 @@
                 "rr": 3,
                 "size": 2
               },
-              "text": "new: a recurring saving throw on a held relationship (found in ATTACK-7.T8, 2026-10-20). The Shambling Mound’s Engulf deals 2d8+4 bludgeoning on a failed DC 14 Constitution save at the start of each of the Mound’s turns while the target stays engulfed. A relationship recurrence that carries a save and its outcome, authorable from core options; reuse it for any other held-creature recurring damage. Authoring-parity proof and a room journey (workbook slice-spells-33.md).",
+              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: a recurring saving throw on a held relationship (found in ATTACK-7.T8, 2026-10-20). The Shambling Mound’s Engulf deals 2d8+4 bludgeoning on a failed DC 14 Constitution save at the start of each of the Mound’s turns while the target stays engulfed. A relationship recurrence that carries a save and its outcome, authorable from core options; reuse it for any other held-creature recurring damage. Authoring-parity proof and a room journey (workbook slice-spells-33.md).",
               "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
