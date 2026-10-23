@@ -30,7 +30,7 @@ import {
   SELECTABLE_PREDICATE_CODES,
   SIZE_OPTIONS
 } from '#core'
-import { createFacetExistsNodeMap } from './facetExists.js'
+import { createFacetExistsNodeMap, type FacetExistMin } from './facetExists.js'
 import {
   actionAppearancePresets,
   actionPresentationPresets

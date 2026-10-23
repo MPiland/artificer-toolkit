@@ -17,7 +17,7 @@ import type { AllUnionFields } from 'type-fest'
 
 const facetExistsNode = buildNodeMap<ExistsConditionAuthored>()
 
-type FacetExistMin = AllUnionFields<
+export type FacetExistMin = AllUnionFields<
   (Pick<ExistsConditionAuthored, 'relationCode'> | Pick<FacetContextAuthored, 'subject'>) &
     SubjectSelectionAuthored
 >
