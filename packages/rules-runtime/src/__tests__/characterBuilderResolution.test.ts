@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest'
 
 import { characterBuilderSectionOfSource } from '../character/builderPresentation.js'
 import { resolveCharacterRecordStats } from '../character/characterRecordStats.js'
-import { WALK_SPEED_CODE } from '../walkingSpeed.js'
 import {
   emptyCharacter,
   prepareFixtureBuilder,
@@ -171,7 +170,7 @@ describe('Character record stats', () => {
     const fixture = readyFighterFixture()
     const { character } = await prepareFixtureBuilder(fixture)
     const { ruleEvaluation } = await prepareFixtureSheet({ ...fixture, character })
-    const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === WALK_SPEED_CODE)?.id
+    const walkSpeedId = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id
     expect(resolveCharacterRecordStats(ruleEvaluation)).toEqual({
       maximumHitPoints: 11,
       speeds: [{ speedId: walkSpeedId, amount: 30, unit: 'FEET' }]
