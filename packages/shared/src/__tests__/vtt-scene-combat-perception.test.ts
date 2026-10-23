@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { SceneBarrierIndex } from '../domains/vtt/geometry.js'
-import type { CampaignSceneState, SceneToken } from '../domains/vtt/scene.js'
+import type { CampaignSceneState, SceneDarknessZone, SceneToken } from '../domains/vtt/scene.js'
 import {
   measureSceneTokenFootprintDistance,
   resolveSceneCombatPerceptionEnvironment,
@@ -394,7 +394,7 @@ describe('Scene combat-perception environment', () => {
       kind: 'POINT',
       position: point
     } as const
-    const darkZone = {
+    const darkZone: SceneDarknessZone = {
       id: crypto.randomUUID(),
       mechanicalIllumination: 'ORDINARY_DARKNESS',
       mechanicalObscurement: null,
@@ -407,7 +407,7 @@ describe('Scene combat-perception environment', () => {
           { x: 0, y: 100 }
         ]
       }
-    } as const
+    }
     const daylightAt = (overrides: Partial<PerceptionScene>, daylight: boolean) => {
       const environment = { ...scene(overrides), daylight }
       return resolveSceneDaylightAt(environment, point, new SceneBarrierIndex(environment.barriers))

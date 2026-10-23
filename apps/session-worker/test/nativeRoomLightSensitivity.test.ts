@@ -64,7 +64,7 @@ describe('Sunlight Sensitivity authored as attack roll disadvantage, in the room
   it('rolls normally in torchlight at BRIGHT on a Scene that is not daylit', async () => {
     expect(
       await shortswordRollMode({
-        ambientIllumination: 'DARK',
+        ambientIllumination: 'ORDINARY_DARKNESS',
         daylight: false,
         lights: [TORCH]
       })
@@ -72,6 +72,8 @@ describe('Sunlight Sensitivity authored as attack roll disadvantage, in the room
   })
 
   it('rolls normally in a daylit Scene where the drow stands in the dark', async () => {
-    expect(await shortswordRollMode({ ambientIllumination: 'DARK', daylight: true })).toBe('NORMAL')
+    expect(
+      await shortswordRollMode({ ambientIllumination: 'ORDINARY_DARKNESS', daylight: true })
+    ).toBe('NORMAL')
   })
 })
