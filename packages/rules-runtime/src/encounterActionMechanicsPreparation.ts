@@ -551,7 +551,17 @@ export async function prepareEncounterActionMechanics<
   const actionMechanic =
     source.kind === 'CHARACTER_ACTION'
       ? characterActionState!.actionMechanic
-      : featureActionMechanic(source.capability)
+      : {
+          ...featureActionMechanic(source.capability),
+          // A repeat of a Character's spell scales by the levels it has when the repeat is made.
+          ...(sourceFacts.characterFacts && {
+            classLevels: Object.fromEntries(
+              sourceFacts.characterFacts.ruleEvaluation.facts.grantFoldFacts.base.classes.map(
+                ({ classId, level }) => [classId, level]
+              )
+            )
+          })
+        }
   const attackKind =
     actionMechanic.attackKind == null ? null : attackKindSchema.parse(actionMechanic.attackKind)
   const hands = encounterActorHeldItems(sourceFacts).filter(({ id }) => id !== stowedItemId)
