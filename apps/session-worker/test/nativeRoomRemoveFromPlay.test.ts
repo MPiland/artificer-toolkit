@@ -1,4 +1,6 @@
 import { runInDurableObject } from 'cloudflare:test'
+import { presentTimelineEntry } from '@artificer-toolkit/encounter-persistence/timelineEntries'
+import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import {
   characterActor,
@@ -86,6 +88,7 @@ const streamVersionOf = (room: MazeRoom) =>
 const returnEntries = async (room: MazeRoom) =>
   (await readRoomHistory(room.room.base.stub)).commands
     .filter(({ commandType }) => commandType === 'RETURNED_TO_PLAY')
+    .map((row) => presentTimelineEntry(encounterStoredRunCommandSchema.parse(row)))
     .map(({ label, ruleOverrides }) => ({ label, ruleOverrides }))
 
 /** The GM ends the caster's Concentration through the Character's Sheet. */
