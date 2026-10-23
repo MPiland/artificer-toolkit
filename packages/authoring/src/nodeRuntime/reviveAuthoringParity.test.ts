@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { reviveDtoSchema } from '@artificer-toolkit/schema/effects/revive'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { revivify } from '@artificer-toolkit/source-data/srd/spells/revivify.js'
@@ -41,9 +42,16 @@ describe('a homebrew REVIVE outcome through the effect node map (SPELLS-4.T2g1, 
     const result = await normalize(withRevive({ valueKind: 'HALF', amount: undefined }))
     expect(result.clearedPaths.length).toBeGreaterThan(0)
   })
+})
 
-  it('clears a fixed amount below one', async () => {
-    const result = await normalize(withRevive({ valueKind: 'FIXED', amount: 0 }))
-    expect(result.clearedPaths.length).toBeGreaterThan(0)
+describe('the REVIVE transport contract (SPELLS-4.T2g1)', () => {
+  it.each([0, 1.5, -2])('refuses a fixed amount of %s', (amount) => {
+    const outcome = { id: 'revive', effectKind: 'REVIVE', valueKind: 'FIXED', amount }
+    expect(reviveDtoSchema.safeParse(outcome).success).toBe(false)
+  })
+
+  it('accepts a positive whole fixed amount', () => {
+    const outcome = { id: 'revive', effectKind: 'REVIVE', valueKind: 'FIXED', amount: 3 }
+    expect(reviveDtoSchema.safeParse(outcome).success).toBe(true)
   })
 })
