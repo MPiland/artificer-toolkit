@@ -10537,7 +10537,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2lb2a"]
               },
-              "text": "Per-turn retarget (D160, split 2026-10-20): a repeat offer with a fresh target pick and a persisted already-saved exclusion. Converts Eyebite Asleep and its per-turn retarget, with a parity proof; Panicked and Sickened and the EYEBITE kind deletion stay with T2l2."
+              "text": "Per-turn retarget (D160, split 2026-10-20): a repeat offer with a fresh target pick and a persisted already-saved exclusion. Converts Eyebite Asleep and its per-turn retarget, with a parity proof; Panicked and Sickened and the EYEBITE kind deletion stay with T2l2.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2lb2c",
