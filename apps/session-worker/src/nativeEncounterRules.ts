@@ -681,8 +681,7 @@ export async function planNativeLiveEncounterAction(
     }
   )
   refuseUnmetItemActionRequirements(prepared, state)
-  // A repeat runs against the creature that holds the offering effect, on the item that cast chose,
-  // unless the offer lets the repeated invocation pick its own targets.
+  // A repeat runs against its holder unless the offer lets the repeated invocation pick targets.
   if (
     prepared.source.kind === 'REPEAT_PATH' &&
     prepared.source.capability.target === 'HOLDER' &&

@@ -703,7 +703,8 @@ function frozenRepeatOffer(
     throw new EncounterActionEffectPlanError('A repeat offer freezes the DC its cast settled.')
   return {
     ...offer,
-    ...(input.spellCastLevel !== undefined && { castLevel: input.spellCastLevel }),
+    ...(input.spellCastLevel !== undefined &&
+      input.spellCastLevel > 0 && { castLevel: input.spellCastLevel }),
     effect: {
       ...offer.effect,
       invocation:
