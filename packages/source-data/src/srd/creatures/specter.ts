@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 export const specter: CreatureAuthored = {
   id: S.CREATURE_IDS.SPECTER,
   label: 'Specter',
@@ -73,7 +74,7 @@ export const specter: CreatureAuthored = {
       label: 'Sunlight Sensitivity',
       description:
         'Sunlight Sensitivity. While in sunlight, the specter has disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight.',
-      grants: S.lightSensitivityGrants(257, 100, true),
+      grants: R.lightSensitivityGrants(257, 100, true),
       order: 2
     },
     {

@@ -82,11 +82,7 @@ import {
   readNativeLiveEnemyProximity,
   readNativeLiveMoveToward
 } from './nativeAttackEnemyProximity.js'
-import {
-  readNativeLiveHasNotTakenTurn,
-  readNativeLiveTurnMovedFeet,
-  readNativeLiveTurnUses
-} from './nativeTurnUses.js'
+import { readNativeLiveTurnMovedFeet, readNativeLiveTurnUses } from './nativeTurnUses.js'
 import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
@@ -115,7 +111,7 @@ import {
   onHitSpellConsumption
 } from '@artificer-toolkit/rules-runtime/character/characterOnHitCosts'
 import { discoverNativeAttackReaction } from './nativeEncounterAttackReaction.js'
-import { readNativeLiveHolderLight } from './nativeHolderLight.js'
+import { nativeActionStateLoaders } from './nativeActionStateLoaders.js'
 import { createNativeCastPause } from './nativeEncounterCastPause.js'
 import { readNativePauseAnswer, settleNativePauseAnswer } from './nativePauseHandlers.js'
 import type { NativePauseAnswer } from './nativePauseTypes.js'
@@ -623,16 +619,12 @@ export async function planNativeLiveEncounterAction(
           sceneContext,
           capture
         }),
-      loadTurnUses: () => readNativeLiveTurnUses(capture, command.actorId),
-      loadTargetHasNotTakenTurn: ({ targetFacts }) =>
-        readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
-      loadHolderLight: ({ sourceFacts }) =>
-        readNativeLiveHolderLight({
-          campaignId: state.campaignId,
-          holder: sourceFacts,
-          sceneContext,
-          capture
-        }),
+      ...nativeActionStateLoaders({
+        campaignId: state.campaignId,
+        actorId: command.actorId,
+        sceneContext,
+        capture
+      }),
       ...actionSources
     }).catch(refuseStaleCharacterAction)
   const occurrenceId = responseCommand ? responseCommand.occurrenceId : crypto.randomUUID()

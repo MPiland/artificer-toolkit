@@ -4,6 +4,7 @@ import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import { SRD_BREATHING_CAPABILITY_DEFINITION_ID } from '../ruleState.js'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 export const cloaker: CreatureAuthored = {
   id: S.CREATURE_IDS.CLOAKER,
   label: 'Cloaker',
@@ -74,7 +75,7 @@ export const cloaker: CreatureAuthored = {
       label: 'Light Sensitivity',
       description:
         'Light Sensitivity. While in bright light, the cloaker has disadvantage on attack rolls and Wisdom (Perception) checks that rely on sight.',
-      grants: S.lightSensitivityGrants(65, 100, false),
+      grants: R.lightSensitivityGrants(65, 100, false),
       order: 3
     },
     {

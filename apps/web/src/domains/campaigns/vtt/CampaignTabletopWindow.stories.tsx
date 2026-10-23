@@ -1124,7 +1124,6 @@ const previewFixtures: TabletopFixtures = {
   liveScene: {
     ...presentedTokensFixtures.liveScene,
     ambientIllumination: 'ORDINARY_DARKNESS',
-    daylight: false,
     tokens: presentedTokensFixtures.liveScene.tokens.map((token) =>
       token.id === tabletopLiveScene.tokens[1]!.id
         ? {

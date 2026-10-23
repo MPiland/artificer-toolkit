@@ -3,6 +3,7 @@ import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 
 export const vampire: CreatureAuthored = {
   id: S.CREATURE_IDS.VAMPIRE,
@@ -236,7 +237,7 @@ export const vampire: CreatureAuthored = {
       label: 'Sunlight Hypersensitivity',
       description:
         'Sunlight Hypersensitivity. The vampire takes 20 radiant damage when it starts its turn in sunlight. While in sunlight, it has disadvantage on attack rolls and ability checks.',
-      grants: S.lightSensitivityGrants(277, 100, true, Object.values(S.ABILITY_CODE)),
+      grants: R.lightSensitivityGrants(277, 100, true, Object.values(S.ABILITY_CODE)),
       effects: [
         {
           id: S.actionId(277, 220),

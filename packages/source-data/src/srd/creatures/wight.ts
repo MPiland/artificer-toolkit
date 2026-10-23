@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 
 export const wight: CreatureAuthored = {
   id: S.CREATURE_IDS.WIGHT,
@@ -46,7 +47,7 @@ export const wight: CreatureAuthored = {
       label: 'Sunlight Sensitivity',
       description:
         'Sunlight Sensitivity. While in sunlight, the wight has disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight.',
-      grants: S.lightSensitivityGrants(293, 100, true),
+      grants: R.lightSensitivityGrants(293, 100, true),
       order: 1
     },
     {

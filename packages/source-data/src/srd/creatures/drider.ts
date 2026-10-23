@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 export const drider: CreatureAuthored = {
   id: S.CREATURE_IDS.DRIDER,
   label: 'Drider',
@@ -124,7 +125,7 @@ export const drider: CreatureAuthored = {
       label: 'Sunlight Sensitivity',
       description:
         'Sunlight Sensitivity. While in sunlight, the drider has disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight.',
-      grants: S.lightSensitivityGrants(87, 100, true),
+      grants: R.lightSensitivityGrants(87, 100, true),
       order: 4
     },
     {

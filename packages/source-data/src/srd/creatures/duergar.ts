@@ -1,6 +1,7 @@
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 
 function weaponAttackOption(input: {
   optionId: number
@@ -143,7 +144,7 @@ export const duergar: CreatureAuthored = {
       label: 'Sunlight Sensitivity',
       description:
         'Sunlight Sensitivity. While in sunlight, the duergar has disadvantage on attack rolls, as well as on Wisdom (Perception) checks that rely on sight.',
-      grants: S.lightSensitivityGrants(91, 100, true),
+      grants: R.lightSensitivityGrants(91, 100, true),
       order: 2
     },
     {

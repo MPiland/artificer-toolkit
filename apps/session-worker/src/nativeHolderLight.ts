@@ -16,19 +16,18 @@ import { readNativeLivePerceptionScene } from './nativeTurnEffectPerception.js'
  * Scene positions): whether the square is bright, and whether the Scene's daylight reaches it. The
  * read refuses a Scene that moved since the action was composed.
  */
-export async function readNativeLiveHolderLight(input: {
-  campaignId: string
-  holder: MovementTarget
-  sceneContext: { sceneId: string; sceneVersion: number } | null
+export async function readNativeLiveHolderLight(
+  campaignId: string,
+  holder: MovementTarget,
+  sceneContext: { sceneId: string; sceneVersion: number } | null,
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
-}): Promise<EncounterHolderLight | null> {
-  const { sceneContext } = input
+): Promise<EncounterHolderLight | null> {
   if (!sceneContext) return null
   const loaded = await readNativeLivePerceptionScene({
-    campaignId: input.campaignId,
-    observerActorId: input.holder.actor.id,
-    subjectActorId: input.holder.actor.id,
-    capture: input.capture
+    campaignId,
+    observerActorId: holder.actor.id,
+    subjectActorId: holder.actor.id,
+    capture
   })
   if (!loaded || loaded.id !== sceneContext.sceneId || loaded.version !== sceneContext.sceneVersion)
     throw new Error('Encounter action facts are stale.')
