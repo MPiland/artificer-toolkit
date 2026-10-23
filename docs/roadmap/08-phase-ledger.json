@@ -4287,7 +4287,7 @@
             },
             {
               "id": "RULES-2.T9o",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4297,8 +4297,9 @@
                 "after": ["RULES-2.T9j", "RULES-2.T9k", "RULES-2.T9l", "RULES-2.T9m", "RULES-2.T9n"]
               },
               "text": "Boundary guard test: no production file outside source-data holds an SRD vocabulary list or compares a vocabulary code literal. Also: creatureFormFilterRefusal (encounterFormChoice.ts) finds a level's challenge rating by the code pattern `CR_${level}`; compare a numeric value on the System's challenge-rating entries instead (found in the T9j review).",
-              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343). Merged in m379.",
+              "mergedAt": "2026-10-23T17:01:38Z",
+              "proof": "Tests and Live green on tip 50b1d9f8; systemVocabularyBoundary.test.ts derives codes from the SRD System record and flags code-literal comparisons, vocabulary code lists and built CR_ codes outside source-data (abilities list deferred to RULES-2.T9f); WALK_SPEED_CODE deleted, turn-movement allowances carry isDefault from System defaults.movementTypeId; the form CR cap compares a numeric challenge-rating value"
             },
             {
               "id": "RULES-2.T9p",

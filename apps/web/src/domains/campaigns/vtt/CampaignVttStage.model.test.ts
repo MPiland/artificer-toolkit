@@ -214,7 +214,9 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
       actorId: character.id,
       used: 15,
       speedId: null,
-      allowances: [{ speedId: walkSpeedId, code: 'WALK', label: 'Walking Speed', budget: 30 }],
+      allowances: [
+        { speedId: walkSpeedId, code: 'WALK', isDefault: true, label: 'Walking Speed', budget: 30 }
+      ],
       teleport: [],
       fleeSourceActorIds: []
     },
@@ -222,7 +224,9 @@ describe('Campaign VTT active turn movement readout (V07.5)', () => {
       actorId: creature.id,
       used: 5,
       speedId: walkSpeedId,
-      allowances: [{ speedId: walkSpeedId, code: 'WALK', label: 'Walking Speed', budget: 40 }],
+      allowances: [
+        { speedId: walkSpeedId, code: 'WALK', isDefault: true, label: 'Walking Speed', budget: 40 }
+      ],
       teleport: [],
       fleeSourceActorIds: []
     }

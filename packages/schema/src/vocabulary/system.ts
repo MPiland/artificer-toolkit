@@ -28,12 +28,16 @@ const systemVocabularyFields = lazySchemaParts(() => ({
   userId: z.string()
 }))
 
-/** A System challenge rating: its XP, the proficiency bonus it grants, and its place in the ascending order. */
+/**
+ * A System challenge rating: its XP, the proficiency bonus it grants, its place in the ascending
+ * order, and its numeric value (1/8 is 0.125), which a level is compared against.
+ */
 const systemChallengeRatingDtoSchema = lazySchema(() =>
   z.extend(vocabularyDtoSchema, {
     xp: z.number().check(z.int()).check(z.gte(0)),
     proficiencyBonus: z.number().check(z.int()).check(z.gte(0)),
-    rank: z.number().check(z.int()).check(z.gte(0))
+    rank: z.number().check(z.int()).check(z.gte(0)),
+    value: z.number().check(z.gte(0))
   })
 )
 
