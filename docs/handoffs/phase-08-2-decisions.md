@@ -1166,6 +1166,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Ruling:** T2g2 (resized to 8) adds one shared fold that totals an actor's active-effect fixed BONUS/PENALTY grants per roll domain. The sheet roll, encounter attack, saving throw, ability check, movement check and death save all read it, and the roll receipt records it as a labelled modifier, reusing an existing modifier entry shape where one exists. The Builder grant fold stays snapshot-only. Death saves stay a single d20 (D181).
   - **Rejected:** shipping stepDown with an inert penalty and a follow-up consumer slice (the kinds would be deleted before the behavior is felt); folding play-state effects into the Builder grant fold.
 
+* **D186** (2026-10-23) Fresh-target repeats and the already-saved exclusion (SPELLS-4.T2lb2b, AC SPELLS-4.1). Orchestrator ruling extending D160 and D166.
+  - **Finding:** the repeat seam is holder-bound: the carrier sits on the target, is bound to a chosen item, and the room refuses any target other than the holder.
+  - **Ruling:** REPEAT_SOURCE_PATH gains `target: HOLDER | FRESH` (default HOLDER). A FRESH offer rides a source-held carrier, maintained by the casting's Concentration, and picks any target the frozen invocation admits. The already-saved exclusion reuses D156 SOURCE_IMMUNITY: a SAVE_SUCCESS immunity keyed by the effect id, with a Concentration lifetime, so admission refuses through the existing immunity check and Concentration end and Undo remove it with no lifecycle schema change. Retarget results join the live Concentration as maintained dependents without restarting it. Eyebite's Asleep is authored as a CHOICE option like Sleep; nothing Eyebite-specific goes in code.
+  - **Split:** T2lb2b1 (size 5) ships the substrate on an authored homebrew spell with a room journey; T2lb2b2 (size 2) converts Eyebite Asleep. T2j2c waits on T2lb2b1, T2l2 on T2lb2b2.
+  - **Rejected:** a new already-saved list on the effect lifecycle (duplicates SOURCE_IMMUNITY).
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
