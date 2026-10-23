@@ -10921,7 +10921,7 @@
               "note": " D187b (2026-10-23): Spiritual Weapon is a caster-controlled CREATURE manifest; gaps return sized for a user yes. D187b: size 8 to 5; Spiritual Weapon moved to T2v2 (summon tokens)."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2v2",
               "wsjf": {
@@ -10932,7 +10932,8 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
               },
               "text": "D187b (approved scope growth): summon tokens. A SUMMON manifest holds its stat block on the spell; when the spell is cast, the room creates a token from it, its owner (the caster, or the GM for a GM-controlled caster) controls it through a System-neutral owner-control piece reusable by any System's summons, companions or minions (ADR 0039); its move and attack spend the owner's action economy as the stat block authors it (the D&D data spends the caster's bonus action) using the caster's frozen spell attack bonus with reach from the token, and the token is removed when the spell ends. Converts SPIRITUAL_WEAPON (WEAPON, MOVE_MANIFEST and COMMAND_MANIFEST), Arcane Hand and Mage Hand, each with a parity proof; room journey: cast Spiritual Weapon, then move and attack with it on a later turn. Riders with no automated equivalent stay GM rulings (D187a).",
-              "note": "Registered 2026-10-23 at the user's yes (D187b); size estimate 13 to 21."
+              "note": "Registered 2026-10-23 at the user's yes (D187b); size estimate 13 to 21.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
