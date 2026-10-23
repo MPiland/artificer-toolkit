@@ -3,10 +3,9 @@ import {
   deathSavesAfterDamage,
   deathSavesAfterDeath,
   deathSavesAfterHealing,
-  deathSavesAfterStabilize,
-  isCharacterDead,
-  isCharacterDying
+  isCharacterDead
 } from './characterDeathSaves.js'
+import { replayDeathStateReceipt } from './ruleExecutionDeathStateReplay.js'
 import {
   temporaryHitPointsAfterGrant,
   temporaryHitPointsAfterLoss,
@@ -272,16 +271,15 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             continue
           }
           if (application.kind === 'KILL_NEGATED' || application.kind === 'DEPART') continue
-          if (application.kind === 'STABILIZE') {
-            const dying = deathSaves !== null && isCharacterDying(deathSaves, current)
-            if (application.applied !== dying)
+          if (application.kind === 'STABILIZE' || application.kind === 'REVIVE') {
+            const replay = replayDeathStateReceipt(application, { current, maximum, deathSaves })
+            if (replay.issue)
               context.addIssue({
                 code: 'custom',
                 path: ['applications', index],
-                message: 'Stabilize receipt must apply to a dying Character only.'
+                message: replay.issue
               })
-            if (deathSaves !== null)
-              deathSaves = deathSavesAfterStabilize({ deathSaves, currentHitPoints: current })
+            ;({ current, deathSaves } = replay)
             continue
           }
           if (application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') {

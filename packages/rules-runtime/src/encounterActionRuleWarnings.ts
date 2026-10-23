@@ -2,6 +2,7 @@ import type {
   EncounterRuleWarningCodeDto,
   EncounterRuleWarningDto
 } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { isTargetDead } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { sizeRank } from '@artificer-toolkit/shared/core'
 import type { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
 import { isEncounterTargetDying } from './encounterActorDefeat.js'
@@ -24,6 +25,12 @@ const TARGET_PRECONDITIONS: Readonly<
   DYING: {
     met: isEncounterTargetDying,
     warning: { code: 'TARGET_NOT_DYING', message: 'The target is not dying.' }
+  },
+  DEAD: {
+    met: (target) =>
+      target !== undefined &&
+      isTargetDead({ currentHitPoints: target.state.current, deathSaves: target.state.deathSaves }),
+    warning: { code: 'TARGET_NOT_DEAD', message: 'The target is not dead.' }
   }
 }
 
