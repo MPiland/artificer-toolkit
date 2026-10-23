@@ -72,6 +72,7 @@ import {
 } from './effectActionResultSequences.js'
 import {
   boundedTestOutcome,
+  damageSourceOutcomeId,
   specializedTestOutcome,
   validateHealBonuses,
   type SpecializedOutcome
@@ -193,8 +194,8 @@ import {
   dnd5eTargetOnlyOutcome,
   type Dnd5eAuthoredOutcome
 } from './effectActionOutcomes.js'
+import { damageSizedOutcomeGraph } from './effectActionDamageSized.js'
 import {
-  hitPointMaximumReductionProposalNode,
   forcedMovementProposalNode,
   dnd5eResultGate,
   dnd5eSaveOutcomeRule,
@@ -2153,7 +2154,13 @@ function executableAction(action: Dnd5eCompiledEffectActionSource) {
 type Dnd5eDirectOutcome =
   | Exclude<
       SpecializedOutcome,
-      { kind: 'DICE_SCALAR_REDUCTION' | 'HIT_POINT_MAXIMUM_REDUCTION' | 'FORCED_MOVEMENT' }
+      {
+        kind:
+          | 'DICE_SCALAR_REDUCTION'
+          | 'HIT_POINT_MAXIMUM_REDUCTION'
+          | 'DAMAGE_DERIVED_HEAL'
+          | 'FORCED_MOVEMENT'
+      }
     >
   | { kind: 'DIRECT_RELATIONSHIP' }
 /** What a direct outcome reads from its action once `supported` has resolved its targets and plans. */
@@ -2566,18 +2573,19 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
         )
       conditionCounts.set(countKey, count)
     }
-    // A reduction takes its amount from one damage outcome of its own result path.
+    // An outcome sized by damage (a reduction, a derived heal) takes it from one damage outcome of its own result path.
+    const sourceDamageOutcomeId = damageSourceOutcomeId(outcome)
     if (
-      outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION' &&
+      sourceDamageOutcomeId !== undefined &&
       action.compiledEffect.entries.filter(
         (candidate) =>
           candidate.pathCode === entry.pathCode &&
-          candidate.entryId === outcome.amountSource.damageOutcomeId &&
+          candidate.entryId === sourceDamageOutcomeId &&
           'outcome' in candidate &&
           candidate.outcome.effectKind === 'DAMAGE'
       ).length !== 1
     )
-      unsupported('D&D hit point maximum reduction needs one damage outcome on its path.')
+      unsupported('D&D outcome sized by damage needs one damage outcome on its path.')
   }
   for (const pathCode of paths) {
     for (const entries of authoredOutcomeGroups(action, pathCode as SpecializedPath))
@@ -3280,35 +3288,15 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
       gate?.kind === 'REDUCED_TO_ZERO_BY' && gate.damageOutcomeId !== entry.entryId
         ? reducedToZeroDamageNodeId(groups, groupIndex, gate.damageOutcomeId, outcome)
         : undefined
-    if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION') {
-      const damageIndex = groups.findIndex(
-        ([candidate]) => candidate?.entryId === outcome.amountSource.damageOutcomeId
-      )
-      const damageEntry = groups[damageIndex]?.[0]
-      if (!damageEntry) unsupported('D&D hit point maximum reduction damage is not owed.')
-      uuid(entry.entryId, 'D&D hit point maximum reduction identity')
-      const proposalId = `${groupNodePrefix.nodePrefix ?? ''}proposal-${entry.pathCode.toLowerCase()}`
-      return {
-        schemaVersion: 1,
-        id: input.action.effectId,
-        gameSystemId: DND5E_SYSTEM_ID,
-        definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-        nodes: [
-          hitPointMaximumReductionProposalNode({
-            id: proposalId,
-            // The OUTCOME phase runs only on its selected path, so the reduction is authorized by construction.
-            resultPath: { kind: 'LITERAL', value: input.selectedPath },
-            authorizedPath: input.selectedPath,
-            sourceDamageNodeId: `outcome${damageIndex + 1}-proposal-${damageEntry.pathCode.toLowerCase()}`,
-            reduction: outcome
-          })
-        ],
-        outputs: {
-          targetActorId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'targetActorId' }
-        },
-        sourceEntryBindings: [{ sourceEntryId: entry.entryId, nodeId: proposalId }]
-      }
-    }
+    if (outcome.kind === 'HIT_POINT_MAXIMUM_REDUCTION' || outcome.kind === 'DAMAGE_DERIVED_HEAL')
+      return damageSizedOutcomeGraph({
+        effectId: input.action.effectId,
+        outcome,
+        entry,
+        groups,
+        nodePrefix: groupNodePrefix.nodePrefix ?? '',
+        selectedPath: input.selectedPath
+      })
     return outcome.kind === 'DICE_DAMAGE' ||
       outcome.kind === 'DICE_HEAL' ||
       outcome.kind === 'DICE_SCALAR_REDUCTION'

@@ -37,6 +37,7 @@ import {
   dnd5eNestedSaveGateOperation,
   dnd5ePathGatedProposalOperations
 } from './effectActionOperationRegistry.js'
+import { dnd5eDamageDerivedHealProposalOperation } from './effectActionDamageDerivedHeal.js'
 import { dnd5eAttackKind, isDnd5eMeleeAttackKind, isDnd5eSpellAttackKind } from './attackKind.js'
 import { dnd5eConcentrationDamageDcOperation } from './concentrationPolicy.js'
 import { dnd5eLegendaryActionEligibilityOperation } from './encounterLifecyclePolicy.js'
@@ -84,6 +85,7 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eEndEffectsProposalOperation,
     dnd5eDamageProposalOperation,
     dnd5eHitPointMaximumReductionProposalOperation,
+    dnd5eDamageDerivedHealProposalOperation,
     dnd5eScalarReductionProposalOperation,
     dnd5eForcedMovementProposalOperation,
     dnd5eDamageTotalOperation,

@@ -44,6 +44,11 @@ describe.each([
     ]
   },
   { label: 'True Strike', ruleKind: 'TRUE_STRIKE', effectKinds: ['APPLY_GRANT'] },
+  {
+    label: 'Vampiric Touch',
+    ruleKind: 'VAMPIRIC_TOUCH',
+    effectKinds: ['DAMAGE', 'HEAL', 'APPLY_GRANT', 'APPLY_GRANT']
+  },
   { label: 'Lesser Restoration', ruleKind: 'LESSER_RESTORATION', effectKinds: ['END_EFFECTS'] },
   {
     label: 'Greater Restoration',

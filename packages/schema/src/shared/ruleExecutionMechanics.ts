@@ -409,18 +409,22 @@ export type TargetOutcomeTransitionDto = z.infer<typeof targetOutcomeTransitionD
 /**
  * What the acting source's own state changed with its action, apart from the target's outcome: the
  * conditions an effect that ended on the event held alone and that effect's temporary hit points
- * (SPELLS-27.T2, D125, D156). Only releases are receipted, because undo restores exactly those.
+ * (SPELLS-27.T2, D125, D156), and the hit points it regained from the damage its action dealt (D181).
+ * Only these are receipted, because undo restores exactly those.
  */
 export const sourceApplicationsDtoSchema = lazySchema(() =>
   z.array(characterMechanicsApplicationDtoSchema).check(
     z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER),
     z.superRefine((applications, context) => {
       for (const [index, application] of applications.entries())
-        if (!isEndedEffectRelease(application) || application.ordinal !== index)
+        if (
+          !(isEndedEffectRelease(application) || application.kind === 'HEAL') ||
+          application.ordinal !== index
+        )
           context.addIssue({
             code: 'custom',
             path: [index],
-            message: 'Source applications are contiguous ended-effect releases.'
+            message: 'Source applications are contiguous ended-effect releases and heals.'
           })
     })
   )
@@ -436,11 +440,12 @@ export function sourceApplicationsChangeState(
 ) {
   return (
     sourceCharacterId !== null &&
-    applications.some(
-      (application) =>
-        (application.kind === 'CONDITION_REMOVE' ||
-          application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') &&
-        application.applied
+    applications.some((application) =>
+      application.kind === 'HEAL'
+        ? application.appliedAmount > 0
+        : (application.kind === 'CONDITION_REMOVE' ||
+            application.kind === 'TEMPORARY_HIT_POINTS_RELEASE') &&
+          application.applied
     )
   )
 }

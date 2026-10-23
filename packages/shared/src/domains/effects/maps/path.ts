@@ -1984,10 +1984,7 @@ function registerOutcomeFields(
         },
         {
           requiredIf: true,
-          showIf: or([
-            local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE),
-            local.field(['effectKind']).eq(EFFECT_KIND.HEAL)
-          ])
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE)
         }
       )
     )

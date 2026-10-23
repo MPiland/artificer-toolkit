@@ -469,6 +469,9 @@ export function foldCharacterMechanicsApplications<
         throw new EncounterValidationError('The scalar reduction terminal transition is invalid.')
       continue
     }
+    // The encounter plan converts this into a heal on the source before any batch is built.
+    if (application.kind === 'DAMAGE_DERIVED_HEAL')
+      throw new EncounterValidationError('A damage-derived heal settles on the action source.')
     if (
       application.beforeCurrentHitPoints !== current ||
       application.beforeTemporaryHitPoints !== temporary ||

@@ -13,6 +13,7 @@ import type {
 } from '../../characterRuleActionSystemAdapter.js'
 import { isCharacterRuleActionForcedMovementDirection } from '../../characterRuleActionSystemAdapter.js'
 import { requireDnd5eAddedDiceTotal } from './d20AddedDiceGraph.js'
+import { damageDerivedHealApplication } from './effectActionDamageDerivedHeal.js'
 import {
   DND5E_ATTACK_TEST_OPERATION_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY
@@ -1226,6 +1227,8 @@ export function interpretDirect(
       }
     }
   }
+  const derivedHeal = damageDerivedHealApplication(input, graph, applications)
+  if (derivedHeal) applications.push(derivedHeal)
   return applications
 }
 
