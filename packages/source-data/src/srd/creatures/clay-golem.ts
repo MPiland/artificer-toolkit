@@ -253,7 +253,12 @@ export const clayGolem: CreatureAuthored = {
                   // "Can use its slam attack as a bonus action": one more weapon attack a turn, as
                   // Haste's additional action grants (D160).
                   grantedActions: [
-                    { activation: S.ACTIVATION_CODE.FREE, usesPerTurn: 1, weaponAttack: true }
+                    {
+                      activation: S.ACTIVATION_CODE.FREE,
+                      usesPerTurn: 1,
+                      actionDefinitionIds: [],
+                      weaponAttack: true
+                    }
                   ]
                 },
                 outcomes: [

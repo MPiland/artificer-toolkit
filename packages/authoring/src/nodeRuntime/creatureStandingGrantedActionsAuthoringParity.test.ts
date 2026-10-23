@@ -82,7 +82,7 @@ describe('Creature traits that offer basic actions (D160)', () => {
       creature: clayGolem,
       label: 'Haste (Recharge 5-6)',
       standing: false,
-      offers: [{ activation: 'FREE', usesPerTurn: 1, weaponAttack: true }]
+      offers: [{ activation: 'FREE', usesPerTurn: 1, actionDefinitionIds: [], weaponAttack: true }]
     }
   ])(
     'authors $label as an APPLY_GRANT with no closed rule',

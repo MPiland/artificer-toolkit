@@ -8,7 +8,7 @@ import {
   type ClosedRuleKind,
   type ManualAdjudicationReason
 } from '@artificer-toolkit/shared/core'
-import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
+import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 
 const SRD_MECHANIC_NAMESPACE = '34679767-1f66-4d2e-a4f5-b585488fa835'
 
@@ -93,11 +93,7 @@ export function manualAdjudicationEffect({
   }
 }
 
-type GrantedActionOffers = NonNullable<
-  NonNullable<
-    NonNullable<EffectAuthored['paths']>[number]['resultBlock']['lifecycle']
-  >['grantedActions']
->
+type GrantedActionOffers = NonNullable<PathLifecycleAuthored['grantedActions']>
 
 /**
  * A passive trait that offers basic actions on every turn: a grant with no duration, so the offer
