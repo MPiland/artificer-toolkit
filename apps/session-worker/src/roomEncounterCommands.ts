@@ -738,11 +738,12 @@ export async function readRoomEncounterPlayAuthorization(
       encounterId: bound.encounterId,
       sceneId: bound.sceneId,
       healthDisplayDefault: state.healthDisplayDefault,
-      actors: actors.map(({ id, kind, sourceId, controllerUserIds, healthDisplay }) => ({
+      actors: actors.map(({ id, kind, sourceId, controllerUserIds, owner, healthDisplay }) => ({
         id,
         kind,
         sourceId,
         controllerUserIds,
+        ...(owner && { owner }),
         healthDisplay
       })),
       tokens: bindings.map(({ tokenId, actorId }) => ({ tokenId, actorId }))

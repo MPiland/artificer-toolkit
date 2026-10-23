@@ -111,6 +111,29 @@ describe('player encounter projection', () => {
     expect(player.actors[0]?.health).toBeNull()
   })
 
+  it('lists an owned actor for the player who controls its owner, and for nobody else', () => {
+    const owner = { ...gmActor(PUBLIC_ACTOR_ID, true), controllerUserIds: [PLAYER_ID] }
+    const summon = {
+      ...gmActor(HIDDEN_ACTOR_ID, true),
+      controllerUserIds: [],
+      owner: { ownerActorId: PUBLIC_ACTOR_ID }
+    }
+    const gm = gmEncounter([owner, summon])
+    const viewer = (userId: string) => ({
+      userId,
+      characters: new Map(),
+      unseenActorIds: new Set([HIDDEN_ACTOR_ID]),
+      unseenConditionTypeIds: new Set<string>()
+    })
+
+    expect(
+      projectPlayerEncounterProjection(gm, viewer(PLAYER_ID)).actors.map((actor) => actor.id)
+    ).toEqual([PUBLIC_ACTOR_ID, HIDDEN_ACTOR_ID])
+    expect(
+      projectPlayerEncounterProjection(gm, viewer(OTHER_PLAYER_ID)).actors.map((actor) => actor.id)
+    ).toEqual([PUBLIC_ACTOR_ID])
+  })
+
   it('carries only what each health display level allows', () => {
     expect(playerActorHealth('HIDDEN', 3, 7)).toBeNull()
     expect(playerActorHealth('DESCRIPTIVE', 3, 7)).toEqual({

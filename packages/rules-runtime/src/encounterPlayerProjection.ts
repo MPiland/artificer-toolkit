@@ -3,6 +3,7 @@ import {
   type EncounterGmProjectionDto,
   type EncounterPlayerProjectionDto
 } from '@artificer-toolkit/schema/api/encounterData'
+import { controlsActorOrOwner } from '@artificer-toolkit/shared/campaign/actorOwnership'
 import { controlsAssignedCharacter } from '@artificer-toolkit/shared/campaign/characterControl'
 import {
   HEALTH_BAR_RATIO_STEP,
@@ -101,7 +102,7 @@ export const UNSEEN_CREATURE_LABEL = 'Unseen creature'
 
 type ViewedActor = Pick<
   EncounterGmProjectionDto['actors'][number],
-  'id' | 'kind' | 'sourceId' | 'public' | 'controllerUserIds' | 'reveal'
+  'id' | 'kind' | 'sourceId' | 'public' | 'controllerUserIds' | 'owner' | 'reveal'
 >
 
 /**
@@ -135,21 +136,35 @@ export function unseenEncounterActorIds(input: {
   )
 }
 
-/** Whether the viewer controls the actor: a listed controller, or the player of a Character actor. */
-export function playerControlsActor(actor: ViewedActor, viewer: EncounterPlayerViewer): boolean {
-  const character =
-    actor.kind === 'CHARACTER' && actor.sourceId !== null
-      ? viewer.characters.get(actor.sourceId)
-      : undefined
-  return (
-    actor.controllerUserIds.includes(viewer.userId) ||
-    controlsAssignedCharacter(
-      character && {
-        userId: character.ownerUserId,
-        controllerUserIds: character.controllerUserIds
-      },
-      viewer.userId
-    )
+/**
+ * Whether the viewer controls the actor or, through `owner`, any actor in its owner chain: a listed
+ * controller, or the player of a Character actor. `actors` is the Encounter's actor list the owners
+ * are found in.
+ */
+export function playerControlsActor(
+  actor: ViewedActor,
+  viewer: EncounterPlayerViewer,
+  actors: readonly ViewedActor[]
+): boolean {
+  return controlsActorOrOwner(
+    actor,
+    (actorId) => actors.find((candidate) => candidate.id === actorId),
+    (candidate) => {
+      const character =
+        candidate.kind === 'CHARACTER' && candidate.sourceId !== null
+          ? viewer.characters.get(candidate.sourceId)
+          : undefined
+      return (
+        candidate.controllerUserIds.includes(viewer.userId) ||
+        controlsAssignedCharacter(
+          character && {
+            userId: character.ownerUserId,
+            controllerUserIds: character.controllerUserIds
+          },
+          viewer.userId
+        )
+      )
+    }
   )
 }
 
@@ -158,12 +173,16 @@ export function playerControlsActor(actor: ViewedActor, viewer: EncounterPlayerV
  * the viewer's map draws (or that has no token on the Scene), that the viewer controls, or that the
  * GM revealed.
  */
-export function playerSeesActor(actor: ViewedActor, viewer: EncounterPlayerViewer): boolean {
+export function playerSeesActor(
+  actor: ViewedActor,
+  viewer: EncounterPlayerViewer,
+  actors: readonly ViewedActor[]
+): boolean {
   return (
     actor.public &&
     (!viewer.unseenActorIds.has(actor.id) ||
       actor.reveal !== null ||
-      playerControlsActor(actor, viewer))
+      playerControlsActor(actor, viewer, actors))
   )
 }
 
@@ -181,7 +200,8 @@ export function projectPlayerEncounterProjection(
   viewer: EncounterProjectionViewer
 ): EncounterPlayerProjectionDto {
   const listedCurrentActor = encounter.actors.find(
-    (actor) => actor.id === encounter.currentActorId && playerSeesActor(actor, viewer)
+    (actor) =>
+      actor.id === encounter.currentActorId && playerSeesActor(actor, viewer, encounter.actors)
   )
   return encounterPlayerProjectionDtoSchema.parse({
     id: encounter.id,
@@ -199,13 +219,13 @@ export function projectPlayerEncounterProjection(
     round: encounter.round,
     currentActorId: listedCurrentActor?.id ?? null,
     actors: encounter.actors
-      .filter((actor) => playerSeesActor(actor, viewer))
+      .filter((actor) => playerSeesActor(actor, viewer, encounter.actors))
       .map((actor) => {
         const character =
           actor.kind === 'CHARACTER' && actor.sourceId
             ? viewer.characters.get(actor.sourceId)
             : undefined
-        const controlled = playerControlsActor(actor, viewer)
+        const controlled = playerControlsActor(actor, viewer, encounter.actors)
         const unseenReason =
           controlled || !viewer.unseenActorIds.has(actor.id)
             ? null

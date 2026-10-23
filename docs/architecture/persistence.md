@@ -423,6 +423,19 @@ only). Turn zones neither consume nor reveal a spatial effect, so persistence ap
 transition. The pending kind `ENCOUNTER_TURN_ZONE_EFFECTS` rides the same pending, admission, owner and
 replay seams as the other turn kinds.
 
+### Owned Run actors (current, SPELLS-4.T2v2a1)
+
+An actor may carry `owner: { ownerActorId, sourceEffectId? }`: the Run actor that commands it (a summon, pet,
+companion or minion), and the effect that created it when one did. Control of an owned actor is never copied onto
+it: `controllerUserIds` stays the GM's per-Run grant. One walk, `actorOwnerChain`
+(`packages/shared/src/domains/campaign/actorOwnership.ts`: nearest owner first, stopping at a missing owner, a
+repeat or depth 4), finds the actors whose control counts, and each reader applies the same rule to it: the
+persistence reads (`actorController.ts`) load the owner rows of the same Encounter by `by_encounterId_id`; the
+player projection (`playerControlsActor`, `playerSeesActor`) and the room's authorization cache
+(`roomBoundTokenControl`) walk the Encounter's actor list they already hold. The cache's actor pick therefore
+carries `owner`. A departed owner's player stops controlling the owned actor because they stop controlling the
+owner; nothing is rewritten. Today only a direct write sets `owner`; the creating command is T2v2a2.
+
 ## Scene storage
 
 `sceneDefinitions` holds the current settings and save ID of a Scene definition. An owner save uploads typed

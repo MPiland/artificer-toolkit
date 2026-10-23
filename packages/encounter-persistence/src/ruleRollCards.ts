@@ -11,7 +11,7 @@ import type { CampaignAuthority, EncounterReadTransaction, EncounterWritePorts }
 /** The Encounter actor that made a roll. */
 type RuleRollRoller = Pick<
   EncounterRunActorState,
-  'id' | 'kind' | 'sourceId' | 'controllerUserIds' | 'public'
+  'id' | 'encounterId' | 'kind' | 'sourceId' | 'controllerUserIds' | 'owner' | 'public'
 >
 
 /**
