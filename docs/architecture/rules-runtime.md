@@ -1942,10 +1942,20 @@ The facet predicate `SOURCE_CREATURE_TYPE` (selectable `creatureTypeIds`, System
 
 A held effect's result block may carry `lifecycle.grantedActions` (generic authored data: `activation`, optional `usesPerTurn`, optional `weaponAttack`, `actionDefinitionIds` of BASIC_ACTIONs; never a spell name). The compiler stores it on the `MODIFIER_GRANT` contribution (`grantedActions`); `encounterGrantedActions.ts` reads it back from the holder's current effects (`heldGrantedActions`). The `onEnd` follow-on never inherits it.
 
+- **Standing offers (current, SPELLS-33.T4l1, D188):** a Creature trait whose PASSIVE effect carries an `APPLY_GRANT` result block with `lifecycle.grantedActions` and **no duration** offers its actions on every turn (Goblin Nimble Escape, Spy Cunning Action). `standingGrantedActions(snapshotFeatureDefinitions(actor))` reads them straight from the actor's snapshot and returns the same `HeldGrantedAction` shape, with the trait's effect id standing in for the held effect id. No row is stored, so the id form, the choice list (`actionChoiceReads`), `resolveGrantedAction`, the weapon-attack hold and the per-turn use keys are the held-effect path unchanged. An activated trait's grant is still timed and held. Conditions on an offer (Shadow Stealth's dim light, Aggressive's "toward a hostile creature") stay in the Feature text as GM rulings.
 - **Id form:** `<basic action id>:GRANTED:<activeEffectId>:<offerIndex>` (`grantedActionId` / `parseGrantedActionId`). The basic-action prefix check still holds, so clients echo `choice.id` unchanged.
 - **Resolve-time re-check:** `resolveEncounterActionSource` takes a `granted` input (held effects plus this turn's spent keys) and refuses a stale offer (effect ended, no longer offers that action) or a spent one. A source carries the offer's `activation` in place of the action's own, and `grantedUseKey`.
 - **Allowance:** a `FREE` offer skips the allowance in `evaluateNativeLiveActionEconomy`; any other activation spends the real allowance. A `weaponAttack` offer is the Attack action's fallback when its own economy is unavailable: the attack opens a total-1 Attack action charged to the offer's use key.
 - **Use count:** a capped offer spends `granted:<effectId>:<offerIndex>:<use>` in the turn row's `usedOncePerTurn` (see persistence.md); the commit spends it and an undo restores it.
+
+### Owner-derived control (current, SPELLS-4.T2v2a1)
+
+The actor contract (`owner` on a Run actor, ownership resolved by `actorOwnerChain`, control never copied) is
+recorded in persistence.md "Owned Run actors". The rules-runtime side is the player projection:
+`playerControlsActor(actor, viewer, actors)` and `playerSeesActor(actor, viewer, actors)` take the Encounter's
+actor list so a player who controls an actor's owner controls, and sees, the owned actor. The GM projection carries
+`owner` on each actor. Nothing here is System-specific: the economy an owned actor spends is named for the
+concept (the owner's economy) and a System's data picks the action type (T2v2a3).
 
 ### Effect offers: moving a held effect (current, SPELLS-4.T2d2, D160)
 

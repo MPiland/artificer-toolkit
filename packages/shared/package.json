@@ -178,6 +178,11 @@
       "types": "./dist/domains/campaign/characterControl.d.ts",
       "default": "./dist/domains/campaign/characterControl.js"
     },
+    "./campaign/actorOwnership": {
+      "source": "./src/domains/campaign/actorOwnership.ts",
+      "types": "./dist/domains/campaign/actorOwnership.d.ts",
+      "default": "./dist/domains/campaign/actorOwnership.js"
+    },
     "./campaign/capabilities": {
       "source": "./src/domains/campaign/campaignCapabilities.ts",
       "types": "./dist/domains/campaign/campaignCapabilities.d.ts",

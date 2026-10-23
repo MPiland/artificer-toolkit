@@ -82,6 +82,7 @@ export const liveSessionRoomPlayAuthorizationSchema = lazySchema(() =>
               kind: true,
               sourceId: true,
               controllerUserIds: true,
+              owner: true,
               healthDisplay: true
             })
           )

@@ -1,4 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
+import { standingGrantedActionsEffect } from '../closed-rule-effect.js'
 import * as S from './shared.js'
 export const shadow: CreatureAuthored = {
   id: S.CREATURE_IDS.SHADOW,
@@ -66,16 +68,21 @@ export const shadow: CreatureAuthored = {
       description:
         'Shadow Stealth. While in dim light or darkness, the shadow can take the Hide action as a bonus action.',
       effects: [
-        S.closedRuleEffect({
+        // The dim-light-or-darkness condition has no automated equivalent; the Feature text states it.
+        standingGrantedActionsEffect({
           id: S.actionId(250, 502),
           invocation: {
-            kind: 'ACTION',
+            kind: 'PASSIVE',
             triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
             range: { id: S.actionId(250, 602), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHADOW_STEALTH
+          grantedActions: [
+            {
+              activation: S.ACTIVATION_CODE.BONUS_ACTION,
+              actionDefinitionIds: [SRD_BASIC_ACTION_IDS.HIDE]
+            }
+          ]
         })
       ],
       order: 2

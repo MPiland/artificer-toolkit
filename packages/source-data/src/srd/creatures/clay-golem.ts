@@ -231,8 +231,9 @@ export const clayGolem: CreatureAuthored = {
             },
             range: {
               id: S.actionId(3256, 6),
-              rangeKind: S.RANGE_KIND.SPECIAL
-            }
+              rangeKind: S.RANGE_KIND.SELF
+            },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
           paths: [
             {
@@ -245,11 +246,51 @@ export const clayGolem: CreatureAuthored = {
               resultBlock: {
                 id: S.actionId(3256, 7) + '__result',
                 resultKind: 'SINGLE' as const,
+                // Until the end of its next turn: this turn and the one after.
+                duration: { id: S.actionId(3256, 10), durationKind: 'TURN', amount: 2 },
+                lifecycle: {
+                  turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' },
+                  // "Can use its slam attack as a bonus action": one more weapon attack a turn, as
+                  // Haste's additional action grants (D160).
+                  grantedActions: [
+                    {
+                      activation: S.ACTIVATION_CODE.FREE,
+                      usesPerTurn: 1,
+                      actionDefinitionIds: [],
+                      weaponAttack: true
+                    }
+                  ]
+                },
                 outcomes: [
                   {
                     id: S.actionId(3256, 7),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CLAY_GOLEM_HASTE
+                    effectKind: S.EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: S.actionId(3256, 11),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: S.VALUE_DOMAIN_CODE.ARMOR_CLASS,
+                          domain: {},
+                          modifierKind: S.MODIFIER_KIND.BONUS,
+                          payload: { valueKind: 'FIXED', amount: 2 },
+                          scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          order: 1
+                        },
+                        {
+                          id: S.actionId(3256, 12),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: S.VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                          domain: { ability: S.ABILITY_CODE.DEXTERITY },
+                          modifierKind: S.MODIFIER_KIND.ROLL_INFLUENCE,
+                          payload: { influence: 'ADVANTAGE' },
+                          scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          order: 2
+                        }
+                      ]
+                    }
                   }
                 ]
               }

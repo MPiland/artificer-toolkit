@@ -1,5 +1,6 @@
 import { playerSeesActor } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readActorOwnerChain } from './actorController.js'
 import { rejectDomain } from './domainRejections.js'
 import { readEncounterPlayerViewer } from './playerViewer.js'
 import type { EncounterReadTransaction } from './ports.js'
@@ -17,7 +18,7 @@ export async function readMemberSeenActorIds(
   const { encounterId, actors, membership } = input
   if (membership.role === 'OWNER') return actors.map((actor) => actor.id)
   const viewer = await readEncounterPlayerViewer(ctx, { id: encounterId, actors }, membership)
-  return actors.filter((actor) => playerSeesActor(actor, viewer)).map((actor) => actor.id)
+  return actors.filter((actor) => playerSeesActor(actor, viewer, actors)).map((actor) => actor.id)
 }
 
 /**
@@ -35,10 +36,11 @@ export async function requireTargetSeenByMember(
 ): Promise<void> {
   const { encounterId, target, membership } = input
   if (membership.role === 'OWNER') return
+  const chain = await readActorOwnerChain(ctx, target)
   const viewer = await readEncounterPlayerViewer(
     ctx,
-    { id: encounterId, actors: [target] },
+    { id: encounterId, actors: chain },
     membership
   )
-  if (!playerSeesActor(target, viewer)) rejectDomain('TARGET_UNAVAILABLE')
+  if (!playerSeesActor(target, viewer, chain)) rejectDomain('TARGET_UNAVAILABLE')
 }

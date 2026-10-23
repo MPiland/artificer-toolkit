@@ -84,8 +84,8 @@ import { requireTargetSeenByMember } from './targetVisibility.js'
 import { readRunActor, readRunActors, readRunState } from './documents.js'
 import { readEncounterSpellPins } from './spellPins.js'
 import {
+  actorGrantedActions,
   grantedActionId,
-  heldGrantedActions,
   nextGrantedActionUseKey
 } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { listActiveRuleEffects, readActiveEffectsByActorId } from './effectStore.js'
@@ -499,8 +499,9 @@ export async function readEncounterActionChoices(
     // What a held effect offers the actor (D160): the same actions, taken through the offer's
     // activation and, when it is capped, its uses this turn.
     const spentKeys = await readTurnUses(tx, { state, actorId: actor.id })
-    const heldOffers = heldGrantedActions(
-      await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))
+    const heldOffers = actorGrantedActions(
+      await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id)),
+      actor
     ).flatMap((held) => {
       if (nextGrantedActionUseKey(held, spentKeys) === undefined) return []
       return offered.flatMap(({ action, admission }) =>
