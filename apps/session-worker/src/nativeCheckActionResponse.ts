@@ -17,7 +17,12 @@ import type {
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ServerKernelRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { checkActionApplicationOutputDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionCheckAction'
+import {
+  checkActionApplicationOutputDtoSchema,
+  type EncounterCheckActionCandidatesDto
+} from '@artificer-toolkit/schema/shared/ruleExecutionCheckAction'
+import { withLinkedDependents } from '@artificer-toolkit/rules-runtime/activeEffectLinks'
+import { endedEffectReleases } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
@@ -25,6 +30,7 @@ import {
   encounterBasicActionCheckPendingSnapshot,
   evaluateRolledEncounterBasicActionCheck,
   rollEncounterCheck,
+  startEncounterBasicActionCheck,
   storedCheckResult
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import {
@@ -45,7 +51,7 @@ import {
   type readNativeLiveActorsAndEffects
 } from './nativeEncounterTargets.js'
 import { prepareNativeLiveRootActionMechanics } from './nativeRootActionPreparation.js'
-import { planNativeTargetOutcome } from './nativeTargetOutcome.js'
+import { planHolderMechanics, planNativeTargetOutcome } from './nativeTargetOutcome.js'
 
 type LiveActors = Awaited<ReturnType<typeof readNativeLiveActorsAndEffects>>
 type Ready = NonNullable<
@@ -184,25 +190,35 @@ export async function planNativeLiveCheckActionResponse(input: {
     return pause(opened.snapshot)
   }
   const evaluated = evaluateRolledEncounterBasicActionCheck(rolled.rolled, context.check.dc)
-  const outcome = evaluated.reachesDc
-    ? await planCheckActionOutcome({
+  const step = context.candidates
+    ? await planCandidateStep({
         ...input,
+        candidates: context.candidates,
         evaluated,
         occurredAt,
-        // An outcome's dice answer resumes its paused graph; a fresh success starts it.
-        answered:
-          context.phase.kind === 'OUTCOME'
-            ? (() => {
-                const answer = withEncounterAppRoll(command.resolution, ready.appRoll)
-                if (answer.kind !== 'ENTER_INTEGER' && answer.kind !== 'SYSTEM_ROLL')
-                  throw new EncounterValidationError(
-                    'A check action outcome answers with its dice.'
-                  )
-                return { continuation, answer }
-              })()
-            : null
+        optionalCombatSnapshotChecksum
       })
     : null
+  const outcome =
+    evaluated.reachesDc && !step
+      ? await planCheckActionOutcome({
+          ...input,
+          evaluated,
+          occurredAt,
+          // An outcome's dice answer resumes its paused graph; a fresh success starts it.
+          answered:
+            context.phase.kind === 'OUTCOME'
+              ? (() => {
+                  const answer = withEncounterAppRoll(command.resolution, ready.appRoll)
+                  if (answer.kind !== 'ENTER_INTEGER' && answer.kind !== 'SYSTEM_ROLL')
+                    throw new EncounterValidationError(
+                      'A check action outcome answers with its dice.'
+                    )
+                  return { continuation, answer }
+                })()
+              : null
+        })
+      : null
   const { commandJson: _commandJson, phase: _phase, ...settledContext } = context
   if (outcome?.kind === 'PENDING')
     return pause(
@@ -239,9 +255,11 @@ export async function planNativeLiveCheckActionResponse(input: {
       check: { checkDefinitionId: context.check.checkDefinitionId, dc: context.check.dc },
       d20: evaluated.d20,
       outcome: evaluated.reachesDc ? 'SUCCESS' : 'FAILURE',
-      stateTransition: outcome?.stateTransition ?? { kind: 'NONE' }
+      ...(step && { candidateEffectId: step.effectId }),
+      stateTransition: (step ?? outcome)?.stateTransition ?? { kind: 'NONE' }
     })
   })
+  const settledTarget = (step ?? outcome)?.actor
   return {
     kind: 'CHECK_ACTION_SETTLED' as const,
     input: liveSessionEncounterBasicActionResponseCommitInputSchema.parse({
@@ -254,14 +272,108 @@ export async function planNativeLiveCheckActionResponse(input: {
         execution,
         appRollId: rolled.appRollId,
         forcedMovements: outcome?.forcedMovements ?? [],
-        ...(spentEffect !== undefined && { window: { spentEffect } })
+        ...(spentEffect !== undefined && { window: { spentEffect } }),
+        ...(step && { candidate: { endedEffects: step.endedEffects, next: step.next } })
       },
       rules: rulesFor(
-        outcome
-          ? actors.map((entry) => (entry.id === outcome.actor.id ? outcome.actor : entry))
+        settledTarget
+          ? actors.map((entry) => (entry.id === settledTarget.id ? settledTarget : entry))
           : actors
       )
     })
+  }
+}
+
+/**
+ * One of a spell's per-effect checks (D182): the d20 against the waiting candidate's DC. A success
+ * ends that effect and the effects linked to it, with the conditions and temporary hit points only
+ * they held, in the one mechanics batch Convex re-applies. The next candidate still held asks the
+ * roller for its own d20 on the same check occurrence; one that ended before its turn is skipped.
+ */
+async function planCandidateStep(
+  input: Parameters<typeof planNativeLiveCheckActionResponse>[0] & {
+    candidates: EncounterCheckActionCandidatesDto
+    evaluated: ReturnType<typeof evaluateRolledEncounterBasicActionCheck>
+    occurredAt: string
+    optionalCombatSnapshotChecksum: string | null
+  }
+) {
+  const { candidates, evaluated, initial, state, actors, activeEffectsByActorId } = input
+  const { context, snapshot } = input.pending
+  const entry = candidates.entries[candidates.cursor]
+  if (!entry || entry.dc !== context.check.dc)
+    throw new EncounterValidationError('The spell check candidate is stale.')
+  const held = activeEffectsByActorId.get(context.targetActorId) ?? []
+  const candidate = held.find(({ id }) => id === entry.effectId)
+  if (!candidate) throw new EncounterValidationError('The spell check candidate has ended.')
+  const endedEffects = evaluated.reachesDc ? withLinkedDependents([candidate], held) : []
+  const releases = endedEffectReleases({
+    holderActorId: context.targetActorId,
+    held,
+    ended: endedEffects
+  })
+  const target = actors.find(({ id }) => id === context.targetActorId)
+  if (!target) throw new EncounterValidationError('The spell check target is unavailable.')
+  const mechanics = releases.length
+    ? planHolderMechanics(
+        {
+          state,
+          holder: (
+            await prepareNativeLiveMovementTarget({
+              scope: initial,
+              state,
+              actor: target,
+              activeEffectsByActorId,
+              ...input.executionOptions
+            })
+          ).target,
+          occurrenceId: snapshot.occurrenceId,
+          commandId: context.commandId,
+          occurredAt: input.occurredAt,
+          userId: initial.expectedUserId
+        },
+        releases
+      )
+    : null
+  const stillHeld = new Set(
+    held.filter(({ id }) => !endedEffects.some((ended) => ended.id === id)).map(({ id }) => id)
+  )
+  const nextCursor = candidates.entries.findIndex(
+    ({ effectId }, index) => index > candidates.cursor && stillHeld.has(effectId)
+  )
+  return {
+    effectId: entry.effectId,
+    actor: mechanics?.updatedActor ?? target,
+    endedEffects,
+    stateTransition: mechanics
+      ? {
+          kind: 'TARGET_OUTCOME' as const,
+          mechanics: {
+            targetTransition: mechanics.targetTransition,
+            targetCharacterStreamVersion: mechanics.characterStreamVersion,
+            applications: mechanics.receiptApplications
+          },
+          forcedMovements: []
+        }
+      : { kind: 'NONE' as const },
+    next:
+      nextCursor < 0
+        ? null
+        : encounterBasicActionCheckPendingSnapshot({
+            continuation: await startEncounterBasicActionCheck({
+              runtime: input.executionOptions.runtime,
+              gameSystemId: state.gameSystemId,
+              occurrenceId: snapshot.occurrenceId,
+              addedDice: context.d20.addedDice
+            }),
+            context: {
+              ...context,
+              check: { ...context.check, dc: candidates.entries[nextCursor]!.dc },
+              candidates: { ...candidates, cursor: nextCursor },
+              phase: { kind: 'CHECK' }
+            },
+            optionalCombatSnapshotChecksum: input.optionalCombatSnapshotChecksum
+          })
   }
 }
 

@@ -20,10 +20,12 @@ import { presentTimelineEntry, type StoredCommand } from './timelineEntries.js'
 import type { EncounterReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
-/** The check occurrence a stored root command pended: a CHECK action's or an Escape's. */
+/** The check occurrence a stored root command pended: a CHECK action's, a spell cast's or an Escape's. */
 export function storedCheckOccurrenceId(root: StoredCommand | undefined): string | null {
   if (root?.commandType === 'RESOLVE_ACTION')
-    return root.root.kind === 'CHECK' ? root.root.checkReceipt.checkOccurrenceId : null
+    return root.root.kind === 'CHECK'
+      ? root.root.checkReceipt.checkOccurrenceId
+      : (root.root.checkOccurrenceId ?? null)
   if (root?.commandType === 'ESCAPE') return root.receipt.checkOccurrenceId
   return null
 }

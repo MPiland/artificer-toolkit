@@ -394,6 +394,11 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Not built: the web repeat row (`CampaignTabletopEffectOffers.tsx` lists the offer; starting its `actionId` from the offer row is a follow-up).
 - Proofs: `encounterRepeatPathAction.test.ts` (id form, offer to the source alone, frozen DC and cast level independent of the caster, stale carrier), `nativeRoomCoreOptionSpells.test.ts` Heat Metal (bonus-action repeat on the frozen DC, no slot or Concentration change, carrier gone with the item), the parity and source-data tests.
 
+#### T2l2 (D187a: description-only)
+
+- Status: implemented; CI on `ci/spells-4-t2l2`. Confusion (d10 behavior) and Compulsion (compelled direction) are one `MANUAL_ADJUDICATION` (`GM_CHOICE`) outcome each; the save, Concentration and 1-minute duration stay automated. The `CONFUSION` and `COMPULSION` closed-rule kinds are deleted (`EYEBITE` went in T2lb2b1).
+- `CONTAGION` stays: T2m3 deletes it with the 7-day duration work. Mindfire's confusion behavior is already in Contagion's description text; compelled turns stay in future-enhancements "Deferred rules pieces (D187a)".
+
 #### T2lb2b1 (D187a: description-only)
 
 - Status: implemented; CI on `ci/spells-4-t2lb2b1`. The D186 engine work (FRESH-target repeat offers, Concentration-lifetime SOURCE_IMMUNITY carrier, `c780b301f`) is withdrawn and not in this tree; T2lb2b2 is removed.

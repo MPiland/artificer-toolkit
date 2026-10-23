@@ -8,6 +8,7 @@ import { frozenCheckD20DtoSchema } from './ruleExecutionEvidence.js'
 import { ruleCheckD20EvidenceDtoSchema } from './ruleExecutionEncounterApplications.js'
 import { targetOutcomeTransitionDtoSchema } from './ruleExecutionMechanics.js'
 import {
+  ruleExecutionIntegerSchema,
   ruleExecutionChecksumSchema as checksumSchema,
   ruleExecutionIdentifierSchema as identifierSchema,
   ruleExecutionPositiveIntegerSchema as positiveIntegerSchema,
@@ -33,11 +34,33 @@ export const checkActionSourceDtoSchema = lazySchema(() =>
       ownerFeatureId: authoredIdentifierSchema,
       effectId: authoredIdentifierSchema,
       compiledEffectChecksum: checksumSchema
+    }),
+    /** A spell's own ability checks (D182): the cast's `RULE_OCCURRENCE` root owns the check occurrence. */
+    z.strictObject({
+      kind: z.literal('SPELL_CAST'),
+      castOccurrenceId: uuidSchema
     })
   ])
 )
 
 export type CheckActionSourceDto = z.infer<typeof checkActionSourceDtoSchema>
+
+/**
+ * The frozen, ordered effects a spell's checks try to end (D182): one roller prompt per entry through
+ * the single d20 settlement, in order. `cursor` is the entry now waiting, and only a settlement moves it.
+ */
+export const encounterCheckActionCandidatesDtoSchema = lazySchema(() =>
+  z.strictObject({
+    entries: z
+      .array(z.strictObject({ effectId: uuidSchema, dc: positiveIntegerSchema }))
+      .check(z.minLength(1), z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+    cursor: ruleExecutionIntegerSchema.check(z.gte(0))
+  })
+)
+
+export type EncounterCheckActionCandidatesDto = z.infer<
+  typeof encounterCheckActionCandidatesDtoSchema
+>
 
 /**
  * A fixed-DC check action whose success runs an authored outcome on its target (D173): the actor's
@@ -61,7 +84,9 @@ export const encounterCheckActionContextDtoSchema = lazySchema(() =>
     d20: frozenCheckD20DtoSchema,
     consumedGrants: z
       .array(activeRuleEffectRecordSchema)
-      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
+      .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),
+    /** A spell's per-effect checks (D182); `check.dc` is the waiting entry's DC. Absent for a one-check action. */
+    candidates: z.optional(encounterCheckActionCandidatesDtoSchema)
   })
 )
 
@@ -108,6 +133,8 @@ export const checkActionApplicationOutputDtoSchema = lazySchema(() =>
       check: z.strictObject({ checkDefinitionId: uuidSchema, dc: positiveIntegerSchema }),
       d20: ruleCheckD20EvidenceDtoSchema,
       outcome: z.enum(['SUCCESS', 'FAILURE']),
+      /** The effect this step's check tried to end (D182); a success ends it in this output's transaction. */
+      candidateEffectId: z.optional(uuidSchema),
       stateTransition: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('NONE') }),
         targetOutcomeTransitionDtoSchema

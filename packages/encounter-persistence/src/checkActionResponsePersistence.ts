@@ -4,6 +4,8 @@ import type {
   LiveSessionEncounterBasicActionResponseCommitInput,
   LiveSessionEncounterCheckPauseCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterCheckActionPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionCheckAction'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -195,8 +197,15 @@ export async function persistEncounterCheckActionResponse(
     execution,
     d20: execution.applicationOutputs.d20
   })
+  const step = readCandidateStep(
+    settlement.candidate,
+    paused.context,
+    occurrence.id,
+    execution.applicationOutputs
+  )
   const spentEffect = settlement.window?.spentEffect ?? null
-  if (spentEffect) await deleteGrants(ctx, [spentEffect])
+  const endedEffects = [...(spentEffect ? [spentEffect] : []), ...(step?.endedEffects ?? [])]
+  await deleteGrants(ctx, endedEffects)
   const { context } = paused
   const settled = await settleEncounterCheckAction(ctx, {
     campaign,
@@ -240,12 +249,76 @@ export async function persistEncounterCheckActionResponse(
     admission,
     input: { ...input, rules: moved.rules },
     actors: moved.actors,
-    endedEffects: spentEffect ? [spentEffect] : [],
+    endedEffects,
     forcedMovements: moved,
     ruleResult: execution,
     receipt: { requestId: pending.continuation.request.requestId, value: answered.value },
-    next: { kind: 'COMPLETE' }
+    next: step?.next ?? { kind: 'COMPLETE' }
   })
+}
+
+/** A check action's context without the command and candidates a spell's next step changes. */
+function frozenCheckAction({
+  commandJson,
+  phase: _phase,
+  candidates: _candidates,
+  check,
+  ...context
+}: EncounterCheckActionPendingContextDto) {
+  return checksumCanonicalJson({ commandJson, ...context, check: { ...check, dc: 0 } })
+}
+
+/**
+ * A spell's per-effect check step (D182), checked against the candidate its context waits on: a
+ * success ends that effect (and what is linked to it) in this commit, a failure ends nothing, and
+ * the next step asks for the following candidate's d20 on the same frozen check, or the check ends.
+ * It returns null for a one-check action.
+ */
+export function readCandidateStep<
+  TNext extends {
+    occurrenceId: string
+    applicationContext: ServerRuleExecutionPendingSnapshotDto['applicationContext']
+  }
+>(
+  candidate: { endedEffects: ActiveRuleEffectRecord[]; next: TNext | null } | undefined,
+  context: EncounterCheckActionPendingContextDto,
+  occurrenceId: string,
+  output: { outcome: 'SUCCESS' | 'FAILURE'; candidateEffectId?: string }
+) {
+  const { candidates } = context
+  if (!candidates || !candidate) {
+    if (candidates || candidate) throw mismatch()
+    return null
+  }
+  const entry = candidates.entries[candidates.cursor]
+  const success = output.outcome === 'SUCCESS'
+  if (
+    !entry ||
+    entry.dc !== context.check.dc ||
+    output.candidateEffectId !== entry.effectId ||
+    success !== candidate.endedEffects.length > 0 ||
+    (success && !candidate.endedEffects.some(({ id }) => id === entry.effectId))
+  )
+    throw mismatch()
+  if (candidate.next === null)
+    return { endedEffects: candidate.endedEffects, next: { kind: 'COMPLETE' as const } }
+  const { applicationContext: next } = candidate.next
+  const nextCandidates = next.kind === 'ENCOUNTER_CHECK_ACTION' ? next.candidates : undefined
+  if (
+    next.kind !== 'ENCOUNTER_CHECK_ACTION' ||
+    next.phase.kind !== 'CHECK' ||
+    !nextCandidates ||
+    candidate.next.occurrenceId !== occurrenceId ||
+    nextCandidates.cursor <= candidates.cursor ||
+    nextCandidates.entries[nextCandidates.cursor]?.dc !== next.check.dc ||
+    checksumCanonicalJson(nextCandidates.entries) !== checksumCanonicalJson(candidates.entries) ||
+    frozenCheckAction(next) !== frozenCheckAction(context)
+  )
+    throw mismatch()
+  return {
+    endedEffects: candidate.endedEffects,
+    next: { kind: 'PENDING' as const, snapshot: candidate.next }
+  }
 }
 
 /**
