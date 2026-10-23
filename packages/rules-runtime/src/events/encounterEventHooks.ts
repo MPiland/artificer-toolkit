@@ -207,6 +207,9 @@ function subscriptionMet(
     case 'REST':
       // A rest is the Sheet's event, read there (activeEffectEndsOnRest); no Encounter raises it.
       return false
+    case 'SEPARATED':
+      // Separation is measured on the Scene by the relationship sweep, not raised as an event.
+      return false
     default:
       return event.kind === subscription.event
   }

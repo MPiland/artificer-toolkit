@@ -120,6 +120,11 @@ export type EncounterEventSubscription =
   | { event: 'TEST'; test: 'CHECK' | 'SAVE'; valueDomainCode: string }
   | { event: 'DAMAGED'; by: 'ANYONE' | 'SOURCE_SIDE'; damageTypeIds: readonly string[] | null }
   | { event: 'INCAPACITATED'; of: 'HOLDER' | 'SOURCE' }
+  /**
+   * The holder stands farther than `beyondFeet` from the source. No event raises it: the
+   * post-commit relationship sweep measures the Scene (`encounterSeparatedEffects`).
+   */
+  | { event: 'SEPARATED'; from: 'SOURCE'; beyondFeet: number }
   | { event: 'CONDITION_HELD'; conditionIds: readonly string[] }
   | { event: 'ACTION_USED_ON_HOLDER'; actionDefinitionIds: readonly string[] }
   | { event: 'REST'; restKind: 'SHORT' | 'LONG' }
