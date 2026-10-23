@@ -1,6 +1,7 @@
 import {
   authoredFractionSchema,
-  authoredLengthSchema
+  authoredLengthSchema,
+  speedEqualsPayloadSchema
 } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { describe, expect, it } from 'vitest'
 
@@ -31,13 +32,17 @@ describe('SRD speed and sense range modifiers (RELIABILITY-5.1)', () => {
     expect([...kinds].sort()).toEqual(['BONUS', 'MULTIPLY', 'PENALTY', 'SET_VALUE'])
   })
 
-  it('authors every one as a length with an amount and a unit, a multiplier as a fraction', () => {
-    const malformed = grants.filter(
-      (grant) =>
-        !(
-          grant.modifierKind === 'MULTIPLY' ? authoredFractionSchema : authoredLengthSchema
-        ).safeParse(grant.payload).success
-    )
+  it('authors every one as a length with an amount and a unit, a multiplier as a fraction, a set speed as either a length or another speed', () => {
+    const malformed = grants.filter((grant) => {
+      if (grant.modifierKind === 'MULTIPLY')
+        return !authoredFractionSchema.safeParse(grant.payload).success
+      if (grant.valueDomainCode === 'SPEED' && grant.modifierKind === 'SET_VALUE')
+        return !(
+          authoredLengthSchema.safeParse(grant.payload).success ||
+          speedEqualsPayloadSchema.safeParse(grant.payload).success
+        )
+      return !authoredLengthSchema.safeParse(grant.payload).success
+    })
     expect(malformed).toEqual([])
   })
 })

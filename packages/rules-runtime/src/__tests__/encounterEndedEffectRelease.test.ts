@@ -15,6 +15,7 @@ import {
   moveEndHolds,
   endEffectsCandidates,
   endEffectsChoice,
+  levelCheckEntries,
   offerEndEffects,
   selectedEndedEffects,
   targetEndedEffects,
@@ -1005,5 +1006,52 @@ describe('effects a spell-level END_EFFECTS selector ends (SPELLS-4.T2f1a, D182)
       scope: 'ALL'
     })
     expect(endedEffects.map(({ id }) => id)).toEqual([FIRST_ID, SECOND_ID])
+  })
+})
+
+describe('the checks a spell cast owes for higher-level effects (SPELLS-4.T2f1b2, D182a)', () => {
+  const THIRD_ID = '00000000-0000-4000-8000-00000000f2a3'
+  const staged = (id: string, originLevel: number | null, createdOrdinal: number) =>
+    activeEffect({
+      id,
+      owner,
+      createdOrdinal,
+      originLevel,
+      stateContributions: [{ kind: 'TEMPORARY_HIT_POINTS_OWNERSHIP' }]
+    })
+  const levelCheck = { ability: 'SPELLCASTING' as const, baseDc: 10 }
+  const context = (castLevel: number | null) => ({ castLevel, actorCreatureTypeIds: new Map() })
+
+  it('freezes one DC of base plus the effect level per effect above the cast, lowest level then oldest first', () => {
+    const held = [staged(THIRD_ID, 6, 1), staged(SECOND_ID, 5, 2), staged(FIRST_ID, 5, 1)]
+    expect(levelCheckEntries(held, levelCheck, context(3))).toEqual([
+      { effectId: FIRST_ID, dc: 15 },
+      { effectId: SECOND_ID, dc: 15 },
+      { effectId: THIRD_ID, dc: 16 }
+    ])
+  })
+
+  it('owes no check for an effect at or below the cast, an unleveled effect or a cast with no level', () => {
+    const held = [staged(FIRST_ID, 3, 1), staged(SECOND_ID, null, 2)]
+    expect(levelCheckEntries(held, levelCheck, context(3))).toEqual([])
+    expect(levelCheckEntries([staged(THIRD_ID, 4, 1)], levelCheck, context(null))).toEqual([])
+    expect(levelCheckEntries([staged(THIRD_ID, 4, 1)], undefined, context(3))).toEqual([])
+  })
+
+  it('is offered beside the outright ends, so a 3rd-level cast ends level 3 and checks level 5', () => {
+    const held = [staged(FIRST_ID, 3, 1), staged(SECOND_ID, 5, 2)]
+    const offer = offerEndEffects({
+      endEffects: {
+        scope: 'ALL',
+        selectors: [{ kind: 'SPELL_LEVEL', limit: 'SLOT_LEVEL' }],
+        levelCheck
+      },
+      held,
+      actorCreatureTypeIds: new Map(),
+      chosenEffectId: undefined,
+      castLevel: 3
+    })
+    expect(offer.candidates.map(({ id }) => id)).toEqual([FIRST_ID])
+    expect(offer.checks).toEqual([{ effectId: SECOND_ID, dc: 15 }])
   })
 })

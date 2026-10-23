@@ -1282,6 +1282,7 @@ export function withActiveGrantSpeeds(
   speeds: readonly unknown[],
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
 ): SpeedDto[] {
+  const base = speeds.map((entry) => speedDtoSchema.parse(entry))
   const replacements = widestLengthByKey(
     listActiveEffectGrants(effects).flatMap(({ modifiers }) =>
       modifiers.flatMap((modifier) => {
@@ -1293,9 +1294,9 @@ export function withActiveGrantSpeeds(
           ? [{ key: speedId, payload: modifier.payload }]
           : []
       })
-    )
+    ),
+    (speedId) => base.find((speed) => speed.speedId === speedId)
   )
-  const base = speeds.map((entry) => speedDtoSchema.parse(entry))
   return [
     ...base,
     ...[...replacements]

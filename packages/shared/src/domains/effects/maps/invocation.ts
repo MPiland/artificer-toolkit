@@ -118,7 +118,7 @@ const REACTION_TRIGGER_KIND_OPTIONS: {
 
 const higherLevelCheck = buildNodeMap<ReactionHigherLevelCheckAuthored>()
 
-const HIGHER_LEVEL_CHECK_NODE_MAP = higherLevelCheck.define(
+export const HIGHER_LEVEL_CHECK_NODE_MAP = higherLevelCheck.define(
   'higherLevelCheck',
   ({ map, nodes }) => {
     const { selectSingle, number } = nodes

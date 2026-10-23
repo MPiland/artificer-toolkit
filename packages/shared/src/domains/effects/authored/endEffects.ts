@@ -1,4 +1,5 @@
 import { EFFECT_KIND } from '#core'
+import type { ReactionHigherLevelCheckAuthored } from './effect.js'
 
 /**
  * What an END_EFFECTS outcome matches on a held effect (D174, D182): it owns a condition the
@@ -22,4 +23,10 @@ export type EndEffectsAuthored = {
   selectors: EndEffectsSelectorAuthored[]
   /** Ends only effects whose origin creature is of one of these types (Break Enchantment: a fey, a fiend, an undead). */
   originCreatureTypeIds?: string[]
+  /**
+   * The ability check that ends a matching effect cast above the level this spell is cast at (Dispel
+   * Magic, D182a): `ability` is the caster's modifier and the DC is `baseDc` plus the effect's level.
+   * Effects at or below the cast level still end automatically; without a check, higher ones stay.
+   */
+  levelCheck?: ReactionHigherLevelCheckAuthored
 }

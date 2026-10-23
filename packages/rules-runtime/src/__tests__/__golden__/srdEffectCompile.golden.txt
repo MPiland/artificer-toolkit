@@ -888,7 +888,6 @@
 00000000-0002-00ca-0070-009200000000 CREATURE Scimitar | TEST_OUTCOME test=d9c4eeb738bb1674d665f1da43cecd085028f56fdb3bbe3942034d3f0749ff5e nodes=3 outputs=5 outcomes=[ON_CRIT=e43b781ca17aaaf22e486c838c9935a3eecdd78be205dc7e9dc3ec73a9cbef46,ON_HIT=e43b781ca17aaaf22e486c838c9935a3eecdd78be205dc7e9dc3ec73a9cbef46]
 00000000-0002-00ca-0070-00a200000000 CREATURE Stench | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-00a700000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
-00000000-0002-00ca-0070-00a900000000 CREATURE Multiple Heads | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-00fc00000000 CREATURE Regeneration | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-010000000000 CREATURE Divine Awareness | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-010100000000 CREATURE Sunlight Sensitivity | NOT_A_DISCOVERED_ACTION
@@ -909,7 +908,6 @@
 00000000-0002-00cb-0070-00a900000000 CREATURE Reactive Heads | NOT_A_DISCOVERED_ACTION
 00000000-0002-00cb-0070-00ab00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-00cb-0070-00ad00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
-00000000-0002-00cb-0070-010c00000000 CREATURE Reflective Carapace | NOT_A_DISCOVERED_ACTION
 00000000-0002-00cc-0070-005700000000 CREATURE Sunlight Sensitivity | NOT_A_DISCOVERED_ACTION
 00000000-0002-00cc-0070-005900000000 CREATURE Quarterstaff | TEST_OUTCOME test=19430a93f36c742f3d322c79d9c9abb9c52c38db5587093c4a735f80b250925a nodes=3 outputs=5 outcomes=[ON_CRIT=1677dd8e029c92541c07edb2bdf165c7498ba3a2ea49ddbac623de6c2fdaec10,ON_HIT=1677dd8e029c92541c07edb2bdf165c7498ba3a2ea49ddbac623de6c2fdaec10]
 00000000-0002-00cc-0070-005a00000000 CREATURE Tree Stride | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -948,7 +946,6 @@
 00000000-0002-00d0-0070-005900000000 CREATURE Quarterstaff | TEST_OUTCOME test=d20567fe1032af0e42eb541297bf7ae392ead63b5c3402909641f84f3de2a693 nodes=3 outputs=5 outcomes=[ON_CRIT=965cfc1d24af816e0beb6448898dfffd9604e3cb7fa3e127c85f5dbbd8554526,ON_HIT=965cfc1d24af816e0beb6448898dfffd9604e3cb7fa3e127c85f5dbbd8554526]
 00000000-0002-00d0-0070-007900000000 CREATURE Talons | TEST_OUTCOME test=e2b7959e0f13be54ce2886b81a0211d96061879a3697aa37992d74028d489f73 nodes=3 outputs=5 outcomes=[ON_CRIT=a4b7e02cf6b9c262536cba23c6982daca0b1f7a25a261fde6efb3b7ec3003792,ON_HIT=a4b7e02cf6b9c262536cba23c6982daca0b1f7a25a261fde6efb3b7ec3003792]
 00000000-0002-00d0-0070-00a700000000 CREATURE Tail | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
-00000000-0002-00d0-0070-00fc00000000 CREATURE Spell Storing | NOT_A_DISCOVERED_ACTION
 00000000-0002-00d0-0070-010000000000 CREATURE Healing Touch (4/Day) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00d0-0070-011600000000 CREATURE Bite | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-00d1-0070-004700000000 CREATURE Change Shape | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
@@ -1021,7 +1018,6 @@
 00000000-0002-01f5-0070-00e100000000 CREATURE Mace | TEST_OUTCOME test=013abb79d999712290360daf8ce038281b330cdcf3cc606cb4f176aad50b6e07 nodes=3 outputs=5 outcomes=[ON_CRIT=05347870ba842860b30ae2a2845d239e475a7a9cf44d065ec1b5ba3555309912,ON_HIT=05347870ba842860b30ae2a2845d239e475a7a9cf44d065ec1b5ba3555309912]
 00000000-0002-01f5-0070-00e200000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00e400000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0002-01f5-0070-00e600000000 CREATURE Limited Magic Immunity | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00eb00000000 CREATURE Heated Body | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00f100000000 CREATURE Antennae | TEST_OUTCOME test=fea366ac18dd104bd31cc32491741032ed444b82f85b1eb9a3b5be4c1f55914a nodes=3 outputs=5 outcomes=[]
 00000000-0002-01f5-0070-00fb00000000 CREATURE Lightning Absorption | NOT_A_DISCOVERED_ACTION
@@ -1040,7 +1036,6 @@
 00000000-0002-01f6-0070-00db00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00e400000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00eb00000000 CREATURE Swallow | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
-00000000-0002-01f6-0070-00ef00000000 CREATURE Grasping Tendrils | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00f800000000 CREATURE Horrific Appearance | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00fa00000000 CREATURE Shadow Stealth | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-01f6-0070-00fb00000000 CREATURE Engulf | SINGLE_GRAPH f11b15480c75f690168df9b924ef1d6a9584df1785ac176614d2fbf1da129cda nodes=1 outputs=1
@@ -1112,8 +1107,6 @@
 00000000-0003-01f5-0070-00d400000000 CREATURE Aggressive | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0003-01f5-0070-00e100000000 CREATURE Divine Eminence | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0004-0001-0070-006200000000 CREATURE Parry | SINGLE_GRAPH 4c08fc1a4c2bae2f9b53bbe3076a6400aa7bc5198ab6bcbd378b2e1d5e9cdb5e nodes=1 outputs=1
-00000000-0004-0001-0070-074800000000 CREATURE Split | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0004-0001-0070-162100000000 CREATURE Split | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0004-0065-0070-002600000000 CREATURE Parry | SINGLE_GRAPH e907600f2e1682ba47236d98998152944ef3255e6eaa62b5040cb6547da6b760 nodes=1 outputs=1
 00000000-0004-0065-0070-008f00000000 CREATURE Parry | SINGLE_GRAPH 179a67a7ecd0e385eb1e29d37ff3961878279584c068dc45cb9671a6335aca04 nodes=1 outputs=1
 00000000-0004-0065-0070-00c000000000 CREATURE Parry | SINGLE_GRAPH f33d18820904714ba6af2dd63e45c6e6a45d39a4827a1839bcc34e241627b5fc nodes=1 outputs=1
@@ -1149,7 +1142,7 @@
 00000020-0000-0210-0002-000000000001 CHARACTER:spells Acid Splash | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=203ef4049720c40dc6f787e7bf2bc3cfe984d0cdd2e18994185946629e7626a9]
 00000020-0000-0210-0003-000000000001 CHARACTER:spells Aid | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.
 00000020-0000-0210-0004-000000000001 CHARACTER:spells Alarm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000020-0000-0210-0005-000000000001 CHARACTER:spells Alter Self | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-0005-000000000001 CHARACTER:spells Alter Self | SINGLE_GRAPH 59473cf28468aaaa1a6949da88bee624160af16dcc6b85be3adc857bfb6b18de nodes=2 outputs=1
 00000020-0000-0210-0006-000000000001 CHARACTER:spells Animal Friendship | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=7ff20222b182f998f3be5c482e2506e92a5d289a5e3e0e404b5a2a43f73cd915]
 00000020-0000-0210-0007-000000000001 CHARACTER:spells Animal Messenger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0008-000000000001 CHARACTER:spells Animal Shapes | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -1229,7 +1222,7 @@
 00000020-0000-0210-0056-000000000001 CHARACTER:spells Disguise Self | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0057-000000000001 CHARACTER:spells Disintegrate | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=af692fecda8ccd2654090206ff5932e58902297ff32fb28308c36e5b02781b97]
 00000020-0000-0210-0058-000000000001 CHARACTER:spells Dispel Evil and Good | SINGLE_GRAPH 67c32e56c0090fe905e264a0e0a101b36c8fc87e4e153b423e65dd4b0c432da9 nodes=3 outputs=1
-00000020-0000-0210-0059-000000000001 CHARACTER:spells Dispel Magic | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000020-0000-0210-0059-000000000001 CHARACTER:spells Dispel Magic | SINGLE_GRAPH fb200ab31eddf0997bdc5227a7bccdf2ea889123ab0484e9e905cc13bdd26999 nodes=1 outputs=1
 00000020-0000-0210-005b-000000000001 CHARACTER:spells Divination | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000020-0000-0210-005c-000000000001 CHARACTER:spells Divine Favor | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-005d-000000000001 CHARACTER:spells Divine Word | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=e1799ba497b85121fa51716fea73487e1892e920777869ad21f81e525e8bff9a]
@@ -1422,7 +1415,7 @@
 00000020-0000-0210-011b-000000000001 CHARACTER:spells Speak with Animals | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-011c-000000000001 CHARACTER:spells Speak with Dead | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-011d-000000000001 CHARACTER:spells Speak with Plants | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000020-0000-0210-011e-000000000001 CHARACTER:spells Spider Climb | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000020-0000-0210-011e-000000000001 CHARACTER:spells Spider Climb | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-011f-000000000001 CHARACTER:spells Spike Growth | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0120-000000000001 CHARACTER:spells Spirit Guardians | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0121-000000000001 CHARACTER:spells Spiritual Weapon | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

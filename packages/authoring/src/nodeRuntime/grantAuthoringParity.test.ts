@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { alterSelf } from '@artificer-toolkit/source-data/srd/spells/alter-self.js'
 import { bane } from '@artificer-toolkit/source-data/srd/spells/bane.js'
 import { bestowCurse } from '@artificer-toolkit/source-data/srd/spells/bestow-curse.js'
 import { bless } from '@artificer-toolkit/source-data/srd/spells/bless.js'
@@ -17,6 +18,7 @@ import { haste } from '@artificer-toolkit/source-data/srd/spells/haste.js'
 import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
 import { resistance } from '@artificer-toolkit/source-data/srd/spells/resistance.js'
 import { slow } from '@artificer-toolkit/source-data/srd/spells/slow.js'
+import { spiderClimb } from '@artificer-toolkit/source-data/srd/spells/spider-climb.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -44,7 +46,10 @@ describe('a spell authored from core Modifier Grants through the effect node map
     // SPELLS-4.T2l-a: the follow-on grant (`lifecycle.onEnd`) Haste's lethargy authors.
     ['Haste', haste],
     // SPELLS-4.T2lb: the actions a held effect offers (`lifecycle.grantedActions`), Haste's extra action and Expeditious Retreat's Dash.
-    ['Expeditious Retreat', expeditiousRetreat]
+    ['Expeditious Retreat', expeditiousRetreat],
+    // SPELLS-4.T2o: a speed equal to another speed (`payload.equalsSpeedId`).
+    ['Spider Climb', spiderClimb],
+    ['Alter Self', alterSelf]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     // Equipment authoring the spell's effects: the effect list every owner shares.
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }

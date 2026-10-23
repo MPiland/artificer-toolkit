@@ -428,7 +428,8 @@ export function normalizeCharacterActionMechanicFacts(
               ),
               ...(outcome.originCreatureTypeIds?.length
                 ? { originCreatureTypeIds: [...outcome.originCreatureTypeIds] }
-                : {})
+                : {}),
+              ...(outcome.levelCheck ? { levelCheck: { ...outcome.levelCheck } } : {})
             }
           }
         : {}),

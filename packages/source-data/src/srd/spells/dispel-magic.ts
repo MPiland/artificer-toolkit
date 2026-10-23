@@ -11,6 +11,7 @@ import {
   TARGET_DISPOSITION_KIND,
   TRIGGER,
   SPELL_COMPONENT,
+  SPELLCASTING_ABILITY_REFERENCE,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
@@ -70,8 +71,10 @@ export const dispelMagic: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.DISPEL_MAGIC, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'DISPEL_MAGIC' as const
+                effectKind: EFFECT_KIND.END_EFFECTS,
+                scope: 'ALL' as const,
+                selectors: [{ kind: 'SPELL_LEVEL' as const, limit: 'SLOT_LEVEL' as const }],
+                levelCheck: { ability: SPELLCASTING_ABILITY_REFERENCE, baseDc: 10 }
               }
             ]
           }
