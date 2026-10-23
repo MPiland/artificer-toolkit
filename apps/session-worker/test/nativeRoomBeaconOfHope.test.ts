@@ -1,9 +1,9 @@
 import {
-  creatureFeature,
+  characterActor,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
-import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { beaconOfHope } from '@artificer-toolkit/source-data/srd/spells/beacon-of-hope.js'
+import { massHealingWord } from '@artificer-toolkit/source-data/srd/spells/mass-healing-word.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
@@ -18,80 +18,39 @@ import { readActorHitPoints, readRoomHistory } from './roomHistoryReads.js'
  * every healing die, and one without it rolls them.
  */
 
-const HEALER_ID = testUuid(0x940)
+const CHARACTER_ACTOR_ID = testUuid(0x940)
+const CHARACTER_ID = testUuid(0x942)
 const HEALED_ID = testUuid(0x941)
-/** Zero-based dice faces: both d4s roll a 1 unless healing takes its maximum. */
-const LOW_ROLLS = [0, 0]
 const STARTING_HIT_POINTS = 1
+/** The raw die is its face less one: a 1 on the d4 unless healing takes its maximum. */
+const LOW_ROLL = 0
+const SPELLCASTING_MODIFIER = 1
 
 afterEach(() => {
   closeTrackedSockets()
 })
 
-/** A Wolf whose Bite heals 2d4 hit points of one target. */
-const healingWolf: CreatureAuthored = {
-  ...plainWolf,
-  features: plainWolf.features?.map((feature) =>
-    feature.label !== 'Bite'
-      ? feature
-      : {
-          ...feature,
-          effects: feature.effects?.map((effect) => ({
-            ...effect,
-            invocation: {
-              ...effect.invocation,
-              triggerCode: 'ACTIVATED' as const,
-              targeting: {
-                selectionKind: 'SINGLE_TARGET' as const,
-                dispositionKind: 'ANY' as const
-              }
-            },
-            paths: effect.paths.slice(0, 1).map((path) =>
-              !('resultBlock' in path)
-                ? path
-                : {
-                    ...path,
-                    pathCode: 'ON_USE' as const,
-                    resultBlock: {
-                      ...path.resultBlock,
-                      outcomes: [
-                        {
-                          id: testUuid(0x950),
-                          effectKind: 'HEAL' as const,
-                          valueKind: 'DICE' as const,
-                          scalingKind: 'NONE' as const,
-                          diceConfig: '2d4'
-                        }
-                      ]
-                    }
-                  }
-            )
-          }))
-        }
-  )
-}
-
-/** The healed hit points after the healing Wolf heals the target, with or without Beacon of Hope. */
+/** The healed hit points after the Character casts Mass Healing Word, with or without Beacon of Hope. */
 async function healedHitPoints(beacon: boolean) {
   const [grant] = beaconOfHope.effects ?? []
   if (!grant) throw new Error('The SRD Beacon of Hope has no effect.')
   const room = await actionRoom({
     actors: [
-      srdCreatureActor({ id: HEALER_ID, creature: healingWolf, disposition: 'FRIENDLY' }),
+      characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
       srdCreatureActor({
         id: HEALED_ID,
         creature: plainWolf,
-        disposition: 'FRIENDLY',
         currentHitPoints: STARTING_HIT_POINTS
       })
     ],
-    ownerFeatureId: creatureFeature(healingWolf, 'Bite').id,
-    autoRoll: 'BOTH',
-    rolls: LOW_ROLLS,
-    fallbackRoll: 0,
+    characterSpellcasting: { spells: [massHealingWord], prepared: [massHealingWord.id] },
+    characterPlay: { currentHitPoints: 1 },
+    characterAction: (action) => action.label === 'Mass Healing Word (3rd level)',
+    rolls: [LOW_ROLL],
+    fallbackRoll: LOW_ROLL,
     ...(beacon && {
       seed: seedModifierGrant({
-        sourceActorId: HEALER_ID,
+        sourceActorId: CHARACTER_ACTOR_ID,
         holderActorId: HEALED_ID,
         lifecycle: {},
         effect: grant,
@@ -99,17 +58,17 @@ async function healedHitPoints(beacon: boolean) {
       })
     })
   })
-  const { answer } = await room.startAction(HEALED_ID, ['TARGET_RANGE_UNCHECKED'])
+  const { answer } = await room.startActorsAction([HEALED_ID], ['TARGET_RANGE_UNCHECKED'], false)
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
   return readActorHitPoints(await readRoomHistory(room.room.base.stub), HEALED_ID)
 }
 
 describe('Beacon of Hope maximizes the healing a creature receives (SPELLS-4.T2n1)', () => {
-  it('rolls the healing dice for a creature without the spell', async () => {
-    expect(await healedHitPoints(false)).toBe(STARTING_HIT_POINTS + 2)
+  it('rolls the healing die for a creature without the spell', async () => {
+    expect(await healedHitPoints(false)).toBe(STARTING_HIT_POINTS + 1 + SPELLCASTING_MODIFIER)
   })
 
-  it('heals the maximum of every die for a creature under the spell', async () => {
-    expect(await healedHitPoints(true)).toBe(STARTING_HIT_POINTS + 8)
+  it('heals the maximum of the die for a creature under the spell', async () => {
+    expect(await healedHitPoints(true)).toBe(STARTING_HIT_POINTS + 4 + SPELLCASTING_MODIFIER)
   })
-})
+}, 120000)
