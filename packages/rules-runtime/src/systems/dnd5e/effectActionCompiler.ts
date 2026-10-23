@@ -80,6 +80,11 @@ import {
   type SpecializedOutcome
 } from './effectActionTestOutcomes.js'
 import {
+  authoredAlike,
+  isRepeatCarrierEntry,
+  repeatCarrierPlan
+} from './effectActionRepeatCarrier.js'
+import {
   compileTestDefinition,
   withMovementInterruption,
   type TestPlan
@@ -1269,14 +1274,24 @@ function modifierGrantPlan(
   const { entries } = action.compiledEffect
   const attack = testPhaseKindOrNull(action) === 'ATTACK'
   const hitGrants = attack
-    ? entries.filter(
-        (entry) =>
-          isActiveEffectPlanOutcome(entry, action) &&
-          'outcome' in entry &&
-          entry.outcome.effectKind === 'APPLY_GRANT'
+    ? entries.flatMap((entry) =>
+        'outcome' in entry &&
+        isActiveEffectPlanOutcome(entry, action) &&
+        entry.outcome.effectKind === 'APPLY_GRANT'
+          ? [entry]
+          : []
       )
     : []
-  if (hitGrants.length > 1) unsupported('D&D attacks apply at most one grant on a hit.')
+  // A grant authored alike on the hit and the miss applies whatever the attack (as on a save).
+  const [hitGrant, otherGrant, ...restGrants] = hitGrants
+  const alikeOnBothResults =
+    hitGrant !== undefined &&
+    otherGrant !== undefined &&
+    restGrants.length === 0 &&
+    hitGrant.pathCode !== otherGrant.pathCode &&
+    authoredAlike(hitGrant) === authoredAlike(otherGrant)
+  if (hitGrants.length > 1 && !alikeOnBothResults)
+    unsupported('D&D attacks apply at most one grant on a hit.')
   if (
     hitGrants.length === 1 &&
     entries.some((entry) => 'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP')
@@ -1291,7 +1306,7 @@ function modifierGrantPlan(
           modifierGrantEntryPlan({
             action,
             entry,
-            resultGated: attack,
+            resultGated: attack && !alikeOnBothResults,
             untilEndEvent: !('duration' in entry) || entry.duration === undefined
           })
         : null
@@ -1328,93 +1343,6 @@ function saveGrantPlan(
     return null
   // A grant on one save result applies only on it; one authored alike on both applies either way.
   return modifierGrantEntryPlan({ action, entry, resultGated: !other, untilEndEvent: false })
-}
-
-/** A grant that carries a repeat offer (D166): planned beside the effect it rides, not as a modifier grant. */
-function isRepeatCarrierEntry(entry: CompiledEffectGroup['entries'][number]): boolean {
-  return (
-    'outcome' in entry &&
-    entry.outcome.effectKind === 'APPLY_GRANT' &&
-    (entry.lifecycle?.effectOffers ?? []).some((offer) => offer.kind === 'REPEAT_SOURCE_PATH')
-  )
-}
-
-/**
- * The effect a save action leaves on its target that offers the source a repeat of the action's paths
- * (Heat Metal's "use a Bonus Action to cause the damage again"), or null when it offers none. The
- * carrier is one grant authored alike on both save results with no modifiers of its own; it is bound
- * to the chosen item and ends when that item is released, and it lasts as long as the action's
- * Concentration. The cast freezes the saving throw DC and the cast level into the offer.
- */
-function repeatCarrierPlan(
-  action: Dnd5eCompiledEffectActionSource
-): CharacterRuleActionActiveEffectPlan['repeatCarrier'] {
-  const [entry, other, ...rest] = action.compiledEffect.entries.flatMap((candidate) =>
-    'outcome' in candidate && isRepeatCarrierEntry(candidate) ? [candidate] : []
-  )
-  if (!entry) return null
-  if (
-    entry.outcome.effectKind !== 'APPLY_GRANT' ||
-    testPhaseKindOrNull(action) !== 'SAVE' ||
-    rest.length > 0 ||
-    (other &&
-      (other.pathCode === entry.pathCode || authoredAlike(entry) !== authoredAlike(other))) ||
-    !entry.chosenItem ||
-    !entry.outcome.bindsChosenItem ||
-    entry.duration === undefined ||
-    !UUID.test(entry.entryId)
-  )
-    unsupported('D&D repeat offer rides one chosen-item grant authored alike on both save results.')
-  const { grants } = entry.outcome
-  const { endOnEvents = [], effectOffers = [], ...otherLifecycle } = entry.lifecycle ?? {}
-  if (
-    grants.modifiers?.length ||
-    grants.senses?.length ||
-    grants.proficiencies?.length ||
-    endOnEvents.length !== 1 ||
-    endOnEvents[0] !== 'ON_CHOSEN_ITEM_RELEASED' ||
-    Object.values(otherLifecycle).some((value) => value !== undefined)
-  )
-    unsupported(
-      'D&D repeat offer carrier grants nothing and ends when its chosen item is released.'
-    )
-  return {
-    compiledEntryId: entry.entryId,
-    frozenGraphNodeId: 'repeat-carrier',
-    applyGrantOutcomeId: entry.outcome.id,
-    effectOffers: effectOffers.map((offer) =>
-      offer.kind === 'MOVE_HELD_EFFECT' ? { ...offer, range: { ...offer.range } } : { ...offer }
-    )
-  }
-}
-
-/**
- * A grant entry as authored, without its identities or its release flag, so two paths' grants
- * compare alike.
- */
-function authoredAlike(
-  entry: Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
-): string {
-  const withoutIdentities = (value: unknown): unknown =>
-    Array.isArray(value)
-      ? value.map(withoutIdentities)
-      : typeof value === 'object' && value !== null
-        ? Object.fromEntries(
-            Object.entries(value).flatMap(([key, field]) =>
-              key === 'id' || key === 'unlessChosenItemReleased'
-                ? []
-                : [[key, withoutIdentities(field)]]
-            )
-          )
-        : value
-  return JSON.stringify(
-    withoutIdentities({
-      outcome: entry.outcome,
-      duration: entry.duration,
-      lifecycle: entry.lifecycle,
-      maintenanceDefinitionId: entry.maintenanceDefinitionId
-    })
-  )
 }
 
 /**
@@ -3528,7 +3456,7 @@ function dnd5eActiveEffectPlans(
         : plan.marginRiders.length > 0))
   )
     unsupported('D&D source immunity needs a lasting effect it can ride.')
-  const repeatCarrier = repeatCarrierPlan(action)
+  const repeatCarrier = repeatCarrierPlan(action, testPhaseKindOrNull(action) === 'SAVE')
   // The carrier takes the failure rider's slot and depends on the Concentration the grant rides.
   if (
     repeatCarrier &&
