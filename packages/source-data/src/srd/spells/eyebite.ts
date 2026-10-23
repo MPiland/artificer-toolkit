@@ -83,8 +83,11 @@ export const eyebite: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.EYEBITE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'EYEBITE' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Eyebite Effect',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'Choose Asleep, Panicked or Sickened. Asleep: the target falls unconscious and wakes if it takes damage or another creature uses its action to shake it awake. Panicked: the target is frightened of you and, on each of its turns, must take the Dash action and move away from you by the safest and shortest route, unless there is nowhere to move; the effect ends if it reaches a place at least 60 feet away where it can no longer see you. Sickened: the target has disadvantage on attack rolls and ability checks and, at the end of each of its turns, can repeat the Wisdom saving throw to end the effect. On each of your turns until the spell ends, you can use your action to target another creature, but not one that has succeeded on a saving throw against this casting.'
               }
             ]
           }

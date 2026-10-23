@@ -394,10 +394,11 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Not built: the web repeat row (`CampaignTabletopEffectOffers.tsx` lists the offer; starting its `actionId` from the offer row is a follow-up).
 - Proofs: `encounterRepeatPathAction.test.ts` (id form, offer to the source alone, frozen DC and cast level independent of the caster, stale carrier), `nativeRoomCoreOptionSpells.test.ts` Heat Metal (bonus-action repeat on the frozen DC, no slot or Concentration change, carrier gone with the item), the parity and source-data tests.
 
-#### T2lb2b resume notes (Eyebite's retarget)
+#### T2lb2b1 (D187a: description-only)
 
-- Build on the same seam: another `effectOffers` kind (retarget the held effect to a new target) in `effectOffer.ts`/`storedEffectOffer.ts`, discovered by `encounterEffectOffers.ts`; the carrier stays a plan-level `repeatCarrier`-style rider. Reuse `frozenRepeatOffer` for any frozen cast value; the cast level comes from `preparedSpellCastLevel(prepared)` passed as `spellCastLevel`, not from the TEST-phase execution evidence (which holds only target facts).
-- Do not delete the EYEBITE kind here; T2l2 does, with Panicked and Sickened.
+- Status: implemented; CI on `ci/spells-4-t2lb2b1`. The D186 engine work (FRESH-target repeat offers, Concentration-lifetime SOURCE_IMMUNITY carrier, `c780b301f`) is withdrawn and not in this tree; T2lb2b2 is removed.
+- Eyebite is one `MANUAL_ADJUDICATION` (`GM_CHOICE`) outcome carrying the Asleep/Panicked/Sickened text and the per-turn retarget; Dispel Evil and Good keeps its attack-disadvantage grant and adds Break Enchantment and Dismissal rulings (`SEQUENCE`). The `EYEBITE` and `DISPEL_EVIL_AND_GOOD` closed-rule kinds are deleted. `HOLY_AURA` stays for T2j2b.
+- The engine pieces (fresh-target repeat, tag-based ending, compelled turns) stay in future-enhancements "Deferred rules pieces (D187a)".
 
 ### T2i (hit point threshold gates and KILL, D156 class B; design ruled 2026-10-20)
 
