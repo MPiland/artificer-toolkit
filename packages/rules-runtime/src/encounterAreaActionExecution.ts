@@ -71,6 +71,13 @@ export type EncounterAreaTargetTest =
       legendaryResistance: EncounterLegendaryResistanceCandidate | null
     }
 
+/** The actors that are out of play, whom no area catches (D178). */
+export function absentEncounterActorIds(
+  actors: readonly { id: string; absence: unknown }[]
+): ReadonlySet<string> {
+  return new Set(actors.filter((actor) => actor.absence !== null).map((actor) => actor.id))
+}
+
 /**
  * The actors with a token sharing area with an area, in token-id order, each once. A point area
  * catches the caster and allies like anyone else; a directed area starts on the caster's own space
@@ -85,8 +92,11 @@ export function catchEncounterAreaActorIds(input: {
   casterActorId: string
   tokens: readonly (SpatialSceneToken & { actorId: string })[]
   fromCasterSpace?: boolean
+  /** Actors out of play keep their tokens but are caught by nothing (D178). */
+  absentActorIds?: ReadonlySet<string>
 }): string[] {
-  const { origin, shape, tokens } = input
+  const { origin, shape } = input
+  const tokens = input.tokens.filter((token) => !input.absentActorIds?.has(token.actorId))
   const casterToken = tokens.find((token) => token.actorId === input.casterActorId)
   const tokenIds =
     input.fromCasterSpace && shape.kind === 'RADIUS'

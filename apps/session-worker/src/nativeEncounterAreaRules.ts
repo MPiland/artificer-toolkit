@@ -23,6 +23,7 @@ import {
   offerEncounterAreaLegendaryResistance
 } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import {
+  absentEncounterActorIds,
   catchEncounterAreaActorIds,
   prepareEncounterAreaTests,
   settleEncounterAreaAction
@@ -109,14 +110,14 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
           shape: area.shape,
           casterActorId: caster.id,
           tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
-          fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
+          fromCasterSpace: command.target.kind === 'CASTER_CENTERED',
+          absentActorIds: absentEncounterActorIds(actors)
         })
-  // An actor out of play keeps its token but is caught by nothing (D178).
-  const inAreaActors = inArea.flatMap((actorId) => {
+  const inAreaActors = inArea.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)
     const token = scene.tokens.find((candidate) => candidate.actorId === actorId)
     if (!actor || !token) throw new Error('Encounter rules input binding mismatch.')
-    return actor.absence === null ? [{ actor, token }] : []
+    return { actor, token }
   })
   for (const { actor } of inAreaActors)
     if (!movementTargets.has(actor.id)) movementTargets.set(actor.id, await input.loadTarget(actor))

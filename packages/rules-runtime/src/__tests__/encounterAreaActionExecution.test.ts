@@ -18,6 +18,7 @@ import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { nativeConcentrationDamageApplications } from '../encounterConcentrationDamage.js'
 import {
   answerEncounterAreaTest,
+  absentEncounterActorIds,
   catchEncounterAreaActorIds,
   prepareEncounterAreaTests,
   settleEncounterAreaAction,
@@ -380,6 +381,35 @@ describe('catching the creatures in an area', () => {
         ]
       })
     ).toEqual([FOE_ID])
+  })
+})
+
+describe('an actor out of play in an area (D178)', () => {
+  const tokens = [
+    { ...token('00000000-0000-4000-8000-0000000f2001', 0), actorId: CASTER_ID },
+    { ...token('00000000-0000-4000-8000-0000000f2002', 4), actorId: ALLY_ID },
+    { ...token('00000000-0000-4000-8000-0000000f2003', 8), actorId: FOE_ID }
+  ]
+  const area = { origin: { x: 0, y: 0 }, shape: { kind: 'RADIUS', radius: 20 } } as const
+
+  it.each(['GM_REMOVED', 'DEPARTED', 'EFFECT', 'EFFECT_KEEPS_TURN'] as const)(
+    'is caught by nothing when its absence is %s, though its token stays in the area',
+    (absence) => {
+      const absentActorIds = absentEncounterActorIds([
+        { id: ALLY_ID, absence },
+        { id: FOE_ID, absence: null }
+      ])
+      expect(
+        catchEncounterAreaActorIds({ ...area, casterActorId: CASTER_ID, tokens, absentActorIds })
+      ).toEqual([CASTER_ID, FOE_ID])
+    }
+  )
+
+  it('is caught again once its absence ends', () => {
+    const absentActorIds = absentEncounterActorIds([{ id: ALLY_ID, absence: null }])
+    expect(
+      catchEncounterAreaActorIds({ ...area, casterActorId: CASTER_ID, tokens, absentActorIds })
+    ).toEqual([CASTER_ID, ALLY_ID, FOE_ID])
   })
 })
 

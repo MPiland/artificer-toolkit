@@ -82,8 +82,10 @@ async function seeded() {
     (await readRunActors(ctx, readRunState((await currentRun(ctx))!))).find(
       (actor) => actor.id === GOBLIN_ID
     )!.absence
-  const remove = async (effect: Awaited<ReturnType<typeof hold>>) =>
-    store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version, removal: 'ENDED' })
+  const remove = async (
+    effect: Awaited<ReturnType<typeof hold>>,
+    removal: 'ENDED' | 'REMOVED' = 'ENDED'
+  ) => store.deleteCas({ id: effect.id, owner, expectedVersion: effect.version, removal })
   return { ctx, store, hold, absence, remove }
 }
 
@@ -102,6 +104,23 @@ describe('the removal effect and the holder absence (SPELLS-4.T2h1, D178)', () =
     expect(await scene.absence()).toBe('EFFECT')
     await scene.remove(effect)
     expect(await scene.absence()).toBe(null)
+  })
+
+  it('returns the holder when Undo reverts the cast, the removal revert undo uses', async () => {
+    const scene = await seeded()
+    const effect = await scene.hold(0x5107, false)
+    expect(await scene.absence()).toBe('EFFECT')
+    await scene.remove(effect, 'REMOVED')
+    expect(await scene.absence()).toBe(null)
+  })
+
+  it('takes the holder out again when Undo reverts the end of the removal', async () => {
+    const scene = await seeded()
+    const effect = await scene.hold(0x5108, true)
+    await scene.remove(effect)
+    expect(await scene.absence()).toBe(null)
+    await scene.hold(0x5108, true)
+    expect(await scene.absence()).toBe('EFFECT_KEEPS_TURN')
   })
 
   it('keeps the turn while every removal held keeps it, and skips it once any does not', async () => {
