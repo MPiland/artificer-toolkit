@@ -60,7 +60,7 @@ export const maze: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.MAZE, 0x213, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.MAZE, 0x214, 1),
               durationKind: DURATION_KIND.MINUTE,
@@ -69,8 +69,16 @@ export const maze: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MAZE, 0x215, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'MAZE' as const
+                effectKind: EFFECT_KIND.REMOVE_FROM_PLAY,
+                keepsTurn: false
+              },
+              {
+                id: spellChildId(SPELL_IDS.MAZE, 0x216, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Escape the Maze',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  'On its turn, the target can use its action to attempt to escape: it makes a DC 20 Intelligence check. On a success, it escapes and the spell ends (a minotaur or goristro demon automatically succeeds). When the spell ends, the target reappears in the space it left, or in the nearest unoccupied space if that space is occupied.'
               }
             ]
           }

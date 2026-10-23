@@ -511,6 +511,15 @@ const activeRuleEffectCreatureFormContributionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The holder is out of play while the effect lasts (Banishment, Etherealness): its Run actor is
+ * untargetable and off the Scene, and the effect ending returns it. `keepsTurn` leaves its turns in
+ * initiative. The actor's own `absence` records the state; this contribution is the rule behind it.
+ */
+const activeRuleEffectPlayAbsenceContributionDtoSchema = lazySchema(() =>
+  z.strictObject({ kind: z.literal('PLAY_ABSENCE'), keepsTurn: z.boolean() })
+)
+
+/**
  * The holder is immune to one source's use of one authored effect or spell grant (D156, SPELLS-31.T5l):
  * that source's action refuses the holder as a single target and leaves it out of an area. The
  * source is the origin's actor in its Run, and `sourceCharacterId` once the immunity is carried.
@@ -544,6 +553,7 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
             activeRuleEffectLocationConcealmentContributionDtoSchema,
             activeRuleEffectActorLinkContributionDtoSchema,
             activeRuleEffectCreatureFormContributionDtoSchema,
+            activeRuleEffectPlayAbsenceContributionDtoSchema,
             activeRuleEffectSourceImmunityContributionDtoSchema
           ])
         )

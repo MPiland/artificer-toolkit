@@ -27,6 +27,7 @@ export const EFFECT_KIND = {
   TREE_STRIDE: 'TREE_STRIDE',
   ACTOR_RELATIONSHIP: 'ACTOR_RELATIONSHIP',
   CONCEAL_FROM_OBSERVERS: 'CONCEAL_FROM_OBSERVERS',
+  REMOVE_FROM_PLAY: 'REMOVE_FROM_PLAY',
   DETECT_CONCEALED: 'DETECT_CONCEALED',
   CANCEL_TRIGGERING_EVENT: 'CANCEL_TRIGGERING_EVENT',
   SOURCE_IMMUNITY: 'SOURCE_IMMUNITY',
@@ -172,6 +173,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Conceal From Observers',
     description:
       'Makes the holder’s location unknown to each observer who fails to notice it, until noticed or until it attacks.'
+  },
+  [EFFECT_KIND.REMOVE_FROM_PLAY]: {
+    code: EFFECT_KIND.REMOVE_FROM_PLAY,
+    label: 'Remove From Play',
+    description:
+      'Takes the holder out of play until the effect ends: it cannot be targeted, its token leaves the Scene and, unless it keeps its turn, initiative skips it.'
   },
   [EFFECT_KIND.DETECT_CONCEALED]: {
     code: EFFECT_KIND.DETECT_CONCEALED,

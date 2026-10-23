@@ -32,6 +32,7 @@ import { actorRelationshipDtoSchema } from './actorRelationship.js'
 import { activationDtoSchema } from './activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from './check.js'
 import { concealFromObserversDtoSchema } from './concealFromObservers.js'
+import { removeFromPlayDtoSchema } from './removeFromPlay.js'
 import { detectConcealedDtoSchema } from './detectConcealed.js'
 import { cancelTriggeringEventDtoSchema } from './cancelTriggeringEvent.js'
 import { sourceImmunityDtoSchema } from './sourceImmunity.js'
@@ -102,6 +103,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             treeStrideDtoSchema,
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
+            removeFromPlayDtoSchema,
             detectConcealedDtoSchema,
             cancelTriggeringEventDtoSchema,
             sourceImmunityDtoSchema,
@@ -136,6 +138,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             treeStrideDtoSchema,
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
+            removeFromPlayDtoSchema,
             detectConcealedDtoSchema,
             cancelTriggeringEventDtoSchema,
             sourceImmunityDtoSchema,

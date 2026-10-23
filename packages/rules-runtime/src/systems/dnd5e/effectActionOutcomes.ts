@@ -14,6 +14,7 @@ import { DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY } from './endEffects.js'
 import {
   DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
   DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
+  DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
   DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
@@ -203,6 +204,10 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
       pathGated: false,
       changesTargetState: false
     }),
+    PLAY_ABSENCE: targetOnly(DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY, {
+      pathGated: false,
+      changesTargetState: false
+    }),
     CONCEAL: targetOnly(DND5E_CONCEAL_PROPOSAL_OPERATION_KEY, {
       pathGated: false,
       changesTargetState: false
@@ -297,12 +302,20 @@ export function dnd5eTargetOnlyOutcome(
 /** The outcome an active-effect plan owns, which a test graph never proposes. */
 function activeEffectPlanOutcomeKind(
   outcome: Dnd5eAuthoredOutcome
-): 'MODIFIER_GRANT' | 'ACTOR_LINK' | 'CREATURE_FORM' | 'CONCEAL' | 'DETECT_CONCEALED' | null {
+):
+  | 'MODIFIER_GRANT'
+  | 'ACTOR_LINK'
+  | 'CREATURE_FORM'
+  | 'CONCEAL'
+  | 'PLAY_ABSENCE'
+  | 'DETECT_CONCEALED'
+  | null {
   if (outcome.effectKind === 'APPLY_GRANT') return 'MODIFIER_GRANT'
   if (outcome.effectKind === 'TELEPATHIC_LINK') return 'ACTOR_LINK'
   if (outcome.effectKind === 'MANIFEST' && outcome.manifestKind === 'CREATURE')
     return 'CREATURE_FORM'
   if (outcome.effectKind === 'CONCEAL_FROM_OBSERVERS') return 'CONCEAL'
+  if (outcome.effectKind === 'REMOVE_FROM_PLAY') return 'PLAY_ABSENCE'
   if (outcome.effectKind === 'DETECT_CONCEALED') return 'DETECT_CONCEALED'
   return null
 }
