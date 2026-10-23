@@ -1048,6 +1048,7 @@ describe('the checks a spell cast owes for higher-level effects (SPELLS-4.T2f1b2
       },
       held,
       actorCreatureTypeIds: new Map(),
+      chosenEffectId: undefined,
       castLevel: 3
     })
     expect(offer.candidates.map(({ id }) => id)).toEqual([FIRST_ID])

@@ -49,7 +49,6 @@ import {
   prepareAttackBehindDecoys
 } from '@artificer-toolkit/rules-runtime/encounterAttackDecoys'
 import { encounterActionTargetKind } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
-import { sourceImmunityEffect } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import { encounterSourceImmunityLabel } from '@artificer-toolkit/rules-runtime/encounterSourceImmunity'
 import { encounterSpellSchoolImmunity } from '@artificer-toolkit/rules-runtime/encounterSpellSchoolImmunity'
 import {
@@ -96,7 +95,12 @@ import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-import { endedByAction, planEndEffects, planEndEffectsChecks } from './nativeEndEffects.js'
+import {
+  endedByAction,
+  planEndEffects,
+  planEndEffectsChecks,
+  reactionCastEnded
+} from './nativeEndEffects.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import {
@@ -186,7 +190,7 @@ import {
   evaluateInstalledEncounterActors,
   isInstalledMeleeAttackTrigger
 } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
-import { passedWardImmunityPlan } from '@artificer-toolkit/rules-runtime/encounterWardImmunity'
+import { plannedGateImmunityGrant } from './nativeGateImmunity.js'
 import { isMeleeRetaliationHit } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { planNativeLiveCleaving } from './nativeEncounterCleaving.js'
@@ -1329,22 +1333,12 @@ export async function planNativeLiveEncounterAction(
       : null
   // A reaction that casts a spell (Shield) ends the reactor's own cast-ended effects too, with the
   // reactor's one batch: the hit target's, since the reaction answers an attack on its caster.
-  const reactionEnded =
-    reactionUse && preparedCastsSpell(reactionUse.prepared)
-      ? actionEndedEffects({
-          holderActorId: reactionUse.prepared.actor.id,
-          held: (activeEffectsByActorId.get(reactionUse.prepared.actor.id) ?? []).filter(
-            (effect) => !consumedGrants.some((ended) => ended.id === effect.id)
-          ),
-          makesAttackRoll: false,
-          castsSpell: true,
-          againstEnemy: actsAgainstEnemy({
-            actorId: reactionUse.prepared.actor.id,
-            targetActorIds: [reactionUse.prepared.target.id],
-            dispositions
-          })
-        })
-      : null
+  const reactionEnded = reactionCastEnded(
+    reactionUse,
+    activeEffectsByActorId,
+    consumedGrants,
+    dispositions
+  )
   const failedSpends = await castPause.planFailedCounters(failedCounters)
   // A creature that failed to counter the cast has spent its reaction, so it answers nothing else; the
   // cast's target pays that reaction in its own mechanics, beside the reaction a Shield-like answer uses.
@@ -1451,44 +1445,30 @@ export async function planNativeLiveEncounterAction(
   })
   // A basic action another creature uses on the target (rousing a sleeper) ends what names it.
   const actionEnded = endedByAction(endPlan, command, execution.execution, targetHeld, prepared)
-  const casterTarget = movementTargets.get(prepared.actor.id)
   // A cast that may end higher-level effects pends one roller prompt per candidate (D182).
-  const spellCheck =
-    actionEnded && casterTarget
-      ? await planEndEffectsChecks({
-          plan: endPlan,
-          runtime: executionOptions.runtime,
-          system,
-          state,
-          caster: casterTarget,
-          targetActorId: prepared.target.id,
-          castOccurrenceId: occurrenceId,
-          command,
-          fingerprint,
-          actionLabel: encounterActionSourceLabel(prepared.source)
-        })
-      : null
-  const gateImmunity = passedWardImmunityPlan({
-    gameSystemId: state.gameSystemId,
-    ward: gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null
-  })
-  const gateImmunityGrant = gateImmunity
-    ? {
-        id: crypto.randomUUID(),
-        plan: sourceImmunityEffect({
-          ...gateImmunity,
-          origin: {
-            encounterId: state.id,
-            occurrenceId,
-            commandId: command.commandId,
-            sourceActorId: prepared.actor.id
-          },
-          sourceCharacterId: prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null,
-          sourceLabel: `Ward of ${prepared.target.label}`,
-          lifetimeScope: settledPrepared.target.kind === 'CHARACTER' ? 'OWNER' : 'ENCOUNTER'
-        })
-      }
+  const spellCheck = actionEnded
+    ? await planEndEffectsChecks({
+        plan: endPlan,
+        executionOptions,
+        system,
+        state,
+        movementTargets,
+        prepared,
+        command,
+        fingerprint,
+        castOccurrenceId: occurrenceId
+      })
     : null
+  const gateImmunityGrant = plannedGateImmunityGrant({
+    ward: gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null,
+    state,
+    occurrenceId,
+    commandId: command.commandId,
+    actorId: prepared.actor.id,
+    sourceCharacterId: prepared.actor.kind === 'CHARACTER' ? prepared.actor.sourceId : null,
+    targetLabel: prepared.target.label,
+    targetLifetimeScope: settledPrepared.target.kind === 'CHARACTER' ? 'OWNER' : 'ENCOUNTER'
+  })
   const planned = planNativeEncounterActionMechanics(
     {
       prepared: settledPrepared,
