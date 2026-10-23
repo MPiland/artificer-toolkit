@@ -290,6 +290,21 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       restStepDown: z.optional(activeEffectRestStepDownSchema),
       /** Only on a repeat save counted to thresholds; its lifecycle `saveTally` counts toward these. */
       saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
+      /**
+       * The effect holds nothing itself (D178): at the end of each of its holder's turns the holder
+       * rolls a d20, and a roll of `minimumRoll` or higher makes the `child` effect, which ends at the
+       * holder's next turn start or with this effect.
+       */
+      turnEndGate: z.optional(
+        z.strictObject({
+          minimumRoll: integerSchema.check(z.gte(2)).check(z.lte(20)),
+          child: z.strictObject({
+            frozenGraphNodeId: localNodeIdSchema,
+            frozenGraph: compiledRuleGraphDtoSchema,
+            playAbsence: activeRuleEffectPlayAbsenceContributionDtoSchema
+          })
+        })
+      ),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('INDEFINITE') }),

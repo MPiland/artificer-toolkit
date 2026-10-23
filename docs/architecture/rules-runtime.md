@@ -1505,6 +1505,16 @@ need no cascade. Out of scope (future-enhancements): a cure or a GM condition ed
 condition does not end the rider. The SRD Giant Centipede authors poisoned for 1 hour and paralyzed while
 poisoned this way.
 
+**Turn-end roll gate (current, SPELLS-4.T2h2, D178).** A result block's `lifecycle.turnEndGate { minimumRoll }`
+compiles to a recurring effect whose end-of-turn step is the repeat-save pipeline with a bare d20 (no ability,
+modifier 0, DC `minimumRoll`, outcome rule `NONE`); the plan stores `recurrence.turnEndGate` with the child's own
+frozen `condition-duration` graph and its `PLAY_ABSENCE` contribution. `persistEncounterTurnEffects` mints the
+child when the turn result's d20 path is `ON_SAVE_SUCCESS`: `turnEndGateChildEffect`
+(`encounterEffectTurnEndGate.ts`) returns a one-tick `START_OF_TURN` effect whose `linkedEffectId` is the rolling
+effect (so it ends with it) and whose id derives from the parent's. A failed roll mints nothing. Turn advances
+are not revertable, so the minted child needs no Undo handling. Blink is the SRD user; nothing in the runtime
+names a spell.
+
 **Linked margin rider (current, SPELLS-33.T4i3f, D172).** `failureMarginRider.endsWithOutcomeId` names the one
 condition outcome of the rider's own failed immediate save; `marginRiderPlan(rider, primaryOutcomeId)` sets
 `endsWith: 'PRIMARY'` and refuses by name any other target, and any link where there is no such condition (the

@@ -592,6 +592,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return { turns: 1, modifiers: [] }
     case 'pathLifecycleTurnAnchor':
       return { actor: 'TARGET', boundary: 'END_OF_TURN' }
+    case 'pathLifecycleTurnEndGate':
+      return { minimumRoll: 11 }
     case 'pathHitPointTierRow':
       return {
         id: crypto.randomUUID(),

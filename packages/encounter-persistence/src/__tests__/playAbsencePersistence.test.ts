@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { withLinkedDependents } from '@artificer-toolkit/rules-runtime/activeEffectLinks'
+import { turnEndGateChildEffect } from '@artificer-toolkit/rules-runtime/encounterEffectTurnEndGate'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { skippedEncounterActorIds } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
 import {
@@ -161,6 +163,72 @@ describe('the removal effect and the holder absence (SPELLS-4.T2h1, D178)', () =
       expect(await scene.absence()).toBe(absence)
     }
   )
+
+  describe('the turn-end gate child (SPELLS-4.T2h2, D178)', () => {
+    async function gated(keepsTurn: boolean) {
+      const scene = await seeded()
+      const base = plannedModifierGrant({
+        encounterId: ENCOUNTER_ID,
+        sourceActorId: GOBLIN_ID,
+        holderActorId: GOBLIN_ID,
+        lifecycle: {},
+        rounds: 10
+      }).definition
+      const gating = await scene.store.create({
+        id: testUuid(0x5201),
+        owner,
+        definition: {
+          ...base,
+          recurrence: {
+            ...base.recurrence,
+            turnEndGate: {
+              minimumRoll: 11,
+              child: {
+                frozenGraphNodeId: base.frozenGraphNodeId,
+                frozenGraph: base.frozenGraph,
+                playAbsence: { kind: 'PLAY_ABSENCE', keepsTurn }
+              }
+            }
+          }
+        },
+        lifecycle: { schemaVersion: 1, remainingTicks: 10 },
+        occurredAt: OCCURRED_AT
+      })
+      return { scene, gating }
+    }
+
+    it('mints no child for an effect without a gate', async () => {
+      const scene = await seeded()
+      const plain = await scene.hold(0x5202, false)
+      expect(turnEndGateChildEffect(plain)).toBeNull()
+    })
+
+    it('mints a child that ends at the next turn start, absent the holder, and ends with its parent', async () => {
+      const { scene, gating } = await gated(true)
+      const child = turnEndGateChildEffect(gating)!
+      expect(child.definition.linkedEffectId).toBe(gating.id)
+      expect(child.definition.recurrence.expiration).toEqual({
+        kind: 'TICKS',
+        initialRemaining: 1,
+        decrementStage: 'START_OF_TURN',
+        anchor: 'HOLDER'
+      })
+      expect(await scene.absence()).toBe(null)
+      const held = await scene.store.create({ ...child, occurredAt: OCCURRED_AT })
+      expect(await scene.absence()).toBe('EFFECT_KEEPS_TURN')
+      expect(withLinkedDependents([gating], [gating, held]).map(({ id }) => id)).toEqual([
+        gating.id,
+        held.id
+      ])
+      await scene.remove(held)
+      expect(await scene.absence()).toBe(null)
+    })
+
+    it('mints the same child id for the same parent', async () => {
+      const { gating } = await gated(false)
+      expect(turnEndGateChildEffect(gating)!.id).toBe(turnEndGateChildEffect(gating)!.id)
+    })
+  })
 
   it('skips an effect-absent actor in initiative unless the effect keeps its turn', () => {
     const skipped = (absence: 'EFFECT' | 'EFFECT_KEEPS_TURN') =>

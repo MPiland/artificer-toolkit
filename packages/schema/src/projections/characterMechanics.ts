@@ -326,6 +326,16 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       null
     ),
     playAbsenceContribution: z.optional(z.strictObject({ keepsTurn: z.boolean() })),
+    turnEndGate: z.optional(
+      z.strictObject({
+        minimumRoll: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20)),
+        child: z.strictObject({
+          frozenGraphNodeId: z.string().check(z.regex(/^[a-z][a-z0-9_-]{0,79}$/)),
+          frozenGraph: serverPublishedRuleDefinitionDtoSchema,
+          playAbsence: z.strictObject({ keepsTurn: z.boolean() })
+        })
+      })
+    ),
     creatureFormContribution: z._default(
       z.nullable(
         z.strictObject({
