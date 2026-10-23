@@ -282,7 +282,9 @@ function creatureTypeConditionMatches(
   condition: Pick<ModifierRestrictions[number]['conditions'][number], 'mode' | 'requiredIds'>,
   creatureTypeIds: readonly string[]
 ): boolean {
-  return condition.mode === 'ALL' || condition.requiredIds.some((id) => creatureTypeIds.includes(id))
+  return (
+    condition.mode === 'ALL' || condition.requiredIds.some((id) => creatureTypeIds.includes(id))
+  )
 }
 
 /** Whether the holder meets a condition, or `undefined` when it cannot be decided here. */
