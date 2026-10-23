@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
+import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
 import {
+  tabletopConditions,
   tabletopGmEncounter,
   tabletopLiveScene,
   tabletopPlayerEncounter
@@ -15,11 +17,7 @@ describe('VTT token presentation model', () => {
   it('uses projected System state, stable ordering, and explicit current-turn precedence', () => {
     const actor = {
       ...tabletopGmEncounter.actors[0]!,
-      conditions: [
-        { id: 'morale', kind: 'MORALE', label: 'Shaken' },
-        { id: 'injury', kind: 'INJURY', label: 'Lingering wound' },
-        { id: 'condition', kind: 'CONDITION', label: 'Restrained' }
-      ],
+      conditions: tabletopConditions('RESTRAINED'),
       healthBand: 'CRITICAL' as const
     }
     const encounter = {
@@ -30,6 +28,7 @@ describe('VTT token presentation model', () => {
     const result = buildVttTokenPresentations({
       boundTokenControl: new Map(),
       actorIdByTokenId: new Map([[scene.tokens[0]!.id, actor.id]]),
+      conditionTypes: srdSystemRecord.conditionTypes,
       currentUserId: scene.tokens[0]!.controlledByUserIds[0]!,
       encounter,
       pending: null,
@@ -40,13 +39,8 @@ describe('VTT token presentation model', () => {
     expect(actor.disposition).toBe('FRIENDLY')
     expect(result.outlineColor).toBe(0x339af0)
     expect(result.halo?.label).toBe('Current turn')
-    expect(result.statuses.map((status) => status.kind)).toEqual([
-      'INJURY',
-      'MORALE',
-      'CONDITION',
-      'HEALTH'
-    ])
-    expect(result.accessibleDescription).toContain('Lingering wound')
+    expect(result.statuses.map((status) => status.kind)).toEqual(['CONDITION', 'HEALTH'])
+    expect(result.accessibleDescription).toContain('Restrained')
   })
 
   it('uses exact pending reaction identity without exposing absent actor state', () => {
@@ -372,15 +366,13 @@ describe('VTT token presentation model', () => {
         }
       ],
       concentration: { label: 'Bless', sourceHidden: false },
-      conditions: [
-        { id: 'condition', kind: 'CONDITION', label: 'Restrained' },
-        { id: 'injury', kind: 'INJURY', label: 'Lingering wound' }
-      ]
+      conditions: tabletopConditions('RESTRAINED', 'BLINDED')
     }
     const scene = sceneForActor()
     const result = buildVttTokenPresentations({
       actorIdByTokenId: new Map([[scene.tokens[0]!.id, actor.id]]),
       boundTokenControl: new Map(),
+      conditionTypes: srdSystemRecord.conditionTypes,
       currentUserId: scene.tokens[0]!.controlledByUserIds[0]!,
       encounter: {
         ...tabletopGmEncounter,
@@ -392,12 +384,47 @@ describe('VTT token presentation model', () => {
 
     expect(result.statuses.map((status) => [status.label, status.category])).toEqual([
       ['Concentrating: Bless', 'CONCENTRATION'],
-      ['Lingering wound', 'HARMFUL'],
+      ['Blinded', 'HARMFUL'],
       ['Restrained', 'HARMFUL'],
       ['Aid, 4 rounds left', 'BENEFICIAL'],
       ['Hex, 4 rounds left', 'HARMFUL'],
       ['Mixed boon, 4 rounds left', 'OTHER']
     ])
+  })
+
+  describe('condition names', () => {
+    const actor = { ...tabletopGmEncounter.actors[0]!, conditions: tabletopConditions('BLINDED') }
+    const scene = sceneForActor()
+    const present = (conditionTypes?: typeof srdSystemRecord.conditionTypes) =>
+      buildVttTokenPresentations({
+        actorIdByTokenId: new Map([[scene.tokens[0]!.id, actor.id]]),
+        boundTokenControl: new Map(),
+        conditionTypes,
+        currentUserId: scene.tokens[0]!.controlledByUserIds[0]!,
+        encounter: { ...tabletopGmEncounter, actors: [actor] },
+        pending: null,
+        scene
+      })[scene.tokens[0]!.id]!
+
+    it('labels each condition ID with the System vocabulary label and description', () => {
+      const blinded = srdSystemRecord.conditionTypes.find(({ code }) => code === 'BLINDED')!
+      expect(present(srdSystemRecord.conditionTypes).statuses).toContainEqual(
+        expect.objectContaining({
+          id: blinded.id,
+          kind: 'CONDITION',
+          label: blinded.label,
+          description: blinded.description
+        })
+      )
+    })
+
+    it('shows no condition while the vocabulary is loading', () => {
+      expect(present().statuses.filter(({ kind }) => kind === 'CONDITION')).toEqual([])
+    })
+
+    it('refuses a condition type the vocabulary does not define', () => {
+      expect(() => present([])).toThrow('is not defined by the System')
+    })
   })
 
   it('derives fallback colours deterministically', () => {

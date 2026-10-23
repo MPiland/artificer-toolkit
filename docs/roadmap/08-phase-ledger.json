@@ -951,7 +951,7 @@
             },
             {
               "id": "PLATFORM-13.T20",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-13.14"],
               "wsjf": {
                 "bv": 3,
@@ -960,8 +960,10 @@
                 "size": 2,
                 "after": []
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "text": "CI flake: a Devil's Sight case in packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts exceeds the 5 s per-test timeout on CI runners (5712 ms) even after the beforeAll class node map warm-up (63bd5fd86); it failed SPELLS-4.T2j1 and T2g1 runs. Find the root cause (cold work still inside the case, repeated resolution, shared fixture rebuilt per case) and fix it without raising any timeout or weakening an assertion; prove with repeated CI runs."
+              "text": "CI flake: a Devil's Sight case in packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts exceeds the 5 s per-test timeout on CI runners (5712 ms) even after the beforeAll class node map warm-up (63bd5fd86); it failed SPELLS-4.T2j1 and T2g1 runs. Find the root cause (cold work still inside the case, repeated resolution, shared fixture rebuilt per case) and fix it without raising any timeout or weakening an assertion; prove with repeated CI runs.",
+              "mergedAt": "2026-10-23T03:13:37Z",
+              "note": "Merged in m362.",
+              "proof": "ci/platform-13-t20 @ b974e05bd: two full Tests dispatches (39889028586, 39891867297) plus push Tests and Live green; root cause was per-row re-parse in normalizeNodeRuntimeValues and per-call SRD row rebuilds."
             }
           ]
         },
@@ -3663,7 +3665,8 @@
                 "size": 3,
                 "after": ["RULES-2.T9a", "RULES-2.T9i"]
               },
-              "text": "System vocabulary (split 2026-10-21): lifecycle consume/end codes and the ATTACK_ROLL and SPELL_CAST traits become System codes with the eventVocabulary table as their one source; neutral structural trigger shapes stay in the schema."
+              "text": "System vocabulary (split 2026-10-21): lifecycle consume/end codes and the ATTACK_ROLL and SPELL_CAST traits become System codes with the eventVocabulary table as their one source; neutral structural trigger shapes stay in the schema.",
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
             },
             {
               "id": "RULES-2.T9d",

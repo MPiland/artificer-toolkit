@@ -56,12 +56,20 @@ function readKindFacts(kind: SubjectKind) {
   return facts
 }
 
+const rowsByTable = new Map<NodeRuntimeSourceTable, NodeRuntimeQueryRow[]>()
+
+// The reader runs once per option source per resolved node, so the sorted rows of a table are
+// built once; the reader only projects columns from them and never mutates a row.
 function readAuthoredRows(table: NodeRuntimeSourceTable): NodeRuntimeQueryRow[] {
+  const cached = rowsByTable.get(table)
+  if (cached) return cached
   const kinds = authoredSourceKindsByTable[table]
   if (!kinds) throw new Error(`Authoring source is not migrated: ${table}.`)
-  return sortAuthoredSourceRows(
+  const rows = sortAuthoredSourceRows(
     kinds.flatMap((kind) => readKindFacts(kind).flatMap((facts) => facts.rows[table] ?? []))
   )
+  rowsByTable.set(table, rows)
+  return rows
 }
 
 /** Builds every SRD source projection once so the first resolve stays inside UI wait timeouts. */
