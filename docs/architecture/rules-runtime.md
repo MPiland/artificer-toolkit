@@ -2586,6 +2586,21 @@ re-resolves the feature from the actor's snapshot (`admitCheckActionSource`), ad
 cost or, under an acknowledged `RESOURCE_UNAVAILABLE`, the charges that remained, and spends it through
 `settleActionSourceSpend`, the creature action cost path. The check receipt keeps the charge receipt for undo.
 
+**Spell candidate checks (D182/D182a, SPELLS-4.T2f1b1).** A spell's own ability checks run through the same check
+action with a third source, `SPELL_CAST` (`castOccurrenceId`). The pending context may carry `candidates`: a frozen,
+ordered `entries` list (`effectId`, `dc`) and a `cursor` naming the entry now waiting (`check.dc` is that entry's DC).
+One roller prompt asks for one candidate's d20 through the single d20 settlement, and only a settlement moves the cursor.
+The settled output names the candidate (`candidateEffectId`); the commit input's `settlement.candidate` carries the effects
+that success ended (the candidate and what is linked to it, with their releases applied in the same mechanics batch) and
+the `next` pending snapshot, or `null` after the last candidate. `readCandidateStep` admits a step only when the output
+names the waiting entry, a success ended that entry and a failure ended nothing, and the next snapshot is the same
+occurrence's `CHECK` phase with the same entries, a later cursor and the same frozen check. The ended effects are
+deleted in the roll's transaction, and the occurrence stays pending with the next snapshot (or completes). A candidate
+that ended before its turn is skipped with no roll (the Worker's `planCandidateStep` chooses `nextCursor`). The cast's
+`RULE_OCCURRENCE` root holds an optional `checkOccurrenceId` so response admission and undo find the check occurrence
+(`storedCheckOccurrenceId`); undo refuses a `SUCCESS` that ended an effect and a pending or void check is answered by
+the roller, never voided silently (`occurrenceVoid`). The cast-time planner that pends this check is SPELLS-4.T2f1b2.
+
 **Speed, hit point and sense grants (D99).** A `MODIFIER_GRANT` contribution carries modifier
 operations and granted senses (`senses`, required; the SRD Darkvision spell is a 60-foot sense with no
 modifier). A Character holder folds both through `withCharacterActiveGrants`; the room's scene vision folds

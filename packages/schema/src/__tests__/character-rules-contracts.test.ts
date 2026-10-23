@@ -614,11 +614,11 @@ describe('Character rule contracts', () => {
         speeds: [
           {
             speedId: 'walk',
-            code: 'WALK',
             base: { amount: 30, unit: 'FEET' },
             override: null
           }
         ],
+        defaultSpeedId: 'walk',
         preference: { mode: 'AUTO' as const, speedId: null }
       },
       itemMechanicsFacts: {

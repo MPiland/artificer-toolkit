@@ -641,7 +641,7 @@ describe('native Encounter turn Recharge', () => {
           userId: base.other.userId,
           characters: new Map(),
           unseenActorIds: new Set<string>(),
-          invisibleConditionTypeIds: new Set<string>()
+          unseenConditionTypeIds: new Set<string>()
         }
       )
     )

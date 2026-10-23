@@ -123643,6 +123643,7 @@ export declare const api: {
             label: string;
             levelled?: boolean;
             short?: string | null;
+            unseen?: boolean;
           }>;
           creatureTypes: Array<{
             code: string;

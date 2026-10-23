@@ -4253,7 +4253,7 @@
             },
             {
               "id": "RULES-2.T9m",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4263,8 +4263,9 @@
                 "after": ["RULES-2.T9k"]
               },
               "text": "Walk speed by default: characterMovementAndSenses and sheetProjection read the default movement type from the System record defaults instead of the WALK code.",
-              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343). Merged in m375.",
+              "mergedAt": "2026-10-23T13:41:38Z",
+              "proof": "Tests and Live green on tip b57bd817; movementFacts.defaultSpeedId from System defaults.movementTypeId; sheetProjectionSpeed.test.ts proves a Swimming-default System drives the primary speed and label; WALK comparisons removed from characterMovementAndSenses and sheetProjection (remaining WALK_SPEED_CODE uses are T9o guard scope)"
             },
             {
               "id": "RULES-2.T9n",
@@ -10118,7 +10119,7 @@
             },
             {
               "id": "SPELLS-4.T2f1b1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10128,7 +10129,9 @@
                 "after": ["SPELLS-4.T2f1a"]
               },
               "text": "Candidate checks substrate (D182, D182a split of T2f1b): a SPELL_CAST check source, the pending check context with a frozen ordered candidates list and cursor, the CHECK_ACTION output for several checks, and a per-candidate commit shape in encounter-persistence that ends the effect in the same transaction and receipt as the roll, undone by actionRevert and occurrenceVoid; replay-idempotent per context and cursor; unit and integration proofs. Includes the optional checkOccurrenceId on the RULE_OCCURRENCE cast root (read by storedCheckOccurrenceId, admission and revert) and the Worker response planner for candidate steps (D182a amendment).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-23T13:27:34Z",
+              "proof": "Tests and Live green on tip ffbc6f8c; candidateStep.test.ts covers readCandidateStep (cursor, skip, order); SPELL_CAST check source, candidates context, per-candidate commit and revert hook land; room-level proofs move to T2f1b2 (they need the cast-time pend)",
+              "note": " Merged in m374."
             },
             {
               "id": "SPELLS-4.T2f1b2",
@@ -10141,7 +10144,7 @@
                 "size": 2,
                 "after": ["SPELLS-4.T2f1b1"]
               },
-              "text": "Dispel Magic above-level checks (D182a): the Worker cast-time planner pends the cast into the T2f1b1 candidate checks; levelCheck authored through the node map, DTO, compiler and character rule facts with a TARGET_EFFECT_LEVEL DC; converts DISPEL_MAGIC on a creature or object target with a golden proof and room journey; kind deleted; check-flow section of docs/architecture/rules-runtime.md updated."
+              "text": "Dispel Magic above-level checks (D182a): the Worker cast-time planner pends the cast into the T2f1b1 candidate checks; levelCheck authored through the node map, DTO, compiler and character rule facts with a TARGET_EFFECT_LEVEL DC; converts DISPEL_MAGIC on a creature or object target with a golden proof and room journey; kind deleted; check-flow section of docs/architecture/rules-runtime.md updated. Owns the room-level proofs T2f1b1 could not run without the cast pend: the effect ends in the same commit and receipt as its roll, an already-ended candidate is skipped, replay is idempotent per context and cursor, undo refusal, and void."
             },
             {
               "status": "DONE",
@@ -10876,7 +10879,7 @@
               "mergedAt": "2026-10-19T00:16:02Z"
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2u",
               "wsjf": {
@@ -10887,8 +10890,9 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B; T2a2 ruling): A save-gated grant with an indefinite (until dispelled) lifetime without Concentration, ABILITY_SCORE SET_VALUE that sets the score over bonuses for Characters and Creatures, and a casting lock that also holds for Creatures. Converts FEEBLEMIND, with a parity proof; the kind deleted.",
-              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m376.",
+              "mergedAt": "2026-10-23T13:56:53Z",
+              "proof": "Tests and Live green on tip 9deca7c1; Feeblemind compiles TEST_OUTCOME (golden): 4d6 psychic on both Int-save paths, GM_CHOICE MANUAL_ADJUDICATION for score-to-1, casting lock and 30-day lifetime on ON_SAVE_FAIL; manualBesideSpellAuthoringParity case; FEEBLEMIND kind deleted"
             },
             {
               "status": "TODO",

@@ -4,7 +4,7 @@ import type { HealthDisplayLevelDto } from '@artificer-toolkit/schema/api/health
 
 import {
   healthDescriptiveState,
-  invisibleConditionTypeIds,
+  unseenConditionTypeIds,
   playerActorHealth,
   projectPlayerEncounterProjection,
   unseenEncounterActorIds
@@ -74,7 +74,7 @@ const noCharacters = {
   userId: OTHER_PLAYER_ID,
   characters: new Map(),
   unseenActorIds: new Set<string>(),
-  invisibleConditionTypeIds: new Set<string>()
+  unseenConditionTypeIds: new Set<string>()
 }
 
 describe('player encounter projection', () => {
@@ -239,7 +239,7 @@ describe('player encounter projection', () => {
       userId,
       characters: new Map(),
       unseenActorIds: new Set(unseen),
-      invisibleConditionTypeIds: new Set<string>()
+      unseenConditionTypeIds: new Set<string>()
     })
 
     it('omits a public actor the viewer cannot see, and keeps it for the GM', () => {
@@ -277,7 +277,7 @@ describe('player encounter projection', () => {
           userId: PLAYER_ID,
           characters,
           unseenActorIds: new Set([UNSEEN_ACTOR_ID]),
-          invisibleConditionTypeIds: new Set<string>()
+          unseenConditionTypeIds: new Set<string>()
         }).actors
       ).toMatchObject([{ id: UNSEEN_ACTOR_ID, label: 'Aria' }])
     })
@@ -314,7 +314,7 @@ describe('player encounter projection', () => {
       const INVISIBLE_TYPE_ID = '00000000-0000-4000-8000-0000000000d1'
       const invisibleViewer = (unseen: string[], userId = OTHER_PLAYER_ID) => ({
         ...viewerWith(unseen, userId),
-        invisibleConditionTypeIds: new Set([INVISIBLE_TYPE_ID])
+        unseenConditionTypeIds: new Set([INVISIBLE_TYPE_ID])
       })
       const invisible = { conditionTypeId: INVISIBLE_TYPE_ID }
 
@@ -392,13 +392,14 @@ describe('player encounter projection', () => {
         expect(JSON.stringify(listed)).not.toContain(PRONE_TYPE_ID)
       })
 
-      it('finds the Invisible condition types of a System by their code', () => {
+      it('finds the unseen condition types of a System by their attribute, not their code', () => {
         expect(
-          invisibleConditionTypeIds([
+          unseenConditionTypeIds([
             { id: 'a', code: 'BLINDED' },
-            { id: INVISIBLE_TYPE_ID, code: 'INVISIBLE' }
+            { id: INVISIBLE_TYPE_ID, code: 'INVISIBLE' },
+            { id: 'b', code: 'CLOAKED', unseen: true }
           ])
-        ).toEqual(new Set([INVISIBLE_TYPE_ID]))
+        ).toEqual(new Set(['b']))
       })
     })
 

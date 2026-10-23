@@ -84,5 +84,36 @@ describe('Sheet overview Speed fact', () => {
         value: 'Swimming 40 feet'
       })
     })
+
+    it("takes the System's default movement type as the primary Speed, labelled as the plain Speed", async () => {
+      const fixture = readyFighterFixture()
+      const { character } = await prepareFixtureBuilder(fixture)
+      const timestamp = new Date(0).toISOString()
+      const { sheet, ruleEvaluation } = await prepareFixtureSheet({
+        ...fixture,
+        character,
+        gameSystem: { ...system, defaults: { ...system.defaults!, movementTypeId: extraSpeed.id } },
+        adjustments: [
+          {
+            id: crypto.randomUUID(),
+            characterId: character.id,
+            createdBy: character.userId,
+            updatedBy: character.userId,
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            family: 'MOVEMENT',
+            speedId: extraSpeed.id,
+            field: 'SPEED_OVERRIDE',
+            value: { amount: 40, unit: 'FEET' }
+          }
+        ]
+      })
+
+      expect(ruleEvaluation.output.movement.primaryMovementSpeedId).toBe(extraSpeed.id)
+      expect(sheet.overview.facts.find((fact) => fact.label === 'Speed')).toEqual({
+        label: 'Speed',
+        value: '40 feet'
+      })
+    })
   })
 })
