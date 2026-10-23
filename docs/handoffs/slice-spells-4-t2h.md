@@ -110,6 +110,7 @@ One authored effect graph checksum each for Banishment, Etherealness, Imprisonme
 - `RETURN_SPACE_OCCUPIED` ships in T2h4 (D184) as a GM-only `RETURNED_TO_PLAY` timeline entry.
 
 T2h4 proof notes (2026-10-22): Banishment and Etherealness have room journeys (`nativeRoomRemoveFromPlay.test.ts`). Imprisonment is a one-minute cast, which the room offers no combat action for, so its proof is the golden flip and `removeFromPlayAuthoringParity.test.ts`. A Character-held owner-lifetime effect (Etherealness) has no `sourceEncounterId`, so `syncHolderAbsence` falls back to the Run named by the effect's `ENCOUNTER` origin.
+
 ## D178 amendment: the turn-end roll gate (SPELLS-4.T2h2, current)
 
 - A result block's `lifecycle.turnEndGate { minimumRoll }` (2..20) rolls a bare d20 at the end of the holder's turn, on the repeat-save pipeline (no ability, modifier 0, DC = `minimumRoll`). A total at or above it passes.
