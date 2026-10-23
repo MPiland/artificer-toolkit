@@ -60,7 +60,8 @@ export async function persistEncounterInitiativeRollCards(
       dice.some(({ entry }) => entry.inputs.min !== 1 || entry.inputs.max !== sides)
     )
       throw new Error('A declared initiative die must be a logged 1dN to post its roll card.')
-    const rollMode = dice.length === 2 ? initiative.declaredRollMode(facts) : undefined
+    const rollMode =
+      dice.length === 2 ? (initiative.declaredRollMode(facts) ?? undefined) : undefined
     if (dice.length === 2) {
       if (!rollMode)
         throw new Error(
