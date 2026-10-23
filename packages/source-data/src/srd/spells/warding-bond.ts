@@ -1,4 +1,5 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
@@ -21,6 +22,7 @@ import {
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_DAMAGE_TYPES } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+const ABILITY_COUNT = Object.values(ABILITY_CODE).length
 export const wardingBond: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.WARDING_BOND,
@@ -95,17 +97,17 @@ export const wardingBond: SpellAuthored = {
                       payload: { valueKind: 'FIXED', amount: 1 },
                       order: 1
                     },
-                    {
-                      id: spellChildId(SPELL_IDS.WARDING_BOND, 0x214, 2),
+                    ...Object.values(ABILITY_CODE).map((ability, index) => ({
+                      id: spellChildId(SPELL_IDS.WARDING_BOND, 0x214, index + 2),
                       grantKind: GRANT_KIND.MODIFIER_GRANT,
                       valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-                      domain: {},
+                      domain: { ability },
                       modifierKind: MODIFIER_KIND.BONUS,
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                      payload: { valueKind: 'FIXED', amount: 1 },
-                      order: 2
-                    },
+                      payload: { valueKind: 'FIXED' as const, amount: 1 },
+                      order: 2 + index
+                    })),
                     ...SRD_DAMAGE_TYPES.map(({ id }, index) => ({
                       id: spellChildId(SPELL_IDS.WARDING_BOND, 0x215, index + 1),
                       grantKind: GRANT_KIND.MODIFIER_GRANT,
@@ -115,7 +117,7 @@ export const wardingBond: SpellAuthored = {
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
                       payload: { damageTypeId: id },
-                      order: 3 + index
+                      order: 2 + ABILITY_COUNT + index
                     })),
                     {
                       id: spellChildId(SPELL_IDS.WARDING_BOND, 0x216, 1),
@@ -125,7 +127,7 @@ export const wardingBond: SpellAuthored = {
                       modifierKind: MODIFIER_KIND.ENABLE,
                       scope: MODIFIER_SCOPE_KIND.GLOBAL,
                       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                      order: 3 + SRD_DAMAGE_TYPES.length
+                      order: 2 + ABILITY_COUNT + SRD_DAMAGE_TYPES.length
                     }
                   ]
                 }

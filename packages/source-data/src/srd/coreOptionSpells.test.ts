@@ -1,5 +1,5 @@
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
-import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared'
+import { ABILITY_CODE, CLOSED_RULE_KIND } from '@artificer-toolkit/shared'
 import { describe, expect, it } from 'vitest'
 import { srdSpells } from './spells/index.js'
 import { conditionTypeId } from './spells/shared.js'
@@ -218,7 +218,7 @@ describe('SRD Warding Bond (SPELLS-4.T2n4)', () => {
     })
     expect(modifiers.map(({ valueDomainCode }) => valueDomainCode)).toEqual([
       'ARMOR_CLASS',
-      'SAVING_THROW_MODIFIER',
+      ...Object.values(ABILITY_CODE).map(() => 'SAVING_THROW_MODIFIER'),
       ...SRD_DAMAGE_TYPES.map(() => 'DAMAGE_RESISTANCE'),
       'DAMAGE_MIRROR'
     ])
