@@ -4238,7 +4238,7 @@
             },
             {
               "id": "RULES-2.T9l",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4248,8 +4248,9 @@
                 "after": ["RULES-2.T9k"]
               },
               "text": "Invisible by condition attribute: an unseen attribute on the condition entry drives encounterPlayerProjection; no code compares the Invisible code.",
-              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343). Merged in m377.",
+              "mergedAt": "2026-10-23T14:09:55Z",
+              "proof": "Tests and Live green on tip 6c14dedf; System condition types carry an optional unseen attribute (SRD Invisible marked); unseenConditionTypeIds drives encounterPlayerProjection; INVISIBLE code comparison removed"
             },
             {
               "id": "RULES-2.T9m",
