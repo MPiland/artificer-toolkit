@@ -94,7 +94,7 @@ function damagerOnSourceSide(input: {
   )
 }
 
-function sourceActorIdOf({ definition }: HookedEffect) {
+export function sourceActorIdOf({ definition }: HookedEffect) {
   return definition.origin.kind === 'ENCOUNTER' ? definition.origin.sourceActorId : null
 }
 
