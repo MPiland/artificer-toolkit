@@ -115,12 +115,12 @@ describe('a relationship ends on its own when its hold breaks (D152)', () => {
       })
     const within = await ended({
       effects: [[HELD, [bond('bond')]]],
-      tokens: [placed(GRAPPLER, 0), placed(HELD, 13)]
+      tokens: [placed(GRAPPLER, 0), placed(HELD, 12)]
     })
     expect(within.ends).toEqual([])
     const beyond = await ended({
       effects: [[HELD, [bond('bond')]]],
-      tokens: [placed(GRAPPLER, 0), placed(HELD, 14)]
+      tokens: [placed(GRAPPLER, 0), placed(HELD, 13)]
     })
     expect(beyond.ends).toEqual([
       { sourceActorId: GRAPPLER, heldActorId: HELD, activeEffectId: 'bond' }
