@@ -62,13 +62,13 @@ export const feeblemind: SpellAuthored = {
         {
           id: spellChildId(SPELL_IDS.FEEBLEMIND, 0x212, 1),
           order: 1,
-          pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.FEEBLEMIND, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FEEBLEMIND, 0x212, 1),
@@ -85,21 +85,7 @@ export const feeblemind: SpellAuthored = {
                     diceConfig: '4d6'
                   }
                 ]
-              }
-            ]
-          }
-        },
-        {
-          id: spellChildId(SPELL_IDS.FEEBLEMIND, 0x214, 1),
-          order: 2,
-          pathCode: PATH_CODE.ON_SAVE_FAIL,
-          groupType: PATH_GROUP_TYPE.SINGLE,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: spellChildId(SPELL_IDS.FEEBLEMIND, 0x214, 1) + '__result',
-            resultKind: 'SINGLE' as const,
-            outcomes: [
+              },
               {
                 id: spellChildId(SPELL_IDS.FEEBLEMIND, 0x214, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
@@ -107,6 +93,36 @@ export const feeblemind: SpellAuthored = {
                 reasonCode: 'GM_CHOICE' as const,
                 instructions:
                   "The creature's Intelligence and Charisma scores become 1. It can't cast spells, activate magic items, understand language, or communicate in any intelligible way, but it can still identify, follow and protect its friends. This lasts until the spell ends: at the end of every 30 days the creature can repeat the saving throw, and greater restoration, heal or wish also end it."
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.FEEBLEMIND, 0x215, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.FEEBLEMIND, 0x215, 1) + '__result',
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.FEEBLEMIND, 0x215, 1),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('PSYCHIC'),
+                valueKind: DAMAGE_VALUE_KIND.DICE,
+                scalingKind: SCALING.PER_LEVEL,
+                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+                levels: [
+                  {
+                    id: spellChildId(SPELL_IDS.FEEBLEMIND, 0x215, 2),
+                    level: 8,
+                    order: 1,
+                    diceConfig: '4d6'
+                  }
+                ]
               }
             ]
           }
