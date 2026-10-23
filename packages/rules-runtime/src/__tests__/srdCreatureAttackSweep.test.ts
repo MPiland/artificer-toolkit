@@ -183,9 +183,11 @@ describe('SRD Creature attack sweep', () => {
       const units = creatures.flatMap(attackUnits).filter((unit) => unit.label === label)
       expect(units).toHaveLength(1)
       const [unit] = units
-      const hitKinds = unit.effect.paths
-        .filter((path) => path.pathCode === 'ON_HIT' && path.selectionKind === 'FIXED')
-        .flatMap((path) => path.resultBlock.outcomes.map(({ effectKind }) => effectKind))
+      const hitKinds = unit.effect.paths.flatMap((path) =>
+        path.pathCode === 'ON_HIT' && path.selectionKind === 'FIXED'
+          ? path.resultBlock.outcomes.map(({ effectKind }) => effectKind)
+          : []
+      )
       expect(hitKinds).toEqual(['DAMAGE', 'MANUAL_ADJUDICATION'])
       expect(SRD_CREATURE_ATTACK_UNSUPPORTED).not.toHaveProperty(unit.effectId)
     }
