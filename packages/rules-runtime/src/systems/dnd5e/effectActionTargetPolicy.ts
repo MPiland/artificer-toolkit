@@ -158,3 +158,44 @@ export function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSou
     invocation.range.amount > 0
   )
 }
+
+/** An attack with a weapon or without one (an off-hand attack, a Martial Arts strike), not a spell attack. */
+function isWeaponOrUnarmedAttack(triggerCode: string): boolean {
+  const kind = dnd5eAttackKind(triggerCode)
+  return kind === 'MELEE' || kind === 'RANGED' || kind === 'UNARMED'
+}
+
+export function isSupportedTestActivation(
+  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
+): boolean {
+  if (invocation.kind !== 'ACTION') return false
+  if (invocation.activation.code === 'FREE') return isChargedFreeActivation(invocation)
+  if (invocation.activation.amount !== 1) return false
+  if (invocation.activation.code === 'ACTION') return true
+  // A save is a bonus action only as a repeat offer's charge (Heat Metal's repeated damage, D166).
+  if (invocation.activation.code === 'BONUS_ACTION')
+    return (
+      isWeaponOrUnarmedAttack(invocation.triggerCode) || invocation.triggerCode === 'SAVING_THROW'
+    )
+  return (
+    invocation.activation.code === 'REACTION' &&
+    'reactionTrigger' in invocation &&
+    invocation.reactionTrigger?.kind === 'MOVEMENT'
+  )
+}
+
+/**
+ * Whether the action's range and targeting name only its user. A removal from play on a Self range
+ * (Etherealness) names its one target, which can only be its user: the single-target evaluator
+ * holds a Self range to the user.
+ */
+export function namesOnlyItsUser(
+  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation'],
+  removesFromPlay: boolean
+): boolean {
+  return (
+    invocation.range.rangeKind === 'SELF' &&
+    (invocation.targeting?.selectionKind === 'SELF' ||
+      (invocation.targeting?.selectionKind === 'SINGLE_TARGET' && removesFromPlay))
+  )
+}

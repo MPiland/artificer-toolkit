@@ -214,7 +214,9 @@ import {
 import {
   isChargedFreeActivation,
   isSupportedArea,
-  isSupportedTestTargetPolicy
+  isSupportedTestActivation,
+  isSupportedTestTargetPolicy,
+  namesOnlyItsUser
 } from './effectActionTargetPolicy.js'
 import {
   boundedDiceTerm,
@@ -404,31 +406,6 @@ function entryResultGate(
         ? ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
         : []
   return testPaths.includes(pathCode) ? dnd5eResultGate(pathCode) : undefined
-}
-
-/** An attack with a weapon or without one (an off-hand attack, a Martial Arts strike), not a spell attack. */
-function isWeaponOrUnarmedAttack(triggerCode: string): boolean {
-  const kind = dnd5eAttackKind(triggerCode)
-  return kind === 'MELEE' || kind === 'RANGED' || kind === 'UNARMED'
-}
-
-function isSupportedTestActivation(
-  invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
-): boolean {
-  if (invocation.kind !== 'ACTION') return false
-  if (invocation.activation.code === 'FREE') return isChargedFreeActivation(invocation)
-  if (invocation.activation.amount !== 1) return false
-  if (invocation.activation.code === 'ACTION') return true
-  // A save is a bonus action only as a repeat offer's charge (Heat Metal's repeated damage, D166).
-  if (invocation.activation.code === 'BONUS_ACTION')
-    return (
-      isWeaponOrUnarmedAttack(invocation.triggerCode) || invocation.triggerCode === 'SAVING_THROW'
-    )
-  return (
-    invocation.activation.code === 'REACTION' &&
-    'reactionTrigger' in invocation &&
-    invocation.reactionTrigger?.kind === 'MOVEMENT'
-  )
 }
 
 function supportedRecurringPlan(
@@ -1129,15 +1106,18 @@ function ownsTimedSaveCondition(
   const planned = tier
     ? hitPointTierActions(action)?.find(({ atMost }) => atMost === tier.atMost)?.tierAction
     : action
+  const plan = planned ? timedConditionPlan(planned) : null
   return (
     testPhaseKindOrNull(action) === 'SAVE' &&
     entry.pathCode === 'ON_SAVE_FAIL' &&
     (tier !== undefined ||
       (entry.lifecycle?.endOnTriggers?.length ?? 0) > 0 ||
       (entry.lifecycle?.endOnEvents?.length ?? 0) > 0 ||
-      (turns !== null && turns <= 1)) &&
-    planned !== undefined &&
-    timedConditionPlan(planned) !== null
+      (turns !== null && turns <= 1) ||
+      // A removal from play (Banishment) is the early end: the held effect returns the creature
+      // when it ends, by duration, Concentration or dismissal (D178).
+      plan?.playAbsenceContribution != null) &&
+    plan !== null
   )
 }
 
@@ -2115,7 +2095,13 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
     if (
       entry.resolutionKind !== 'DIRECT' ||
       (entry.groupKind !== 'SINGLE' &&
-        !(relationshipEntries.length === 1 && entry.groupKind === 'SEQUENTIAL')) ||
+        // The other results of a sequence ride the action's active-effect plan: a relationship, or
+        // a removal from play held beside the condition it follows (Banishment).
+        !(
+          entry.groupKind === 'SEQUENTIAL' &&
+          (relationshipEntries.length === 1 ||
+            timedConditionPlan(action)?.playAbsenceContribution != null)
+        )) ||
       ((entry.duration || entry.lifecycle) &&
         !ownsTimedSaveCondition(action, entry) &&
         (recurringPlan?.compiledEntryId !== entry.resultBlockId || kind !== 'SAVE')) ||
@@ -2302,8 +2288,7 @@ function supported(
   // concealments that hide creatures from the checker, or the target's own check in a contest.
   const checkAction = invocation.triggerCode === 'CHECK'
   const contestAction = checkAction && invocation.check.dc.kind === 'CONTEST'
-  const supportsSelf =
-    invocation.range.rangeKind === 'SELF' && invocation.targeting?.selectionKind === 'SELF'
+  const supportsSelf = namesOnlyItsUser(invocation, conditionPlan?.playAbsenceContribution != null)
   // A teleport spell (Misty Step) names its reach as a distance range on a self-targeted action:
   // the range bounds the teleport, not a target.
   const teleportReachFeet =
