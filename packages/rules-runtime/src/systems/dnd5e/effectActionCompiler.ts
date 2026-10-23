@@ -53,6 +53,7 @@ import { hitPointTierCeilings, hitPointTierFloor, selectHitPointTier } from '../
 import { ZONE_SIGHT_REQUIREMENT_MET_FACT_KEY } from '../../encounterZonePlacement.js'
 import { diceGraphDefinition } from './effectActionDiceGraph.js'
 import {
+  activeEffectGraphNodeId,
   durationPublishedGraph,
   isGrantConsumeEvent,
   maintenancePlan
@@ -267,9 +268,6 @@ const DND5E_ORDINARY_SIGHT_CAPABILITY = {
   physicalConstraints: ['LINE_OF_EFFECT'] as const
 }
 const DND5E_ORDINARY_SIGHT_CHECKSUM = checksumRuleDocument(DND5E_ORDINARY_SIGHT_CAPABILITY)
-function activeEffectGraphNodeId(compiledEntryId: string): string {
-  return `active_effect_${compiledEntryId}`
-}
 
 type Dnd5eEffectActionTemplate = Readonly<{
   phase: 'TEST' | 'OUTCOME'
