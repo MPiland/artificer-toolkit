@@ -1,5 +1,6 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { GrantedAction } from '@artificer-toolkit/schema/effects/grantedAction'
+import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 
 import {
   encounterBasicActionDefinitionId,
@@ -53,6 +54,27 @@ export function heldGrantedActions(effects: readonly HeldEffect[]): HeldGrantedA
 }
 
 /**
+ * The offers a Creature's traits make on every turn: a passive trait whose grant has no duration
+ * (Goblin's Nimble Escape). The trait's effect id stands in for the held effect's id.
+ */
+export function standingGrantedActions(features: readonly FeatureDto[]): HeldGrantedAction[] {
+  return features.flatMap((feature) =>
+    (feature.effects ?? []).flatMap((effect) =>
+      effect.invocation.kind !== 'PASSIVE'
+        ? []
+        : (effect.paths ?? [])
+            .flatMap(({ resultBlock }) =>
+              resultBlock.duration ||
+              !resultBlock.outcomes.some(({ effectKind }) => effectKind === 'APPLY_GRANT')
+                ? []
+                : (resultBlock.lifecycle?.grantedActions ?? [])
+            )
+            .map((offer, offerIndex) => ({ effectId: effect.id, offerIndex, offer }))
+    )
+  )
+}
+
+/**
  * The key the next use of an offer spends: null for an offer that spends an allowance instead of a
  * count, and `undefined` when a capped offer has no use left this turn (`spentKeys` is the turn's
  * spent once-per-turn keys).
@@ -71,18 +93,19 @@ export function nextGrantedActionUseKey(
 }
 
 /**
- * The offer a granted action id names, read from the holder's effects as they stand now: an effect
- * that has ended, or an offer that no longer names the action, makes the id stale. `useKey` is the
- * key the action spends, null when it spends an allowance.
+ * The offer a granted action id names, read from the holder's effects (and its standing offers) as
+ * they stand now: an effect that has ended, or an offer that no longer names the action, makes the
+ * id stale. `useKey` is the key the action spends, null when it spends an allowance.
  */
 export function resolveGrantedAction(input: {
   actionId: string
   heldEffects: readonly HeldEffect[]
+  standing?: readonly HeldGrantedAction[]
   spentKeys: readonly string[]
 }) {
   const parsed = parseGrantedActionId(input.actionId)
   const held = parsed
-    ? heldGrantedActions(input.heldEffects).find(
+    ? [...heldGrantedActions(input.heldEffects), ...(input.standing ?? [])].find(
         ({ effectId, offerIndex }) =>
           effectId === parsed.effectId && offerIndex === parsed.offerIndex
       )

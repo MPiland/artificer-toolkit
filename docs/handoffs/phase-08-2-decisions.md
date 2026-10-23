@@ -1182,6 +1182,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Audit:** the remaining SPELLS-4 conversions get one verdict each (fits existing core options, needs a named new piece, or description-only), and the open tasks are re-planned against the baseline.
   - **Exceptions to the freeze:** bugs, CI flakes and safety fixes found during approved work are not scope and may be registered; they are reported to the user.
 
+* **D188** (2026-10-23) Standing granted actions (SPELLS-33.T4l1). User decision.
+  - An `APPLY_GRANT` with no duration on a PASSIVE Creature trait offers its `lifecycle.grantedActions` on every turn, through the existing D160 `grantedActions` option and its existing resolve and consume path (`standingGrantedActions`, read from the actor's snapshot features). No parallel seam and no stored row. System-neutral (ADR 0039).
+  - Converts CREATURE_GOBLIN_NIMBLE_ESCAPE, CREATURE_SPY_CUNNING_ACTION, CREATURE_SHADOW_STEALTH, CREATURE_ORC_AGGRESSIVE, CREATURE_GIANT_OCTOPUS_INK_CLOUD (timed Dash offer) and CLAY_GOLEM_HASTE (timed AC and Dexterity-save modifiers plus one extra weapon attack); CREATURE_VAMPIRE_LEGENDARY_ACTIONS Move ships as a GM ruling (D187a). The seven kinds are deleted.
+  - Riders left as description or GM ruling: Aggressive's "toward a hostile creature", Shadow Stealth's dim-light condition, the legendary-action economy and the ink cloud zone.
+
 ### D187a: re-plan after the D187 audit (user decision, 2026-10-23)
 
 - The user amended SPELLS-4.1, SPELLS-31.1 and SPELLS-33.1: a rider that is rare in play and whose state change is not automated anywhere else ships as its description, shown as a GM ruling (MANUAL_ADJUDICATION). This matches existing precedents: Command, Dominate Person, Bestow Curse, Chill Touch's healing clause and Mummy Rot.

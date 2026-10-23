@@ -93,6 +93,48 @@ export function manualAdjudicationEffect({
   }
 }
 
+type GrantedActionOffers = NonNullable<
+  NonNullable<
+    NonNullable<EffectAuthored['paths']>[number]['resultBlock']['lifecycle']
+  >['grantedActions']
+>
+
+/**
+ * A passive trait that offers basic actions on every turn: a grant with no duration, so the offer
+ * stands for as long as the creature has the trait (D160, standing granted actions).
+ */
+export function standingGrantedActionsEffect({
+  id,
+  invocation,
+  grantedActions
+}: Pick<ClosedRuleEffectConfig, 'id' | 'invocation'> & {
+  grantedActions: GrantedActionOffers
+}): EffectAuthored {
+  return {
+    id,
+    order: 1,
+    invocation,
+    paths: [
+      {
+        id: mechanicId(id, 'PATH'),
+        order: 1,
+        pathCode: PATH_CODE.PASSIVE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: mechanicId(id, 'RESULT'),
+          resultKind: 'SINGLE',
+          lifecycle: { grantedActions },
+          outcomes: [
+            { id: mechanicId(id, 'OUTCOME'), effectKind: EFFECT_KIND.APPLY_GRANT, grants: {} }
+          ]
+        }
+      }
+    ]
+  }
+}
+
 export function closedRuleEffect({
   id,
   invocation,

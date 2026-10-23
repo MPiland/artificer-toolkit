@@ -70,7 +70,11 @@ import {
 
 export { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 
-export { closedRuleEffect, manualAdjudicationEffect } from '../closed-rule-effect.js'
+export {
+  closedRuleEffect,
+  manualAdjudicationEffect,
+  standingGrantedActionsEffect
+} from '../closed-rule-effect.js'
 
 export {
   DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID,
@@ -1676,6 +1680,7 @@ export {
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   SIZE_CODE,
   RANGE_KIND,
   SCALING,

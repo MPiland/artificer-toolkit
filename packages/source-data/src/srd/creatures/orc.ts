@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { CR, CREATURE_IDS, CREATURE_TYPE, SRD_SYSTEM_ID, SRD_USER_ID, walk } from './shared.js'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import * as S from './shared.js'
 
 export const orc: CreatureAuthored = {
@@ -50,19 +51,22 @@ export const orc: CreatureAuthored = {
       description:
         'Aggressive. As a bonus action, the orc can move up to its speed toward a hostile creature that it can see.',
       effects: [
-        S.closedRuleEffect({
+        // Moving up to its speed is a Dash; the "toward a hostile creature it can see" restriction has
+        // no automated equivalent, so the Feature text states it.
+        S.standingGrantedActionsEffect({
           id: S.bonusActionId(212, 501),
           invocation: {
-            kind: 'ACTION',
+            kind: 'PASSIVE',
             triggerCode: S.TRIGGER.ACTIVATED,
-            activation: { code: S.ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
-            range: { id: S.bonusActionId(212, 601), rangeKind: S.RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.HOSTILE
-            }
+            range: { id: S.bonusActionId(212, 601), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ORC_AGGRESSIVE
+          grantedActions: [
+            {
+              activation: S.ACTIVATION_CODE.BONUS_ACTION,
+              actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DASH]
+            }
+          ]
         })
       ],
       order: 1

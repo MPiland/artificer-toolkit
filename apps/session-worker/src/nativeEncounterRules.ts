@@ -21,7 +21,8 @@ import {
 import {
   heldGrantedActions,
   nextGrantedActionUseKey,
-  parseGrantedActionId
+  parseGrantedActionId,
+  standingGrantedActions
 } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
@@ -61,6 +62,7 @@ import {
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import {
   snapshotCreatureTypeId,
+  snapshotFeatureDefinitions,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import {
@@ -715,9 +717,10 @@ export async function planNativeLiveEncounterAction(
     })
   // An optional-combat intent routes to the Disarm planner.
   if (command.optionalCombatIntent != null) throw new Error('The action is not an ordinary action.')
-  const weaponAttackHolds = heldGrantedActions(
-    activeEffectsByActorId.get(prepared.actor.id) ?? []
-  ).filter(({ offer }) => offer.weaponAttack)
+  const weaponAttackHolds = [
+    ...heldGrantedActions(activeEffectsByActorId.get(prepared.actor.id) ?? []),
+    ...standingGrantedActions(snapshotFeatureDefinitions(prepared.actor))
+  ].filter(({ offer }) => offer.weaponAttack)
   const turnUsesSpent =
     weaponAttackHolds.length > 0 ? await readNativeLiveTurnUses(capture, prepared.actor.id) : []
   const weaponAttackUseKey =

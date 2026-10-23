@@ -10,7 +10,10 @@ import { encounterActionChoiceTarget } from '@artificer-toolkit/rules-runtime/en
 import { castChoiceOptions } from '@artificer-toolkit/rules-runtime/encounterCastChoice'
 import { buildCompiledActionTargetPolicy } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { characterFormCreatureView } from '@artificer-toolkit/rules-runtime/encounterActorForm'
-import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import {
+  encounterAttackActionState,
+  snapshotFeatureDefinitions
+} from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import {
   creatureAttackSlotAlternatives,
@@ -86,7 +89,8 @@ import { readEncounterSpellPins } from './spellPins.js'
 import {
   grantedActionId,
   heldGrantedActions,
-  nextGrantedActionUseKey
+  nextGrantedActionUseKey,
+  standingGrantedActions
 } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { listActiveRuleEffects, readActiveEffectsByActorId } from './effectStore.js'
 import { readTurnUses } from './turnMovement.js'
@@ -499,9 +503,10 @@ export async function readEncounterActionChoices(
     // What a held effect offers the actor (D160): the same actions, taken through the offer's
     // activation and, when it is capped, its uses this turn.
     const spentKeys = await readTurnUses(tx, { state, actorId: actor.id })
-    const heldOffers = heldGrantedActions(
-      await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))
-    ).flatMap((held) => {
+    const heldOffers = [
+      ...heldGrantedActions(await listActiveRuleEffects(tx, turnEffectOwner(actor, state.id))),
+      ...standingGrantedActions(snapshotFeatureDefinitions(actor))
+    ].flatMap((held) => {
       if (nextGrantedActionUseKey(held, spentKeys) === undefined) return []
       return offered.flatMap(({ action, admission }) =>
         held.offer.actionDefinitionIds.includes(action.definitionId)
