@@ -4,8 +4,8 @@ import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { CampaignTabletopMovementReadout } from './CampaignTabletopMovementReadout'
 import type { TurnMovementEntry } from './CampaignTabletopMovementReadout.model'
 
-const walk = { speedId: 'walk', code: 'WALK', label: 'Walking Speed' }
-const fly = { speedId: 'fly', code: 'FLY', label: 'Flying Speed' }
+const walk = { speedId: 'walk', code: 'WALK', isDefault: true, label: 'Walking Speed' }
+const fly = { speedId: 'fly', code: 'FLY', isDefault: false, label: 'Flying Speed' }
 
 const movement = (
   used: number,

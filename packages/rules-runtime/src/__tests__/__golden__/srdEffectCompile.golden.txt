@@ -153,7 +153,6 @@
 00000000-0000-0000-c008-600900000000 CHARACTER:classes Favored Enemy Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-600d00000000 CHARACTER:classes Hide in Plain Sight | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c008-601000000000 CHARACTER:classes Vanish | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0000-0000-c008-601300000000 CHARACTER:classes Feral Senses | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-601500000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-601700000000 CHARACTER:classes Land's Stride | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-602800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -163,14 +162,10 @@
 00000000-0000-0000-c008-602c00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-608300000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-608400000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-608500000000 CHARACTER:classes Feral Senses | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-608600000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-608700000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-608800000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-608900000000 CHARACTER:classes Feral Senses | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-608a00000000 CHARACTER:classes Feral Senses | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-608b00000000 CHARACTER:classes Vanish | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c008-608c00000000 CHARACTER:classes Feral Senses | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-608d00000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-608e00000000 CHARACTER:classes Foe Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c009-140100000000 CHARACTER:classes Fast Hands | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
@@ -181,7 +176,6 @@
 00000000-0000-0000-c009-600700000000 CHARACTER:classes Uncanny Dodge | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-600900000000 CHARACTER:classes Evasion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-600d00000000 CHARACTER:classes Reliable Talent | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c009-601000000000 CHARACTER:classes Blindsense | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-601600000000 CHARACTER:classes Stroke of Luck | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c009-602800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-602900000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -226,7 +220,6 @@
 00000000-0000-0000-c00b-601100000000 CHARACTER:classes Lifedrinker | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00b-601200000000 CHARACTER:classes One with Shadows | SINGLE_GRAPH 63436da6082c3dd72ff7cfadd4062abe3e0332e4862d2d809f44c2c7f961ee91 nodes=1 outputs=2
 00000000-0000-0000-c00b-601500000000 CHARACTER:classes Voice of the Chain Master | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c00b-601600000000 CHARACTER:classes Witch Sight | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00b-601700000000 CHARACTER:classes Pact of the Chain | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00b-601800000000 CHARACTER:classes Pact of the Blade | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-c00b-602500000000 CHARACTER:classes Eldritch Master | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -969,7 +962,7 @@
 00000000-0002-00d2-0070-010400000000 CREATURE Invisibility | SINGLE_GRAPH e14dc4260e75bf1b58aa61b20452bd30ce40c468df38f97691d18ab3dac54465 nodes=1 outputs=2
 00000000-0002-00d2-0070-012500000000 CREATURE Longsword | TEST_OUTCOME test=aa4ad201adbdda83c00cff12675e3c0ffe00afd6b4676d1a4a867a02faa212af nodes=3 outputs=5 outcomes=[ON_CRIT=d29bf78602fb2a52410af289bba9faffb2815acc8bae214f92623b59fc542cc7,ON_HIT=d29bf78602fb2a52410af289bba9faffb2815acc8bae214f92623b59fc542cc7]
 00000000-0002-00d2-0070-012a00000000 CREATURE Create Specter | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0002-00d3-0070-006f00000000 CREATURE Possession (Recharge 6) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
+00000000-0002-00d3-0070-006f00000000 CREATURE Possession (Recharge 6) | TEST_OUTCOME test=82dfdf1da7d320f4ffeef32a63320e5e9ae31bc31af32712f58ab1ff981f867f nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=acbf2e4fcc4b45fcb2da898530ab938ab3580ef3d4c66fb768147e2ab3b21d6b]
 00000000-0002-00d3-0070-008e00000000 CREATURE Fist | TEST_OUTCOME test=6f97b900b6a2a7d71190ace78eee62fbbf991e5fa3a2b10c292d8316beaac478 nodes=3 outputs=5 outcomes=[ON_CRIT=28316e6cd6b03c8421137ea9814baf4d0c410843b0d20b70e0b8f8745163f635,ON_HIT=28316e6cd6b03c8421137ea9814baf4d0c410843b0d20b70e0b8f8745163f635]
 00000000-0002-00d3-0070-010500000000 CREATURE Hand Crossbow | TEST_OUTCOME test=80d2146faf5aa6d2df19445d5145d7cd2f6b146ecebb4727c7d5108c2f2c5838 nodes=3 outputs=5 outcomes=[ON_CRIT=0e9e5c14014ea49f1193d14d09796f6c62eebc5536ce320d4af5b78422f3f951,ON_HIT=0e9e5c14014ea49f1193d14d09796f6c62eebc5536ce320d4af5b78422f3f951]
 00000000-0002-00d3-0070-012200000000 CREATURE Bite (Tiger or Hybrid Form Only) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.

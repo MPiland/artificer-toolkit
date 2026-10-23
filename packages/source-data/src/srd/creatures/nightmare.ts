@@ -43,7 +43,7 @@ export const nightmare: CreatureAuthored = {
       description:
         'Confer Fire Resistance. The nightmare can grant resistance to fire damage to anyone riding it.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(205, 501),
           invocation: {
             kind: 'PASSIVE',
@@ -51,7 +51,10 @@ export const nightmare: CreatureAuthored = {
             range: { id: S.actionId(205, 601), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_NIGHTMARE_CONFER_FIRE_RESISTANCE
+          label: 'Grant fire resistance to the rider',
+          reasonCode: 'GM_CHOICE',
+          instructions:
+            'Confer Fire Resistance. The nightmare can grant resistance to fire damage to anyone riding it.'
         })
       ],
       order: 1
