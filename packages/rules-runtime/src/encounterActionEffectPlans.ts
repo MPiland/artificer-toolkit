@@ -10,6 +10,7 @@ import type { CompiledRepeatSourcePathOffer } from '@artificer-toolkit/schema/ef
 import { sizeRank } from '@artificer-toolkit/shared/core'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
+import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
 import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAttackSlots.js'
 import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
 import {
@@ -132,6 +133,8 @@ export function prepareEncounterActionEffectPlans(input: {
   chosenItem?: { item: EquipmentInstanceMechanicSource; released: boolean }
   /** The level the spell was cast at, which a repeat offer freezes; omitted for a cast that has none. */
   spellCastLevel?: number
+  /** The caster's attack bonus, which an attack repeat offer freezes; omitted for a cast that has none. */
+  attackBonus?: number
   published: ServerPublishedRuleDefinitionDto
   execution: ServerCompletedRuleExecutionDto
   d20: ServerRuleExecutionD20EvidenceDto | null
@@ -695,16 +698,30 @@ export function prepareRecurringActiveEffect(
  */
 function frozenRepeatOffer(
   offer: CompiledRepeatSourcePathOffer,
-  input: Pick<Parameters<typeof prepareRecurringActiveEffect>[0], 'd20' | 'spellCastLevel'>
+  input: Pick<
+    Parameters<typeof prepareRecurringActiveEffect>[0],
+    'd20' | 'spellCastLevel' | 'attackBonus' | 'published'
+  >
 ): CompiledRepeatSourcePathOffer {
   const { invocation } = offer.effect
   // Only a repeat that forces a save freezes the DC its cast settled; an attack repeat rolls anew.
   if ('savingThrow' in invocation && !input.d20)
     throw new EncounterActionEffectPlanError('A repeat offer freezes the DC its cast settled.')
+  const rollsAttack =
+    invocation.kind === 'ACTION' &&
+    attackProfileCapabilityRegistry
+      .require(input.published.gameSystemId)
+      .attackKind(invocation.triggerCode) !== null
+  const attackBonus = rollsAttack ? input.attackBonus : undefined
+  if (rollsAttack && attackBonus === undefined)
+    throw new EncounterActionEffectPlanError(
+      'A repeat offer freezes the attack bonus its cast had.'
+    )
   return {
     ...offer,
     ...(input.spellCastLevel !== undefined &&
       input.spellCastLevel > 0 && { castLevel: input.spellCastLevel }),
+    ...(attackBonus !== undefined && { attackBonus }),
     effect: {
       ...offer.effect,
       invocation:

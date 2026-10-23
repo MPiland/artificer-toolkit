@@ -24,6 +24,8 @@ export interface CompiledRepeatSourcePathOffer {
   activation: z.infer<typeof activationCodeSchema>
   effect: EffectAuthored
   castLevel?: number
+  /** The holder's attack bonus the cast froze for an attack repeat; its roll mode is read live. */
+  attackBonus?: number
   /** Absent means `HOLDER`. */
   target?: RepeatOfferTarget
 }
@@ -41,6 +43,7 @@ const compiledRepeatSourcePathOfferSchema = lazySchema(() =>
     activation: activationCodeSchema,
     effect: embeddedEffectSchema,
     castLevel: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(9))),
+    attackBonus: z.optional(z.number().check(z.int())),
     target: z.optional(repeatOfferTargetSchema)
   })
 )

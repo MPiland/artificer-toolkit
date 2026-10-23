@@ -190,6 +190,27 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
     expect(resolve(blade)).toMatchObject({ target: 'INVOCATION', effectId: attackEffect?.id })
   })
 
+  it('reads the attack bonus its cast froze as the repeat capability mechanic', () => {
+    const input = { actor: caster, gameSystemId: DND5E_SYSTEM_ID, system, spells: new Map() }
+    const resolve = (attackBonus?: number) => {
+      const source = resolveEncounterActionSource({
+        ...input,
+        actionId,
+        repeat: {
+          effectsByHolder: new Map([
+            [HOLDER_ID, [heldCarrier({ ...compiledOffer(flameBlade), attackBonus })]]
+          ])
+        }
+      })
+      if (source.kind !== 'REPEAT_PATH') throw new Error('The id must resolve to a repeat.')
+      return source.capability
+    }
+
+    expect(resolve(7).attackMechanic).toEqual({ attackBonus: 7, rollMode: 'NORMAL' })
+    expect(featureActionMechanic(resolve(7))).toMatchObject({ attackBonus: 7 })
+    expect(resolve().attackMechanic).toBeNull()
+  })
+
   it('is stale once the carrier is gone or the id names another offer', () => {
     const input = { actor: caster, gameSystemId: DND5E_SYSTEM_ID, system, spells: new Map() }
     expect(() =>

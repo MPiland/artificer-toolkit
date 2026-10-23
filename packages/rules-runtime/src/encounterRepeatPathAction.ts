@@ -19,6 +19,8 @@ export interface EncounterRepeatPathCapabilityDescriptor extends EffectActionCap
   holderActorId: string
   /** HOLDER (default) runs against the holder; INVOCATION against the targets the repeated invocation picks. */
   target: 'HOLDER' | 'INVOCATION'
+  /** The attack bonus an attack repeat rolls with, frozen by the cast; its roll mode starts normal. */
+  attackMechanic: { attackBonus: number; rollMode: 'NORMAL' } | null
   label: string
 }
 
@@ -95,7 +97,11 @@ export function discoverEncounterRepeatPath(input: {
     carrierEffectId: offer.effectId,
     offerIndex: offer.offerIndex,
     holderActorId: offer.holderActorId,
-    target: offer.target ?? 'HOLDER'
+    target: offer.target ?? 'HOLDER',
+    attackMechanic:
+      offer.attackBonus === undefined
+        ? null
+        : { attackBonus: offer.attackBonus, rollMode: 'NORMAL' }
   }
   return {
     capability,
