@@ -1,4 +1,5 @@
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
+import type { D20Roll } from '@artificer-toolkit/shared/rolls'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
 import type { SystemCoreCodeRegistry } from './systemCoreCodeCapability.js'
 
@@ -46,6 +47,14 @@ export function createRollModeCapabilityRegistry(
     },
     /** The face a roll mode keeps, for a mode the roller chose rather than one contributors derived. */
     rollModeKeep,
+    /** The System-governed d20 roll a roll mode makes: its code, label and the face it keeps. */
+    d20Roll(input: { gameSystemId: string; rollMode: string }): D20Roll {
+      return {
+        mode: input.rollMode,
+        label: vocabulary.requireCode(input.gameSystemId, 'rollMode', input.rollMode).label,
+        keep: rollModeKeep(input)
+      }
+    },
     /** The roll modes a roller may pick for a System's d20 request, each with the face it keeps. */
     offeredRollModes(gameSystemId: string): { code: string; label: string; keep: RollModeKeep }[] {
       const adapter = registry.require(gameSystemId)

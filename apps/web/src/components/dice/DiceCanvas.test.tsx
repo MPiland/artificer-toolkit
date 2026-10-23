@@ -46,6 +46,7 @@ function createStagedRoll(id: string): RollResultDto {
       terms: [{ count: 1, die: 20, rolls: [12], rollSequences: [[5, 12]], subtotal: 12 }],
       modifier: 0,
       mode: 'NORMAL',
+      keep: 'FIRST',
       subtotal: 12,
       transform: { kind: 'NONE' },
       total: 12

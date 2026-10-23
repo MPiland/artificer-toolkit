@@ -807,9 +807,8 @@ export function projectCharacterSheetBundle(
     ruleEvaluation.facts
   )
   const displayedSpellIds = new Set(knownSpellIds)
-  for (const spellIds of sheetSpellIdsByClassId.values()) {
+  for (const spellIds of sheetSpellIdsByClassId.values())
     for (const spellId of spellIds) displayedSpellIds.add(spellId)
-  }
   const preparationCapableClassIds = getPreparationCapableClassIds(ruleEvaluation.output)
   const ruleProjection = projectCharacterRulePolicyToSheetProjection(ruleEvaluation)
   const itemMechanicsByInstanceId = new Map(
@@ -831,7 +830,8 @@ export function projectCharacterSheetBundle(
     id: condition.id,
     code: condition.code,
     label: condition.label,
-    ...(condition.description ? { description: condition.description } : {})
+    ...(condition.description ? { description: condition.description } : {}),
+    ...(condition.levelled ? { levelled: true } : {})
   }))
   const equipmentById = new Map(
     resolution.registry.equipment.map((equipment) => [equipment.id, equipment])
@@ -1430,6 +1430,7 @@ export function projectCharacterSheetBundle(
       armorClass: ruleProjection.derivedStats.armorClass,
       initiative: ruleProjection.derivedStats.initiative,
       initiativeRollMode: ruleProjection.rollModes.initiative,
+      rollModes: ruleProjection.offeredRollModes,
       proficiencyBonus,
       inspiration: character.state.inspiration ?? false,
       currentHitPoints: clampCharacterCurrentHitPoints(

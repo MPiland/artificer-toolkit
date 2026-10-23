@@ -373,8 +373,11 @@ draw these selects from the `roll_influences` and `roll_modes` sources, which ca
 membership is checked where `rollModeCapabilityRegistry` resolves the contributors. A grant's fold group key carries
 its influence (`ATTACK_ROLL:ROLL_INFLUENCE|attackDomain=MELEE|influence=ADVANTAGE`), and a grant's listing polarity
 follows the face the System keeps under its influence.
-**Transitional (until RULES-2.T9a2):** the shared dice evaluator, roll evidence `mode`, manual and
-Campaign roll input, the held d20 and the `D20_MODE_ADJUSTED` record still use the D&D mode codes.
+**Roll evidence (RULES-2.T9a2, current).** The shared dice evaluator takes the d20's `{ mode, label, keep }` from
+`rollModeCapabilityRegistry.d20Roll`; evidence always carries `keep` and carries `mode`/`modeLabel` only for a
+System-governed d20. Manual and Campaign roll input accept any System code, the character sheet and Campaign
+detail DTOs offer the System's `rollModes`, and `D20_MODE_ADJUSTED` names its modes as `{ code, label }`.
+**Transitional (until RULES-2.T9k):** the held d20's `rolledMode` and the sight-governed settlement still use the D&D mode codes.
 **System capability registries (RULES-2.T11a–g, current).** Every System capability is one
 `createSystemCapabilityRegistry(capability, adapters)` (`systemCapabilityRegistry.ts`) whose
 `require(gameSystemId)` canonicalizes the UUID and fails closed on a System that does not provide the
@@ -1657,6 +1660,13 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   an opportunity attack (salted `${occurrenceId}:${reactorActorId}`, settled through `spentUseGrants` on the REACTION arm) and a Legendary
   attack (salted `${occurrenceId}:legendary:${ordinal}`, `decoyEffectId` in its evidence). An attacker that cannot see the target or has a
   sense in the payload's `exemptAttackerSenseDefinitionIds` (blindsight, truesight) never meets a decoy.
+- **Healing received (SPELLS-4.T2n1, D156/D181).** A `HEALING_RECEIVED` `ENABLE` modifier makes every die of hit point healing the holder
+  receives take its maximum (Beacon of Hope). `encounterGrantsEnabledDomain` folds it into the target fact `healingMaximized`
+  (`encounterMovementTargets.ts`); the dice heal graph's `dnd5e.heal-total` node takes it as the `dnd5e.heal-max` fact beside the
+  literal maximum subtotal, so the shared roll is kept and only the total differs per target. Temporary hit points and fixed healing are
+  not maximized. Known limit: Beacon of Hope's death-save advantage is description-only until a death-save target exists on the
+  `SAVING_THROW_MODIFIER` filter (the encounter death save is a separate single-d20 graph).
+
 - **Incoming attack gate (SPELLS-4.T2k3, D156).** An `INCOMING_ATTACK_GATE` `ENABLE` modifier (`{savingThrow}`) makes any creature that
   targets the holder with an attack or a harmful spell first pass a save against the effect source's spell save DC.
   `advanceNativeIncomingGate` (session worker) runs before the cast-reaction pause: a prompted player rolls the save at a

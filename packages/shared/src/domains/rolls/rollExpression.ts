@@ -11,11 +11,18 @@ export type RollTransform =
   | { kind: 'DOUBLE' }
   | { kind: 'MULTIPLY'; value: number }
 
+/** Which face a d20 roll keeps: the one face it rolls, or the higher or lower of two. */
+export type RollKeep = 'FIRST' | 'HIGHER' | 'LOWER'
+
 /**
- * A System roll-mode code; the evaluator still branches on the D&D codes until RULES-2.T9a2 replaces
- * this with `keep`.
+ * A System-governed d20 roll: the System's roll-mode code and the `keep` it derives from it. The
+ * evaluator interprets `keep` only; the code is stored as evidence.
  */
-export type RollMode = string
+export interface D20Roll {
+  mode: string
+  label: string
+  keep: RollKeep
+}
 export type RollSelection = {
   kind: 'DROP_HIGHEST' | 'DROP_LOWEST' | 'KEEP_HIGHEST' | 'KEEP_LOWEST'
   count: number
@@ -34,7 +41,10 @@ interface RollEvidence {
     keptRollIndexes?: number[]
   }[]
   modifier: number
-  mode: RollMode
+  /** The System roll-mode code; present only for a System-governed d20 roll. */
+  mode?: string
+  modeLabel?: string
+  keep: RollKeep
   subtotal: number
   transform: RollTransform
   total: number
@@ -226,16 +236,17 @@ export function parseRollExpression(expression: string): ParsedRollExpression {
 export function evaluateRollExpression(
   parsed: ParsedRollExpression,
   random: CharacterDiceRandomSource,
-  mode: RollMode = 'NORMAL'
+  d20?: D20Roll
 ): { normalizedExpression: string; evidence: RollEvidence } {
-  validateRollMode(parsed, mode)
+  const keep = d20?.keep ?? 'FIRST'
+  validateRollKeep(parsed, keep)
 
   const terms = parsed.terms.map(({ count, die, modifier, reroll, selection }) => {
     const result = rollCharacterDice(
-      { count: mode === 'NORMAL' ? count : 2, die, modifier: 0 },
+      { count: keep === 'FIRST' ? count : 2, die, modifier: 0 },
       random
     )
-    if (mode === 'NORMAL') {
+    if (keep === 'FIRST') {
       const rollSequences = result.rolls.map((value) => {
         const sequence = [value]
         if (!reroll || value !== reroll.value) return sequence
@@ -267,7 +278,7 @@ export function evaluateRollExpression(
       }
     }
 
-    const keptRoll = mode === 'ADVANTAGE' ? Math.max(...result.rolls) : Math.min(...result.rolls)
+    const keptRoll = keep === 'HIGHER' ? Math.max(...result.rolls) : Math.min(...result.rolls)
     return {
       count: 2,
       die,
@@ -294,7 +305,8 @@ export function evaluateRollExpression(
     evidence: {
       terms,
       modifier: parsed.modifier,
-      mode,
+      ...(d20 ? { mode: d20.mode, modeLabel: d20.label } : {}),
+      keep,
       subtotal,
       transform: parsed.transform,
       total
@@ -330,9 +342,10 @@ export function parseStandaloneDiceConfiguration(configuration: string): ParsedR
   return parsed
 }
 
-export function validateRollMode(parsed: ParsedRollExpression, mode: RollMode): void {
+/** A keep of two faces needs a single d20 to keep them from. */
+export function validateRollKeep(parsed: ParsedRollExpression, keep: RollKeep): void {
   if (
-    mode !== 'NORMAL' &&
+    keep !== 'FIRST' &&
     (parsed.terms.length !== 1 ||
       parsed.terms[0].count !== 1 ||
       parsed.terms[0].die !== 20 ||
@@ -340,6 +353,6 @@ export function validateRollMode(parsed: ParsedRollExpression, mode: RollMode): 
       parsed.terms[0].selection !== undefined ||
       parsed.transform.kind !== 'NONE')
   ) {
-    throw new RangeError('Advantage and disadvantage require a single d20 roll.')
+    throw new RangeError('Keeping the higher or lower of two dice requires a single d20 roll.')
   }
 }

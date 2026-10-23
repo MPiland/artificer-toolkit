@@ -135,6 +135,11 @@ describe('character sheet command contracts', () => {
           armorClass: 12,
           initiative: 2,
           initiativeRollMode: 'NORMAL',
+          rollModes: [
+            { code: 'NORMAL', label: 'Normal', keep: 'FIRST' },
+            { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' },
+            { code: 'DISADVANTAGE', label: 'Disadvantage', keep: 'LOWER' }
+          ],
           proficiencyBonus: 2,
           currentHitPoints: 8,
           maxHitPoints: 12,
@@ -299,6 +304,11 @@ describe('character sheet command contracts', () => {
           armorClass: 12,
           initiative: 2,
           initiativeRollMode: 'NORMAL',
+          rollModes: [
+            { code: 'NORMAL', label: 'Normal', keep: 'FIRST' },
+            { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' },
+            { code: 'DISADVANTAGE', label: 'Disadvantage', keep: 'LOWER' }
+          ],
           proficiencyBonus: 2,
           currentHitPoints: 8,
           maxHitPoints: 12,

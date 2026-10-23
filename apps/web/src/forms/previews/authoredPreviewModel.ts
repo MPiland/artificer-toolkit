@@ -15,6 +15,7 @@ import { isRecord } from '#forms/utils/valueGuards'
 type RuntimeRecord = Record<string, unknown>
 type VocabularyKey = Exclude<
   keyof NonNullable<SystemResponseDto>,
+  | 'defaults'
   | 'description'
   | 'id'
   | 'initiativePolicy'

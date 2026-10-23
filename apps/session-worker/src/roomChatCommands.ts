@@ -135,9 +135,9 @@ export async function executeRoomCampaignChatCommand(input: {
         'Assign at least one Character before making a Campaign roll.'
       )
     const system = await ctx.ports.requireSystem(campaign.gameSystemId)
-    let resolved = {
+    let resolved: ReturnType<typeof resolveCharacterSheetRoll> = {
       expression: roll.expression,
-      rollMode: roll.rollMode ?? ('NORMAL' as const),
+      rollMode: roll.rollMode,
       source: roll.source
     }
     if (character && roll.source.kind !== 'MANUAL') {

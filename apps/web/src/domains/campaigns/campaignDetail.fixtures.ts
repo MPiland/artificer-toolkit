@@ -31,6 +31,11 @@ export function createCampaignDetail(
     createdAt: '2026-09-01T00:00:00.000Z',
     updatedAt: '2026-09-01T00:00:00.000Z',
     attunementSlotOverride: null,
+    rollModes: [
+      { code: 'NORMAL', label: 'Normal', keep: 'FIRST' },
+      { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' },
+      { code: 'DISADVANTAGE', label: 'Disadvantage', keep: 'LOWER' }
+    ],
     assignedCharacter: null,
     memberships: [],
     capabilities: getCampaignCapabilities(status, role),

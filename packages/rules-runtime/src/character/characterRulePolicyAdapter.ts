@@ -6,6 +6,7 @@ import type {
   CharacterRuleSense,
   CharacterSheetRuleProjection
 } from './characterSheetRuleProjection.js'
+import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
 import { findCompiledSpellGrant } from './characterSpellRuleFacts.js'
 
 type Evaluation = Pick<CharacterRuleEvaluationResult, 'snapshot' | 'registry' | 'facts' | 'output'>
@@ -374,6 +375,7 @@ export function projectCharacterRulePolicyToSheetProjection(
         : {})
     },
     rollModes: output.rollModes,
+    offeredRollModes: rollModeCapabilityRegistry.offeredRollModes(snapshot.systemId),
     ...(spellState.length > 0 ? { spellState } : {}),
     spellAccess: projectCharacterSpellAccess(evaluation),
     spellSlots: {

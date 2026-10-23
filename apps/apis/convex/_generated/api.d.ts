@@ -1668,6 +1668,11 @@ export declare const api: {
           primaryRulesCatalogueId: string;
           publicId: string;
           role: "OWNER" | "PLAYER";
+          rollModes: Array<{
+            code: string;
+            keep: "FIRST" | "HIGHER" | "LOWER";
+            label: string;
+          }>;
           status: "ACTIVE" | "ARCHIVED";
           toneDetails: string | null;
           toneTags: Array<
@@ -3190,7 +3195,9 @@ export declare const api: {
           characterLabel: string;
           createdAt: string;
           evidence: {
-            mode: string;
+            keep: "FIRST" | "HIGHER" | "LOWER";
+            mode?: string;
+            modeLabel?: string;
             modifier: number;
             subtotal: number;
             terms: Array<{
@@ -3228,11 +3235,11 @@ export declare const api: {
               }
             | {
                 addedRollIndexes: Array<number>;
-                appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                appliedMode: { code: string; label: string };
                 cancelledRollIndexes: Array<number>;
                 caption: string | null;
                 kind: "D20_MODE_ADJUSTED";
-                rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                rolledMode: { code: string; label: string };
               }
             | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
           ruleset: { code: string; systemId: string; version: string };
@@ -3677,6 +3684,11 @@ export declare const api: {
               sourceHidden: boolean;
             }>;
             proficiencyBonus: number;
+            rollModes: Array<{
+              code: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              label: string;
+            }>;
             savingThrows: Array<{
               ability:
                 | "CHARISMA"
@@ -3714,6 +3726,7 @@ export declare const api: {
               description?: string;
               id: string;
               label: string;
+              levelled?: boolean;
             }>;
             currencyOptions: Array<{
               campaignCurrencySystemId?: string;
@@ -7238,7 +7251,9 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              mode?: string;
+              modeLabel?: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -7276,11 +7291,11 @@ export declare const api: {
                 }
               | {
                   addedRollIndexes: Array<number>;
-                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  appliedMode: { code: string; label: string };
                   cancelledRollIndexes: Array<number>;
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
-                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rolledMode: { code: string; label: string };
                 }
               | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
@@ -7334,7 +7349,9 @@ export declare const api: {
               characterLabel: string;
               createdAt: string;
               evidence: {
-                mode: string;
+                keep: "FIRST" | "HIGHER" | "LOWER";
+                mode?: string;
+                modeLabel?: string;
                 modifier: number;
                 subtotal: number;
                 terms: Array<{
@@ -7372,11 +7389,11 @@ export declare const api: {
                   }
                 | {
                     addedRollIndexes: Array<number>;
-                    appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    appliedMode: { code: string; label: string };
                     cancelledRollIndexes: Array<number>;
                     caption: string | null;
                     kind: "D20_MODE_ADJUSTED";
-                    rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                    rolledMode: { code: string; label: string };
                   }
                 | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
               ruleset: { code: string; systemId: string; version: string };
@@ -7435,7 +7452,9 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              mode?: string;
+              modeLabel?: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -7473,11 +7492,11 @@ export declare const api: {
                 }
               | {
                   addedRollIndexes: Array<number>;
-                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  appliedMode: { code: string; label: string };
                   cancelledRollIndexes: Array<number>;
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
-                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rolledMode: { code: string; label: string };
                 }
               | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
@@ -7524,7 +7543,9 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              mode?: string;
+              modeLabel?: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -7562,11 +7583,11 @@ export declare const api: {
                 }
               | {
                   addedRollIndexes: Array<number>;
-                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  appliedMode: { code: string; label: string };
                   cancelledRollIndexes: Array<number>;
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
-                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rolledMode: { code: string; label: string };
                 }
               | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
@@ -8030,6 +8051,11 @@ export declare const api: {
           primaryRulesCatalogueId: string;
           publicId: string;
           role: "OWNER" | "PLAYER";
+          rollModes: Array<{
+            code: string;
+            keep: "FIRST" | "HIGHER" | "LOWER";
+            label: string;
+          }>;
           status: "ACTIVE" | "ARCHIVED";
           toneDetails: string | null;
           toneTags: Array<
@@ -8113,6 +8139,11 @@ export declare const api: {
             primaryRulesCatalogueId: string;
             publicId: string;
             role: "OWNER" | "PLAYER";
+            rollModes: Array<{
+              code: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              label: string;
+            }>;
             status: "ACTIVE" | "ARCHIVED";
             toneDetails: string | null;
             toneTags: Array<
@@ -8196,6 +8227,11 @@ export declare const api: {
             primaryRulesCatalogueId: string;
             publicId: string;
             role: "OWNER" | "PLAYER";
+            rollModes: Array<{
+              code: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              label: string;
+            }>;
             status: "ACTIVE" | "ARCHIVED";
             toneDetails: string | null;
             toneTags: Array<
@@ -8289,6 +8325,11 @@ export declare const api: {
               primaryRulesCatalogueId: string;
               publicId: string;
               role: "OWNER" | "PLAYER";
+              rollModes: Array<{
+                code: string;
+                keep: "FIRST" | "HIGHER" | "LOWER";
+                label: string;
+              }>;
               status: "ACTIVE" | "ARCHIVED";
               toneDetails: string | null;
               toneTags: Array<
@@ -8376,6 +8417,11 @@ export declare const api: {
             primaryRulesCatalogueId: string;
             publicId: string;
             role: "OWNER" | "PLAYER";
+            rollModes: Array<{
+              code: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              label: string;
+            }>;
             status: "ACTIVE" | "ARCHIVED";
             toneDetails: string | null;
             toneTags: Array<
@@ -8476,6 +8522,11 @@ export declare const api: {
           primaryRulesCatalogueId: string;
           publicId: string;
           role: "OWNER" | "PLAYER";
+          rollModes: Array<{
+            code: string;
+            keep: "FIRST" | "HIGHER" | "LOWER";
+            label: string;
+          }>;
           status: "ACTIVE" | "ARCHIVED";
           toneDetails: string | null;
           toneTags: Array<
@@ -9753,6 +9804,11 @@ export declare const api: {
           primaryRulesCatalogueId: string;
           publicId: string;
           role: "OWNER" | "PLAYER";
+          rollModes: Array<{
+            code: string;
+            keep: "FIRST" | "HIGHER" | "LOWER";
+            label: string;
+          }>;
           status: "ACTIVE" | "ARCHIVED";
           toneDetails: string | null;
           toneTags: Array<
@@ -10172,6 +10228,11 @@ export declare const api: {
           primaryRulesCatalogueId: string;
           publicId: string;
           role: "OWNER" | "PLAYER";
+          rollModes: Array<{
+            code: string;
+            keep: "FIRST" | "HIGHER" | "LOWER";
+            label: string;
+          }>;
           status: "ACTIVE" | "ARCHIVED";
           toneDetails: string | null;
           toneTags: Array<
@@ -10324,6 +10385,11 @@ export declare const api: {
           primaryRulesCatalogueId: string;
           publicId: string;
           role: "OWNER" | "PLAYER";
+          rollModes: Array<{
+            code: string;
+            keep: "FIRST" | "HIGHER" | "LOWER";
+            label: string;
+          }>;
           status: "ACTIVE" | "ARCHIVED";
           toneDetails: string | null;
           toneTags: Array<
@@ -10389,7 +10455,9 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              mode?: string;
+              modeLabel?: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -10427,11 +10495,11 @@ export declare const api: {
                 }
               | {
                   addedRollIndexes: Array<number>;
-                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  appliedMode: { code: string; label: string };
                   cancelledRollIndexes: Array<number>;
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
-                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rolledMode: { code: string; label: string };
                 }
               | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
@@ -10487,7 +10555,9 @@ export declare const api: {
           characterLabel: string;
           createdAt: string;
           evidence: {
-            mode: string;
+            keep: "FIRST" | "HIGHER" | "LOWER";
+            mode?: string;
+            modeLabel?: string;
             modifier: number;
             subtotal: number;
             terms: Array<{
@@ -10531,11 +10601,11 @@ export declare const api: {
               }
             | {
                 addedRollIndexes: Array<number>;
-                appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                appliedMode: { code: string; label: string };
                 cancelledRollIndexes: Array<number>;
                 caption: string | null;
                 kind: "D20_MODE_ADJUSTED";
-                rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                rolledMode: { code: string; label: string };
               }
             | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
           ruleset: { code: string; systemId: string; version: string };
@@ -10579,7 +10649,9 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              mode?: string;
+              modeLabel?: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -10617,11 +10689,11 @@ export declare const api: {
                 }
               | {
                   addedRollIndexes: Array<number>;
-                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  appliedMode: { code: string; label: string };
                   cancelledRollIndexes: Array<number>;
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
-                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rolledMode: { code: string; label: string };
                 }
               | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
@@ -11216,6 +11288,11 @@ export declare const api: {
           primaryRulesCatalogueId: string;
           publicId: string;
           role: "OWNER" | "PLAYER";
+          rollModes: Array<{
+            code: string;
+            keep: "FIRST" | "HIGHER" | "LOWER";
+            label: string;
+          }>;
           status: "ACTIVE" | "ARCHIVED";
           toneDetails: string | null;
           toneTags: Array<
@@ -18860,6 +18937,11 @@ export declare const api: {
               sourceHidden: boolean;
             }>;
             proficiencyBonus: number;
+            rollModes: Array<{
+              code: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              label: string;
+            }>;
             savingThrows: Array<{
               ability:
                 | "CHARISMA"
@@ -18897,6 +18979,7 @@ export declare const api: {
               description?: string;
               id: string;
               label: string;
+              levelled?: boolean;
             }>;
             currencyOptions: Array<{
               campaignCurrencySystemId?: string;
@@ -21048,6 +21131,11 @@ export declare const api: {
                   sourceHidden: boolean;
                 }>;
                 proficiencyBonus: number;
+                rollModes: Array<{
+                  code: string;
+                  keep: "FIRST" | "HIGHER" | "LOWER";
+                  label: string;
+                }>;
                 savingThrows: Array<{
                   ability:
                     | "CHARISMA"
@@ -21085,6 +21173,7 @@ export declare const api: {
                   description?: string;
                   id: string;
                   label: string;
+                  levelled?: boolean;
                 }>;
                 defenses: Array<{
                   damageTypeId: string;
@@ -123552,6 +123641,7 @@ export declare const api: {
             description?: string | null;
             id: string;
             label: string;
+            levelled?: boolean;
             short?: string | null;
           }>;
           creatureTypes: Array<{
@@ -123576,6 +123666,11 @@ export declare const api: {
             label: string;
             short?: string | null;
           }>;
+          defaults?: {
+            conditionTypeId: string;
+            damageTypeId: string;
+            movementTypeId: string;
+          };
           description?: string | null;
           heritages: Array<{
             code: string;
@@ -129335,7 +129430,9 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              mode?: string;
+              modeLabel?: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -129373,11 +129470,11 @@ export declare const api: {
                 }
               | {
                   addedRollIndexes: Array<number>;
-                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  appliedMode: { code: string; label: string };
                   cancelledRollIndexes: Array<number>;
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
-                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rolledMode: { code: string; label: string };
                 }
               | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
@@ -129577,7 +129674,9 @@ export declare const api: {
             characterLabel: string;
             createdAt: string;
             evidence: {
-              mode: string;
+              keep: "FIRST" | "HIGHER" | "LOWER";
+              mode?: string;
+              modeLabel?: string;
               modifier: number;
               subtotal: number;
               terms: Array<{
@@ -129615,11 +129714,11 @@ export declare const api: {
                 }
               | {
                   addedRollIndexes: Array<number>;
-                  appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  appliedMode: { code: string; label: string };
                   cancelledRollIndexes: Array<number>;
                   caption: string | null;
                   kind: "D20_MODE_ADJUSTED";
-                  rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+                  rolledMode: { code: string; label: string };
                 }
               | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
             ruleset: { code: string; systemId: string; version: string };
@@ -132424,7 +132523,9 @@ export declare const api: {
         characterLabel: string;
         createdAt: string;
         evidence: {
-          mode: string;
+          keep: "FIRST" | "HIGHER" | "LOWER";
+          mode?: string;
+          modeLabel?: string;
           modifier: number;
           subtotal: number;
           terms: Array<{
@@ -132462,11 +132563,11 @@ export declare const api: {
             }
           | {
               addedRollIndexes: Array<number>;
-              appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              appliedMode: { code: string; label: string };
               cancelledRollIndexes: Array<number>;
               caption: string | null;
               kind: "D20_MODE_ADJUSTED";
-              rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rolledMode: { code: string; label: string };
             }
           | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
         ruleset: { code: string; systemId: string; version: string };
@@ -132493,7 +132594,9 @@ export declare const api: {
       { configuration: string },
       {
         evidence: {
-          mode: string;
+          keep: "FIRST" | "HIGHER" | "LOWER";
+          mode?: string;
+          modeLabel?: string;
           modifier: number;
           subtotal: number;
           terms: Array<{
@@ -132527,7 +132630,9 @@ export declare const api: {
         characterLabel: string;
         createdAt: string;
         evidence: {
-          mode: string;
+          keep: "FIRST" | "HIGHER" | "LOWER";
+          mode?: string;
+          modeLabel?: string;
           modifier: number;
           subtotal: number;
           terms: Array<{
@@ -132571,11 +132676,11 @@ export declare const api: {
             }
           | {
               addedRollIndexes: Array<number>;
-              appliedMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              appliedMode: { code: string; label: string };
               cancelledRollIndexes: Array<number>;
               caption: string | null;
               kind: "D20_MODE_ADJUSTED";
-              rolledMode: "NORMAL" | "ADVANTAGE" | "DISADVANTAGE";
+              rolledMode: { code: string; label: string };
             }
           | { amount: number; kind: "D20_MINIMUM_ROLL"; label: string };
         ruleset: { code: string; systemId: string; version: string };
@@ -134748,6 +134853,11 @@ export declare const api: {
           primaryRulesCatalogueId: string;
           publicId: string;
           role: "OWNER" | "PLAYER";
+          rollModes: Array<{
+            code: string;
+            keep: "FIRST" | "HIGHER" | "LOWER";
+            label: string;
+          }>;
           status: "ACTIVE" | "ARCHIVED";
           toneDetails: string | null;
           toneTags: Array<
