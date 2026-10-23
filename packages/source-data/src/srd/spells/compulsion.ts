@@ -83,8 +83,11 @@ export const compulsion: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.COMPULSION, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'COMPULSION' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Compelled Movement',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'On each of your turns until the spell ends, you can use a bonus action to designate a direction horizontal to you. Each affected target must use as much of its movement as possible to move in that direction on its next turn. It can take its action before it moves. After moving this way it can repeat the Wisdom saving throw to end the effect. A target is not compelled to move into an obviously deadly hazard, but it provokes opportunity attacks to move in the designated direction.'
               }
             ]
           }
