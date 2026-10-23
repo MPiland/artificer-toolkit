@@ -13,6 +13,7 @@ import { MAX_ACTIVE_EFFECT_STORED_TICKS } from '@artificer-toolkit/schema/shared
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
+import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
 import {
@@ -22,6 +23,7 @@ import {
 import { mageArmor } from '@artificer-toolkit/source-data/srd/spells/mage-armor.js'
 import { mindBlank } from '@artificer-toolkit/source-data/srd/spells/mind-blank.js'
 import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
+import { produceFlame } from '@artificer-toolkit/source-data/srd/spells/produce-flame.js'
 import { damageTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
 import { trueStrike } from '@artificer-toolkit/source-data/srd/spells/true-strike.js'
@@ -614,6 +616,53 @@ describe('room Vampiric Touch (SPELLS-4.T2n2, D181)', () => {
       holderActorId: WOLF_ID,
       activation: 'ACTION'
     })
+  }, 120000)
+})
+
+/**
+ * SPELLS-4.T2v: Flame Blade and Produce Flame leave a carrier on the caster that offers the caster
+ * an Action attack on each later turn against any creature the attack can pick, not the holder.
+ */
+describe.each([
+  { spell: flameBlade, slotDamage: 3, classLevel: 5 },
+  { spell: produceFlame, slotDamage: 2, classLevel: 5 }
+])('room $spell.label (SPELLS-4.T2v)', ({ spell, slotDamage, classLevel }) => {
+  /** The Character, who prepares the spell, then a Wolf. The attack hits; every damage die shows 1. */
+  const heldFlameRoom = () =>
+    actionRoom({
+      rolls: [18],
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel },
+      characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+      characterAction: (action) => action.label.startsWith(spell.label)
+    })
+
+  it('offers the caster an Action attack on a creature of its choice, which deals the spell’s fire damage', async () => {
+    const room = await heldFlameRoom()
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    // The cast used this turn's action; the caster attacks on its next turn.
+    await room.advanceTurn()
+    await room.advanceTurn()
+
+    const [offer] = (await room.actionChoices()).effectOffers
+    expect(offer).toMatchObject({
+      kind: 'REPEAT_SOURCE_PATH',
+      holderActorId: CHARACTER_ACTOR_ID,
+      activation: 'ACTION',
+      target: 'INVOCATION'
+    })
+    if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+
+    const attack = await room.startAction(WOLF_ID, RANGE, null, null, offer.actionId)
+    expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+    expect(await appliedDamage(room, attack.command.commandId)).toEqual([
+      [slotDamage, damageTypeId('FIRE')]
+    ])
+    // The attack is repeatable: the blade or flame is still held.
+    expect((await room.actionChoices()).effectOffers).toHaveLength(1)
   }, 120000)
 })
 

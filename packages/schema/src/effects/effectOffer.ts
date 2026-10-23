@@ -23,12 +23,27 @@ export interface MoveHeldEffectOffer {
   range: z.infer<typeof effectOfferRangeDtoSchema>
 }
 
-/** As authored: the paths of the Effect the offer re-runs, named by id. */
+/**
+ * Who a repeat is made against: the creature that holds the offering effect (`HOLDER`, a mark the
+ * caster re-attacks) or whoever the re-run Effect's own invocation targets (`INVOCATION`, an attack
+ * the caster makes with an effect they hold themselves).
+ */
+export const repeatOfferTargetSchema = lazySchema(() => z.enum(['HOLDER', 'INVOCATION']))
+export type RepeatOfferTarget = 'HOLDER' | 'INVOCATION'
+
+/**
+ * As authored: what the offer re-runs, named by id. `pathIds` re-run those paths of the Effect that
+ * carries the offer; `effectId` re-runs every path of a sibling Effect of the same subject, with its
+ * invocation (an attack the carrier's own invocation is not). Exactly one is set.
+ */
 export interface RepeatSourcePathOffer {
   kind: 'REPEAT_SOURCE_PATH'
   offeredTo: 'SOURCE'
   activation: z.infer<typeof activationCodeSchema>
-  pathIds: string[]
+  pathIds?: string[]
+  effectId?: string
+  /** Absent means `HOLDER`. */
+  target?: RepeatOfferTarget
 }
 
 export type EffectOffer = MoveHeldEffectOffer | RepeatSourcePathOffer
@@ -44,15 +59,26 @@ export const moveHeldEffectOfferSchema = lazySchema(() =>
 )
 
 const repeatSourcePathOfferSchema = lazySchema(() =>
-  z.strictObject({
-    kind: z.literal('REPEAT_SOURCE_PATH'),
-    offeredTo: z.literal('SOURCE'),
-    activation: activationCodeSchema,
-    pathIds: z
-      .array(authoredIdentifierSchema)
-      .check(z.minLength(1))
-      .check(z.maxLength(MAX_REPEAT_OFFER_PATHS))
-  })
+  z
+    .strictObject({
+      kind: z.literal('REPEAT_SOURCE_PATH'),
+      offeredTo: z.literal('SOURCE'),
+      activation: activationCodeSchema,
+      pathIds: z.optional(
+        z
+          .array(authoredIdentifierSchema)
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_REPEAT_OFFER_PATHS))
+      ),
+      effectId: z.optional(authoredIdentifierSchema),
+      target: z.optional(repeatOfferTargetSchema)
+    })
+    .check(
+      z.refine(
+        ({ pathIds, effectId }) => (pathIds === undefined) !== (effectId === undefined),
+        'A repeat offer names the paths it re-runs or a sibling Effect, not both.'
+      )
+    )
 )
 
 /** An offer is charged to an action, a bonus action or a similar allowance, never a Reaction or a free activation. */

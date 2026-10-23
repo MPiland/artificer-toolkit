@@ -5,6 +5,7 @@ import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/ca
 import { beaconOfHope } from '@artificer-toolkit/source-data/srd/spells/beacon-of-hope.js'
 import { blur } from '@artificer-toolkit/source-data/srd/spells/blur.js'
 import { enthrall } from '@artificer-toolkit/source-data/srd/spells/enthrall.js'
+import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
 import { vampiricTouch } from '@artificer-toolkit/source-data/srd/spells/vampiric-touch.js'
@@ -13,6 +14,7 @@ import { mageArmor } from '@artificer-toolkit/source-data/srd/spells/mage-armor.
 import { magicWeapon } from '@artificer-toolkit/source-data/srd/spells/magic-weapon.js'
 import { mindBlank } from '@artificer-toolkit/source-data/srd/spells/mind-blank.js'
 import { mirrorImage } from '@artificer-toolkit/source-data/srd/spells/mirror-image.js'
+import { produceFlame } from '@artificer-toolkit/source-data/srd/spells/produce-flame.js'
 import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { sequester } from '@artificer-toolkit/source-data/srd/spells/sequester.js'
 import { reincarnate } from '@artificer-toolkit/source-data/srd/spells/reincarnate.js'
@@ -45,6 +47,8 @@ describe('spells authored from core options through the effect node map (SPELLS-
     ['Magic Weapon', magicWeapon],
     ['Heat Metal', heatMetal],
     ['Vampiric Touch', vampiricTouch],
+    ['Flame Blade', flameBlade],
+    ['Produce Flame', produceFlame],
     ['True Strike', trueStrike],
     ['Revivify', revivify],
     ['Reincarnate', reincarnate],

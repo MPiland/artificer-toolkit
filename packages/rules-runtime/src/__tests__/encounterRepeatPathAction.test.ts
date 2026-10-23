@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
 import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
+import { vampiricTouch } from '@artificer-toolkit/source-data/srd/spells/vampiric-touch.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { liveEffectOffers } from '../encounterEffectOffers.js'
@@ -55,8 +57,19 @@ function frozenOffer() {
   }
 }
 
+/** The repeat offer the SRD spell's first Effect compiles to, siblings in hand. */
+function compiledOffer(spell: { effects?: Parameters<typeof compileEffect>[0][] }) {
+  const [effect] = spell.effects ?? []
+  if (!effect) throw new Error('The SRD spell has no effect.')
+  const offer = compileEffect(effect, spell.effects)
+    .entries.flatMap((entry) => ('lifecycle' in entry ? (entry.lifecycle?.effectOffers ?? []) : []))
+    .find((candidate) => candidate.kind === 'REPEAT_SOURCE_PATH')
+  if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('The spell must offer a repeat.')
+  return offer
+}
+
 /** The carrier a cast leaves on the target: a stored grant bound to the item, holding the offer. */
-function heldCarrier() {
+function heldCarrier(offer: ReturnType<typeof compiledOffer> = frozenOffer()) {
   const planned = plannedModifierGrant({
     encounterId: ENCOUNTER_ID,
     sourceActorId: SOURCE_ID,
@@ -79,7 +92,7 @@ function heldCarrier() {
         contribution.kind === 'MODIFIER_GRANT'
           ? {
               ...contribution,
-              effectOffers: [frozenOffer()],
+              effectOffers: [offer],
               boundItem: {
                 kind: 'EQUIPMENT_INSTANCE' as const,
                 equipmentId: testUuid(0xf805),
@@ -151,6 +164,30 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
       activation: { code: 'BONUS_ACTION', amount: 1 },
       save: { dc: FROZEN_DC }
     })
+  })
+
+  it('runs against the holder unless the offer lets the invocation pick its targets', () => {
+    const input = { actor: caster, gameSystemId: DND5E_SYSTEM_ID, system, spells: new Map() }
+    const resolve = (offer: ReturnType<typeof compiledOffer>) => {
+      const source = resolveEncounterActionSource({
+        ...input,
+        actionId,
+        repeat: { effectsByHolder: new Map([[HOLDER_ID, [heldCarrier(offer)]]]) }
+      })
+      if (source.kind !== 'REPEAT_PATH') throw new Error('The id must resolve to a repeat.')
+      return source.capability
+    }
+
+    // Vampiric Touch authors no target, so it keeps repeating against the holder.
+    const vampiric = compiledOffer(vampiricTouch)
+    expect(vampiric).not.toHaveProperty('target')
+    expect(resolve(vampiric).target).toBe('HOLDER')
+
+    // Flame Blade re-runs its sibling attack Effect against whoever the attack picks.
+    const blade = compiledOffer(flameBlade)
+    const attackEffect = flameBlade.effects?.[1]
+    expect(blade).toMatchObject({ target: 'INVOCATION', effect: { id: attackEffect?.id } })
+    expect(resolve(blade)).toMatchObject({ target: 'INVOCATION', effectId: attackEffect?.id })
   })
 
   it('is stale once the carrier is gone or the id names another offer', () => {

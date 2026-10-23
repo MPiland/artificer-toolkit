@@ -697,16 +697,17 @@ function frozenRepeatOffer(
   offer: CompiledRepeatSourcePathOffer,
   input: Pick<Parameters<typeof prepareRecurringActiveEffect>[0], 'd20' | 'spellCastLevel'>
 ): CompiledRepeatSourcePathOffer {
-  if (!input.d20)
-    throw new EncounterActionEffectPlanError('A repeat offer freezes the DC its cast settled.')
   const { invocation } = offer.effect
+  // Only a repeat that forces a save freezes the DC its cast settled; an attack repeat rolls anew.
+  if ('savingThrow' in invocation && !input.d20)
+    throw new EncounterActionEffectPlanError('A repeat offer freezes the DC its cast settled.')
   return {
     ...offer,
     ...(input.spellCastLevel !== undefined && { castLevel: input.spellCastLevel }),
     effect: {
       ...offer.effect,
       invocation:
-        'savingThrow' in invocation
+        'savingThrow' in invocation && input.d20
           ? {
               ...invocation,
               savingThrow: {

@@ -666,6 +666,7 @@ export async function readEncounterActionChoices(
       ...shared,
       kind: offer.kind,
       actionId: repeatPathActionId(actor.id, offer.effectId, offer.offerIndex),
+      ...(offer.target === undefined ? {} : { target: offer.target }),
       label:
         grant && !(grant.sourceHidden && membership.role !== 'OWNER')
           ? grant.sourceLabel

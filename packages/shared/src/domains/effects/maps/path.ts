@@ -526,7 +526,39 @@ const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
           valuePath: ['id'],
           labelPath: ['pathCode']
         },
-        { requiredIf: isRepeat, showIf: isRepeat, hiddenBehavior: 'CLEAR' }
+        // Empty when the offer re-runs a sibling Effect instead; the schema requires one of the two.
+        { showIf: isRepeat, hiddenBehavior: 'CLEAR' }
+      )
+    )
+    .set(
+      'effectId',
+      selectSingle(
+        ['effectId'],
+        'Effect Repeated',
+        {
+          kind: 'LOCAL_COLLECTION',
+          // lifecycle, result block, path, effect, then the subject whose Effects these are.
+          up: 5,
+          rootCollectionPath: ['effects'],
+          valuePath: ['id'],
+          labelPath: ['id']
+        },
+        { showIf: isRepeat, hiddenBehavior: 'CLEAR' }
+      )
+    )
+    .set(
+      'target',
+      selectSingle(
+        ['target'],
+        'Repeated Against',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'HOLDER', label: 'The creature holding the effect' },
+            { code: 'INVOCATION', label: 'Whoever the repeated action targets' }
+          ]
+        },
+        { showIf: isRepeat, hiddenBehavior: 'CLEAR' }
       )
     )
     .set(
