@@ -510,6 +510,16 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             execution.d20?.resultPath === 'ON_SAVE_SUCCESS' &&
             execution.lifecycle.kind === 'EXPIRE' &&
             unchanged
+          // A turn-end roll (D178) names no saving throw ability and holds nothing itself: either
+          // result leaves the holder unchanged, and the effect lasts out its duration.
+          const turnEndRoll =
+            repeatedSaveTrace &&
+            execution.execution.evidence.facts['dnd5e.active-effect-save-ability-definition-id'] ===
+              undefined &&
+            execution.applications.length === 0 &&
+            unchanged &&
+            (execution.lifecycle.kind === 'UPDATE' ||
+              execution.lifecycle.beforeRemainingTicks === 1)
           // A timed condition's or grant's counted turn only moves its tick count.
           const durationTick =
             execution.applications.length === 0 &&
@@ -540,6 +550,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
               !repeatedSaveContinuation &&
               !repeatedSaveGrantEnd &&
               !refusedRepeatSaveContinuation &&
+              !turnEndRoll &&
               !durationTick &&
               execution.applications.length === 0) ||
             (refusedRepeatSave && !refusedRepeatSaveContinuation && !refusedRepeatSaveTerminal) ||
@@ -592,6 +603,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
             !unauthorizedSourceOutcome &&
             !repeatedSaveContinuation &&
             !refusedRepeatSaveContinuation &&
+            !turnEndRoll &&
             !durationTick &&
             !applicationValidation.success
           )

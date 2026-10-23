@@ -176,6 +176,18 @@ export interface CharacterRuleActionActiveEffectPlan {
    */
   playAbsenceContribution?: { keepsTurn: boolean }
   /**
+   * The effect holds nothing itself: a d20 at the end of each of its holder's turns makes the child
+   * effect when it reaches `minimumRoll` (Blink). The child's own graph is frozen with the plan.
+   */
+  turnEndGate?: {
+    minimumRoll: number
+    child: {
+      frozenGraph: ServerPublishedRuleDefinitionDto
+      frozenGraphNodeId: string
+      playAbsence: { keepsTurn: boolean }
+    }
+  }
+  /**
    * Each target holds a bond with every other target the action settled on (Telepathic Bond). The
    * members are added when the effects are created, from the creatures the cast reached.
    */

@@ -60,11 +60,12 @@ export const blink: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
+            lifecycle: { turnEndGate: { minimumRoll: 11 } },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.BLINK, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'BLINK' as const
+                effectKind: EFFECT_KIND.REMOVE_FROM_PLAY,
+                keepsTurn: true
               }
             ]
           }

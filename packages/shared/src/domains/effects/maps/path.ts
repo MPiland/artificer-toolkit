@@ -98,7 +98,7 @@ import {
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
-import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP, HELD_ESCAPE_DC_NODE_MAP } from './check.js'
+import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { ATTACK_SLOT_CONDITION_NODE_MAP } from '../../features/maps/attackSlots.js'
@@ -107,6 +107,11 @@ import {
   FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
   FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
 } from './followUpSaveRepeat.js'
+import {
+  PATH_LIFECYCLE_ESCAPE_NODE_MAP,
+  PATH_LIFECYCLE_ON_END_NODE_MAP,
+  PATH_LIFECYCLE_TURN_END_GATE_NODE_MAP
+} from './pathLifecycleEnds.js'
 import { registerOutcomeKindFields } from './outcomeKindFields.js'
 import { PATH_LIFECYCLE_END_TRIGGER_NODE_MAP } from './lifecycleEndTrigger.js'
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
@@ -219,8 +224,6 @@ const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
 const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
-const pathLifecycleEscape = buildNodeMap<NonNullable<PathLifecycleAuthored['escape']>>()
-const pathLifecycleOnEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['onEnd']>>()
 const pathLifecycleGrantedAction =
   buildNodeMap<NonNullable<PathLifecycleAuthored['grantedActions']>[number]>()
 const pathLifecycleEffectOffer =
@@ -396,55 +399,6 @@ const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAutho
         { requiredIf: true }
       )
     )
-  })
-
-const PATH_LIFECYCLE_ESCAPE_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['escape']>> =
-  pathLifecycleEscape.define('pathLifecycleEscape', ({ map, nodes }) => {
-    const { groupObject } = nodes
-
-    map
-      .set(
-        'activation',
-        groupObject(['activation'], 'Costs', () => ACTIVATION_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
-      .set(
-        'checks',
-        groupObject(['checks'], 'Escape Checks', () => CHECK_CHOICE_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
-      .set(
-        'dc',
-        groupObject(['dc'], 'Escape DC', () => HELD_ESCAPE_DC_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
-  })
-
-const PATH_LIFECYCLE_ON_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['onEnd']>> =
-  pathLifecycleOnEnd.define('pathLifecycleOnEnd', ({ map, nodes }) => {
-    const { number, groupArray } = nodes
-
-    map
-      .set(
-        'turns',
-        number(['turns'], 'Holder Turns', {
-          requiredIf: true,
-          constraints: { minimum: 1, maximum: 255 }
-        })
-      )
-      .set(
-        'modifiers',
-        groupArray(['modifiers'], 'Modifier Grants', () => MODIFIER_GRANT_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
   })
 
 const PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP: NodeMap<
@@ -674,6 +628,12 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
       .set(
         'onEnd',
         groupObject(['onEnd'], 'When It Ends', () => PATH_LIFECYCLE_ON_END_NODE_MAP, {
+          presentation: 'inline'
+        })
+      )
+      .set(
+        'turnEndGate',
+        groupObject(['turnEndGate'], 'Turn-End Roll', () => PATH_LIFECYCLE_TURN_END_GATE_NODE_MAP, {
           presentation: 'inline'
         })
       )

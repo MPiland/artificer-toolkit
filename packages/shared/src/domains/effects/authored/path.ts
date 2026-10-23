@@ -100,6 +100,15 @@ export type PathLifecycleAuthored = {
     modifiers: ModifierGrantAuthored[]
   }
   /**
+   * The result block's held outcomes (a removal from play) are not held at once: at the end of each
+   * of the holder's turns while the duration lasts, the holder rolls a d20, and a roll of
+   * `minimumRoll` or higher applies them until the holder's next turn starts or the duration ends
+   * (Blink).
+   */
+  turnEndGate?: {
+    minimumRoll: number // int 2..20
+  }
+  /**
    * Actions the holder may take while the effect is held, beside its own allowances (Expeditious
    * Retreat's bonus-action Dash, Haste's extra action). Each is listed with the named basic actions
    * (and a weapon attack when `weaponAttack`), charged to `activation`; a `FREE` one spends only its
