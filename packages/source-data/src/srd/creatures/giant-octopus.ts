@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import * as S from './shared.js'
 
 export const giantOctopus: CreatureAuthored = {
@@ -135,8 +136,9 @@ export const giantOctopus: CreatureAuthored = {
         amount: 1
       },
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(128, 210),
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.ACTIVATED,
@@ -145,8 +147,44 @@ export const giantOctopus: CreatureAuthored = {
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF },
             resourceUse: { chargeId: S.actionId(128, 211), cost: 1 }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GIANT_OCTOPUS_INK_CLOUD
-        })
+          paths: [
+            {
+              id: S.actionId(128, 212),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(128, 212) + '__result',
+                resultKind: 'SEQUENCE',
+                // "After releasing the ink, the octopus can use the Dash action as a bonus action":
+                // the offer lasts to the end of the turn the ink is released on.
+                duration: { id: S.actionId(128, 215), durationKind: 'TURN', amount: 1 },
+                lifecycle: {
+                  turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' },
+                  grantedActions: [
+                    {
+                      activation: S.ACTIVATION_CODE.BONUS_ACTION,
+                      actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DASH]
+                    }
+                  ]
+                },
+                outcomes: [
+                  { id: S.actionId(128, 213), effectKind: S.EFFECT_KIND.APPLY_GRANT, grants: {} },
+                  {
+                    id: S.actionId(128, 214),
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Place the ink cloud',
+                    reasonCode: 'EXTERNAL_WORLD_STATE',
+                    instructions:
+                      'A 20-foot-radius cloud of ink extends all around the octopus if it is underwater. The area is heavily obscured for 1 minute, although a significant current can disperse the ink.'
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 4
     },
