@@ -14,7 +14,10 @@ import { mindBlank } from '@artificer-toolkit/source-data/srd/spells/mind-blank.
 import { mirrorImage } from '@artificer-toolkit/source-data/srd/spells/mirror-image.js'
 import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { sequester } from '@artificer-toolkit/source-data/srd/spells/sequester.js'
+import { reincarnate } from '@artificer-toolkit/source-data/srd/spells/reincarnate.js'
+import { revivify } from '@artificer-toolkit/source-data/srd/spells/revivify.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
+import { trueResurrection } from '@artificer-toolkit/source-data/srd/spells/true-resurrection.js'
 import { trueStrike } from '@artificer-toolkit/source-data/srd/spells/true-strike.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -24,8 +27,8 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
-/** D156 T2a3, T2a4, T2e and T2k1: spells converted from closed rules to core options (ADR 0038 parity). */
-describe('spells authored from core options through the effect node map (SPELLS-4.T2a3, T2a4, T2e, T2k1)', () => {
+/** D156 T2a3, T2a4, T2e, T2g1 and T2k1: spells converted from closed rules to core options (ADR 0038 parity). */
+describe('spells authored from core options through the effect node map (SPELLS-4.T2a3, T2a4, T2e, T2g1, T2k1)', () => {
   it.each([
     ['Blur', blur],
     ['Enthrall', enthrall],
@@ -40,7 +43,10 @@ describe('spells authored from core options through the effect node map (SPELLS-
     ['Magic Weapon', magicWeapon],
     ['Heat Metal', heatMetal],
     ['Vampiric Touch', vampiricTouch],
-    ['True Strike', trueStrike]
+    ['True Strike', trueStrike],
+    ['Revivify', revivify],
+    ['Reincarnate', reincarnate],
+    ['True Resurrection', trueResurrection]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }
     const result = await normalizeNodeRuntimeValues(reader, {
