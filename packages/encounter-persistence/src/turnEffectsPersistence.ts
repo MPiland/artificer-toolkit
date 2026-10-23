@@ -32,6 +32,7 @@ import {
   endedEffectReleaseKey,
   expiredEffectReleases
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
+import { sourceActorIdOf } from '@artificer-toolkit/rules-runtime/events/encounterEventHooks'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
@@ -149,6 +150,7 @@ export async function persistEncounterTurnEffects(
           : { kind: 'ENCOUNTER_ACTOR' }
       ) ||
       execution.activeEffectId !== effect.id ||
+      execution.damagerActorId !== (sourceActorIdOf(effect) ?? undefined) ||
       execution.createdOrdinal !== effect.createdOrdinal ||
       execution.beforeVersion !== effect.version ||
       lifecycle.expectedVersion !== effect.version ||
