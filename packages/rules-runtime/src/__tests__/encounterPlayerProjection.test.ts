@@ -216,11 +216,12 @@ describe('player encounter projection', () => {
   describe('creatures the viewer cannot see (ATTACK-17.3)', () => {
     const SEEN_ACTOR_ID = '00000000-0000-4000-8000-0000000000b1'
     const UNSEEN_ACTOR_ID = '00000000-0000-4000-8000-0000000000b2'
+    const PRONE_TYPE_ID = '00000000-0000-4000-8000-0000000000d2'
     const unseenActor = {
       ...gmActor(UNSEEN_ACTOR_ID, true),
       label: 'Cave troll',
       controllerUserIds: [],
-      conditions: [{ conditionTypeId: 'prone', label: 'Prone' }],
+      conditions: [{ conditionTypeId: PRONE_TYPE_ID }],
       healthDisplay: 'EXACT' as const,
       activeGrants: [
         {
@@ -298,7 +299,7 @@ describe('player encounter projection', () => {
         initiative: 12
       })
       expect(JSON.stringify(listed)).not.toContain('Cave troll')
-      expect(JSON.stringify(listed)).not.toContain('Prone')
+      expect(JSON.stringify(listed)).not.toContain(PRONE_TYPE_ID)
     })
 
     it('lists a creature revealed by name with its name', () => {
@@ -315,7 +316,7 @@ describe('player encounter projection', () => {
         ...viewerWith(unseen, userId),
         invisibleConditionTypeIds: new Set([INVISIBLE_TYPE_ID])
       })
-      const invisible = { conditionTypeId: INVISIBLE_TYPE_ID, label: 'Invisible' }
+      const invisible = { conditionTypeId: INVISIBLE_TYPE_ID }
 
       it.each([
         {
@@ -341,7 +342,7 @@ describe('player encounter projection', () => {
         },
         {
           name: 'a revealed creature carrying other conditions',
-          actor: { ...unseenActor, conditions: [{ conditionTypeId: 'prone', label: 'Prone' }] },
+          actor: { ...unseenActor, conditions: [{ conditionTypeId: PRONE_TYPE_ID }] },
           unseen: [UNSEEN_ACTOR_ID],
           reveal: 'UNNAMED' as const,
           expected: 'HIDDEN'
@@ -379,7 +380,7 @@ describe('player encounter projection', () => {
           {
             ...unseenActor,
             reveal: 'UNNAMED',
-            conditions: [invisible, { conditionTypeId: 'prone', label: 'Prone' }]
+            conditions: [invisible, { conditionTypeId: PRONE_TYPE_ID }]
           }
         ])
         const [listed] = projectPlayerEncounterProjection(
@@ -388,7 +389,7 @@ describe('player encounter projection', () => {
         ).actors
 
         expect(listed).toMatchObject({ conditions: [], unseenReason: 'INVISIBLE' })
-        expect(JSON.stringify(listed)).not.toContain('Prone')
+        expect(JSON.stringify(listed)).not.toContain(PRONE_TYPE_ID)
       })
 
       it('finds the Invisible condition types of a System by their code', () => {

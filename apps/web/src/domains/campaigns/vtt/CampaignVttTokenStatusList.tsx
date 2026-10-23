@@ -46,6 +46,7 @@ export function CampaignVttTokenStatusList({
                 />
               }
               key={status.id}
+              title={status.description}
             >
               {status.label}
             </List.Item>

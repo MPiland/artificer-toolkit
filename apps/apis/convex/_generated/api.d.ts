@@ -127947,13 +127947,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -128138,13 +128136,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -129078,13 +129074,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -129269,13 +129263,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -130056,13 +130048,11 @@ export declare const api: {
                 label: string | null;
                 sourceHidden: boolean;
               } | null;
-              conditions:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>;
+              conditions: Array<{
+                conditionTypeId: string;
+                innate?: true;
+                notes?: string;
+              }>;
               controllerUserIds: Array<string>;
               currentHitPoints: number;
               defeated: boolean;
@@ -130241,13 +130231,11 @@ export declare const api: {
                 label: string | null;
                 sourceHidden: boolean;
               } | null;
-              conditions:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>;
+              conditions: Array<{
+                conditionTypeId: string;
+                innate?: true;
+                notes?: string;
+              }>;
               controllerUserIds: Array<string>;
               defeated: boolean;
               disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -130362,13 +130350,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -130553,13 +130539,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -131012,13 +130996,11 @@ export declare const api: {
               label: string | null;
               sourceHidden: boolean;
             } | null;
-            conditions:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>;
+            conditions: Array<{
+              conditionTypeId: string;
+              innate?: true;
+              notes?: string;
+            }>;
             controllerUserIds: Array<string>;
             currentHitPoints: number;
             defeated: boolean;

@@ -124,7 +124,7 @@ function characterConditions(projection: EncounterProjection, actorId: string): 
 describe('native Encounter current Character conditions', () => {
   useLocalRoomWorker()
 
-  it.each(['Character', 'System', 'Campaign overlay', 'route owner'] as const)(
+  it.each(['Character', 'Campaign overlay', 'route owner'] as const)(
     'refuses corrupt %s while reading current conditions',
     async (corruption) => {
       const { t, owner, campaign, character, run } = await setupCharacterRun()
@@ -146,13 +146,6 @@ describe('native Encounter current Character conditions', () => {
             .withIndex('by_characterId', (q) => q.eq('characterId', character.id))
             .unique()
           if (!row) throw new Error('Missing Character fixture.')
-          await ctx.db.patch(row._id, { checksum: '0'.repeat(64) })
-        } else if (corruption === 'System') {
-          const row = await ctx.db
-            .query('systems')
-            .withIndex('by_publicId', (q) => q.eq('id', campaign.gameSystemId))
-            .unique()
-          if (!row) throw new Error('Missing System fixture.')
           await ctx.db.patch(row._id, { checksum: '0'.repeat(64) })
         } else if (corruption === 'Campaign overlay') {
           const row = await ctx.db
@@ -256,20 +249,14 @@ describe('native Encounter current Character conditions', () => {
       ])
     const personal = {
       conditionTypeId: personalCondition.id,
-      label: personalCondition.label,
-      description: personalCondition.description,
       notes: 'SHEET-CONDITION-NOTE'
     }
     const visibleOverlay = {
       conditionTypeId: visibleCondition.id,
-      label: visibleCondition.label,
-      description: visibleCondition.description,
       notes: 'VISIBLE-CONDITION-NOTE'
     }
     const secretOverlay = {
       conditionTypeId: personalCondition.id,
-      label: personalCondition.label,
-      description: personalCondition.description,
       notes: 'SECRET-CONDITION-NOTE'
     }
     expect(characterConditions(ownerGet, actor.id)).toEqual([
