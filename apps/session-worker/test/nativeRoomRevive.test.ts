@@ -4,6 +4,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
+import { raiseDead } from '@artificer-toolkit/source-data/srd/spells/raise-dead.js'
 import { revivify } from '@artificer-toolkit/source-data/srd/spells/revivify.js'
 import { trueResurrection } from '@artificer-toolkit/source-data/srd/spells/true-resurrection.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -83,5 +84,26 @@ describe('True Resurrection cast by a Character, from data (SPELLS-4.T2g1)', () 
       currentHitPoints: plainWolf.hitPoints,
       defeated: false
     })
+  }, 120000)
+})
+
+describe('Raise Dead cast by a Character, from data (SPELLS-4.T2g2)', () => {
+  it('revives the dead and leaves a penalty that eases with each long rest', async () => {
+    const room = await reviveRoom(raiseDead, { currentHitPoints: 0, defeated: true })
+    const { answer } = await room.startAction(WOLF_ID, [
+      ...TOUCH_UNCHECKED,
+      'TARGET_NOTHING_TO_END'
+    ])
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect(await wolfVitals(room)).toMatchObject({ currentHitPoints: 1, defeated: false })
+
+    const { activeEffects } = await readRoomHistory(room.room.base.stub)
+    const [penalty] = activeEffects
+    expect(activeEffects).toHaveLength(1)
+    expect(JSON.parse(penalty!.definitionJson).recurrence.restStepDown).toEqual({
+      trigger: 'LONG_REST',
+      step: 1
+    })
+    expect(penalty!.lifecycle.restStepsRemaining).toBe(4)
   }, 120000)
 })

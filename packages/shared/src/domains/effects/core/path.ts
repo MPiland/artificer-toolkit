@@ -399,6 +399,29 @@ export const PATH_LIFECYCLE_TURN_ACTOR_OPTIONS = valuesOf(
   PATH_LIFECYCLE_TURN_ACTOR_REGISTRY
 ) as readonly PathLifecycleTurnActorOption[]
 
+export const PATH_LIFECYCLE_STEP_DOWN_TRIGGER = {
+  LONG_REST: 'LONG_REST'
+} as const
+
+export type PathLifecycleStepDownTrigger = keyof typeof PATH_LIFECYCLE_STEP_DOWN_TRIGGER
+
+export type PathLifecycleStepDownTriggerOption = CoreMeta<PathLifecycleStepDownTrigger>
+
+export const PATH_LIFECYCLE_STEP_DOWN_TRIGGER_REGISTRY: Record<
+  PathLifecycleStepDownTrigger,
+  PathLifecycleStepDownTriggerOption
+> = {
+  [PATH_LIFECYCLE_STEP_DOWN_TRIGGER.LONG_REST]: {
+    code: PATH_LIFECYCLE_STEP_DOWN_TRIGGER.LONG_REST,
+    label: 'Long Rest',
+    description: 'Steps down each time the holder finishes a long rest.'
+  }
+} as const
+
+export const PATH_LIFECYCLE_STEP_DOWN_TRIGGER_OPTIONS = valuesOf(
+  PATH_LIFECYCLE_STEP_DOWN_TRIGGER_REGISTRY
+) as readonly PathLifecycleStepDownTriggerOption[]
+
 export const PATH_LIFECYCLE_TURN_BOUNDARY = {
   START_OF_TURN: 'START_OF_TURN',
   END_OF_TURN: 'END_OF_TURN'

@@ -14,6 +14,17 @@ export const activeEffectUsesSchema = lazySchema(() =>
   z.number().check(z.int()).check(z.gte(1)).check(z.lte(255))
 )
 
+/**
+ * An effect whose fixed bonus and penalty grants shrink by `step` at each matching rest and which
+ * ends once they reach 0 (Raise Dead's -4 that fades by one per long rest).
+ */
+export const activeEffectRestStepDownSchema = lazySchema(() =>
+  z.strictObject({
+    trigger: z.literal('LONG_REST'),
+    step: z.number().check(z.int()).check(z.gte(1)).check(z.lte(255))
+  })
+)
+
 /** The repeat saves a threshold-counted effect has made so far; the thresholds live in its definition. */
 export const activeEffectSaveTallySchema = lazySchema(() =>
   z.strictObject({
@@ -44,6 +55,11 @@ export const activeRuleEffectLifecycleDtoSchema = lazySchema(() =>
      * modifier domain) spends them; the immutable definition holds the initial count.
      */
     remainingUses: z.optional(activeEffectUsesSchema),
+    /**
+     * Only on an effect authored with `restStepDown`: the rests left before its grants reach 0 and it
+     * ends. Each matching rest lowers it by one and steps the definition's grants down by `step`.
+     */
+    restStepsRemaining: z.optional(activeEffectUsesSchema),
     /**
      * Only on an effect authored with repeat-save `THRESHOLDS`: the successes and failures its
      * turn saves have counted, advanced in the same CAS as `remainingTicks`. The thresholds live in

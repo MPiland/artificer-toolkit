@@ -66,6 +66,7 @@ import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
 import {
   MAX_ACTION_RIDERS,
   MAX_ACTIVE_EFFECT_TURNS,
+  activeEffectRestStepDownSchema,
   activeEffectSaveThresholdsSchema,
   activeEffectUsesSchema
 } from '../shared/activeRuleEffectLifecycle.js'
@@ -269,6 +270,7 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             fromSourceOnly: z.optional(z.literal(true)),
             activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
             uses: z.optional(activeEffectUsesSchema),
+            restStepDown: z.optional(activeEffectRestStepDownSchema),
             onEnd: z.optional(activeEffectOnEndSchema),
             grantedActions: z.optional(storedGrantedActionsSchema),
             effectOffers: z.optional(compiledEffectOffersSchema)

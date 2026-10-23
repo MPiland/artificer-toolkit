@@ -3,7 +3,6 @@ import {
   CASTING_TIME_UNIT_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
-  DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
@@ -15,7 +14,14 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import {
+  conditionTypeId,
+  returnFromDeathPenaltyGrants,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
 export const raiseDead: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.RAISE_DEAD,
@@ -60,15 +66,18 @@ export const raiseDead: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x212, 1) + '__result',
             resultKind: 'SEQUENCE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x213, 1),
-              durationKind: DURATION_KIND.INSTANTANEOUS
-            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'RAISE_DEAD' as const
+                effectKind: EFFECT_KIND.REVIVE,
+                valueKind: 'FIXED' as const,
+                amount: 1
+              },
+              {
+                id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x2f1, 1),
+                effectKind: EFFECT_KIND.END_EFFECTS,
+                scope: 'ALL' as const,
+                conditionIds: [conditionTypeId('POISONED')]
               },
               {
                 id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x212, 1),
@@ -77,6 +86,30 @@ export const raiseDead: SpellAuthored = {
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
                 instructions:
                   'If the creature\u0027s soul is both willing and at liberty to rejoin the body, the creature returns to life with 1 hit point.'
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x214, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x214, 1) + '__result',
+            resultKind: 'SEQUENCE' as const,
+            lifecycle: { stepDown: { trigger: 'LONG_REST' as const, step: 1 } },
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x215, 1),
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: returnFromDeathPenaltyGrants((entry) =>
+                    spellChildId(SPELL_IDS.RAISE_DEAD, 0x216, entry)
+                  )
+                }
               }
             ]
           }

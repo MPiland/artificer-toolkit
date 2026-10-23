@@ -654,6 +654,12 @@ const buildModifierGrantVariants = () =>
     ),
     buildModifierGrantVariant(
       'ABILITY_CHECK',
+      'PENALTY',
+      optionalAbilityParamDtoSchema,
+      modifierScalarValueDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'ABILITY_CHECK',
       'ROLL_INFLUENCE',
       optionalAbilityParamDtoSchema,
       rollInfluencePayloadDtoSchema

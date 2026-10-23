@@ -17,6 +17,7 @@ import {
   activeRuleEffectLifecycleDtoSchema,
   MAX_ACTIVE_EFFECT_STORED_TICKS,
   MAX_ACTIVE_EFFECT_TURNS,
+  activeEffectRestStepDownSchema,
   activeEffectSaveThresholdsSchema,
   activeEffectUsesSchema
 } from './activeRuleEffectLifecycle.js'
@@ -285,6 +286,8 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
       /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
       uses: z.optional(activeEffectUsesSchema),
+      /** The grants shrink by `step` at each matching rest; its lifecycle `restStepsRemaining` counts the rests left. */
+      restStepDown: z.optional(activeEffectRestStepDownSchema),
       /** Only on a repeat save counted to thresholds; its lifecycle `saveTally` counts toward these. */
       saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
@@ -717,6 +720,16 @@ export const activeRuleEffectStateDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['lifecycle', 'concealedFromActorIds'],
             message: 'Only a location concealment lists the observers it is concealed from.'
+          })
+        }
+        if (
+          (state.definition.recurrence.restStepDown === undefined) !==
+          (state.lifecycle.restStepsRemaining === undefined)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['lifecycle', 'restStepsRemaining'],
+            message: 'Only a step-down effect counts the rests it has left, and every one does.'
           })
         }
         if (

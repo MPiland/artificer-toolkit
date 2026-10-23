@@ -35,6 +35,7 @@ import {
   onEndGrantEffect,
   onEndGrantEffectId
 } from '@artificer-toolkit/rules-runtime/encounterEffectOnEnd'
+import { steppedDownEffectState } from '@artificer-toolkit/rules-runtime/character/restStepDown'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { z } from 'zod'
 import {
@@ -799,6 +800,42 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       const updated = await ctx.db.get(row._id)
       if (!updated) throw new Error('Active rule effect changed before lifecycle update.')
       return readEncounterEffect(updated)
+    },
+    /**
+     * Steps a Character's rest-decaying grant down one rest: the grants shrink by the authored step
+     * and the rests left drop by one, so the definition and its checksum are rewritten with the
+     * lifecycle. An effect whose last rest this is ends through `deleteCas` instead.
+     */
+    async stepDownCas(input: {
+      id: string
+      characterId: string
+      expectedVersion: number
+    }): Promise<ActiveRuleEffectRecord> {
+      const owner = ownerFor({ kind: 'CHARACTER', characterId: input.characterId })
+      if (owner.kind !== 'CHARACTER') throw new Error('Only a Character grant steps down.')
+      const id = serverUuidIdentityDtoSchema.parse(input.id)
+      const expectedVersion = positiveIntegerSchema.parse(input.expectedVersion)
+      const current = await findEffectById(owner, id)
+      if (!current || current.version !== expectedVersion)
+        throw new Error('Active rule effect changed before stepping down.')
+      const next = activeRuleEffectStateDtoSchema.parse(steppedDownEffectState(current))
+      const row = await ctx.db
+        .query('characterActiveRuleEffects')
+        .withIndex('by_characterId_id', (q) => q.eq('characterId', owner.characterId).eq('id', id))
+        .unique()
+      if (!row || row.version !== expectedVersion)
+        throw new Error('Active rule effect changed before stepping down.')
+      await ctx.db.patch(row._id, {
+        definitionJson: JSON.stringify(next.definition),
+        definitionChecksum: checksumCanonicalJson(next.definition),
+        lifecycle: next.lifecycle,
+        lifecycleChecksum: checksumCanonicalJson(next.lifecycle),
+        version: expectedVersion + 1,
+        updatedAt: new Date().toISOString()
+      })
+      const updated = await ctx.db.get(row._id)
+      if (!updated) throw new Error('Active rule effect changed before stepping down.')
+      return readCharacterEffect(updated)
     },
     /**
      * Detaches a Character's Concentration grant from the Run's maintained state so it outlasts the

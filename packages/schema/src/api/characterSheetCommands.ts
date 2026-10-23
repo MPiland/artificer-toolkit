@@ -111,6 +111,13 @@ export const characterRestPreviewResponseDtoSchema = lazySchema(() =>
       resources: z.array(characterRestRecoveryPreviewDtoSchema),
       spellSlots: z.array(characterRestRecoveryPreviewDtoSchema)
     }),
+    /** Held effects this rest weakens by a step (Raise Dead's penalty), listed so the rest is no surprise. */
+    steppedDownEffects: z.array(
+      z.strictObject({
+        id: z.guid(),
+        label: stringSchema.check(z.trim()).check(z.minLength(1))
+      })
+    ),
     eligibleCompanions: z.array(
       z.strictObject({
         companionInstanceId: z.guid(),

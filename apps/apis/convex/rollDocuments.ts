@@ -7,7 +7,8 @@ import { createRollRecord } from '@artificer-toolkit/rules-runtime/character/rol
 import { nextRollInt } from './lib/rollRandom'
 import {
   carriedTestDice,
-  resolveCharacterSheetRoll
+  resolveCharacterSheetRoll,
+  withModifier
 } from '@artificer-toolkit/rules-runtime/character/sheetRoll'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persistence/effectStore'
@@ -57,9 +58,9 @@ export async function evaluateCharacterRoll(
         source: { kind: 'MANUAL' as const, label: 'Manual roll' }
       }
   // A carried die (Guidance, Resistance) joins a check or save and is spent with it, in the roll's transaction.
-  const { addedDice, spent, minimumRoll } = sheet
+  const { addedDice, spent, minimumRoll, modifier } = sheet
     ? carriedTestDice(resolved, sheet.activeEffects)
-    : { addedDice: [], spent: [], minimumRoll: null }
+    : { addedDice: [], spent: [], minimumRoll: null, modifier: 0 }
   const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
   for (const effect of spent)
     await effectStore.deleteCas({
@@ -76,7 +77,7 @@ export async function evaluateCharacterRoll(
       rulesetCode: system.rulesetCode,
       rulesetVersion: system.rulesetVersion
     },
-    resolved,
+    resolved: { ...resolved, expression: withModifier(resolved.expression, modifier) },
     addedDice,
     minimumRoll: minimumRoll ?? undefined,
     nextInt: nextRollInt

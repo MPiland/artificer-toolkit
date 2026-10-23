@@ -42,7 +42,10 @@ import { degradeEquipmentDtoSchema } from './degradeEquipment.js'
 import { targetingDtoSchema } from './targeting.js'
 import { teleportDtoSchema } from './teleport.js'
 import { durationDtoSchema } from '../shared/duration.js'
-import { activeEffectUsesSchema } from '../shared/activeRuleEffectLifecycle.js'
+import {
+  activeEffectRestStepDownSchema,
+  activeEffectUsesSchema
+} from '../shared/activeRuleEffectLifecycle.js'
 import {
   activationCodeSchema,
   equipmentCategoryCodeSchema,
@@ -174,6 +177,8 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
     fromSourceOnly: z.optional(z.boolean()),
     /** See `PathLifecycleAuthored.uses`. */
     uses: z.optional(activeEffectUsesSchema),
+    /** See `PathLifecycleAuthored.stepDown`. */
+    stepDown: z.optional(activeEffectRestStepDownSchema),
     /** See `PathLifecycleAuthored.activeOnlyOnFinalAnchorTurn`. */
     activeOnlyOnFinalAnchorTurn: z.optional(z.boolean()),
     /** The zone holds the condition (D146); see `PathLifecycleAuthored.heldBySource`. */

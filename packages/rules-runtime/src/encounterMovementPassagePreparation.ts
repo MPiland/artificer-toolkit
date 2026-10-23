@@ -8,6 +8,7 @@ import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDi
 import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import {
   activeAbilityCheckDice,
+  activeAbilityCheckModifier,
   activeAbilityCheckMinimumRoll
 } from './character/activeEffectGrantTotals.js'
 import { freezeD20Context } from './encounterD20Settlement.js'
@@ -148,6 +149,10 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
     facts: Omit<ContestFacts, 'addedDice' | 'minimumRoll'>
   ): ContestFacts => ({
     ...facts,
+    modifier:
+      facts.modifier === null
+        ? null
+        : facts.modifier + activeAbilityCheckModifier(target.activeEffects, abilityCode),
     addedDice: activeAbilityCheckDice(target.activeEffects, abilityCode),
     minimumRoll: activeAbilityCheckMinimumRoll(target.activeEffects, abilityCode),
     ...withEncounterConditionCheckContributors({

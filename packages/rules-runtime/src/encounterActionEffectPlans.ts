@@ -10,6 +10,7 @@ import type { CompiledRepeatSourcePathOffer } from '@artificer-toolkit/schema/ef
 import { sizeRank } from '@artificer-toolkit/shared/core'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
+import { initialRestSteps } from './character/restStepDown.js'
 import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAttackSlots.js'
 import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
 import {
@@ -541,6 +542,7 @@ export function prepareRecurringActiveEffect(
       ...(grantContribution?.fromSourceOnly && { fromSourceOnly: true }),
       ...(grantContribution?.activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
       ...(grantContribution?.uses !== undefined && { uses: grantContribution.uses }),
+      ...(grantContribution?.restStepDown && { restStepDown: grantContribution.restStepDown }),
       ...(plan.saveThresholds && { saveThresholds: plan.saveThresholds }),
       // A grant or condition outlasts the Encounter when the target's lifetime scope says so. A
       // Concentration effect keeps its maintenance link while the Run lasts and is detached from it
@@ -667,6 +669,12 @@ export function prepareRecurringActiveEffect(
       schemaVersion: 1,
       remainingTicks: initialRemaining,
       ...(grantContribution?.uses !== undefined && { remainingUses: grantContribution.uses }),
+      ...(grantContribution?.restStepDown && {
+        restStepsRemaining: initialRestSteps(
+          grantContribution.modifiers,
+          grantContribution.restStepDown.step
+        )
+      }),
       ...(concealment
         ? { concealedFromActorIds: normalizeObserverActorIds(concealment.observerActorIds) }
         : {})

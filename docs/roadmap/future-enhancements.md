@@ -91,6 +91,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Sheet attack roll ignores a flat active-effect penalty (SPELLS-4.T2g2):** a Sheet attack roll made outside an Encounter does not read an active effect's flat attack penalty (Raise Dead's -4), because the Sheet attack has no attack domain to match a domain-scoped grant. Checks and saving throws on the Sheet do, and Encounter attacks do. Rare out of combat, and attacks happen in the Encounter.
+
 - **Message's casting time and duration swapped in the corpus (SPELLS-4.T2g1 review):** `packages/source-data/src/srd/spells/message.ts` authors a 1-round casting time and an INSTANTANEOUS duration; the SRD has a 1-action casting time and a 1-round duration. The outcome is a manual-adjudication prompt, so play is unaffected beyond the reply window.
 
 - **Nested save skipped by a branch gate (SPELLS-33.T4i3d):** a gated nested-save band rolls the save even for targets the gate excludes (e.g. a target over the HP band), then discards the outcome. Rolling the save only for in-band targets would need the gate evaluated before the d20 node; no SRD content is affected.

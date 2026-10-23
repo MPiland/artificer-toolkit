@@ -29,6 +29,7 @@ import {
 import { endSubscriptions } from '../events/effectHooks.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
+import { listSteppedDownEffects, restStepDownOutcome } from './restStepDown.js'
 
 function parseCharacterClassHitDie(dieConfig: string | undefined): number | undefined {
   const match = dieConfig?.trim().match(/^(?:1)?d(\d+)$/i)
@@ -50,7 +51,7 @@ export function getRestRecoveryTriggers(restKind: 'SHORT' | 'LONG') {
  * maximum reduction that ends on a long rest (Life Drain, D62).
  */
 export function activeEffectEndsOnRest(
-  effect: Pick<ActiveRuleEffectRecord, 'definition'>,
+  effect: Pick<ActiveRuleEffectRecord, 'definition' | 'lifecycle'>,
   restKind: 'SHORT' | 'LONG'
 ): boolean {
   if (
@@ -59,6 +60,7 @@ export function activeEffectEndsOnRest(
     )
   )
     return true
+  if (restStepDownOutcome(effect, restKind) === 'END') return true
   const triggers = getRestRecoveryTriggers(restKind)
   return effect.definition.stateContributions.some(
     (contribution) =>
@@ -153,6 +155,8 @@ export async function buildCharacterRestPreview(params: {
   resolution: CharacterBuilderResolution
   characterAdjustments?: readonly CharacterSheetAdjustment[]
   effectiveMaximum: number
+  /** The Character's held effects, for those this rest steps down. */
+  activeEffects: readonly ActiveRuleEffectRecord[]
   restPolicy: CharacterRulePolicyOutput['rest']
   ruleRevisionId?: string
   sheet: CharacterSheetResponseDto
@@ -305,6 +309,15 @@ export async function buildCharacterRestPreview(params: {
       throw new CharacterSheetCommandError(
         `Companion "${companionId}" has no eligible recovery for this rest.`
       )
+  const steppedDownEffects = listSteppedDownEffects(params.activeEffects, input.restKind)
+    .map((effect) => ({
+      id: effect.id,
+      label:
+        effect.definition.stateContributions.flatMap((contribution) =>
+          contribution.kind === 'MODIFIER_GRANT' ? [contribution.sourceLabel] : []
+        )[0] ?? 'Effect'
+    }))
+    .sort((left, right) => left.label.localeCompare(right.label) || left.id.localeCompare(right.id))
   const missingHitPoints = Math.max(effectiveMaximum - currentHitPoints, 0)
   const stagedHealing = Math.min(Math.max(rollEvidence?.total ?? 0, 0), missingHitPoints)
   const canonicalExpression =
@@ -319,6 +332,7 @@ export async function buildCharacterRestPreview(params: {
     hasSelectedDice ||
     characterResources.length > 0 ||
     spellSlots.length > 0 ||
+    steppedDownEffects.length > 0 ||
     selectedCompanionRecoveries.length > 0 ||
     (input.resetMaximumHitPointModifier && canResetMaximumModifier) ||
     (input.restKind === 'LONG' &&
@@ -361,6 +375,7 @@ export async function buildCharacterRestPreview(params: {
     selectedCompanionInstanceIds: [...selectedCompanionIds].sort(),
     rollEvidence,
     automaticRecoveries: { resources: characterResources, spellSlots },
+    steppedDownEffects,
     eligibleCompanions
   }
   const previewFingerprint = Array.from(
@@ -396,6 +411,7 @@ export async function buildCharacterRestPreview(params: {
     ...(rollEvidence ? { rollEvidence } : {}),
     stagedHealing,
     automaticRecoveries: { resources: characterResources, spellSlots },
+    steppedDownEffects,
     eligibleCompanions,
     canApply: healingDecisionResolved && hasMeaningfulRecovery
   }

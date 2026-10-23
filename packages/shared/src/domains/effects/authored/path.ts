@@ -73,6 +73,12 @@ export type PathLifecycleAuthored = {
    */
   uses?: number
   /**
+   * Each matching rest shrinks the effect's fixed bonus and penalty grants by `step` and the effect
+   * ends once they reach 0 (Raise Dead's -4 that fades by one per long rest). The runtime counts the
+   * rests left in `restStepsRemaining`.
+   */
+  stepDown?: { trigger: 'LONG_REST'; step: number }
+  /**
    * The effect is dormant until its anchor actor's final counted turn and active only during that
    * turn: a timed effect made now that waits for that actor's next turn.
    */

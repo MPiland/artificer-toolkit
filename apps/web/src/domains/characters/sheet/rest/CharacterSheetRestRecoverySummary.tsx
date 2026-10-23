@@ -64,6 +64,14 @@ export function CharacterSheetRestRecoverySummary({
           {formatRestRecoveryLabels(preview.automaticRecoveries)}
         </Text>
       </div>
+      {preview.steppedDownEffects.length ? (
+        <div className={restStyles.recoveryLine}>
+          <Text className={restStyles.recoveryLabel}>Eases by one</Text>
+          <Text className={restStyles.recoveryValue}>
+            {preview.steppedDownEffects.map((effect) => effect.label).join(', ')}
+          </Text>
+        </div>
+      ) : null}
       <Text className={restStyles.note}>
         {restKind === 'SHORT'
           ? 'Temp HP is unchanged. The roll and selected recoveries apply when you finish the rest.'

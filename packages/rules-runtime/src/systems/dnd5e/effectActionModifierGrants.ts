@@ -100,6 +100,7 @@ export function modifierGrantEntryPlan(input: {
     fromSourceOnly = false,
     activeOnlyOnFinalAnchorTurn = false,
     uses,
+    stepDown,
     onEnd,
     grantedActions,
     effectOffers,
@@ -139,10 +140,19 @@ export function modifierGrantEntryPlan(input: {
     ) ||
     (untilEndEvent
       ? entry.duration !== undefined ||
-        endEvents.length === 0 ||
+        (endEvents.length === 0 && stepDown === undefined) ||
         turnAnchor !== undefined ||
         activeOnlyOnFinalAnchorTurn
-      : initialRemaining === null) ||
+      : initialRemaining === null || stepDown !== undefined) ||
+    // A step-down grant is only fixed bonuses and penalties: the rests shrink them to nothing.
+    (stepDown !== undefined &&
+      !modifiers.every(
+        ({ modifierKind, payload }) =>
+          (modifierKind === 'BONUS' || modifierKind === 'PENALTY') &&
+          payload !== undefined &&
+          'valueKind' in payload &&
+          payload.valueKind === 'FIXED'
+      )) ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     grantConsumeEvents.length !== consumeEvents.length ||
     grantEndEvents.length !== endEvents.length ||
@@ -173,6 +183,7 @@ export function modifierGrantEntryPlan(input: {
       ...(fromSourceOnly && { fromSourceOnly: true }),
       ...(activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
       ...(uses !== undefined && { uses }),
+      ...(stepDown && { restStepDown: { ...stepDown } }),
       ...(grantedActions && { grantedActions: grantedActions.map((offer) => ({ ...offer })) }),
       ...(effectOffers && {
         effectOffers: effectOffers.map((offer) =>

@@ -45,8 +45,6 @@ import {
   PATH_LIFECYCLE_CONSUME_EVENT_OPTIONS,
   PATH_LIFECYCLE_END_EVENT_OPTIONS,
   PATH_LIFECYCLE_RECURRING_KIND_OPTIONS,
-  PATH_LIFECYCLE_TURN_ACTOR_OPTIONS,
-  PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS,
   PATH_CODE_OPTIONS,
   PATH_GROUP_TYPE_OPTIONS,
   PATH_ROLL_TABLE_KIND_OPTIONS,
@@ -85,6 +83,11 @@ import {
   type NodeMap
 } from '#utils'
 import type { AllUnionFields } from 'type-fest'
+import {
+  PATH_LIFECYCLE_HOLDER_END_NODE_MAP,
+  PATH_LIFECYCLE_STEP_DOWN_NODE_MAP,
+  PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP
+} from './pathLifecycleSubMaps.js'
 import {
   DURATION_NODE_MAP,
   FACET_NODE_MAP,
@@ -216,8 +219,6 @@ const SUMMON_VISIBILITY_OPTIONS = [
 
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
-const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
-const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const pathLifecycleEscape = buildNodeMap<NonNullable<PathLifecycleAuthored['escape']>>()
 const pathLifecycleOnEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['onEnd']>>()
 const pathLifecycleGrantedAction =
@@ -356,47 +357,6 @@ const FORCED_MOVEMENT_COLLISION_NODE_MAP: NodeMap<ForcedMovementCollisionAuthore
           { requiredIf: true }
         )
       )
-  })
-
-const PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP: NodeMap<
-  NonNullable<PathLifecycleAuthored['turnAnchor']>
-> = pathLifecycleTurnAnchor.define('pathLifecycleTurnAnchor', ({ map, nodes }) => {
-  const { selectSingle } = nodes
-
-  map
-    .set(
-      'actor',
-      selectSingle(
-        ['actor'],
-        'Counted On',
-        { kind: 'INLINE_OPTIONS', options: PATH_LIFECYCLE_TURN_ACTOR_OPTIONS },
-        { requiredIf: true }
-      )
-    )
-    .set(
-      'boundary',
-      selectSingle(
-        ['boundary'],
-        'Counted At',
-        { kind: 'INLINE_OPTIONS', options: PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS },
-        { requiredIf: true }
-      )
-    )
-})
-
-const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>> =
-  pathLifecycleHolderEnd.define('pathLifecycleHolderEnd', ({ map, nodes }) => {
-    const { selectSingle } = nodes
-
-    map.set(
-      'activation',
-      selectSingle(
-        ['activation'],
-        'Costs',
-        { kind: 'INLINE_OPTIONS', options: ACTIVATION_OPTIONS },
-        { requiredIf: true }
-      )
-    )
   })
 
 const PATH_LIFECYCLE_ESCAPE_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['escape']>> =
@@ -755,6 +715,17 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
       .set(
         'uses',
         number(['uses'], 'Uses before it ends', { constraints: { minimum: 1, maximum: 255 } })
+      )
+      .set(
+        'stepDown',
+        groupObject(
+          ['stepDown'],
+          'Steps Down With Rests',
+          () => PATH_LIFECYCLE_STEP_DOWN_NODE_MAP,
+          {
+            presentation: 'inline'
+          }
+        )
       )
       .set(
         'activeOnlyOnFinalAnchorTurn',

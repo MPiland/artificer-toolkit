@@ -123,4 +123,6 @@ Option A approved. **T2g1 (this slice, done):** `REVIVE` plus Revivify, Reincarn
 
 Review ruling: the revive amount is `FIXED` or `MAXIMUM` (no `ONE` special case), and an `INSTANTANEOUS` duration is no lifecycle override in the Effect-action compiler, so Revivify keeps its authored duration.
 
-**Moved to T2g2:** `stepDown`, the penalty effect, `ABILITY_CHECK` `PENALTY`, and the rest step-down in sheetRest (True Resurrection's and Resurrection's penalty clauses). RAISE_DEAD and RESURRECTION stay closed kinds until then.
+**Moved to T2g2:** `stepDown`, the penalty effect, `ABILITY_CHECK` `PENALTY`, and the rest step-down in sheetRest (Resurrection's and Raise Dead's penalty clauses).
+
+**T2g2 (done, awaiting merge):** `stepDown`, the -4 penalty, `ABILITY_CHECK` `PENALTY` and the sheetRest step-down and preview shipped; RAISE_DEAD and RESURRECTION are authored from them and their kinds are deleted. Proof: `restStepDown.test.ts`, `returnFromDeathPenalty.test.ts`, `stepDownAuthoringParity.test.ts`, `sheetRestStepDown.test.ts` (four long rests ease the penalty 4, 3, 2, 1 and end it) and `nativeRoomRevive.test.ts` (a Raise Dead cast revives and leaves the stepping penalty).

@@ -40,6 +40,7 @@ import {
   activeEffectEndsOnRest,
   applyCompletedCharacterRest
 } from '@artificer-toolkit/rules-runtime/character/sheetRest'
+import { restStepDownOutcome } from '@artificer-toolkit/rules-runtime/character/restStepDown'
 import {
   getCharacterSpellKnownEligibleIdsByClass,
   getCharacterSpellPreparationEligibleIdsByClass
@@ -482,6 +483,12 @@ export async function executeCharacterSheetCommand(
           expectedVersion: effect.version,
           // A rest happens outside a Run: no turn counts down a follow-on grant.
           removal: 'REMOVED'
+        })
+      else if (restStepDownOutcome(effect, command.restKind) === 'STEP')
+        await effectStore.stepDownCas({
+          id: effect.id,
+          characterId: initial.active.id,
+          expectedVersion: effect.version
         })
   }
 

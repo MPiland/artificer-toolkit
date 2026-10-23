@@ -117,6 +117,7 @@ export async function prepareCharacterRest(
       ),
       current.activeEffects.filter((effect) => !activeEffectEndsOnRest(effect, input.restKind))
     ),
+    activeEffects: current.activeEffects,
     restPolicy: restEvaluation.output.rest,
     sheet: current.sheet,
     input

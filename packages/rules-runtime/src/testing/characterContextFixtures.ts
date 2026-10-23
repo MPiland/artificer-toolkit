@@ -312,7 +312,8 @@ export function restParamsFromFixtureSheet(
     resolution: prepared.prepared.resolution,
     sheet: prepared.sheet,
     restPolicy: prepared.ruleEvaluation.output.rest,
-    effectiveMaximum: resolveCharacterRecordStats(prepared.ruleEvaluation).maximumHitPoints
+    effectiveMaximum: resolveCharacterRecordStats(prepared.ruleEvaluation).maximumHitPoints,
+    activeEffects: []
   }
 }
 

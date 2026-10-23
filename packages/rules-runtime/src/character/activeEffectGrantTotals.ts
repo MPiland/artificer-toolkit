@@ -263,6 +263,37 @@ export function activeAbilityCheckDice(
 }
 
 /**
+ * The net of a holder's active fixed bonuses and penalties to its ability checks with one ability
+ * ("STRENGTH"), or to an ability-less check when `abilityCode` is null. A grant naming no ability
+ * covers every check.
+ */
+export function activeAbilityCheckModifier(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityCode: string | null
+): number {
+  return activeFixedGrantTotal(
+    effects,
+    'ABILITY_CHECK',
+    (domain) => domain.ability === undefined || domain.ability === abilityCode
+  )
+}
+
+/**
+ * The net of a holder's active fixed bonuses and penalties to its saving throws with one ability.
+ * A grant naming no ability covers every save.
+ */
+export function activeSavingThrowModifier(
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+  abilityCode: string
+): number {
+  return activeFixedGrantTotal(
+    effects,
+    'SAVING_THROW_MODIFIER',
+    (domain) => domain.ability === undefined || domain.ability === abilityCode
+  )
+}
+
+/**
  * The after-roll dice a holder's active effects hold for an ability check with one ability (or an
  * ability-less check when `abilityCode` is null): each is offered once the d20 is seen, and the
  * holder spends it by ending its effect.

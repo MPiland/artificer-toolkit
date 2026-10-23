@@ -622,6 +622,25 @@ describe('grant and facet schema parsing', () => {
     ).toEqual({ influence: 'DISADVANTAGE' })
   })
 
+  it('parses a fixed penalty to ability checks, with or without an ability', () => {
+    const penalty = (domain: object, payload: object) =>
+      modifierGrantDtoSchema.safeParse({
+        grantKind: 'MODIFIER_GRANT',
+        id: 'check-penalty',
+        order: 1,
+        selectionKind: 'GRANTED',
+        valueDomainCode: 'ABILITY_CHECK',
+        domain,
+        modifierKind: 'PENALTY',
+        payload,
+        scope: 'GLOBAL'
+      }).success
+    const fixed = { valueKind: 'FIXED', amount: 4 }
+    expect(penalty({}, fixed)).toBe(true)
+    expect(penalty({ ability: 'STRENGTH' }, fixed)).toBe(true)
+    expect(penalty({}, { amount: 4 })).toBe(false)
+  })
+
   it('scopes saving throw modifiers to a reusable rule definition', () => {
     const grant = {
       grantKind: 'MODIFIER_GRANT',

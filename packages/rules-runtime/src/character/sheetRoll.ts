@@ -7,8 +7,10 @@ import { savingThrowSpentEffects } from '../encounterEndedEffectRelease.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 import {
   activeAbilityCheckDice,
+  activeAbilityCheckModifier,
   activeAbilityCheckMinimumRoll,
-  activeSavingThrowDice
+  activeSavingThrowDice,
+  activeSavingThrowModifier
 } from './activeEffectGrantTotals.js'
 
 type ResolvedRoll = {
@@ -28,7 +30,7 @@ const ABILITY_LABELS = {
   CHARISMA: 'Charisma'
 } as const
 
-function withModifier(expression: string, modifier: number) {
+export function withModifier(expression: string, modifier: number) {
   return modifier === 0
     ? expression
     : `${expression} ${modifier > 0 ? '+' : '-'} ${Math.abs(modifier)}`
@@ -178,20 +180,22 @@ export function resolveCharacterSheetRoll(
 
 /**
  * The dice the Character's carried effects add to a resolved ability check, skill check or saving
- * throw (Guidance, Resistance), and the effects the test spends: those whose die applied to its
- * ability (D156). Any other roll adds none.
+ * throw (Guidance, Resistance), the flat amount they add to or take from it (the return-from-death
+ * penalty), and the effects the test spends: those whose die applied to its ability (D156). Any
+ * other roll adds none.
  */
 export function carriedTestDice(
   resolved: ResolvedRoll,
   activeEffects: readonly ActiveRuleEffectRecord[]
 ) {
   const { abilityCode } = resolved
-  if (abilityCode === undefined) return { addedDice: [], spent: [], minimumRoll: null }
+  if (abilityCode === undefined) return { addedDice: [], spent: [], minimumRoll: null, modifier: 0 }
   if (resolved.source.kind === 'SAVING_THROW')
     return {
       addedDice: activeSavingThrowDice(activeEffects, abilityCode),
       spent: savingThrowSpentEffects(activeEffects, abilityCode),
-      minimumRoll: null
+      minimumRoll: null,
+      modifier: activeSavingThrowModifier(activeEffects, abilityCode)
     }
   return {
     addedDice: activeAbilityCheckDice(activeEffects, abilityCode),
@@ -199,6 +203,7 @@ export function carriedTestDice(
       effects: activeEffects,
       events: [{ kind: 'TEST', test: 'CHECK', ability: { code: abilityCode } }]
     }).ended,
-    minimumRoll: activeAbilityCheckMinimumRoll(activeEffects, abilityCode)
+    minimumRoll: activeAbilityCheckMinimumRoll(activeEffects, abilityCode),
+    modifier: activeAbilityCheckModifier(activeEffects, abilityCode)
   }
 }

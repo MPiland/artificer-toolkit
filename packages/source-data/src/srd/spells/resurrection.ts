@@ -3,7 +3,6 @@ import {
   CASTING_TIME_UNIT_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
-  DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
   SUBJECT,
@@ -14,7 +13,14 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import {
+  conditionTypeId,
+  returnFromDeathPenaltyGrants,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
 export const resurrection: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.RESURRECTION,
@@ -58,15 +64,17 @@ export const resurrection: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.RESURRECTION, 0x212, 1) + '__result',
             resultKind: 'SEQUENCE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.RESURRECTION, 0x213, 1),
-              durationKind: DURATION_KIND.INSTANTANEOUS
-            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.RESURRECTION, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'RESURRECTION' as const
+                effectKind: EFFECT_KIND.REVIVE,
+                valueKind: 'MAXIMUM' as const
+              },
+              {
+                id: spellChildId(SPELL_IDS.RESURRECTION, 0x2f1, 1),
+                effectKind: EFFECT_KIND.END_EFFECTS,
+                scope: 'ALL' as const,
+                conditionIds: [conditionTypeId('POISONED')]
               },
               {
                 id: spellChildId(SPELL_IDS.RESURRECTION, 0x212, 1),
@@ -75,6 +83,30 @@ export const resurrection: SpellAuthored = {
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
                 instructions:
                   'If its soul is free and willing, the target returns to life with all its hit points.'
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.RESURRECTION, 0x214, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_USE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.RESURRECTION, 0x214, 1) + '__result',
+            resultKind: 'SEQUENCE' as const,
+            lifecycle: { stepDown: { trigger: 'LONG_REST' as const, step: 1 } },
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.RESURRECTION, 0x215, 1),
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: returnFromDeathPenaltyGrants((entry) =>
+                    spellChildId(SPELL_IDS.RESURRECTION, 0x216, entry)
+                  )
+                }
               }
             ]
           }

@@ -1,4 +1,5 @@
 import {
+  ABILITY_CODE,
   AUTHORING_SELECTION_KIND,
   DAMAGE_DEFENSE_BYPASS_CODE,
   GRANT_KIND,
@@ -67,6 +68,44 @@ export function spellChildId(spellId: string, bucket: number, index: number): st
 }
 
 export { SRD_SYSTEM_ID, SRD_USER_ID }
+
+/**
+ * The -4 penalty to attack rolls, saving throws and ability checks a creature brought back from the
+ * dead takes (Raise Dead, Resurrection); the grant's `stepDown` lifecycle lifts it by 1 per long rest.
+ */
+export function returnFromDeathPenaltyGrants(
+  idFor: (entry: number) => string
+): ModifierGrantAuthored[] {
+  const penalty = {
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    modifierKind: MODIFIER_KIND.PENALTY,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: { valueKind: 'FIXED', amount: 4 }
+  } as const
+  const abilities = Object.values(ABILITY_CODE)
+  const grantFor = (entry: number) => ({ ...penalty, id: idFor(entry), order: entry })
+  const attackDomains = ['MELEE', 'RANGED', 'SPELL', 'UNARMED'] as const
+  // An attack roll penalty names its attack domain and a saving throw penalty its ability, so "all
+  // attack rolls" and "all saving throws" are one grant per domain and per ability.
+  return [
+    ...attackDomains.map((attackDomain, index) => ({
+      ...grantFor(index + 1),
+      valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+      domain: { attackDomain }
+    })),
+    ...abilities.map((ability, index) => ({
+      ...grantFor(attackDomains.length + index + 1),
+      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+      domain: { ability }
+    })),
+    {
+      ...grantFor(attackDomains.length + abilities.length + 1),
+      valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+      domain: {}
+    }
+  ]
+}
 
 /**
  * Resistance to bludgeoning, piercing and slashing damage from nonmagical attacks (Stoneskin, Wind

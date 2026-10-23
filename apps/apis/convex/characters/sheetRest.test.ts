@@ -207,6 +207,7 @@ describe('native Character rest preview and completion', () => {
               resolution: loaded.resolution,
               restPolicy,
               effectiveMaximum: loaded.sheet.overview.maxHitPoints,
+              activeEffects: loaded.activeEffects,
               sheet: loaded.sheet,
               input,
               ...overrides

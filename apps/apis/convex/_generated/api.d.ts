@@ -7210,6 +7210,7 @@ export declare const api: {
             total: number;
           };
           stagedHealing: number;
+          steppedDownEffects: Array<{ id: string; label: string }>;
           streamVersion: number;
         }
       >;
@@ -18431,6 +18432,7 @@ export declare const api: {
             total: number;
           };
           stagedHealing: number;
+          steppedDownEffects: Array<{ id: string; label: string }>;
           streamVersion: number;
         }
       >;

@@ -149,6 +149,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     activeOnlyOnFinalAnchorTurn?: true
     /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
     uses?: number
+    /** The grants shrink by `step` at each matching rest and the effect ends at 0. */
+    restStepDown?: { trigger: 'LONG_REST'; step: number }
     /** The grant the holder keeps for `turns` of its turns when the effect ends, however it ends. */
     onEnd?: { turns: number; modifiers: readonly CharacterGrantFoldModifier[] }
     /** The actions the holder may take while the effect is held. */
