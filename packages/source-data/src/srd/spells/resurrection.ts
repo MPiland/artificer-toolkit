@@ -65,8 +65,8 @@ export const resurrection: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.RESURRECTION, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'RESURRECTION' as const
+                effectKind: EFFECT_KIND.REVIVE,
+                valueKind: 'MAXIMUM' as const
               },
               {
                 id: spellChildId(SPELL_IDS.RESURRECTION, 0x212, 1),
@@ -75,6 +75,14 @@ export const resurrection: SpellAuthored = {
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
                 instructions:
                   'If its soul is free and willing, the target returns to life with all its hit points.'
+              },
+              {
+                id: spellChildId(SPELL_IDS.RESURRECTION, 0x214, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Track the Return Penalty',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'The target takes a -4 penalty to all attack rolls, saving throws, and ability checks. Each time it finishes a long rest, the penalty is reduced by 1 until it disappears. If the target had been dead for a year or longer, the caster cannot cast spells again until finishing a long rest and has disadvantage on attack rolls, ability checks, and saving throws until then.'
               }
             ]
           }

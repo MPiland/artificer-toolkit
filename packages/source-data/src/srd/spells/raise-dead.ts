@@ -67,8 +67,9 @@ export const raiseDead: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'RAISE_DEAD' as const
+                effectKind: EFFECT_KIND.REVIVE,
+                valueKind: 'FIXED' as const,
+                amount: 1
               },
               {
                 id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x212, 1),
@@ -77,6 +78,14 @@ export const raiseDead: SpellAuthored = {
                 reasonCode: 'EXTERNAL_WORLD_STATE' as const,
                 instructions:
                   'If the creature\u0027s soul is both willing and at liberty to rejoin the body, the creature returns to life with 1 hit point.'
+              },
+              {
+                id: spellChildId(SPELL_IDS.RAISE_DEAD, 0x214, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Track the Return Penalty',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'The target takes a -4 penalty to all attack rolls, saving throws, and ability checks. Each time it finishes a long rest, the penalty is reduced by 1 until it disappears. The spell also neutralizes poisons and cures nonmagical diseases that affected the creature when it died.'
               }
             ]
           }

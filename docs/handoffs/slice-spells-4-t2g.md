@@ -123,4 +123,4 @@ Option A approved. **T2g1 (this slice, done):** `REVIVE` plus Revivify, Reincarn
 
 Review ruling: the revive amount is `FIXED` or `MAXIMUM` (no `ONE` special case), and an `INSTANTANEOUS` duration is no lifecycle override in the Effect-action compiler, so Revivify keeps its authored duration.
 
-**Moved to T2g2:** `stepDown`, the penalty effect, `ABILITY_CHECK` `PENALTY`, and the rest step-down in sheetRest (True Resurrection's and Resurrection's penalty clauses). RAISE_DEAD and RESURRECTION stay closed kinds until then.
+**T2g2 (D187a):** Raise Dead and Resurrection are `REVIVE` plus a GM-ruled return-penalty rider (description-only; no `stepDown`, no flat-modifier fold). Their closed-rule kinds are deleted.
