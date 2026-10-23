@@ -35,6 +35,7 @@ import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import { listActiveGrantListings } from '../activeGrantListings.js'
+import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
 import { labelCharacterConditions } from './characterConditionLabels.js'
@@ -1430,6 +1431,7 @@ export function projectCharacterSheetBundle(
       armorClass: ruleProjection.derivedStats.armorClass,
       initiative: ruleProjection.derivedStats.initiative,
       initiativeRollMode: ruleProjection.rollModes.initiative,
+      rollModes: rollModeCapabilityRegistry.offeredRollModes(character.systemId),
       proficiencyBonus,
       inspiration: character.state.inspiration ?? false,
       currentHitPoints: clampCharacterCurrentHitPoints(

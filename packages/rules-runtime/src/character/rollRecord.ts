@@ -3,6 +3,7 @@ import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDi
 import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import { evaluateRollExpression, parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
+import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
 import { withAddedDiceTerms, withMinimumRoll } from '../encounterRuleCheckRolls.js'
 
 /**
@@ -16,7 +17,8 @@ export function createRollRecord(input: {
   system: { id: string; rulesetCode: string; rulesetVersion: string }
   resolved: {
     expression: string
-    rollMode: string
+    /** The System roll mode of a d20 roll; absent for any other roll. */
+    rollMode?: string
     source: RollSourceDto
   }
   /** Dice the roll adds beside its d20, rolled after advantage keeps one (D156). */
@@ -31,7 +33,12 @@ export function createRollRecord(input: {
       evaluateRollExpression(
         parseRollExpression(resolved.expression),
         { nextInt: input.nextInt },
-        resolved.rollMode
+        resolved.rollMode === undefined
+          ? undefined
+          : rollModeCapabilityRegistry.d20Roll({
+              gameSystemId: system.id,
+              rollMode: resolved.rollMode
+            })
       ),
       input.addedDice?.map((die) => ({
         ...die,

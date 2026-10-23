@@ -530,6 +530,7 @@ describe('native Campaign text chat', () => {
             terms: [{ count: 1, die: 20, rolls: [10], subtotal: 10 }],
             modifier: 0,
             mode: 'NORMAL',
+            keep: 'FIRST',
             subtotal: 10,
             transform: { kind: 'NONE' },
             total: 10

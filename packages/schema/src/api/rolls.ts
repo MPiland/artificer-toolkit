@@ -1,9 +1,12 @@
 import { z, lazySchema } from '../zod.js'
-import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
+import {
+  rollModeKeepSchema,
+  systemCoreCodeEntrySchema,
+  systemCoreCodeSchema
+} from '../shared/systemCoreCode.js'
 import {
   parseRollExpression,
-  parseStandaloneDiceConfiguration,
-  validateRollMode
+  parseStandaloneDiceConfiguration
 } from '@artificer-toolkit/shared/rolls'
 
 export const rollSourceDtoSchema = lazySchema(() =>
@@ -34,9 +37,9 @@ export const executeRollInputDtoSchema = lazySchema(() =>
       source: rollSourceDtoSchema
     })
     .check(
-      z.superRefine(({ expression, rollMode }, context) => {
+      z.superRefine(({ expression }, context) => {
         try {
-          validateRollMode(parseRollExpression(expression), rollMode ?? 'NORMAL')
+          parseRollExpression(expression)
         } catch (error) {
           context.addIssue({
             code: 'custom',
@@ -112,7 +115,11 @@ export const rollEvidenceDtoSchema = lazySchema(() =>
   z.object({
     terms: z.array(rollTermEvidenceDtoSchema).check(z.maxLength(10)),
     modifier: z.number().check(z.int()),
-    mode: systemCoreCodeSchema,
+    /** The System roll-mode code and its label; present only for a System-governed d20 roll. */
+    mode: z.optional(systemCoreCodeSchema),
+    modeLabel: z.optional(z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80))),
+    /** Which face the roll counts: the one rolled (FIRST), or the higher or lower of two. */
+    keep: rollModeKeepSchema,
     subtotal: z.number().check(z.int()),
     transform: rollTransformDtoSchema,
     total: z.number().check(z.int())
@@ -162,8 +169,8 @@ export const rollRuleCheckDtoSchema = lazySchema(() =>
      */
     z.strictObject({
       kind: z.literal('D20_MODE_ADJUSTED'),
-      rolledMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
-      appliedMode: z.enum(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE']),
+      rolledMode: systemCoreCodeEntrySchema,
+      appliedMode: systemCoreCodeEntrySchema,
       cancelledRollIndexes: z.array(z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))),
       addedRollIndexes: z.array(z.number().check(z.int()).check(z.gte(0)).check(z.lte(2))),
       caption: z.nullable(ruleCheckLabelSchema)

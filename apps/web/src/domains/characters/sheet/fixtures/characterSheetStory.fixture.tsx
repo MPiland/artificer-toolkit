@@ -127,6 +127,7 @@ const fighterHitDieRoll = rollRecordDtoSchema.parse({
     terms: [{ count: 1, die: 10, rolls: [5], subtotal: 5 }],
     modifier: 1,
     mode: 'NORMAL',
+    keep: 'FIRST',
     subtotal: 6,
     transform: { kind: 'NONE' },
     total: 6
@@ -144,6 +145,7 @@ const multiclassHitDieRoll = rollRecordDtoSchema.parse({
     ],
     modifier: 2,
     mode: 'NORMAL',
+    keep: 'FIRST',
     subtotal: 11,
     transform: { kind: 'NONE' },
     total: 13

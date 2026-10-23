@@ -3,6 +3,7 @@ import {
   campaignSummaryDtoSchema,
   type CampaignSummaryDto
 } from '@artificer-toolkit/schema/api/campaignCore'
+import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { getCampaignCapabilities } from '@artificer-toolkit/shared/campaign/capabilities'
 import {
   presentCampaignPlainText,
@@ -113,6 +114,7 @@ export async function readCampaignDetail(
       privateOwnerView
     ),
     attunementSlotOverride: campaign.attunementSlotOverride,
+    rollModes: rollModeCapabilityRegistry.offeredRollModes(campaign.gameSystemId),
     memberships
   })
 }

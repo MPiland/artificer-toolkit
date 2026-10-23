@@ -30,15 +30,9 @@ type D20ModeAdjustmentDto = Extract<RollRuleCheckDto, { kind: 'D20_MODE_ADJUSTED
 /** The mode-change card animation: the ✕ draws, then the added die rolls in (DESIGN.md Motion). */
 export const MODE_CHANGE_ANIMATION_MS = 520
 
-const MODE_LABELS = {
-  NORMAL: 'Normal',
-  ADVANTAGE: 'Advantage',
-  DISADVANTAGE: 'Disadvantage'
-} as const
-
 /** "Advantage → Normal": the mode the roller rolled for and the mode the server settled. */
 export function formatModeChange(adjustment: D20ModeAdjustmentDto) {
-  return `${MODE_LABELS[adjustment.rolledMode]} → ${MODE_LABELS[adjustment.appliedMode]}`
+  return `${adjustment.rolledMode.label} → ${adjustment.appliedMode.label}`
 }
 
 export function formatRollEvidence(evidence: RollEvidenceDto, adjustment?: D20ModeAdjustmentDto) {
@@ -86,9 +80,9 @@ export function formatRollEvidence(evidence: RollEvidenceDto, adjustment?: D20Mo
           : ` · × ${evidence.transform.value}`
   const mode = adjustment
     ? ` · ${formatModeChange(adjustment)}`
-    : evidence.mode === 'NORMAL'
-      ? ''
-      : ` · ${evidence.mode === 'ADVANTAGE' ? 'advantage' : 'disadvantage'}`
+    : evidence.modeLabel && evidence.keep !== 'FIRST'
+      ? ` · ${evidence.modeLabel.toLowerCase()}`
+      : ''
 
   const caption = adjustment?.caption ? ` · ${adjustment.caption}` : ''
 

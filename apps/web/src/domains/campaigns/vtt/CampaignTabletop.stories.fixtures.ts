@@ -316,6 +316,11 @@ export function createTabletopCampaign(role: 'OWNER' | 'PLAYER'): CampaignDetail
   return campaignDetailDtoSchema.parse({
     assignedCharacter: role === 'PLAYER' ? assignedCharacter : null,
     attunementSlotOverride: null,
+    rollModes: [
+      { code: 'NORMAL', label: 'Normal', keep: 'FIRST' },
+      { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' },
+      { code: 'DISADVANTAGE', label: 'Disadvantage', keep: 'LOWER' }
+    ],
     capabilities: getCampaignCapabilities('ACTIVE', role),
     contentMaturity: 'STANDARD',
     createdAt: '2026-08-01T12:00:00.000Z',

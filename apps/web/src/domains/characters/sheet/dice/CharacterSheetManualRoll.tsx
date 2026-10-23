@@ -12,7 +12,7 @@ import {
 import { Dices, Plus, RotateCcw, Settings, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import clsx from 'clsx'
-import { findOption } from '#app/forms/utils/valueGuards'
+import type { OfferedRollModeDto } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { DiceSettingsControls } from '#app/settings/DiceSettingsControls'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import { CharacterSheetRollDestination } from './CharacterSheetRollDestination'
@@ -30,21 +30,29 @@ const dieOptions = dieSides.map((die) => ({
 
 const initialRows = (): ManualDieRow[] => [{ id: 'manual-die-1', count: 1, die: 20, modifier: 0 }]
 
-export function CharacterSheetManualRoll({ className }: { className?: string }) {
+export function CharacterSheetManualRoll({
+  className,
+  rollModes
+}: {
+  className?: string
+  /** The roll modes the System offers a d20; the one that keeps a single face is the default. */
+  rollModes: readonly OfferedRollModeDto[]
+}) {
   const [opened, setOpened] = useState(false)
   const [settingsOpened, setSettingsOpened] = useState(false)
   const [rows, setRows] = useState<ManualDieRow[]>(initialRows)
-  const [rollMode, setRollMode] = useState<'NORMAL' | 'ADVANTAGE' | 'DISADVANTAGE'>('NORMAL')
+  const defaultRollMode = rollModes.find(({ keep }) => keep === 'FIRST') ?? rollModes[0]
+  const [rollMode, setRollMode] = useState(defaultRollMode?.code)
   const [preferences, setPreferences] = useDicePresentationPreferences()
   const controller = useCharacterSheetRoll()
   const totalDice = rows.reduce((sum, row) => sum + row.count, 0)
   const supportsD20Mode = rows.length === 1 && rows[0]?.count === 1 && rows[0].die === 20
 
-  if (!supportsD20Mode && rollMode !== 'NORMAL') setRollMode('NORMAL')
+  if (!supportsD20Mode && rollMode !== defaultRollMode?.code) setRollMode(defaultRollMode?.code)
 
   function reset() {
     setRows(initialRows())
-    setRollMode('NORMAL')
+    setRollMode(defaultRollMode?.code)
   }
 
   if (!controller) return null
@@ -211,16 +219,14 @@ export function CharacterSheetManualRoll({ className }: { className?: string }) 
           <SegmentedControl
             aria-label='Roll mode'
             className={diceStyles.manualMode}
-            data={[
-              { label: 'Normal', value: 'NORMAL' },
-              { label: 'Adv', value: 'ADVANTAGE', disabled: !supportsD20Mode },
-              { label: 'Dis', value: 'DISADVANTAGE', disabled: !supportsD20Mode }
-            ]}
+            data={rollModes.map(({ code, label, keep }) => ({
+              label,
+              value: code,
+              disabled: !supportsD20Mode && keep !== 'FIRST'
+            }))}
             size='xs'
             value={rollMode}
-            onChange={(value) =>
-              setRollMode(findOption(['NORMAL', 'ADVANTAGE', 'DISADVANTAGE'], value) ?? rollMode)
-            }
+            onChange={setRollMode}
           />
           <div className={diceStyles.manualActionButtons}>
             <Button
@@ -238,7 +244,9 @@ export function CharacterSheetManualRoll({ className }: { className?: string }) 
               disabled={pending || totalDice > 40}
               loading={pending}
               size='xs'
-              onClick={() => void executeRoll(toManualRollRequest(rows, rollMode))}
+              onClick={() =>
+                void executeRoll(toManualRollRequest(rows, supportsD20Mode ? rollMode : undefined))
+              }
             >
               Roll
             </Button>

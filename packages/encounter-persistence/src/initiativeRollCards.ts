@@ -4,6 +4,7 @@ import {
   ruleCheckRollId
 } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { initiativeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
+import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -59,13 +60,22 @@ export async function persistEncounterInitiativeRollCards(
       dice.some(({ entry }) => entry.inputs.min !== 1 || entry.inputs.max !== sides)
     )
       throw new Error('A declared initiative die must be a logged 1dN to post its roll card.')
-    const rollMode = dice.length === 2 ? initiative.declaredRollMode(facts) : 'NORMAL'
-    if (!rollMode)
-      throw new Error('A declared initiative roll mode must keep the first, higher or lower face.')
-    if ((dice.length === 2) === (rollMode === 'NORMAL'))
-      throw new Error(
-        'A declared initiative that settled two dice needs an advantage or disadvantage roll mode.'
+    const rollMode = dice.length === 2 ? initiative.declaredRollMode(facts) : undefined
+    if (dice.length === 2) {
+      if (!rollMode)
+        throw new Error(
+          'A declared initiative roll mode must keep the first, higher or lower face.'
+        )
+      if (
+        rollModeCapabilityRegistry.rollModeKeep({
+          gameSystemId: state.gameSystemId,
+          rollMode
+        }) === 'FIRST'
       )
+        throw new Error(
+          'A declared initiative that settled two dice needs a roll mode that keeps the higher or lower face.'
+        )
+    }
     const keptValue =
       dice.length === 1
         ? dice[0]?.evidence.value

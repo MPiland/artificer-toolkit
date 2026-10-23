@@ -13,7 +13,8 @@ import {
 
 type ResolvedRoll = {
   expression: string
-  rollMode: string
+  /** The System roll mode of a d20 roll; absent for a roll that is not a System-governed d20. */
+  rollMode?: string
   source: RollSourceDto
   /** The ability a check or saving throw is made with: the dice its carried effects add key on it. */
   abilityCode?: string
@@ -45,7 +46,7 @@ function mechanicRolls(
       : [
           {
             expression: withModifier('1d20', mechanic.attackBonus),
-            rollMode: mechanic.attackRollMode ?? 'NORMAL',
+            rollMode: mechanic.attackRollMode,
             source: { kind: 'ATTACK' as const, label: `${sourceLabel} attack`.slice(0, 80) }
           }
         ]),
@@ -54,7 +55,6 @@ function mechanicRolls(
         return [
           {
             expression: outcome.expression,
-            rollMode: 'NORMAL',
             source: { kind: 'DAMAGE', label: `${sourceLabel} damage`.slice(0, 80) }
           }
         ]
@@ -63,7 +63,6 @@ function mechanicRolls(
         return [
           {
             expression: outcome.expression,
-            rollMode: 'NORMAL',
             source: { kind: 'HEALING', label: `${sourceLabel} healing`.slice(0, 80) }
           }
         ]
@@ -103,7 +102,7 @@ function structuredRolls(sheet: CharacterSheetResponseDto): ResolvedRoll[] {
       : [
           {
             expression: withModifier('1d20', sheet.spells.attackBonus),
-            rollMode: sheet.spells.attackRollMode ?? 'NORMAL',
+            rollMode: sheet.spells.attackRollMode,
             source: { kind: 'ATTACK' as const, label: 'Spell attack' }
           }
         ]),
@@ -142,7 +141,6 @@ function resolveHitDieRoll(input: ExecuteRollInputDto, sheet: CharacterSheetResp
 
   return {
     expression: parsed.normalizedExpression,
-    rollMode: 'NORMAL' as const,
     source: { kind: 'HIT_DIE' as const, label: 'Short rest hit dice' }
   }
 }
@@ -150,7 +148,7 @@ function resolveHitDieRoll(input: ExecuteRollInputDto, sheet: CharacterSheetResp
 function sameRoll(left: ResolvedRoll, input: ExecuteRollInputDto, displayLabel: string) {
   return (
     left.expression === input.expression &&
-    left.rollMode === (input.rollMode ?? 'NORMAL') &&
+    left.rollMode === input.rollMode &&
     left.source.kind === input.source.kind &&
     displayLabel === input.source.label
   )

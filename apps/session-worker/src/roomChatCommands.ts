@@ -137,7 +137,7 @@ export async function executeRoomCampaignChatCommand(input: {
     const system = await ctx.ports.requireSystem(campaign.gameSystemId)
     let resolved = {
       expression: roll.expression,
-      rollMode: roll.rollMode ?? ('NORMAL' as const),
+      rollMode: roll.rollMode,
       source: roll.source
     }
     if (character && roll.source.kind !== 'MANUAL') {
