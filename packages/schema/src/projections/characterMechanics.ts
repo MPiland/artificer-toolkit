@@ -57,9 +57,7 @@ import {
   activeEffectEndEventsSchema,
   activeEffectEndTriggersSchema,
   activeEffectRepeatTriggersSchema,
-  activeGrantConsumeEventsSchema,
   activeGrantEndConditionIdsSchema,
-  activeGrantEndEventsSchema,
   activeGrantHolderEndSchema
 } from '../shared/activeRuleEffects.js'
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
@@ -262,8 +260,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             senses: z.array(senseOperationSchema).check(z.maxLength(200)),
             includesCurrentTurn: z.boolean(),
             countedByTurnEffects: z.optional(z.boolean()),
-            consumeOnFirstEvents: activeGrantConsumeEventsSchema,
-            endOnEvents: activeGrantEndEventsSchema,
+            consumeOnFirstEvents: activeEffectConsumeEventsSchema,
+            endOnEvents: activeEffectEndEventsSchema,
             endOnConditionIds: activeGrantEndConditionIdsSchema,
             holderEnd: z.nullable(activeGrantHolderEndSchema),
             fromSourceOnly: z.optional(z.literal(true)),

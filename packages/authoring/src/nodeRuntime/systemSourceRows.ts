@@ -8,7 +8,12 @@ import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
  */
 export type NodeRuntimePolicyVocabulary = Readonly<
   Record<
-    'rollInfluence' | 'rollMode' | 'spellSlotPool',
+    | 'rollInfluence'
+    | 'rollMode'
+    | 'spellSlotPool'
+    | 'effectConsumeEvent'
+    | 'effectEndEvent'
+    | 'actionTrait',
     readonly { code: string; label: string; description?: string }[]
   >
 >
@@ -29,6 +34,9 @@ export function systemCoreCodeRows(
     roll_influences: policyRows(coreCodes.rollInfluence),
     roll_modes: policyRows(coreCodes.rollMode),
     spell_slot_pools: policyRows(coreCodes.spellSlotPool),
+    effect_consume_events: policyRows(coreCodes.effectConsumeEvent),
+    effect_end_events: policyRows(coreCodes.effectEndEvent),
+    action_traits: policyRows(coreCodes.actionTrait),
     ability_definitions: 'abilities' in system ? system.abilities : [],
     alignments: system.alignments,
     challenge_ratings: system.challengeRatings,

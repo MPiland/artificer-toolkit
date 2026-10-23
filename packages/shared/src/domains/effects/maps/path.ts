@@ -42,8 +42,6 @@ import {
 import {
   PATH_ORIGIN_KIND_OPTIONS,
   PATH_USAGE_OPTIONS,
-  PATH_LIFECYCLE_CONSUME_EVENT_OPTIONS,
-  PATH_LIFECYCLE_END_EVENT_OPTIONS,
   PATH_LIFECYCLE_RECURRING_KIND_OPTIONS,
   PATH_LIFECYCLE_TURN_ACTOR_OPTIONS,
   PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS,
@@ -577,15 +575,15 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
       .set(
         'consumeOnFirstEvents',
         selectMulti(['consumeOnFirstEvents'], 'Consume On First Event', {
-          kind: 'INLINE_OPTIONS',
-          options: PATH_LIFECYCLE_CONSUME_EVENT_OPTIONS
+          kind: 'DATA',
+          relationship: table('effect_consume_events', { selectColumns: CODE_COLUMNS })
         })
       )
       .set(
         'endOnEvents',
         selectMulti(['endOnEvents'], 'End On Events', {
-          kind: 'INLINE_OPTIONS',
-          options: PATH_LIFECYCLE_END_EVENT_OPTIONS
+          kind: 'DATA',
+          relationship: table('effect_end_events', { selectColumns: CODE_COLUMNS })
         })
       )
       .set(

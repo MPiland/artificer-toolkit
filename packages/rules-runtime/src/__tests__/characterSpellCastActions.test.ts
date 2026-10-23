@@ -215,11 +215,11 @@ const SCORCHED_INVISIBILITY = (() => {
   if (!path || !('resultBlock' in path) || !path.resultBlock.lifecycle)
     throw new Error('Invisibility ends through its authored lifecycle.')
   path.resultBlock.lifecycle.endOnTriggers = [
-    { event: 'SPELL_CAST', against: 'ENEMY' },
+    { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' },
     { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID, FIRE_TYPE_ID] },
-    { event: 'ATTACK_ROLL', against: 'ENEMY' },
+    { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
     { event: 'DAMAGE_TAKEN', by: 'ANYONE' },
-    { event: 'ATTACK_ROLL', against: 'ENEMY' }
+    { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' }
   ]
   return { ...authored, id: '00000000-0000-4000-8000-00000000c003', label: 'Scorched Invisibility' }
 })()
@@ -1029,10 +1029,10 @@ describe('the timed condition a cast owns with no save', () => {
   it('carries authored end triggers with explicit filters, unique and in canonical order', () => {
     const plan = compiledCast(SCORCHED_INVISIBILITY)?.activeEffectPlan
     expect(plan?.lifecycle?.endOnTriggers).toEqual([
-      { event: 'ATTACK_ROLL', against: 'ENEMY' },
+      { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
+      { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' },
       { event: 'DAMAGE_TAKEN', by: 'ANYONE', damageTypeIds: null },
-      { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID] },
-      { event: 'SPELL_CAST', against: 'ENEMY' }
+      { event: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE', damageTypeIds: [FIRE_TYPE_ID] }
     ])
   })
 })

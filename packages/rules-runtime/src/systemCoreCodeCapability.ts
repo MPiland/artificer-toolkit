@@ -3,7 +3,10 @@ import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
 const VOCABULARY_NOUNS = {
   rollInfluence: 'roll-mode influence',
   rollMode: 'roll mode',
-  spellSlotPool: 'spell slot pool'
+  spellSlotPool: 'spell slot pool',
+  effectConsumeEvent: 'effect consume event',
+  effectEndEvent: 'effect end event',
+  actionTrait: 'action trait'
 } as const
 
 /** A list a System supplies in place of a fixed wire enum (ADR 0039 decision 5). */
@@ -15,6 +18,10 @@ export interface SystemCoreCodeEntry {
   description?: string
   /** A spell slot pool that a short rest refills (a pool without it refills on a long rest only). */
   recoversOnShortRest?: boolean
+  /** A lifecycle event that a timed grant may carry (an effect event not marked grantable is for effects only). */
+  grantable?: boolean
+  /** The fact an Encounter raises with an action that the trait describes. */
+  actionFact?: 'attackRoll' | 'spellCast'
 }
 
 /** A System's vocabulary lists: each code unique within its list, labels for display only. */

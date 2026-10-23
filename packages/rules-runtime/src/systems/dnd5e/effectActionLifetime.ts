@@ -6,17 +6,10 @@ import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_CONDITION_DURATION_OPERATION_KEY
 } from './effectActionContracts.js'
-import type {
-  GrantConsumeEvent,
-  GrantEndEvent
-} from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import {
-  pathLifecycleGrantConsumeEventSchema,
-  pathLifecycleGrantEndEventSchema
-} from '@artificer-toolkit/schema/shared/enums'
 import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import { DND5E_EFFECT_CONSUME_EVENTS, DND5E_EFFECT_END_EVENTS } from './eventVocabulary.js'
 import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 
@@ -48,17 +41,18 @@ export function maintenancePlan(
 export const GRANT_END_TRIGGER_EVENTS: ReadonlySet<string> = new Set([
   'INCAPACITATED',
   'SEPARATED',
-  'ATTACK_ROLL',
-  'SPELL_CAST'
+  'ACTION_TRAIT'
 ])
 
-export function isGrantConsumeEvent(event: string): event is GrantConsumeEvent {
-  return pathLifecycleGrantConsumeEventSchema.safeParse(event).success
-}
+const grantableCodes = (entries: readonly { code: string; grantable?: boolean }[]) =>
+  new Set(entries.flatMap(({ code, grantable }) => (grantable ? [code] : [])))
 
-export function isGrantEndEvent(event: string): event is GrantEndEvent {
-  return pathLifecycleGrantEndEventSchema.safeParse(event).success
-}
+const GRANT_CONSUME_EVENTS = grantableCodes(DND5E_EFFECT_CONSUME_EVENTS)
+const GRANT_END_EVENTS = grantableCodes(DND5E_EFFECT_END_EVENTS)
+
+export const isGrantConsumeEvent = (event: string) => GRANT_CONSUME_EVENTS.has(event)
+
+export const isGrantEndEvent = (event: string) => GRANT_END_EVENTS.has(event)
 
 /**
  * The frozen graph of a timed condition or grant: one pure node. A condition's holder turn ends

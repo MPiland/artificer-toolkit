@@ -1095,8 +1095,12 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   the 5e adapter (`systems/dnd5e/eventVocabulary.ts`) reads `consumeOnFirstEvents`, `endOnEvents` (`ON_ATTACKED` is
   `ATTACKED`, `ON_SAVING_THROW` is `TEST SAVE` over `SAVING_THROW_MODIFIER` grants, and so on), `endOnTriggers`,
   `endOnConditionIds` and `repeatTriggers`. Each effect is read through the System its frozen graph was compiled for
-  (`frozenGraph.source.gameSystemId`), fail-closed. The persisted codes are unchanged; T9 makes them System-supplied data
-  and swaps only the adapter's source. Effects of both definition versions subscribe.
+  (`frozenGraph.source.gameSystemId`), fail-closed. The `LIFECYCLE_EVENTS` table in that file is the one source of the
+  lifecycle codes: the `effectConsumeEvent` and `effectEndEvent` vocabulary lists (with a `grantable` flag for the events a
+  timed grant may carry) and the hook subscriptions both derive from it, and `actionTrait` lists the traits an
+  `ACTION_TRAIT` end trigger (`{ event, trait, against }`) may name (`ATTACK_ROLL`, `SPELL_CAST`), each bound to the ACTION
+  fact the Encounter raises. The schema validates the shape of these codes only; the structural trigger shapes stay
+  neutral. Effects of both definition versions subscribe.
 - **Discovery** (`discoverEncounterEventHooks` in `encounterEventHooks.ts`) is the one entry point: given a holder's
   effects and the events raised on it, it returns the effects ended (held order, each once however many events it
   meets: a spell attack is an attack roll and a cast), the effects whose save repeats with the first trigger met, and

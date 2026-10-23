@@ -148,8 +148,7 @@ function subscriptionMet(
     case 'ACTION':
       return (
         event.kind === 'ACTION' &&
-        (subscription.requires === 'ANY' ||
-          (subscription.requires === 'ATTACK_ROLL' ? event.attackRoll : event.spellCast)) &&
+        (subscription.fact === null || event[subscription.fact]) &&
         (!subscription.againstEnemyOnly || event.againstEnemy)
       )
     case 'ATTACKED': {

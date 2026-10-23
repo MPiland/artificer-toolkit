@@ -4,6 +4,7 @@ import { projectionChecksumSchema } from '../projections/identity.js'
 /** Closed source facts consumed by the shared Authoring Schema resolver. */
 export const nodeRuntimeSourceManifest = {
   ability_definitions: ['description', 'id', 'label'],
+  action_traits: ['description', 'id', 'label'],
   alignments: ['description', 'id', 'label'],
   background_features: ['background_id', 'feature_id'],
   backgrounds: ['id', 'label'],
@@ -20,6 +21,8 @@ export const nodeRuntimeSourceManifest = {
   currencies: ['code', 'description', 'id', 'label', 'short'],
   damage_types: ['description', 'id', 'label'],
   damages: ['damage_type_id', 'id'],
+  effect_consume_events: ['description', 'id', 'label'],
+  effect_end_events: ['description', 'id', 'label'],
   effect_path_choice_options: ['path_id', 'result_block_id'],
   effect_path_roll_table_rows: ['path_id', 'result_block_id'],
   effect_paths: ['effect_id', 'id', 'result_block_id'],

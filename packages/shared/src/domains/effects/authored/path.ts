@@ -17,8 +17,6 @@ import type {
   EquipmentPropertyCode,
   PathCodesByTrigger,
   PathGroupType,
-  PathLifecycleConsumeEvent,
-  PathLifecycleEndEvent,
   PathLifecycleRecurringKind,
   PathLifecycleTurnActor,
   PathLifecycleTurnBoundary,
@@ -39,12 +37,14 @@ export type PathLifecycleAuthored = {
   recurringKind?: PathLifecycleRecurringKind
   /** Whose turn boundary counts a timed effect down; absent means the target's end of turn. */
   turnAnchor?: { actor: PathLifecycleTurnActor; boundary: PathLifecycleTurnBoundary }
-  consumeOnFirstEvents?: PathLifecycleConsumeEvent[]
-  endOnEvents?: PathLifecycleEndEvent[]
+  /** System `effectConsumeEvent` codes. */
+  consumeOnFirstEvents?: string[]
+  /** System `effectEndEvent` codes. */
+  endOnEvents?: string[]
   /**
    * Events that end the effect early. Damage taken is filtered by whose damage counts (`SOURCE_SIDE`
    * is the effect source and its allies, for Charm Person) and, when set, which damage types; an
-   * attack roll or a cast ends it only against an enemy (Sanctuary); another creature using one of
+   * action with a System-listed trait (an attack roll, a cast) ends it only against an enemy (Sanctuary); another creature using one of
    * the named basic actions on the holder ends it (rousing a sleeper); the effect source being
    * incapacitated or defeated ends it on every holder (Knight Leadership); the holder standing more
    * than `beyondFeet` from the effect source ends it (Warding Bond).
@@ -55,7 +55,7 @@ export type PathLifecycleAuthored = {
         by: 'ANYONE' | 'SOURCE_SIDE'
         damageTypeIds?: string[]
       }
-    | { event: 'ATTACK_ROLL' | 'SPELL_CAST'; against: 'ENEMY' }
+    | { event: 'ACTION_TRAIT'; trait: string; against: 'ENEMY' }
     | { event: 'ACTION_USED_ON_HOLDER'; actionDefinitionIds: string[] }
     | { event: 'INCAPACITATED'; of: 'SOURCE' }
     | { event: 'SEPARATED'; from: 'SOURCE'; beyondFeet: number }

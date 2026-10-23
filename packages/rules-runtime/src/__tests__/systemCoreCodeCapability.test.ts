@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { rollModeCapabilityRegistry } from '../platformPolicyModules.js'
+import {
+  eventVocabularyCapabilityRegistry,
+  rollModeCapabilityRegistry
+} from '../platformPolicyModules.js'
 import { createSystemCoreCodeRegistry } from '../systemCoreCodeCapability.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
@@ -79,5 +82,62 @@ describe('roll-mode keep and passive score', () => {
         rollMode: 'BOON'
       })
     ).toThrow('The Game System does not define the roll mode "BOON".')
+  })
+})
+
+describe('effect lifecycle and action-trait vocabulary', () => {
+  const codes = (kind: Parameters<typeof systemCoreCodeRegistry.entries>[1]) =>
+    systemCoreCodeRegistry.entries(DND5E_SYSTEM_ID, kind).map(({ code }) => code)
+  const grantable = (kind: 'effectConsumeEvent' | 'effectEndEvent') =>
+    systemCoreCodeRegistry
+      .entries(DND5E_SYSTEM_ID, kind)
+      .filter((entry) => entry.grantable)
+      .map(({ code }) => code)
+
+  it('supplies the consume, end and action-trait codes from the event vocabulary table', () => {
+    expect(codes('effectConsumeEvent')).toEqual([
+      'ON_ATTACK_ROLL',
+      'ON_CAST_SPELL',
+      'ON_HIT',
+      'ON_ATTACKED',
+      'ON_ABILITY_CHECK',
+      'ON_SAVING_THROW'
+    ])
+    expect(codes('effectEndEvent')).toContain('ON_TAKE_ACTION')
+    expect(codes('actionTrait')).toEqual(['ATTACK_ROLL', 'SPELL_CAST'])
+  })
+
+  it('marks which lifecycle events a timed grant may carry', () => {
+    expect(grantable('effectConsumeEvent')).not.toContain('ON_CAST_SPELL')
+    expect(grantable('effectConsumeEvent')).toContain('ON_ATTACK_ROLL')
+    expect(grantable('effectEndEvent')).not.toContain('ON_ATTACK_ROLL')
+    expect(grantable('effectEndEvent')).toContain('ON_MOVE')
+  })
+
+  it('refuses a code the System does not define', () => {
+    expect(() =>
+      systemCoreCodeRegistry.requireCode(DND5E_SYSTEM_ID, 'actionTrait', 'SNEEZE')
+    ).toThrow('The Game System does not define the action trait "SNEEZE".')
+    expect(() =>
+      systemCoreCodeRegistry.requireCode(DND5E_SYSTEM_ID, 'effectEndEvent', 'ON_SNEEZE')
+    ).toThrow('The Game System does not define the effect end event "ON_SNEEZE".')
+  })
+
+  it('subscribes an action-trait end trigger to the fact its trait names, and refuses an unknown trait', () => {
+    const adapter = eventVocabularyCapabilityRegistry.require(DND5E_SYSTEM_ID)
+    const recurrence = (trait: string) =>
+      ({
+        consumeOnFirstEvents: [],
+        endOnEvents: [],
+        endOnConditionIds: [],
+        endOnTriggers: [{ event: 'ACTION_TRAIT', trait, against: 'ENEMY' }]
+      }) as unknown as Parameters<typeof adapter.effectHooks>[0]
+    expect(adapter.effectHooks(recurrence('SPELL_CAST'))).toEqual([
+      {
+        hook: 'END',
+        subscription: { event: 'ACTION', fact: 'spellCast', againstEnemyOnly: true }
+      }
+    ])
+    expect(() => adapter.effectHooks(recurrence('SNEEZE'))).toThrow()
   })
 })

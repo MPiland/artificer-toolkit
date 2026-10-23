@@ -1112,13 +1112,13 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
     ],
     [
       'ATTACK_ROLL against an enemy',
-      { endOnTriggers: [{ event: 'ATTACK_ROLL', against: 'ENEMY' }] },
+      { endOnTriggers: [{ event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' }] },
       action({ attackRoll: true, againstEnemy: true }),
       action({ attackRoll: true })
     ],
     [
       'SPELL_CAST against an enemy',
-      { endOnTriggers: [{ event: 'SPELL_CAST', against: 'ENEMY' }] },
+      { endOnTriggers: [{ event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' }] },
       action({ spellCast: true, againstEnemy: true }),
       action({ attackRoll: true, againstEnemy: true })
     ],

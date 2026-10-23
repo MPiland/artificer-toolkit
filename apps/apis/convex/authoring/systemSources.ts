@@ -30,7 +30,10 @@ export async function createSystemSourceReader(
     coreCodes: {
       rollInfluence: systemCoreCodeRegistry.entries(systemId, 'rollInfluence'),
       rollMode: systemCoreCodeRegistry.entries(systemId, 'rollMode'),
-      spellSlotPool: systemCoreCodeRegistry.entries(systemId, 'spellSlotPool')
+      spellSlotPool: systemCoreCodeRegistry.entries(systemId, 'spellSlotPool'),
+      effectConsumeEvent: systemCoreCodeRegistry.entries(systemId, 'effectConsumeEvent'),
+      effectEndEvent: systemCoreCodeRegistry.entries(systemId, 'effectEndEvent'),
+      actionTrait: systemCoreCodeRegistry.entries(systemId, 'actionTrait')
     },
     readAuthoredRows: async (table) => [
       ...(await authored(table)),

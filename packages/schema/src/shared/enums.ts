@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/shared/core'
 
 import { z, lazySchema } from '../zod.js'
+import { systemCoreCodeSchema } from './systemCoreCode.js'
 
 export const abilityCodeSchema = lazySchema(() =>
   z.enum(['CHARISMA', 'CONSTITUTION', 'DEXTERITY', 'INTELLIGENCE', 'STRENGTH', 'WISDOM'])
@@ -377,62 +378,19 @@ export const pathLifecycleTurnActorSchema = lazySchema(() => z.enum(['TARGET', '
 export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
   z.enum(['START_OF_TURN', 'END_OF_TURN'])
 )
-export const pathLifecycleConsumeEventSchema = lazySchema(() =>
-  z.enum([
-    'ON_ATTACK_ROLL',
-    'ON_HIT',
-    'ON_ATTACKED',
-    'ON_ABILITY_CHECK',
-    'ON_SAVING_THROW',
-    'ON_CAST_SPELL'
-  ])
-)
-export const pathLifecycleEndEventSchema = lazySchema(() =>
-  z.enum([
-    'ON_ATTACK_ROLL',
-    'ON_CAST_SPELL',
-    'ON_HIT_POINTS_REGAINED',
-    'ON_INCAPACITATED',
-    'ON_IDLE_TURN',
-    'ON_LEAVING_AREA',
-    'ON_LONG_REST',
-    'ON_CHOSEN_ITEM_RELEASED',
-    'ON_MOVE',
-    'ON_TAKE_ACTION'
-  ])
-)
+/**
+ * A lifecycle code that uses an effect or timed grant up (consume) or ends it (end) is a System code
+ * (ADR 0039): the wire checks its shape, and the System's `effectConsumeEvent` and `effectEndEvent`
+ * lists decide membership wherever the `gameSystemId` is known.
+ */
+export const pathLifecycleConsumeEventSchema = lazySchema(() => systemCoreCodeSchema)
+export const pathLifecycleEndEventSchema = lazySchema(() => systemCoreCodeSchema)
 /** Whose damage ends an effect: anyone's, or only that of the effect source and its allies. */
 export const pathLifecycleEndTriggerBySchema = lazySchema(() => z.enum(['ANYONE', 'SOURCE_SIDE']))
 /** Whom an action must be aimed at to end an effect: only enemies of its holder (Sanctuary). */
 export const pathLifecycleEndTriggerAgainstSchema = lazySchema(() => z.enum(['ENEMY']))
 /** Whose incapacitation ends an effect: that of the creature that applied it (Knight Leadership). */
 export const pathLifecycleEndTriggerOfSchema = lazySchema(() => z.enum(['SOURCE']))
-/**
- * The consume events a timed grant can carry (a cast does not use a grant up). ON_HIT is the
- * holder's first attack that hits: the grant counts toward that attack's damage, then is used up.
- * ON_ATTACKED is an attack roll made against the holder: the grant counts toward that roll, then is
- * used up.
- */
-export const pathLifecycleGrantConsumeEventSchema = lazySchema(() =>
-  z.enum([
-    'ON_ATTACK_ROLL',
-    'ON_HIT',
-    'ON_ATTACKED',
-    'ON_ABILITY_CHECK',
-    'ON_SAVING_THROW'
-  ] satisfies z.infer<typeof pathLifecycleConsumeEventSchema>[])
-)
-/** The end events a timed grant can carry (it is never ended by an attack roll or a cast). */
-export const pathLifecycleGrantEndEventSchema = lazySchema(() =>
-  z.enum([
-    'ON_HIT_POINTS_REGAINED',
-    'ON_INCAPACITATED',
-    'ON_IDLE_TURN',
-    'ON_CHOSEN_ITEM_RELEASED',
-    'ON_MOVE',
-    'ON_TAKE_ACTION'
-  ] satisfies z.infer<typeof pathLifecycleEndEventSchema>[])
-)
 export const forcedMovementDirectionSchema = lazySchema(() => z.enum(FORCED_MOVEMENT_DIRECTION))
 export const forcedMovementDistanceModeSchema = lazySchema(() =>
   z.enum(['UP_TO_SPEED', 'EXACT', 'UP_TO'])

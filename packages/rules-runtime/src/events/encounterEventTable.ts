@@ -112,7 +112,8 @@ export type EncounterEvent =
 export type EncounterEventSubscription =
   | {
       event: 'ACTION'
-      requires: 'ANY' | 'ATTACK_ROLL' | 'SPELL_CAST'
+      /** The fact the action must raise (null: any action). */
+      fact: 'attackRoll' | 'spellCast' | null
       /** Only an action aimed at an enemy of the holder. */
       againstEnemyOnly: boolean
     }

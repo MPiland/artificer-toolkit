@@ -77,8 +77,8 @@ export const sanctuary: SpellAuthored = {
             // The ward ends when the warded creature attacks or casts a spell that affects an enemy.
             lifecycle: {
               endOnTriggers: [
-                { event: 'ATTACK_ROLL' as const, against: 'ENEMY' as const },
-                { event: 'SPELL_CAST' as const, against: 'ENEMY' as const }
+                { event: 'ACTION_TRAIT' as const, trait: 'ATTACK_ROLL', against: 'ENEMY' as const },
+                { event: 'ACTION_TRAIT' as const, trait: 'SPELL_CAST', against: 'ENEMY' as const }
               ]
             },
             outcomes: [

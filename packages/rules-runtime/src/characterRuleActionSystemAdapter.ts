@@ -32,9 +32,7 @@ import type {
   ActiveEffectEndEvent,
   ActiveEffectEndTrigger,
   ActiveEffectRepeatTrigger,
-  ActiveGrantHolderEnd,
-  GrantConsumeEvent,
-  GrantEndEvent
+  ActiveGrantHolderEnd
 } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { CombatPerceptionContributionsDto } from '@artificer-toolkit/schema/shared/combatPerception'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
@@ -136,9 +134,9 @@ export interface CharacterRuleActionActiveEffectPlan {
      */
     countedByTurnEffects?: boolean
     /** The events whose first occurrence uses the grant up, sorted and unique. */
-    consumeOnFirstEvents: readonly GrantConsumeEvent[]
+    consumeOnFirstEvents: readonly ActiveEffectConsumeEvent[]
     /** The events that end the grant early, sorted and unique. */
-    endOnEvents: readonly GrantEndEvent[]
+    endOnEvents: readonly ActiveEffectEndEvent[]
     /** The condition types that end the grant early while its holder has any, sorted and unique. */
     endOnConditionIds: readonly string[]
     /** The activation its holder pays to end the grant by choice, or null when only the GM can. */
@@ -168,7 +166,7 @@ export interface CharacterRuleActionActiveEffectPlan {
   concealmentContribution?: null | {
     observers: 'NON_ALLIES'
     /** The events whose first occurrence ends the concealment, sorted and unique. */
-    consumeOnFirstEvents: readonly GrantConsumeEvent[]
+    consumeOnFirstEvents: readonly ActiveEffectConsumeEvent[]
   }
   /**
    * The target leaves play while the effect lasts (Banishment, Etherealness): untargetable, off the

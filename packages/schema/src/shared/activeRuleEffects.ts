@@ -29,9 +29,7 @@ import {
   pathLifecycleEndEventSchema,
   pathLifecycleEndTriggerAgainstSchema,
   pathLifecycleEndTriggerBySchema,
-  pathLifecycleEndTriggerOfSchema,
-  pathLifecycleGrantConsumeEventSchema,
-  pathLifecycleGrantEndEventSchema
+  pathLifecycleEndTriggerOfSchema
 } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 import { authoredPositiveLengthAmountSchema } from './authoredLimits.js'
@@ -140,7 +138,8 @@ export const activeEffectEndEventsSchema = lazySchema(() =>
  * touches. It shares the reaction trigger's filter types, and each arm needs a consumer before an
  * effect may carry it. `DAMAGE_TAKEN` ends the effect when its holder takes damage: `by` limits whose
  * damage counts (the effect source's side, for Charm Person) and `damageTypeIds` which types do.
- * `ATTACK_ROLL` and `SPELL_CAST` end it when its holder attacks or casts at an enemy (Sanctuary).
+ * `ACTION_TRAIT` ends it when its holder takes an action with a trait the System lists (`actionTrait`:
+ * an attack roll, a spell cast) at an enemy (Sanctuary).
  * `ACTION_USED_ON_HOLDER` ends it when another creature uses one of the named actions on the holder
  * (rousing a sleeper); the ids are basic-action definitions, sorted and unique. `INCAPACITATED` ends
  * it when the effect's source is incapacitated or defeated (`of: 'SOURCE'`, Knight Leadership),
@@ -156,7 +155,8 @@ export const activeEffectEndTriggerSchema = lazySchema(() =>
       damageTypeIds: z.nullable(damageTypeFilterDtoSchema)
     }),
     z.strictObject({
-      event: z.enum(['ATTACK_ROLL', 'SPELL_CAST']),
+      event: z.literal('ACTION_TRAIT'),
+      trait: systemCoreCodeSchema,
       against: pathLifecycleEndTriggerAgainstSchema
     }),
     z.strictObject({
@@ -238,16 +238,6 @@ export const activeEffectRepeatTriggersSchema = lazySchema(() =>
 /** The events whose first occurrence uses a grant up: sorted and unique. */
 export const activeEffectConsumeEventsSchema = lazySchema(() =>
   sortedUniqueEventsSchema(pathLifecycleConsumeEventSchema, 'consume events')
-)
-
-/** The consume events a timed grant can carry: sorted and unique. */
-export const activeGrantConsumeEventsSchema = lazySchema(() =>
-  sortedUniqueEventsSchema(pathLifecycleGrantConsumeEventSchema, 'grant consume events')
-)
-
-/** The end events a timed grant can carry: sorted and unique. */
-export const activeGrantEndEventsSchema = lazySchema(() =>
-  sortedUniqueEventsSchema(pathLifecycleGrantEndEventSchema, 'grant end events')
 )
 
 /** The conditions whose holder ends a timed grant early (condition type ids): sorted and unique. */
@@ -776,9 +766,6 @@ export const activeRuleEffectStateDtoSchema = lazySchema(() =>
 
 export type ActiveGrantHolderEnd = z.infer<typeof activeGrantHolderEndSchema>
 
-/** The events whose first occurrence can use an Encounter grant up. */
-export type GrantConsumeEvent = z.infer<typeof pathLifecycleGrantConsumeEventSchema>
-
 /** The events whose first occurrence uses an active effect up. */
 export type ActiveEffectConsumeEvent = z.infer<typeof pathLifecycleConsumeEventSchema>
 
@@ -790,8 +777,5 @@ export type ActiveEffectEndTrigger = z.infer<typeof activeEffectEndTriggerSchema
 
 /** A structured event that repeats an active effect's save. */
 export type ActiveEffectRepeatTrigger = z.infer<typeof activeEffectRepeatTriggerSchema>
-
-/** The events that end an Encounter grant early. */
-export type GrantEndEvent = z.infer<typeof pathLifecycleGrantEndEventSchema>
 export type ActiveRuleEffectDefinitionDto = z.infer<typeof activeRuleEffectDefinitionDtoSchema>
 export type ActiveRuleEffectStateDto = z.infer<typeof activeRuleEffectStateDtoSchema>

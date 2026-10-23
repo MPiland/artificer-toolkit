@@ -1,4 +1,9 @@
 import type { SystemCoreCodeAdapter } from '../../systemCoreCodeCapability.js'
+import {
+  DND5E_ACTION_TRAITS,
+  DND5E_EFFECT_CONSUME_EVENTS,
+  DND5E_EFFECT_END_EVENTS
+} from './eventVocabulary.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
 
 export const DND5E_ROLL_INFLUENCES = [
@@ -27,6 +32,9 @@ export const dnd5eCoreCodeAdapter: SystemCoreCodeAdapter = {
   lists: {
     rollInfluence: DND5E_ROLL_INFLUENCES,
     rollMode: DND5E_ROLL_MODES,
-    spellSlotPool: DND5E_SPELL_SLOT_POOLS
+    spellSlotPool: DND5E_SPELL_SLOT_POOLS,
+    effectConsumeEvent: DND5E_EFFECT_CONSUME_EVENTS,
+    effectEndEvent: DND5E_EFFECT_END_EVENTS,
+    actionTrait: DND5E_ACTION_TRAITS
   }
 }

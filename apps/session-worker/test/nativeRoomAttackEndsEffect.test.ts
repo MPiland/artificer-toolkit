@@ -89,8 +89,8 @@ async function held(room: Awaited<ReturnType<typeof attackRoom>>) {
 
 const ends = { effectIds: [], invisible: false }
 const stays = { effectIds: [EFFECT_ID], invisible: true }
-const attacksEnemy = { event: 'ATTACK_ROLL', against: 'ENEMY' } as const
-const castsAtEnemy = { event: 'SPELL_CAST', against: 'ENEMY' } as const
+const attacksEnemy = { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' } as const
+const castsAtEnemy = { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' } as const
 
 describe('an effect that ends when its holder acts against an enemy (SPELLS-27.T4b)', () => {
   it.each([

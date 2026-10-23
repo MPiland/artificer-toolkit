@@ -5,12 +5,12 @@ type PathLifecycleEndTriggerNode = NonNullable<PathLifecycleAuthored['endOnTrigg
 
 const pathLifecycleEndTrigger = buildNodeMap<PathLifecycleEndTriggerNode>()
 export const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<PathLifecycleEndTriggerNode> =
-  pathLifecycleEndTrigger.define('pathLifecycleEndTrigger', ({ map, nodes, data, cond, logic }) => {
+  pathLifecycleEndTrigger.define('pathLifecycleEndTrigger', ({ map, nodes, data, cond }) => {
     const { selectSingle, selectMulti, number } = nodes
     const { table } = data
     const event = cond.local().field(['event'])
     const isDamageTaken = event.eq('DAMAGE_TAKEN')
-    const isAgainstEnemy = logic.or([event.eq('ATTACK_ROLL'), event.eq('SPELL_CAST')])
+    const isActionTrait = event.eq('ACTION_TRAIT')
     const isActionUsed = event.eq('ACTION_USED_ON_HOLDER')
     const isIncapacitated = event.eq('INCAPACITATED')
     const isSeparated = event.eq('SEPARATED')
@@ -25,8 +25,7 @@ export const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<PathLifecycleEndTrigge
             kind: 'INLINE_OPTIONS',
             options: [
               { code: 'DAMAGE_TAKEN', label: 'The holder takes damage' },
-              { code: 'ATTACK_ROLL', label: 'The holder attacks an enemy' },
-              { code: 'SPELL_CAST', label: 'The holder casts a spell at an enemy' },
+              { code: 'ACTION_TRAIT', label: 'The holder acts against an enemy' },
               {
                 code: 'ACTION_USED_ON_HOLDER',
                 label: 'Another creature uses an action on the holder'
@@ -66,12 +65,24 @@ export const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<PathLifecycleEndTrigge
         )
       )
       .set(
+        'trait',
+        selectSingle(
+          ['trait'],
+          'Action Trait',
+          {
+            kind: 'DATA',
+            relationship: table('action_traits', { selectColumns: ['id', 'label', 'description'] })
+          },
+          { requiredIf: isActionTrait, showIf: isActionTrait }
+        )
+      )
+      .set(
         'against',
         selectSingle(
           ['against'],
           'Against',
           { kind: 'INLINE_OPTIONS', options: [{ code: 'ENEMY', label: 'An enemy of the holder' }] },
-          { requiredIf: isAgainstEnemy, showIf: isAgainstEnemy }
+          { requiredIf: isActionTrait, showIf: isActionTrait }
         )
       )
       .set(

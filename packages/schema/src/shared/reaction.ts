@@ -10,6 +10,7 @@ import {
   pathLifecycleEndTriggerBySchema
 } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
+import { systemCoreCodeSchema } from './systemCoreCode.js'
 import { spatialPointDtoSchema } from './spatialFacts.js'
 import {
   AUTHORED_LIMITS,
@@ -91,7 +92,8 @@ export const pathLifecycleEndTriggersDtoSchema = lazySchema(() =>
         damageTypeIds: z.optional(damageTypeFilterDtoSchema)
       }),
       z.strictObject({
-        event: z.enum(['ATTACK_ROLL', 'SPELL_CAST']),
+        event: z.literal('ACTION_TRAIT'),
+        trait: systemCoreCodeSchema,
         against: pathLifecycleEndTriggerAgainstSchema
       }),
       z.strictObject({

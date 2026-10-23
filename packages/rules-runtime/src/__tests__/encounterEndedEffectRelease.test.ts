@@ -663,7 +663,7 @@ describe('what a spell cast ends for its caster (SPELLS-27.T3)', () => {
 })
 
 describe('what an attack roll or cast against an enemy ends (SPELLS-27.T4b)', () => {
-  const sanctuary = (trigger: { event: 'ATTACK_ROLL' | 'SPELL_CAST'; against: 'ENEMY' }) =>
+  const sanctuary = (trigger: { event: 'ACTION_TRAIT'; trait: string; against: 'ENEMY' }) =>
     activeEffect({
       id: FIRST_ID,
       owner,
@@ -673,8 +673,8 @@ describe('what an attack roll or cast against an enemy ends (SPELLS-27.T4b)', ()
         { kind: 'CONDITION_OWNERSHIP', conditionId: INVISIBLE, baselinePresent: false }
       ]
     })
-  const attackEnds = { event: 'ATTACK_ROLL', against: 'ENEMY' } as const
-  const castEnds = { event: 'SPELL_CAST', against: 'ENEMY' } as const
+  const attackEnds = { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' } as const
+  const castEnds = { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' } as const
 
   it.each([
     ['an attack roll against an enemy', attackEnds, { makesAttackRoll: true, againstEnemy: true }],
