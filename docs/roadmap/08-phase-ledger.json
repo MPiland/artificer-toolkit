@@ -3665,7 +3665,8 @@
                 "size": 3,
                 "after": ["RULES-2.T9a", "RULES-2.T9i"]
               },
-              "text": "System vocabulary (split 2026-10-21): lifecycle consume/end codes and the ATTACK_ROLL and SPELL_CAST traits become System codes with the eventVocabulary table as their one source; neutral structural trigger shapes stay in the schema."
+              "text": "System vocabulary (split 2026-10-21): lifecycle consume/end codes and the ATTACK_ROLL and SPELL_CAST traits become System codes with the eventVocabulary table as their one source; neutral structural trigger shapes stay in the schema.",
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
             },
             {
               "id": "RULES-2.T9d",
