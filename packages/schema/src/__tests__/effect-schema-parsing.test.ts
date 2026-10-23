@@ -992,6 +992,35 @@ describe('effect schema parsing', () => {
     expect(followUpSave({ attempts: { kind: 'ONCE' } })).toBe(false)
   })
 
+  it('makes an ON_TRIGGERS_ONLY save only on repeat triggers (D176)', () => {
+    const followUpSaveDtoSchema = createFollowUpSaveDtoSchema(z.unknown())
+    const when = { kind: 'PERCEPTION', observer: 'TARGET', subject: 'SOURCE', requirement: 'SEE' }
+    const followUpSave = (overrides: Record<string, unknown>) =>
+      followUpSaveDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000ee',
+        effectKind: 'FOLLOW_UP_SAVE',
+        timing: 'ON_TRIGGERS_ONLY',
+        repeatTriggers: [{ kind: 'DAMAGE_TAKEN', by: 'SOURCE_SIDE' }],
+        savingThrow: {
+          id: '00000000-0000-4000-8000-0000000000ef',
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: '00000000-0000-0000-0011-000500000000'
+        },
+        attempts: { kind: 'ONCE', repeatOnFailure: true },
+        onSuccess: { kind: 'END' },
+        onFailure: { kind: 'CONTINUE' },
+        ...overrides
+      }).success
+
+    expect(followUpSave({})).toBe(true)
+    expect(followUpSave({ repeatTriggers: undefined })).toBe(false)
+    expect(followUpSave({ attempts: { kind: 'ONCE' } })).toBe(false)
+    expect(followUpSave({ repeatRollInfluence: { influence: 'ADVANTAGE', when } })).toBe(false)
+    expect(followUpSave({ repeatAttemptGate: { allow: 'WHEN_MET', when } })).toBe(false)
+    // It is a first timing only: an immediate save cannot repeat "only on triggers".
+    expect(followUpSave({ timing: 'IMMEDIATE', repeatTiming: 'ON_TRIGGERS_ONLY' })).toBe(false)
+  })
+
   it('parses passive effects with saving throw invocations', () => {
     const parsed = effectDtoSchema.parse({
       id: '00000000-0000-4000-8000-0000000000e3',

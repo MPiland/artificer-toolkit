@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import { type CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 
 export const vampire: CreatureAuthored = {
@@ -447,10 +448,11 @@ export const vampire: CreatureAuthored = {
       description:
         "Charm. The vampire targets one humanoid it can see within 30 feet of it. If the target can see the vampire, the target must succeed on a DC 17 Wisdom saving throw against this magic or be charmed by the vampire. The charmed target regards the vampire as a trusted friend to be heeded and protected. Although the target isn't under the vampire's control, it takes the vampire's requests or actions in the most favorable way it can, and it is a willing target for the vampire's bite attack. Each time the vampire or the vampire's companions do anything harmful to the target, it can repeat the saving throw, ending the effect on itself on a success. Otherwise, the effect lasts 24 hours or until the vampire is destroyed, is on a different plane of existence than the target, or takes a bonus action to end the effect.",
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(277, 237),
+          order: 1,
           invocation: {
-            kind: 'ACTION',
+            kind: 'ACTION' as const,
             triggerCode: S.TRIGGER.SAVING_THROW,
             savingThrow: {
               id: S.actionId(277, 238),
@@ -470,9 +472,50 @@ export const vampire: CreatureAuthored = {
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
-          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_CHARM
-        })
+          paths: [
+            {
+              id: S.actionId(277, 260),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(277, 261),
+                resultKind: 'SEQUENCE' as const,
+                duration: {
+                  id: S.actionId(277, 262),
+                  durationKind: DURATION_KIND.HOUR,
+                  amount: 24
+                },
+                outcomes: [
+                  {
+                    id: S.actionId(277, 263),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('CHARMED')
+                  },
+                  {
+                    // Each time the vampire or its companions do anything harmful to the target,
+                    // it repeats the save; no save at the end of its turns.
+                    id: S.actionId(277, 264),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.ON_TRIGGERS_ONLY,
+                    repeatTriggers: [{ kind: 'DAMAGE_TAKEN' as const, by: 'SOURCE_SIDE' as const }],
+                    savingThrow: {
+                      id: S.actionId(277, 265),
+                      dcMethod: 'FIXED_DC' as const,
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+                      baseDc: 17
+                    },
+                    attempts: { kind: 'ONCE' as const, repeatOnFailure: true },
+                    onSuccess: { kind: 'END' as const },
+                    onFailure: { kind: 'CONTINUE' as const }
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 15
     },
