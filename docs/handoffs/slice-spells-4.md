@@ -577,3 +577,9 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - A Run actor may carry `owner: { ownerActorId, sourceEffectId? }`; control of an owned actor is derived through `actorOwnerChain` and never copied into `controllerUserIds` (see [persistence](../architecture/persistence.md), "Owned Run actors"). Persistence reads, the player projection and the room authorization cache all use it; the cache pick carries `owner`.
 - Nothing creates an owned actor yet (T2v2a2 adds the SUMMON cast commit and removal; T2v2a3 the owner-economy move and attack).
 - Proofs: `actorOwnership.test.ts` (chain walk, loop, depth), `encounterPlayerProjection.test.ts` (owner's player lists the owned actor), `roomAuthorization.test.ts` (summon token follows the owner), `playerControl.test.ts` (an owned actor no controller list names: GM and the owner's player control it, a stranger does not).
+
+## T2v2a2a (D187b): SUMMON plan compile
+
+- A timed SUMMON with a stat block compiles to `compilation.summonPlacement` (see [rules-runtime](../architecture/rules-runtime.md) "Summon placement"). Mage Hand (no stat block yet) and Spiritual Weapon (behaviors) stay manual.
+- Nothing reads it at cast yet: a2b adds the staged-Scene cast write, a2c creates and removes the actor.
+- Proof: `characterSpellCastActions.test.ts` "the creature a summon spell conjures".

@@ -2823,3 +2823,34 @@ describe('a zone that acts per distance moved inside it (SPELLS-4.T1h, D156)', (
     expect(compiledCast(thorns(true))).toBeNull()
   })
 })
+
+describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
+  it('compiles Arcane Hand’s stat block and a carrier that ends with its duration', () => {
+    const authored = spell('Arcane Hand')
+    const cast = compiledCast(authored)
+    const path = authored.effects?.[0]?.paths[0]
+    const manifest = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+    if (manifest?.effectKind !== 'MANIFEST' || manifest.manifestKind !== 'SUMMON')
+      throw new Error('The spell must author a summon.')
+
+    expect(cast?.summonPlacement).toMatchObject({
+      summonOutcomeId: manifest.id,
+      statBlock: manifest.statBlock,
+      entry: { initialRemaining: 10, authoredEffectId: authored.effects?.[0]?.id }
+    })
+    expect(cast?.zonePlacement).toBeNull()
+    expect(cast?.choice).toBeNull()
+    expect(cast?.executionPlan).toMatchObject({
+      kind: 'SINGLE_GRAPH',
+      published: cast?.summonPlacement?.entry.frozenGraph
+    })
+    expect(cast?.summonPlacement?.entry.maintenance).not.toBeNull()
+  })
+
+  it.each(['Mage Hand', 'Spiritual Weapon'])(
+    'leaves %s to the GM until its stat block and behaviors are modelled',
+    (label) => {
+      expect(compiledCastEntry(spell(label))).toBeNull()
+    }
+  )
+})

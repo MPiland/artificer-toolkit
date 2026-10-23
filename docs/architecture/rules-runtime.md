@@ -1956,6 +1956,18 @@ actor list so a player who controls an actor's owner controls, and sees, the own
 `owner` on each actor. Nothing here is System-specific: the economy an owned actor spends is named for the
 concept (the owner's economy) and a System's data picks the action type (T2v2a3).
 
+### Summon placement (current compile only, SPELLS-4.T2v2a2a)
+
+A spell whose one ON_USE outcome is a timed `SUMMON` manifest with a stat block compiles to `compilation.summonPlacement`
+on the v4 `CHARACTER_ACTION` entry (`compileSummonPlacement` on the System adapter; dnd5e: `effectActionSummons.ts`):
+`{ summonOutcomeId, label, statBlock, entry }`. `entry` is a lasting carrier plan (no contribution, the same shape as a
+zone's lasting entry) that carries the duration in turns and the Concentration the cast opens, and `executionPlan` is
+its frozen graph. It is exclusive with `zonePlacement` and `choice`. A summon that authors `behaviors`, an
+attachment or shape, a lifecycle, no stat block or no bounded duration is refused and the action goes manual (Mage Hand
+until T2v2b authors its stat block, Spiritual Weapon until T2v2a3 models behaviors). Target: **transitional**, nothing
+yet reads `summonPlacement` at cast, so the action is not offered in an Encounter; T2v2a2b adds the staged-Scene cast
+write and T2v2a2c creates and removes the actor.
+
 ### Effect offers: moving a held effect (current, SPELLS-4.T2d2, D160)
 
 `grantedActions` offer a basic action to the effect's holder; `lifecycle.effectOffers` is the second offer family, made to the effect's **source** (or holder) about the effect itself. Generic authored data, never a spell name: `{ kind: 'MOVE_HELD_EFFECT', offeredTo: 'SOURCE' | 'HOLDER', when: 'HOLDER_AT_ZERO_HP', activation (not REACTION or FREE), range { amount, unit } }`, at most 4, `APPLY_GRANT` only. The compiler stores it on the `MODIFIER_GRANT` contribution (`effectOffers`); the `onEnd` follow-on never inherits it. A later kind (T2lb2's `REPEAT_SOURCE_PATH`) is one more `kind` in `packages/schema/src/effects/effectOffer.ts`; discovery, the listing and the pick envelope do not change.

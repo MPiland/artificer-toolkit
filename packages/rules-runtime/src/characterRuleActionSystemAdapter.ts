@@ -54,6 +54,7 @@ import type { EffectOutcomeTargetPrecondition } from './effectOutcomeRegistry.js
 import type {
   CompiledActionActiveEffectPlan,
   CompiledActionCompilerSource,
+  CompiledActionSummonPlacement,
   CompiledActionZonePlacement
 } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
@@ -318,6 +319,14 @@ export type CharacterRuleActionZonePlacementPlan = Omit<
       entry: CharacterRuleActionActiveEffectPlan
     }
   >
+}
+
+/** A creature an action summons; see `compiledActionSummonPlacementSchema`. */
+export type CharacterRuleActionSummonPlacementPlan = Omit<
+  CompiledActionSummonPlacement,
+  'entry'
+> & {
+  entry: CharacterRuleActionActiveEffectPlan
 }
 
 /** The zones an action places when its caster picks one at cast (D140). */
@@ -697,6 +706,13 @@ export interface CharacterRuleActionSystemAdapter {
     /** The label of the feature that keeps a zone its Effect does not author (a passive melee trait). */
     label?: string
   }): CharacterRuleActionZonePlacementPlan | CharacterRuleActionZoneChoicePlan | null
+  /**
+   * The creature this action summons when its authored outcome is a summon manifest, or null for
+   * any other action. An unsupported summon throws the unsupported-compilation error.
+   */
+  compileSummonPlacement?(input: {
+    action: EffectActionCapabilityDescriptor
+  }): CharacterRuleActionSummonPlacementPlan | null
   /** Returns the exact supported recurring plan for this locked action, if any. */
   activeEffectPlans?(input: {
     action: EffectActionCapabilityDescriptor

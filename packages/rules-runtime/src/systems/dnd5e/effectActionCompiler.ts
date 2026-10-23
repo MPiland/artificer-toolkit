@@ -89,6 +89,7 @@ import {
   withMovementInterruption,
   type TestPlan
 } from './effectActionTestPhase.js'
+import { compileDnd5eSummonPlacement } from './effectActionSummons.js'
 import { compileDnd5eZonePlacement } from './effectActionZones.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
@@ -3911,6 +3912,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   incomingGateImmunityPlan,
   compileZonePlacement: ({ action, label }) =>
     compileDnd5eZonePlacement(executableAction(action), label),
+  compileSummonPlacement: ({ action }) => compileDnd5eSummonPlacement(executableAction(action)),
   interpretSpatial,
   compileExecutionPlan: ({ action, compilerSource }) => {
     const source = executableAction(dndSourceFromCompilerSource(compilerSource))
