@@ -9,7 +9,11 @@ import { StaleCharacterActionError, UnavailableCreatureActionError } from './enc
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
-import { parseGrantedActionId, resolveGrantedAction } from './encounterGrantedActions.js'
+import {
+  parseGrantedActionId,
+  resolveGrantedAction,
+  standingGrantedActions
+} from './encounterGrantedActions.js'
 import {
   discoverEncounterRepeatPath,
   parseRepeatPathActionId,
@@ -128,6 +132,7 @@ export function resolveEncounterActionSource(
       ? resolveGrantedAction({
           actionId: input.actionId,
           heldEffects: input.granted?.heldEffects ?? [],
+          standing: standingGrantedActions(snapshotFeatureDefinitions(actor)),
           spentKeys: input.granted?.spentKeys ?? []
         })
       : null

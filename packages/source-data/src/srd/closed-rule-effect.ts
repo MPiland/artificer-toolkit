@@ -8,7 +8,7 @@ import {
   type ClosedRuleKind,
   type ManualAdjudicationReason
 } from '@artificer-toolkit/shared/core'
-import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
+import type { EffectAuthored, PathLifecycleAuthored } from '@artificer-toolkit/shared/authored'
 
 const SRD_MECHANIC_NAMESPACE = '34679767-1f66-4d2e-a4f5-b585488fa835'
 
@@ -86,6 +86,44 @@ export function manualAdjudicationEffect({
               reasonCode,
               instructions
             }
+          ]
+        }
+      }
+    ]
+  }
+}
+
+type GrantedActionOffers = NonNullable<PathLifecycleAuthored['grantedActions']>
+
+/**
+ * A passive trait that offers basic actions on every turn: a grant with no duration, so the offer
+ * stands for as long as the creature has the trait (D160, standing granted actions).
+ */
+export function standingGrantedActionsEffect({
+  id,
+  invocation,
+  grantedActions
+}: Pick<ClosedRuleEffectConfig, 'id' | 'invocation'> & {
+  grantedActions: GrantedActionOffers
+}): EffectAuthored {
+  return {
+    id,
+    order: 1,
+    invocation,
+    paths: [
+      {
+        id: mechanicId(id, 'PATH'),
+        order: 1,
+        pathCode: PATH_CODE.PASSIVE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: mechanicId(id, 'RESULT'),
+          resultKind: 'SINGLE',
+          lifecycle: { grantedActions },
+          outcomes: [
+            { id: mechanicId(id, 'OUTCOME'), effectKind: EFFECT_KIND.APPLY_GRANT, grants: {} }
           ]
         }
       }
