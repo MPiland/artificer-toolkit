@@ -162,7 +162,7 @@ async function setStatus(
 }
 
 describe('native Encounter reads', () => {
-  it('presents System labels for stored condition IDs without changing receipts or revealing hidden actors', async () => {
+  it('presents stored conditions as type IDs, never System labels, without changing receipts or revealing hidden actors', async () => {
     const { t, owner, other, campaign, run } = await setup()
     const frightened = srdSystemRecord.conditionTypes.find(
       (condition) => condition.code === 'FRIGHTENED'
@@ -190,12 +190,8 @@ describe('native Encounter reads', () => {
     )
     const stored = await records()
     const expected = [
-      expect.objectContaining({ conditionTypeId: frightened.id, label: frightened.label }),
-      expect.objectContaining({
-        conditionTypeId: poisoned.id,
-        label: poisoned.label,
-        notes: 'Public condition note'
-      })
+      { conditionTypeId: frightened.id },
+      { conditionTypeId: poisoned.id, notes: 'Public condition note' }
     ]
     for (const viewer of [owner, other]) {
       const single = await viewer.caller.query(get, { encounterId: run.id })
