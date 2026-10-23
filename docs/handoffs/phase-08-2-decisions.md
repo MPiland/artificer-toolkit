@@ -1154,6 +1154,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Downstream:** SPELLS-4.T2m2, SPELLS-31.T4j, SPELLS-32.T4j and SPELLS-33.T4j need only the qualifiers, so they wait on T2j2a.
   - **Rejected:** building both substrates inside T2j2 (well over size 5); faking per-target retaliation with one zone per target.
 
+* **D184** (2026-10-23) Warding Bond damage mirror and returns onto occupied spaces (SPELLS-4.T2n4, SPELLS-4.T2h4, AC SPELLS-4.1). Orchestrator rulings.
+  - **Damage mirror (T2n4):** after the holder's damage settles, a second mechanics application targets the bond's source in the same room transaction, so both commit or neither does. Its commandId is derived deterministically from the holder's command (phase DAMAGE_MIRROR) so replay is idempotent; it carries a `mirrored` mark and is never mirrored again. Its payload is a new DAMAGE_MIRROR domain, not DAMAGE_INTERCEPTION. Undo reverses both through the derived receipt; only where that is genuinely unreachable is undo refused with a typed reason (the Rage precedent). A source that is absent or no longer in the encounter gets no mirror.
+  - **Rejected (mirror):** a `mirroredApplications` channel on every receipt root (an envelope change across about 12 roots); any partial mirror outside the transaction.
+  - **Return onto an occupied space (T2h4, D178):** the Session Worker commit path diffs actor absence before and after. When an absence clears (EFFECT or EFFECT_KEEPS_TURN) and another visible token's footprint overlaps the returning token's cell, the receipt carries an encounterRuleWarnings entry RETURN_SPACE_OCCUPIED for GM manual placement; there is no Scene write. One shared footprint-overlap function serves the check.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**

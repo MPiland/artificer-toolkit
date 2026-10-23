@@ -10128,7 +10128,7 @@
               }
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2g1",
               "wsjf": {
@@ -10139,7 +10139,8 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "Generic REVIVE outcome (D177): hit points FIXED or MAXIMUM, resets death saves or clears defeated, TARGET_NOT_DEAD overridable warning, receipt before-state for Undo. Converts REVIVIFY, REINCARNATE (1 hit point; race swap stays GM_CHOICE) and TRUE_RESURRECTION (poison through END_EFFECTS CONDITION), with parity proofs; each kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-23T01:41:36Z",
+              "note": "Merged in m360."
             },
             {
               "id": "SPELLS-4.T2g2",
@@ -10152,7 +10153,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2g1"]
               },
-              "text": "Generic effect stepDown { trigger: LONG_REST, step } with a stored remaining counter (D177): each matching rest shrinks the effect's BONUS/PENALTY grant magnitudes and ends it at 0; PENALTY allowed on ABILITY_CHECK; the rest preview lists stepped-down effects. Converts RAISE_DEAD and RESURRECTION (-4 d20 penalty decaying per long rest), with parity proofs; each kind deleted."
+              "text": "Generic effect stepDown { trigger: LONG_REST, step } with a stored remaining counter (D177): each matching rest shrinks the effect's BONUS/PENALTY grant magnitudes and ends it at 0; PENALTY allowed on ABILITY_CHECK; the rest preview lists stepped-down effects. Converts RAISE_DEAD and RESURRECTION (-4 d20 penalty decaying per long rest), with parity proofs; each kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "DONE",
