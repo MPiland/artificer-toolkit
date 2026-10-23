@@ -648,3 +648,7 @@ T4i4a added the generic single-target `targetRequirements` (`HAS_CONDITION`, `SI
 ## T4i2: 0 HP interception (T4i2a, T4i2b on `ci/spells-33-t4i2`)
 
 T4i2a put the save, damage-type and critical exclusions and the damage cap on the `DAMAGE_INTERCEPTION` payload. T4i2b made a Creature's feature hold interceptions from passive `grants.modifiers` (authored like `movementPassageGrants`, through `damageInterceptionGrants`, not as a passive damage-grant effect), spends a limited-use charge with a receipt and undo, and converted Zombie and Ogre Zombie Undead Fortitude and Wereboar Relentless. The three closed-rule kinds (`CREATURE_UNDEAD_FORTITUDE`, `CREATURE_ZOMBIE_UNDEAD_FORTITUDE`, `CREATURE_WEREBOAR_RELENTLESS`) are deleted, and their three golden rows (`NOT_A_DISCOVERED_ACTION`) are gone with their effects. Save dice are rolled once per target in the Worker. Not covered: condition auto-fail of Constitution saves and added save dice.
+
+#### T6f (D187a: description-only)
+
+- Status: implemented; CI on `ci/spells-33-t6f`. Rakshasa Limited Magic Immunity, Shield Guardian Spell Storing and Tarrasque Reflective Carapace keep their feature descriptions as the GM's ruling; the three closed-rule kinds are deleted. No negation or storing piece is built (future-enhancements: spell negation and storing). Authoring-parity proof: `descriptionOnlyCreatureAndRaceRules.test.ts` over the real SRD creatures.
