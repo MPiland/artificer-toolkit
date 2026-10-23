@@ -14,7 +14,7 @@ import {
 type ResolvedRoll = {
   expression: string
   /** The System roll mode of a d20 roll; absent for a roll that is not a System-governed d20. */
-  rollMode?: string
+  rollMode?: string | undefined
   source: RollSourceDto
   /** The ability a check or saving throw is made with: the dice its carried effects add key on it. */
   abilityCode?: string

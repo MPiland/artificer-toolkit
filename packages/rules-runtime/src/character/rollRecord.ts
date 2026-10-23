@@ -18,7 +18,7 @@ export function createRollRecord(input: {
   resolved: {
     expression: string
     /** The System roll mode of a d20 roll; absent for any other roll. */
-    rollMode?: string
+    rollMode?: string | undefined
     source: RollSourceDto
   }
   /** Dice the roll adds beside its d20, rolled after advantage keeps one (D156). */
