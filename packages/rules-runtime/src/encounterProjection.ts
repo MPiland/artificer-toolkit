@@ -285,6 +285,13 @@ export function projectEncounterActorFacts(
   }
 }
 
+/** Stored conditions are a type ID or a record holding one; the projection carries records. */
+function conditionRows(conditions: unknown): unknown[] {
+  return (Array.isArray(conditions) ? conditions : []).map((condition) =>
+    typeof condition === 'string' ? { conditionTypeId: condition } : condition
+  )
+}
+
 /** Character actors take hit points and conditions from the current Characters, never the Run. */
 export function projectGm(
   encounter: EncounterProjectionInput,
@@ -399,7 +406,7 @@ function projectGmFacts(
         currentHitPoints: current.current,
         maxHitPoints: current.maximum,
         tempHitPoints: current.temporary,
-        conditions: current.conditions,
+        conditions: conditionRows(current.conditions),
         defeated: actor.kind === 'CHARACTER' ? current.dead : actor.defeated,
         absence: actor.absence,
         resources: actor.resources,

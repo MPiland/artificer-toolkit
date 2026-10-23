@@ -53,12 +53,14 @@ import {
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
+  DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
   DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
   DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
   DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
+  DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY,
   DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -207,6 +209,47 @@ export const dnd5eKillProposalOperation = targetOnlyProposalOperation(
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
   'kill'
 )
+/** A revive proposal: it restores a dead target to a fixed number of hit points or its maximum, which the commit's batch applies. */
+export const dnd5eReviveProposalOperation: ProposalRuleOperationContract = {
+  key: DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PROPOSAL',
+  inputs: {
+    targetActorId: RULE_VALUE_KIND.TEXT,
+    targetStateChecksum: RULE_VALUE_KIND.TEXT,
+    hitPointsKind: RULE_VALUE_KIND.TEXT,
+    hitPointsAmount: RULE_VALUE_KIND.NUMBER
+  },
+  outputs: {
+    targetActorId: RULE_VALUE_KIND.TEXT,
+    applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
+    authorized: RULE_VALUE_KIND.BOOLEAN,
+    targetStateChecksum: RULE_VALUE_KIND.TEXT,
+    hitPointsKind: RULE_VALUE_KIND.TEXT,
+    hitPointsAmount: RULE_VALUE_KIND.NUMBER
+  },
+  execute(inputs) {
+    const { targetActorId, targetStateChecksum, hitPointsKind, hitPointsAmount } = inputs
+    if (typeof targetActorId !== 'string' || !UUID.test(targetActorId))
+      throw new Error('D&D revive proposal requires a canonical target actor UUID.')
+    if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
+      throw new Error('D&D revive proposal requires target state checksum.')
+    if (
+      (hitPointsKind !== 'FIXED' && hitPointsKind !== 'MAXIMUM') ||
+      typeof hitPointsAmount !== 'number' ||
+      (hitPointsKind === 'FIXED' && !(Number.isInteger(hitPointsAmount) && hitPointsAmount >= 1))
+    )
+      throw new Error('D&D revive proposal requires the hit points the target returns with.')
+    return {
+      targetActorId,
+      applicationCandidate: true,
+      authorized: true,
+      targetStateChecksum,
+      hitPointsKind,
+      hitPointsAmount
+    }
+  }
+}
 /**
  * Version 2 of a proposal also reads every gate kind's inputs, and is authorized only while the
  * base proposal authorizes and the target passes every gate.
@@ -260,6 +303,11 @@ export const dnd5eCreatureFormProposalOperation = targetOnlyProposalOperation(
 export const dnd5eManualAdjudicationProposalOperation = targetOnlyProposalOperation(
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   'manual adjudication',
+  false
+)
+export const dnd5ePlayAbsenceProposalOperation = targetOnlyProposalOperation(
+  DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY,
+  'play absence',
   false
 )
 export const dnd5eConcealProposalOperation = targetOnlyProposalOperation(
@@ -1022,6 +1070,7 @@ export function dnd5eResultGate(authoredPath: string): { paths: string[] } {
 export const dnd5ePathGatedTargetProposalOperations = [
   dnd5eStabilizeProposalOperation,
   dnd5eKillProposalOperation,
+  dnd5eReviveProposalOperation,
   dnd5eDepartProposalOperation,
   dnd5eManualAdjudicationProposalOperation,
   dnd5eAddSpeedToMovementProposalOperation,
@@ -1272,12 +1321,14 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
     DND5E_KILL_PROPOSAL_OPERATION_KEY,
+    DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
     DND5E_DEPART_PROPOSAL_OPERATION_KEY,
     DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY,
     DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY,
     DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY,
     DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
     DND5E_CONCEAL_PROPOSAL_OPERATION_KEY,
+    DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY,
     DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
     DND5E_ADD_SPEED_TO_MOVEMENT_PROPOSAL_OPERATION_KEY,
     DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY,

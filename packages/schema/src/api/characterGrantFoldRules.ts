@@ -89,6 +89,12 @@ const restrictionConditionSchema = lazySchema(() =>
       'HOLDER_KIND',
       /** The Creature holder's type is in `requiredIds` (any type in ALL mode); never a Character. */
       'CREATURE_TYPE',
+      /**
+       * The source creature's type is in `requiredIds` (any type in ALL mode): the attacker of an
+       * attack against the holder, the source of the effect a save, condition or ended effect
+       * comes from. Decided where that source is known, never by the fold.
+       */
+      'SOURCE_CREATURE_TYPE',
       'PROFICIENCY',
       'EQUIPMENT_EQUIPPED',
       'SOURCE_STATE',

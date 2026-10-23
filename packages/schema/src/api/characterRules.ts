@@ -26,6 +26,7 @@ import {
 } from './characterActionRules.js'
 import {
   abilityCodeSchema,
+  damageDefenseBypassCodeSchema,
   equipmentCategoryCodeSchema,
   lengthUnitCodeSchema,
   measurementUnitCodeSchema,
@@ -102,6 +103,50 @@ const characterTargetDefenseSchema = lazySchema(() =>
     sourceEffectIds: z.optional(z.array(serverUuidIdentityDtoSchema).check(z.maxLength(100))),
     source: characterMechanicSourceSchema
   })
+)
+
+/** A resistance or immunity that applies only to attacks without any of `bypassedBy`. */
+const characterQualifiedDefenseSchema = lazySchema(() =>
+  z.strictObject({
+    kind: z.enum(['RESISTANCE', 'IMMUNITY']),
+    damageTypeId: serverUuidIdentityDtoSchema,
+    bypassedBy: z.array(damageDefenseBypassCodeSchema).check(z.minLength(1)).check(z.maxLength(3))
+  })
+)
+
+const canonicalCharacterQualifiedDefensesSchema = lazySchema(() =>
+  z.pipe(
+    z
+      .array(characterQualifiedDefenseSchema)
+      .check(z.maxLength(100))
+      .check(
+        z.superRefine((defenses, ctx) => {
+          const keys = new Set<string>()
+          defenses.forEach((defense, index) => {
+            const key = `${defense.kind}:${defense.damageTypeId}:${[...defense.bypassedBy].sort().join(',')}`
+            if (keys.has(key)) {
+              ctx.addIssue({
+                code: 'custom',
+                message: 'Character qualified defenses must be unique.',
+                path: [index]
+              })
+            }
+            keys.add(key)
+          })
+        })
+      ),
+    z.transform((defenses) =>
+      [...defenses].sort(
+        (left, right) =>
+          left.damageTypeId.localeCompare(right.damageTypeId) ||
+          left.kind.localeCompare(right.kind) ||
+          [...left.bypassedBy]
+            .sort()
+            .join(',')
+            .localeCompare([...right.bypassedBy].sort().join(','))
+      )
+    )
+  )
 )
 
 const canonicalCharacterTargetDefensesSchema = lazySchema(() =>
@@ -448,7 +493,8 @@ const characterSpellSlotUsageFactsSchema = lazySchema(() =>
           rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647))
         }),
         z.strictObject({
-          kind: z.literal('PACT'),
+          kind: z.literal('POOL'),
+          poolCode: boundedIdentitySchema,
           rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647))
         })
       ])
@@ -458,7 +504,7 @@ const characterSpellSlotUsageFactsSchema = lazySchema(() =>
       z.superRefine((usage, context) => {
         const keys = new Set<string>()
         for (const [index, entry] of usage.entries()) {
-          const key = entry.kind === 'STANDARD' ? `STANDARD:${entry.spellLevel}` : entry.kind
+          const key = entry.kind === 'STANDARD' ? `STANDARD:${entry.spellLevel}` : entry.poolCode
           if (keys.has(key)) {
             context.addIssue({
               code: 'custom',
@@ -1196,6 +1242,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
       []
     ),
     defenses: canonicalCharacterTargetDefensesSchema,
+    qualifiedDefenses: z._default(canonicalCharacterQualifiedDefensesSchema, []),
     conditionImmunityIds: z._default(canonicalConditionImmunityIdsSchema, []),
     spellSchoolImmunityIds: z._default(canonicalSpellSchoolImmunityIdsSchema, []),
     movement: z._default(
@@ -1447,6 +1494,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
       ),
       pactMagic: z.nullable(
         z.strictObject({
+          poolCode: boundedIdentitySchema,
           sourceClassId: boundedIdentitySchema,
           slots: integerSchema.check(z.gte(0)),
           level: integerSchema.check(z.gte(1)).check(z.lte(9)),

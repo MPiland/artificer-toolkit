@@ -208,8 +208,17 @@ A `KILL` is admitted in a band only when the band is gated; `REDUCED_TO_ZERO_BY`
 which is dealt ungated, and holds the outcomes after it. Forced movement, HP-maximum reduction and a failure-margin
 rider are unsupported on a gated band. The save is still rolled for targets outside an HP band, with no effect.
 
+**Revive (current, SPELLS-4.T2g1, D177).** `REVIVE { valueKind: 'FIXED', amount } | { valueKind: 'MAXIMUM' }` returns a dead target to a fixed number of hit points (never above its maximum) or to its maximum
+and clears its death saves (`deathSavesAfterRevive`, beside `deathSavesAfterHealing`, which cannot raise a dead Character). A target is
+dead (`isTargetDead`) at 0 hit points with three failed death saves, or with no death saves at all (a Creature). The registry's `DEAD`
+target precondition raises the overridable `TARGET_NOT_DEAD` admission warning; an unmet fold applies nothing (`applied: false`). The
+receipt is a `REVIVE` mechanics row on the existing seam, so Undo restores the dead state; a revived Creature's `defeated` clears through
+`nextEncounterActorDefeated` and initiative needs no new logic. Revivify, Reincarnate (1 hit point; the new form stays a `GM_CHOICE`
+adjudication) and True Resurrection (maximum) are authored from it. Eligibility checks and Resurrection's year-of-death cost stay
+description-only. `stepDown` and the poison and disease clauses are SPELLS-4.T2g2.
+
 A test admits the same target-only outcomes the direct path does (RULES-2.T6c2): `STABILIZE`, `MANUAL_ADJUDICATION`,
-`ADD_SPEED_TO_MOVEMENT` and a target's `DEPART` (a linked-location or special-destination teleport), alongside the
+`ADD_SPEED_TO_MOVEMENT`, a target's `DEPART` (a linked-location or special-destination teleport) and `REVIVE`, alongside the
 damage, heal, condition and hit-point-tier `KILL` outcomes. `dnd5eTargetOnlyOutcome` is the one home for that set, so
 the compiler's direct and test admissions cannot drift. The commit-side readers (`executionAddsSpeedToMovement`,
 `executionTeleportAllowance`, `executionCancelsTriggeringEvent`) find their proposal through
@@ -1494,6 +1503,16 @@ need no cascade. Out of scope (future-enhancements): a cure or a GM condition ed
 condition does not end the rider. The SRD Giant Centipede authors poisoned for 1 hour and paralyzed while
 poisoned this way.
 
+**Turn-end roll gate (current, SPELLS-4.T2h2, D178).** A result block's `lifecycle.turnEndGate { minimumRoll }`
+compiles to a recurring effect whose end-of-turn step is the repeat-save pipeline with a bare d20 (no ability,
+modifier 0, DC `minimumRoll`, outcome rule `NONE`); the plan stores `recurrence.turnEndGate` with the child's own
+frozen `condition-duration` graph and its `PLAY_ABSENCE` contribution. `persistEncounterTurnEffects` mints the
+child when the turn result's d20 path is `ON_SAVE_SUCCESS`: `turnEndGateChildEffect`
+(`encounterEffectTurnEndGate.ts`) returns a one-tick `START_OF_TURN` effect whose `linkedEffectId` is the rolling
+effect (so it ends with it) and whose id derives from the parent's. A failed roll mints nothing. Turn advances
+are not revertable, so the minted child needs no Undo handling. Blink is the SRD user; nothing in the runtime
+names a spell.
+
 **Linked margin rider (current, SPELLS-33.T4i3f, D172).** `failureMarginRider.endsWithOutcomeId` names the one
 condition outcome of the rider's own failed immediate save; `marginRiderPlan(rider, primaryOutcomeId)` sets
 `endsWith: 'PRIMARY'` and refuses by name any other target, and any link where there is no such condition (the
@@ -1869,6 +1888,12 @@ A spell the Character may cast only as a ritual (a `RITUAL` spell grant the Shee
 ### Ending a held effect and its `onEnd` grant (current, SPELLS-4.T2l-a)
 
 `deleteCas` and `deleteMaintainedStateCas` (`encounter-persistence/effectStore.ts`) are the one place a held effect leaves encounter state, in the Convex path and the room alike. Each takes a required `removal`: `ENDED` (expiry, Concentration drop or replacement, early end, consumption, a departing source) or `REMOVED` (undo, an actor's own removal, Run completion). An `ENDED` effect whose definition carries a `MODIFIER_GRANT` `onEnd` template leaves its follow-on grant on the same holder (Haste's lethargy, `rules-runtime/encounterEffectOnEnd.ts`): a holder-anchored timed grant with an id derived from the ended effect's, created inside the tick pass so it is not ticked in the same pass. Restoring the effect (`create` with `restoredFrom`) takes that follow-on back.
+
+### Source creature type on grants (current, SPELLS-4.T2j1, D179)
+
+The facet predicate `SOURCE_CREATURE_TYPE` (selectable `creatureTypeIds`, System vocabulary ids) limits a grant to sources of certain creature types: the attacker for `ATTACKS_AGAINST`, the effect's origin for `CONDITION_IMMUNITY`. The grant fold keeps it a deferred requirement. `holderStateSourceQualifier` checks the grant's holder conditions when the holder is prepared and leaves the source conditions as a `sourceQualifier`, which `sourceQualifierAdmits` decides where the source is known: `prepareEncounterActionMechanics` filters `attackAgainstContributors` by the attacker's type and adds `sourceConditionImmunities` that admit it (`conditionImmunityIdsAgainstSource`). Turn and spatial effects bind the holder's unqualified immunities only (their origin type is not on those paths).
+
+`DAMAGE_RESISTANCE` and `DAMAGE_IMMUNITY` payloads take an optional `bypassedBy` (`MAGICAL`, `SILVERED`, `ADAMANTINE`): a Character's fold yields `qualifiedDefenses` on the policy output, a Creature's active grants merge into its stat block's, and `dnd5eAttackDamageDefenses` applies them only to attacks without a bypassing trait. Protection from Evil and Good (and Purity of Spirit), Stoneskin and Wind Walk are authored from these options and their closed rule kinds are deleted.
 
 ### Ending held effects by authored selection: `END_EFFECTS` (current, SPELLS-4.T2f, D174)
 
@@ -2294,8 +2319,17 @@ through its skipped turns.
 `SPECIAL`) compiles to a target-only `dnd5e.depart-proposal`. Its `DEPART` application sets the chosen actor's
 `absence` to `DEPARTED` (any Run actor kind) in the action commit; revert restores it by the before-state. The
 skip set and the Tabletop stage read `absence`, so initiative skips the actor and its bound token is hidden
-without a Scene write. The GM clears it with `UPDATE_ACTOR returnToInitiative`. Spatial occupancy and targeting of
-an absent token are not modeled (a defeated token behaves the same). In-Scene destinations are T1b.
+without a Scene write. The GM clears it with `UPDATE_ACTOR returnToInitiative`. In-Scene destinations are T1b.
+
+**Removed from play (D178, SPELLS-4.T2h1).** An actor with any `absence` is untargetable: `evaluateEncounterActionTargetPolicy` refuses it
+outright (no acknowledgement overrides) and area resolution (`planNativeLiveEncounterAreaAction`) catches nothing absent.
+`REMOVE_FROM_PLAY { keepsTurn }` is an active-effect-plan outcome that compiles to a `PLAY_ABSENCE` state contribution
+(Banishment: incapacitated condition plus removal; Etherealness: `keepsTurn`; Imprisonment and Maze: removal, the
+ending conditions stay `MANUAL_ADJUDICATION`). The effect store alone sets and clears the holder's absence
+(`syncPlayAbsence`, called from `create` and every delete path): `EFFECT` skips initiative, `EFFECT_KEEPS_TURN` keeps it,
+and the value is recomputed from the removals still held so overlapping ones return the actor only when the last ends.
+`GM_REMOVED` and `DEPARTED` are never overwritten or cleared by an effect ending. A return onto an occupied space is not
+modeled; the token stays where it was and the GM moves it.
 
 **Carry-over (D99 Q1 A, SPELLS-5.9).** COMPLETE ends the effects a Run sourced on its Characters
 (`endCompletedRunCharacterEffects`: Encounter-scoped grants), alongside the Creature effects ADR 0035
@@ -2596,8 +2630,13 @@ both sides with the same inputs: the room passes `repeatSaves: { damagerActorId 
 and persistence binds the chain through `bindEncounterDamageSaveChain`, which re-derives it from the committed
 rows so a stale or invented chain is rejected by comparison. Sources wired: single-target action, area (damager is
 the caster), Cleaving (the cleaving creature), and turn effects with Legendary Actions (no damager, so only `ANYONE`
-triggers match). T2m3 and SPELLS-33.T6e2/T4m add triggers or effects by changing these readers, never by adding a
-source-specific path. Movement (zone contact) damage settles through `MovementConcentrationSettlement`, a separate
+triggers match). T2m3 and SPELLS-33.T4m add triggers or effects by changing these readers, never by adding a
+source-specific path. A follow-up save with timing `ON_TRIGGERS_ONLY` (D176, SPELLS-33.T6e2 Vampire Charm) repeats
+on its `repeatTriggers` alone: it requires them, a once-only repeated save, and no `repeatRollInfluence` or
+`repeatAttemptGate`, and is never a `repeatTiming`. It compiles to the same frozen repeat-save graph, gated on the
+adapter fact `dnd5e.active-effect-repeat-save-triggers-only`; the turn tick refuses the attempt (`ATTEMPT_REFUSED`,
+no request, only the duration counts down) and the damage hook passes `onTrigger: true` so the attempt is allowed.
+Movement (zone contact) damage settles through `MovementConcentrationSettlement`, a separate
 per-step stack, and is not in the chain yet.
 
 **Immediate escalating save (ATTACK-5.T4b).** An immediate `FOLLOW_UP_SAVE` with no damage required before it

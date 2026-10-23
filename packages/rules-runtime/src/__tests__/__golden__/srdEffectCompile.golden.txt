@@ -122,7 +122,6 @@
 00000000-0000-0000-c007-140100000000 CHARACTER:classes Channel Divinity: Sacred Weapon | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c007-140200000000 CHARACTER:classes Channel Divinity: Turn the Unholy | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c007-140300000000 CHARACTER:classes Aura of Devotion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c007-140400000000 CHARACTER:classes Purity of Spirit | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-140500000000 CHARACTER:classes Holy Nimbus | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c007-600100000000 CHARACTER:classes Divine Sense | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c007-600200000000 CHARACTER:classes Lay on Hands | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
@@ -844,7 +843,7 @@
 00000000-0002-0071-0070-003d00000000 CREATURE Animate Chains (Recharges after a Short or Long Rest) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0002-0075-0070-000d00000000 CREATURE Slam | TEST_OUTCOME test=e42d0b134f181efa1324602e5a8be40f6e4ffbe5f8a1ae3d84bb7356e3907ce0 nodes=3 outputs=5 outcomes=[ON_CRIT=5c70164dd7e16d6851242a52d0f90e51e888f5c218cbb46f89a591720207d885,ON_HIT=5c70164dd7e16d6851242a52d0f90e51e888f5c218cbb46f89a591720207d885]
 00000000-0002-0075-0070-002f00000000 CREATURE Corrosive Form | NOT_A_DISCOVERED_ACTION
-00000000-0002-0075-0070-004100000000 CREATURE Phantasms (Recharges after a Short or Long Rest) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000000-0002-0075-0070-004100000000 CREATURE Phantasms (Recharges after a Short or Long Rest) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-0078-0070-001d00000000 CREATURE Light Crossbow | NOT_A_DISCOVERED_ACTION
 00000000-0002-0079-0070-001800000000 CREATURE Roar (3/Day) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0002-007a-0070-003d00000000 CREATURE Unnerving Mask | NOT_A_DISCOVERED_ACTION
@@ -942,7 +941,7 @@
 00000000-0002-00cd-0070-008e00000000 CREATURE Pincer | TEST_OUTCOME test=e7ebb8e0d5743e5ed7540e1db602264cb3a8e59591723e857920bafbba903ed5 nodes=3 outputs=5 outcomes=[ON_CRIT=a8505d03cf61f245e6805168631dabced1def273d51f1418e8399cb324fc76ce,ON_HIT=a8505d03cf61f245e6805168631dabced1def273d51f1418e8399cb324fc76ce]
 00000000-0002-00cd-0070-009d00000000 CREATURE Claw | TEST_OUTCOME test=518293071e23b0e6001cb8a8c56fa48c63ec17ec00d34cb971f0181c6439f0a9 nodes=3 outputs=5 outcomes=[ON_CRIT=87c14b4aad5e754da9cdea7a1b8ae7a6e44688a781eafc4ff21423c0f07e70bd,ON_HIT=87c14b4aad5e754da9cdea7a1b8ae7a6e44688a781eafc4ff21423c0f07e70bd]
 00000000-0002-00cd-0070-010c00000000 CREATURE Siege Monster | NOT_A_DISCOVERED_ACTION
-00000000-0002-00cd-0070-010f00000000 CREATURE Animate Trees (1/Day) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000000-0002-00cd-0070-010f00000000 CREATURE Animate Trees (1/Day) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00ce-0070-005200000000 CREATURE Create Whirlwind | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-00ce-0070-009200000000 CREATURE Shortbow | TEST_OUTCOME test=3714f7e91de4942910b7772621cb30cb2425e8b184f765e08b7d2aeafa46736e nodes=3 outputs=5 outcomes=[ON_CRIT=8884eb1c7b9aab2f31272642efeeb30eb0590847896e26f1f08ec78ea66ceb9d,ON_HIT=8884eb1c7b9aab2f31272642efeeb30eb0590847896e26f1f08ec78ea66ceb9d]
 00000000-0002-00ce-0070-00a900000000 CREATURE Bite | TEST_OUTCOME test=c15b4378c28210f32cbcc018f67cee686781ea1ec0dfc29749d73a9ec086d456 nodes=3 outputs=5 outcomes=[ON_CRIT=2bd01ab29d0b0cbc014cb848e641db8d0f0b3e9dab401710e2e692ebc07fbbae,ON_HIT=2bd01ab29d0b0cbc014cb848e641db8d0f0b3e9dab401710e2e692ebc07fbbae]
@@ -957,7 +956,7 @@
 00000000-0002-00d0-0070-007900000000 CREATURE Talons | TEST_OUTCOME test=e2b7959e0f13be54ce2886b81a0211d96061879a3697aa37992d74028d489f73 nodes=3 outputs=5 outcomes=[ON_CRIT=a4b7e02cf6b9c262536cba23c6982daca0b1f7a25a261fde6efb3b7ec3003792,ON_HIT=a4b7e02cf6b9c262536cba23c6982daca0b1f7a25a261fde6efb3b7ec3003792]
 00000000-0002-00d0-0070-00a700000000 CREATURE Tail | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-00d0-0070-00fc00000000 CREATURE Spell Storing | NOT_A_DISCOVERED_ACTION
-00000000-0002-00d0-0070-010000000000 CREATURE Healing Touch (4/Day) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000000-0002-00d0-0070-010000000000 CREATURE Healing Touch (4/Day) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00d0-0070-011600000000 CREATURE Bite | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-00d1-0070-004700000000 CREATURE Change Shape | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00d1-0070-005f00000000 CREATURE Hurl Flame | TEST_OUTCOME test=168c4fb36004acc91de883192fa210a7c5e44804e62ed6096f68bff8ba6c29c9 nodes=3 outputs=5 outcomes=[ON_CRIT=6c18e5045938e81a942f744baadf59d39ba1e9a9ae7247fdc764f66d0d753f83,ON_HIT=6c18e5045938e81a942f744baadf59d39ba1e9a9ae7247fdc764f66d0d753f83]
@@ -969,7 +968,7 @@
 00000000-0002-00d2-0070-008000000000 CREATURE Ink Cloud (Recharges after a Short or Long Rest) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00d2-0070-010400000000 CREATURE Invisibility | SINGLE_GRAPH e14dc4260e75bf1b58aa61b20452bd30ce40c468df38f97691d18ab3dac54465 nodes=1 outputs=2
 00000000-0002-00d2-0070-012500000000 CREATURE Longsword | TEST_OUTCOME test=aa4ad201adbdda83c00cff12675e3c0ffe00afd6b4676d1a4a867a02faa212af nodes=3 outputs=5 outcomes=[ON_CRIT=d29bf78602fb2a52410af289bba9faffb2815acc8bae214f92623b59fc542cc7,ON_HIT=d29bf78602fb2a52410af289bba9faffb2815acc8bae214f92623b59fc542cc7]
-00000000-0002-00d2-0070-012a00000000 CREATURE Create Specter | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000000-0002-00d2-0070-012a00000000 CREATURE Create Specter | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00d3-0070-006f00000000 CREATURE Possession (Recharge 6) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-00d3-0070-008e00000000 CREATURE Fist | TEST_OUTCOME test=6f97b900b6a2a7d71190ace78eee62fbbf991e5fa3a2b10c292d8316beaac478 nodes=3 outputs=5 outcomes=[ON_CRIT=28316e6cd6b03c8421137ea9814baf4d0c410843b0d20b70e0b8f8745163f635,ON_HIT=28316e6cd6b03c8421137ea9814baf4d0c410843b0d20b70e0b8f8745163f635]
 00000000-0002-00d3-0070-010500000000 CREATURE Hand Crossbow | TEST_OUTCOME test=80d2146faf5aa6d2df19445d5145d7cd2f6b146ecebb4727c7d5108c2f2c5838 nodes=3 outputs=5 outcomes=[ON_CRIT=0e9e5c14014ea49f1193d14d09796f6c62eebc5536ce320d4af5b78422f3f951,ON_HIT=0e9e5c14014ea49f1193d14d09796f6c62eebc5536ce320d4af5b78422f3f951]
@@ -1004,7 +1003,7 @@
 00000000-0002-00e6-0070-011500000000 CREATURE Bite (Bat or Vampire Form Only) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-00e6-0070-013100000000 CREATURE Breath Weapons (Recharge 5-6) | TEST_OUTCOME test=b30f2fcbdc911e619955c1e8b17a621cfdbc08dab02b1f9f185527136d3a5cb6 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=f6ec1a5bb8ddc9fe5a59aadcc6c690b945d419cee469ae650d3e76ee281a9019]
 00000000-0002-00e6-0070-013200000000 CREATURE Breath Weapons (Recharge 5-6) | TEST_OUTCOME test=eec6bffc217b7d4eb1e3e01147765c7080410688905e14df6e04d129a1beee49 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=e1010cb07753f9249e07a5fd2ce75086a4a711ec1a5addd93c786dfac6bc8567]
-00000000-0002-00ed-0070-011500000000 CREATURE Charm | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
+00000000-0002-00ed-0070-011500000000 CREATURE Charm | TEST_OUTCOME test=6bffb2831489a8f152adfc002945036a2f8a14d352c1cd05b4124af3f2496271 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=3e5bafede02bb59d1f2d4d203dc8e3d40cfc0d5df4e43da7c71c6dd239cd6082]
 00000000-0002-00f0-0070-011500000000 CREATURE Children of the Night (1/Day) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0002-00f2-0070-011500000000 CREATURE Move | NOT_A_DISCOVERED_ACTION
 00000000-0002-00f6-0070-010500000000 CREATURE Sneak Attack (1/Turn) | NOT_A_DISCOVERED_ACTION
@@ -1173,16 +1172,16 @@
 00000020-0000-0210-0012-000000000001 CHARACTER:spells Arcanist's Magic Aura | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0013-000000000001 CHARACTER:spells Astral Projection | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000020-0000-0210-0014-000000000001 CHARACTER:spells Augury | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
-00000020-0000-0210-0015-000000000001 CHARACTER:spells Awaken | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-0015-000000000001 CHARACTER:spells Awaken | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D direct results of one kind cannot share a cast.
 00000020-0000-0210-0016-000000000001 CHARACTER:spells Bane | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[]
-00000020-0000-0210-0017-000000000001 CHARACTER:spells Banishment | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-0017-000000000001 CHARACTER:spells Banishment | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
 00000020-0000-0210-0018-000000000001 CHARACTER:spells Beacon of Hope | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0019-000000000001 CHARACTER:spells Bestow Curse | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
 00000020-0000-0210-001a-000000000001 CHARACTER:spells Black Tentacles | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-001b-000000000001 CHARACTER:spells Bless | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-001c-000000000001 CHARACTER:spells Blight | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=6a55aaf7a947fc26d9d0d4093f440bf4718f4962f5319423eab1700dd46db36c,ON_SAVE_SUCCESS=14c35d7919a5756822a6b65e73ef24359dd5af1ff93e705b4e1b43ba86aa6747]
 00000020-0000-0210-001d-000000000001 CHARACTER:spells Blindness/Deafness | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000020-0000-0210-001e-000000000001 CHARACTER:spells Blink | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-001e-000000000001 CHARACTER:spells Blink | SINGLE_GRAPH 60f31d8fbbabe1567af9062545ebcf7aebd40a983172305653184566fabd0c15 nodes=1 outputs=1
 00000020-0000-0210-001f-000000000001 CHARACTER:spells Blur | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-0020-000000000001 CHARACTER:spells Branding Smite | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-0021-000000000001 CHARACTER:spells Burning Hands | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=5d7e3bed192acd0ce5d50b3d807b23561d8cc03c5e39ce94af18f8bba150b16a,ON_SAVE_SUCCESS=b846c280923a90c815dc07fa6ed528b2d51f4bdd681ae85f053f3f0889451757]
@@ -1353,10 +1352,10 @@
 00000020-0000-0210-00cd-000000000001 CHARACTER:spells Mass Healing Word | SINGLE_GRAPH 6ac56163393598813bf30dce88afd5fa139c2b4ec163419479126fe4e3646b71 nodes=3 outputs=2
 00000020-0000-0210-00cd-000000000001 @U9 | SINGLE_GRAPH 4ea38ed095132c2b59d190a66d54c8b851b16f56ae3df740177a3332a7235dce nodes=15 outputs=2
 00000020-0000-0210-00ce-000000000001 CHARACTER:spells Mass Suggestion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
-00000020-0000-0210-00cf-000000000001 CHARACTER:spells Maze | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-00cf-000000000001 CHARACTER:spells Maze | SINGLE_GRAPH f97a1b43b6aa860121b787369aa192058958201d3abc7bddea22894f0e8459fe nodes=2 outputs=1
 00000020-0000-0210-00d0-000000000001 CHARACTER:spells Meld into Stone | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-00d1-000000000001 CHARACTER:spells Mending | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
-00000020-0000-0210-00d2-000000000001 CHARACTER:spells Message | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-00d2-000000000001 CHARACTER:spells Message | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000020-0000-0210-00d3-000000000001 CHARACTER:spells Meteor Swarm | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=99eeee304c0df0905c4ec72b0f868ef499989bf70137808f269b330907bf7206,ON_SAVE_SUCCESS=14353d40977477563f8ea1e3de467ffbd924a3cda58cd371ce11dad0230f2fdd]
 00000020-0000-0210-00d4-000000000001 CHARACTER:spells Mind Blank | SINGLE_GRAPH c002fff1e552bb1c239fcc5e6d7c13bd6238a9234ee5bdb97dacf2e01a6581b0 nodes=2 outputs=1
 00000020-0000-0210-00d5-000000000001 CHARACTER:spells Minor Illusion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -1390,20 +1389,20 @@
 00000020-0000-0210-00f2-000000000001 CHARACTER:spells Programmed Illusion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-00f3-000000000001 CHARACTER:spells Project Image | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-00f4-000000000001 CHARACTER:spells Protection from Energy | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
-00000020-0000-0210-00f5-000000000001 CHARACTER:spells Protection from Evil and Good | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000020-0000-0210-00f5-000000000001 CHARACTER:spells Protection from Evil and Good | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-00f6-000000000001 CHARACTER:spells Protection from Poison | SINGLE_GRAPH d843c2ca4efea1f7c7a898134b346573ec8aa265a04732461787eee2eb072316 nodes=2 outputs=1
 00000020-0000-0210-00f7-000000000001 CHARACTER:spells Purify Food and Drink | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000020-0000-0210-00f8-000000000001 CHARACTER:spells Raise Dead | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-00f8-000000000001 CHARACTER:spells Raise Dead | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000020-0000-0210-00f9-000000000001 CHARACTER:spells Ray of Enfeeblement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000020-0000-0210-00fa-000000000001 CHARACTER:spells Ray of Frost | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=07500783ffd83746bb885fc1f754ea318b00b2cc5cb4e29a8dabe2c745820102,ON_HIT=07500783ffd83746bb885fc1f754ea318b00b2cc5cb4e29a8dabe2c745820102]
 00000020-0000-0210-00fc-000000000001 CHARACTER:spells Regenerate | SINGLE_GRAPH b9b339c42a12e3918a371fa4dbf2e38c4666a71713c7f57f1967ae77584f6d32 nodes=9 outputs=3
-00000020-0000-0210-00fd-000000000001 CHARACTER:spells Reincarnate | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000020-0000-0210-00fe-000000000001 CHARACTER:spells Remove Curse | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-00fd-000000000001 CHARACTER:spells Reincarnate | SINGLE_GRAPH de43954bf4e5c5181994fc452a34b4dfe2e090d7495cfc7150fea82a33b02002 nodes=2 outputs=3
+00000020-0000-0210-00fe-000000000001 CHARACTER:spells Remove Curse | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000020-0000-0210-00ff-000000000001 CHARACTER:spells Resilient Sphere | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0100-000000000001 CHARACTER:spells Resistance | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
-00000020-0000-0210-0101-000000000001 CHARACTER:spells Resurrection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-0101-000000000001 CHARACTER:spells Resurrection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000020-0000-0210-0102-000000000001 CHARACTER:spells Reverse Gravity | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000020-0000-0210-0103-000000000001 CHARACTER:spells Revivify | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-0103-000000000001 CHARACTER:spells Revivify | SINGLE_GRAPH 32b98bb6b8215c7f2722777f641209819967b2aa2001c074d2f70a7b0dd98dcc nodes=2 outputs=3
 00000020-0000-0210-0104-000000000001 CHARACTER:spells Rope Trick | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0105-000000000001 CHARACTER:spells Sacred Flame | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=f7534ea550239a5987e9cb4440b5c037547cd8df6bc99d42956bbf74b76c4898]
 00000020-0000-0210-0106-000000000001 CHARACTER:spells Sanctuary | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
@@ -1436,7 +1435,7 @@
 00000020-0000-0210-0121-000000000001 CHARACTER:spells Spiritual Weapon | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0122-000000000001 CHARACTER:spells Stinking Cloud | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0123-000000000001 CHARACTER:spells Stone Shape | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
-00000020-0000-0210-0124-000000000001 CHARACTER:spells Stoneskin | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000020-0000-0210-0124-000000000001 CHARACTER:spells Stoneskin | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-0125-000000000001 CHARACTER:spells Storm of Vengeance | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0126-000000000001 CHARACTER:spells Suggestion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
 00000020-0000-0210-0127-000000000001 CHARACTER:spells Sunbeam | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -1451,7 +1450,7 @@
 00000020-0000-0210-0133-000000000001 CHARACTER:spells Tiny Hut | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0134-000000000001 CHARACTER:spells Tongues | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0135-000000000001 CHARACTER:spells True Polymorph | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[]
-00000020-0000-0210-0136-000000000001 CHARACTER:spells True Resurrection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000020-0000-0210-0136-000000000001 CHARACTER:spells True Resurrection | SINGLE_GRAPH 3e1da1d54933054141d2fe5233834a828dce046ac3bfaafccd741567b14b535d nodes=2 outputs=3
 00000020-0000-0210-0137-000000000001 CHARACTER:spells True Seeing | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-0138-000000000001 CHARACTER:spells True Strike | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-013a-000000000001 CHARACTER:spells Unseen Servant | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -1467,7 +1466,7 @@
 00000020-0000-0210-0144-000000000001 CHARACTER:spells Water Walk | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0145-000000000001 CHARACTER:spells Web | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0146-000000000001 CHARACTER:spells Weird | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000020-0000-0210-0147-000000000001 CHARACTER:spells Wind Walk | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000020-0000-0210-0147-000000000001 CHARACTER:spells Wind Walk | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-0148-000000000001 CHARACTER:spells Wind Wall | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000020-0000-0210-0149-000000000001 CHARACTER:spells Wish | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-014b-000000000001 CHARACTER:spells Word of Recall | SINGLE_GRAPH dd4056983cfcabcab891949f43df3923516a02ca1b4f6d0ca140f2870c096250 nodes=1 outputs=1
@@ -1515,7 +1514,7 @@
 00000060-0000-0210-0023-000000000001 CHARACTER:equipment Heavy Crossbow | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=66b658b1434f5f928e49cb9dab88ff3668ff0f78138a565d91d5d25bf3b78e02,ON_HIT=66b658b1434f5f928e49cb9dab88ff3668ff0f78138a565d91d5d25bf3b78e02]
 00000060-0000-0210-0024-000000000001 CHARACTER:equipment Longbow | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=2d7b76f7dd58088ea1a145c139054f333889972144b298edc6659a501d635eb4,ON_HIT=2d7b76f7dd58088ea1a145c139054f333889972144b298edc6659a501d635eb4]
 00000060-0000-0210-0025-000000000001 CHARACTER:equipment Net | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
-00000060-0000-0210-0056-000000000001 CHARACTER:equipment Climber's Kit | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000060-0000-0210-0056-000000000001 CHARACTER:equipment Climber's Kit | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000060-0000-0210-0077-000000000001 CHARACTER:equipment Acid (vial) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000060-0000-0210-0078-000000000001 CHARACTER:equipment Alchemist's Fire (flask) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000060-0000-0210-0079-000000000001 CHARACTER:equipment Antitoxin (vial) | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
@@ -1528,7 +1527,7 @@
 00000060-0000-0210-0094-000000000001 CHARACTER:equipment Lamp | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-0210-0095-000000000001 CHARACTER:equipment Bullseye Lantern | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000060-0000-0210-0096-000000000001 CHARACTER:equipment Hooded Lantern | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000060-0000-0210-0099-000000000001 CHARACTER:equipment Manacles | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
+00000060-0000-0210-0099-000000000001 CHARACTER:equipment Manacles | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000060-0000-0210-009d-000000000001 CHARACTER:equipment Oil (flask) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
 00000060-0000-0210-00a4-000000000001 CHARACTER:equipment Potion of Healing | SINGLE_GRAPH 1330e02917f1d096a897f5e8c017c7ed37d8411ccb668bbeac4e74b687a7cc7a nodes=5 outputs=2
 00000060-0000-0210-00b3-000000000001 CHARACTER:equipment Torch | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

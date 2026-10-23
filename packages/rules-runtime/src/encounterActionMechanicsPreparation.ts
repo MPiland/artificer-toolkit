@@ -23,6 +23,8 @@ import {
   featureModifiersReadTargetTurn,
   creatureAttackAbility,
   encounterAttackAddedDice,
+  conditionImmunityIdsAgainstSource,
+  sourceQualifierAdmits,
   withSourceSightSave
 } from './encounterActiveGrants.js'
 import { type EncounterAttackDecoy, withAttackDecoyArmorClass } from './encounterAttackDecoys.js'
@@ -58,7 +60,7 @@ import {
   encounterConditionSaveAutoFailAbilityIds,
   encounterConditionSources
 } from './encounterConditionMechanics.js'
-import { featureChargeUsed } from './encounterActorState.js'
+import { featureChargeUsed, snapshotCreatureTypeId } from './encounterActorState.js'
 import { featureActionMechanic } from './encounterFeatureActionCapabilityDiscovery.js'
 import { isInEffectEventScope } from './events/encounterEventHooks.js'
 import {
@@ -596,9 +598,13 @@ export async function prepareEncounterActionMechanics<
   // mechanics add their own contributors (D94), and so does sight: an unseen attacker has
   // advantage, an unseen target disadvantage.
   const attackDomain = attackKind === null ? null : profile.attackDomain(attackKind)
+  const attackerCreatureTypeIds = [snapshotCreatureTypeId(actor)].filter(
+    (id): id is string => id !== null
+  )
   const attacksAgainst = targetFacts.attackAgainstContributors.filter(
     (entry) =>
       entry.attackDomain === attackDomain &&
+      sourceQualifierAdmits(entry.sourceQualifier, attackerCreatureTypeIds) &&
       (entry.attackOccasion === undefined || entry.attackOccasion === input.attackOccasion) &&
       isInEffectEventScope(entry.eventScope, {
         actorId: actor.id,
@@ -858,7 +864,11 @@ export async function prepareEncounterActionMechanics<
         attackTraits,
         source.kind === 'CHARACTER_ACTION' ? source.candidate.mechanicsOwner.id : null
       ),
-      conditionImmunityIds: targetFacts.conditionImmunityIds,
+      conditionImmunityIds: conditionImmunityIdsAgainstSource(
+        targetFacts.conditionImmunityIds,
+        targetFacts.sourceConditionImmunities,
+        attackerCreatureTypeIds
+      ),
       targetDamageTypesTaken: damageTypeIdsTaken(targetFacts.actor)
     }
   }

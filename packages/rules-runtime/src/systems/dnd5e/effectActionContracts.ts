@@ -1,3 +1,4 @@
+import type { ReviveHitPoints } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { CharacterRuleActionForcedMovementDirection as ForcedMovementDirection } from '../../characterRuleActionSystemAdapter.js'
 import {
   type CharacterRuleActionForcedMovementCollision,
@@ -27,12 +28,14 @@ export const DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
   'dnd5e.temporary-hit-points-proposal'
 export const DND5E_STABILIZE_PROPOSAL_OPERATION_KEY = 'dnd5e.stabilize-proposal'
 export const DND5E_KILL_PROPOSAL_OPERATION_KEY = 'dnd5e.kill-proposal'
+export const DND5E_REVIVE_PROPOSAL_OPERATION_KEY = 'dnd5e.revive-proposal'
 export const DND5E_DEPART_PROPOSAL_OPERATION_KEY = 'dnd5e.depart-proposal'
 export const DND5E_MODIFIER_GRANT_PROPOSAL_OPERATION_KEY = 'dnd5e.modifier-grant-proposal'
 export const DND5E_ACTOR_LINK_PROPOSAL_OPERATION_KEY = 'dnd5e.actor-link-proposal'
 export const DND5E_CREATURE_FORM_PROPOSAL_OPERATION_KEY = 'dnd5e.creature-form-proposal'
 export const DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY = 'dnd5e.manual-adjudication-proposal'
 export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
+export const DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY = 'dnd5e.play-absence-proposal'
 export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-concealed-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
 export const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
@@ -160,6 +163,9 @@ export const DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY =
 /** Whether a repeat save is attempted when its perception requirement is met or unmet. */
 export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY =
   'dnd5e.active-effect-repeat-save-attempt-gate'
+/** A repeat save made only when its damage trigger fires; the turn tick counts the duration alone. */
+export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY =
+  'dnd5e.active-effect-repeat-save-triggers-only'
 /** Whether this turn's repeat save is attempted; false settles the gated d20 without a request. */
 export const DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY = 'dnd5e.repeat-save-attempt-allowed'
 export const DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.test-heal-proposal'
@@ -182,12 +188,14 @@ export type Outcome =
   | { kind: 'CONDITION_APPLY'; conditionId: string }
   | { kind: 'STABILIZE' }
   | { kind: 'KILL' }
+  | { kind: 'REVIVE'; hitPoints: ReviveHitPoints }
   | { kind: 'DEPART' }
   | { kind: 'MODIFIER_GRANT' }
   | { kind: 'ACTOR_LINK' }
   | { kind: 'CREATURE_FORM' }
   | { kind: 'MANUAL_ADJUDICATION' }
   | { kind: 'CONCEAL' }
+  | { kind: 'PLAY_ABSENCE' }
   | { kind: 'DETECT_CONCEALED' }
   | { kind: 'ADD_SPEED_TO_MOVEMENT' }
   | {

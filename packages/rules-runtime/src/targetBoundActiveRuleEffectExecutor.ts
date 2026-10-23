@@ -98,6 +98,8 @@ export interface TargetBoundActiveRuleEffectExecutionInput {
   } | null
   /** How the damage that triggered this repeat save tilts its d20 (D167); absent on a turn tick. */
   rollInfluence?: string | null
+  /** True when a repeat trigger (not a turn tick) runs this save; a triggers-only save rolls just then. */
+  onTrigger?: boolean
   runtime: RulesRuntimeService
 }
 
@@ -377,7 +379,8 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
     conditionImmunityIds: target.conditionImmunityIds,
     conditionOutcomeRules: input.conditionOutcomeRules ?? null,
     perception: input.perception ?? null,
-    rollInfluence: input.rollInfluence ?? null
+    rollInfluence: input.rollInfluence ?? null,
+    onTrigger: input.onTrigger ?? false
   })
   return {
     activeEffectId,

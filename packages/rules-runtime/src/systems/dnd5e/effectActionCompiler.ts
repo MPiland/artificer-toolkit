@@ -1,7 +1,6 @@
 import {
   type ActiveEffectSaveTally,
-  type ActiveEffectSaveThresholds,
-  type ActiveRuleEffectLifecycleDto
+  type ActiveEffectSaveThresholds
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
@@ -22,7 +21,6 @@ import type {
   FollowUpSaveRepeatTriggerAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
-  addNumbersRuleOperation,
   checksumRuleDocument,
   compareCanonicalD20Contributors,
   type CompiledRuleGraph,
@@ -62,8 +60,21 @@ import {
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import {
+  relationshipRecurrenceGraph,
+  relationshipStateGraph
+} from './effectActionRelationshipGraphs.js'
+import {
+  directResultSequence,
+  mergeDirectResultGraphs,
+  rulingSequence,
+  sequentialComposition,
+  singleEntryAction
+} from './effectActionResultSequences.js'
+import {
   boundedTestOutcome,
+  hasLifecycleOverride,
   specializedTestOutcome,
+  positiveFixedAmount,
   validateHealBonuses,
   type SpecializedOutcome
 } from './effectActionTestOutcomes.js'
@@ -110,7 +121,6 @@ import {
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-  DND5E_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
   DND5E_HEAL_TOTAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
@@ -174,6 +184,8 @@ import {
   timedBandConditions
 } from './effectActionBandConditions.js'
 import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
+import { turnEndGateEvidenceBinding, turnEndGatePlan } from './effectActionTurnEndGate.js'
 import {
   effectOutcomeProposalNode,
   effectOutcomeProposalOutputs
@@ -198,7 +210,11 @@ import {
   interpret,
   interpretSpatial
 } from './effectActionInterpretation.js'
-import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence.js'
+import {
+  repeatedFollowUpSaveResultPath,
+  repeatSaveAttemptAllowed,
+  repeatSaveGated
+} from './effectActionRepeatSaveEvidence.js'
 import {
   isChargedFreeActivation,
   isSupportedArea,
@@ -364,6 +380,7 @@ function isActiveEffectPlanOutcome(
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
       entry.pathCode === 'ON_SAVE_FAIL' &&
       timedConditionPlan(action) !== null) ||
+    (entry.outcome.effectKind === 'REMOVE_FROM_PLAY' && timedConditionPlan(action) !== null) ||
     (entry.outcome.effectKind === 'TELEPATHIC_LINK' &&
       entry.pathCode !== 'ON_USE' &&
       actorLinkPlan(action) !== null) ||
@@ -513,79 +530,6 @@ function supportedRecurringPlan(
     perceptionContributions: [],
     maintenance,
     marginRiders: []
-  }
-}
-
-type CompiledOutcomeEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
-
-/**
- * A cast of SEQUENTIAL entries held in one active effect (D156): at most one grant and at most one
- * recurring heal, the effect-bearing entries, with at most one immediate heal beside them. They
- * share the target, the duration and the maintenance, and no test decides them. Null for any other
- * action.
- */
-function sequentialComposition(action: Dnd5eCompiledEffectActionSource): null | {
-  grant: CompiledOutcomeEntry | null
-  recurring: CompiledOutcomeEntry | null
-  immediate: CompiledOutcomeEntry | null
-} {
-  const { invocation, entries } = action.compiledEffect
-  if (entries.length < 2 || invocation.kind !== 'ACTION' || invocation.triggerCode !== 'ACTIVATED')
-    return null
-  const composed = entries.filter(
-    (entry): entry is CompiledOutcomeEntry =>
-      'outcome' in entry &&
-      entry.resolutionKind === 'DIRECT' &&
-      entry.groupKind === 'SEQUENTIAL' &&
-      entry.pathCode === 'ON_USE' &&
-      !entry.rangeOverride &&
-      !entry.targetingOverride
-  )
-  const [first] = composed
-  const durationKey = (entry: CompiledOutcomeEntry) =>
-    entry.duration
-      ? JSON.stringify([
-          entry.duration.durationKind,
-          'amount' in entry.duration ? entry.duration.amount : null
-        ])
-      : null
-  if (
-    !first ||
-    composed.length !== entries.length ||
-    composed.some(
-      (entry) =>
-        durationKey(entry) !== durationKey(first) ||
-        entry.maintenanceDefinitionId !== first.maintenanceDefinitionId
-    )
-  )
-    return null
-  const grants = composed.filter(({ outcome }) => outcome.effectKind === 'APPLY_GRANT')
-  const heals = composed.filter(({ outcome }) => outcome.effectKind === 'HEAL')
-  const recurring = heals.filter(({ lifecycle }) => lifecycle?.recurringKind !== undefined)
-  const immediate = heals.filter(({ lifecycle }) => lifecycle === undefined)
-  if (
-    grants.length + recurring.length + immediate.length !== composed.length ||
-    grants.length > 1 ||
-    recurring.length > 1 ||
-    immediate.length > 1 ||
-    grants.length + recurring.length === 0
-  )
-    return null
-  return {
-    grant: grants[0] ?? null,
-    recurring: recurring[0] ?? null,
-    immediate: immediate[0] ?? null
-  }
-}
-
-/** The action narrowed to one of its entries, as a cast of that entry alone would author it. */
-function singleEntryAction(
-  action: Dnd5eCompiledEffectActionSource,
-  entry: CompiledOutcomeEntry
-): Dnd5eCompiledEffectActionSource {
-  return {
-    ...action,
-    compiledEffect: { ...action.compiledEffect, entries: [{ ...entry, groupKind: 'SINGLE' }] }
   }
 }
 
@@ -745,6 +689,26 @@ function compileSequentialComposition(
   })
 }
 
+function holdsLastingEffect(action: Dnd5eCompiledEffectActionSource): boolean {
+  return (
+    timedActiveEffectPlan(action) !== null ||
+    relationshipPlan(action) !== null ||
+    (supportedRecurringPlan(action) ?? concealmentPlan(action)) !== null
+  )
+}
+
+function compileDirectResultSequence(
+  results: readonly Dnd5eCompiledEffectActionSource[]
+): ServerPublishedRuleDefinitionDto {
+  return mergeDirectResultGraphs(
+    results.map((result) => {
+      // The sequence's own maintained effect was checked once for the whole action.
+      const { requiresConcentration: _concentration, ...effect } = result.compiledEffect
+      return compileEffectActionGraph({ ...result, compiledEffect: effect }).definition
+    })
+  )
+}
+
 function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   | (Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> & {
       frozenGraph: ServerPublishedRuleDefinitionDto
@@ -852,168 +816,6 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
     maintenance: null,
     marginRiders: []
   }
-}
-
-function relationshipStateGraph(input: {
-  action: Dnd5eCompiledEffectActionSource
-  relationship: ActorRelationshipAuthored
-}): ServerPublishedRuleDefinitionDto {
-  const definition: RuleGraphDefinition = {
-    schemaVersion: 1,
-    id: input.action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'relationship-state',
-        operation: {
-          key: DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
-          contractVersion: 1
-        },
-        inputs: {}
-      }
-    ],
-    outputs: {
-      relationshipOutcomeId: { kind: 'LITERAL', value: input.relationship.id }
-    },
-    sourceEntryBindings: [{ sourceEntryId: input.relationship.id, nodeId: 'relationship-state' }]
-  }
-  return publishedGraph(definition)
-}
-
-function relationshipRecurrenceGraph(input: {
-  action: Dnd5eCompiledEffectActionSource
-  relationship: ActorRelationshipAuthored
-  modules: readonly ActorRelationshipAuthored['modules'][number][]
-  recurrenceDamage: NonNullable<ActorRelationshipAuthored['recurrence']>['damage']
-}): ServerPublishedRuleDefinitionDto {
-  if (!('diceConfig' in input.recurrenceDamage))
-    unsupported('D&D relationship recurrence dice are unavailable.')
-  const parsed = parseBoundedDiceConfiguration(input.recurrenceDamage.diceConfig!)
-  const { term } = parsed
-  const dice = Array.from({ length: term.count }, (_, index) => ({
-    id: `relationship-die-${index + 1}`,
-    operation: { key: 'evidence.integer-range', contractVersion: 1 },
-    inputs: {
-      min: { kind: 'LITERAL' as const, value: 1 },
-      max: { kind: 'LITERAL' as const, value: term.die }
-    }
-  }))
-  const sums = Array.from({ length: Math.max(0, term.count - 1) }, (_, index) => ({
-    id: `relationship-sum-${index + 1}`,
-    operation: {
-      key: addNumbersRuleOperation.key,
-      contractVersion: addNumbersRuleOperation.contractVersion
-    },
-    inputs: {
-      left:
-        index === 0
-          ? {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: 'relationship-die-1',
-              port: 'value'
-            }
-          : {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: `relationship-sum-${index}`,
-              port: 'value'
-            },
-      right: {
-        kind: 'NODE_OUTPUT' as const,
-        nodeId: `relationship-die-${index + 2}`,
-        port: 'value'
-      }
-    }
-  }))
-  const subtotal =
-    term.count === 1
-      ? {
-          kind: 'NODE_OUTPUT' as const,
-          nodeId: 'relationship-die-1',
-          port: 'value'
-        }
-      : {
-          kind: 'NODE_OUTPUT' as const,
-          nodeId: `relationship-sum-${term.count - 1}`,
-          port: 'value'
-        }
-  const amount =
-    parsed.modifier === 0
-      ? subtotal
-      : {
-          kind: 'NODE_OUTPUT' as const,
-          nodeId: 'relationship-damage-total',
-          port: 'value'
-        }
-  const definition: RuleGraphDefinition = {
-    schemaVersion: 1,
-    id: input.action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      ...dice,
-      ...sums,
-      ...(parsed.modifier === 0
-        ? []
-        : [
-            {
-              id: 'relationship-damage-total',
-              operation: {
-                key: DND5E_DAMAGE_TOTAL_OPERATION_KEY,
-                contractVersion: 1
-              },
-              inputs: {
-                subtotal,
-                modifier: { kind: 'LITERAL' as const, value: parsed.modifier }
-              }
-            }
-          ]),
-      {
-        id: 'relationship-recurrence',
-        operation: {
-          key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-          contractVersion: 1
-        },
-        inputs: {
-          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          targetStateChecksum: {
-            kind: 'FACT',
-            factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-          },
-          amount,
-          damageTypeId: {
-            kind: 'LITERAL',
-            value: damageTypeIdentity(input.recurrenceDamage.damageTypeId)
-          }
-        }
-      }
-    ],
-    outputs: {
-      targetActorId: {
-        kind: 'NODE_OUTPUT',
-        nodeId: 'relationship-recurrence',
-        port: 'targetActorId'
-      },
-      amount: {
-        kind: 'NODE_OUTPUT',
-        nodeId: 'relationship-recurrence',
-        port: 'amount'
-      },
-      damageTypeId: {
-        kind: 'NODE_OUTPUT',
-        nodeId: 'relationship-recurrence',
-        port: 'damageTypeId'
-      }
-    },
-    sourceEntryBindings: [
-      {
-        sourceEntryId: input.relationship.id,
-        nodeId: 'relationship-recurrence'
-      }
-    ]
-  }
-  void input.modules
-  return publishedGraph(definition)
 }
 
 /**
@@ -1188,16 +990,23 @@ function timedImmediateConditionPlan(
 function timedConditionPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const entries = entriesBesideSourceImmunity(action)
+  // A manual ruling beside the held entries (Maze's escape) is the GM's, so the effect holds nothing for it.
+  const entries = entriesBesideSourceImmunity(action).filter(
+    (entry) => !('outcome' in entry && entry.outcome.effectKind === 'MANUAL_ADJUDICATION')
+  )
   const outcomeEntries = entries.filter((entry) => 'outcome' in entry)
   const conditionEntries = outcomeEntries.flatMap((entry) =>
     entry.outcome.effectKind === 'CONDITION' ? [{ entry, outcome: entry.outcome }] : []
   )
   const grantEntries = outcomeEntries.filter((entry) => entry.outcome.effectKind === 'APPLY_GRANT')
-  const lead = conditionEntries[0]
+  const removalEntries = outcomeEntries.flatMap((entry) =>
+    entry.outcome.effectKind === 'REMOVE_FROM_PLAY' ? [{ entry, outcome: entry.outcome }] : []
+  )
+  const lead = conditionEntries[0] ?? removalEntries[0]
   if (
     !lead ||
     grantEntries.length > 1 ||
+    removalEntries.length > 1 ||
     outcomeEntries.length !== entries.length ||
     // The held entries and any damage beside them are one authored result: same path, block,
     // duration and lifecycle.
@@ -1205,6 +1014,7 @@ function timedConditionPlan(
       (entry) =>
         (entry.outcome.effectKind !== 'CONDITION' &&
           entry.outcome.effectKind !== 'APPLY_GRANT' &&
+          entry.outcome.effectKind !== 'REMOVE_FROM_PLAY' &&
           entry.outcome.effectKind !== 'DAMAGE') ||
         entry.pathCode !== lead.entry.pathCode ||
         entry.resultBlockId !== lead.entry.resultBlockId ||
@@ -1221,6 +1031,7 @@ function timedConditionPlan(
     consumeOnFirstEvents = [],
     endOnEvents = [],
     endOnTriggers = [],
+    turnEndGate,
     ...otherLifecycle
   } = lead.entry.lifecycle ?? {}
   const maintenance = maintenancePlan(action, lead.entry)
@@ -1270,6 +1081,21 @@ function timedConditionPlan(
     )
   )
     return null
+  const lifecycle = {
+    consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
+    endOnEvents: [...new Set(endOnEvents)].sort(),
+    endOnTriggers: canonicalEndTriggers(endOnTriggers)
+  }
+  if (turnEndGate)
+    return turnEndGatePlan({
+      effectId: action.effectId,
+      entryId: lead.entry.entryId,
+      minimumRoll: turnEndGate.minimumRoll,
+      keepsTurn: removalEntries[0]?.outcome.keepsTurn,
+      heldAlone: outcomeEntries.length === 1 && !turnAnchor && !rider && !maintenance,
+      initialRemaining,
+      lifecycle
+    })
   return {
     authoredEffectId: action.effectId,
     compiledEntryId: lead.entry.entryId,
@@ -1286,12 +1112,13 @@ function timedConditionPlan(
     ...(grantContribution && {
       modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true }
     }),
-    lifecycle: {
-      consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
-      endOnEvents: [...new Set(endOnEvents)].sort(),
-      endOnTriggers: canonicalEndTriggers(endOnTriggers)
-    },
-    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
+    ...(removalEntries[0] && {
+      playAbsenceContribution: { keepsTurn: removalEntries[0].outcome.keepsTurn }
+    }),
+    lifecycle,
+    // A removal held with no condition (Etherealness) has no condition to remove at its end.
+    adapterFacts:
+      conditionEntries.length > 0 ? { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true } : {},
     perceptionContributions: [],
     maintenance,
     marginRiders: rider ? [marginRiderPlan(rider)] : []
@@ -1888,7 +1715,8 @@ function repeatingDirectFollowUpSavePlan(
     heldConditionIds: leadConditions.map(({ conditionId }) => conditionId),
     escalationConditionId: escalation?.conditionId,
     repeatRollInfluence: save.repeatRollInfluence,
-    repeatAttemptGate: save.repeatAttemptGate
+    repeatAttemptGate: save.repeatAttemptGate,
+    triggersOnly: save.timing === 'ON_TRIGGERS_ONLY'
   })
   const grantPlan =
     lead.effectKind === 'APPLY_GRANT'
@@ -1925,7 +1753,7 @@ function repeatingDirectFollowUpSavePlan(
     !contribution ||
     !UUID.test(leadEntry.resultBlockId) ||
     initialRemaining === null ||
-    save.timing !== 'TARGET_TURN_END' ||
+    (save.timing !== 'TARGET_TURN_END' && save.timing !== 'ON_TRIGGERS_ONLY') ||
     (save.attempts.kind === 'ONCE'
       ? (save.attempts.repeatOnFailure === true) === (escalation !== null)
       : escalation !== null ||
@@ -1974,16 +1802,6 @@ function isTallyCount(count: number) {
   return Number.isSafeInteger(count) && count >= 1 && count <= 255
 }
 
-/** A thresholds effect that has counted its failures stops saving; its duration still runs out. */
-function repeatSaveSettled(
-  thresholds: ActiveEffectSaveThresholds | undefined,
-  lifecycle: ActiveRuleEffectLifecycleDto
-) {
-  return (
-    thresholds !== undefined && (lifecycle.saveTally?.failures ?? 0) >= thresholds.failuresToResolve
-  )
-}
-
 /** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
 function countRepeatSave(
   thresholds: ActiveEffectSaveThresholds,
@@ -2003,107 +1821,6 @@ function repeatingDirectFollowUpSaveLeadEntries(
   return repeatingDirectFollowUpSavePlan(action)
     ? entriesBesideSourceImmunity(action).slice(0, -1)
     : null
-}
-
-function repeatFollowUpSavePublishedGraph(input: {
-  action: Dnd5eCompiledEffectActionSource
-  plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
-}): ServerPublishedRuleDefinitionDto {
-  const abilityDefinitionId =
-    input.plan.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]
-  if (typeof abilityDefinitionId !== 'string' || !UUID.test(abilityDefinitionId)) {
-    throw new Dnd5eEffectActionCompilerError('D&D repeat-save facts are unavailable.')
-  }
-  // A gated repeat settles its d20 without a request on a turn the gate refuses the attempt.
-  const gated =
-    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.plan.adapterFacts ||
-    input.plan.saveThresholds !== undefined
-  const definition: RuleGraphDefinition = {
-    schemaVersion: 1,
-    id: input.action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'repeat-save-d20',
-        operation: {
-          key: gated ? 'evidence.optional-integer-range' : 'evidence.integer-range',
-          contractVersion: 1
-        },
-        inputs: {
-          min: { kind: 'LITERAL', value: 1 },
-          max: { kind: 'LITERAL', value: 20 },
-          ...(gated
-            ? {
-                enabled: {
-                  kind: 'FACT' as const,
-                  factKey: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY
-                }
-              }
-            : {})
-        }
-      },
-      dnd5eAddedDiceNode('repeat-save-d20'),
-      {
-        id: input.plan.frozenGraphNodeId,
-        operation: { key: DND5E_SAVE_TEST_OPERATION_KEY, contractVersion: 3 },
-        inputs: {
-          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          naturalD20: {
-            kind: 'NODE_OUTPUT',
-            nodeId: 'repeat-save-d20',
-            port: 'value'
-          },
-          addedTotal: {
-            kind: 'NODE_OUTPUT',
-            nodeId: 'repeat-save-d20-added-dice',
-            port: 'value'
-          },
-          modifier: { kind: 'FACT', factKey: DND5E_SAVE_MODIFIER_FACT_KEY },
-          threshold: { kind: 'FACT', factKey: DND5E_SAVE_DC_FACT_KEY },
-          contributorChecksum: {
-            kind: 'FACT',
-            factKey: DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY
-          },
-          outcomeRule: { kind: 'FACT', factKey: DND5E_TEST_OUTCOME_RULE_FACT_KEY }
-        }
-      }
-    ],
-    outputs: {
-      targetActorId: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'targetActorId'
-      },
-      naturalD20: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'naturalD20'
-      },
-      total: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'total'
-      },
-      resultPath: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'resultPath'
-      },
-      contributorChecksum: {
-        kind: 'NODE_OUTPUT',
-        nodeId: input.plan.frozenGraphNodeId,
-        port: 'contributorChecksum'
-      }
-    },
-    sourceEntryBindings: [
-      {
-        sourceEntryId: input.plan.compiledEntryId,
-        nodeId: input.plan.frozenGraphNodeId
-      }
-    ]
-  }
-  return publishedGraph(definition)
 }
 
 function isExactImmediateFollowUpSaveAction(action: Dnd5eCompiledEffectActionSource): boolean {
@@ -2316,7 +2033,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
       entry.resolutionKind !== 'DIRECT' ||
       (entry.groupKind !== 'SINGLE' &&
         !(relationshipEntries.length === 1 && entry.groupKind === 'SEQUENTIAL')) ||
-      ((entry.duration || entry.lifecycle) &&
+      (hasLifecycleOverride(entry) &&
         !ownsTimedSaveCondition(action, entry) &&
         (recurringPlan?.compiledEntryId !== entry.resultBlockId || kind !== 'SAVE')) ||
       entry.rangeOverride ||
@@ -2344,43 +2061,6 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
   return { kind, branches }
 }
 
-/**
- * An ON_USE SEQUENCE whose other outcomes are all GM rulings (D156): its one executable outcome
- * compiles as the action's result, and each ruling stays beside it as a manual-adjudication node.
- * A sequence with two executable outcomes is not split, so the one-result rule refuses it.
- */
-function rulingSequence(action: Dnd5eCompiledEffectActionSource): {
-  executable: Dnd5eCompiledEffectActionSource
-  rulings: readonly Dnd5eCompiledEffectActionSource['compiledEffect']['entries'][number][]
-} | null {
-  const { entries } = action.compiledEffect
-  if (
-    entries.length < 2 ||
-    !entries.every(
-      (entry) =>
-        entry.resolutionKind === 'DIRECT' &&
-        entry.groupKind === 'SEQUENTIAL' &&
-        entry.pathCode === 'ON_USE'
-    )
-  )
-    return null
-  const isRuling = (entry: (typeof entries)[number]) =>
-    'outcome' in entry && entry.outcome.effectKind === 'MANUAL_ADJUDICATION'
-  const rulings = entries.filter(isRuling)
-  const executable = entries.filter((entry) => !isRuling(entry))
-  if (executable.length !== 1) return null
-  return {
-    executable: {
-      ...action,
-      compiledEffect: {
-        ...action.compiledEffect,
-        entries: [{ ...executable[0]!, groupKind: 'SINGLE' }]
-      }
-    },
-    rulings
-  }
-}
-
 /** The action a plan reads: a ruling sequence's one executable outcome, or the action itself. */
 function executableAction(action: Dnd5eCompiledEffectActionSource) {
   return rulingSequence(action)?.executable ?? action
@@ -2398,7 +2078,7 @@ type DirectOutcomeInput = Readonly<{
   action: Dnd5eCompiledEffectActionSource
   onList: boolean
   selfTeleport: { maxFeet: number; destinationKind: 'VISIBLE' | 'SPECIFIED_POINT' } | null
-  plans: Readonly<{ grant: boolean; link: boolean; form: boolean }>
+  plans: Readonly<{ grant: boolean; link: boolean; form: boolean; absence: boolean }>
 }>
 type AuthoredOutcomeOf<Kind extends Dnd5eAuthoredOutcome['effectKind']> = Extract<
   Dnd5eAuthoredOutcome,
@@ -2422,20 +2102,6 @@ function targetOnlyDirectOutcome(outcome: Dnd5eAuthoredOutcome, input: DirectOut
   const targetOnly = dnd5eTargetOnlyOutcome(outcome) ?? unsupportedDirectOutcome()
   return targetOnly.kind === 'ADD_SPEED_TO_MOVEMENT' ? offList(targetOnly, input) : targetOnly
 }
-function positiveFixedAmount(outcome: AuthoredOutcomeOf<'HEAL' | 'DAMAGE'>): number {
-  if (
-    outcome.valueKind !== 'FIXED' ||
-    outcome.scalingKind !== 'NONE' ||
-    outcome.bonuses?.length ||
-    !Number.isSafeInteger(outcome.amount) ||
-    outcome.amount <= 0
-  )
-    unsupported(
-      'D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.'
-    )
-  return outcome.amount
-}
-
 /**
  * The one dispatch from an authored outcome kind to the direct outcome it compiles to (ADR 0039
  * decision 1). A kind with no entry is not a direct outcome.
@@ -2461,6 +2127,7 @@ const DND5E_DIRECT_OUTCOMES: {
   },
   KILL: () => ({ kind: 'KILL' }),
   STABILIZE: targetOnlyDirectOutcome,
+  REVIVE: targetOnlyDirectOutcome,
   MANUAL_ADJUDICATION: targetOnlyDirectOutcome,
   MOVEMENT_RULE: targetOnlyDirectOutcome,
   TELEPORT: (outcome, input) => {
@@ -2482,6 +2149,8 @@ const DND5E_DIRECT_OUTCOMES: {
     plans.link ? { kind: 'ACTOR_LINK' } : unsupportedDirectOutcome(),
   MANIFEST: (_outcome, { plans }) =>
     plans.form ? { kind: 'CREATURE_FORM' } : unsupportedDirectOutcome(),
+  REMOVE_FROM_PLAY: (_outcome, { plans }) =>
+    plans.absence ? { kind: 'PLAY_ABSENCE' } : unsupportedDirectOutcome(),
   HEAL: (outcome, { action }) => {
     if (outcome.valueKind === 'DICE') {
       parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
@@ -2628,6 +2297,13 @@ function supported(
   const entry = effect.entries[0]
   // The condition and the save it repeats (Power Word Stun) are one cast: the lead entry applies now.
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
+  const lastingPlan =
+    repeatPlan ||
+    supportedRecurringPlan(action) ||
+    grantPlan ||
+    conditionPlan ||
+    linkPlan ||
+    formPlan
   if (
     effect.entries.length !== (repeatPlan ? 2 : 1) ||
     !entry ||
@@ -2635,21 +2311,8 @@ function supported(
     // A sequence of one outcome (Haste) resolves as a single result does.
     (entry.groupKind === 'CHOICE' && !repeatPlan) ||
     entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
-    (entry.maintenanceDefinitionId &&
-      !repeatPlan &&
-      !supportedRecurringPlan(action) &&
-      !grantPlan &&
-      !conditionPlan &&
-      !linkPlan &&
-      !formPlan) ||
-    ((entry.duration || entry.lifecycle) &&
-      !repeatPlan &&
-      !supportedRecurringPlan(action) &&
-      !grantPlan &&
-      !conditionPlan &&
-      !linkPlan &&
-      !formPlan &&
-      !concealmentPlan(action)) ||
+    (entry.maintenanceDefinitionId && !lastingPlan) ||
+    (hasLifecycleOverride(entry) && !lastingPlan && !concealmentPlan(action)) ||
     entry.rangeOverride ||
     entry.targetingOverride
   )
@@ -2727,7 +2390,12 @@ function supported(
     action,
     onList: supportsChosenCreatures,
     selfTeleport,
-    plans: { grant: grantPlan !== null, link: linkPlan !== null, form: formPlan !== null }
+    plans: {
+      grant: grantPlan !== null,
+      link: linkPlan !== null,
+      form: formPlan !== null,
+      absence: conditionPlan?.playAbsenceContribution != null || conditionPlan?.turnEndGate != null
+    }
   })
 }
 
@@ -3682,6 +3350,8 @@ function bindMovementInterruptionOutput(input: {
 
 /** Whether the active-effect plan the action ends up with is held under a maintained effect. */
 function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolean {
+  const results = directResultSequence(action, holdsLastingEffect)
+  if (results) return results.some(startsMaintainedEffect)
   const plan =
     sequentialCompositionPlan(action) ??
     repeatingFollowUpSavePlan(action) ??
@@ -3747,10 +3417,14 @@ function dnd5eActiveEffectPlans(
 ): CharacterRuleActionActiveEffectPlan[] {
   if (published.id !== action.effectId || published.checksum.length !== 64)
     throw new Dnd5eEffectActionCompilerError('The D&D active effect plan source is invalid.')
+  const results = directResultSequence(action, holdsLastingEffect)
+  if (results) return results.flatMap((result) => dnd5eActiveEffectPlans(result, published))
   const composed = sequentialCompositionPlan(action)
   if (composed) return [composed]
   const repeatPlan = repeatingFollowUpSavePlan(action)
   const timedPlan = repeatPlan ? null : timedActiveEffectPlan(action)
+  // A turn-end gate is frozen as the d20 test it rolls, not as the duration its child holds.
+  const savePlan = repeatPlan ?? (timedPlan?.turnEndGate ? timedPlan : null)
   const relationship = relationshipPlan(action)
   const plan =
     repeatPlan ??
@@ -3795,8 +3469,8 @@ function dnd5eActiveEffectPlans(
   )
     unsupported('D&D repeat offer needs a maintained chosen-item grant it can ride.')
   if (!plan) return []
-  const frozenGraph = repeatPlan
-    ? repeatFollowUpSavePublishedGraph({ action, plan: repeatPlan })
+  const frozenGraph = savePlan
+    ? repeatFollowUpSavePublishedGraph({ action, plan: savePlan })
     : timedPlan
       ? durationPublishedGraph({
           effectId: action.effectId,
@@ -3814,7 +3488,7 @@ function dnd5eActiveEffectPlans(
     ? relationship.recurrenceStage === 'START_OF_TURN'
       ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
       : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
-    : repeatPlan
+    : savePlan
       ? DND5E_SAVE_TEST_OPERATION_KEY
       : timedPlan
         ? DND5E_CONDITION_DURATION_OPERATION_KEY
@@ -3927,6 +3601,8 @@ function compileEffectActionGraph(
     refuseGate()
     return compileSequentialComposition(action, composition)
   }
+  const results = directResultSequence(action, holdsLastingEffect)
+  if (results) return compileDirectResultSequence(results)
   if (isExactImmediateFollowUpSaveAction(action) || repeatingDirectFollowUpSavePlan(action)) {
     refuseGate()
     return compileDnd5eEffectActionTestTemplate({ action }).published
@@ -4947,7 +4623,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     defenses,
     conditionImmunityIds,
     perception,
-    rollInfluence
+    rollInfluence,
+    onTrigger
   }) => {
     if (definition.frozenGraph.source.gameSystemId !== DND5E_SYSTEM_ID)
       throw new Dnd5eEffectActionCompilerError(
@@ -4972,6 +4649,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     const requestNodeId = definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY]
     const dc = definition.adapterFacts[DND5E_SAVE_DC_FACT_KEY]
     const saveDc = typeof dc === 'number' && Number.isSafeInteger(dc) ? dc : null
+    if (definition.recurrence.turnEndGate) return turnEndGateEvidenceBinding(definition, baseFacts)
     if (abilityDefinitionId === undefined && requestNodeId === undefined && dc === undefined) {
       return { facts: baseFacts, evidencePolicy: null }
     }
@@ -5091,7 +4769,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     }
     const contributorChecksum = checksumRuleDocument(contributors)
     const gate = perceptionRequirement?.kind === 'ATTEMPT_GATE' ? perceptionRequirement : null
-    const gated = gate !== null || definition.recurrence.saveThresholds !== undefined
+    const gated = repeatSaveGated(definition.adapterFacts, definition.recurrence.saveThresholds)
     if (
       definition.frozenGraph.nodes.filter(
         (node) =>
@@ -5103,9 +4781,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     ) {
       throw new Dnd5eEffectActionCompilerError('D&D recurring save request binding is invalid.')
     }
-    const attemptAllowed =
-      !repeatSaveSettled(definition.recurrence.saveThresholds, lifecycle) &&
-      (!gate || perception?.satisfied === (gate.allow === 'WHEN_MET'))
+    const attemptAllowed = repeatSaveAttemptAllowed({
+      adapterFacts: definition.adapterFacts,
+      thresholds: definition.recurrence.saveThresholds,
+      lifecycle,
+      gateMet: !gate || perception?.satisfied === (gate.allow === 'WHEN_MET'),
+      onTrigger
+    })
     const successImmunity =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]
     // A zone that needs sight of its source is saved against unrolled by an occupant without it.
@@ -5252,7 +4934,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (
       definition.stateContributions.some(
         ({ kind }) =>
-          kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM' || kind === 'SOURCE_IMMUNITY'
+          kind === 'ACTOR_LINK' ||
+          kind === 'CREATURE_FORM' ||
+          kind === 'PLAY_ABSENCE' ||
+          kind === 'SOURCE_IMMUNITY'
       )
     )
       return { applications: [], terminal: false, emptyApplicationAllowed: true }
@@ -5265,6 +4950,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       targetActorId: target.targetActorId
     })
     if (repeatedSavePath !== null) {
+      // The gate's d20 only decides whether its child is made; the effect lasts out its duration.
+      if (definition.recurrence.turnEndGate)
+        return {
+          applications: [],
+          terminal: lifecycle.remainingTicks === 1,
+          emptyApplicationAllowed: true
+        }
       const conditionIds = repeatSaveConditionIds(definition.adapterFacts)
       const thresholds = definition.recurrence.saveThresholds
       const saveTally =

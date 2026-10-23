@@ -5,7 +5,7 @@ import type { EncounterRunActorState } from '@artificer-toolkit/schema/projectio
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { EncounterCharacterRow } from './characterPlay.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
-import { writeRunActor } from './documents.js'
+import { readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 
 /** Reconciles owners after exact dependent deletion, sharing a preceding mechanics increment. */
@@ -78,15 +78,21 @@ export async function reconcileNativeMaintenanceOwners(
       if (input.encounterId === null)
         throw new Error('Maintained-effect Encounter actors need their Encounter.')
       const encounterId = input.encounterId
-      const row = await ctx.db
-        .query('encounterRunActors')
-        .withIndex('by_encounterId_id', (q) => q.eq('encounterId', encounterId).eq('id', actor.id))
+      const run = await ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', encounterId))
         .unique()
-      if (!row || row.stateChecksum !== checksumRunActorPlayState(actor))
+      if (!run) throw new Error('Encounter is unavailable.')
+      // The deletion that preceded this has already returned the holder from a removal effect
+      // (D178), so the stored absence, not the caller's copy, is the current one.
+      const { row, actor: stored } = await readRunActorWithRow(ctx, readRunState(run), actor.id)
+      const current = { ...actor, absence: stored.absence }
+      const next = { ...updated, absence: stored.absence }
+      if (row.stateChecksum !== checksumRunActorPlayState(current))
         throw new Error('Maintained-effect Encounter mirror changed during settlement.')
-      if (row.stateChecksum !== checksumRunActorPlayState(updated))
-        await writeRunActor(ctx, row._id, updated)
-      actors.set(actor.id, updated)
+      if (row.stateChecksum !== checksumRunActorPlayState(next))
+        await writeRunActor(ctx, row._id, next)
+      actors.set(actor.id, next)
     }
   }
   return input.actors.map((actor) => actors.get(actor.id)!)

@@ -35,6 +35,7 @@ import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import type { ConcentrationListingDto } from '@artificer-toolkit/schema/shared/activeGrantListing'
 import { listActiveGrantListings } from '../activeGrantListings.js'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
 import { labelCharacterConditions } from './characterConditionLabels.js'
 import { effectiveHitPointMaximum } from './activeEffectGrantTotals.js'
@@ -241,11 +242,6 @@ function formatClassSummary(resolution: CharacterBuilderResolution): string {
     .join(' / ')
 
   return summary || 'No class selected'
-}
-
-function formatSlotLabel(slotKey: string, level: number | null): string {
-  if (slotKey === 'PACT') return 'Pact Magic'
-  return level == null ? slotKey : `Level ${level}`
 }
 
 /** Labels only title a source on the Sheet; a reader that does not show sources passes none. */
@@ -868,7 +864,7 @@ export function projectCharacterSheetBundle(
   const spellSlots = [
     ...ruleEvaluation.output.spellSlots.maxByLevel.map((slot) => ({
       slotKey: getSpellSlotKey(slot.spellLevel),
-      label: formatSlotLabel(getSpellSlotKey(slot.spellLevel), slot.spellLevel),
+      label: `Level ${slot.spellLevel}`,
       level: slot.spellLevel,
       max: slot.slotCount,
       used: slot.effectiveUsed,
@@ -877,8 +873,12 @@ export function projectCharacterSheetBundle(
     ...(ruleEvaluation.output.spellSlots.pactMagic
       ? [
           {
-            slotKey: 'PACT',
-            label: formatSlotLabel('PACT', ruleEvaluation.output.spellSlots.pactMagic.level),
+            slotKey: ruleEvaluation.output.spellSlots.pactMagic.poolCode,
+            label: systemCoreCodeRegistry.requireCode(
+              character.systemId,
+              'spellSlotPool',
+              ruleEvaluation.output.spellSlots.pactMagic.poolCode
+            ).label,
             level: ruleEvaluation.output.spellSlots.pactMagic.level,
             max: ruleEvaluation.output.spellSlots.pactMagic.slots,
             used: ruleEvaluation.output.spellSlots.pactMagic.effectiveUsed,

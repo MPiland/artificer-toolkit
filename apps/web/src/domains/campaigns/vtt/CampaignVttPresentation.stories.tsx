@@ -7,6 +7,8 @@ import {
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
+  buildTabletopPresentations,
+  tabletopConditions,
   tabletopCurrentUserId,
   tabletopGmEncounter,
   tabletopLiveScene
@@ -25,7 +27,7 @@ import {
   selectionOutlineColor,
   statusCategoryColours
 } from './vttSceneRenderer.model'
-import { buildVttTokenPresentations, dispositionRingColours } from './vttTokenPresentation.model'
+import { dispositionRingColours } from './vttTokenPresentation.model'
 import { validated } from '../../../test/validatedFixture'
 
 const artUrl =
@@ -72,15 +74,15 @@ const emberActor = {
       polarity: 'BENEFICIAL' as const
     }
   ],
-  conditions: [
-    { id: 'morale', kind: 'MORALE', label: 'Shaken' },
-    { id: 'injury', kind: 'INJURY', label: 'Lingering wound' },
-    { id: 'condition', kind: 'CONDITION', label: 'Restrained' },
-    { id: 'condition-2', kind: 'CONDITION', label: 'Blinded' },
-    { id: 'condition-3', kind: 'CONDITION', label: 'Deafened' },
-    { id: 'condition-4', kind: 'CONDITION', label: 'Grappled' },
-    { id: 'condition-5', kind: 'CONDITION', label: 'Prone' }
-  ],
+  conditions: tabletopConditions(
+    'FRIGHTENED',
+    'POISONED',
+    'RESTRAINED',
+    'BLINDED',
+    'DEAFENED',
+    'GRAPPLED',
+    'PRONE'
+  ),
   healthBand: 'CRITICAL' as const
 }
 const wardenActor = { ...tabletopGmEncounter.actors[1]!, defeated: true }
@@ -108,7 +110,7 @@ function reactionPending(reactor: {
     occurrenceVersion: 1
   }
 }
-const tokenPresentations = buildVttTokenPresentations({
+const tokenPresentations = buildTabletopPresentations({
   actorIdByTokenId: new Map([
     [emberToken!.id, emberActor.id],
     [wardenToken!.id, wardenActor.id]
@@ -352,7 +354,7 @@ export const ReactionHaloBeatsCurrentTurn: Story = {
 }
 
 // VTT_UI-4.1: a reaction halo and the current-turn halo differ by shape too, not only by colour.
-const otherTokenReactionPresentations = buildVttTokenPresentations({
+const otherTokenReactionPresentations = buildTabletopPresentations({
   actorIdByTokenId: new Map([
     [emberToken!.id, emberActor.id],
     [wardenToken!.id, wardenActor.id]
@@ -410,7 +412,7 @@ export const TokenArtIsPresented: Story = {
 }
 
 // VTT_UI-1.1: the ring carries the actor's disposition; control and turn never recolour it.
-const neutralScoutPresentations = buildVttTokenPresentations({
+const neutralScoutPresentations = buildTabletopPresentations({
   actorIdByTokenId: new Map([
     [emberToken!.id, emberActor.id],
     [wardenToken!.id, wardenActor.id],
@@ -491,7 +493,7 @@ const neighbourScene = validated(campaignSceneStateDtoSchema)({
     }
   ]
 })
-const neighbourPresentations = buildVttTokenPresentations({
+const neighbourPresentations = buildTabletopPresentations({
   actorIdByTokenId: new Map([
     [emberToken!.id, emberActor.id],
     [wardenToken!.id, wardenActor.id]

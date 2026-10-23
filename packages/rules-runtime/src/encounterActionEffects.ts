@@ -343,7 +343,9 @@ export function prepareNativeActionEffectsPlan<
     plan?.modifierGrantContribution ||
     plan?.concealmentContribution ||
     plan?.actorLinkContribution ||
-    plan?.creatureFormContribution
+    plan?.creatureFormContribution ||
+    plan?.playAbsenceContribution ||
+    plan?.turnEndGate
   )
   const recurringEffect =
     relationship || grant || appliedCondition || appliedRecurringOutcome

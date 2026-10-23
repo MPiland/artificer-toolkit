@@ -287,6 +287,21 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
       uses: z.optional(activeEffectUsesSchema),
       /** Only on a repeat save counted to thresholds; its lifecycle `saveTally` counts toward these. */
       saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
+      /**
+       * The effect holds nothing itself (D178): at the end of each of its holder's turns the holder
+       * rolls a d20, and a roll of `minimumRoll` or higher makes the `child` effect, which ends at the
+       * holder's next turn start or with this effect.
+       */
+      turnEndGate: z.optional(
+        z.strictObject({
+          minimumRoll: integerSchema.check(z.gte(2)).check(z.lte(20)),
+          child: z.strictObject({
+            frozenGraphNodeId: localNodeIdSchema,
+            frozenGraph: compiledRuleGraphDtoSchema,
+            playAbsence: activeRuleEffectPlayAbsenceContributionDtoSchema
+          })
+        })
+      ),
       lifetimeScope: z.enum(['OWNER', 'ENCOUNTER']),
       expiration: z.discriminatedUnion('kind', [
         z.strictObject({ kind: z.literal('INDEFINITE') }),
@@ -511,6 +526,15 @@ const activeRuleEffectCreatureFormContributionDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The holder is out of play while the effect lasts (Banishment, Etherealness): its Run actor is
+ * untargetable and off the Scene, and the effect ending returns it. `keepsTurn` leaves its turns in
+ * initiative. The actor's own `absence` records the state; this contribution is the rule behind it.
+ */
+const activeRuleEffectPlayAbsenceContributionDtoSchema = lazySchema(() =>
+  z.strictObject({ kind: z.literal('PLAY_ABSENCE'), keepsTurn: z.boolean() })
+)
+
+/**
  * The holder is immune to one source's use of one authored effect or spell grant (D156, SPELLS-31.T5l):
  * that source's action refuses the holder as a single target and leaves it out of an area. The
  * source is the origin's actor in its Run, and `sourceCharacterId` once the immunity is carried.
@@ -544,6 +568,7 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
             activeRuleEffectLocationConcealmentContributionDtoSchema,
             activeRuleEffectActorLinkContributionDtoSchema,
             activeRuleEffectCreatureFormContributionDtoSchema,
+            activeRuleEffectPlayAbsenceContributionDtoSchema,
             activeRuleEffectSourceImmunityContributionDtoSchema
           ])
         )

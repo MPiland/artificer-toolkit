@@ -5,6 +5,7 @@ import {
   CASTING_TIME_UNIT_CODE,
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
+  DURATION_KIND,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
@@ -15,7 +16,8 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { conditionTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const banishment: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.BANISHMENT,
@@ -41,7 +43,12 @@ export const banishment: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.BANISHMENT, 0x214, 1),
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CHARISMA
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -61,23 +68,28 @@ export const banishment: SpellAuthored = {
         {
           id: spellChildId(SPELL_IDS.BANISHMENT, 0x212, 1),
           order: 1,
-          pathCode: PATH_CODE.ON_USE,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
           groupType: PATH_GROUP_TYPE.SINGLE,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.BANISHMENT, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.BANISHMENT, 0x213, 1),
-              durationKind: 'MINUTE',
+              durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.BANISHMENT, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'BANISHMENT' as const
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('INCAPACITATED')
+              },
+              {
+                id: spellChildId(SPELL_IDS.BANISHMENT, 0x215, 1),
+                effectKind: EFFECT_KIND.REMOVE_FROM_PLAY,
+                keepsTurn: false
               }
             ]
           }

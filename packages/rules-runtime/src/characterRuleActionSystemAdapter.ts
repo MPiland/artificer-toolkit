@@ -1,3 +1,4 @@
+import type { ReviveHitPoints } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { CompiledDuration } from '@artificer-toolkit/shared/compilers'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
@@ -168,6 +169,23 @@ export interface CharacterRuleActionActiveEffectPlan {
     observers: 'NON_ALLIES'
     /** The events whose first occurrence ends the concealment, sorted and unique. */
     consumeOnFirstEvents: readonly GrantConsumeEvent[]
+  }
+  /**
+   * The target leaves play while the effect lasts (Banishment, Etherealness): untargetable, off the
+   * Scene, and skipped by initiative unless it keeps its turn.
+   */
+  playAbsenceContribution?: { keepsTurn: boolean }
+  /**
+   * The effect holds nothing itself: a d20 at the end of each of its holder's turns makes the child
+   * effect when it reaches `minimumRoll` (Blink). The child's own graph is frozen with the plan.
+   */
+  turnEndGate?: {
+    minimumRoll: number
+    child: {
+      frozenGraph: ServerPublishedRuleDefinitionDto
+      frozenGraphNodeId: string
+      playAbsence: { keepsTurn: boolean }
+    }
   }
   /**
    * Each target holds a bond with every other target the action settled on (Telepathic Bond). The
@@ -454,6 +472,17 @@ export interface CharacterKillOutcomeApplication {
   targetActorId: string
 }
 
+/** A System-authorized revive: a dead target returns to life with 1 hit point or its maximum; any other target is unchanged. */
+export interface CharacterReviveOutcomeApplication {
+  sourceNodeId: string
+  sourceOperationKey: string
+  authoredPath: string | null
+  resolvedPath: string | null
+  kind: 'REVIVE'
+  targetActorId: string
+  hitPoints: ReviveHitPoints
+}
+
 /** A kill a held damage interception negated: nothing changes, and the interception's use is spent. */
 export interface CharacterKillNegatedOutcomeApplication {
   sourceNodeId: string
@@ -521,6 +550,7 @@ export type CharacterRuleActionApplication =
   | CharacterTemporaryHitPointsReleaseApplication
   | CharacterStabilizeOutcomeApplication
   | CharacterKillOutcomeApplication
+  | CharacterReviveOutcomeApplication
   | CharacterKillNegatedOutcomeApplication
   | CharacterDepartOutcomeApplication
   | CharacterHitPointMaximumReductionApplication
@@ -839,6 +869,8 @@ export interface CharacterRuleActionSystemAdapter {
     } | null
     /** How the damage that triggered this repeat save tilts its d20 (D167); absent on a turn tick. */
     rollInfluence?: string | null
+    /** True when a repeat trigger (not a turn tick) runs this save. */
+    onTrigger?: boolean
   }): {
     facts: Readonly<Record<string, RuleValue>>
     evidencePolicy: ServerRuleExecutionD20PolicyDto | null

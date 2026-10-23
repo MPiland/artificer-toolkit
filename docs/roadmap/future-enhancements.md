@@ -91,6 +91,8 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Message's casting time and duration swapped in the corpus (SPELLS-4.T2g1 review):** `packages/source-data/src/srd/spells/message.ts` authors a 1-round casting time and an INSTANTANEOUS duration; the SRD has a 1-action casting time and a 1-round duration. The outcome is a manual-adjudication prompt, so play is unaffected beyond the reply window.
+
 - **Nested save skipped by a branch gate (SPELLS-33.T4i3d):** a gated nested-save band rolls the save even for targets the gate excludes (e.g. a target over the HP band), then discards the outcome. Rolling the save only for in-band targets would need the gate evaluated before the d20 node; no SRD content is affected.
 
 - **A drag stops when the dragged creature drops (SPELLS-4.T1k):** a zone that drops a dragged creature to 0 HP or stops its movement ends the whole drag where it happened. The rules let a grappler keep dragging an unconscious creature. It is rare, and the grappler can move again to carry on.

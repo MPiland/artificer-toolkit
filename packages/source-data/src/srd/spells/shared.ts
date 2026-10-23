@@ -1,4 +1,13 @@
 import {
+  AUTHORING_SELECTION_KIND,
+  DAMAGE_DEFENSE_BYPASS_CODE,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE
+} from '@artificer-toolkit/shared/core'
+import type { ModifierGrantAuthored } from '@artificer-toolkit/shared/authored'
+import {
   SRD_CONDITION_TYPES,
   SRD_CREATURE_TYPES,
   SRD_DAMAGE_TYPES,
@@ -58,3 +67,23 @@ export function spellChildId(spellId: string, bucket: number, index: number): st
 }
 
 export { SRD_SYSTEM_ID, SRD_USER_ID }
+
+/**
+ * Resistance to bludgeoning, piercing and slashing damage from nonmagical attacks (Stoneskin, Wind
+ * Walk's "nonmagical weapons"); a magical attack's damage is not resisted.
+ */
+export function nonmagicalWeaponResistanceGrants(
+  idFor: (entry: number) => string
+): ModifierGrantAuthored[] {
+  return (['BLUDGEONING', 'PIERCING', 'SLASHING'] as const).map((code, index) => ({
+    id: idFor(index + 1),
+    order: index + 1,
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_RESISTANCE,
+    domain: {},
+    modifierKind: MODIFIER_KIND.ADD_OPTION,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: { damageTypeId: damageTypeId(code), bypassedBy: [DAMAGE_DEFENSE_BYPASS_CODE.MAGICAL] }
+  }))
+}

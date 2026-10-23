@@ -250,6 +250,7 @@ export type CompiledEffectOutcome =
   | CompiledFollowUpCheck
   | import('#authored').MovementRuleAuthored
   | import('#authored').ActionEconomyRuleAuthored
+  | import('#authored').ReviveAuthored
   | import('#authored').StabilizeAuthored
   | import('#authored').KillAuthored
   | ArmorClassFloorAuthored
@@ -259,6 +260,7 @@ export type CompiledEffectOutcome =
   | TreeStrideAuthored
   | ActorRelationshipAuthored
   | import('#authored').ConcealFromObserversAuthored
+  | import('#authored').RemoveFromPlayAuthored
   | import('#authored').DetectConcealedAuthored
   | import('#authored').CancelTriggeringEventAuthored
   | import('#authored').SourceImmunityAuthored
@@ -371,6 +373,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.ACTION_ECONOMY_RULE:
     case EFFECT_KIND.STABILIZE:
     case EFFECT_KIND.KILL:
+    case EFFECT_KIND.REVIVE:
     case EFFECT_KIND.ARMOR_CLASS_FLOOR:
     case EFFECT_KIND.RESTORE_RESOURCE:
     case EFFECT_KIND.TELEPATHIC_LINK:
@@ -378,6 +381,7 @@ function compileOutcomePayload(
     case EFFECT_KIND.TREE_STRIDE:
     case EFFECT_KIND.ACTOR_RELATIONSHIP:
     case EFFECT_KIND.CONCEAL_FROM_OBSERVERS:
+    case EFFECT_KIND.REMOVE_FROM_PLAY:
     case EFFECT_KIND.DETECT_CONCEALED:
     case EFFECT_KIND.CANCEL_TRIGGERING_EVENT:
     case EFFECT_KIND.SOURCE_IMMUNITY:

@@ -1,3 +1,7 @@
+// The shared barrels re-export each other in cycles, and Vitest's module runner resolves `export *`
+// through them only when the first importer enters at the barrel. Loading it here, before any test
+// file's own imports, fixes that entry point for every file.
+import '@artificer-toolkit/shared/core'
 import '@testing-library/jest-dom/vitest'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { cleanup } from '@testing-library/react'

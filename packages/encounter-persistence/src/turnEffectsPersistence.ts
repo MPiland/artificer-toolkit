@@ -12,6 +12,7 @@ import {
   deriveEncounterCharacterMechanicsEventCommandId,
   targetTransitionChecksum
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { turnEndGateChildEffect } from '@artificer-toolkit/rules-runtime/encounterEffectTurnEndGate'
 import type { CharacterRuleActionApplication } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
@@ -323,7 +324,7 @@ export async function persistEncounterTurnEffects(
         expectedVersion: effect.version,
         removal: 'ENDED'
       })
-    } else
+    } else {
       await store.updateLifecycleCas({
         id: effect.id,
         owner,
@@ -336,6 +337,11 @@ export async function persistEncounterTurnEffects(
             : {})
         }
       })
+      // A passed turn-end gate gives the holder its child effect until their next turn starts.
+      const child =
+        execution.d20?.resultPath === 'ON_SAVE_SUCCESS' ? turnEndGateChildEffect(effect) : null
+      if (child) await store.create({ ...child, occurredAt: input.occurredAt })
+    }
   }
   // A candidate the damage ended has already expired with its own execution.
   const candidateIds = new Set(candidates.map(({ id }) => id))

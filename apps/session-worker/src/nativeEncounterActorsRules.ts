@@ -3,7 +3,10 @@ import type {
   ResolveEncounterActionTargetDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { chosenCreaturesCap } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
-import { catchEncounterAreaActorIds } from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
+import {
+  absentEncounterActorIds,
+  catchEncounterAreaActorIds
+} from '@artificer-toolkit/rules-runtime/encounterAreaActionExecution'
 import {
   encounterAreaTargetCommandId,
   encounterAreaTargetOccurrenceId,
@@ -81,7 +84,8 @@ export async function planNativeLiveEncounterActorsAction(
         shape: reach.area.shape,
         casterActorId: caster.id,
         tokens: reach.scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
-        fromCasterSpace: false
+        fromCasterSpace: false,
+        absentActorIds: absentEncounterActorIds(actors)
       })
     )
     if (actorIds.some((actorId) => !caught.has(actorId)))

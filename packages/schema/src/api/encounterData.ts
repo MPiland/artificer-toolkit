@@ -73,8 +73,14 @@ export const encounterActorDispositionDtoSchema = lazySchema(() =>
 )
 export type EncounterActorDispositionDto = z.infer<typeof encounterActorDispositionDtoSchema>
 
-/** Why an actor is out of the Run's play (D82, D128): taken out by the GM, or carried away by an effect. */
-export const encounterActorAbsenceDtoSchema = lazySchema(() => z.enum(['GM_REMOVED', 'DEPARTED']))
+/**
+ * Why an actor is out of the Run's play (D82, D128, D178): taken out by the GM, carried away by an
+ * effect for good (`DEPARTED`), or held out of play by an effect that returns it when it ends
+ * (`EFFECT`; `EFFECT_KEEPS_TURN` when initiative still gives it turns, Etherealness).
+ */
+export const encounterActorAbsenceDtoSchema = lazySchema(() =>
+  z.enum(['GM_REMOVED', 'DEPARTED', 'EFFECT', 'EFFECT_KEEPS_TURN'])
+)
 export type EncounterActorAbsenceDto = z.infer<typeof encounterActorAbsenceDtoSchema>
 
 export const MAX_ENCOUNTER_ACTOR_CONTROLLERS = 8
@@ -105,6 +111,19 @@ export const encounterActorControllerUserIdsDtoSchema = lazySchema(() =>
  */
 export const encounterActorRevealDtoSchema = lazySchema(() => z.enum(['UNNAMED', 'NAMED']))
 
+/**
+ * A condition an actor holds, by its System condition type ID alone: web names it from the System
+ * vocabulary (ADR 0039), so the projection never reads the System document. `innate` marks a
+ * condition part of the Creature, not removable.
+ */
+const encounterActorConditionDtoSchema = lazySchema(() =>
+  z.object({
+    conditionTypeId: postgresUuidSchema,
+    notes: z.optional(z.string()),
+    innate: z.optional(z.literal(true))
+  })
+)
+
 const encounterActorBaseDtoSchema = lazySchema(() =>
   z.strictObject({
     id: uuidSchema,
@@ -118,7 +137,7 @@ const encounterActorBaseDtoSchema = lazySchema(() =>
     disposition: encounterActorDispositionDtoSchema,
     initiative: z.nullable(z.number().check(z.int())),
     manualOrder: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-    conditions: jsonSchema,
+    conditions: z.array(encounterActorConditionDtoSchema),
     /** Active grants with their source and time left; a hidden source's label is null for players (D99). */
     activeGrants: z._default(z.array(activeGrantListingDtoSchema), []),
     /**

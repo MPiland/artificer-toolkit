@@ -23,6 +23,7 @@ const advantageAgainst = (attackDomain: 'MELEE' | 'RANGED') => ({
   requiresHolderSeesAttacker: false,
   exemptAttackerSenseDefinitionIds: [],
   eventScope: { actorId: null, turnActorId: null },
+  sourceQualifier: [],
   contributor: {
     sourceId: 'test:advantage',
     grantId: null,

@@ -19,6 +19,7 @@ import {
 } from './character/characterSpellCastActions.js'
 import {
   type EncounterAttackAgainstContributor,
+  type EncounterSourceConditionImmunity,
   type EncounterHolderState,
   type EncounterSourceSightSave,
   withActiveGrantSpeeds,
@@ -153,6 +154,12 @@ export type MovementTarget<
    * `prepareEncounterActionMechanics` decides them per save.
    */
   sourceSightSaves: readonly EncounterSourceSightSave[]
+  /**
+   * The condition immunities the actor has only against sources of certain creature types
+   * (Protection from Evil and Good), set by `withEncounterHolderDefense`; empty until a flow applies
+   * it. `prepareEncounterActionMechanics` adds those that admit the acting source.
+   */
+  sourceConditionImmunities: readonly EncounterSourceConditionImmunity[]
   /**
    * What the actor could do when `withEncounterHolderDefense` applied its grants, which a rebuilt
    * turn target re-applies them with; absent when it had none.
@@ -335,6 +342,9 @@ export function buildMovementTarget<
           formStatBlock.armorClass)
     const effectiveRulePolicyOutput =
       formArmorClass === null ? policyOutput : withFormArmorClass(policyOutput, formArmorClass)
+    const qualifiedDefenses = effectiveRulePolicyOutput.qualifiedDefenses.map(
+      ({ kind, damageTypeId, bypassedBy }) => ({ kind, damageTypeId, bypassedBy })
+    )
     const sheetInputs = nativeCharacterBatchInputs(characterFacts, activeEffects)
     const { effectiveMaximumHitPoints, damageInterceptions } =
       form === null
@@ -506,13 +516,13 @@ export function buildMovementTarget<
         targetProtection: {
           status: 'NORMALIZED',
           defenses: effectiveRulePolicyOutput.defenses,
-          qualifiedDefenses: [],
+          qualifiedDefenses,
           conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
           spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds
         }
       },
       defenses: effectiveRulePolicyOutput.defenses,
-      qualifiedDefenses: [],
+      qualifiedDefenses,
       conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
       movementPassage: encounterActorMovementPassage(
         gameSystemId,
@@ -527,6 +537,7 @@ export function buildMovementTarget<
       spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds,
       attackAgainstContributors: [],
       sourceSightSaves: [],
+      sourceConditionImmunities: [],
       conditionDefinitions: [],
       conditionMechanics: []
     }
@@ -625,6 +636,7 @@ export function buildMovementTarget<
     spellSchoolImmunityIds: targetProtection.spellSchoolImmunityIds,
     attackAgainstContributors: [],
     sourceSightSaves: [],
+    sourceConditionImmunities: [],
     conditionDefinitions: [],
     conditionMechanics: []
   }

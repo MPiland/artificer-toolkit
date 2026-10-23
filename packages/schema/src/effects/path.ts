@@ -21,6 +21,7 @@ import { movementRuleDtoSchema } from './movementRule.js'
 import { actionEconomyRuleDtoSchema } from './actionEconomyRule.js'
 import { stabilizeDtoSchema } from './stabilize.js'
 import { killDtoSchema } from './kill.js'
+import { reviveDtoSchema } from './revive.js'
 import { armorClassFloorDtoSchema } from './armorClassFloor.js'
 import { restoreResourceDtoSchema } from './restoreResource.js'
 import { telepathicLinkDtoSchema } from './telepathicLink.js'
@@ -31,6 +32,7 @@ import { actorRelationshipDtoSchema } from './actorRelationship.js'
 import { activationDtoSchema } from './activation.js'
 import { checkChoiceDtoSchema, heldEscapeDcDtoSchema } from './check.js'
 import { concealFromObserversDtoSchema } from './concealFromObservers.js'
+import { removeFromPlayDtoSchema } from './removeFromPlay.js'
 import { detectConcealedDtoSchema } from './detectConcealed.js'
 import { cancelTriggeringEventDtoSchema } from './cancelTriggeringEvent.js'
 import { sourceImmunityDtoSchema } from './sourceImmunity.js'
@@ -93,6 +95,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actionEconomyRuleDtoSchema,
             stabilizeDtoSchema,
             killDtoSchema,
+            reviveDtoSchema,
             armorClassFloorDtoSchema,
             restoreResourceDtoSchema,
             telepathicLinkDtoSchema,
@@ -100,6 +103,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             treeStrideDtoSchema,
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
+            removeFromPlayDtoSchema,
             detectConcealedDtoSchema,
             cancelTriggeringEventDtoSchema,
             sourceImmunityDtoSchema,
@@ -126,6 +130,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             actionEconomyRuleDtoSchema,
             stabilizeDtoSchema,
             killDtoSchema,
+            reviveDtoSchema,
             armorClassFloorDtoSchema,
             restoreResourceDtoSchema,
             telepathicLinkDtoSchema,
@@ -133,6 +138,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             treeStrideDtoSchema,
             actorRelationshipDtoSchema,
             concealFromObserversDtoSchema,
+            removeFromPlayDtoSchema,
             detectConcealedDtoSchema,
             cancelTriggeringEventDtoSchema,
             sourceImmunityDtoSchema,
@@ -186,6 +192,10 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
         turns: z.number().check(z.int()).check(z.gte(1)).check(z.lte(255)),
         modifiers: authoredNestedCollectionSchema(modifierGrantDtoSchema)
       })
+    ),
+    /** The d20 that gates the held outcomes each turn; see `PathLifecycleAuthored.turnEndGate`. */
+    turnEndGate: z.optional(
+      z.object({ minimumRoll: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20)) })
     ),
     /** Actions the holder may take while the effect is held; see `PathLifecycleAuthored.grantedActions`. */
     grantedActions: z.optional(grantedActionsDtoSchema),

@@ -389,6 +389,7 @@ export function prepareRecurringActiveEffect(
     throw new EncounterActionEffectPlanError('A link plan requires the creatures it bonds.')
   const linkMemberActorIds = linkContribution ? (input.link?.memberActorIds ?? []) : []
   if (linkContribution && linkMemberActorIds.length < 2) return null
+  const absenceContribution = plan.playAbsenceContribution ?? null
   const formContribution = plan.creatureFormContribution ?? null
   if (formContribution) {
     if (!input.form)
@@ -541,11 +542,27 @@ export function prepareRecurringActiveEffect(
       ...(grantContribution?.activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
       ...(grantContribution?.uses !== undefined && { uses: grantContribution.uses }),
       ...(plan.saveThresholds && { saveThresholds: plan.saveThresholds }),
+      ...(plan.turnEndGate && {
+        turnEndGate: {
+          minimumRoll: plan.turnEndGate.minimumRoll,
+          child: {
+            frozenGraphNodeId: plan.turnEndGate.child.frozenGraphNodeId,
+            frozenGraph: compileEffectGraph(
+              plan.turnEndGate.child.frozenGraph,
+              plan.capabilityContractVersion
+            ),
+            playAbsence: { kind: 'PLAY_ABSENCE' as const, ...plan.turnEndGate.child.playAbsence }
+          }
+        }
+      }),
       // A grant or condition outlasts the Encounter when the target's lifetime scope says so. A
       // Concentration effect keeps its maintenance link while the Run lasts and is detached from it
       // at COMPLETE.
       lifetimeScope:
-        grantContribution || conditionContributions.length > 0 || linkContribution
+        grantContribution ||
+        conditionContributions.length > 0 ||
+        linkContribution ||
+        absenceContribution
           ? input.target.lifetimeScope
           : 'ENCOUNTER',
       expiration:
@@ -569,6 +586,9 @@ export function prepareRecurringActiveEffect(
               excessDamageCarriesOver: formContribution.excessDamageCarriesOver
             }
           ]
+        : []),
+      ...(absenceContribution
+        ? [{ kind: 'PLAY_ABSENCE' as const, keepsTurn: absenceContribution.keepsTurn }]
         : []),
       ...(linkContribution
         ? [

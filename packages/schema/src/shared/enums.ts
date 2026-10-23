@@ -197,6 +197,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'WHILE_SOURCE_ATTUNED',
     'CREATURE_CATEGORY',
     'CREATURE_TYPE',
+    'SOURCE_CREATURE_TYPE',
     'CREATURE_SIZE',
     'CREATURE_IS_MOUNT',
     'CREATURE_IS_COMPANION',

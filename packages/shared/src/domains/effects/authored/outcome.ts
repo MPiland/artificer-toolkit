@@ -13,6 +13,7 @@ import type { MoveManifestAuthored } from './moveManifest.js'
 import type { ManualAdjudicationAuthored } from './manualAdjudication.js'
 import type { MovementRuleAuthored } from './movementRule.js'
 import type { ActionEconomyRuleAuthored } from './actionEconomyRule.js'
+import type { ReviveAuthored } from './revive.js'
 import type { StabilizeAuthored } from './stabilize.js'
 import type { KillAuthored } from './kill.js'
 import type { TeleportAuthored } from './teleport.js'
@@ -24,6 +25,7 @@ import type { TreeStrideAuthored } from './treeStride.js'
 import type { ClosedRuleAuthored } from './closedRule.js'
 import type { ActorRelationshipAuthored } from './actorRelationship.js'
 import type { ConcealFromObserversAuthored } from './concealFromObservers.js'
+import type { RemoveFromPlayAuthored } from './removeFromPlay.js'
 import type { DetectConcealedAuthored } from './detectConcealed.js'
 import type { CancelTriggeringEventAuthored } from './cancelTriggeringEvent.js'
 import type { SourceImmunityAuthored } from './sourceImmunity.js'
@@ -52,6 +54,7 @@ export type OutcomeAuthored =
   | FollowUpCheckAuthored
   | MovementRuleAuthored
   | ActionEconomyRuleAuthored
+  | ReviveAuthored
   | StabilizeAuthored
   | KillAuthored
   | ArmorClassFloorAuthored
@@ -61,6 +64,7 @@ export type OutcomeAuthored =
   | TreeStrideAuthored
   | ActorRelationshipAuthored
   | ConcealFromObserversAuthored
+  | RemoveFromPlayAuthored
   | DetectConcealedAuthored
   | CancelTriggeringEventAuthored
   | SourceImmunityAuthored

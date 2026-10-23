@@ -19,6 +19,7 @@ export const EFFECT_KIND = {
   ACTION_ECONOMY_RULE: 'ACTION_ECONOMY_RULE',
   STABILIZE: 'STABILIZE',
   KILL: 'KILL',
+  REVIVE: 'REVIVE',
   ARMOR_CLASS_FLOOR: 'ARMOR_CLASS_FLOOR',
   RESTORE_RESOURCE: 'RESTORE_RESOURCE',
   TELEPATHIC_LINK: 'TELEPATHIC_LINK',
@@ -26,6 +27,7 @@ export const EFFECT_KIND = {
   TREE_STRIDE: 'TREE_STRIDE',
   ACTOR_RELATIONSHIP: 'ACTOR_RELATIONSHIP',
   CONCEAL_FROM_OBSERVERS: 'CONCEAL_FROM_OBSERVERS',
+  REMOVE_FROM_PLAY: 'REMOVE_FROM_PLAY',
   DETECT_CONCEALED: 'DETECT_CONCEALED',
   CANCEL_TRIGGERING_EVENT: 'CANCEL_TRIGGERING_EVENT',
   SOURCE_IMMUNITY: 'SOURCE_IMMUNITY',
@@ -130,6 +132,11 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Kill',
     description: 'The target dies at once.'
   },
+  [EFFECT_KIND.REVIVE]: {
+    code: EFFECT_KIND.REVIVE,
+    label: 'Revive',
+    description: 'A dead creature returns to life with 1 hit point or all of them.'
+  },
   [EFFECT_KIND.ARMOR_CLASS_FLOOR]: {
     code: EFFECT_KIND.ARMOR_CLASS_FLOOR,
     label: 'Armor Class Floor',
@@ -166,6 +173,12 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Conceal From Observers',
     description:
       'Makes the holder’s location unknown to each observer who fails to notice it, until noticed or until it attacks.'
+  },
+  [EFFECT_KIND.REMOVE_FROM_PLAY]: {
+    code: EFFECT_KIND.REMOVE_FROM_PLAY,
+    label: 'Remove From Play',
+    description:
+      'Takes the holder out of play until the effect ends: it cannot be targeted, its token leaves the Scene and, unless it keeps its turn, initiative skips it.'
   },
   [EFFECT_KIND.DETECT_CONCEALED]: {
     code: EFFECT_KIND.DETECT_CONCEALED,

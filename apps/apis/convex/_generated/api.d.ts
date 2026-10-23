@@ -125927,6 +125927,7 @@ export declare const api: {
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
                 | "TARGET_INTELLIGENCE_EXCLUDED"
+                | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
                 | "TARGET_NOTHING_TO_END"
                 | "TARGET_OUT_OF_RANGE"
@@ -127682,6 +127683,7 @@ export declare const api: {
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
                 | "TARGET_INTELLIGENCE_EXCLUDED"
+                | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
                 | "TARGET_NOTHING_TO_END"
                 | "TARGET_OUT_OF_RANGE"
@@ -127722,6 +127724,7 @@ export declare const api: {
                     | "TARGET_CREATURE_TYPE_EXCLUDED"
                     | "TARGET_DISPOSITION"
                     | "TARGET_INTELLIGENCE_EXCLUDED"
+                    | "TARGET_NOT_DEAD"
                     | "TARGET_NOT_DYING"
                     | "TARGET_NOTHING_TO_END"
                     | "TARGET_OUT_OF_RANGE"
@@ -127752,6 +127755,7 @@ export declare const api: {
                     | "TARGET_CREATURE_TYPE_EXCLUDED"
                     | "TARGET_DISPOSITION"
                     | "TARGET_INTELLIGENCE_EXCLUDED"
+                    | "TARGET_NOT_DEAD"
                     | "TARGET_NOT_DYING"
                     | "TARGET_NOTHING_TO_END"
                     | "TARGET_OUT_OF_RANGE"
@@ -127782,6 +127786,7 @@ export declare const api: {
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
                 | "TARGET_INTELLIGENCE_EXCLUDED"
+                | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
                 | "TARGET_NOTHING_TO_END"
                 | "TARGET_OUT_OF_RANGE"
@@ -127806,6 +127811,7 @@ export declare const api: {
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
                 | "TARGET_INTELLIGENCE_EXCLUDED"
+                | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
                 | "TARGET_NOTHING_TO_END"
                 | "TARGET_OUT_OF_RANGE"
@@ -127921,7 +127927,12 @@ export declare const api: {
           encounter:
             | {
                 actors: Array<{
-                  absence: "GM_REMOVED" | "DEPARTED" | null;
+                  absence:
+                    | "GM_REMOVED"
+                    | "DEPARTED"
+                    | "EFFECT"
+                    | "EFFECT_KEEPS_TURN"
+                    | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -127939,13 +127950,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -128112,7 +128121,12 @@ export declare const api: {
               }
             | {
                 actors: Array<{
-                  absence: "GM_REMOVED" | "DEPARTED" | null;
+                  absence:
+                    | "GM_REMOVED"
+                    | "DEPARTED"
+                    | "EFFECT"
+                    | "EFFECT_KEEPS_TURN"
+                    | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -128125,13 +128139,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -129042,7 +129054,12 @@ export declare const api: {
           projection:
             | {
                 actors: Array<{
-                  absence: "GM_REMOVED" | "DEPARTED" | null;
+                  absence:
+                    | "GM_REMOVED"
+                    | "DEPARTED"
+                    | "EFFECT"
+                    | "EFFECT_KEEPS_TURN"
+                    | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -129060,13 +129077,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -129233,7 +129248,12 @@ export declare const api: {
               }
             | {
                 actors: Array<{
-                  absence: "GM_REMOVED" | "DEPARTED" | null;
+                  absence:
+                    | "GM_REMOVED"
+                    | "DEPARTED"
+                    | "EFFECT"
+                    | "EFFECT_KEEPS_TURN"
+                    | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -129246,13 +129266,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -130010,7 +130028,12 @@ export declare const api: {
         { encounterId: string },
         | {
             actors: Array<{
-              absence: "GM_REMOVED" | "DEPARTED" | null;
+              absence:
+                | "GM_REMOVED"
+                | "DEPARTED"
+                | "EFFECT"
+                | "EFFECT_KEEPS_TURN"
+                | null;
               activeGrants?: Array<{
                 effectId: string;
                 expiresAtCampaignMinute: number | null;
@@ -130028,13 +130051,11 @@ export declare const api: {
                 label: string | null;
                 sourceHidden: boolean;
               } | null;
-              conditions:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>;
+              conditions: Array<{
+                conditionTypeId: string;
+                innate?: true;
+                notes?: string;
+              }>;
               controllerUserIds: Array<string>;
               currentHitPoints: number;
               defeated: boolean;
@@ -130195,7 +130216,12 @@ export declare const api: {
           }
         | {
             actors: Array<{
-              absence: "GM_REMOVED" | "DEPARTED" | null;
+              absence:
+                | "GM_REMOVED"
+                | "DEPARTED"
+                | "EFFECT"
+                | "EFFECT_KEEPS_TURN"
+                | null;
               activeGrants?: Array<{
                 effectId: string;
                 expiresAtCampaignMinute: number | null;
@@ -130208,13 +130234,11 @@ export declare const api: {
                 label: string | null;
                 sourceHidden: boolean;
               } | null;
-              conditions:
-                | string
-                | number
-                | boolean
-                | null
-                | Array<any>
-                | Record<string, any>;
+              conditions: Array<{
+                conditionTypeId: string;
+                innate?: true;
+                notes?: string;
+              }>;
               controllerUserIds: Array<string>;
               defeated: boolean;
               disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -130306,7 +130330,12 @@ export declare const api: {
           encounter:
             | {
                 actors: Array<{
-                  absence: "GM_REMOVED" | "DEPARTED" | null;
+                  absence:
+                    | "GM_REMOVED"
+                    | "DEPARTED"
+                    | "EFFECT"
+                    | "EFFECT_KEEPS_TURN"
+                    | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -130324,13 +130353,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -130497,7 +130524,12 @@ export declare const api: {
               }
             | {
                 actors: Array<{
-                  absence: "GM_REMOVED" | "DEPARTED" | null;
+                  absence:
+                    | "GM_REMOVED"
+                    | "DEPARTED"
+                    | "EFFECT"
+                    | "EFFECT_KEEPS_TURN"
+                    | null;
                   activeGrants?: Array<{
                     effectId: string;
                     expiresAtCampaignMinute: number | null;
@@ -130510,13 +130542,11 @@ export declare const api: {
                     label: string | null;
                     sourceHidden: boolean;
                   } | null;
-                  conditions:
-                    | string
-                    | number
-                    | boolean
-                    | null
-                    | Array<any>
-                    | Record<string, any>;
+                  conditions: Array<{
+                    conditionTypeId: string;
+                    innate?: true;
+                    notes?: string;
+                  }>;
                   controllerUserIds: Array<string>;
                   defeated: boolean;
                   disposition: "FRIENDLY" | "NEUTRAL" | "HOSTILE";
@@ -130950,7 +130980,8 @@ export declare const api: {
         { blueprintId: string; campaignId: string; commandId: string },
         {
           actors: Array<{
-            absence: "GM_REMOVED" | "DEPARTED" | null;
+            absence:
+              "GM_REMOVED" | "DEPARTED" | "EFFECT" | "EFFECT_KEEPS_TURN" | null;
             activeGrants?: Array<{
               effectId: string;
               expiresAtCampaignMinute: number | null;
@@ -130968,13 +130999,11 @@ export declare const api: {
               label: string | null;
               sourceHidden: boolean;
             } | null;
-            conditions:
-              | string
-              | number
-              | boolean
-              | null
-              | Array<any>
-              | Record<string, any>;
+            conditions: Array<{
+              conditionTypeId: string;
+              innate?: true;
+              notes?: string;
+            }>;
             controllerUserIds: Array<string>;
             currentHitPoints: number;
             defeated: boolean;

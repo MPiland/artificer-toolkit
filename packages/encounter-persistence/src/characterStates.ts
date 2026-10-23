@@ -1,5 +1,4 @@
 import { getVisibleCampaignConditions } from '@artificer-toolkit/rules-runtime/character/campaignConditionVisibility'
-import { labelCharacterConditions } from '@artificer-toolkit/rules-runtime/character/characterConditionLabels'
 import type { CampaignCharacterState } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import type {
   EncounterProjectionCharacterState,
@@ -11,7 +10,6 @@ import {
   type EncounterRunCharacterActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { clampCharacterCurrentHitPoints } from '@artificer-toolkit/shared/character'
 import { isCharacterDead } from '@artificer-toolkit/schema/shared/characterDeathSaves'
@@ -32,12 +30,11 @@ import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } f
 
 /**
  * Projects a Character's hit points over its effective maximum, as the Sheet shows them, and its
- * Sheet conditions with their System labels.
+ * Sheet conditions by type ID; web names them from the System vocabulary.
  */
 export function characterProjectionState(
   { hitpoints, conditions = [] }: Pick<CharacterPlayState, 'hitpoints' | 'conditions'>,
-  maximumHitPoints: number,
-  conditionTypes: SystemAuthoredDto['conditionTypes']
+  maximumHitPoints: number
 ) {
   return {
     current: clampCharacterCurrentHitPoints(hitpoints.current, maximumHitPoints),
@@ -45,7 +42,10 @@ export function characterProjectionState(
     maximum: maximumHitPoints,
     deathSaves: hitpoints.deathSaves,
     dead: isCharacterDead(hitpoints.deathSaves),
-    conditions: labelCharacterConditions(conditions, conditionTypes)
+    conditions: conditions.map(({ conditionTypeId, notes }) => ({
+      conditionTypeId,
+      ...(notes ? { notes } : {})
+    }))
   }
 }
 
@@ -101,7 +101,6 @@ export async function readEncounterCharacterStates(
   }
 ): Promise<EncounterProjectionCharacterStates> {
   const states = new Map<string, EncounterProjectionCharacterState>()
-  let conditionTypes: SystemAuthoredDto['conditionTypes'] | null = null
   for (const actor of actors) {
     if (actor.kind !== 'CHARACTER') continue
     const characterId = actor.sourceId
@@ -129,21 +128,16 @@ export async function readEncounterCharacterStates(
       // Character, whose actor the projection leaves out.
       if (state.status === 'COMPLETED' || !(await ctx.ports.isRoomHeldRun(state)))
         throw new Error('Encounter Character state is unavailable.')
-      if (play) {
-        conditionTypes ??= (await ctx.ports.requireSystem(state.gameSystemId)).conditionTypes
-        states.set(characterId, await readCharacterPlayProjection(ctx, play, conditionTypes))
-      }
+      if (play) states.set(characterId, await readCharacterPlayProjection(ctx, play))
       continue
     }
     if (!play || play.userId !== assignment.userId)
       throw new Error('Stored Encounter Character source is unavailable.')
-    conditionTypes ??= (await ctx.ports.requireSystem(state.gameSystemId)).conditionTypes
     states.set(
       characterId,
       await readCharacterPlayProjection(
         ctx,
         play,
-        conditionTypes,
         campaignConditions
           ? getVisibleCampaignConditions({
               conditions: await campaignConditions.read(characterId),
@@ -214,14 +208,12 @@ export async function readZeroHitPointActorIds(
 export async function readCharacterPlayProjection(
   ctx: EncounterProjectionTransaction,
   play: EncounterDocument<'characterPlayStates'>,
-  conditionTypes: SystemAuthoredDto['conditionTypes'],
   campaignConditions: Array<{ conditionTypeId: string; notes?: string }> = []
 ) {
   const sheet = ctx.ports.readCharacterPlay(play)
   return characterProjectionState(
     { ...sheet, conditions: [...(sheet.conditions ?? []), ...campaignConditions] },
-    await readCharacterMaximumHitPoints(ctx, play),
-    conditionTypes
+    await readCharacterMaximumHitPoints(ctx, play)
   )
 }
 
