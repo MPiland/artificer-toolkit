@@ -128108,6 +128108,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   resources:
                     | string
@@ -128255,6 +128256,7 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
+                  owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -129236,6 +129238,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   resources:
                     | string
@@ -129383,6 +129386,7 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
+                  owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -130209,6 +130213,7 @@ export declare const api: {
               label: string;
               manualOrder: number | null;
               maxHitPoints: number;
+              owner?: { ownerActorId: string; sourceEffectId?: string };
               public: boolean;
               resources:
                 | string
@@ -130355,6 +130360,7 @@ export declare const api: {
               kind: "CHARACTER" | "CREATURE" | "CUSTOM";
               label: string;
               manualOrder: number | null;
+              owner?: { ownerActorId: string; sourceEffectId?: string };
               public: boolean;
               sourceId: string | null;
               sourceRevision: number | null;
@@ -130516,6 +130522,7 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   resources:
                     | string
@@ -130663,6 +130670,7 @@ export declare const api: {
                   kind: "CHARACTER" | "CREATURE" | "CUSTOM";
                   label: string;
                   manualOrder: number | null;
+                  owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   sourceId: string | null;
                   sourceRevision: number | null;
@@ -131157,6 +131165,7 @@ export declare const api: {
             label: string;
             manualOrder: number | null;
             maxHitPoints: number;
+            owner?: { ownerActorId: string; sourceEffectId?: string };
             public: boolean;
             resources:
               | string
@@ -140463,6 +140472,7 @@ export declare const internal: {
                   "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT" | null;
                 id: string;
                 kind: "CHARACTER" | "CREATURE" | "CUSTOM";
+                owner?: { ownerActorId: string; sourceEffectId?: string };
                 sourceId: string | null;
               }>;
               encounterId: string;
