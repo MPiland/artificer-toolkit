@@ -948,6 +948,20 @@
               "text": "withValidationLock.ps1 writes the owner PID and process start time into each lock; a waiter reclaims a lock whose owner is gone or whose start time differs (PID reuse). A test plants a dead-owner lock and a live-owner lock. AGENTS.md drops the report-do-not-delete rule for dead owners.",
               "mergedAt": "2026-10-22T19:34:15Z",
               "note": "Merged in m348."
+            },
+            {
+              "id": "PLATFORM-13.T20",
+              "status": "TODO",
+              "closes": ["PLATFORM-13.14"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 3,
+                "size": 2,
+                "after": []
+              },
+              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
+              "text": "CI flake: a Devil's Sight case in packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts exceeds the 5 s per-test timeout on CI runners (5712 ms) even after the beforeAll class node map warm-up (63bd5fd86); it failed SPELLS-4.T2j1 and T2g1 runs. Find the root cause (cold work still inside the case, repeated resolution, shared fixture rebuilt per case) and fix it without raising any timeout or weakening an assertion; prove with repeated CI runs."
             }
           ]
         },
@@ -10154,7 +10168,8 @@
                 "size": 3,
                 "after": ["SPELLS-4.T2h1"]
               },
-              "text": "Generic turn-end d20 gate (D178): at the end of the holder's turn a d20 at or above a threshold applies a child effect that ends at the holder's next turn start or with the parent. Converts BLINK (REMOVE_FROM_PLAY child), with a parity proof; kind deleted."
+              "text": "Generic turn-end d20 gate (D178): at the end of the holder's turn a d20 at or above a threshold applies a child effect that ends at the holder's next turn start or with the parent. Converts BLINK (REMOVE_FROM_PLAY child), with a parity proof; kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2h3",
@@ -10180,7 +10195,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2h1"]
               },
-              "text": "Banishment runs (D178 amendment): the test-action compiler accepts a save-gated sequence of several direct results on one path (incapacitated plus REMOVE_FROM_PLAY), on the RULES-2.T6h direct-result sequence, so Banishment compiles; a return onto an occupied space is a GM placement flagged RETURN_SPACE_OCCUPIED. Golden flip, parity and room journey proofs. Also widens the activated self-action compiler so Etherealness (REMOVE_FROM_PLAY keepsTurn) compiles, and the bounded test-action shape so Imprisonment compiles; both with golden flips and room journeys (EFFECT_KEEPS_TURN covered by Etherealness)."
+              "text": "Banishment runs (D178 amendment): the test-action compiler accepts a save-gated sequence of several direct results on one path (incapacitated plus REMOVE_FROM_PLAY), on the RULES-2.T6h direct-result sequence, so Banishment compiles; a return onto an occupied space is a GM placement flagged RETURN_SPACE_OCCUPIED. Golden flip, parity and room journey proofs. Also widens the activated self-action compiler so Etherealness (REMOVE_FROM_PLAY keepsTurn) compiles, and the bounded test-action shape so Imprisonment compiles; both with golden flips and room journeys (EFFECT_KEEPS_TURN covered by Etherealness).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "DONE",
@@ -10314,7 +10330,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2j1"]
               },
-              "text": "SOURCE_TRAIT (MAGICAL) restriction and attack domains on the D179 qualifiers (moved from T2j1), then Holy Aura and Dispel Evil and Good: Holy Aura's rider against a fiend or undead attacker, Dispel Evil and Good's disadvantage by creature type and its ending of charm and frighten from those types through END_EFFECTS; possession and dismissal stay description-only. Parity proofs; HOLY_AURA and DISPEL_EVIL_AND_GOOD deleted."
+              "text": "SOURCE_TRAIT (MAGICAL) restriction and attack domains on the D179 qualifiers (moved from T2j1), then Holy Aura and Dispel Evil and Good: Holy Aura's rider against a fiend or undead attacker, Dispel Evil and Good's disadvantage by creature type and its ending of charm and frighten from those types through END_EFFECTS; possession and dismissal stay description-only. Parity proofs; HOLY_AURA and DISPEL_EVIL_AND_GOOD deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2k1",
@@ -10678,9 +10695,50 @@
               "text": "Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs. Contagion lasts 7 days, over MAX_ACTIVE_EFFECT_TURNS (14,400); it needs a longer-duration path or a Campaign-clock lifecycle before it compiles as an active effect (found in T2m1c)."
             },
             {
+              "id": "SPELLS-4.T2n1",
               "status": "TODO",
               "closes": ["SPELLS-4.1"],
-              "id": "SPELLS-4.T2n",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Healing received (D181): a HEALING_RECEIVED domain with a maximize-dice modifier on the holder, and a generic death-save target on the SAVING_THROW_MODIFIER filter. Converts BEACON_OF_HOPE (Wisdom and death-save advantage, maximized healing), with parity and room journey proofs; kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2n2",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T1"]
+              },
+              "text": "Damage-derived heal (D181): HEAL whose amount is a fraction (rounded down) of the damage a sibling DAMAGE outcome on the same path actually applied, aimed at the source; the later-turn attack uses the repeat-source-path offer (D160, D166). Converts VAMPIRIC_TOUCH, with parity and room journey proofs; kind deleted.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "id": "SPELLS-4.T2n3",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2n2"]
+              },
+              "text": "Shared roll and charged heal action (D181): one roll shared by a HIT_POINTS_MAX bonus and a HEAL in the same result block; a charged granted heal action. Converts HEROES_FEAST (poisoned ends via END_EFFECTS, poison and frightened immunity, Wisdom save advantage; disease, delay and nourishment description-only) and GOODBERRY, with parity and room journey proofs; kinds deleted."
+            },
+            {
+              "id": "SPELLS-4.T2n4",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
@@ -10688,7 +10746,7 @@
                 "size": 5,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Derived or modified healing. Converts BEACON_OF_HOPE, VAMPIRIC_TOUCH, WARDING_BOND, GOODBERRY, HEROES_FEAST, with parity proofs; each kind deleted.",
+              "text": "Damage mirror (D181): damage the holder actually took is mirrored to the source (never mirrored again), a within-distance-of-source grant restriction, and a lifecycle end on separation or the source at 0 hit points. Converts WARDING_BOND (AC and save bonus, resistance; recast end description-only), with parity and room journey proofs; kind deleted.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
@@ -13731,7 +13789,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2n", "SPELLS-4.T2i"]
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
               "text": "Join SPELLS-4.T2n: Disciple of Life, Blessed Healer, Supreme Healing, Preserve Life (with resource use), Song of Rest. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
@@ -14825,7 +14883,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2n"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
               "text": "absorption healing x3, healing denial bites x3 (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
@@ -15024,7 +15082,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2f", "SPELLS-4.T2n"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2f", "SPELLS-4.T2n1"]
               },
               "text": "new: afflictions and curses with rest and healing denial and a clock (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
