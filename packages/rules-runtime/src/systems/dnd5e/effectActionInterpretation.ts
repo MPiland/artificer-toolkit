@@ -1,5 +1,8 @@
 import { type ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
-import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import {
+  damageDispositionOf,
+  resolveDispositionDamage
+} from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
   compareThresholdRuleOperation,
   type CompiledRuleGraph,
@@ -803,19 +806,7 @@ export function interpretDirectProposal(
   )
     throw new Dnd5eEffectActionCompilerError('The committed D&D damage proposal trace is invalid.')
   uuid(outputs.damageTypeId, 'D&D damage type identity')
-  const d = input.defenses.filter((x) => x.damageTypeId === outputs.damageTypeId)
-  const immune = d.some((x) => x.kind === 'IMMUNITY')
-  const resistant = d.some((x) => x.kind === 'RESISTANCE')
-  const vulnerable = d.some((x) => x.kind === 'VULNERABILITY')
-  const damageDisposition = immune
-    ? 'IMMUNE'
-    : resistant && vulnerable
-      ? 'RESISTANT_AND_VULNERABLE'
-      : resistant
-        ? 'RESISTANT'
-        : vulnerable
-          ? 'VULNERABLE'
-          : 'NORMAL'
+  const damageDisposition = damageDispositionOf(input.defenses, outputs.damageTypeId)
   const resolvedAmount = resolveDispositionDamage(damageDisposition, requestedAmount)
   if (!Number.isSafeInteger(resolvedAmount))
     throw new Dnd5eEffectActionCompilerError(

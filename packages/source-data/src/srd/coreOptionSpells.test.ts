@@ -1,7 +1,9 @@
+import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
 import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared'
 import { describe, expect, it } from 'vitest'
 import { srdSpells } from './spells/index.js'
 import { conditionTypeId } from './spells/shared.js'
+import { SRD_DAMAGE_TYPES } from './vocabulary.js'
 
 const plainText = (html: string) => html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ')
 
@@ -188,6 +190,66 @@ describe('SRD Death Ward (SPELLS-4.T2i2b)', () => {
       }
     ])
     expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('DEATH_WARD')
+  })
+})
+
+/**
+ * SPELLS-4.T2n4: Warding Bond runs from data. The +1 AC and saves, resistance to every damage type
+ * and the damage mirror are one grant bundle; the bond ends when its source is incapacitated or
+ * left beyond 60 feet. A homebrew variant with another range and bundle validates through the same
+ * authoring schema, so nothing about the bond is spell-specific.
+ */
+describe('SRD Warding Bond (SPELLS-4.T2n4)', () => {
+  const spell = srdSpells.find((entry) => entry.label === 'Warding Bond')
+  const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
+  if (path?.selectionKind !== 'FIXED') throw new Error('Expected one fixed path.')
+  const [outcome] = path.resultBlock.outcomes
+  if (outcome?.effectKind !== 'APPLY_GRANT') throw new Error('Expected a grant outcome.')
+  const modifiers = outcome.grants.modifiers ?? []
+  const valid = (candidate: typeof spell) => spellAuthoredDtoSchema.safeParse(candidate).success
+
+  it('authors the bonuses, every resistance and the mirror, with no closed rule left', () => {
+    expect(path.resultBlock.duration).toMatchObject({ durationKind: 'HOUR', amount: 1 })
+    expect(path.resultBlock.lifecycle).toEqual({
+      endOnTriggers: [
+        { event: 'INCAPACITATED', of: 'SOURCE' },
+        { event: 'SEPARATED', from: 'SOURCE', beyondFeet: 60 }
+      ]
+    })
+    expect(modifiers.map(({ valueDomainCode }) => valueDomainCode)).toEqual([
+      'ARMOR_CLASS',
+      'SAVING_THROW_MODIFIER',
+      ...SRD_DAMAGE_TYPES.map(() => 'DAMAGE_RESISTANCE'),
+      'DAMAGE_MIRROR'
+    ])
+    expect(Object.keys(CLOSED_RULE_KIND)).not.toContain('WARDING_BOND')
+    expect(valid(spell)).toBe(true)
+  })
+
+  it('accepts a homebrew variant written from the same options', () => {
+    const homebrew = {
+      ...spell!,
+      effects: spell!.effects!.map((effect) => ({
+        ...effect,
+        paths: effect.paths.map((entry) =>
+          entry.selectionKind !== 'FIXED'
+            ? entry
+            : {
+                ...entry,
+                resultBlock: {
+                  ...entry.resultBlock,
+                  lifecycle: {
+                    endOnTriggers: [
+                      { event: 'SEPARATED' as const, from: 'SOURCE' as const, beyondFeet: 30 }
+                    ]
+                  },
+                  outcomes: [{ ...outcome, grants: { modifiers: [modifiers.at(-1)!] } }]
+                }
+              }
+        )
+      }))
+    }
+    expect(valid(homebrew)).toBe(true)
   })
 })
 

@@ -24,6 +24,8 @@ import {
   readLiveMovementTargetState
 } from '@artificer-toolkit/encounter-persistence/liveMovementTargetState'
 import { applyLiveConcentrationCleanup } from '@artificer-toolkit/encounter-persistence/concentrationCleanupPersistence'
+import { readRunActors } from '@artificer-toolkit/encounter-persistence/documents'
+import { settleDamageMirrors } from './roomDamageMirror.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { readRoomSceneState } from './roomSceneRead.js'
 import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.js'
@@ -48,6 +50,8 @@ export function roomMovementSettlementCallbacks(input: {
   epoch: string
   observed: LiveSessionRulesRevisions
   characterIds: ReadonlySet<string>
+  /** Set by a voluntary move, whose command settles the damage mirrors its contacts collect. */
+  mirrorSettlement?: { userId: string; random(maximum: number): number }
 }): Parameters<typeof persistMovementContacts>[2] {
   const { ctx, store, transaction, inputs, campaignId, epoch, observed, characterIds } = input
   const readCampaignCharacterState = async (id: string, characterId: string) => {
@@ -79,16 +83,44 @@ export function roomMovementSettlementCallbacks(input: {
     readTargetState: (state: EncounterRunState, actor: EncounterRunActorState, maximum: number) =>
       readLiveMovementTargetState(ctx, state, actor, maximum, readCampaignCharacterState)
   }
+  // A voluntary move is no Encounter command, so its contacts pass on the damage they dealt a mirror's
+  // holder here, and the actors the step hands the next one are the post-mirror rows. A forced move
+  // an action carries settles in that action's own command instead.
+  const withSettledMirrors = async (state: EncounterRunState, actors: EncounterRunActorState[]) => {
+    if (!input.mirrorSettlement) return actors
+    const landed = await settleDamageMirrors({
+      ctx,
+      store,
+      transaction,
+      inputs,
+      campaignId,
+      epoch,
+      observed,
+      encounterId: state.id,
+      ...input.mirrorSettlement
+    })
+    if (!landed) return actors
+    const fresh = await readRunActors(ctx, state)
+    return actors.map((actor) => fresh.find(({ id }) => id === actor.id) ?? actor)
+  }
   return {
-    persistSpatial: (step) =>
-      persistLiveMovementSpatial(ctx, step, { applyMechanics, readCampaignCharacterState }),
-    persistReaction: (step) =>
-      persistLiveMovementReaction(ctx, step, {
+    persistSpatial: async (step) => {
+      const committed = await persistLiveMovementSpatial(ctx, step, {
         applyMechanics,
-        readCampaignCharacterState,
-        readSceneTokens: async (sceneId) =>
-          (await readRoomSceneState(transaction, sceneId)).scene.tokens
-      }),
+        readCampaignCharacterState
+      })
+      return { ...committed, actors: await withSettledMirrors(step.state, committed.actors) }
+    },
+    persistReaction: async (step) =>
+      withSettledMirrors(
+        step.state,
+        await persistLiveMovementReaction(ctx, step, {
+          applyMechanics,
+          readCampaignCharacterState,
+          readSceneTokens: async (sceneId) =>
+            (await readRoomSceneState(transaction, sceneId)).scene.tokens
+        })
+      ),
     persistConcentration: (step) =>
       persistLiveMovementConcentration(ctx, step, concentrationCallbacks),
     persistConcentrationEnd: (step) =>

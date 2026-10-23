@@ -108,6 +108,28 @@ export function resolveDispositionDamage(
     : resisted
 }
 
+/**
+ * The disposition a target's defenses give one damage type: immunity wins, and resistance and
+ * vulnerability together are both kept (`resolveDispositionDamage` applies them in order).
+ */
+export function damageDispositionOf(
+  defenses: readonly { kind: 'IMMUNITY' | 'RESISTANCE' | 'VULNERABILITY'; damageTypeId: string }[],
+  damageTypeId: string
+): DamageDispositionDto {
+  const own = defenses.filter((defense) => defense.damageTypeId === damageTypeId)
+  const resistant = own.some(({ kind }) => kind === 'RESISTANCE')
+  const vulnerable = own.some(({ kind }) => kind === 'VULNERABILITY')
+  return own.some(({ kind }) => kind === 'IMMUNITY')
+    ? 'IMMUNE'
+    : resistant && vulnerable
+      ? 'RESISTANT_AND_VULNERABLE'
+      : resistant
+        ? 'RESISTANT'
+        : vulnerable
+          ? 'VULNERABLE'
+          : 'NORMAL'
+}
+
 export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
@@ -155,6 +177,8 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
       interceptionSaves: z.optional(z.array(damageInterceptionSaveDtoSchema)),
       /** The charge the intercepting feature spent, when it is limited-use. */
       interceptionCharge: z.optional(damageInterceptionChargeDtoSchema),
+      /** Damage a held damage mirror passed on from another actor; it is never mirrored again. */
+      mirrored: z.optional(z.literal(true)),
       ...characterMechanicsApplicationTraceDtoSchema.shape
     }),
     z.strictObject({

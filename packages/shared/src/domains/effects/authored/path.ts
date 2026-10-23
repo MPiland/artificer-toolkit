@@ -46,7 +46,8 @@ export type PathLifecycleAuthored = {
    * is the effect source and its allies, for Charm Person) and, when set, which damage types; an
    * attack roll or a cast ends it only against an enemy (Sanctuary); another creature using one of
    * the named basic actions on the holder ends it (rousing a sleeper); the effect source being
-   * incapacitated or defeated ends it on every holder (Knight Leadership).
+   * incapacitated or defeated ends it on every holder (Knight Leadership); the holder standing more
+   * than `beyondFeet` from the effect source ends it (Warding Bond).
    */
   endOnTriggers?: (
     | {
@@ -57,6 +58,7 @@ export type PathLifecycleAuthored = {
     | { event: 'ATTACK_ROLL' | 'SPELL_CAST'; against: 'ENEMY' }
     | { event: 'ACTION_USED_ON_HOLDER'; actionDefinitionIds: string[] }
     | { event: 'INCAPACITATED'; of: 'SOURCE' }
+    | { event: 'SEPARATED'; from: 'SOURCE'; beyondFeet: number }
   )[]
   /** Condition types that end the effect early while its holder has any of them. */
   endOnConditionIds?: string[]

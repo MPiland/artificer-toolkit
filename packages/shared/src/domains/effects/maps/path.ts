@@ -108,6 +108,7 @@ import {
   FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
 } from './followUpSaveRepeat.js'
 import { registerOutcomeKindFields } from './outcomeKindFields.js'
+import { PATH_LIFECYCLE_END_TRIGGER_NODE_MAP } from './lifecycleEndTrigger.js'
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
@@ -226,8 +227,6 @@ const pathLifecycleEffectOffer =
   buildNodeMap<NonNullable<PathLifecycleAuthored['effectOffers']>[number]>()
 const pathLifecycleEffectOfferRange =
   buildNodeMap<NonNullable<NonNullable<PathLifecycleAuthored['effectOffers']>[number]['range']>>()
-const pathLifecycleEndTrigger =
-  buildNodeMap<NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
 const summonAbilityScores = buildNodeMap<SummonAbilityScoresNode>()
 const summonStatBlock = buildNodeMap<SummonStatBlockAuthored>()
@@ -600,101 +599,6 @@ const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
       })
     )
 })
-
-const PATH_LIFECYCLE_END_TRIGGER_NODE_MAP: NodeMap<
-  NonNullable<PathLifecycleAuthored['endOnTriggers']>[number]
-> = pathLifecycleEndTrigger.define(
-  'pathLifecycleEndTrigger',
-  ({ map, nodes, data, cond, logic }) => {
-    const { selectSingle, selectMulti } = nodes
-    const { table } = data
-    const event = cond.local().field(['event'])
-    const isDamageTaken = event.eq('DAMAGE_TAKEN')
-    const isAgainstEnemy = logic.or([event.eq('ATTACK_ROLL'), event.eq('SPELL_CAST')])
-    const isActionUsed = event.eq('ACTION_USED_ON_HOLDER')
-    const isIncapacitated = event.eq('INCAPACITATED')
-
-    map
-      .set(
-        'event',
-        selectSingle(
-          ['event'],
-          'Ends When',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: [
-              { code: 'DAMAGE_TAKEN', label: 'The holder takes damage' },
-              { code: 'ATTACK_ROLL', label: 'The holder attacks an enemy' },
-              { code: 'SPELL_CAST', label: 'The holder casts a spell at an enemy' },
-              {
-                code: 'ACTION_USED_ON_HOLDER',
-                label: 'Another creature uses an action on the holder'
-              },
-              { code: 'INCAPACITATED', label: 'The effect source is incapacitated or defeated' }
-            ]
-          },
-          { requiredIf: true }
-        )
-      )
-      .set(
-        'by',
-        selectSingle(
-          ['by'],
-          'Damage From',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: [
-              { code: 'ANYONE', label: 'Anyone' },
-              { code: 'SOURCE_SIDE', label: 'The effect source or its allies' }
-            ]
-          },
-          { requiredIf: isDamageTaken, showIf: isDamageTaken }
-        )
-      )
-      .set(
-        'damageTypeIds',
-        selectMulti(
-          ['damageTypeIds'],
-          'Damage Types (any when empty)',
-          {
-            kind: 'DATA',
-            relationship: table('damage_types', { selectColumns: ['id', 'label', 'description'] })
-          },
-          { showIf: isDamageTaken }
-        )
-      )
-      .set(
-        'against',
-        selectSingle(
-          ['against'],
-          'Against',
-          { kind: 'INLINE_OPTIONS', options: [{ code: 'ENEMY', label: 'An enemy of the holder' }] },
-          { requiredIf: isAgainstEnemy, showIf: isAgainstEnemy }
-        )
-      )
-      .set(
-        'of',
-        selectSingle(
-          ['of'],
-          'Whose Incapacitation',
-          { kind: 'INLINE_OPTIONS', options: [{ code: 'SOURCE', label: 'The effect source' }] },
-          { requiredIf: isIncapacitated, showIf: isIncapacitated }
-        )
-      )
-      .set(
-        'actionDefinitionIds',
-        selectMulti(
-          ['actionDefinitionIds'],
-          'Actions',
-          {
-            kind: 'DATA',
-            relationship: table('reusable_definitions', { selectColumns: ['id', 'label'] })
-          },
-          { requiredIf: isActionUsed, showIf: isActionUsed }
-        )
-      )
-  }
-)
 
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',

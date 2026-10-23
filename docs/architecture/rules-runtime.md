@@ -1135,6 +1135,22 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   meets a `HARMFUL_ACTION_AIMED` by an attacker of a listed type: `heldIncomingGate` lists the wards the attacker has not
   passed and asks discovery which one it meets. Counter and targeted-self windows are reactions to
   `SPELL_CAST_BY_OTHER` and `TARGETED_BY_CAST` above; a retarget stays the gate's failure pause.
+- **Damage mirror** (SPELLS-4.T2n4, D181/D184; `encounterDamageMirror.ts`; Worker: `roomDamageMirrorCollector.ts`,
+  `roomDamageMirror.ts`). A `DAMAGE_MIRROR` `ENABLE` grant on a holder passes the damage the holder took, after the
+  holder's own defenses, to the effect's source (Warding Bond). `heldDamageMirrors` lists the holder's mirrors,
+  `pendingDamageMirrors` filters a receipt's applications (never `mirrored`, never zero, never to the holder itself) and
+  `damageMirrorMechanicsBatch` builds the source's DAMAGE batch (derived command id, phase `DAMAGE_MIRROR`, each
+  application marked `mirrored`, so it is never mirrored again; the source's own defenses apply as ordinary damage). The
+  room collects a holder's pending mirrors when it persists the holder's batch and settles them as one post-settlement
+  step (`settleDamageMirrors`) in the same transaction, from the two commit seams: `executeRoomEncounterCommand` (before
+  and after its follow-up raises) and the voluntary Scene movement callbacks. The source is read fresh, so no upstream
+  copy of it is stale; `RoomEncounterStore.transact` fails a command that collected a mirror it never settled. A source
+  absent from the Run, or a Run no longer ACTIVE, takes nothing. A mirror that landed marks the root `damageMirrored`,
+  and undo of that root is a typed refusal (it can't give the source its damage back). Distance and source-at-0-hp are
+  authored end triggers (`SEPARATED` with `beyondFeet`, measured by the post-commit relationship sweep
+  `encounterSeparatedEffects`; `INCAPACITATED` of the `SOURCE`), so separation ends the whole effect. Known limits:
+  mirrored damage applies hit points and defeat only (no concentration check or damage-ended effect on the source), and
+  a voluntary move's undo transitions omit the mirror's change.
 - **Maintenance link** (RULES-2.T8; System capability `maintenance-link`, `MaintenanceLinkCapabilityAdapter`). Concentration
   is a neutral link keyed by the System's `maintenanceDefinitionId`; the 5e adapter (`systems/dnd5e/concentrationPolicy.ts`)
   supplies `MaintenanceLinkHook`s in priority order: `BREAK` on `DEFEATED`, `INCAPACITATED` of the holder or
