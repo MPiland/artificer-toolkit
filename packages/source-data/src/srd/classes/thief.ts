@@ -7,6 +7,10 @@ import {
   VALUE_DOMAIN_CODE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  EFFECT_KIND,
+  MANUAL_ADJUDICATION_REASON,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
   RANGE_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
@@ -141,16 +145,40 @@ export const thiefRoguishArchetype: ClassAuthored = {
       availableAtLevel: 17,
       order: 4,
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(R, 20, 5),
+          order: 1,
           invocation: {
             kind: 'PASSIVE',
             triggerCode: TRIGGER.ACTIVATED,
             range: { id: classRowId(R, 21, 5), rangeKind: RANGE_KIND.SELF },
             targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_THIEF_THIEFS_REFLEXES
-        })
+          paths: [
+            {
+              id: classRowId(R, 24, 5),
+              order: 1,
+              pathCode: PATH_CODE.PASSIVE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(R, 25, 5),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(R, 26, 5),
+                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: "Thief's Reflexes",
+                    reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
+                    instructions:
+                      "In the first round of any combat, you take two turns: the first at your normal initiative and the second at your initiative minus 10. The table adds the second turn to the turn order. You can't use this feature when you are surprised."
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     }
   ]

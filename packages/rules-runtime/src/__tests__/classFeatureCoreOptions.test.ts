@@ -147,6 +147,43 @@ describe('Cleric Divine Intervention (SPELLS-31.T3c)', () => {
   })
 })
 
+describe("Thief's Reflexes (SPELLS-31.T5o2, D187a)", () => {
+  it('is a passive GM ruling for the extra round-one turn, with no closed rule', () => {
+    const reflexes = srdByLabel(SRD.classes, 'Thief').features?.find(
+      ({ label }) => label === "Thief's Reflexes"
+    )
+    const [effect] = reflexes?.effects ?? []
+    expect(effect?.invocation.kind).toBe('PASSIVE')
+    const path = effect?.paths[0]
+    const outcomes = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []
+    expect(outcomes).toHaveLength(1)
+    const [outcome] = outcomes
+    if (outcome?.effectKind !== 'MANUAL_ADJUDICATION')
+      throw new Error("Thief's Reflexes must stay a manual adjudication.")
+    expect(outcome.instructions).toMatch(/two turns/)
+    expect(outcome.instructions).toMatch(/initiative minus 10/)
+    expect(outcome.instructions).toMatch(/surprised/)
+  })
+
+  it('evaluates on a level 17 thief without producing an action', () => {
+    const character = evaluateSrdCharacter({
+      classes: [{ label: 'Rogue', level: 17, subclass: 'Thief' }],
+      features: [
+        srdFeature({
+          owner: 'SUBCLASS',
+          classLabel: 'Rogue',
+          subclassLabel: 'Thief',
+          featureLabel: "Thief's Reflexes",
+          level: 17
+        })
+      ]
+    })
+    expect(
+      character.facts.actionCandidates.filter(({ label }) => label === "Thief's Reflexes")
+    ).toHaveLength(0)
+  })
+})
+
 describe('Oath of Devotion Channel Divinity (SPELLS-31.T4e)', () => {
   const oathFeature = (featureLabel: string) =>
     evaluateSrdCharacter({
