@@ -604,9 +604,18 @@ export type MovementPassageOption = {
 
 export type ValueDomainOptionPayloadByDomain = {
   /** A reaction's resistance may name the damage type that triggered it instead of a fixed one. */
-  DAMAGE_RESISTANCE: { damageTypeId: string } | { damageTypeSource: 'TRIGGER' }
-  /** `sourceEffectIds` limits the immunity to damage from actions owned by that authored content. */
-  DAMAGE_IMMUNITY: { damageTypeId: string; sourceEffectIds?: string[] }
+  DAMAGE_RESISTANCE:
+    | { damageTypeId: string; bypassedBy?: DamageDefenseBypassCode[] }
+    | { damageTypeSource: 'TRIGGER' }
+  /**
+   * `sourceEffectIds` limits the immunity to damage from actions owned by that authored content.
+   * `bypassedBy` limits a defense to attacks without any of those traits (nonmagical attacks).
+   */
+  DAMAGE_IMMUNITY: {
+    damageTypeId: string
+    sourceEffectIds?: string[]
+    bypassedBy?: DamageDefenseBypassCode[]
+  }
   DAMAGE_VULNERABILITY: { damageTypeId: string }
 
   // An innate condition the holder always has.

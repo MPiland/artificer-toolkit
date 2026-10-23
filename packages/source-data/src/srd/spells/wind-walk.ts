@@ -15,7 +15,13 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import {
+  nonmagicalWeaponResistanceGrants,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
 export const windWalk: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.WIND_WALK,
@@ -70,8 +76,12 @@ export const windWalk: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.WIND_WALK, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'WIND_WALK' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: nonmagicalWeaponResistanceGrants((entry) =>
+                    spellChildId(SPELL_IDS.WIND_WALK, 0x214, entry)
+                  )
+                }
               }
             ]
           }

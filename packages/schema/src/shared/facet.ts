@@ -495,6 +495,14 @@ const predicatePayloadSchemas = lazySchemaParts(
           creatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
         })
       ),
+      SOURCE_CREATURE_TYPE: z.intersection(
+        z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SOURCE_CREATURE_TYPE)
+        }),
+        selectableSchema({
+          creatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+        })
+      ),
       CREATURE_SIZE: z.intersection(
         z.object({
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_SIZE)

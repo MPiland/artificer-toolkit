@@ -114,6 +114,45 @@ export function equippedCategoryRestriction(
 }
 
 /**
+ * Gate on the creature that is a grant's source (the attacker, the effect's origin): with INCLUDE
+ * its type is one of `creatureTypeIds`, with EXCLUDE none. Uses ids `makeId(0..3)`.
+ */
+export function sourceCreatureTypeRestriction(
+  makeId: (entry: number) => string,
+  constraint: AuthoringConstraintCode,
+  creatureTypeIds: readonly string[]
+): FacetAuthored {
+  return {
+    id: makeId(0),
+    groups: [
+      {
+        id: makeId(1),
+        order: 0,
+        contexts: [
+          {
+            id: makeId(2),
+            order: 0,
+            subject: 'CREATURE',
+            authoringModeKind: 'ALL',
+            conditions: [
+              {
+                id: makeId(3),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint,
+                predicateCode: 'SOURCE_CREATURE_TYPE',
+                authoringModeKind: 'SELECTED',
+                creatureTypeIds: [...creatureTypeIds]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+/**
  * Gate evaluated against the attacking item: every listed property check must hold (EXCLUDE
  * negates one). Uses ids `makeId(0..2 + checks.length)`.
  */

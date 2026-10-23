@@ -17,6 +17,8 @@ import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
 import { longstrider } from '@artificer-toolkit/source-data/srd/spells/longstrider.js'
 import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { protectionFromEnergy } from '@artificer-toolkit/source-data/srd/spells/protection-from-energy.js'
+import { protectionFromEvilAndGood } from '@artificer-toolkit/source-data/srd/spells/protection-from-evil-and-good.js'
+import { stoneskin } from '@artificer-toolkit/source-data/srd/spells/stoneskin.js'
 import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 
 import { castChoiceOptions } from '../encounterCastChoice.js'
@@ -392,5 +394,23 @@ export function sourceSightSaveEffect(input: { id: string; holderActorId: string
     ...input,
     effect: sourceSightSaveAuthoredEffect(),
     sourceLabel: 'Sight-gated save'
+  })
+}
+
+/** The active effect the real compiler plans for the SRD Protection from Evil and Good spell, held by the warded creature. */
+export function protectionFromEvilAndGoodEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({
+    ...input,
+    effect: protectionFromEvilAndGood.effects?.[0],
+    sourceLabel: protectionFromEvilAndGood.label
+  })
+}
+
+/** The active effect the real compiler plans for the SRD Stoneskin spell, held by the warded creature. */
+export function stoneskinEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({
+    ...input,
+    effect: stoneskin.effects?.[0],
+    sourceLabel: stoneskin.label
   })
 }

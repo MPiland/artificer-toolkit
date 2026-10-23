@@ -644,6 +644,21 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         )
       )
       .set(
+        'bypassedBy',
+        selectMulti(
+          ['bypassedBy'],
+          'Except Attacks That Are',
+          { kind: 'INLINE_OPTIONS', options: DAMAGE_DEFENSE_BYPASS_OPTIONS },
+          {
+            showIf: or([
+              parent.field(['valueDomainCode']).eq('DAMAGE_RESISTANCE'),
+              parent.field(['valueDomainCode']).eq('DAMAGE_IMMUNITY')
+            ]),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
         'sourceEffectIds',
         selectMulti(
           ['sourceEffectIds'],
