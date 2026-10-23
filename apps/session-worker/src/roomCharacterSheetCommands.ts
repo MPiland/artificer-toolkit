@@ -39,6 +39,10 @@ import type { RoomInputs } from './roomInputs.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
 import {
+  actorIdsOutOfPlayByEffect,
+  flagRoomReturnsOntoOccupiedSpace
+} from './roomEncounterReturnsToPlay.js'
+import {
   roomEncounterWriteTransaction,
   type RoomEncounterWriteTransaction
 } from './roomEncounterWritePorts.js'
@@ -341,6 +345,16 @@ export async function executeRoomCharacterSheetCommand(input: {
       roll
     })
   }
+  // An Encounter command that carries this edit flags the return once, after all its effects.
+  if (!input.ctx)
+    await flagRoomReturnsOntoOccupiedSpace({
+      ctx,
+      transaction,
+      encounterId,
+      userId,
+      occurredAt,
+      outOfPlayBefore: actorIdsOutOfPlayByEffect(runActors)
+    })
   const facts = await prepareRoomLiveCharacterSheet(store, inputs, scope, observed, transaction)
   const acknowledgement = await writeCharacterCommandReceipt(
     {

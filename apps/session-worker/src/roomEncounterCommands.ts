@@ -41,6 +41,10 @@ import { executeRoomEncounterCleavingResponse } from './roomEncounterCleavingRes
 import { executeRoomEncounterAction } from './roomEncounterActions.js'
 import { settleDamageMirrors } from './roomDamageMirror.js'
 import { raiseRoomHpZeroEffects } from './roomEncounterHpZeroTriggers.js'
+import {
+  actorIdsOutOfPlayByEffect,
+  flagRoomReturnsOntoOccupiedSpace
+} from './roomEncounterReturnsToPlay.js'
 import { raiseRoomStartOfTurnEffects } from './roomEncounterStartOfTurnTriggers.js'
 import { executeRoomEncounterContest } from './roomEncounterContest.js'
 import {
@@ -240,6 +244,7 @@ export async function executeRoomEncounterCommand(input: {
   const defeatedBefore = new Set(
     actorsBefore.flatMap((actor) => (actor.kind === 'CREATURE' && actor.defeated ? [actor.id] : []))
   )
+  const outOfPlayBefore = actorIdsOutOfPlayByEffect(actorsBefore)
   for (const characterId of characters) {
     if (inputs.characterIsCurrent(characterId, observed, transaction)) continue
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
@@ -383,10 +388,24 @@ export async function executeRoomEncounterCommand(input: {
           execute: executeAction
         })
       : false
+  const flaggedReturn =
+    currentRun.status === 'ACTIVE' &&
+    (await flagRoomReturnsOntoOccupiedSpace({
+      ctx: context,
+      transaction,
+      encounterId: currentRun.id,
+      userId,
+      occurredAt: new Date().toISOString(),
+      outOfPlayBefore
+    }))
   // What the raised roots dealt to a mirror's holder reaches its source too.
   const mirroredRaisedDamage = await settleMirrors()
   const changedRun =
-    mirroredDamage || mirroredRaisedDamage || raisedHpZeroEffects || raisedStartOfTurnEffects
+    mirroredDamage ||
+    mirroredRaisedDamage ||
+    raisedHpZeroEffects ||
+    raisedStartOfTurnEffects ||
+    flaggedReturn
   const raisedRun = changedRun
     ? await context.db
         .query('encounterRuns')

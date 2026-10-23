@@ -5,6 +5,8 @@ import {
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
   EFFECT_KIND,
+  DURATION_KIND,
+  MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -46,7 +48,9 @@ export const imprisonment: SpellAuthored = {
         },
         range: {
           id: spellChildId(SPELL_IDS.IMPRISONMENT, 0x212, 1),
-          rangeKind: RANGE_KIND.SPECIAL
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 30,
+          unit: MEASUREMENT_UNIT_CODE.FEET
         },
         targeting: {
           selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
@@ -64,6 +68,10 @@ export const imprisonment: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.IMPRISONMENT, 0x213, 1) + '__result',
             resultKind: 'SEQUENCE' as const,
+            duration: {
+              id: spellChildId(SPELL_IDS.IMPRISONMENT, 0x214, 1),
+              durationKind: DURATION_KIND.UNTIL_DISPELLED
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.IMPRISONMENT, 0x2f0, 1),

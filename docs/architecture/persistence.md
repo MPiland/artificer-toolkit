@@ -330,6 +330,7 @@ store.
   sends Convex `END_CONCENTRATION` (the caster's own and every holder outside an ACTIVE Run; a held
   holder is skipped) and then the room's `endOutsideCasterConcentration` (the held holders; same
   command id, both idempotent). The room end also writes the Run command row
+  `RETURNED_TO_PLAY` (room-authored, GM-only: a creature came back from `REMOVE_FROM_PLAY` onto an occupied space, `RETURN_SPACE_OCCUPIED`, D184; written by `appendSystemRunEntry` like the next one),
   `CONCENTRATION_DROPPED_OUTSIDE` (stored input `encounterConcentrationDroppedOutsideInputSchema`,
   `label` the GM notice "<caster> dropped Concentration: <label> ends on <holders>", Run version +1).
   Like every Run command except a public enemy roll it is `PRIVATE`, so `readEncounterTimelinePage`
