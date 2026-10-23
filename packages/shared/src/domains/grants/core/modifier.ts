@@ -526,6 +526,12 @@ export type ModifierScalarValueAuthored =
 /** A speed or sense range modifier is a typed length, never a bare number (D112). */
 export type ModifierLengthAuthored = { amount: number; unit: LengthUnitCode }
 
+/**
+ * A "your speed is equal to your other speed" value source: the granted speed takes the length of
+ * the holder's `equalsSpeedId` speed (Spider Climb's climbing speed equal to the walking speed).
+ */
+export type ModifierSpeedEqualsAuthored = { equalsSpeedId: string }
+
 /** The die sizes a rolled-die modifier rolls. */
 export const ROLLED_DIE_FACES = [4, 6, 8, 10, 12] as const
 
@@ -676,7 +682,11 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
       ? ModifierFractionAuthored
       : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
         ? V extends 'SPEED' | 'SENSE_RANGE'
-          ? ModifierLengthAuthored
+          ? V extends 'SPEED'
+            ? K extends 'SET_VALUE'
+              ? ModifierLengthAuthored | ModifierSpeedEqualsAuthored
+              : ModifierLengthAuthored
+            : ModifierLengthAuthored
           : K extends 'SET_VALUE' | 'CAP_VALUE'
             ? V extends 'DURATION'
               ?

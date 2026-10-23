@@ -1,6 +1,7 @@
 import {
   authoredFractionSchema,
-  authoredLengthSchema
+  authoredLengthSchema,
+  speedEqualsPayloadSchema
 } from '@artificer-toolkit/schema/shared/authoredLimits'
 import {
   feetInLengthUnit,
@@ -26,19 +27,32 @@ export function modifierLengthFeet(payload: unknown): number {
 
 /**
  * "Your speed is X" grants keyed by speed: the widest applicable one wins, in its authored unit. A
- * Character policy and a Creature holder fold their SET_VALUE speeds through this one rule.
+ * grant that names another speed ("equal to your walking speed") is that speed's length, taken from
+ * `speedLength` (the holder's base speed of that type); a grant naming a speed the holder lacks
+ * grants nothing. A Character policy and a Creature holder fold their SET_VALUE speeds through this
+ * one rule.
  */
 export function widestLengthByKey(
-  grants: Iterable<{ key: string; payload: unknown }>
+  grants: Iterable<{ key: string; payload: unknown }>,
+  speedLength: (speedId: string) => ModifierLength | undefined = () => undefined
 ): Map<string, ModifierLength> {
   const widest = new Map<string, ModifierLength>()
   for (const { key, payload } of grants) {
-    const length = authoredLengthSchema.parse(payload)
+    const equals = speedEqualsPayloadSchema.safeParse(payload)
+    const length = equals.success
+      ? speedLength(equals.data.equalsSpeedId)
+      : authoredLengthSchema.parse(payload)
+    if (length === undefined) continue
     const best = widest.get(key)
     if (best === undefined || lengthMeasurementInFeet(length) > lengthMeasurementInFeet(best))
       widest.set(key, length)
   }
   return widest
+}
+
+/** Whether a SPEED payload names another speed instead of a length. */
+export function isSpeedEqualsPayload(payload: unknown): boolean {
+  return speedEqualsPayloadSchema.safeParse(payload).success
 }
 
 /**

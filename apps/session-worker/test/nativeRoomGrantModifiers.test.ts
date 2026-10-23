@@ -6,6 +6,7 @@ import {
 import { aidAtSecondLevel } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { fly } from '@artificer-toolkit/source-data/srd/spells/fly.js'
+import { spiderClimb } from '@artificer-toolkit/source-data/srd/spells/spider-climb.js'
 import { longstrider } from '@artificer-toolkit/source-data/srd/spells/longstrider.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -128,6 +129,24 @@ describe('a Fly grant adds a speed type the Character lacks (SPELLS-5.6)', () =>
 
     const without = await grantRoom(null)
     expect(budgetAt(await moverAllowances(without), 'FLY')).toBeUndefined()
+  })
+})
+
+describe('a speed equal to another speed (SPELLS-4.T2o)', () => {
+  it('gives a Spider Climb target a climbing allowance equal to its walking one, and none without', async () => {
+    const climbing = await grantRoom({
+      sourceActorId: MOVER_ID,
+      holderActorId: MOVER_ID,
+      lifecycle: {},
+      effect: spiderClimb.effects?.[0],
+      sourceLabel: spiderClimb.label
+    })
+    const allowances = await moverAllowances(climbing)
+    expect(budgetAt(allowances, 'CLIMB')).toBe(30)
+    expect(budgetAt(allowances, 'WALK')).toBe(30)
+
+    const without = await grantRoom(null)
+    expect(budgetAt(await moverAllowances(without), 'CLIMB')).toBeUndefined()
   })
 })
 

@@ -53,6 +53,7 @@ const CREATURE_KINDS = [
   'CREATURE_GREEN_HAG_INNATE_SPELLCASTING',
   'CREATURE_GREEN_HAG_MIMICRY',
   'CREATURE_HOLD_BREATH',
+  'CREATURE_HYDRA_MULTIPLE_HEADS',
   'CREATURE_HYDRA_WAKEFUL',
   'CREATURE_INNATE_SPELLCASTING',
   'CREATURE_KRAKEN_AMPHIBIOUS',
@@ -62,6 +63,8 @@ const CREATURE_KINDS = [
   'CREATURE_MERROW_AMPHIBIOUS',
   'CREATURE_MIMIC_FALSE_APPEARANCE_OBJECT_FORM_ONLY',
   'CREATURE_MUMMY_LORD_LEGENDARY_ACTIONS',
+  'CREATURE_MUMMY_LORD_ROTTING_FIST',
+  'CREATURE_MUMMY_ROTTING_FIST',
   'CREATURE_NIGHT_HAG_INNATE_SPELLCASTING',
   'CREATURE_OCHRE_JELLY_AMORPHOUS',
   'CREATURE_OCTOPUS_HOLD_BREATH',
@@ -69,6 +72,7 @@ const CREATURE_KINDS = [
   'CREATURE_ONI_INNATE_SPELLCASTING',
   'CREATURE_ON_HIT_FORCED_MOVEMENT_SAVE',
   'CREATURE_ON_HIT_POISON_SAVE',
+  'OOZE_SPLIT',
   'CREATURE_PEGASUS_LANGUAGE_LIMITATION',
   'CREATURE_PIT_FIEND_INNATE_SPELLCASTING',
   'CREATURE_PLANETAR_DIVINE_AWARENESS',
@@ -77,8 +81,13 @@ const CREATURE_KINDS = [
   'CREATURE_PURPLE_WORM_TUNNELER',
   'CREATURE_QUASIT_CLAWS',
   'CREATURE_QUASIT_SCARE',
+  'CREATURE_RAKSHASA_CLAW',
   'CREATURE_RAKSHASA_INNATE_SPELLCASTING',
+  'CREATURE_RAKSHASA_LIMITED_MAGIC_IMMUNITY',
+  'CREATURE_SHIELD_GUARDIAN_SPELL_STORING',
+  'CREATURE_TARRASQUE_REFLECTIVE_CARAPACE',
   'CREATURE_ROPER_FALSE_APPEARANCE',
+  'CREATURE_ROPER_GRASPING_TENDRILS',
   'CREATURE_RUG_OF_SMOTHERING_FALSE_APPEARANCE',
   'CREATURE_RUG_OF_SMOTHERING_SMOTHER',
   'CREATURE_SEA_HAG_AMPHIBIOUS',
@@ -96,7 +105,8 @@ const CREATURE_KINDS = [
   'CREATURE_VAMPIRE_FORBIDDANCE',
   'CREATURE_VAMPIRE_STAKE_TO_THE_HEART',
   'CREATURE_WILL_O_WISP_EPHEMERAL',
-  'DRAGON_LEGENDARY_DETECT'
+  'DRAGON_LEGENDARY_DETECT',
+  'NIGHT_HAG_NIGHTMARE_HAUNTING'
 ]
 
 type Node = Record<string, unknown>
@@ -140,5 +150,20 @@ describe.each([
   it('leaves none of their closed rule kinds', () => {
     const remaining = Object.keys(CLOSED_RULE_KIND)
     expect(kinds.filter((kind) => remaining.includes(kind))).toEqual([])
+  })
+})
+
+describe('curses and afflictions as GM rulings (D187a, SPELLS-33.T6b1)', () => {
+  it.each([
+    ['Mummy', 'Rotting Fist'],
+    ['Mummy Lord', 'Rotting Fist'],
+    ['Rakshasa', 'Claw'],
+    ['Night Hag', 'Nightmare Haunting (1/Day)']
+  ])('%s: %s carries its curse as a manual adjudication', (creature, feature) => {
+    const authored = srdCreatures.find((entry) => entry.label === creature)
+    const owner = authored?.features?.find((entry) => entry.label === feature)
+    const rulings = nodesWhere(owner, (node) => node.effectKind === 'MANUAL_ADJUDICATION')
+    expect(rulings).toHaveLength(1)
+    expect(String(rulings[0]?.instructions)).toMatch(/remove curse|greater restoration|no benefit/i)
   })
 })

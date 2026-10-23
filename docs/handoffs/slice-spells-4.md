@@ -573,3 +573,9 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - The closed kinds `FLAME_BLADE` and `PRODUCE_FLAME` are deleted. Flame Blade's 3d6 fire scales by cast level (1d6 per two slot levels above 2nd); Produce Flame's 1d8 fire scales with character level.
 - GM rulings kept in the descriptions (D187a): the bonus-action re-evoke after letting go of Flame Blade, and the hurl that ends Produce Flame (also its first hurl on the cast turn, and ending it by recasting).
 - Proofs: authoring parity (both spells), source-data outcome kinds, unit tests of the HOLDER default (Vampiric Touch) and the INVOCATION target (Flame Blade), and a room journey per spell.
+
+## T2o (D187a): speed equal to another speed
+
+- A `SPEED` `SET_VALUE` payload may be `{ equalsSpeedId }` instead of a length (see [rules-runtime](../architecture/rules-runtime.md), "Speed equal to another speed"). Spider Climb (climbing speed equal to walking speed) and Alter Self (Aquatic Adaptation's swimming speed) author it; Alter Self's other two options and its appearance choice stay with the description and a `MANUAL_ADJUDICATION`.
+- Jump, Levitate and Reverse Gravity need a 3D position model, so each ships as a `MANUAL_ADJUDICATION` GM ruling; 3D movement is in future-enhancements. `SPIDER_CLIMB`, `ALTER_SELF`, `JUMP`, `LEVITATE` and `REVERSE_GRAVITY` left `CLOSED_RULE_KIND`.
+- Proofs: `modifierLengths.test.ts` (Creature and Character folds), `grantAuthoringParity.test.ts` (Spider Climb, Alter Self), `manualBesideSpellAuthoringParity.test.ts` (Jump, Levitate, Reverse Gravity), `nativeRoomGrantModifiers.test.ts` (a Spider Climb target gets a 30-foot climbing allowance in the room).

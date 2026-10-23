@@ -5,7 +5,11 @@ import type {
 } from '@artificer-toolkit/schema/api/characterRules'
 import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 
-import { isLengthModifierDomain, modifierLengthFeet } from '../../modifierLength.js'
+import {
+  isLengthModifierDomain,
+  isSpeedEqualsPayload,
+  modifierLengthFeet
+} from '../../modifierLength.js'
 import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
 import { canonicalCharacterAbility } from './characterPolicyValues.js'
 import {
@@ -71,6 +75,8 @@ export function evaluateDnd5eCharacterModifiers(
       isLengthModifierDomain(group.valueDomainCode) &&
       ['BONUS', 'PENALTY', 'SET_VALUE'].includes(group.modifierKind)
     ) {
+      // "Equal to another speed" is a replacement the movement policy resolves from the holder's speeds.
+      if (isSpeedEqualsPayload(payload)) return 0
       const feet = modifierLengthFeet(payload)
       return group.modifierKind === 'PENALTY' ? -feet : feet
     }

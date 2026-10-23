@@ -64,18 +64,6 @@ export const tarrasque: CreatureAuthored = {
       label: 'Reflective Carapace',
       description:
         'Reflective Carapace. Any time the tarrasque is targeted by a magic missile spell, a line spell, or a spell that requires a ranged attack roll, roll a d6. On a 1 to 5, the tarrasque is unaffected. On a 6, the tarrasque is unaffected, and the effect is reflected back at the caster as though it originated from the tarrasque, turning the caster into the target.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(268, 203),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(268, 204), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_TARRASQUE_REFLECTIVE_CARAPACE
-        })
-      ],
       order: 2
     },
     {
