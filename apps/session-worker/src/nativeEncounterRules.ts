@@ -96,7 +96,7 @@ import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
-import { endedByAction, planEndEffects } from './nativeEndEffects.js'
+import { endedByAction, planEndEffects, planEndEffectsChecks } from './nativeEndEffects.js'
 import { prepareNativeLiveActionMaintenance } from './nativeEncounterMaintenance.js'
 import { advanceNativeActionGraphs } from '@artificer-toolkit/rules-runtime/encounterActionExecution'
 import {
@@ -1451,6 +1451,23 @@ export async function planNativeLiveEncounterAction(
   })
   // A basic action another creature uses on the target (rousing a sleeper) ends what names it.
   const actionEnded = endedByAction(endPlan, command, execution.execution, targetHeld, prepared)
+  const casterTarget = movementTargets.get(prepared.actor.id)
+  // A cast that may end higher-level effects pends one roller prompt per candidate (D182).
+  const spellCheck =
+    actionEnded && casterTarget
+      ? await planEndEffectsChecks({
+          plan: endPlan,
+          runtime: executionOptions.runtime,
+          system,
+          state,
+          caster: casterTarget,
+          targetActorId: prepared.target.id,
+          castOccurrenceId: occurrenceId,
+          command,
+          fingerprint,
+          actionLabel: encounterActionSourceLabel(prepared.source)
+        })
+      : null
   const gateImmunity = passedWardImmunityPlan({
     gameSystemId: state.gameSystemId,
     ward: gate.kind === 'PASSED' || gate.kind === 'NONE' ? gate.passed : null
@@ -1736,6 +1753,7 @@ export async function planNativeLiveEncounterAction(
           ]
         : [],
     cleaving,
+    spellCheck,
     reactionUse,
     reactionConsumedGrants: reactionEnded?.consumedGrants ?? [],
     spentUseGrants: decoyStrike.spentUseGrants,
@@ -1838,6 +1856,7 @@ export function buildNativeLiveEncounterActionCommitInput(
     concentrationEnds: plan.concentration.concentrationEnds,
     endedGrants: plan.concentration.endedGrants,
     cleaving: plan.cleaving,
+    spellCheck: plan.spellCheck ?? undefined,
     consumedGrants: [...plan.consumedGrants, ...plan.reactionConsumedGrants],
     spentUseGrants: plan.spentUseGrants,
     turnUses: plan.turnUses,

@@ -221,6 +221,8 @@ export type LiveSessionEncounterActionCommitInput = Omit<
   /** Grants their holders' incapacitation ended in this commit (D95); an action's undo restores them. */
   endedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
   cleaving: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema> | null
+  /** The spell's per-effect ability checks, pending on the caster's d20 under this cast's root (D182a). */
+  spellCheck?: z.infer<typeof serverRuleExecutionPendingSnapshotDtoSchema>
   /** The attacker's grants this attack roll used up; its commit deletes them, its undo restores them. */
   consumedGrants: z.infer<typeof activeRuleEffectRecordSchema>[]
   /** The target's attack decoys this attack roll destroyed without ending their effect, as they were before the use is spent. */
@@ -271,6 +273,7 @@ export const liveSessionEncounterActionCommitInputSchema: z.ZodMiniType<LiveSess
       maintainedState: z.nullable(encounterMaintainedEffectStateRecordSchema),
       ...liveSessionEncounterConcentrationFields(),
       cleaving: z.nullable(serverRuleExecutionPendingSnapshotDtoSchema),
+      spellCheck: z.optional(serverRuleExecutionPendingSnapshotDtoSchema),
       consumedGrants: z
         .array(activeRuleEffectRecordSchema)
         .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER)),

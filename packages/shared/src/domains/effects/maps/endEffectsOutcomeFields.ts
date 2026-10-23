@@ -2,6 +2,7 @@ import { EFFECT_KIND } from '#core'
 import type { EndEffectsSelectorAuthored } from '#authored'
 import { buildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
+import { HIGHER_LEVEL_CHECK_NODE_MAP } from './invocation.js'
 import type { OutcomeNodeMapApi } from './path.js'
 
 const endEffectsSelector = buildNodeMap<AllUnionFields<EndEffectsSelectorAuthored>>()
@@ -70,7 +71,7 @@ export function registerEndEffectsOutcomeFields(
   cond: OutcomeNodeMapApi['cond'],
   data: OutcomeNodeMapApi['data']
 ) {
-  const { selectSingle, selectMulti, groupArray } = nodes
+  const { selectSingle, selectMulti, groupArray, groupObject } = nodes
   const showIf = cond.local().field(['effectKind']).eq(EFFECT_KIND.END_EFFECTS)
   map
     .set(
@@ -108,6 +109,15 @@ export function registerEndEffectsOutcomeFields(
           })
         },
         { showIf }
+      )
+    )
+    .set(
+      'endEffectsLevelCheck',
+      groupObject(
+        ['levelCheck'],
+        'Check for a higher-level effect',
+        () => HIGHER_LEVEL_CHECK_NODE_MAP,
+        { presentation: 'inline', showIf }
       )
     )
 }

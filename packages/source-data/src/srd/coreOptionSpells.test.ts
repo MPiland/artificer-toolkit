@@ -57,6 +57,7 @@ describe.each([
     ruleKind: 'GREATER_RESTORATION',
     effectKinds: ['END_EFFECTS', 'MANUAL_ADJUDICATION']
   },
+  { label: 'Dispel Magic', ruleKind: 'DISPEL_MAGIC', effectKinds: ['END_EFFECTS'] },
   {
     label: 'Protection from Poison',
     ruleKind: 'PROTECTION_FROM_POISON',
@@ -79,6 +80,27 @@ describe.each([
     for (const outcome of outcomes)
       if (outcome.effectKind === 'MANUAL_ADJUDICATION')
         expect(description).toContain(plainText(outcome.instructions))
+  })
+})
+
+/**
+ * SPELLS-4.T2f1b2: Dispel Magic ends what its slot covers outright and owes a spellcasting check,
+ * at 10 plus the effect's own level, for each effect above it (D182a).
+ */
+describe('SRD Dispel Magic (SPELLS-4.T2f1b2)', () => {
+  const spell = srdSpells.find((entry) => entry.label === 'Dispel Magic')
+  const path = spell?.effects?.flatMap((effect) => effect.paths)[0]
+
+  it('ends every effect up to its slot level and checks the rest at the effect level', () => {
+    if (path?.selectionKind !== 'FIXED') throw new Error('Expected one fixed path.')
+    expect(path.resultBlock.outcomes).toMatchObject([
+      {
+        effectKind: 'END_EFFECTS',
+        scope: 'ALL',
+        selectors: [{ kind: 'SPELL_LEVEL', limit: 'SLOT_LEVEL' }],
+        levelCheck: { ability: 'SPELLCASTING', baseDc: 10 }
+      }
+    ])
   })
 })
 

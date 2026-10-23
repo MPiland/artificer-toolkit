@@ -213,3 +213,41 @@ describe('an END_EFFECTS origin creature-type selector is authorable from core o
     expect(Object.keys(authored.published)).toEqual(Object.keys(baseline.published))
   })
 })
+
+describe('an END_EFFECTS level check is authorable from core options (D182a, SPELLS-4.T2f1b2)', () => {
+  const srd = srdSpell('Dispel Magic')
+  const [outcome] = outcomeOf(srd)
+  const authoring = (patch: Record<string, unknown>) => ({
+    ...srd,
+    paths: [
+      {
+        ...srd.paths[0],
+        resultBlock: {
+          ...(srd.paths[0]?.selectionKind === 'FIXED' ? srd.paths[0].resultBlock : {}),
+          outcomes: [{ ...outcome, ...patch }]
+        }
+      }
+    ]
+  })
+
+  it('is Dispel Magic: its slot level ends outright and the effects above it owe a spellcasting check', () => {
+    expect(JSON.stringify(srd)).not.toContain('CLOSED_RULE')
+    expect(outcome).toMatchObject({
+      effectKind: 'END_EFFECTS',
+      scope: 'ALL',
+      selectors: [{ kind: 'SPELL_LEVEL', limit: 'SLOT_LEVEL' }],
+      levelCheck: { ability: 'SPELLCASTING', baseDc: 10 }
+    })
+    expect(compiledPlan(srd)?.kind).toBe('SINGLE_GRAPH')
+  })
+
+  it('refuses a level check beside a chosen effect or without a slot-level selector', () => {
+    expect(featureEffectDtoSchema.safeParse(authoring({})).success).toBe(true)
+    expect(featureEffectDtoSchema.safeParse(authoring({ scope: 'ONE_CHOSEN' })).success).toBe(false)
+    expect(
+      featureEffectDtoSchema.safeParse(
+        authoring({ selectors: [{ kind: 'SPELL_LEVEL', limit: 'FIXED', level: 3 }] })
+      ).success
+    ).toBe(false)
+  })
+})

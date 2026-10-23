@@ -1,4 +1,5 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { CastReactionLevelCheck } from './encounterCastReactionCheck.js'
 import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
 import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ServerRuleExecutionD20EvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
@@ -304,6 +305,51 @@ type EndEffectsContext = {
   originCreatureTypeIds?: readonly string[]
 }
 
+/** Whether the effect's origin creature is of a type the outcome names, or the outcome names none. */
+function fromAdmittedOrigin(
+  definition: ActiveRuleEffectRecord['definition'],
+  context: Pick<EndEffectsContext, 'actorCreatureTypeIds' | 'originCreatureTypeIds'>
+) {
+  if (context.originCreatureTypeIds === undefined) return true
+  const originTypeId =
+    definition.origin.kind === 'ENCOUNTER' && definition.origin.sourceActorId !== null
+      ? context.actorCreatureTypeIds.get(definition.origin.sourceActorId)
+      : undefined
+  return originTypeId !== undefined && context.originCreatureTypeIds.includes(originTypeId)
+}
+
+/** The ability check an END_EFFECTS outcome owes for each effect cast above its own level (D182a). */
+type EndEffectsLevelCheck = CastReactionLevelCheck
+
+/**
+ * The effects an END_EFFECTS outcome's level check tries to end (D182): those a spell cast above
+ * the ending cast's level made, from an admitted origin, each at the DC `baseDc` plus its own
+ * level. They are frozen in a deterministic order, lowest level first, then creation order, then by id, so
+ * a replay asks the same checks in the same order. An effect made by no spell never owes one.
+ */
+export function levelCheckEntries(
+  held: readonly ActiveRuleEffectRecord[],
+  levelCheck: EndEffectsLevelCheck | undefined,
+  context: Pick<EndEffectsContext, 'castLevel' | 'actorCreatureTypeIds' | 'originCreatureTypeIds'>
+) {
+  const { castLevel } = context
+  if (!levelCheck || castLevel === null) return []
+  return held
+    .flatMap((effect) => {
+      const level = effect.definition.originLevel
+      return level !== null && level > castLevel && fromAdmittedOrigin(effect.definition, context)
+        ? [{ effect, level }]
+        : []
+    })
+    .sort(
+      (a, b) =>
+        a.level - b.level ||
+        a.effect.createdOrdinal - b.effect.createdOrdinal ||
+        a.effect.id.localeCompare(b.effect.id)
+    )
+    .map(({ effect, level }) => ({ effectId: effect.id, dc: levelCheck.baseDc + level }))
+}
+
 /**
  * The held effects an END_EFFECTS outcome could end: those owning a condition a selector names, or
  * made by a spell cast at or below a level a selector admits, from an origin creature of the
@@ -317,15 +363,7 @@ export function endEffectsCandidates(
   context: EndEffectsContext
 ) {
   return held.filter(({ definition }) => {
-    const originTypeId =
-      definition.origin.kind === 'ENCOUNTER' && definition.origin.sourceActorId !== null
-        ? context.actorCreatureTypeIds.get(definition.origin.sourceActorId)
-        : undefined
-    if (
-      context.originCreatureTypeIds !== undefined &&
-      (originTypeId === undefined || !context.originCreatureTypeIds.includes(originTypeId))
-    )
-      return false
+    if (!fromAdmittedOrigin(definition, context)) return false
     return selectors.some((selector) => {
       if (selector.kind === 'CONDITION')
         return definition.stateContributions.some(
@@ -365,6 +403,7 @@ export function offerEndEffects(input: {
         scope: 'ALL' | 'ONE_CHOSEN'
         selectors: EndEffectsSelectors
         originCreatureTypeIds?: readonly string[]
+        levelCheck?: EndEffectsLevelCheck
       }
     | undefined
   held: readonly ActiveRuleEffectRecord[]
@@ -384,7 +423,12 @@ export function offerEndEffects(input: {
     input.endEffects?.scope === 'ONE_CHOSEN'
       ? endEffectsChoice(candidates, input.chosenEffectId)
       : null
-  return { selectors, candidates, pick, castLevel: input.castLevel }
+  const checks = levelCheckEntries(input.held, input.endEffects?.levelCheck, {
+    castLevel: input.castLevel,
+    actorCreatureTypeIds: input.actorCreatureTypeIds,
+    originCreatureTypeIds: input.endEffects?.originCreatureTypeIds
+  })
+  return { selectors, candidates, pick, castLevel: input.castLevel, checks }
 }
 
 /**
