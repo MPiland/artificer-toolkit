@@ -1095,7 +1095,7 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   the 5e adapter (`systems/dnd5e/eventVocabulary.ts`) reads `consumeOnFirstEvents`, `endOnEvents` (`ON_ATTACKED` is
   `ATTACKED`, `ON_SAVING_THROW` is `TEST SAVE` over `SAVING_THROW_MODIFIER` grants, and so on), `endOnTriggers`,
   `endOnConditionIds` and `repeatTriggers`. Each effect is read through the System its frozen graph was compiled for
-  (`frozenGraph.source.gameSystemId`), fail-closed. The `LIFECYCLE_EVENTS` table in that file is the one source of the
+  (`frozenGraph.source.gameSystemId`), fail-closed. The `LIFECYCLE_EVENTS` table (`systems/dnd5e/lifecycleVocabulary.ts`, in the authoring-loadable vocabulary seam) is the one source of the
   lifecycle codes: the `effectConsumeEvent` and `effectEndEvent` vocabulary lists (with a `grantable` flag for the events a
   timed grant may carry) and the hook subscriptions both derive from it, and `actionTrait` lists the traits an
   `ACTION_TRAIT` end trigger (`{ event, trait, against }`) may name (`ATTACK_ROLL`, `SPELL_CAST`), each bound to the ACTION

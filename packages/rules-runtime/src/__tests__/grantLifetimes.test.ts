@@ -48,7 +48,7 @@ import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/sh
 import {
   DND5E_EFFECT_CONSUME_EVENTS,
   DND5E_EFFECT_END_EVENTS
-} from '../systems/dnd5e/eventVocabulary.js'
+} from '../systems/dnd5e/lifecycleVocabulary.js'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
 import { activeEffectEndsOnRest } from '../character/sheetRest.js'

@@ -138,7 +138,8 @@ const SYSTEM_VOCABULARY_SEAM = [
   'systemCoreCodeCapability.ts',
   'systemCapabilityRegistry.ts',
   'systems/dnd5e/coreCodes.ts',
-  'systems/dnd5e/identity.ts'
+  'systems/dnd5e/identity.ts',
+  'systems/dnd5e/lifecycleVocabulary.ts'
 ].map((file) => `/packages/rules-runtime/src/${file}`)
 
 /** Rules-runtime and play-schema files a bundle loads outside the System vocabulary seam. */

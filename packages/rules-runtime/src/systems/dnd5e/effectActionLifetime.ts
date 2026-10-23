@@ -9,7 +9,7 @@ import {
 import type { ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
-import { DND5E_EFFECT_CONSUME_EVENTS, DND5E_EFFECT_END_EVENTS } from './eventVocabulary.js'
+import { DND5E_EFFECT_CONSUME_EVENTS, DND5E_EFFECT_END_EVENTS } from './lifecycleVocabulary.js'
 import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 

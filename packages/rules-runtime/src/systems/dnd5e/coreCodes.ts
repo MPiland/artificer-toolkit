@@ -3,7 +3,7 @@ import {
   DND5E_ACTION_TRAITS,
   DND5E_EFFECT_CONSUME_EVENTS,
   DND5E_EFFECT_END_EVENTS
-} from './eventVocabulary.js'
+} from './lifecycleVocabulary.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
 
 export const DND5E_ROLL_INFLUENCES = [
