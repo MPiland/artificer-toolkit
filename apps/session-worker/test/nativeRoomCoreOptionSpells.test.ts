@@ -557,7 +557,7 @@ describe('room Vampiric Touch (SPELLS-4.T2n2, D181)', () => {
       rolls: [18, 5, 5, 5],
       fallbackRoll: 0,
       actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
-      characterPlay: { currentHitPoints: 1 },
+      characterPlay: { currentHitPoints: 1, classLevel: 5 },
       characterSpellcasting: { spells: [vampiricTouch], prepared: [vampiricTouch.id] },
       characterAction: (action) => action.label.startsWith(vampiricTouch.label)
     })
