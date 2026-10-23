@@ -2,9 +2,6 @@ import { speedDtoSchema } from '@artificer-toolkit/schema/shared/speed'
 
 import { lengthMeasurementInFeet } from '@artificer-toolkit/shared/core'
 
-/** The System speed code the rules treat as walking, as in `characterMovementAndSenses`. */
-export const WALK_SPEED_CODE = 'WALK'
-
 /**
  * The feet of every typed speed among a Character's evaluated speeds or a creature stat block's, in
  * their given order; the first entry of a speed type wins. Publication refuses a malformed speed or

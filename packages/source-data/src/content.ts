@@ -88,6 +88,7 @@ interface SystemChallengeRatingSeedRecord extends VocabularySeedRecord {
   xp: number
   proficiencyBonus: number
   rank: number
+  value: number
 }
 
 interface SystemConditionTypeSeedRecord extends VocabularySeedRecord {

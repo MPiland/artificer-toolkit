@@ -90,7 +90,8 @@ export const authoredRouteStorySystem = {
       description: '50 XP',
       xp: 50,
       proficiencyBonus: 2,
-      rank: 2
+      rank: 2,
+      value: 0.25
     }
   ],
   conditionTypes: [
