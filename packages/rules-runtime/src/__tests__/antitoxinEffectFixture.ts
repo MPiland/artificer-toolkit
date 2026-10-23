@@ -13,7 +13,9 @@ import { copperDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatur
 import { goldDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/gold-dragon-wyrmling.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
 import { darkvision } from '@artificer-toolkit/source-data/srd/spells/darkvision.js'
+import { dispelEvilAndGood } from '@artificer-toolkit/source-data/srd/spells/dispel-evil-and-good.js'
 import { heroism } from '@artificer-toolkit/source-data/srd/spells/heroism.js'
+import { holyAura } from '@artificer-toolkit/source-data/srd/spells/holy-aura.js'
 import { longstrider } from '@artificer-toolkit/source-data/srd/spells/longstrider.js'
 import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { protectionFromEnergy } from '@artificer-toolkit/source-data/srd/spells/protection-from-energy.js'
@@ -403,6 +405,24 @@ export function protectionFromEvilAndGoodEffect(input: { id: string; holderActor
     ...input,
     effect: protectionFromEvilAndGood.effects?.[0],
     sourceLabel: protectionFromEvilAndGood.label
+  })
+}
+
+/** The active effect the real compiler plans for the SRD Holy Aura spell, held by a creature it affects. */
+export function holyAuraEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({
+    ...input,
+    effect: holyAura.effects?.[0],
+    sourceLabel: holyAura.label
+  })
+}
+
+/** The active effect the real compiler plans for the SRD Dispel Evil and Good spell, held by its caster. */
+export function dispelEvilAndGoodEffect(input: { id: string; holderActorId: string }) {
+  return plannedGrantEffect({
+    ...input,
+    effect: dispelEvilAndGood.effects?.[0],
+    sourceLabel: dispelEvilAndGood.label
   })
 }
 

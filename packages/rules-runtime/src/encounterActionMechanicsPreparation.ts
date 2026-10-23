@@ -24,6 +24,7 @@ import {
   creatureAttackAbility,
   encounterAttackAddedDice,
   conditionImmunityIdsAgainstSource,
+  type GrantSource,
   sourceQualifierAdmits,
   withSourceSightSave
 } from './encounterActiveGrants.js'
@@ -598,13 +599,16 @@ export async function prepareEncounterActionMechanics<
   // mechanics add their own contributors (D94), and so does sight: an unseen attacker has
   // advantage, an unseen target disadvantage.
   const attackDomain = attackKind === null ? null : profile.attackDomain(attackKind)
-  const attackerCreatureTypeIds = [snapshotCreatureTypeId(actor)].filter(
-    (id): id is string => id !== null
-  )
+  const attackSource: GrantSource = {
+    creatureTypeIds: [snapshotCreatureTypeId(actor)].filter((id): id is string => id !== null),
+    traits: Object.entries(attackTraits ?? {}).flatMap(([trait, present]) =>
+      present ? [trait.toUpperCase()] : []
+    )
+  }
   const attacksAgainst = targetFacts.attackAgainstContributors.filter(
     (entry) =>
       entry.attackDomain === attackDomain &&
-      sourceQualifierAdmits(entry.sourceQualifier, attackerCreatureTypeIds) &&
+      sourceQualifierAdmits(entry.sourceQualifier, attackSource) &&
       (entry.attackOccasion === undefined || entry.attackOccasion === input.attackOccasion) &&
       isInEffectEventScope(entry.eventScope, {
         actorId: actor.id,
@@ -867,7 +871,7 @@ export async function prepareEncounterActionMechanics<
       conditionImmunityIds: conditionImmunityIdsAgainstSource(
         targetFacts.conditionImmunityIds,
         targetFacts.sourceConditionImmunities,
-        attackerCreatureTypeIds
+        attackSource
       ),
       targetDamageTypesTaken: damageTypeIdsTaken(targetFacts.actor)
     }

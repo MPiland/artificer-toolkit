@@ -20,7 +20,7 @@ describe('roll expressions', () => {
           { count: 1, die: 20, modifier: -3, rolls: [20], subtotal: 20 }
         ],
         modifier: -3,
-        mode: 'NORMAL',
+        keep: 'FIRST',
         subtotal: 24,
         transform: { kind: 'DOUBLE' },
         total: 48
@@ -69,7 +69,7 @@ describe('roll expressions', () => {
           }
         ],
         modifier: 0,
-        mode: 'NORMAL',
+        keep: 'FIRST',
         subtotal: 15,
         transform: { kind: 'NONE' },
         total: 15
@@ -120,11 +120,13 @@ describe('roll expressions', () => {
     const advantage = evaluateRollExpression(
       parseRollExpression('1d20 + 4'),
       { nextInt: () => advantageValues.shift() ?? 0 },
-      'ADVANTAGE'
+      { mode: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' }
     )
     expect(advantage.evidence).toMatchObject({
       terms: [{ count: 2, rolls: [4, 17], subtotal: 17, keptRollIndex: 1 }],
       mode: 'ADVANTAGE',
+      modeLabel: 'Advantage',
+      keep: 'HIGHER',
       total: 21
     })
 
@@ -132,18 +134,28 @@ describe('roll expressions', () => {
     const disadvantage = evaluateRollExpression(
       parseRollExpression('1d20 + 4'),
       { nextInt: () => disadvantageValues.shift() ?? 0 },
-      'DISADVANTAGE'
+      { mode: 'DISADVANTAGE', label: 'Disadvantage', keep: 'LOWER' }
     )
     expect(disadvantage.evidence).toMatchObject({
       terms: [{ count: 2, rolls: [4, 17], subtotal: 4, keptRollIndex: 0 }],
       mode: 'DISADVANTAGE',
+      modeLabel: 'Disadvantage',
+      keep: 'LOWER',
       total: 8
     })
   })
 
   it('rejects advantage for rolls other than one untransformed d20', () => {
     expect(() =>
-      evaluateRollExpression(parseRollExpression('2d20'), { nextInt: () => 0 }, 'ADVANTAGE')
+      evaluateRollExpression(
+        parseRollExpression('2d20'),
+        { nextInt: () => 0 },
+        {
+          mode: 'ADVANTAGE',
+          label: 'Advantage',
+          keep: 'HIGHER'
+        }
+      )
     ).toThrow('single d20')
   })
 

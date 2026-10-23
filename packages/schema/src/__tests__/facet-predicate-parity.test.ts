@@ -49,6 +49,14 @@ describe('facet predicate contract parity', () => {
       [
         'CREATURE',
         {
+          predicateCode: 'SOURCE_TRAIT',
+          authoringModeKind: 'SELECTED',
+          traits: ['MAGICAL']
+        }
+      ],
+      [
+        'CREATURE',
+        {
           predicateCode: 'CREATURE_SIZE',
           authoringModeKind: 'SELECTED',
           sizes: ['MEDIUM']

@@ -425,7 +425,10 @@ export function normalizeCharacterActionMechanicFacts(
                 selector.kind === 'CONDITION'
                   ? { ...selector, conditionIds: [...selector.conditionIds] }
                   : { ...selector }
-              )
+              ),
+              ...(outcome.originCreatureTypeIds?.length
+                ? { originCreatureTypeIds: [...outcome.originCreatureTypeIds] }
+                : {})
             }
           }
         : {}),

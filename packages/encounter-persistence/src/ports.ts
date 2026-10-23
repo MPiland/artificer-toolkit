@@ -18,7 +18,6 @@ import type { EncounterOptionalCombatSnapshotDto } from '@artificer-toolkit/sche
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import type { CharacterTurnFacts } from '@artificer-toolkit/rules-runtime/character/turnFacts'
 import type { StoredRuleExecutionResultDto } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
-import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { CampaignCharacterState } from '@artificer-toolkit/schema/projections/campaignCharacterState'
 import type { CharacterPlayState } from '@artificer-toolkit/schema/projections/characterPlayState'
@@ -117,7 +116,7 @@ export interface EncounterReadPorts {
     state: EncounterRunState,
     campaign: { id: string; ownerUserId: string },
     actorId: string
-  ): Promise<{ characterId: string | null; expression: string; rollMode: RollMode }>
+  ): Promise<{ characterId: string | null; expression: string; rollMode: string }>
   /** The Campaign's current optional-combat definitions, pinned for a Run. */
   snapshotOptionalCombatPolicies(
     campaign: EncounterDocument<'campaigns'>,

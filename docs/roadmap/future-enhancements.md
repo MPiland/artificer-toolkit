@@ -526,6 +526,32 @@ Removed-from-play effects (D178) return a creature to the space it left. Candida
 
 Found by SPELLS-4.T2h on 2026-10-22; post-launch.
 
+## Deferred rules pieces (D187a, 2026-10-23)
+
+These rare riders ship as description with a GM ruling. Each item names the engine piece that would automate it.
+
+- **Long-rest step-down and a flat d20 modifier fold:** Raise Dead's -4 penalty (D185).
+- **Fresh-target per-turn repeat:** Eyebite retargeting (D186 FRESH); also tag-based ending of enchantments (Break Enchantment).
+- **Compelled turns:** Confusion, Compulsion and Eyebite Panicked.
+- **EXTRA_TURN:** Time Stop and Thief's Reflexes.
+- **Holder-action save escape:** Irresistible Dance.
+- **Condition suppression:** Calm Emotions.
+- **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits.
+- **Curse tag ending:** Remove Curse.
+- **Dispel acting on a placed zone.**
+- **Maze escape as a spell-held effect.**
+- **Holy Aura blinding attackers who hit the holder:** retaliation for multi-target holders.
+- **Speed equal to another speed, jumping and elevation:** Fly-style speeds, Dragon Wings, Second-Story Work, Step of the Wind.
+- **Damage MULTIPLY:** Ray of Enfeeblement.
+- **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
+- **Indefinite non-Concentration lifetimes:** Feeblemind.
+- **SUMMON manifests:** Faithful Hound, plus creature-summoned allies.
+- **Containment:** swallow and engulf (Purple Worm, Tarrasque, Gelatinous Cube).
+- **Auto-hit and reel tails:** Marilith, Roper.
+- **Creature forms beyond Wild Shape:** Change Shape, lycanthrope and vampire shapes, Misty Escape.
+- **Extra reactions and reaction denial; terrain and underwater predicates; deferred Death Throes; spell negation and storing; partner-bound grants; attackable body parts.**
+- **Rare class senses and riders:** Blindsense, Feral Senses, Witch Sight, Retaliation, and the One with Shadows light gate.
+
 ## Other future enhancements (parked)
 
 - Eyebite authored from core options (choice of effect, per-turn re-target, distance end) reusing the SPELLS-29 flee rider.

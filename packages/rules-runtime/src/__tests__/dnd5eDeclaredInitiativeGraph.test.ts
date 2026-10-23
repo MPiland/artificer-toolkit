@@ -4,7 +4,6 @@ import {
   executeRuleGraph,
   resumeRuleGraph
 } from '@artificer-toolkit/shared/rules'
-import type { RollMode } from '@artificer-toolkit/shared/rolls'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -32,7 +31,7 @@ if (!compiled.ok) throw new Error('Expected the declared initiative graph to com
 const graph = compiled.value
 
 /** Settles the declared graph with scripted faces, as the settled evidence of one declared actor. */
-function settle(input: { rollMode: RollMode; faces: readonly number[] }) {
+function settle(input: { rollMode: string; faces: readonly number[] }) {
   const remaining = [...input.faces]
   let result = executeRuleGraph({
     graph,

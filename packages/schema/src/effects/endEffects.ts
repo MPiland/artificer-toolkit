@@ -36,6 +36,7 @@ export const endEffectsDtoSchema = lazySchema(() =>
     selectors: authoredNestedCollectionSchema(endEffectsSelectorDtoSchema).check(
       z.minLength(1),
       z.maxLength(4)
-    )
+    ),
+    originCreatureTypeIds: z.optional(authoredNestedCollectionSchema(authoredIdentifierSchema))
   })
 )

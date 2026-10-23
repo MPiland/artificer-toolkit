@@ -5,6 +5,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
   actionUsedOnHolderEndedEffects,
+  actorCreatureTypeIdsOf,
   offerEndEffects,
   selectedEndedEffects
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -28,14 +29,18 @@ export function planEndEffects(
   }[],
   held: readonly ActiveRuleEffectRecord[],
   target: { kind: string; chosenEffectId?: string },
-  prepared: Parameters<typeof preparedSpellCastLevel>[0]
+  prepared: Parameters<typeof preparedSpellCastLevel>[0] & {
+    actors: Parameters<typeof actorCreatureTypeIdsOf>[0]
+  }
 ) {
   const [endEffects] = outcomes.flatMap((outcome) =>
     outcome.kind === 'EFFECT' && outcome.endEffects ? [outcome.endEffects] : []
   )
+  const actorCreatureTypeIds = actorCreatureTypeIdsOf(prepared.actors)
   const offer = offerEndEffects({
     endEffects,
     held,
+    actorCreatureTypeIds,
     chosenEffectId: target.chosenEffectId,
     castLevel: preparedSpellCastLevel(prepared)
   })
@@ -47,7 +52,7 @@ export function planEndEffects(
     })
   const warnings: EncounterRuleWarningDto[] =
     endEffects && offer.candidates.length === 0 ? [TARGET_NOTHING_TO_END_WARNING] : []
-  return { endEffects, offer, warnings }
+  return { endEffects, offer, actorCreatureTypeIds, warnings }
 }
 
 /**
@@ -81,6 +86,8 @@ export function endedByAction(
         held,
         selectors: offer.selectors,
         castLevel: offer.castLevel,
+        actorCreatureTypeIds: plan.actorCreatureTypeIds,
+        originCreatureTypeIds: endEffects.originCreatureTypeIds,
         scope: endEffects.scope,
         chosenEffectId: offer.pick?.kind === 'CHOSEN' ? offer.pick.effectId : undefined
       })

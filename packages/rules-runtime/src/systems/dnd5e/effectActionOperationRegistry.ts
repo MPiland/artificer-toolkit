@@ -94,6 +94,7 @@ import {
   conditionImmuneFactKey,
   DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS,
   DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY,
+  DND5E_HEALING_MAXIMIZED_FACT_KEY,
   DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
   DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,
   DND5E_SPELL_CAST_LEVEL_FACT_KEY,
@@ -800,22 +801,28 @@ export const dnd5eHealTotalOperation: PureRuleOperationContract = {
   executionKind: 'PURE',
   inputs: {
     subtotal: RULE_VALUE_KIND.NUMBER,
+    maximumSubtotal: RULE_VALUE_KIND.NUMBER,
+    maximized: RULE_VALUE_KIND.BOOLEAN,
     modifier: RULE_VALUE_KIND.NUMBER
   },
   outputs: { value: RULE_VALUE_KIND.NUMBER },
   execute(inputs) {
     const subtotal = inputs.subtotal
+    const maximumSubtotal = inputs.maximumSubtotal
     const modifier = inputs.modifier
     if (
       typeof subtotal !== 'number' ||
       !Number.isSafeInteger(subtotal) ||
+      typeof maximumSubtotal !== 'number' ||
+      !Number.isSafeInteger(maximumSubtotal) ||
+      typeof inputs.maximized !== 'boolean' ||
       typeof modifier !== 'number' ||
       !Number.isSafeInteger(modifier) ||
       !Number.isSafeInteger(subtotal + modifier)
     ) {
       throw new Error('D&D healing total requires safe integer operands.')
     }
-    return { value: Math.max(0, subtotal + modifier) }
+    return { value: Math.max(0, (inputs.maximized ? maximumSubtotal : subtotal) + modifier) }
   }
 }
 export const dnd5eConditionApplyProposalOperation: ProposalRuleOperationContract = {
@@ -1279,6 +1286,10 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     {
       key: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       valueKind: RULE_VALUE_KIND.NUMBER
+    },
+    {
+      key: DND5E_HEALING_MAXIMIZED_FACT_KEY,
+      valueKind: RULE_VALUE_KIND.BOOLEAN
     },
     {
       key: DND5E_RECURRING_HEAL_AMOUNT_FACT_KEY,

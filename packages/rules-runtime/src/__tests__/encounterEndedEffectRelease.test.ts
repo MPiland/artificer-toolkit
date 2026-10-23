@@ -3,6 +3,7 @@ import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/s
 import { ENDED_EFFECT_RELEASE_OPERATION_KEY } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
   SRD_CONDITION_TYPES,
+  SRD_CREATURE_TYPES,
   SRD_DAMAGE_TYPES
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -25,6 +26,7 @@ import { ENCOUNTER_ID } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 
 const conditionId = (code: string) => SRD_CONDITION_TYPES.find((entry) => entry.code === code)!.id
+const creatureTypeId = (code: string) => SRD_CREATURE_TYPES.find((entry) => entry.code === code)!.id
 const INVISIBLE = conditionId('INVISIBLE')
 const CHARMED = conditionId('CHARMED')
 
@@ -42,7 +44,8 @@ function owning(
   id: string,
   conditions: Record<string, boolean>,
   createdOrdinal = 1,
-  linkedEffectId: string | null = null
+  linkedEffectId: string | null = null,
+  sourceActorId: string | null = null
 ) {
   const [first, ...rest] = Object.entries(conditions).map(
     ([conditionIdValue, baselinePresent]) => ({
@@ -57,6 +60,7 @@ function owning(
     owner,
     createdOrdinal,
     linkedEffectId,
+    sourceActorId,
     stateContributions: [first, ...rest]
   })
 }
@@ -827,6 +831,7 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
       held: input.held,
       selectors: [{ kind: 'CONDITION', conditionIds: input.conditionIds }],
       castLevel: null,
+      actorCreatureTypeIds: new Map(),
       scope: input.scope,
       chosenEffectId: input.chosenEffectId
     })
@@ -857,15 +862,20 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
     const first = owning(FIRST_ID, { [POISONED]: false })
     const second = owning(SECOND_ID, { [POISONED]: false })
     const selectors = [{ kind: 'CONDITION' as const, conditionIds: [POISONED] }]
-    const none = endEffectsCandidates([owning(THIRD_ID, { [CHARMED]: false })], selectors, null)
+    const noContext = { castLevel: null, actorCreatureTypeIds: new Map() }
+    const none = endEffectsCandidates(
+      [owning(THIRD_ID, { [CHARMED]: false })],
+      selectors,
+      noContext
+    )
     expect(endEffectsChoice(none, undefined)).toEqual({ kind: 'NONE' })
     const one = endEffectsCandidates(
       [first, owning(THIRD_ID, { [CHARMED]: false })],
       selectors,
-      null
+      noContext
     )
     expect(endEffectsChoice(one, undefined)).toEqual({ kind: 'CHOSEN', effectId: FIRST_ID })
-    const many = endEffectsCandidates([first, second], selectors, null)
+    const many = endEffectsCandidates([first, second], selectors, noContext)
     expect(endEffectsChoice(many, undefined)).toEqual({ kind: 'UNCHOSEN' })
     expect(endEffectsChoice(many, THIRD_ID)).toEqual({ kind: 'UNCHOSEN' })
     expect(endEffectsChoice(many, SECOND_ID)).toEqual({ kind: 'CHOSEN', effectId: SECOND_ID })
@@ -874,13 +884,20 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
   it('offers nothing for an action that ends no effects, and a pick only under ONE_CHOSEN', () => {
     const held = [owning(FIRST_ID, { [POISONED]: false }), owning(SECOND_ID, { [POISONED]: false })]
     expect(
-      offerEndEffects({ endEffects: undefined, held, chosenEffectId: FIRST_ID, castLevel: null })
+      offerEndEffects({
+        endEffects: undefined,
+        held,
+        actorCreatureTypeIds: new Map(),
+        chosenEffectId: FIRST_ID,
+        castLevel: null
+      })
     ).toMatchObject({ candidates: [], pick: null })
     const selectors = [{ kind: 'CONDITION' as const, conditionIds: [POISONED] }]
     const all = { scope: 'ALL' as const, selectors }
     const offeredAll = offerEndEffects({
       endEffects: all,
       held,
+      actorCreatureTypeIds: new Map(),
       chosenEffectId: undefined,
       castLevel: null
     })
@@ -888,9 +905,47 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
     expect(offeredAll.pick).toBeNull()
     const oneChosen = { scope: 'ONE_CHOSEN' as const, selectors }
     expect(
-      offerEndEffects({ endEffects: oneChosen, held, chosenEffectId: SECOND_ID, castLevel: null })
-        .pick
+      offerEndEffects({
+        endEffects: oneChosen,
+        held,
+        actorCreatureTypeIds: new Map(),
+        chosenEffectId: SECOND_ID,
+        castLevel: null
+      }).pick
     ).toEqual({ kind: 'CHOSEN', effectId: SECOND_ID })
+  })
+
+  it('narrows the candidates to effects whose origin creature is of the selected types', () => {
+    const FIEND_ORIGIN = '00000000-0000-4000-8000-00000000f2b1'
+    const HUMANOID_ORIGIN = '00000000-0000-4000-8000-00000000f2b2'
+    const fiend = creatureTypeId('FIEND')
+    const fiendCharm = owning(FIRST_ID, { [CHARMED]: false }, 1, null, FIEND_ORIGIN)
+    const humanoidCharm = owning(SECOND_ID, { [CHARMED]: false }, 2, null, HUMANOID_ORIGIN)
+    const unsourcedCharm = owning(THIRD_ID, { [CHARMED]: false })
+    const held = [fiendCharm, humanoidCharm, unsourcedCharm]
+    const types = new Map([
+      [FIEND_ORIGIN, fiend],
+      [HUMANOID_ORIGIN, creatureTypeId('HUMANOID')]
+    ])
+    const selectors = [{ kind: 'CONDITION' as const, conditionIds: [CHARMED] }]
+    const context = { castLevel: null, actorCreatureTypeIds: types }
+    expect(
+      endEffectsCandidates(held, selectors, { ...context, originCreatureTypeIds: [fiend] }).map(
+        ({ id }) => id
+      )
+    ).toEqual([FIRST_ID])
+    expect(endEffectsCandidates(held, selectors, context)).toHaveLength(3)
+    expect(
+      selectedEndedEffects({
+        holderActorId: HOLDER_ID,
+        held,
+        selectors,
+        castLevel: null,
+        actorCreatureTypeIds: types,
+        originCreatureTypeIds: [fiend],
+        scope: 'ALL'
+      }).endedEffects.map(({ id }) => id)
+    ).toEqual([FIRST_ID])
   })
 
   it('ends the effects linked to a selected effect in the same result', () => {
@@ -918,7 +973,11 @@ describe('effects a spell-level END_EFFECTS selector ends (SPELLS-4.T2f1a, D182)
   const ids = (
     castLevel: number | null,
     selector: Parameters<typeof endEffectsCandidates>[1][number]
-  ) => endEffectsCandidates(held, [selector], castLevel).map(({ id }) => id)
+  ) =>
+    endEffectsCandidates(held, [selector], {
+      castLevel,
+      actorCreatureTypeIds: new Map()
+    }).map(({ id }) => id)
 
   it('matches effects at or below the slot level the spell was cast at, never an unleveled effect', () => {
     const selector = { kind: 'SPELL_LEVEL' as const, limit: 'SLOT_LEVEL' as const }
@@ -942,6 +1001,7 @@ describe('effects a spell-level END_EFFECTS selector ends (SPELLS-4.T2f1a, D182)
       held,
       selectors: [{ kind: 'SPELL_LEVEL', limit: 'SLOT_LEVEL' }],
       castLevel: 3,
+      actorCreatureTypeIds: new Map(),
       scope: 'ALL'
     })
     expect(endedEffects.map(({ id }) => id)).toEqual([FIRST_ID, SECOND_ID])

@@ -47,6 +47,11 @@ export const characterSheetFixture = {
     armorClass: 12,
     initiative: 2,
     initiativeRollMode: 'NORMAL',
+    rollModes: [
+      { code: 'NORMAL', label: 'Normal', keep: 'FIRST' },
+      { code: 'ADVANTAGE', label: 'Advantage', keep: 'HIGHER' },
+      { code: 'DISADVANTAGE', label: 'Disadvantage', keep: 'LOWER' }
+    ],
     proficiencyBonus: 2,
     currentHitPoints: 14,
     maxHitPoints: 17,

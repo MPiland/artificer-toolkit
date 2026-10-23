@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { presentRetainedRoll, presentRoll } from './rollPresentation.js'
 import { createRollRecord } from './rollRecord.js'
 
 const record = createRollRecord({
   characterId: null,
   label: 'shit goblin',
-  system: { id: crypto.randomUUID(), rulesetCode: 'SRD', rulesetVersion: '5.2' },
+  system: { id: DND5E_SYSTEM_ID, rulesetCode: 'SRD', rulesetVersion: '5.2' },
   resolved: {
     expression: '1d20',
     rollMode: 'NORMAL',

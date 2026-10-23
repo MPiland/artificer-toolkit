@@ -24,6 +24,7 @@ export const VALUE_DOMAIN_CODE = {
   ATTACK_DECOYS: 'ATTACK_DECOYS',
   DAMAGE_INTERCEPTION: 'DAMAGE_INTERCEPTION',
   INCOMING_ATTACK_GATE: 'INCOMING_ATTACK_GATE',
+  HEALING_RECEIVED: 'HEALING_RECEIVED',
   ARMOR_CLASS: 'ARMOR_CLASS',
   SAVE_DC: 'SAVE_DC',
   SAVING_THROW_MODIFIER: 'SAVING_THROW_MODIFIER',
@@ -172,6 +173,12 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Incoming Attack Gate',
     description:
       'A creature that targets the holder with a single-target attack or harmful spell must first pass a saving throw.'
+  },
+
+  [VALUE_DOMAIN_CODE.HEALING_RECEIVED]: {
+    code: VALUE_DOMAIN_CODE.HEALING_RECEIVED,
+    label: 'Healing Received',
+    description: 'Enabled, every die of healing the holder receives takes its maximum value.'
   },
 
   [VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER]: {
@@ -479,6 +486,9 @@ export type ValueDomainParamByCode = {
 
   // A save an attacker must pass before targeting the holder.
   INCOMING_ATTACK_GATE: EmptyObject
+
+  // Healing the holder receives is maximized (Beacon of Hope).
+  HEALING_RECEIVED: EmptyObject
 
   // Ability checks may apply globally or to one ability.
   ABILITY_CHECK: { ability?: AbilityCode }

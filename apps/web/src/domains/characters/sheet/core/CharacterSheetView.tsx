@@ -264,7 +264,10 @@ export function CharacterSheetView({
         <CharacterSheetMobilePager
           activePage={visibleActiveMobilePage}
           manualRollAction={
-            <CharacterSheetManualRoll className={mobileStyles.mobileFloatingButton} />
+            <CharacterSheetManualRoll
+              className={mobileStyles.mobileFloatingButton}
+              rollModes={sheet.overview.rollModes}
+            />
           }
           pages={visibleMobilePages}
           onPageChange={setMobilePage}

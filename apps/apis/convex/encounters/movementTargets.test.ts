@@ -362,6 +362,7 @@ describe('native movement target facts', () => {
     expect(after.targetDerivedFacts).toEqual({
       ...after.effectiveRulePolicyOutput,
       savingThrowAddedDice: {},
+      healingMaximized: false,
       targetProtection: {
         status: 'NORMALIZED',
         defenses: after.effectiveRulePolicyOutput!.defenses,
