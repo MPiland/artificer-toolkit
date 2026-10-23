@@ -525,3 +525,18 @@ T2m2: `CONDITION_SUPPRESSION { conditionIds, effectOrigin: ANY | MAGICAL, mode: 
   - A built workspace (`yarn install`, then `yarn build:shared` and `yarn build:schema`).
   - Run: `pwsh scripts/runLocalConvexProof.ps1 -Name <attempt> -Proof held-effect-browser`.
 - **Done when:** the journey passes locally, its evidence packet verifies under `validatePreStagingLocal.mjs`, and the slice's acceptance criteria in the ledger are updated.
+
+### T2f1 (Dispel Magic, D174): split proposal, awaiting ruling (2026-10-22)
+
+Findings from reading the shipped T2f code and the check flow:
+
+- `originLevel` and `SPELL_LEVEL` do not exist anywhere yet. `END_EFFECTS` today is `{scope, conditionIds}` only (`packages/schema/src/effects/endEffects.ts`, `shared/.../authored/endEffects.ts`, `endEffectsOutcomeFields.ts`), with selectors hard-typed to `CONDITION` in `encounterEndedEffectRelease.ts` (`endEffectsCandidates`, `offerEndEffects`, `selectedEndedEffects`), `nativeEndEffects.ts` and `characterActionRuleFacts.ts`.
+- The check flow is bound to a `CHECK`-trigger invocation: `checkActionSourceDtoSchema` is `BASIC_ACTION | CREATURE_FEATURE`; `planNativeLiveCheckAction` and `authoredCheckOf` read `invocation.check` with a `FIXED` DC; the pending/settled contexts (`encounterCheckActionContextDtoSchema`, `...PendingContext`, `CHECK_ACTION` output) hold exactly one `check`, one `d20` and one `dc`. A spell cast has an `ACTIVATED` invocation and an `ON_USE` outcome, so it never enters that branch.
+- Dispel Magic therefore needs, in one change: (1) stored `originLevel` on the active-effect definition (schema, cast-time stamping from the slot, plan migration, golden flips), (2) `SPELL_LEVEL` selector and `levelCheck` through the effect node map, DTO, authored type, compiler and character rule facts, (3) a new check-action source for a spell cast, (4) a check context/pending/output that holds an ordered list of candidate checks (each with `effectId`, `dc` = base + `originLevel`, its own d20) and a phase cursor, (5) the response planner iterating candidates and applying `END_EFFECTS` per success in one settlement, (6) Convex commit/persistence/undo for a multi-check receipt, (7) the room journey and parity proofs.
+
+Proposed split (ruling needed):
+
+- **T2f1a** `originLevel` + `SPELL_LEVEL` selector + `levelCheck` authored shape, automatic ending only (`autoUpTo: SLOT_LEVEL`): effects at or below the slot level end with no roll. No check-flow change. Deletes nothing yet.
+- **T2f1b** the check-flow widening: spell source, ordered per-candidate checks with `TARGET_EFFECT_LEVEL`, then convert `DISPEL_MAGIC` and delete the kind, with parity proof and room journey.
+
+Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-check state, may the pending context hold a `candidates` list plus a cursor (one roller prompt per candidate, each settled through the single d20 settlement), rather than one roll window for all candidates? A single window cannot give each candidate its own d20 under the current `d20`-per-context shape.
