@@ -18,6 +18,7 @@ const RACE_KINDS = [
 ]
 
 const CREATURE_KINDS = [
+  'CREATURE_ABOLETH_MUCOUS_CLOUD',
   'CREATURE_AMORPHOUS',
   'CREATURE_AMPHIBIOUS',
   'CREATURE_BRUTE',
@@ -28,6 +29,7 @@ const CREATURE_KINDS = [
   'CREATURE_COUATL_CONSTRICT',
   'CREATURE_COUATL_INNATE_SPELLCASTING',
   'CREATURE_COUATL_SHIELDED_MIND',
+  'CREATURE_DEATH_DOG_DISEASE',
   'CREATURE_DARKMANTLE_FALSE_APPEARANCE',
   'CREATURE_DEEP_GNOME_INNATE_SPELLCASTING',
   'CREATURE_DEVA_INNATE_SPELLCASTING',
@@ -106,6 +108,7 @@ const CREATURE_KINDS = [
   'CREATURE_VAMPIRE_STAKE_TO_THE_HEART',
   'CREATURE_WILL_O_WISP_EPHEMERAL',
   'DRAGON_LEGENDARY_DETECT',
+  'GIANT_RAT_DISEASED_BITE',
   'NIGHT_HAG_NIGHTMARE_HAUNTING'
 ]
 
@@ -165,5 +168,18 @@ describe('curses and afflictions as GM rulings (D187a, SPELLS-33.T6b1)', () => {
     const rulings = nodesWhere(owner, (node) => node.effectKind === 'MANUAL_ADJUDICATION')
     expect(rulings).toHaveLength(1)
     expect(String(rulings[0]?.instructions)).toMatch(/remove curse|greater restoration|no benefit/i)
+  })
+})
+
+describe('disease as a GM ruling (D187a, SPELLS-33.T6b3)', () => {
+  it.each([
+    ['Aboleth', 'Mucous Cloud'],
+    ['Death Dog', 'Bite']
+  ])('%s: %s carries its disease as a manual adjudication', (creature, feature) => {
+    const authored = srdCreatures.find((entry) => entry.label === creature)
+    const owner = authored?.features?.find((entry) => entry.label === feature)
+    const rulings = nodesWhere(owner, (node) => node.effectKind === 'MANUAL_ADJUDICATION')
+    expect(rulings).toHaveLength(1)
+    expect(String(rulings[0]?.instructions)).toMatch(/disease/i)
   })
 })
