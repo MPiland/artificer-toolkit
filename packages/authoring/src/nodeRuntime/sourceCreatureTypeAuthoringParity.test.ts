@@ -124,8 +124,10 @@ describe('an authored source creature type on a grant (SPELLS-4.T2j1)', () => {
     })
     expect(attacksAgainst.length).toBeGreaterThan(0)
     for (const { sourceQualifier } of attacksAgainst) {
-      expect(sourceQualifierAdmits(sourceQualifier, [FIEND])).toBe(true)
-      expect(sourceQualifierAdmits(sourceQualifier, [creatureTypeId('UNDEAD')])).toBe(false)
+      expect(sourceQualifierAdmits(sourceQualifier, { creatureTypeIds: [FIEND] })).toBe(true)
+      expect(
+        sourceQualifierAdmits(sourceQualifier, { creatureTypeIds: [creatureTypeId('UNDEAD')] })
+      ).toBe(false)
     }
     const immunities = encounterSourceConditionImmunities({
       effects: [],
@@ -136,8 +138,8 @@ describe('an authored source creature type on a grant (SPELLS-4.T2j1)', () => {
       [conditionTypeId('CHARMED'), conditionTypeId('FRIGHTENED')].sort()
     )
     for (const { sourceQualifier } of immunities) {
-      expect(sourceQualifierAdmits(sourceQualifier, [FIEND])).toBe(true)
-      expect(sourceQualifierAdmits(sourceQualifier, [])).toBe(false)
+      expect(sourceQualifierAdmits(sourceQualifier, { creatureTypeIds: [FIEND] })).toBe(true)
+      expect(sourceQualifierAdmits(sourceQualifier, { creatureTypeIds: [] })).toBe(false)
     }
   })
 })

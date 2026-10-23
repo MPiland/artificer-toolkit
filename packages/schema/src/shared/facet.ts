@@ -15,6 +15,7 @@ import {
   chargeLimitKindSchema,
   chargeResetKindSchema,
   creatureCategoryCodeSchema,
+  damageDefenseBypassCodeSchema,
   durationKindSchema,
   equipmentCategoryCodeSchema,
   equipmentPropertyCodeSchema,
@@ -501,6 +502,14 @@ const predicatePayloadSchemas = lazySchemaParts(
         }),
         selectableSchema({
           creatureTypeIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+        })
+      ),
+      SOURCE_TRAIT: z.intersection(
+        z.object({
+          predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SOURCE_TRAIT)
+        }),
+        selectableSchema({
+          traits: authoredReferenceCollectionSchema(damageDefenseBypassCodeSchema)
         })
       ),
       CREATURE_SIZE: z.intersection(

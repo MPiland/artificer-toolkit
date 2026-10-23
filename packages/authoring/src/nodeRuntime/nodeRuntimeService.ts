@@ -217,7 +217,15 @@ export async function normalizeNodeRuntimeValues(
   db: NodeRuntimeReader,
   request: NodeRuntimeNormalizeValuesRequestDto
 ): Promise<NodeRuntimeNormalizeValuesResponseDto> {
-  const parsedRequest = nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request)
+  return normalizeParsedValues(db, nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request))
+}
+
+// Group rows recurse here: the root request already passed the size and depth limits, and parsing
+// each child again would re-walk and re-serialize the whole record, its parent and its ancestors.
+async function normalizeParsedValues(
+  db: NodeRuntimeReader,
+  parsedRequest: NodeRuntimeNormalizeValuesRequestDto
+): Promise<NodeRuntimeNormalizeValuesResponseDto> {
   const resolved = await resolveNodeRuntimeScope(db, parsedRequest)
   const values = isRuntimeRecord(parsedRequest.values) ? parsedRequest.values : {}
   const optionNormalized = normalizeVisibleSelectOptions(values, resolved.steps)
@@ -316,7 +324,7 @@ async function normalizeVisibleGroups(
         if (node.groupKind === 'OBJECT') {
           if (!isRuntimeRecord(groupValue)) continue
 
-          const child = await normalizeNodeRuntimeValues(db, {
+          const child = await normalizeParsedValues(db, {
             mapId: childMapId,
             values: groupValue,
             parentValues: nextValues,
@@ -334,7 +342,7 @@ async function normalizeVisibleGroups(
           groupValue.map(async (row, index) => {
             if (!isRuntimeRecord(row)) return row
 
-            const child = await normalizeNodeRuntimeValues(db, {
+            const child = await normalizeParsedValues(db, {
               mapId: childMapId,
               values: row,
               parentValues: nextValues,

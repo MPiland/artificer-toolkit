@@ -11,6 +11,7 @@ export const endEffectsDtoSchema = lazySchema(() =>
     id: authoredIdentifierSchema,
     effectKind: z.literal('END_EFFECTS'),
     scope: z.enum(['ALL', 'ONE_CHOSEN']),
-    conditionIds: authoredNestedCollectionSchema(postgresUuidSchema).check(z.minLength(1))
+    conditionIds: authoredNestedCollectionSchema(postgresUuidSchema).check(z.minLength(1)),
+    originCreatureTypeIds: z.optional(authoredNestedCollectionSchema(authoredIdentifierSchema))
   })
 )

@@ -54,8 +54,11 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { projectSceneForViewer } from '@artificer-toolkit/shared/vtt'
 import { getCampaignDetail } from '#app/data/campaigns/queries'
 import {
+  buildTabletopPresentations,
   createTabletopCampaign,
   tabletopCampaignId,
+  seedTabletopSystem,
+  tabletopConditions,
   tabletopCurrentUserId,
   tabletopGmEncounter,
   tabletopLiveScene,
@@ -73,7 +76,6 @@ import {
   minimumFocusedTokenScreenSize,
   selectionOutlineColor
 } from './vttSceneRenderer.model'
-import { buildVttTokenPresentations } from './vttTokenPresentation.model'
 
 const liveSessionTokenHandler = http.get('*/api/auth/convex/token', () =>
   HttpResponse.json({ token: 'story-convex-access-token' })
@@ -336,7 +338,7 @@ function wardenPresentationFor(
 ) {
   const scene = projectScene(role, presentedTokensFixtures.liveScene)
   const wardenToken = scene.tokens[1]!
-  const presentation = buildVttTokenPresentations({
+  const presentation = buildTabletopPresentations({
     actorIdByTokenId: new Map([[wardenToken.id, wardenId]]),
     boundTokenControl: new Map(),
     currentUserId: tabletopCurrentUserId,
@@ -1023,10 +1025,7 @@ const defaultTabletopFixtures: TabletopFixtures = {
 }
 
 // VTT_UI-1 journey data: the Warden is in plain view, takes the current turn and carries conditions.
-const wardenConditions = [
-  { id: 'poisoned', kind: 'CONDITION', label: 'Poisoned' },
-  { id: 'frightened', kind: 'CONDITION', label: 'Frightened' }
-]
+const wardenConditions = tabletopConditions('POISONED', 'FRIGHTENED')
 const wardenId = tabletopGmEncounter.actors[1]!.id
 const presentedTokensFixtures: TabletopFixtures = {
   gmEncounter: {
@@ -1099,7 +1098,7 @@ const sentryFixtures: TabletopFixtures = {
       ...presentedTokensFixtures.gmEncounter.actors,
       {
         ...wardenActor,
-        conditions: [{ id: 'prone', kind: 'CONDITION', label: 'Prone' }],
+        conditions: tabletopConditions('PRONE'),
         id: '99999999-9999-4999-8999-999999999903',
         label: 'Vault Sentry'
       }
@@ -1256,6 +1255,7 @@ function renderWindow(
     queryFn: async () => ({ ...header, id: shownScene.sceneId, name: shownScene.sceneName })
   })
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
+  seedTabletopSystem(queryClient, campaign)
   queryClient.setQueryData(activeEncounterQuery.queryKey, {
     encounter,
     pending: fixtures.pending ?? null,

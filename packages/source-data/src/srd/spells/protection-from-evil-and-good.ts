@@ -51,21 +51,41 @@ const PROTECTED_AGAINST_CREATURE_TYPES = [
 export function protectionFromEvilAndGoodGrants(
   idFor: (part: number, entry: number) => string
 ): ModifierGrantAuthored[] {
-  const creatureTypeIds = PROTECTED_AGAINST_CREATURE_TYPES.map(creatureTypeId)
-  const grants = [
-    ...Object.values(ATTACK_DOMAIN_CODE).map((attackDomain) => ({
-      valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
-      domain: { attackDomain, requiresHolderSeesAttacker: false },
-      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
-      payload: { influence: 'DISADVANTAGE' as const }
-    })),
-    ...(['CHARMED', 'FRIGHTENED'] as const).map((condition) => ({
-      valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
-      domain: {},
-      modifierKind: MODIFIER_KIND.ADD_OPTION,
-      payload: { conditionTypeId: conditionTypeId(condition) }
-    }))
-  ]
+  return againstCreatureTypes(
+    idFor,
+    [
+      ...attackDisadvantageAgainstHolder,
+      ...(['CHARMED', 'FRIGHTENED'] as const).map((condition) => ({
+        valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+        domain: {},
+        modifierKind: MODIFIER_KIND.ADD_OPTION,
+        payload: { conditionTypeId: conditionTypeId(condition) }
+      }))
+    ],
+    PROTECTED_AGAINST_CREATURE_TYPES
+  )
+}
+
+/** Disadvantage on every kind of attack roll against the holder. */
+export const attackDisadvantageAgainstHolder = Object.values(ATTACK_DOMAIN_CODE).map(
+  (attackDomain) => ({
+    valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
+    domain: { attackDomain, requiresHolderSeesAttacker: false },
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'DISADVANTAGE' as const }
+  })
+)
+
+/** Grants that hold only against a source creature of one of these types. */
+export function againstCreatureTypes(
+  idFor: (part: number, entry: number) => string,
+  grants: readonly Pick<
+    ModifierGrantAuthored,
+    'valueDomainCode' | 'domain' | 'modifierKind' | 'payload'
+  >[],
+  creatureTypeCodes: readonly string[]
+): ModifierGrantAuthored[] {
+  const creatureTypeIds = creatureTypeCodes.map(creatureTypeId)
   return grants.map((grant, index) => ({
     id: idFor(0x30, index + 1),
     order: index + 1,

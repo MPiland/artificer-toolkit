@@ -40,7 +40,6 @@ import { readCampaignAssignedCharacter } from '../campaigns/assignedCharacter'
 import { loadCharacterSheet } from '../characters/sheetPreparation'
 import { readBlueprint } from './blueprints'
 import { snapshotEncounterPolicies } from './policySnapshots'
-import { requireSystem } from '../content/systemDocuments'
 import { characterProjectionState } from '@artificer-toolkit/encounter-persistence/characterStates'
 import { insertRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
@@ -114,7 +113,6 @@ export async function createEncounterRun(
   const oppositionSideId = crypto.randomUUID()
   const actors: EncounterRunActorState[] = []
   const characterStates = new Map<string, ReturnType<typeof characterProjectionState>>()
-  const { conditionTypes } = await requireSystem(ctx, campaign.gameSystemId)
   for (const characterId of party) {
     const loaded = await loadCharacterSheet(ctx, userId, characterId, campaign.id)
     if (!loaded) throw new Error('Assigned Character is unavailable.')
@@ -123,7 +121,7 @@ export async function createEncounterRun(
       throw new Error('Assigned Character does not match the Campaign Game System.')
     characterStates.set(
       character.id,
-      characterProjectionState(character.state, sheet.overview.maxHitPoints, conditionTypes)
+      characterProjectionState(character.state, sheet.overview.maxHitPoints)
     )
     const partyActor = encounterRunActorStateSchema.parse({
       id: crypto.randomUUID(),

@@ -951,7 +951,7 @@
             },
             {
               "id": "PLATFORM-13.T20",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-13.14"],
               "wsjf": {
                 "bv": 3,
@@ -960,8 +960,10 @@
                 "size": 2,
                 "after": []
               },
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md",
-              "text": "CI flake: a Devil's Sight case in packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts exceeds the 5 s per-test timeout on CI runners (5712 ms) even after the beforeAll class node map warm-up (63bd5fd86); it failed SPELLS-4.T2j1 and T2g1 runs. Find the root cause (cold work still inside the case, repeated resolution, shared fixture rebuilt per case) and fix it without raising any timeout or weakening an assertion; prove with repeated CI runs."
+              "text": "CI flake: a Devil's Sight case in packages/authoring/src/nodeRuntime/classFeatureOptionsAuthoringParity.test.ts exceeds the 5 s per-test timeout on CI runners (5712 ms) even after the beforeAll class node map warm-up (63bd5fd86); it failed SPELLS-4.T2j1 and T2g1 runs. Find the root cause (cold work still inside the case, repeated resolution, shared fixture rebuilt per case) and fix it without raising any timeout or weakening an assertion; prove with repeated CI runs.",
+              "mergedAt": "2026-10-23T03:13:37Z",
+              "note": "Merged in m362.",
+              "proof": "ci/platform-13-t20 @ b974e05bd: two full Tests dispatches (39889028586, 39891867297) plus push Tests and Live green; root cause was per-row re-parse in normalizeNodeRuntimeValues and per-call SRD row rebuilds."
             }
           ]
         },
@@ -3663,7 +3665,8 @@
                 "size": 3,
                 "after": ["RULES-2.T9a", "RULES-2.T9i"]
               },
-              "text": "System vocabulary (split 2026-10-21): lifecycle consume/end codes and the ATTACK_ROLL and SPELL_CAST traits become System codes with the eventVocabulary table as their one source; neutral structural trigger shapes stay in the schema."
+              "text": "System vocabulary (split 2026-10-21): lifecycle consume/end codes and the ATTACK_ROLL and SPELL_CAST traits become System codes with the eventVocabulary table as their one source; neutral structural trigger shapes stay in the schema.",
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
             },
             {
               "id": "RULES-2.T9d",
@@ -4201,7 +4204,7 @@
             },
             {
               "id": "RULES-2.T9q",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4211,7 +4214,9 @@
                 "after": []
               },
               "text": "Encounter reads leave the System document (D180): the encounter read-budget measure pins _creationTime to a fixed-length stand-in so it is deterministic; the Encounter projection sends condition definition IDs only and web labels them from the System vocabulary; presentEncounterRun no longer reads the System document. The 100-actor read passes its unchanged ceiling.",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "mergedAt": "2026-10-23T03:29:18Z",
+              "note": "Merged in m363.",
+              "proof": "ci/rules-2-t9q @ ca9fadda9: Tests and Live green; presentEncounterRun no longer reads the System, conditions are typed {conditionTypeId, notes?, innate?}, labels resolve in the web vocabulary model."
             },
             {
               "id": "RULES-2.T9k",
@@ -7406,7 +7411,7 @@
           "origin": ["RUL-2", "RUL-3", "RUL-4", "RUL-5"],
           "acs": [
             {
-              "text": "Every SRD monster attack runs: the 41 allowlisted unsupported attacks (of 551) are implemented and the allowlist is empty.",
+              "text": "Every SRD monster attack runs: the allowlisted unsupported attacks are implemented, with rare riders (swallow, engulf, curse, disease, lycanthropy, healing-block wounds) resolving as a GM ruling beside the attack's damage (D187a), and the allowlist is empty.",
               "status": "TODO",
               "proof": [],
               "origin": ["G2-SRD-MANIFEST"],
@@ -7557,7 +7562,7 @@
               "id": "ATTACK-5.14"
             },
             {
-              "text": "Remaining monster riders (swallow, attach, curse, drain, pull, follow-up saves) run, ordered by marquee monsters.",
+              "text": "Remaining monster riders (attach, drain, pull, follow-up saves) run, ordered by marquee monsters; swallow, engulf, curse and disease show as a GM ruling beside the attack (D187a).",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -9627,7 +9632,7 @@
           "origin": [],
           "acs": [
             {
-              "text": "Every CLOSED_RULE in the SRD corpus is replaced by core authoring options, adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind and its resolver are deleted.",
+              "text": "Every CLOSED_RULE in the SRD corpus is replaced by core authoring options, adding generic options where a rule cannot yet be expressed, or by its description shown as a GM ruling when it is rare in play and no equivalent state change is automated (D187a); each conversion has an authoring-parity proof, and the closed-rule kind and its resolver are deleted.",
               "status": "TODO",
               "proof": [],
               "origin": [],
@@ -10082,10 +10087,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 1,
                 "after": ["SPELLS-4.T2f"]
               },
-              "text": "END_EFFECTS by tag (D174, split from T2f 2026-10-22): a TAG selector backed by a System vocabulary kind for effect tags (T5p recipe). Converts REMOVE_CURSE and Greater Restoration's curse and reduction clauses, with parity proofs; REMOVE_CURSE kind deleted."
+              "text": "END_EFFECTS by tag (D174, split from T2f 2026-10-22): a TAG selector backed by a System vocabulary kind for effect tags (T5p recipe). Converts REMOVE_CURSE and Greater Restoration's curse and reduction clauses, with parity proofs; REMOVE_CURSE kind deleted.",
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-4.T2f1a",
@@ -10115,19 +10121,6 @@
               "text": "Per-candidate level checks (D182): the check flow widened to spell sources; the pending check context holds a frozen ordered candidates list and a cursor, one roller prompt per candidate through the single d20 settlement, replay-idempotent per context and cursor; TARGET_EFFECT_LEVEL DC. Converts DISPEL_MAGIC on a creature or object target with parity proof and room journey; kind deleted; canonical check-flow guide updated."
             },
             {
-              "id": "SPELLS-4.T2f2",
-              "text": "Dispel Magic on a placed zone (D174, 2026-10-22): a magical zone within range is a dispel candidate by its originLevel, ended through the existing zone removal path with its linked dependents; room journey.",
-              "status": "TODO",
-              "closes": ["SPELLS-4.1"],
-              "wsjf": {
-                "bv": 5,
-                "tc": 2,
-                "rr": 3,
-                "size": 5,
-                "after": ["SPELLS-4.T2f1b"]
-              }
-            },
-            {
               "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2g1",
@@ -10150,11 +10143,12 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 8,
+                "size": 1,
                 "after": ["SPELLS-4.T2g1"]
               },
-              "text": "Generic effect stepDown { trigger: LONG_REST, step } with a stored remaining counter (D177): each matching rest shrinks the effect's BONUS/PENALTY grant magnitudes and ends it at 0; PENALTY allowed on ABILITY_CHECK; the rest preview lists stepped-down effects. Converts RAISE_DEAD and RESURRECTION (-4 d20 penalty decaying per long rest), with parity proofs; each kind deleted. Widened by D185: one shared active-effect flat BONUS/PENALTY fold read by every d20 site (sheet roll, encounter attack, save, check, movement check, death save), recorded on the roll receipt as a labelled modifier.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "text": "Raise Dead ships its -4 d20 penalty and long-rest step-down as description (GM ruling) per D187a; delete the closed-rule kind. The stepDown option and the D185 flat-modifier fold go to future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": "D187a re-plan: size 8 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "status": "DONE",
@@ -10187,19 +10181,6 @@
               "mergedAt": "2026-10-23T02:47:46Z",
               "note": "Merged in m361.",
               "proof": "ci/spells-4-t2h2 @ ff74c2598: Tests 39889764396, Live 39889764401 green; SRD and homebrew parity, nativeRoomTurnEndGate room journey, playAbsencePersistence."
-            },
-            {
-              "id": "SPELLS-4.T2h3",
-              "status": "TODO",
-              "closes": ["SPELLS-4.1"],
-              "wsjf": {
-                "bv": 5,
-                "tc": 2,
-                "rr": 3,
-                "size": 2,
-                "after": ["SPELLS-4.T2h1", "SPELLS-4.T2f1b"]
-              },
-              "text": "Maze escape (D178): the held creature's action makes a fixed-DC ability check through the generic check flow widened to spell sources (SPELLS-4.T2f1); success ends the owning effect. Replaces the MANUAL_ADJUDICATION, with a parity proof."
             },
             {
               "id": "SPELLS-4.T2h4",
@@ -10338,7 +10319,7 @@
             },
             {
               "id": "SPELLS-4.T2j2a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10348,33 +10329,9 @@
                 "after": ["SPELLS-4.T2j1"]
               },
               "text": "Source trait and origin selector (D183): the SOURCE_TRAIT (MAGICAL) restriction and attack domains on the D179 qualifiers, an END_EFFECTS origin creature-type selector, Holy Aura and Dispel Evil and Good attack-disadvantage grants and Holy Aura save advantage, with parity proofs and a room journey; HOLY_AURA and DISPEL_EVIL_AND_GOOD stay closed.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
-            },
-            {
-              "id": "SPELLS-4.T2j2b",
-              "status": "TODO",
-              "closes": ["SPELLS-4.1"],
-              "wsjf": {
-                "bv": 5,
-                "tc": 2,
-                "rr": 3,
-                "size": 3,
-                "after": ["SPELLS-4.T2j2a"]
-              },
-              "text": "Holder melee-hit retaliation (D183): retaliation on a melee hit fires for every holder of an effect (not a placed zone), with the source qualifier on the attacker. Converts Holy Aura's blinding rider, with parity proof and room journey; HOLY_AURA deleted."
-            },
-            {
-              "id": "SPELLS-4.T2j2c",
-              "status": "TODO",
-              "closes": ["SPELLS-4.1"],
-              "wsjf": {
-                "bv": 5,
-                "tc": 2,
-                "rr": 3,
-                "size": 3,
-                "after": ["SPELLS-4.T2j2a", "SPELLS-4.T2lb2b1"]
-              },
-              "text": "Repeat path on a touch target (D183): a held effect offers a repeat of a source path against a freshly picked touch target (on the T2lb2b fresh target pick). Converts Dispel Evil and Good's Break Enchantment through END_EFFECTS (origin creature-type selector); dismissal description-only. Parity proof and room journey; DISPEL_EVIL_AND_GOOD deleted."
+              "mergedAt": "2026-10-23T03:43:17Z",
+              "proof": "nativeRoomHolyAuraDispelEvil, encounterHolyAuraDispelEvilGrants, sourceTraitAuthoringParity and endEffectsAuthoringParity tests; Holy Aura and Dispel Evil and Good golden REFUSED to SINGLE_GRAPH",
+              "note": " Merged in m364."
             },
             {
               "id": "SPELLS-4.T2k1",
@@ -10534,24 +10491,12 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 1,
                 "after": ["SPELLS-4.T2lb2a"]
               },
-              "text": "Fresh-target repeat (D186, split from T2lb2b): REPEAT_SOURCE_PATH target HOLDER | FRESH; a FRESH offer rides a source-held carrier maintained by the casting's Concentration and picks any target the frozen invocation admits; the already-saved exclusion reuses D156 SOURCE_IMMUNITY (SAVE_SUCCESS) with a Concentration lifetime; retarget results join the live Concentration as maintained dependents without restarting it. Proved on an authored homebrew spell with unit tests and a room journey.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
-            },
-            {
-              "id": "SPELLS-4.T2lb2b2",
-              "status": "TODO",
-              "closes": ["SPELLS-4.1"],
-              "wsjf": {
-                "bv": 5,
-                "tc": 2,
-                "rr": 3,
-                "size": 2,
-                "after": ["SPELLS-4.T2lb2b1"]
-              },
-              "text": "Eyebite Asleep (D186, split from T2lb2b): Asleep authored as a CHOICE option like Sleep (Unconscious; ends on DAMAGE_TAKEN or ROUSE) with the FRESH per-turn retarget, with parity proof and the room journey; Panicked and Sickened and the EYEBITE kind deletion stay with T2l2."
+              "text": "Eyebite per-turn retarget and Break Enchantment ship as description (GM ruling) per D187a; delete their closed-rule kinds. FRESH-target repeat goes to future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-4.T2lb2c",
@@ -10576,10 +10521,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
-                "after": ["SPELLS-4.T2l", "SPELLS-4.T2lb2b2"]
+                "size": 1,
+                "after": ["SPELLS-4.T2l"]
               },
-              "text": "Compelled turns (D160, split from T2l): a turn-start compelled behavior on a held effect. Converts CONFUSION (server-rolled d10 behavior and D159 RANDOM direction, self-move through the movement planner), COMPULSION (direction set by a granted source bonus action), Eyebite Panicked and Sickened, and Contagion’s Mindfire (moved from T2m), with parity proofs; deletes EYEBITE, CONFUSION, COMPULSION, and CONTAGION once T2m has converted its other diseases."
+              "text": "Compelled turns (D160, split from T2l): a turn-start compelled behavior on a held effect. Converts CONFUSION (server-rolled d10 behavior and D159 RANDOM direction, self-move through the movement planner), COMPULSION (direction set by a granted source bonus action), Eyebite Panicked and Sickened, and Contagion’s Mindfire (moved from T2m), with parity proofs; deletes EYEBITE, CONFUSION, COMPULSION, and CONTAGION once T2m has converted its other diseases.",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-4.T2l3",
@@ -10589,10 +10535,11 @@
                 "bv": 3,
                 "tc": 1,
                 "rr": 2,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-4.T2l"]
               },
-              "text": "Extra turns (D160, split from T2l): TIME_STOP with 1d4+1 consecutive caster turns, ending on any committed outcome that targets or affects another creature or an object the caster is not wearing or carrying, or on moving more than 1,000 ft (ambiguous objects to manual adjudication). The initiative-insertion design is ruled before coding. Parity proof; TIME_STOP deleted."
+              "text": "Extra turns (D160, split from T2l): TIME_STOP with 1d4+1 consecutive caster turns, ending on any committed outcome that targets or affects another creature or an object the caster is not wearing or carrying, or on moving more than 1,000 ft (ambiguous objects to manual adjudication). The initiative-insertion design is ruled before coding. Parity proof; TIME_STOP deleted.",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-4.T2m1",
@@ -10706,10 +10653,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 8,
+                "size": 2,
                 "after": ["SPELLS-4.T2m1"]
               },
-              "text": "Holder-action repeat save (split from T2m1, ruled 2026-10-20): a save variant of the D105/D146 lifecycle.escape seam (prepare, verify, plan, offers, outputs) beside any held condition, not only spatial; DC pinned at cast through the T2i3 castFactKeys save-DC pin (no second pin path). Converts IRRESISTIBLE_DANCE with a parity proof and room journey; kind deleted. Propose a split at start if still size 8."
+              "text": "Holder-action repeat save (split from T2m1, ruled 2026-10-20): a save variant of the D105/D146 lifecycle.escape seam (prepare, verify, plan, offers, outputs) beside any held condition, not only spatial; DC pinned at cast through the T2i3 castFactKeys save-DC pin (no second pin path). Converts IRRESISTIBLE_DANCE with a parity proof and room journey; kind deleted. Propose a split at start if still size 8.",
+              "note": "D187a re-plan: size 8 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-4.T2m2",
@@ -10719,7 +10667,7 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 2,
                 "after": [
                   "SPELLS-4.T1",
                   "SPELLS-4.T2l",
@@ -10729,7 +10677,8 @@
                   "SPELLS-4.T2j2a"
                 ]
               },
-              "text": "Condition suppression (split from T2m, 2026-10-20): a CONDITION_SUPPRESSION modifier (conditionIds, effect origin any or magical, SUPPRESS keeps the condition counting down, PREVENT blocks it). Converts CALM_EMOTIONS and FREEDOM_OF_MOVEMENT with parity proofs; kinds deleted. The magical-origin filter reuses the D179 SOURCE_TRAIT restriction."
+              "text": "Condition suppression (split from T2m, 2026-10-20): a CONDITION_SUPPRESSION modifier (conditionIds, effect origin any or magical, SUPPRESS keeps the condition counting down, PREVENT blocks it). Converts CALM_EMOTIONS and FREEDOM_OF_MOVEMENT with parity proofs; kinds deleted. The magical-origin filter reuses the D179 SOURCE_TRAIT restriction.",
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-4.T2m3",
@@ -10739,7 +10688,7 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 1,
                 "after": [
                   "SPELLS-4.T1",
                   "SPELLS-4.T2l",
@@ -10749,7 +10698,8 @@
                   "SPELLS-4.T2m1b2c"
                 ]
               },
-              "text": "Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs. Contagion lasts 7 days, over MAX_ACTIVE_EFFECT_TURNS (14,400); it needs a longer-duration path or a Campaign-clock lifecycle before it compiles as an active effect (found in T2m1c)."
+              "text": "Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs. Contagion lasts 7 days, over MAX_ACTIVE_EFFECT_TURNS (14,400); it needs a longer-duration path or a Campaign-clock lifecycle before it compiles as an active effect (found in T2m1c).",
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-4.T2n1",
@@ -10764,19 +10714,6 @@
               },
               "text": "Healing received (D181): a HEALING_RECEIVED domain with a maximize-dice modifier on the holder. Converts BEACON_OF_HOPE (Wisdom save advantage, maximized healing; death-save advantage description-only until T2n1b), with parity and room journey proofs; kind deleted.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
-            },
-            {
-              "id": "SPELLS-4.T2n1b",
-              "status": "TODO",
-              "closes": ["SPELLS-4.1"],
-              "wsjf": {
-                "bv": 5,
-                "tc": 2,
-                "rr": 3,
-                "size": 5,
-                "after": ["SPELLS-4.T2n1", "RULES-2.T9a2"]
-              },
-              "text": "Roll-mode-aware death save (D181 amendment): the turn death-save graph, TurnDeathSaveExecutionDto (rolled dice and kept index) and its replay, the roll record and the Sheet ROLL_DEATH_SAVE command honour advantage and disadvantage; a death-save target on the SAVING_THROW_MODIFIER filter; Beacon of Hope's death-save advantage authored on it. Parity proof, room journey and Sheet proof."
             },
             {
               "id": "SPELLS-4.T2n2",
@@ -10800,10 +10737,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-4.T2n2"]
               },
-              "text": "Shared roll and charged heal action (D181): one roll shared by a HIT_POINTS_MAX bonus and a HEAL in the same result block; a charged granted heal action. Converts HEROES_FEAST (poisoned ends via END_EFFECTS, poison and frightened immunity, Wisdom save advantage; disease, delay and nourishment description-only) and GOODBERRY, with parity and room journey proofs; kinds deleted."
+              "text": "Shared roll and charged heal action (D181): one roll shared by a HIT_POINTS_MAX bonus and a HEAL in the same result block; a charged granted heal action. Converts HEROES_FEAST (poisoned ends via END_EFFECTS, poison and frightened immunity, Wisdom save advantage; disease, delay and nourishment description-only) and GOODBERRY, with parity and room journey proofs; kinds deleted.",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-4.T2n4",
@@ -10827,10 +10765,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 2,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Speed equal to another speed, jumping, elevation and vertical forced movement. Converts SPIDER_CLIMB, ALTER_SELF, JUMP, LEVITATE, REVERSE_GRAVITY, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Speed equal to another speed, jumping, elevation and vertical forced movement. Converts SPIDER_CLIMB, ALTER_SELF, JUMP, LEVITATE, REVERSE_GRAVITY, with parity proofs; each kind deleted.",
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "status": "TODO",
@@ -10840,10 +10779,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 2,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Directional and vertical movement and damage multiplication. Converts GUST_OF_WIND, TELEKINESIS, RAY_OF_ENFEEBLEMENT, SUNBEAM, GASEOUS_FORM, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Directional and vertical movement and damage multiplication. Converts GUST_OF_WIND, TELEKINESIS, RAY_OF_ENFEEBLEMENT, SUNBEAM, GASEOUS_FORM, with parity proofs; each kind deleted.",
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "status": "TODO",
@@ -10853,10 +10793,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 8,
+                "size": 2,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B), ruled before coding: Armed, staged or deferred zones. Converts GLYPH_OF_WARDING, SYMBOL, STORM_OF_VENGEANCE, DELAYED_BLAST_FIREBALL, EARTHQUAKE, with parity proofs; each kind deleted."
+              "text": "New generic option (D156 T2 split, class B), ruled before coding: Armed, staged or deferred zones. Converts GLYPH_OF_WARDING, SYMBOL, STORM_OF_VENGEANCE, DELAYED_BLAST_FIREBALL, EARTHQUAKE, with parity proofs; each kind deleted.",
+              "note": "D187a re-plan: size 8 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "status": "TODO",
@@ -10907,10 +10848,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 1,
                 "after": ["SPELLS-4.T1"]
               },
-              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): A save-gated grant with an indefinite (until dispelled) lifetime without Concentration, ABILITY_SCORE SET_VALUE that sets the score over bonuses for Characters and Creatures, and a casting lock that also holds for Creatures. Converts FEEBLEMIND, with a parity proof; the kind deleted."
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): A save-gated grant with an indefinite (until dispelled) lifetime without Concentration, ABILITY_SCORE SET_VALUE that sets the score over bonuses for Characters and Creatures, and a casting lock that also holds for Creatures. Converts FEEBLEMIND, with a parity proof; the kind deleted.",
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "status": "TODO",
@@ -10933,10 +10875,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 1,
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2v"]
               },
-              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted."
+              "text": "New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted.",
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-4.T1k",
@@ -11466,9 +11409,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 2,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-8.T5",
@@ -11507,9 +11451,10 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 3,
-                "size": 5,
+                "size": 2,
                 "after": ["SPELLS-8.T1"]
-              }
+              },
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-8.T8",
@@ -13224,19 +13169,6 @@
               "mergedAt": "2026-10-16T16:37:07-05:00"
             },
             {
-              "id": "SPELLS-27.T7",
-              "text": "Sanctuary from core options: a ward that makes a creature targeting the warded creature with an attack or harmful spell make a Wisdom save first (on a fail it picks a new target or loses the attack or spell), and the ward ends when the warded creature attacks, casts a spell on an enemy or deals damage to another creature (D132 against-enemy arms). Converts the closed-rule Sanctuary into a real v2 effect, with GM undo (D122 amendment of 2026-10-16). Closes AC 27.2 with T5.",
-              "status": "TODO",
-              "closes": ["SPELLS-27.2"],
-              "wsjf": {
-                "bv": 3,
-                "tc": 3,
-                "rr": 3,
-                "size": 5,
-                "after": ["SPELLS-27.T5"]
-              }
-            },
-            {
               "id": "SPELLS-27.T8",
               "text": "Sleep from core options: roll the hit-point pool (5d8 + 2d8 per slot level above 1), put creatures caught in the area to sleep from lowest current HP up, skipping unconscious, undead and charm-immune creatures; the pool targeting is sealed in the pending snapshot; a no-save area path with disposition and creature-type filters; the sleep ends when the sleeper takes damage (DAMAGE_TAKEN), with GM undo (D122 amendment of 2026-10-16). Wake-by-action is SPELLS-27.T12. (Red: ci/spells-27-t8-red 63224cccc, Tests 38979581415. Green: ci/spells-27-t8 9d763e662, Tests 38996918030, Live 38997995671. Merged in m65 22e21b5c5 (Tests 39003056069, Live 39003055964); phase tip e96de53be.)",
               "status": "DONE",
@@ -13456,10 +13388,11 @@
                 "bv": 3,
                 "tc": 3,
                 "rr": 2,
-                "size": 3,
+                "size": 2,
                 "after": ["SPELLS-30.T1", "SPELLS-4.T1b"]
               },
-              "text": "Blade Barrier: the cast choice picks a straight wall (up to 100 ft long) or a ring (up to 60 ft across), 20 ft high and 5 ft thick, using the SPELLS-4.T1b wall geometry. It gives three-quarters cover and difficult terrain, and a creature entering it or starting its turn there makes a Dexterity save (6d10 slashing, half on a success). Proved on the SRD spell with a room journey."
+              "text": "Blade Barrier: the cast choice picks a straight wall (up to 100 ft long) or a ring (up to 60 ft across), 20 ft high and 5 ft thick, using the SPELLS-4.T1b wall geometry. It gives three-quarters cover and difficult terrain, and a creature entering it or starting its turn there makes a Dexterity save (6d10 slashing, half on a success). Proved on the SRD spell with a room journey.",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             }
           ]
         },
@@ -13480,7 +13413,7 @@
               "status": "TODO",
               "origin": [],
               "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 165 class feature and subclass feature closed-rule kinds.",
-              "text": "Every class feature and subclass feature CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+              "text": "Every class feature and subclass feature CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
             }
           ],
           "tasks": [
@@ -13595,10 +13528,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T5ra"]
               },
-              "text": "Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind."
+              "text": "Character feature options in the D168 result window (split 2026-10-20): discovery from the Character's authored features, feature-charge payment through the one spend helper extracted in SPELLS-31.T5ra, die face from the holder's scaling value frozen at use. Converts Peerless Skill (parent-class charge) with parity proof, homebrew variant and room journey; deletes its kind.",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T4c1a2",
@@ -13608,10 +13542,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["SPELLS-31.T4c1a", "RULES-2.T3a"]
               },
-              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site."
+              "text": "D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site.",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T4c1b",
@@ -13621,10 +13556,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1p", "RULES-2.T4a"]
               },
-              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union."
+              "text": "D168 result window on saving throws at every commit site (action, area, reaction, turn effects, recurring, Concentration, death save, Legendary) (split 2026-10-20). Converts Dark One's Own Luck with parity proof, homebrew variant and room journey. Folds the bespoke Legendary Resistance AFTER_FAILED_SAVE_BEFORE_OUTCOME pause into the shared result-window module. Held behind RULES-2.T4a (ADR 0039, 2026-10-20): Legendary Resistance folds into the one pause union.",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T4c1c",
@@ -13665,10 +13601,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T4c1a", "SPELLS-31.T4c1b"]
               },
-              "text": "D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted."
+              "text": "D168 subtract die and other-creature reaction in the result window (split 2026-10-20): subtracting a die (including from damage), and a reaction by another creature with hearing and charm-immunity target restrictions. Converts Cutting Words (with resource uses), with a parity proof, a homebrew variant and the kind deleted.",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T4e",
@@ -13721,10 +13658,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2d", "SPELLS-4.T2t"]
               },
-              "text": "Join SPELLS-4.T2i: Survivor, Colossus Slayer, Quivering Palm, Dark One's Blessing. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2i: Survivor, Colossus Slayer, Quivering Palm, Dark One's Blessing. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T4j",
@@ -13734,10 +13672,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2j1", "SPELLS-4.T2j2a"]
               },
-              "text": "Join SPELLS-4.T2j: Multiattack Defense, Nature's Ward, both Land's Stride. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2j: Multiattack Defense, Nature's Ward, both Land's Stride. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T4k1",
@@ -13832,10 +13771,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-31.T4l1", "SPELLS-4.T2l"]
               },
-              "text": "Join SPELLS-4.T2l: Martial Arts, Open Hand Technique, Horde Breaker, Retaliation. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Also owns the Monk Ki-Empowered Strikes room journey moved from T4e: an unarmed strike deals full damage to a nonmagical-resistant target while a weapon attack is resisted (2026-10-19 ruling)."
+              "text": "Join SPELLS-4.T2l: Martial Arts, Open Hand Technique, Horde Breaker, Retaliation. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Also owns the Monk Ki-Empowered Strikes room journey moved from T4e: an unarmed strike deals full damage to a nonmagical-resistant target while a weapon attack is resisted (2026-10-19 ruling).",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T4m",
@@ -13858,10 +13798,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
-              "text": "Join SPELLS-4.T2n: Disciple of Life, Blessed Healer, Supreme Healing, Preserve Life (with resource use), Song of Rest. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2n: Disciple of Life, Blessed Healer, Supreme Healing, Preserve Life (with resource use), Song of Rest. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T4o",
@@ -13871,10 +13812,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 1,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2o"]
               },
-              "text": "Join SPELLS-4.T2o: Dragon Wings, Unarmored Movement improvement, Second-Story Work. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2o: Dragon Wings, Unarmored Movement improvement, Second-Story Work. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T4r",
@@ -13884,10 +13826,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2r", "SPELLS-4.T2j1", "SPELLS-31.T5l"]
               },
-              "text": "Join SPELLS-4.T2r: Aura of Courage and Aura of Devotion (with the 18th-level range), Holy Nimbus, Countercharm, Draconic Presence (with resource use). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2r: Aura of Courage and Aura of Devotion (with the 18th-level range), Holy Nimbus, Countercharm, Draconic Presence (with resource use). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T4s",
@@ -13910,7 +13853,7 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": [
                   "SPELLS-31.T1",
                   "SPELLS-4.T2v",
@@ -13919,7 +13862,8 @@
                   "SPELLS-4.T2l"
                 ]
               },
-              "text": "Join SPELLS-4.T2v: Pact of the Blade, Lifedrinker, Pact of the Chain, Voice of the Chain Master. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2v: Pact of the Blade, Lifedrinker, Pact of the Chain, Voice of the Chain Master. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T5a",
@@ -13955,10 +13899,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (ruling at start): d20 test overrides (reroll, floor, outcome); Indomitable, Diamond Soul, Reliable Talent, Indomitable Might, Stroke of Luck (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Reliable Talent reuses SPELLS-4.T2c3's MINIMUM_ROLL option but needs a proficiency condition on the grant (floor only on checks the holder is proficient in), which T2c3 did not add."
+              "text": "New option (ruling at start): d20 test overrides (reroll, floor, outcome); Indomitable, Diamond Soul, Reliable Talent, Indomitable Might, Stroke of Luck (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Reliable Talent reuses SPELLS-4.T2c3's MINIMUM_ROLL option but needs a proficiency condition on the grant (floor only on checks the holder is proficient in), which T2c3 did not add.",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T5d",
@@ -14022,10 +13967,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-31.T5g"]
               },
-              "text": "New option (ruling at start): cast parameters; Distant, Extended, Quickened Spell, Overchannel. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): cast parameters; Distant, Extended, Quickened Spell, Overchannel. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T5i",
@@ -14035,10 +13981,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-31.T5k"]
               },
-              "text": "New option (ruling at start): spell-scoped riders and modifiers; Repelling Blast, Eldritch Spear, Empowered Evocation, Potent Cantrip, Elemental Affinity. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): spell-scoped riders and modifiers; Repelling Blast, Eldritch Spear, Empowered Evocation, Potent Cantrip, Elemental Affinity. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T5j",
@@ -14048,10 +13995,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T1"]
               },
-              "text": "New option (ruling at start): resource and slot recovery and conversion; Flexible Casting, Sorcerous Restoration, Eldritch Master (with charges), Arcane Recovery, Natural Recovery. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): resource and slot recovery and conversion; Flexible Casting, Sorcerous Restoration, Eldritch Master (with charges), Arcane Recovery, Natural Recovery. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T5k",
@@ -14061,10 +14009,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2j1"]
               },
-              "text": "New option (ruling at start): a stored feature choice other options read; Favored Enemy, Foe Slayer, Dragon Ancestor, Fiendish Resilience. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): a stored feature choice other options read; Favored Enemy, Foe Slayer, Dragon Ancestor, Fiendish Resilience. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T5l",
@@ -14089,10 +14038,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2a5"]
               },
-              "text": "New option (ruling at start): awareness senses; Blindsense, Feral Senses, Witch Sight (reusing the SPELLS-4.T2a5 truesight sense where it fits). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option (ruling at start): awareness senses; Blindsense, Feral Senses, Witch Sight (reusing the SPELLS-4.T2a5 truesight sense where it fits). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T5n",
@@ -14117,10 +14067,11 @@
                 "bv": 2,
                 "tc": 1,
                 "rr": 2,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-31.T5n"]
               },
-              "text": "Scene-light activation gate (split from T5n, ruled 2026-10-20): ACTION_SCENE reads the holder cell's illumination (scene lights, zones, barriers) so an activation can require dim light or darkness; One with Shadows gains the gate (converted ungated in T5n). Generic predicate, no feature-specific code."
+              "text": "Scene-light activation gate (split from T5n, ruled 2026-10-20): ACTION_SCENE reads the holder cell's illumination (scene lights, zones, barriers) so an activation can require dim light or darkness; One with Shadows gains the gate (converted ungated in T5n). Generic predicate, no feature-specific code.",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T5o",
@@ -14145,10 +14096,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 8,
+                "size": 1,
                 "after": ["SPELLS-31.T5o"]
               },
-              "text": "Extra turn (split from T5o, 2026-10-20): an EXTRA_TURN outcome on the ROLL_INITIATIVE trigger, adding a first-round turn-order entry at an initiative offset (Thief's Reflexes: initiative minus 10, round 1 only). Authoring-parity proof and room journey; deletes its kind. Re-sized 3->8 (2026-10-20): a repeated-actor initiative entry needs a participant key other than the actor id, a cursor that tolerates a repeated actor, replay, reinforcement and removal handling; one vertical slice, not an outcome-only split. Rulings: the extra entry is a full turn (turn resources reset, durations counted in the actor's turns tick on it); the surprise clause stays description-only (D165); SIDE_ROLL placement is ruled at start."
+              "text": "Extra turn (split from T5o, 2026-10-20): an EXTRA_TURN outcome on the ROLL_INITIATIVE trigger, adding a first-round turn-order entry at an initiative offset (Thief's Reflexes: initiative minus 10, round 1 only). Authoring-parity proof and room journey; deletes its kind. Re-sized 3->8 (2026-10-20): a repeated-actor initiative entry needs a participant key other than the actor id, a cursor that tolerates a repeated actor, replay, reinforcement and removal handling; one vertical slice, not an outcome-only split. Rulings: the extra entry is a full turn (turn resources reset, durations counted in the actor's turns tick on it); the surprise clause stays description-only (D165); SIDE_ROLL placement is ruled at start.",
+              "note": "D187a re-plan: size 8 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-31.T5p",
@@ -14362,7 +14314,7 @@
               "status": "TODO",
               "origin": [],
               "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 319 creature trait, action and reaction closed-rule kinds.",
-              "text": "Every creature trait, action and reaction CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+              "text": "Every creature trait, action and reaction CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
             }
           ],
           "tasks": [
@@ -14858,10 +14810,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 2,
                 "after": ["SPELLS-33.T4i4a", "RULES-2.T6c2"]
               },
-              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry."
+              "text": "Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry.",
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T4j",
@@ -14913,10 +14866,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2l"]
               },
-              "text": "bonus-action Dash, Disengage and Hide grants, Aggressive, legendary move, Clay Golem Haste (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "bonus-action Dash, Disengage and Hide grants, Aggressive, legendary move, Clay Golem Haste (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T4l2",
@@ -14926,10 +14880,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4l1", "SPELLS-31.T5n"]
               },
-              "text": "extra reactions, reaction denial, charge-and-knock-prone follow-ups, Wing Attack (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "extra reactions, reaction denial, charge-and-knock-prone follow-ups, Wing Attack (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T4m",
@@ -14952,10 +14907,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
-              "text": "absorption healing x3, healing denial bites x3 (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "absorption healing x3, healing denial bites x3 (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T4o",
@@ -14991,10 +14947,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2s"]
               },
-              "text": "Change Shape and Shapechanger polymorphs into listed forms (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Change Shape and Shapechanger polymorphs into listed forms (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T4s2",
@@ -15004,10 +14961,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
               },
-              "text": "lycanthrope and vampire shapechanging, Misty Escape (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "lycanthrope and vampire shapechanging, Misty Escape (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T4s3",
@@ -15017,10 +14975,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
               },
-              "text": "Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion and Mimic Grappler (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion and Mimic Grappler (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T4w",
@@ -15030,10 +14989,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2w"]
               },
-              "text": "Animate Chains, Animate Trees, Children of the Night, Create Specter (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Animate Chains, Animate Trees, Children of the Night, Create Specter (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T5afp",
@@ -15112,10 +15072,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: swallowed creatures (containment with total cover, acid each turn, regurgitate on a damage threshold) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Includes Purple Worm Bite (from ATTACK-5.T4d, 2026-10-20)."
+              "text": "new: swallowed creatures (containment with total cover, acid each turn, regurgitate on a damage threshold) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Includes Purple Worm Bite (from ATTACK-5.T4d, 2026-10-20).",
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Includes the one proof that a creature ON_HIT attack with damage plus MANUAL_ADJUDICATION compiles through the attack sweep, and removes those allowlist entries."
             },
             {
               "id": "SPELLS-33.T6a2",
@@ -15125,10 +15086,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6a1"]
               },
-              "text": "new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Also converts FINGER_OF_DEATH_ZOMBIE (humanoid killed rises as a caster-commanded zombie; moved from SPELLS-4.T2i, 2026-10-20)."
+              "text": "new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Also converts FINGER_OF_DEATH_ZOMBIE (humanoid killed rises as a caster-commanded zombie; moved from SPELLS-4.T2i, 2026-10-20).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6a3",
@@ -15138,10 +15100,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: held-creature relationship options (damage to or from the held creature, auto-hit, attach drain, reel) (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling)."
+              "text": "new: held-creature relationship options (damage to or from the held creature, auto-hit, attach drain, reel) (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6b1",
@@ -15151,10 +15114,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2f", "SPELLS-4.T2n1"]
               },
-              "text": "new: afflictions and curses with rest and healing denial and a clock (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: afflictions and curses with rest and healing denial and a clock (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6b2",
@@ -15164,10 +15128,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6b1", "SPELLS-33.T4s2"]
               },
-              "text": "new: lycanthropy curse on a failed save (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling)."
+              "text": "new: lycanthropy curse on a failed save (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6b3",
@@ -15177,10 +15142,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6b1"]
               },
-              "text": "new: disease (recurring saves, ended by cure effects) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling)."
+              "text": "new: disease (recurring saves, ended by cure effects) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6c",
@@ -15218,10 +15184,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6d1"]
               },
-              "text": "new: terrain and underwater predicates (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: terrain and underwater predicates (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6d3a",
@@ -15349,10 +15316,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T6e1"]
               },
-              "text": "Balor Death Throes, part 2 (split 2026-10-19): the HP-zero area queues behind a pending Concentration save through a deferred pending-snapshot field (like deferredCleaving), and any defeat roots that T6e1 did not cover through a shared HP-zero seam (retaliation, turn zone, legendary, movement reaction, spatial contact)."
+              "text": "Balor Death Throes, part 2 (split 2026-10-19): the HP-zero area queues behind a pending Concentration save through a deferred pending-snapshot field (like deferredCleaving), and any defeat roots that T6e1 did not cover through a shared HP-zero seam (retaliation, turn zone, legendary, movement reaction, spatial contact).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6e2",
@@ -15377,10 +15345,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: incoming spell negation by level or kind, spell storing (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: incoming spell negation by level or kind, spell storing (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6g",
@@ -15390,10 +15359,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: partner-bound grants (rider, amulet bearer) and body-control swap (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: partner-bound grants (rider, amulet bearer) and body-control swap (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6h",
@@ -15403,10 +15373,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 1,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: attackable body parts and damage-triggered splitting (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: attackable body parts and damage-triggered splitting (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6i",
@@ -15566,10 +15537,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 1,
                 "after": ["SPELLS-33.T6k2b", "SPELLS-33.T5n2"]
               },
-              "text": "new: Bulette Deadly Leap, a target-chosen saving-throw ability (players choose, creatures take the higher modifier) and landing in an occupied space through the T6k1 passage rule, with prone as the fallback (1 kind, D159 split). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md)."
+              "text": "new: Bulette Deadly Leap, a target-chosen saving-throw ability (players choose, creatures take the higher modifier) and landing in an occupied space through the T6k1 passage rule, with prone as the fallback (1 kind, D159 split). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T6m1",
@@ -15594,10 +15566,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 2,
                 "after": ["SPELLS-33.T1"]
               },
-              "text": "new: subtype and can-hear target filters, ordinal use variants, wake action, stacking recurring damage, tree size (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "new: subtype and can-hear target filters, ordinal use variants, wake action, stacking recurring damage, tree size (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T7a",
@@ -15637,9 +15610,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3
+                "size": 2
               },
-              "text": "new: a recurring saving throw on a held relationship (found in ATTACK-7.T8, 2026-10-20). The Shambling Mound’s Engulf deals 2d8+4 bludgeoning on a failed DC 14 Constitution save at the start of each of the Mound’s turns while the target stays engulfed. A relationship recurrence that carries a save and its outcome, authorable from core options; reuse it for any other held-creature recurring damage. Authoring-parity proof and a room journey (workbook slice-spells-33.md)."
+              "text": "new: a recurring saving throw on a held relationship (found in ATTACK-7.T8, 2026-10-20). The Shambling Mound’s Engulf deals 2d8+4 bludgeoning on a failed DC 14 Constitution save at the start of each of the Mound’s turns while the target stays engulfed. A relationship recurrence that carries a save and its outcome, authorable from core options; reuse it for any other held-creature recurring damage. Authoring-parity proof and a room journey (workbook slice-spells-33.md).",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
             },
             {
               "id": "SPELLS-33.T4i3d",

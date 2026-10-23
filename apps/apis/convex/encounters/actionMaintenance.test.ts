@@ -548,8 +548,9 @@ it('creates and replaces Automatic maintenance atomically while preserving retai
   )
   expect(replacementDependent).toBeDefined()
   const source = projection.actors.find((actor) => actor.id === base.actor.id)
-  expect(source?.conditions).toEqual(expect.arrayContaining([frightened.id, poisoned.id]))
-  expect(source?.conditions).not.toEqual(expect.arrayContaining([blinded.id]))
+  const sourceConditionIds = source?.conditions.map((condition) => condition.conditionTypeId)
+  expect(sourceConditionIds).toEqual(expect.arrayContaining([frightened.id, poisoned.id]))
+  expect(sourceConditionIds).not.toContain(blinded.id)
   expect(
     afterReplacement.actorEffects.filter(
       (effect) => effect.maintainedEffectStateId === afterReplacement.maintainedStates[0]?.id

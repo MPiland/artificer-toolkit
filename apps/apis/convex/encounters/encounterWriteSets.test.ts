@@ -40,6 +40,10 @@ function bytes(value: unknown) {
   return new TextEncoder().encode(JSON.stringify(value)).byteLength
 }
 
+// A stored document's `_creationTime` is a float whose printed length varies run to run; reads
+// measure it at a fixed, typical Convex width so the read budget is deterministic.
+const MEASURED_CREATION_TIME = 1761169586123.3157
+
 function stored({ _id, _creationTime, ...fields }: StoredDocument) {
   return fields
 }
@@ -100,7 +104,7 @@ function countingReads<Database extends object>(db: Database) {
     for (const document of documents)
       if (typeof document === 'object' && document !== null && '_id' in document) {
         counter.documents++
-        counter.bytes += bytes(document)
+        counter.bytes += bytes({ ...document, _creationTime: MEASURED_CREATION_TIME })
       }
   }
   const wrap = <Target extends object>(target: Target): Target =>

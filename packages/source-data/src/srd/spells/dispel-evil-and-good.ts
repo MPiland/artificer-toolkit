@@ -14,8 +14,11 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
-import { spellChildId } from './shared.js'
+import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import {
+  againstCreatureTypes,
+  attackDisadvantageAgainstHolder
+} from './protection-from-evil-and-good.js'
 export const dispelEvilAndGood: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.DISPEL_EVIL_AND_GOOD,
@@ -66,9 +69,16 @@ export const dispelEvilAndGood: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.DISPEL_EVIL_AND_GOOD, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'DISPEL_EVIL_AND_GOOD' as const
+                id: spellChildId(SPELL_IDS.DISPEL_EVIL_AND_GOOD, 0x214, 1),
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: againstCreatureTypes(
+                    (part, entry) =>
+                      spellChildId(SPELL_IDS.DISPEL_EVIL_AND_GOOD, 0x200 + part, entry),
+                    attackDisadvantageAgainstHolder,
+                    ['CELESTIAL', 'ELEMENTAL', 'FEY', 'FIEND', 'UNDEAD']
+                  )
+                }
               }
             ]
           }

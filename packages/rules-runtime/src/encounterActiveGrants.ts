@@ -331,17 +331,31 @@ export function holderStateRestrictionsHold(
   )
 }
 
-type SourceCreatureTypeCondition = Pick<
+type SourceCondition = Pick<
   ModifierRestrictions[number]['conditions'][number],
-  'constraint' | 'mode' | 'requiredIds'
+  'kind' | 'constraint' | 'mode' | 'requiredIds'
 >
 
+/** The source of a grant: its creature's types and the traits of the attack that carries it. */
+export type GrantSource = {
+  readonly creatureTypeIds: readonly string[]
+  readonly traits?: readonly string[]
+}
+
+const SOURCE_CONDITION_KINDS: ReadonlySet<string> = new Set([
+  'SOURCE_CREATURE_TYPE',
+  'SOURCE_TRAIT'
+])
+
+const isSourceCondition = ({ kind }: { readonly kind: string }): boolean =>
+  SOURCE_CONDITION_KINDS.has(kind)
+
 /**
- * What a grant requires of its source creature once the holder's own restrictions hold: alternative
- * groups of `SOURCE_CREATURE_TYPE` conditions, any one of which admits a source. Empty admits
- * every source.
+ * What a grant requires of its source once the holder's own restrictions hold: alternative groups
+ * of `SOURCE_CREATURE_TYPE` and `SOURCE_TRAIT` conditions, any one of which admits a source. Empty
+ * admits every source.
  */
-export type SourceCreatureQualifier = readonly (readonly SourceCreatureTypeCondition[])[]
+export type SourceCreatureQualifier = readonly (readonly SourceCondition[])[]
 
 /**
  * The source qualifier of a modifier whose holder restrictions hold now, or `null` when none
@@ -353,27 +367,30 @@ export function holderStateSourceQualifier(
   holderState: EncounterHolderState
 ): SourceCreatureQualifier | null {
   if (restrictions.length === 0) return []
-  const qualifier: SourceCreatureTypeCondition[][] = []
+  const qualifier: SourceCondition[][] = []
   for (const group of restrictions) {
-    const holderConditions = group.conditions.filter(({ kind }) => kind !== 'SOURCE_CREATURE_TYPE')
+    const holderConditions = group.conditions.filter((condition) => !isSourceCondition(condition))
     if (!holderStateRestrictionsHold([{ conditions: holderConditions }], holderState)) continue
     if (holderConditions.length === group.conditions.length) return []
-    qualifier.push(group.conditions.filter(({ kind }) => kind === 'SOURCE_CREATURE_TYPE'))
+    qualifier.push(group.conditions.filter(isSourceCondition))
   }
   return qualifier.length > 0 ? qualifier : null
 }
 
-/** Whether a source creature of these types meets the qualifier; a source with no type meets only a type exclusion. */
+/** Whether the source meets the qualifier; a source with no type or trait meets only an exclusion. */
 export function sourceQualifierAdmits(
   qualifier: SourceCreatureQualifier,
-  sourceCreatureTypeIds: readonly string[]
+  source: GrantSource
 ): boolean {
   return (
     qualifier.length === 0 ||
     qualifier.some((group) =>
       group.every(
         (condition) =>
-          creatureTypeConditionMatches(condition, sourceCreatureTypeIds) ===
+          (condition.kind === 'SOURCE_TRAIT'
+            ? condition.mode === 'ALL' ||
+              condition.requiredIds.some((id) => source.traits?.includes(id))
+            : creatureTypeConditionMatches(condition, source.creatureTypeIds)) ===
           (condition.constraint === 'INCLUDE')
       )
     )
@@ -381,9 +398,7 @@ export function sourceQualifierAdmits(
 }
 
 function hasSourceRestriction(restrictions: ModifierRestrictions): boolean {
-  return restrictions.some((group) =>
-    group.conditions.some(({ kind }) => kind === 'SOURCE_CREATURE_TYPE')
-  )
+  return restrictions.some((group) => group.conditions.some(isSourceCondition))
 }
 
 function hasHolderStateRestriction(restrictions: ModifierRestrictions): boolean {
@@ -643,10 +658,10 @@ export function encounterSourceConditionImmunities(input: {
 export function conditionImmunityIdsAgainstSource(
   conditionImmunityIds: readonly string[],
   sourceConditionImmunities: readonly EncounterSourceConditionImmunity[],
-  sourceCreatureTypeIds: readonly string[]
+  source: GrantSource
 ): readonly string[] {
   const admitted = sourceConditionImmunities.filter(({ sourceQualifier }) =>
-    sourceQualifierAdmits(sourceQualifier, sourceCreatureTypeIds)
+    sourceQualifierAdmits(sourceQualifier, source)
   )
   return admitted.length === 0
     ? conditionImmunityIds

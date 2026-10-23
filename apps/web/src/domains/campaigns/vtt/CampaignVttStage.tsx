@@ -107,11 +107,10 @@ import {
   type VttAreaAim,
   type VttAreaSize
 } from './vttSceneRenderer.model'
-import { buildVttTokenPresentations } from './vttTokenPresentation.model'
+import { useVttTokenPresentations } from './useVttTokenPresentations'
 import {
   buildTargetEntries,
   describeTargetEntry,
-  targetableTokenIds,
   type VttTargetingRequest
 } from './vttTargeting.model'
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
@@ -669,33 +668,18 @@ export function CampaignVttStage({
     gmView: campaign.role === 'OWNER' && !gmPreviewUserId,
     sceneDefinitionId: scene?.definitionId
   })
-  const tokenPresentations = useMemo(
-    () =>
-      renderedScene && activeEncounter
-        ? buildVttTokenPresentations({
-            actorIdByTokenId,
-            artUrls: tokenArtUrls,
-            boundTokenControl,
-            currentUserId: viewerUserId,
-            encounter: activeEncounter,
-            lootActorIds: liveLoot.lootActorIds,
-            pending: pendingOccurrence ?? null,
-            scene: renderedScene,
-            targetableTokenIds: targetEntries ? targetableTokenIds(targetEntries) : undefined
-          })
-        : undefined,
-    [
-      activeEncounter,
-      actorIdByTokenId,
-      boundTokenControl,
-      liveLoot.lootActorIds,
-      pendingOccurrence,
-      renderedScene,
-      targetEntries,
-      tokenArtUrls,
-      viewerUserId
-    ]
-  )
+  const tokenPresentations = useVttTokenPresentations({
+    actorIdByTokenId,
+    artUrls: tokenArtUrls,
+    boundTokenControl,
+    currentUserId: viewerUserId,
+    encounter: activeEncounter,
+    gameSystemId: campaign.gameSystemId,
+    lootActorIds: liveLoot.lootActorIds,
+    pending: pendingOccurrence ?? null,
+    scene: renderedScene,
+    targetEntries
+  })
   const rendererAreaAim = useMemo(
     () =>
       aimingArea && areaSize
