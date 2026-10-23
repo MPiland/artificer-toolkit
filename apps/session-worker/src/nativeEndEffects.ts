@@ -24,15 +24,21 @@ export function planEndEffects(
   gameSystemId: string,
   outcomes: readonly {
     kind: string
-    endEffects?: { scope: 'ALL' | 'ONE_CHOSEN'; conditionIds: readonly string[] }
+    endEffects?: Parameters<typeof offerEndEffects>[0]['endEffects']
   }[],
   held: readonly ActiveRuleEffectRecord[],
-  target: { kind: string; chosenEffectId?: string }
+  target: { kind: string; chosenEffectId?: string },
+  castLevel: number | null
 ) {
   const [endEffects] = outcomes.flatMap((outcome) =>
     outcome.kind === 'EFFECT' && outcome.endEffects ? [outcome.endEffects] : []
   )
-  const offer = offerEndEffects({ endEffects, held, chosenEffectId: target.chosenEffectId })
+  const offer = offerEndEffects({
+    endEffects,
+    held,
+    chosenEffectId: target.chosenEffectId,
+    castLevel
+  })
   if (offer.pick?.kind === 'UNCHOSEN')
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
@@ -70,6 +76,7 @@ export function endedByAction(
         holderActorId: target.id,
         held,
         selectors: offer.selectors,
+        castLevel: offer.castLevel,
         scope: endEffects.scope,
         chosenEffectId: offer.pick?.kind === 'CHOSEN' ? offer.pick.effectId : undefined
       })

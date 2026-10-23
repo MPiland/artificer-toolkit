@@ -540,3 +540,10 @@ Proposed split (ruling needed):
 - **T2f1b** the check-flow widening: spell source, ordered per-candidate checks with `TARGET_EFFECT_LEVEL`, then convert `DISPEL_MAGIC` and delete the kind, with parity proof and room journey.
 
 Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-check state, may the pending context hold a `candidates` list plus a cursor (one roller prompt per candidate, each settled through the single d20 settlement), rather than one roll window for all candidates? A single window cannot give each candidate its own d20 under the current `d20`-per-context shape.
+
+## T2f1a (D182): `originLevel` and the `SPELL_LEVEL` selector
+
+- `originLevel` (0..9, nullable) is a required-nullable field on the active-effect definition, stamped from `spellCastLevel` for a recurring spell effect and null for every other source. No migration: the field is pre-launch required-nullable like `linkedEffectId`.
+- `END_EFFECTS` now carries `selectors` (1..4) instead of `conditionIds`: `CONDITION { conditionIds }` or `SPELL_LEVEL { limit: SLOT_LEVEL | FIXED, level? }`. The three restoration spells moved to `CONDITION` selectors; behavior unchanged.
+- The planned `levelCheck` field (D174) is deliberately not added here: it has no consumer until T2f1b, and an unconsumed authored field would be dead. T2f1b adds it with the check flow.
+- Proofs: `encounterEndedEffectRelease.test.ts` (selector matching, boundary, null level), `endEffectsAuthoringParity.test.ts` (homebrew slot/fixed selectors through the node map DTO and real compiler), `nativeRoomEndEffectsSpell.test.ts` (Dispel-style spell ends levels 1 and 2, leaves 4, via a real cast).

@@ -277,6 +277,7 @@ describe('native movement target facts', () => {
     const definition: ActiveRuleEffectDefinitionDto = {
       schemaVersion: 2,
       linkedEffectId: null,
+      originLevel: null,
       origin: {
         kind: 'CHARACTER',
         sourceAggregateId: fixture.character.id,

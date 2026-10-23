@@ -238,7 +238,8 @@ export function plannedModifierGrant(input: {
           resultPath: input.resultPath
         }
       : null,
-    applications: []
+    applications: [],
+    spellCastLevel: input.spellCastLevel
   })
   if (!recurringEffect) throw new Error('No grant effect was planned.')
   return recurringEffect

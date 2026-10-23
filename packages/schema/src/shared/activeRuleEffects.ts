@@ -268,6 +268,11 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
      * null for none. Whatever ends the linked effect ends this one in the same transaction.
      */
     linkedEffectId: z.nullable(uuidSchema),
+    /**
+     * The level the spell was cast at (D182; 0 for a cantrip); null when it came from no spell
+     * cast. An `END_EFFECTS` spell-level selector never matches a null.
+     */
+    originLevel: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(9))),
     adapterFacts: activeEffectFactsSchema,
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     recurrence: z.strictObject({

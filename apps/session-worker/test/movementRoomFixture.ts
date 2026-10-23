@@ -107,6 +107,7 @@ export function dependentEffectDefinition(input: { encounterId: string; sourceAc
   return activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
     linkedEffectId: null,
+    originLevel: null,
     stateContributions: [],
     origin: {
       kind: 'ENCOUNTER',

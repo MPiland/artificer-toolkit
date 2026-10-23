@@ -826,6 +826,7 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
       holderActorId: HOLDER_ID,
       held: input.held,
       selectors: [{ kind: 'CONDITION', conditionIds: input.conditionIds }],
+      castLevel: null,
       scope: input.scope,
       chosenEffectId: input.chosenEffectId
     })
@@ -856,11 +857,15 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
     const first = owning(FIRST_ID, { [POISONED]: false })
     const second = owning(SECOND_ID, { [POISONED]: false })
     const selectors = [{ kind: 'CONDITION' as const, conditionIds: [POISONED] }]
-    const none = endEffectsCandidates([owning(THIRD_ID, { [CHARMED]: false })], selectors)
+    const none = endEffectsCandidates([owning(THIRD_ID, { [CHARMED]: false })], selectors, null)
     expect(endEffectsChoice(none, undefined)).toEqual({ kind: 'NONE' })
-    const one = endEffectsCandidates([first, owning(THIRD_ID, { [CHARMED]: false })], selectors)
+    const one = endEffectsCandidates(
+      [first, owning(THIRD_ID, { [CHARMED]: false })],
+      selectors,
+      null
+    )
     expect(endEffectsChoice(one, undefined)).toEqual({ kind: 'CHOSEN', effectId: FIRST_ID })
-    const many = endEffectsCandidates([first, second], selectors)
+    const many = endEffectsCandidates([first, second], selectors, null)
     expect(endEffectsChoice(many, undefined)).toEqual({ kind: 'UNCHOSEN' })
     expect(endEffectsChoice(many, THIRD_ID)).toEqual({ kind: 'UNCHOSEN' })
     expect(endEffectsChoice(many, SECOND_ID)).toEqual({ kind: 'CHOSEN', effectId: SECOND_ID })
@@ -869,15 +874,22 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
   it('offers nothing for an action that ends no effects, and a pick only under ONE_CHOSEN', () => {
     const held = [owning(FIRST_ID, { [POISONED]: false }), owning(SECOND_ID, { [POISONED]: false })]
     expect(
-      offerEndEffects({ endEffects: undefined, held, chosenEffectId: FIRST_ID })
+      offerEndEffects({ endEffects: undefined, held, chosenEffectId: FIRST_ID, castLevel: null })
     ).toMatchObject({ candidates: [], pick: null })
-    const all = { scope: 'ALL' as const, conditionIds: [POISONED] }
-    const offeredAll = offerEndEffects({ endEffects: all, held, chosenEffectId: undefined })
+    const selectors = [{ kind: 'CONDITION' as const, conditionIds: [POISONED] }]
+    const all = { scope: 'ALL' as const, selectors }
+    const offeredAll = offerEndEffects({
+      endEffects: all,
+      held,
+      chosenEffectId: undefined,
+      castLevel: null
+    })
     expect(offeredAll.candidates).toHaveLength(2)
     expect(offeredAll.pick).toBeNull()
-    const oneChosen = { scope: 'ONE_CHOSEN' as const, conditionIds: [POISONED] }
+    const oneChosen = { scope: 'ONE_CHOSEN' as const, selectors }
     expect(
-      offerEndEffects({ endEffects: oneChosen, held, chosenEffectId: SECOND_ID }).pick
+      offerEndEffects({ endEffects: oneChosen, held, chosenEffectId: SECOND_ID, castLevel: null })
+        .pick
     ).toEqual({ kind: 'CHOSEN', effectId: SECOND_ID })
   })
 
@@ -889,5 +901,43 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
         ({ id }) => id
       )
     ).toEqual([FIRST_ID, SECOND_ID])
+  })
+})
+
+describe('effects a spell-level END_EFFECTS selector ends (SPELLS-4.T2f1a, D182)', () => {
+  const THIRD_ID = '00000000-0000-4000-8000-00000000f2a3'
+  const staged = (id: string, originLevel: number | null) =>
+    activeEffect({ id, owner, createdOrdinal: 1, originLevel, stateContributions: [] })
+  const held = [staged(FIRST_ID, 2), staged(SECOND_ID, 3), staged(THIRD_ID, null)]
+  const ids = (
+    castLevel: number | null,
+    selector: Parameters<typeof endEffectsCandidates>[1][number]
+  ) => endEffectsCandidates(held, [selector], castLevel).map(({ id }) => id)
+
+  it('matches effects at or below the slot level the spell was cast at, never an unleveled effect', () => {
+    const selector = { kind: 'SPELL_LEVEL' as const, limit: 'SLOT_LEVEL' as const }
+    expect(ids(2, selector)).toEqual([FIRST_ID])
+    expect(ids(3, selector)).toEqual([FIRST_ID, SECOND_ID])
+    expect(ids(1, selector)).toEqual([])
+  })
+
+  it('matches nothing against a slot level when the action was not a spell cast', () => {
+    expect(ids(null, { kind: 'SPELL_LEVEL', limit: 'SLOT_LEVEL' })).toEqual([])
+  })
+
+  it('matches against a fixed level whatever the cast level', () => {
+    expect(ids(null, { kind: 'SPELL_LEVEL', limit: 'FIXED', level: 2 })).toEqual([FIRST_ID])
+    expect(ids(9, { kind: 'SPELL_LEVEL', limit: 'FIXED', level: 3 })).toEqual([FIRST_ID, SECOND_ID])
+  })
+
+  it('ends every matching effect under ALL, with no pick', () => {
+    const { endedEffects } = selectedEndedEffects({
+      holderActorId: HOLDER_ID,
+      held,
+      selectors: [{ kind: 'SPELL_LEVEL', limit: 'SLOT_LEVEL' }],
+      castLevel: 3,
+      scope: 'ALL'
+    })
+    expect(endedEffects.map(({ id }) => id)).toEqual([FIRST_ID, SECOND_ID])
   })
 })

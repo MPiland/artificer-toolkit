@@ -52,6 +52,7 @@ export function planSpatialHeldCondition(input: {
     definition: activeRuleEffectDefinitionDtoSchema.parse({
       schemaVersion: 2,
       linkedEffectId: null,
+      originLevel: null,
       origin: {
         kind: 'ENCOUNTER',
         sourceAggregateId: input.encounterId,

@@ -31,6 +31,7 @@ const effectId = (offset: number) =>
 const definition: ActiveRuleEffectDefinitionDto = {
   schemaVersion: 2,
   linkedEffectId: null,
+  originLevel: null,
   stateContributions: [],
   origin: {
     kind: 'ENCOUNTER',

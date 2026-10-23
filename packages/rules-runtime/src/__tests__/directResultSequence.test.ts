@@ -43,7 +43,7 @@ function endThenGrant() {
               id: testUuid(0x2301),
               effectKind: 'END_EFFECTS' as const,
               scope: 'ONE_CHOSEN' as const,
-              conditionIds: [poisoned]
+              selectors: [{ kind: 'CONDITION' as const, conditionIds: [poisoned] }]
             },
             ...block.outcomes
           ]

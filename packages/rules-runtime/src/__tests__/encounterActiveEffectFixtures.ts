@@ -88,6 +88,8 @@ export type TurnSaveDamageEffectInput = {
   currentEffects?: readonly ActiveRuleEffectRecord[]
   /** The earlier effect this one ends with (D172); none by default. */
   linkedEffectId?: string | null
+  /** The level the spell that made the effect was cast at; none by default. */
+  originLevel?: number | null
 }
 
 /**
@@ -228,6 +230,7 @@ export async function turnSaveDamageEffect(
       ...base,
       schemaVersion: 2,
       linkedEffectId: input.linkedEffectId ?? null,
+      originLevel: input.originLevel ?? null,
       stateContributions: (input.conditionOwnership ?? []).map((entry) => ({
         kind: 'CONDITION_OWNERSHIP',
         ...entry
@@ -255,6 +258,8 @@ export function activeEffect(input: {
   sourceActorId?: string | null
   /** The held effect this one ends with (D172); none by default. */
   linkedEffectId?: string | null
+  /** The level the spell that made the effect was cast at; none by default. */
+  originLevel?: number | null
   stateContributions: [StateContribution, ...StateContribution[]]
 }): ActiveRuleEffectRecord {
   const authoredEffectId = '00000000-0000-4000-8000-00000000b004'
@@ -262,6 +267,7 @@ export function activeEffect(input: {
   const definition: ActiveRuleEffectDefinitionDto = {
     schemaVersion: 2,
     linkedEffectId: input.linkedEffectId ?? null,
+    originLevel: input.originLevel ?? null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: ENCOUNTER_ID,
