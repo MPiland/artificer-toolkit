@@ -3,6 +3,7 @@ import type { CompiledDuration, CompiledEffectGroup } from '@artificer-toolkit/s
 import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
 import {
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY,
+  DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_CONDITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY,
@@ -60,9 +61,11 @@ export function dnd5eRepeatSave(input: {
   escalationConditionId?: string
   repeatRollInfluence?: FollowUpSaveOutcome['repeatRollInfluence']
   repeatAttemptGate?: FollowUpSaveOutcome['repeatAttemptGate']
+  /** The save is made only when a repeat trigger fires; the turn tick rolls none. */
+  triggersOnly?: boolean
 }): Pick<CharacterRuleActionActiveEffectPlan, 'adapterFacts' | 'castSaveDcFactKey'> | null {
   const { abilityDefinitionId, savingThrow, heldConditionIds = [] } = input
-  const { repeatRollInfluence, repeatAttemptGate, escalationConditionId } = input
+  const { repeatRollInfluence, repeatAttemptGate, escalationConditionId, triggersOnly } = input
   const casterDc = savingThrow?.dcMethod === 'SOURCE_SAVE_DC'
   const baseDc = savingThrow?.baseDc
   const fixedDc =
@@ -87,6 +90,7 @@ export function dnd5eRepeatSave(input: {
         [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY]:
           repeatRollInfluence.when.requirement
       }),
+      ...(triggersOnly && { [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY]: true }),
       ...(repeatAttemptGate && {
         [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY]: repeatAttemptGate.allow,
         [DND5E_ACTIVE_EFFECT_REPEAT_SAVE_PERCEPTION_REQUIREMENT_FACT_KEY]:

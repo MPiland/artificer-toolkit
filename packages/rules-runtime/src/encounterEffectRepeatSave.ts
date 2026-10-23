@@ -105,6 +105,7 @@ export function effectRepeatSaveExecutionInput(input: {
     ...activeEffectTargetFacts(input.target),
     perception: null,
     rollInfluence: input.rollInfluence,
+    onTrigger: true,
     runtime: input.runtime
   }
 }

@@ -1,7 +1,6 @@
 import {
   type ActiveEffectSaveTally,
-  type ActiveEffectSaveThresholds,
-  type ActiveRuleEffectLifecycleDto
+  type ActiveEffectSaveThresholds
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
@@ -207,7 +206,11 @@ import {
   interpret,
   interpretSpatial
 } from './effectActionInterpretation.js'
-import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence.js'
+import {
+  repeatedFollowUpSaveResultPath,
+  repeatSaveAttemptAllowed,
+  repeatSaveGated
+} from './effectActionRepeatSaveEvidence.js'
 import {
   isChargedFreeActivation,
   isSupportedArea,
@@ -1844,7 +1847,8 @@ function repeatingDirectFollowUpSavePlan(
     heldConditionIds: leadConditions.map(({ conditionId }) => conditionId),
     escalationConditionId: escalation?.conditionId,
     repeatRollInfluence: save.repeatRollInfluence,
-    repeatAttemptGate: save.repeatAttemptGate
+    repeatAttemptGate: save.repeatAttemptGate,
+    triggersOnly: save.timing === 'ON_TRIGGERS_ONLY'
   })
   const grantPlan =
     lead.effectKind === 'APPLY_GRANT'
@@ -1881,7 +1885,7 @@ function repeatingDirectFollowUpSavePlan(
     !contribution ||
     !UUID.test(leadEntry.resultBlockId) ||
     initialRemaining === null ||
-    save.timing !== 'TARGET_TURN_END' ||
+    (save.timing !== 'TARGET_TURN_END' && save.timing !== 'ON_TRIGGERS_ONLY') ||
     (save.attempts.kind === 'ONCE'
       ? (save.attempts.repeatOnFailure === true) === (escalation !== null)
       : escalation !== null ||
@@ -1930,16 +1934,6 @@ function isTallyCount(count: number) {
   return Number.isSafeInteger(count) && count >= 1 && count <= 255
 }
 
-/** A thresholds effect that has counted its failures stops saving; its duration still runs out. */
-function repeatSaveSettled(
-  thresholds: ActiveEffectSaveThresholds | undefined,
-  lifecycle: ActiveRuleEffectLifecycleDto
-) {
-  return (
-    thresholds !== undefined && (lifecycle.saveTally?.failures ?? 0) >= thresholds.failuresToResolve
-  )
-}
-
 /** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
 function countRepeatSave(
   thresholds: ActiveEffectSaveThresholds,
@@ -1971,9 +1965,7 @@ function repeatFollowUpSavePublishedGraph(input: {
     throw new Dnd5eEffectActionCompilerError('D&D repeat-save facts are unavailable.')
   }
   // A gated repeat settles its d20 without a request on a turn the gate refuses the attempt.
-  const gated =
-    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.plan.adapterFacts ||
-    input.plan.saveThresholds !== undefined
+  const gated = repeatSaveGated(input.plan.adapterFacts, input.plan.saveThresholds)
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -4853,7 +4845,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     defenses,
     conditionImmunityIds,
     perception,
-    rollInfluence
+    rollInfluence,
+    onTrigger
   }) => {
     if (definition.frozenGraph.source.gameSystemId !== DND5E_SYSTEM_ID)
       throw new Dnd5eEffectActionCompilerError(
@@ -4997,7 +4990,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     }
     const contributorChecksum = checksumRuleDocument(contributors)
     const gate = perceptionRequirement?.kind === 'ATTEMPT_GATE' ? perceptionRequirement : null
-    const gated = gate !== null || definition.recurrence.saveThresholds !== undefined
+    const gated = repeatSaveGated(definition.adapterFacts, definition.recurrence.saveThresholds)
     if (
       definition.frozenGraph.nodes.filter(
         (node) =>
@@ -5009,9 +5002,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     ) {
       throw new Dnd5eEffectActionCompilerError('D&D recurring save request binding is invalid.')
     }
-    const attemptAllowed =
-      !repeatSaveSettled(definition.recurrence.saveThresholds, lifecycle) &&
-      (!gate || perception?.satisfied === (gate.allow === 'WHEN_MET'))
+    const attemptAllowed = repeatSaveAttemptAllowed({
+      adapterFacts: definition.adapterFacts,
+      thresholds: definition.recurrence.saveThresholds,
+      lifecycle,
+      gateMet: !gate || perception?.satisfied === (gate.allow === 'WHEN_MET'),
+      onTrigger
+    })
     const successImmunity =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]
     // A zone that needs sight of its source is saved against unrolled by an occupant without it.

@@ -83,11 +83,11 @@ export type FollowUpSaveAuthored = {
   effectKind: typeof EFFECT_KIND.FOLLOW_UP_SAVE
   timing: FollowUpSaveTiming
   /** Required only when a one-time immediate save repeats after a failure. */
-  repeatTiming?: FollowUpSaveTiming
+  repeatTiming?: Exclude<FollowUpSaveTiming, 'ON_TRIGGERS_ONLY'>
   /** System-authored policy for a repeated save; runtime evaluation stays outside this contract. */
   repeatRollInfluence?: FollowUpSaveRepeatRollInfluenceAuthored
   repeatAttemptGate?: FollowUpSaveRepeatAttemptGateAuthored
-  /** Events that repeat the save besides its timing; only the turn-end repeat has a consumer today. */
+  /** Events that repeat the save besides its timing; `ON_TRIGGERS_ONLY` repeats it on these alone. */
   repeatTriggers?: FollowUpSaveRepeatTriggerAuthored[]
   savingThrow: SavingThrowAuthored
   attempts:

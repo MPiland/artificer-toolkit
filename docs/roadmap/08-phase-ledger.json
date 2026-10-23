@@ -10168,6 +10168,19 @@
               "text": "Maze escape (D178): the held creature's action makes a fixed-DC ability check through the generic check flow widened to spell sources (SPELLS-4.T2f1); success ends the owning effect. Replaces the MANUAL_ADJUDICATION, with a parity proof."
             },
             {
+              "id": "SPELLS-4.T2h4",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2h1"]
+              },
+              "text": "Banishment runs (D178 amendment): the test-action compiler accepts a save-gated sequence of several direct results on one path (incapacitated plus REMOVE_FROM_PLAY), on the RULES-2.T6h direct-result sequence, so Banishment compiles; a return onto an occupied space is a GM placement flagged RETURN_SPACE_OCCUPIED. Golden flip, parity and room journey proofs."
+            },
+            {
               "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2i",
@@ -15210,7 +15223,7 @@
             },
             {
               "id": "SPELLS-33.T6e2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15220,7 +15233,8 @@
                 "after": ["SPELLS-33.T6e", "SPELLS-4.T2m1", "SPELLS-4.T2m1b2b"]
               },
               "text": "Vampire Charm: a generic follow-up-save timing that repeats only on its repeatTriggers (no turn-end save), with the duration still counted down by the turn kernel (D176); Charm repeats its save when the source side harms it. Authoring-parity proof; deletes its kind (2026-10-18 ruling on the T6e design; workbook slice-spells-33.md). No SRD_CREATURE_ATTACK_UNSUPPORTED entry depends on Charm; Vampire Bite stays a separate kind.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-22T23:53:01Z",
+              "note": "Merged in m356."
             },
             {
               "id": "SPELLS-33.T6f",
