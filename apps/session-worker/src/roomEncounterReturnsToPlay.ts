@@ -1,5 +1,5 @@
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
-import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
+import type { EncounterWriteContext } from '@artificer-toolkit/encounter-persistence/store'
 import { appendSystemRunEntry } from '@artificer-toolkit/encounter-persistence/systemRunEntries'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterReturnedToPlayInputSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
@@ -23,7 +23,7 @@ export const actorIdsOutOfPlayByEffect = (actors: readonly EncounterRunActorStat
  * Encounter's Scene, or whose space is free, raises nothing. Returns whether an entry was written.
  */
 export async function flagRoomReturnsOntoOccupiedSpace(input: {
-  ctx: EncounterWriteTransaction
+  ctx: EncounterWriteContext
   transaction: RoomTransaction
   encounterId: string
   userId: string
