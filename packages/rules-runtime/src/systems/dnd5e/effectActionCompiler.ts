@@ -1302,7 +1302,7 @@ function modifierGrantPlan(
     hitGrant !== undefined &&
     otherGrant !== undefined &&
     restGrants.length === 0 &&
-    hitGrant.pathCode !== otherGrant.pathCode &&
+    (hitGrant.pathCode === 'ON_MISS') !== (otherGrant.pathCode === 'ON_MISS') &&
     authoredAlike(hitGrant) === authoredAlike(otherGrant)
   if (hitGrants.length > 1 && !alikeOnBothResults)
     unsupported('D&D attacks apply at most one grant on a hit.')
