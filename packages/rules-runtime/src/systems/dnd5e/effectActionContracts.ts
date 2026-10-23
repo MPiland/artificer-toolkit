@@ -161,6 +161,9 @@ export const DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY =
 /** Whether a repeat save is attempted when its perception requirement is met or unmet. */
 export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY =
   'dnd5e.active-effect-repeat-save-attempt-gate'
+/** A repeat save made only when its damage trigger fires; the turn tick counts the duration alone. */
+export const DND5E_ACTIVE_EFFECT_REPEAT_SAVE_TRIGGERS_ONLY_FACT_KEY =
+  'dnd5e.active-effect-repeat-save-triggers-only'
 /** Whether this turn's repeat save is attempted; false settles the gated d20 without a request. */
 export const DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY = 'dnd5e.repeat-save-attempt-allowed'
 export const DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.test-heal-proposal'

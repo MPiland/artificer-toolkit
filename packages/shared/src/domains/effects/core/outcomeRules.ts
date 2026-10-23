@@ -47,7 +47,8 @@ export const FOLLOW_UP_SAVE_TIMING = {
   IMMEDIATE: 'IMMEDIATE',
   TARGET_TURN_START: 'TARGET_TURN_START',
   TARGET_TURN_END: 'TARGET_TURN_END',
-  SOURCE_NEXT_TURN_START: 'SOURCE_NEXT_TURN_START'
+  SOURCE_NEXT_TURN_START: 'SOURCE_NEXT_TURN_START',
+  ON_TRIGGERS_ONLY: 'ON_TRIGGERS_ONLY'
 } as const
 
 export type FollowUpSaveTiming = keyof typeof FOLLOW_UP_SAVE_TIMING
@@ -56,7 +57,8 @@ export const FOLLOW_UP_SAVE_TIMING_OPTIONS = [
   { code: FOLLOW_UP_SAVE_TIMING.IMMEDIATE, label: 'Immediately' },
   { code: FOLLOW_UP_SAVE_TIMING.TARGET_TURN_START, label: 'Start of Target Turn' },
   { code: FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END, label: 'End of Target Turn' },
-  { code: FOLLOW_UP_SAVE_TIMING.SOURCE_NEXT_TURN_START, label: 'Start of Source Next Turn' }
+  { code: FOLLOW_UP_SAVE_TIMING.SOURCE_NEXT_TURN_START, label: 'Start of Source Next Turn' },
+  { code: FOLLOW_UP_SAVE_TIMING.ON_TRIGGERS_ONLY, label: 'Only When a Repeat Trigger Fires' }
 ] as const
 
 export const FOLLOW_UP_SAVE_ATTEMPT_KIND = {

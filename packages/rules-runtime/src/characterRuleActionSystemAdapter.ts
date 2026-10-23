@@ -844,6 +844,8 @@ export interface CharacterRuleActionSystemAdapter {
     } | null
     /** How the damage that triggered this repeat save tilts its d20 (D167); absent on a turn tick. */
     rollInfluence?: string | null
+    /** True when a repeat trigger (not a turn tick) runs this save. */
+    onTrigger?: boolean
   }): {
     facts: Readonly<Record<string, RuleValue>>
     evidencePolicy: ServerRuleExecutionD20PolicyDto | null

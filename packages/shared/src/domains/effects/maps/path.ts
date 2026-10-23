@@ -2606,7 +2606,8 @@ function registerOutcomeFields(
       selectSingle(
         ['repeatTiming'],
         'Repeat Timing',
-        { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_SAVE_TIMING_OPTIONS },
+        // ON_TRIGGERS_ONLY is the last option and is never a repeat timing.
+        { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_SAVE_TIMING_OPTIONS.slice(0, -1) },
         {
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
         }
