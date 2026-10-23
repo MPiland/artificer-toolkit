@@ -63,11 +63,12 @@ export function standingGrantedActions(features: readonly FeatureDto[]): HeldGra
       effect.invocation.kind !== 'PASSIVE'
         ? []
         : (effect.paths ?? [])
-            .flatMap(({ resultBlock }) =>
-              resultBlock.duration ||
-              !resultBlock.outcomes.some(({ effectKind }) => effectKind === 'APPLY_GRANT')
+            .flatMap((path) =>
+              path.selectionKind !== 'FIXED' ||
+              path.resultBlock.duration ||
+              !path.resultBlock.outcomes.some(({ effectKind }) => effectKind === 'APPLY_GRANT')
                 ? []
-                : (resultBlock.lifecycle?.grantedActions ?? [])
+                : (path.resultBlock.lifecycle?.grantedActions ?? [])
             )
             .map((offer, offerIndex) => ({ effectId: effect.id, offerIndex, offer }))
     )
