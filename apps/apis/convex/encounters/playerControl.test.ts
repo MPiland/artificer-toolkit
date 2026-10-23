@@ -1,4 +1,7 @@
-import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import {
+  createConvexEncounterStore,
+  createConvexEncounterStoreReader
+} from '../lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type { z } from 'zod/mini'
@@ -239,7 +242,7 @@ describe('Encounter actor control', () => {
         readRunState(row),
         base.enemy.id
       )
-      await replaceRunActor({ db: ctx.db } as Parameters<typeof replaceRunActor>[0], enemy, {
+      await replaceRunActor({ db: createConvexEncounterStore(ctx) }, enemy, {
         ...enemy,
         owner: { ownerActorId: base.character.id }
       })
