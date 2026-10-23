@@ -14137,7 +14137,7 @@
             },
             {
               "id": "SPELLS-31.T5o2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -14147,8 +14147,9 @@
                 "after": ["SPELLS-31.T5o"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Extra turn (split from T5o, 2026-10-20): an EXTRA_TURN outcome on the ROLL_INITIATIVE trigger, adding a first-round turn-order entry at an initiative offset (Thief's Reflexes: initiative minus 10, round 1 only). Authoring-parity proof and room journey; deletes its kind. Re-sized 3->8 (2026-10-20): a repeated-actor initiative entry needs a participant key other than the actor id, a cursor that tolerates a repeated actor, replay, reinforcement and removal handling; one vertical slice, not an outcome-only split. Rulings: the extra entry is a full turn (turn resources reset, durations counted in the actor's turns tick on it); the surprise clause stays description-only (D165); SIDE_ROLL placement is ruled at start.",
-              "note": "D187a re-plan: size 8 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 8 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m380.",
+              "mergedAt": "2026-10-23T17:02:05Z",
+              "proof": "Tests and Live green on tip cf5d5238; Thief's Reflexes ships as a passive MANUAL_ADJUDICATION GM ruling (D187a), its closed kind deleted with an authoring-parity proof (classFeatureOptionsAuthoringParity.test.ts, classFeatureCoreOptions.test.ts); the repeated-actor initiative entry stays deferred"
             },
             {
               "id": "SPELLS-31.T5p",
@@ -15404,7 +15405,7 @@
             },
             {
               "id": "SPELLS-33.T6g",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15414,8 +15415,9 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: partner-bound grants (rider, amulet bearer) and body-control swap (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m381.",
+              "mergedAt": "2026-10-23T17:17:10Z",
+              "proof": "Tests and Live green on tip afb93235; Nightmare Confer Fire Resistance, Shield Guardian Bound and Shield, and Ghost Possession ship as MANUAL_ADJUDICATION GM rulings (D187a); the four closed kinds deleted with authoring-parity proofs; compile golden updated"
             },
             {
               "id": "SPELLS-33.T6h",

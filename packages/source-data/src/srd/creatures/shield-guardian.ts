@@ -44,14 +44,17 @@ export const shieldGuardian: CreatureAuthored = {
       description:
         "Bound. The shield guardian is magically bound to an amulet. As long as the guardian and its amulet are on the same plane of existence, the amulet's wearer can telepathically call the guardian to travel to it, and the guardian knows the distance and direction to the amulet. If the guardian is within 60 feet of the amulet's wearer, half of any damage the wearer takes (rounded up) is transferred to the guardian.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(252, 200),
           invocation: {
             kind: 'PASSIVE',
             triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(252, 201), rangeKind: S.RANGE_KIND.SPECIAL }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHIELD_GUARDIAN_BOUND
+          label: 'Resolve the amulet bond and shared damage',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            "Bound. The amulet's wearer can telepathically call the guardian while both are on the same plane, and the guardian knows the amulet's distance and direction. While the guardian is within 60 feet of the wearer, half of any damage the wearer takes (rounded up) is transferred to the guardian."
         })
       ],
       order: 1
@@ -192,7 +195,7 @@ export const shieldGuardian: CreatureAuthored = {
       description:
         "Shield. When a creature makes an attack against the wearer of the guardian's amulet, the guardian grants a +2 bonus to the wearer's AC if the guardian is within 5 feet of the wearer.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(252, 217),
           invocation: {
             kind: 'PASSIVE',
@@ -204,7 +207,10 @@ export const shieldGuardian: CreatureAuthored = {
               unit: S.MEASUREMENT_UNIT_CODE.FEET
             }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHIELD_GUARDIAN_SHIELD
+          label: "Add the guardian's +2 AC bonus to the wearer",
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            "Shield. When a creature attacks the wearer of the guardian's amulet and the guardian is within 5 feet of the wearer, the wearer gains a +2 bonus to AC against that attack."
         })
       ],
       order: 7
