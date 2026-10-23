@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { snapshotStatBlock } from '@artificer-toolkit/rules-runtime/encounterProjection'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { SRD_BASIC_ACTION_DEFINITIONS } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { greatclub } from '@artificer-toolkit/source-data/srd/equipment/greatclub.js'
 import { shieldWood } from '@artificer-toolkit/source-data/srd/equipment/shield-wood.js'
 import {
@@ -18,13 +19,20 @@ import {
   srdPrintedArmorClass
 } from '../../tests/fixtures/srdCreatures'
 import { readTestActor } from '../../tests/fixtures/storedActors'
-import { api } from '../_generated/api'
+import { api, internal } from '../_generated/api'
+import { sourceImportBatches } from '../content/importBatches'
 
 const goblin = seededSrdCreature('Goblin')
 
 async function setup() {
   const base = await fixture()
   await importSeededSrdCreatureSenses(base.t, goblin)
+  // Nimble Escape offers Disengage and Hide, which a copy of the Goblin keeps only while they exist.
+  for (const definitions of sourceImportBatches(SRD_BASIC_ACTION_DEFINITIONS))
+    await base.t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions
+    })
   await importSeededSubjects(base.t, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
     subjects: [

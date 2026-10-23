@@ -554,38 +554,22 @@ export const vampire: CreatureAuthored = {
           label: 'Move',
           description: 'The vampire moves up to its speed without provoking opportunity attacks.',
           order: 1,
+          // A legendary action's cost and window are the Feature's own economy, which no granted
+          // action expresses, so the GM runs the move (D187a).
           effects: [
-            {
+            S.manualAdjudicationEffect({
               id: '00000000-0002-00f2-0070-011500000000',
-              order: 1,
               invocation: {
                 kind: 'PASSIVE',
                 triggerCode: 'ACTIVATED',
                 range: { id: '00000000-0002-00f3-0070-011500000000', rangeKind: 'SELF' },
                 targeting: { selectionKind: 'SELF' }
               },
-              paths: [
-                {
-                  id: 'a03087f7-4b7a-5625-aa5a-2e362b2abd64',
-                  order: 1,
-                  pathCode: 'ON_USE',
-                  groupType: 'SINGLE',
-                  originKind: 'SOURCE',
-                  selectionKind: 'FIXED',
-                  resultBlock: {
-                    id: '3b3a1bca-0c50-5b30-87cd-c365ed4127a4',
-                    resultKind: 'SINGLE',
-                    outcomes: [
-                      {
-                        id: 'a77e2c4b-23ac-5184-a2a2-e84830299a92',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'CREATURE_VAMPIRE_LEGENDARY_ACTIONS'
-                      }
-                    ]
-                  }
-                }
-              ]
-            }
+              label: 'Move without provoking opportunity attacks',
+              reasonCode: 'GM_CHOICE',
+              instructions:
+                'The vampire moves up to its speed without provoking opportunity attacks.'
+            })
           ]
         },
         {
