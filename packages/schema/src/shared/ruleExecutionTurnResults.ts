@@ -1,3 +1,4 @@
+import { reviveTraceMatches } from './characterDeathSaves.js'
 import { z, lazySchema } from '../zod.js'
 
 import {
@@ -700,7 +701,7 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                       application.kind === 'CONDITION_REMOVE'
                     ? trace.outputs.conditionId === application.conditionId
                     : application.kind === 'REVIVE'
-                      ? trace.outputs.hitPoints === application.hitPoints
+                      ? reviveTraceMatches(trace.outputs, application.hitPoints)
                       : application.kind === 'STABILIZE' ||
                           application.kind === 'KILL' ||
                           application.kind === 'KILL_NEGATED' ||

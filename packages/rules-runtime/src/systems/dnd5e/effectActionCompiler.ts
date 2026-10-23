@@ -70,6 +70,7 @@ import {
 } from './effectActionResultSequences.js'
 import {
   boundedTestOutcome,
+  hasLifecycleOverride,
   specializedTestOutcome,
   positiveFixedAmount,
   validateHealBonuses,
@@ -2271,7 +2272,7 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
       entry.resolutionKind !== 'DIRECT' ||
       (entry.groupKind !== 'SINGLE' &&
         !(relationshipEntries.length === 1 && entry.groupKind === 'SEQUENTIAL')) ||
-      ((entry.duration || entry.lifecycle) &&
+      (hasLifecycleOverride(entry) &&
         !ownsTimedSaveCondition(action, entry) &&
         (recurringPlan?.compiledEntryId !== entry.resultBlockId || kind !== 'SAVE')) ||
       entry.rangeOverride ||
@@ -2533,6 +2534,13 @@ function supported(
   const entry = effect.entries[0]
   // The condition and the save it repeats (Power Word Stun) are one cast: the lead entry applies now.
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
+  const lastingPlan =
+    repeatPlan ||
+    supportedRecurringPlan(action) ||
+    grantPlan ||
+    conditionPlan ||
+    linkPlan ||
+    formPlan
   if (
     effect.entries.length !== (repeatPlan ? 2 : 1) ||
     !entry ||
@@ -2540,21 +2548,8 @@ function supported(
     // A sequence of one outcome (Haste) resolves as a single result does.
     (entry.groupKind === 'CHOICE' && !repeatPlan) ||
     entry.pathCode !== (checkAction ? 'ON_CHECK_SUCCESS' : 'ON_USE') ||
-    (entry.maintenanceDefinitionId &&
-      !repeatPlan &&
-      !supportedRecurringPlan(action) &&
-      !grantPlan &&
-      !conditionPlan &&
-      !linkPlan &&
-      !formPlan) ||
-    ((entry.duration || entry.lifecycle) &&
-      !repeatPlan &&
-      !supportedRecurringPlan(action) &&
-      !grantPlan &&
-      !conditionPlan &&
-      !linkPlan &&
-      !formPlan &&
-      !concealmentPlan(action)) ||
+    (entry.maintenanceDefinitionId && !lastingPlan) ||
+    (hasLifecycleOverride(entry) && !lastingPlan && !concealmentPlan(action)) ||
     entry.rangeOverride ||
     entry.targetingOverride
   )

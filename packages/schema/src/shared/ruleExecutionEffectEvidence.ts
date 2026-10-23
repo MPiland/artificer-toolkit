@@ -1,3 +1,4 @@
+import { reviveTraceMatches } from './characterDeathSaves.js'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
@@ -280,7 +281,7 @@ const refineSpatialExecutionEvidence = (
           : application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE'
             ? trace.outputs.conditionId === application.conditionId
             : application.kind === 'REVIVE'
-              ? trace.outputs.hitPoints === application.hitPoints
+              ? reviveTraceMatches(trace.outputs, application.hitPoints)
               : application.kind === 'STABILIZE' ||
                   application.kind === 'KILL' ||
                   application.kind === 'KILL_NEGATED' ||

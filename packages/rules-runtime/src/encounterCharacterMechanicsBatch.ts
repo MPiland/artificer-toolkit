@@ -13,6 +13,7 @@ import {
   isCharacterDead,
   isCharacterDying,
   isTargetDead,
+  reviveRestoredHitPoints,
   type CharacterDeathSaves
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
@@ -363,7 +364,7 @@ export function foldCharacterMechanicsApplications<
       const applied = isTargetDead({ currentHitPoints: current, deathSaves })
       const beforeCurrentHitPoints = current
       if (applied) {
-        current = application.hitPoints === 'ONE' ? Math.min(1, maximum) : maximum
+        current = reviveRestoredHitPoints(application.hitPoints, maximum)
         if (deathSaves !== null) deathSaves = deathSavesAfterRevive()
       }
       receipt.push({

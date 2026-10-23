@@ -62,7 +62,7 @@ export const trueResurrection: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.TRUE_RESURRECTION, 0x2f0, 1),
                 effectKind: EFFECT_KIND.REVIVE,
-                hitPoints: 'MAXIMUM' as const
+                valueKind: 'MAXIMUM' as const
               },
               {
                 id: spellChildId(SPELL_IDS.TRUE_RESURRECTION, 0x212, 1),

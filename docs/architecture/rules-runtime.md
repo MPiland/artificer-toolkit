@@ -208,7 +208,7 @@ A `KILL` is admitted in a band only when the band is gated; `REDUCED_TO_ZERO_BY`
 which is dealt ungated, and holds the outcomes after it. Forced movement, HP-maximum reduction and a failure-margin
 rider are unsupported on a gated band. The save is still rolled for targets outside an HP band, with no effect.
 
-**Revive (current, SPELLS-4.T2g1, D177).** `REVIVE { hitPoints: 'ONE' | 'MAXIMUM' }` returns a dead target to 1 hit point or to its maximum
+**Revive (current, SPELLS-4.T2g1, D177).** `REVIVE { valueKind: 'FIXED', amount } | { valueKind: 'MAXIMUM' }` returns a dead target to a fixed number of hit points (never above its maximum) or to its maximum
 and clears its death saves (`deathSavesAfterRevive`, beside `deathSavesAfterHealing`, which cannot raise a dead Character). A target is
 dead (`isTargetDead`) at 0 hit points with three failed death saves, or with no death saves at all (a Creature). The registry's `DEAD`
 target precondition raises the overridable `TARGET_NOT_DEAD` admission warning; an unmet fold applies nothing (`applied: false`). The

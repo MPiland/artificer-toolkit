@@ -1605,7 +1605,9 @@ describe('0 hit points (D63)', () => {
       })
 
       describe('reviving (SPELLS-4.T2g1)', () => {
-        const revive = (hitPoints: 'ONE' | 'MAXIMUM'): CharacterRuleActionApplication => ({
+        const revive = (
+          hitPoints: Extract<CharacterRuleActionApplication, { kind: 'REVIVE' }>['hitPoints']
+        ): CharacterRuleActionApplication => ({
           ...origin,
           sourceOperationKey: 'dnd5e.revive-proposal',
           kind: 'REVIVE',
@@ -1614,7 +1616,7 @@ describe('0 hit points (D63)', () => {
         })
 
         it('returns a dead Character to 1 hit point with its death saves cleared', () => {
-          const plan = run(revive('ONE'), 0, dead)
+          const plan = run(revive({ kind: 'FIXED', amount: 1 }), 0, dead)
           expect(plan.characterUpdate?.character.state).toMatchObject({
             hitpoints: { current: 1, deathSaves: NO_DEATH_SAVES }
           })
@@ -1635,18 +1637,30 @@ describe('0 hit points (D63)', () => {
         })
 
         it('returns a dead Character to its maximum hit points', () => {
-          expect(run(revive('MAXIMUM'), 0, dead).targetTransition.after).toMatchObject({
+          expect(run(revive({ kind: 'MAXIMUM' }), 0, dead).targetTransition.after).toMatchObject({
             currentHitPoints: 11,
             deathSaves: NO_DEATH_SAVES
           })
         })
 
         it.each([
+          [5, 5],
+          [20, 11]
+        ])(
+          'returns a dead Character to %i hit points, never above its maximum (%i)',
+          (amount, restored) => {
+            expect(
+              run(revive({ kind: 'FIXED', amount }), 0, dead).targetTransition.after
+            ).toMatchObject({ currentHitPoints: restored, deathSaves: NO_DEATH_SAVES })
+          }
+        )
+
+        it.each([
           ['a dying Character', 0, dying],
           ['a stable Character', 0, stable],
           ['a Character above 0 hit points', 4, NO_DEATH_SAVES]
         ])('changes nothing for %s', (_label, current, saves) => {
-          const plan = run(revive('ONE'), current, saves)
+          const plan = run(revive({ kind: 'FIXED', amount: 1 }), current, saves)
           expect(plan.characterUpdate).toBeNull()
           expect(plan.targetTransition.after.deathSaves).toEqual(saves)
           expect(plan.targetTransition.after.currentHitPoints).toBe(current)

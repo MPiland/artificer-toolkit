@@ -197,7 +197,10 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
       ordinal: receiptOrdinalSchema,
       kind: z.literal('REVIVE'),
       /** The hit points the revive restores to a dead target. */
-      hitPoints: z.enum(['ONE', 'MAXIMUM']),
+      hitPoints: z.discriminatedUnion('kind', [
+        z.strictObject({ kind: z.literal('FIXED'), amount: positiveIntegerSchema }),
+        z.strictObject({ kind: z.literal('MAXIMUM') })
+      ]),
       /** True when the target was dead and returned to life; false changes nothing. */
       applied: z.boolean(),
       beforeCurrentHitPoints: integerSchema.check(z.gte(0)),

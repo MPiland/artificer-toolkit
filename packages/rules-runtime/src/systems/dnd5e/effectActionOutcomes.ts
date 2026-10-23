@@ -1,4 +1,8 @@
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
+import {
+  reviveHitPointsPorts,
+  type ReviveHitPoints
+} from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { RuleInputBinding } from '@artificer-toolkit/shared/rules'
 import type {
   EffectOutcomeDefinition,
@@ -148,8 +152,14 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
         changesTargetState: true,
         targetPrecondition: 'DEAD'
       }),
-      payloadInputs: (outcome) => ({ hitPoints: literal(outcome.hitPoints) }),
-      payloadOutputs: ['hitPoints']
+      payloadInputs: (outcome) => {
+        const ports = reviveHitPointsPorts(reviveHitPointsOf(outcome))
+        return {
+          hitPointsKind: literal(ports.hitPointsKind),
+          hitPointsAmount: literal(ports.hitPointsAmount)
+        }
+      },
+      payloadOutputs: ['hitPointsKind', 'hitPointsAmount']
     },
     DEPART: targetOnly(DND5E_DEPART_PROPOSAL_OPERATION_KEY, {
       pathGated: true,
@@ -246,6 +256,15 @@ export type Dnd5eAuthoredOutcome = Extract<
   { outcome: unknown }
 >['outcome']
 
+/** The hit points an authored REVIVE outcome restores. */
+function reviveHitPointsOf(
+  outcome: Extract<Dnd5eAuthoredOutcome, { effectKind: 'REVIVE' }>
+): ReviveHitPoints {
+  return outcome.valueKind === 'FIXED'
+    ? { kind: 'FIXED', amount: outcome.amount }
+    : { kind: 'MAXIMUM' }
+}
+
 /**
  * An outcome that needs nothing from its action beyond its target, so it is proposed alike with no
  * test and on a test's result path. Null for any other outcome.
@@ -257,7 +276,8 @@ export function dnd5eTargetOnlyOutcome(
   { kind: 'STABILIZE' | 'REVIVE' | 'DEPART' | 'MANUAL_ADJUDICATION' | 'ADD_SPEED_TO_MOVEMENT' }
 > | null {
   if (outcome.effectKind === 'STABILIZE') return { kind: 'STABILIZE' }
-  if (outcome.effectKind === 'REVIVE') return { kind: 'REVIVE', hitPoints: outcome.hitPoints }
+  if (outcome.effectKind === 'REVIVE')
+    return { kind: 'REVIVE', hitPoints: reviveHitPointsOf(outcome) }
   // The target leaves the Scene for a place the table does not model; the commit marks it as
   // departed (D128) and a Scene-bound destination waits for the movement service.
   if (

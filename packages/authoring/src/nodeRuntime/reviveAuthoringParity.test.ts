@@ -13,13 +13,13 @@ const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
 type Container = { paths: { resultBlock: { outcomes: Record<string, unknown>[] } }[] }
 
-function withReviveHitPoints(hitPoints: unknown) {
+function withRevive(revive: Record<string, unknown>) {
   const effects = structuredClone(revivify.effects) as unknown as Container[]
-  Object.assign(effects[0]!.paths[0]!.resultBlock.outcomes[0]!, { hitPoints })
+  Object.assign(effects[0]!.paths[0]!.resultBlock.outcomes[0]!, revive)
   return { ...structuredClone(caltropsBagOf20), effects }
 }
 
-const normalize = (authored: ReturnType<typeof withReviveHitPoints>) =>
+const normalize = (authored: ReturnType<typeof withRevive>) =>
   normalizeNodeRuntimeValues(reader, {
     mapId: 'equipment',
     systemId: srdSystemRecord.id,
@@ -27,17 +27,23 @@ const normalize = (authored: ReturnType<typeof withReviveHitPoints>) =>
   })
 
 describe('a homebrew REVIVE outcome through the effect node map (SPELLS-4.T2g1, ADR 0038)', () => {
-  it('keeps either hit-point choice exactly as authored', async () => {
-    for (const hitPoints of ['ONE', 'MAXIMUM']) {
-      const authored = withReviveHitPoints(hitPoints)
-      const result = await normalize(authored)
-      expect(result.clearedPaths, hitPoints).toEqual([])
-      expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
-    }
+  it.each([
+    ['a fixed number', { valueKind: 'FIXED', amount: 7 }],
+    ['its maximum', { valueKind: 'MAXIMUM' }]
+  ])('keeps %s exactly as authored', async (_label, revive) => {
+    const authored = withRevive(revive)
+    const result = await normalize(authored)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
 
-  it('clears a hit-point choice the node does not offer', async () => {
-    const result = await normalize(withReviveHitPoints('HALF'))
+  it('clears a value kind the node does not offer', async () => {
+    const result = await normalize(withRevive({ valueKind: 'HALF', amount: undefined }))
+    expect(result.clearedPaths.length).toBeGreaterThan(0)
+  })
+
+  it('clears a fixed amount below one', async () => {
+    const result = await normalize(withRevive({ valueKind: 'FIXED', amount: 0 }))
     expect(result.clearedPaths.length).toBeGreaterThan(0)
   })
 })

@@ -1,3 +1,4 @@
+import type { ReviveHitPoints } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { CompiledDuration } from '@artificer-toolkit/shared/compilers'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
@@ -462,7 +463,7 @@ export interface CharacterReviveOutcomeApplication {
   resolvedPath: string | null
   kind: 'REVIVE'
   targetActorId: string
-  hitPoints: 'ONE' | 'MAXIMUM'
+  hitPoints: ReviveHitPoints
 }
 
 /** A kill a held damage interception negated: nothing changes, and the interception's use is spent. */

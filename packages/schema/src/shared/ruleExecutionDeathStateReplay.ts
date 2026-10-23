@@ -3,6 +3,8 @@ import {
   deathSavesAfterStabilize,
   isCharacterDying,
   isTargetDead,
+  reviveRestoredHitPoints,
+  type ReviveHitPoints,
   type CharacterDeathSaves
 } from './characterDeathSaves.js'
 
@@ -11,7 +13,7 @@ type DeathStateReceipt =
   | {
       kind: 'REVIVE'
       applied: boolean
-      hitPoints: 'ONE' | 'MAXIMUM'
+      hitPoints: ReviveHitPoints
       beforeCurrentHitPoints: number
       afterCurrentHitPoints: number
     }
@@ -38,7 +40,7 @@ export function replayDeathStateReceipt(
     }
   }
   const dead = isTargetDead({ currentHitPoints: current, deathSaves })
-  const revivedTo = application.hitPoints === 'ONE' ? Math.min(1, maximum) : maximum
+  const revivedTo = reviveRestoredHitPoints(application.hitPoints, maximum)
   const valid =
     application.beforeCurrentHitPoints === current &&
     application.applied === dead &&

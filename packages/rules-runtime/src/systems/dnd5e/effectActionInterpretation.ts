@@ -1,4 +1,8 @@
 import { type ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
+import {
+  reviveTraceMatches,
+  type ReviveHitPoints
+} from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
   compareThresholdRuleOperation,
@@ -663,12 +667,20 @@ export function interpretDirectProposal(
   if (trace.outputs.authorized !== true)
     throw new Dnd5eEffectActionCompilerError('The committed D&D rule action proposal is invalid.')
   if (trace.operation.key === DND5E_REVIVE_PROPOSAL_OPERATION_KEY) {
+    const hitPoints = reviveHitPointsFromPorts(outputs)
     if (
       trace.outputs.targetActorId !== input.targetActorId ||
-      (outputs.hitPoints !== 'ONE' && outputs.hitPoints !== 'MAXIMUM') ||
-      trace.outputs.hitPoints !== outputs.hitPoints ||
-      publishedNode.inputs.hitPoints?.kind !== 'LITERAL' ||
-      publishedNode.inputs.hitPoints.value !== outputs.hitPoints
+      !hitPoints ||
+      !reviveTraceMatches(trace.outputs, hitPoints) ||
+      publishedNode.inputs.hitPointsKind?.kind !== 'LITERAL' ||
+      publishedNode.inputs.hitPointsAmount?.kind !== 'LITERAL' ||
+      !reviveTraceMatches(
+        {
+          hitPointsKind: publishedNode.inputs.hitPointsKind.value,
+          hitPointsAmount: publishedNode.inputs.hitPointsAmount.value
+        },
+        hitPoints
+      )
     )
       throw new Dnd5eEffectActionCompilerError(
         'The committed D&D revive proposal trace is invalid.'
@@ -676,7 +688,7 @@ export function interpretDirectProposal(
     return [
       {
         kind: 'REVIVE',
-        hitPoints: outputs.hitPoints,
+        hitPoints,
         targetActorId: input.targetActorId,
         sourceNodeId: trace.nodeId,
         sourceOperationKey: trace.operation.key,
@@ -1352,4 +1364,16 @@ export function interpretSpatial(
       targetStateChecksum: String(value('targetStateChecksum'))
     }
   ]
+}
+
+/** The revive hit points carried by an execution's scalar ports, or null when they are malformed. */
+function reviveHitPointsFromPorts(ports: Record<string, unknown>): ReviveHitPoints | null {
+  const { hitPointsKind, hitPointsAmount } = ports
+  if (hitPointsKind === 'MAXIMUM') return { kind: 'MAXIMUM' }
+  return hitPointsKind === 'FIXED' &&
+    typeof hitPointsAmount === 'number' &&
+    Number.isInteger(hitPointsAmount) &&
+    hitPointsAmount >= 1
+    ? { kind: 'FIXED', amount: hitPointsAmount }
+    : null
 }

@@ -208,7 +208,7 @@ export const dnd5eKillProposalOperation = targetOnlyProposalOperation(
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
   'kill'
 )
-/** A revive proposal: it restores a dead target to 1 hit point or its maximum, which the commit's batch applies. */
+/** A revive proposal: it restores a dead target to a fixed number of hit points or its maximum, which the commit's batch applies. */
 export const dnd5eReviveProposalOperation: ProposalRuleOperationContract = {
   key: DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
   contractVersion: 1,
@@ -216,29 +216,36 @@ export const dnd5eReviveProposalOperation: ProposalRuleOperationContract = {
   inputs: {
     targetActorId: RULE_VALUE_KIND.TEXT,
     targetStateChecksum: RULE_VALUE_KIND.TEXT,
-    hitPoints: RULE_VALUE_KIND.TEXT
+    hitPointsKind: RULE_VALUE_KIND.TEXT,
+    hitPointsAmount: RULE_VALUE_KIND.NUMBER
   },
   outputs: {
     targetActorId: RULE_VALUE_KIND.TEXT,
     applicationCandidate: RULE_VALUE_KIND.BOOLEAN,
     authorized: RULE_VALUE_KIND.BOOLEAN,
     targetStateChecksum: RULE_VALUE_KIND.TEXT,
-    hitPoints: RULE_VALUE_KIND.TEXT
+    hitPointsKind: RULE_VALUE_KIND.TEXT,
+    hitPointsAmount: RULE_VALUE_KIND.NUMBER
   },
   execute(inputs) {
-    const { targetActorId, targetStateChecksum, hitPoints } = inputs
+    const { targetActorId, targetStateChecksum, hitPointsKind, hitPointsAmount } = inputs
     if (typeof targetActorId !== 'string' || !UUID.test(targetActorId))
       throw new Error('D&D revive proposal requires a canonical target actor UUID.')
     if (typeof targetStateChecksum !== 'string' || !/^[a-f0-9]{64}$/.test(targetStateChecksum))
       throw new Error('D&D revive proposal requires target state checksum.')
-    if (hitPoints !== 'ONE' && hitPoints !== 'MAXIMUM')
+    if (
+      (hitPointsKind !== 'FIXED' && hitPointsKind !== 'MAXIMUM') ||
+      typeof hitPointsAmount !== 'number' ||
+      (hitPointsKind === 'FIXED' && !(Number.isInteger(hitPointsAmount) && hitPointsAmount >= 1))
+    )
       throw new Error('D&D revive proposal requires the hit points the target returns with.')
     return {
       targetActorId,
       applicationCandidate: true,
       authorized: true,
       targetStateChecksum,
-      hitPoints
+      hitPointsKind,
+      hitPointsAmount
     }
   }
 }

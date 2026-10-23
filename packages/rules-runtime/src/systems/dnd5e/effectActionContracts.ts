@@ -1,3 +1,4 @@
+import type { ReviveHitPoints } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { CharacterRuleActionForcedMovementDirection as ForcedMovementDirection } from '../../characterRuleActionSystemAdapter.js'
 import {
   type CharacterRuleActionForcedMovementCollision,
@@ -183,7 +184,7 @@ export type Outcome =
   | { kind: 'CONDITION_APPLY'; conditionId: string }
   | { kind: 'STABILIZE' }
   | { kind: 'KILL' }
-  | { kind: 'REVIVE'; hitPoints: 'ONE' | 'MAXIMUM' }
+  | { kind: 'REVIVE'; hitPoints: ReviveHitPoints }
   | { kind: 'DEPART' }
   | { kind: 'MODIFIER_GRANT' }
   | { kind: 'ACTOR_LINK' }

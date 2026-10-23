@@ -90,6 +90,37 @@ export function deathSavesAfterRevive(): CharacterDeathSaves {
   return NO_DEATH_SAVES
 }
 
+/** The hit points a revive restores: a fixed number or the target's maximum. */
+export type ReviveHitPoints = { kind: 'FIXED'; amount: number } | { kind: 'MAXIMUM' }
+
+/** The current hit points a revived target wakes with; a fixed number never exceeds its maximum. */
+export function reviveRestoredHitPoints(hitPoints: ReviveHitPoints, maximum: number): number {
+  return hitPoints.kind === 'FIXED' ? Math.min(hitPoints.amount, maximum) : maximum
+}
+
+/** A revive's hit points as the rule operation's scalar ports (a maximum carries amount 0). */
+export function reviveHitPointsPorts(hitPoints: ReviveHitPoints): {
+  hitPointsKind: ReviveHitPoints['kind']
+  hitPointsAmount: number
+} {
+  return {
+    hitPointsKind: hitPoints.kind,
+    hitPointsAmount: hitPoints.kind === 'FIXED' ? hitPoints.amount : 0
+  }
+}
+
+/** True when a revive trace's scalar ports carry the receipt's hit points. */
+export function reviveTraceMatches(
+  outputs: Record<string, unknown>,
+  hitPoints: ReviveHitPoints
+): boolean {
+  const ports = reviveHitPointsPorts(hitPoints)
+  return (
+    outputs.hitPointsKind === ports.hitPointsKind &&
+    outputs.hitPointsAmount === ports.hitPointsAmount
+  )
+}
+
 /**
  * The death saves after a dying Character's death save roll (a d20 with no modifier, plus any added
  * dice). A natural 20 regains 1 hit point, which resets the saves, and a natural 1 is two failures;

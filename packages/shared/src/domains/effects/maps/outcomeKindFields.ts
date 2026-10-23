@@ -13,5 +13,5 @@ export function registerOutcomeKindFields(
 ) {
   registerConditionOutcomeFields(map, nodes, cond, logic)
   registerEndEffectsOutcomeFields(map, nodes, cond, data)
-  registerReviveOutcomeFields(map, nodes, cond)
+  registerReviveOutcomeFields(map, nodes, cond, logic)
 }

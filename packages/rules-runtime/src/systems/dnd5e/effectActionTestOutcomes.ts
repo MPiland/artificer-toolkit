@@ -26,6 +26,13 @@ export type SpecializedOutcome =
       'amountSource' | 'recoveryTags'
     >)
 
+/** An entry that outlasts its use: a lifecycle, or a duration other than instantaneous. */
+export function hasLifecycleOverride(entry: CompiledEffectGroup['entries'][number]): boolean {
+  return Boolean(
+    entry.lifecycle || (entry.duration && entry.duration.durationKind !== 'INSTANTANEOUS')
+  )
+}
+
 export function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
   // An instant kill is admitted only as a hit-point tier's result or behind a reduced-to-0 gate,

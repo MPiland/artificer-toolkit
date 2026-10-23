@@ -10,7 +10,10 @@ import {
   deathSavesAfterStabilize,
   isCharacterDead,
   isCharacterDying,
-  isTargetDead
+  isTargetDead,
+  reviveHitPointsPorts,
+  reviveRestoredHitPoints,
+  reviveTraceMatches
 } from '../shared/characterDeathSaves.js'
 import { NO_DEATH_SAVES } from '../subjects/characterState.js'
 
@@ -269,6 +272,24 @@ describe('Character death saves (D96)', () => {
 describe('Revival (SPELLS-4.T2g1)', () => {
   it('clears every death save, even a dead Character', () => {
     expect(deathSavesAfterRevive()).toEqual(NO_DEATH_SAVES)
+  })
+
+  it('restores a fixed number of hit points up to the maximum, or the maximum itself', () => {
+    expect(reviveRestoredHitPoints({ kind: 'FIXED', amount: 5 }, 11)).toBe(5)
+    expect(reviveRestoredHitPoints({ kind: 'FIXED', amount: 20 }, 11)).toBe(11)
+    expect(reviveRestoredHitPoints({ kind: 'MAXIMUM' }, 11)).toBe(11)
+  })
+
+  it('matches a trace only when its ports carry the same hit points', () => {
+    const fixed = { kind: 'FIXED', amount: 3 } as const
+    expect(reviveTraceMatches(reviveHitPointsPorts(fixed), fixed)).toBe(true)
+    expect(reviveTraceMatches(reviveHitPointsPorts({ kind: 'FIXED', amount: 4 }), fixed)).toBe(
+      false
+    )
+    expect(reviveTraceMatches(reviveHitPointsPorts({ kind: 'MAXIMUM' }), fixed)).toBe(false)
+    expect(reviveTraceMatches(reviveHitPointsPorts({ kind: 'MAXIMUM' }), { kind: 'MAXIMUM' })).toBe(
+      true
+    )
   })
 
   it('reads a target as dead at 0 hit points with three failures, or with no death saves at all', () => {

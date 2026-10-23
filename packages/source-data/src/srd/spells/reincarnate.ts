@@ -61,7 +61,8 @@ export const reincarnate: SpellAuthored = {
               {
                 id: spellChildId(SPELL_IDS.REINCARNATE, 0x2f0, 1),
                 effectKind: EFFECT_KIND.REVIVE,
-                hitPoints: 'ONE' as const
+                valueKind: 'FIXED' as const,
+                amount: 1
               },
               {
                 id: spellChildId(SPELL_IDS.REINCARNATE, 0x212, 1),
