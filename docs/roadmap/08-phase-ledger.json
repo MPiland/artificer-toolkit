@@ -14078,7 +14078,7 @@
             },
             {
               "id": "SPELLS-31.T5m",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -14088,8 +14088,9 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2a5"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): awareness senses; Blindsense, Feral Senses, Witch Sight (reusing the SPELLS-4.T2a5 truesight sense where it fits). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m382.",
+              "mergedAt": "2026-10-23T17:31:17Z",
+              "proof": "Tests and Live green on tip 1909aa23; Blindsense, Feral Senses and Witch Sight ship as description-only GM rulings (D187a); their three closed kinds (no resolver) deleted with the parity proof in srdClassNodeMap.test.ts; compile golden and warlock.ts size cap updated"
             },
             {
               "id": "SPELLS-31.T5n",
