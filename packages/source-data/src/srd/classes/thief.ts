@@ -68,16 +68,40 @@ export const thiefRoguishArchetype: ClassAuthored = {
       availableAtLevel: 3,
       order: 1,
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(R, 20, 2),
+          order: 1,
           invocation: {
             kind: 'PASSIVE',
             triggerCode: TRIGGER.ACTIVATED,
             range: { id: classRowId(R, 21, 2), rangeKind: RANGE_KIND.SELF },
             targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_THIEF_SECOND_STORY_WORK
-        })
+          paths: [
+            {
+              id: classRowId(R, 24, 2),
+              order: 1,
+              pathCode: PATH_CODE.PASSIVE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: classRowId(R, 25, 2),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: classRowId(R, 26, 2),
+                    effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Second-Story Work',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
+                    instructions:
+                      'Climbing no longer costs you extra movement. When you make a running jump, the distance you cover increases by a number of feet equal to your Dexterity modifier. The table applies both.'
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ]
     },
     {
