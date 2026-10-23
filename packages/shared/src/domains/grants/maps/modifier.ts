@@ -410,6 +410,15 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
       ]),
       not(isMultiply)
     ])
+    // Only "your speed is X" can name another speed instead of a length.
+    const isSpeedSetValue = and([
+      parent.field(['valueDomainCode']).eq('SPEED'),
+      parent.field(['modifierKind']).eq('SET_VALUE')
+    ])
+    const isLengthValue = and([
+      isLength,
+      or([not(isSpeedSetValue), local.field(['equalsSpeedId']).empty()])
+    ])
     const usesScalarMultiplier = or([
       local.field(['valueKind']).eq('PROFICIENCY_BONUS'),
       local.field(['valueKind']).eq('SKILL_BONUS'),
@@ -953,9 +962,23 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         'lengthAmount',
         number(['amount'], 'Amount', {
           constraints: { minimum: 0, maximum: AUTHORED_LENGTH_AMOUNT_MAX },
-          showIf: isLength,
+          showIf: isLengthValue,
           requiredIf: true
         })
+      )
+      .set(
+        'equalsSpeedId',
+        selectSingle(
+          ['equalsSpeedId'],
+          'Equal To Speed',
+          {
+            kind: 'DATA',
+            relationship: table('speeds', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { showIf: isSpeedSetValue }
+        )
       )
       .set(
         'numerator',
@@ -979,7 +1002,7 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           ['unit'],
           'Unit',
           { kind: 'INLINE_OPTIONS', options: LENGTH_UNIT_OPTIONS },
-          { showIf: isLength, requiredIf: true }
+          { showIf: isLengthValue, requiredIf: true }
         )
       )
       .set(

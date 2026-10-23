@@ -21,6 +21,7 @@ const speedId = (code: string) => {
 }
 const WALK = speedId('WALK')
 const FLY = speedId('FLY')
+const CLIMB = speedId('CLIMB')
 
 type LengthPayload = NonNullable<CharacterGrantFoldModifier['payload']>
 type LengthModifier = {
@@ -139,6 +140,23 @@ describe('a Creature holder reads authored speed grants as lengths', () => {
     ).toEqual([{ speedId: FLY, amount: 45, unit: 'YARDS' }])
   })
 
+  it('gives a speed the length of another speed the holder has, in that speed own unit', () => {
+    const equalsWalk = lengthEffect([speedModifier('SET_VALUE', { equalsSpeedId: WALK }, CLIMB)])
+    expect(
+      withActiveGrantSpeeds([{ speedId: WALK, amount: 18, unit: 'YARDS' }], [equalsWalk])
+    ).toEqual([
+      { speedId: WALK, amount: 18, unit: 'YARDS' },
+      { speedId: CLIMB, amount: 18, unit: 'YARDS' }
+    ])
+  })
+
+  it('grants nothing from a speed equal to another speed the holder lacks', () => {
+    const equalsFly = lengthEffect([speedModifier('SET_VALUE', { equalsSpeedId: FLY }, CLIMB)])
+    expect(
+      withActiveGrantSpeeds([{ speedId: WALK, amount: 30, unit: 'FEET' }], [equalsFly])
+    ).toEqual([{ speedId: WALK, amount: 30, unit: 'FEET' }])
+  })
+
   it('never lets a penalty take a speed below zero', () => {
     expect(
       withActiveGrantSpeeds(
@@ -218,6 +236,13 @@ describe('a Character holder reads authored speed and sense grants as lengths', 
       lengthEffect([speedModifier('SET_VALUE', { amount: 40, unit: 'YARDS' }, FLY)])
     ]).movement.speeds.find((speed) => speed.speedId === FLY)
     expect(flySpeed).toMatchObject({ amount: 40, unit: 'YARDS' })
+  })
+
+  it('gives a speed the length of another speed the Character has', () => {
+    const climb = policyWith([
+      lengthEffect([speedModifier('SET_VALUE', { equalsSpeedId: WALK }, CLIMB)])
+    ]).movement.speeds.find((speed) => speed.speedId === CLIMB)
+    expect(climb).toMatchObject({ amount: baseWalk, unit: 'FEET' })
   })
 
   it('never lets a penalty take a speed below zero', () => {
