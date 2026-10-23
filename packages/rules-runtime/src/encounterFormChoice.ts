@@ -20,7 +20,7 @@ export function creatureFormFilterRefusal(input: {
   filter: CreatureFormFilter
   form: { snapshot: unknown }
   target: { snapshot: unknown; level: number | null }
-  system: { challengeRatings: readonly { id: string; code: string; rank: number }[] }
+  system: { challengeRatings: readonly { id: string; rank: number; value: number }[] }
 }): string | null {
   const { filter, form, target, system } = input
   const formPayload = payloadOf(form.snapshot)
@@ -47,8 +47,7 @@ export function creatureFormFilterRefusal(input: {
       : (rankOf(payloadOf(target.snapshot).challengeRatingId) ??
         (target.level === null
           ? null
-          : (system.challengeRatings.find((entry) => entry.code === `CR_${target.level}`)?.rank ??
-            null)))
+          : (system.challengeRatings.find((entry) => entry.value === target.level)?.rank ?? null)))
   if (capRank === null) return 'The target has no challenge rating or level to cap the form.'
   return formRank > capRank ? 'That creature is too powerful for this target.' : null
 }

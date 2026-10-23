@@ -70,7 +70,7 @@ import {
 
 export { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 
-export { closedRuleEffect } from '../closed-rule-effect.js'
+export { closedRuleEffect, manualAdjudicationEffect } from '../closed-rule-effect.js'
 
 export {
   DND5E_LEGENDARY_ACTION_LIFECYCLE_DEFINITION_ID,

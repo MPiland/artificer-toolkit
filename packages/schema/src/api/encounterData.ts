@@ -596,6 +596,8 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
                 speedId: authoredIdentifierSchema,
                 /** The System speed vocabulary's code for the type (WALK, FLY, ...), when it has one. */
                 code: z.nullable(authoredShortTextSchema),
+                /** Whether this is the System's default movement type (its `defaults.movementTypeId`). */
+                isDefault: z.boolean(),
                 label: authoredShortTextSchema,
                 budget: z.number().check(z.nonnegative())
               })

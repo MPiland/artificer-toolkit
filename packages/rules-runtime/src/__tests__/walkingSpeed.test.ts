@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveSpeedsFeet, WALK_SPEED_CODE } from '../walkingSpeed.js'
+import { resolveSpeedsFeet } from '../walkingSpeed.js'
 
-const walk = { id: '00000000-0000-4000-8000-000000000001', code: WALK_SPEED_CODE }
+const walk = { id: '00000000-0000-4000-8000-000000000001', code: 'WALK' }
 const fly = { id: '00000000-0000-4000-8000-000000000002', code: 'FLY' }
 
 describe('resolveSpeedsFeet', () => {

@@ -5,7 +5,8 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   TRIGGER,
-  type ClosedRuleKind
+  type ClosedRuleKind,
+  type ManualAdjudicationReason
 } from '@artificer-toolkit/shared/core'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 
@@ -45,6 +46,50 @@ function defaultPathCode(triggerCode: EffectAuthored['invocation']['triggerCode'
       return PATH_CODE.ON_USE
     case TRIGGER.CHECK:
       return PATH_CODE.ON_CHECK_SUCCESS
+  }
+}
+
+type ManualAdjudicationEffectConfig = Pick<ClosedRuleEffectConfig, 'id' | 'invocation'> & {
+  label: string
+  reasonCode: ManualAdjudicationReason
+  instructions: string
+}
+
+/** A rider with no automated equivalent, shown to the GM as a ruling (D187a). */
+export function manualAdjudicationEffect({
+  id,
+  invocation,
+  label,
+  reasonCode,
+  instructions
+}: ManualAdjudicationEffectConfig): EffectAuthored {
+  return {
+    id,
+    order: 1,
+    invocation,
+    paths: [
+      {
+        id: mechanicId(id, 'PATH'),
+        order: 1,
+        pathCode: defaultPathCode(invocation.triggerCode),
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: mechanicId(id, 'RESULT'),
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: mechanicId(id, 'OUTCOME'),
+              effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+              label,
+              reasonCode,
+              instructions
+            }
+          ]
+        }
+      }
+    ]
   }
 }
 
