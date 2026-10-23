@@ -4273,7 +4273,7 @@
             },
             {
               "id": "RULES-2.T9p",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 3,
@@ -4283,8 +4283,8 @@
                 "after": ["RULES-2.T9i"]
               },
               "text": "Neutral character files (characterOnHitCosts, characterRulePolicyFacts, characterSpellCastActions, sheetProjection, sheetRest) compare the 'PACT' slot key. The slot pools, with their label and short-rest recovery, come from the dnd5e System's core codes through the capability registry; neutral code holds no pool literal.",
-              "note": "Found in the SPELLS-31.T5p review (D175), 2026-10-22.",
-              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+              "note": "Found in the SPELLS-31.T5p review (D175), 2026-10-22. Merged in m357.",
+              "mergedAt": "2026-10-23T00:20:57Z"
             }
           ]
         }
@@ -10307,10 +10307,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-4.T2j1"]
               },
-              "text": "Holy Aura and Dispel Evil and Good on the D179 qualifiers: Holy Aura's rider against a fiend or undead attacker, Dispel Evil and Good's disadvantage by creature type and its ending of charm and frighten from those types through END_EFFECTS; possession and dismissal stay description-only. Parity proofs; HOLY_AURA and DISPEL_EVIL_AND_GOOD deleted."
+              "text": "SOURCE_TRAIT (MAGICAL) restriction and attack domains on the D179 qualifiers (moved from T2j1), then Holy Aura and Dispel Evil and Good: Holy Aura's rider against a fiend or undead attacker, Dispel Evil and Good's disadvantage by creature type and its ending of charm and frighten from those types through END_EFFECTS; possession and dismissal stay description-only. Parity proofs; HOLY_AURA and DISPEL_EVIL_AND_GOOD deleted."
             },
             {
               "id": "SPELLS-4.T2k1",
@@ -10647,7 +10647,8 @@
                   "SPELLS-4.T2l",
                   "SPELLS-4.T2lb",
                   "SPELLS-4.T2m1",
-                  "SPELLS-4.T2j1"
+                  "SPELLS-4.T2j1",
+                  "SPELLS-4.T2j2"
                 ]
               },
               "text": "Condition suppression (split from T2m, 2026-10-20): a CONDITION_SUPPRESSION modifier (conditionIds, effect origin any or magical, SUPPRESS keeps the condition counting down, PREVENT blocks it). Converts CALM_EMOTIONS and FREEDOM_OF_MOVEMENT with parity proofs; kinds deleted. The magical-origin filter reuses the D179 SOURCE_TRAIT restriction."
@@ -13602,7 +13603,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-31.T1", "SPELLS-4.T2j1"]
+                "after": ["SPELLS-31.T1", "SPELLS-4.T2j1", "SPELLS-4.T2j2"]
               },
               "text": "Join SPELLS-4.T2j: Multiattack Defense, Nature's Ward, both Land's Stride. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
@@ -14179,7 +14180,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-32.T1", "SPELLS-4.T2j1"]
+                "after": ["SPELLS-32.T1", "SPELLS-4.T2j1", "SPELLS-4.T2j2"]
               },
               "text": "Fey Ancestry, Gnome Cunning (\"against magic\" qualifier, built with SPELLS-33.T4j) and Dwarven Resilience (\"against poison\": the POISONED condition or poison damage, the same qualifier family) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
             },
@@ -14739,7 +14740,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 3,
-                "after": ["SPELLS-33.T1", "SPELLS-4.T2j1", "SPELLS-33.T3a2"]
+                "after": ["SPELLS-33.T1", "SPELLS-4.T2j1", "SPELLS-33.T3a2", "SPELLS-4.T2j2"]
               },
               "text": "Magic Resistance, Fey Ancestry, Gnome Cunning, Duergar Resilience, angelic and hellish weapons, Turn Resistance (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },

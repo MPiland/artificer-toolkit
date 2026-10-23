@@ -29,7 +29,7 @@ export function onHitSlotChoices(
   return [
     ...standard,
     ...(pact && pact.remaining > 0 && !standard.some(({ level }) => level === pact.level)
-      ? [{ level: pact.level, slotKey: 'PACT' }]
+      ? [{ level: pact.level, slotKey: pact.poolCode }]
       : [])
   ].sort((left, right) => left.level - right.level)
 }

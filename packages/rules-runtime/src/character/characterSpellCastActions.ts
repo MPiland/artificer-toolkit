@@ -53,7 +53,7 @@ export function readSpellCastSlot(
   spellSlots: SpellPolicyOutput['spellSlots'],
   slotKey: string
 ): { level: number; used: number } | null {
-  if (slotKey === 'PACT')
+  if (spellSlots.pactMagic && slotKey === spellSlots.pactMagic.poolCode)
     return (
       spellSlots.pactMagic && {
         level: spellSlots.pactMagic.level,

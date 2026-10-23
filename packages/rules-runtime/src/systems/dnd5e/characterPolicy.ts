@@ -81,7 +81,7 @@ export function evaluateDnd5e2014CharacterPolicy(
         ? []
         : [
             {
-              slotKey: 'PACT',
+              slotKey: spellSlots.pactMagic.poolCode,
               label: 'PACT',
               level: spellSlots.pactMagic.level,
               max: spellSlots.pactMagic.slots,
