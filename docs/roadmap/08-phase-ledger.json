@@ -10150,10 +10150,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 8,
                 "after": ["SPELLS-4.T2g1"]
               },
-              "text": "Generic effect stepDown { trigger: LONG_REST, step } with a stored remaining counter (D177): each matching rest shrinks the effect's BONUS/PENALTY grant magnitudes and ends it at 0; PENALTY allowed on ABILITY_CHECK; the rest preview lists stepped-down effects. Converts RAISE_DEAD and RESURRECTION (-4 d20 penalty decaying per long rest), with parity proofs; each kind deleted.",
+              "text": "Generic effect stepDown { trigger: LONG_REST, step } with a stored remaining counter (D177): each matching rest shrinks the effect's BONUS/PENALTY grant magnitudes and ends it at 0; PENALTY allowed on ABILITY_CHECK; the rest preview lists stepped-down effects. Converts RAISE_DEAD and RESURRECTION (-4 d20 penalty decaying per long rest), with parity proofs; each kind deleted. Widened by D185: one shared active-effect flat BONUS/PENALTY fold read by every d20 site (sheet roll, encounter attack, save, check, movement check, death save), recorded on the roll receipt as a labelled modifier.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
@@ -10346,8 +10346,7 @@
                 "after": ["SPELLS-4.T2j1"]
               },
               "text": "Source trait and origin selector (D183): the SOURCE_TRAIT (MAGICAL) restriction and attack domains on the D179 qualifiers, an END_EFFECTS origin creature-type selector, Holy Aura and Dispel Evil and Good attack-disadvantage grants and Holy Aura save advantage, with parity proofs and a room journey; HOLY_AURA and DISPEL_EVIL_AND_GOOD stay closed.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
-              "proof": "nativeRoomHolyAuraDispelEvil.test.ts (Holy Aura: humanoid bite at disadvantage; Dispel Evil and Good: fiend disadvantage, humanoid normal), encounterHolyAuraDispelEvilGrants.test.ts, sourceTraitAuthoringParity.test.ts, endEffectsAuthoringParity.test.ts; Holy Aura and Dispel Evil and Good golden REFUSED to SINGLE_GRAPH."
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2j2b",
