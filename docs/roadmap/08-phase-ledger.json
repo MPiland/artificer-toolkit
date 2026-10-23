@@ -650,8 +650,12 @@
             },
             {
               "id": "PLATFORM-13.13",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "merge of ef0c589ca (PLATFORM-13.T18) in m355",
+                "scripts/vitestSource.test.mjs and apps/apis/convex/workspaceSource.test.ts green in CI",
+                "AGENTS.md and ci-validation.md retire the local typecheck lane and -BuildFor"
+              ],
               "origin": ["User request 2026-10-22 (validation lock queue)"],
               "note": "AC confirmed by the user 2026-10-22.",
               "text": "A slice session runs any single test file locally without building a package or taking a shared lock: tests resolve workspace packages from source. Typechecking runs only in CI, and AGENTS.md retires the local typecheck lane."
@@ -917,7 +921,7 @@
             },
             {
               "id": "PLATFORM-13.T18",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["PLATFORM-13.13"],
               "wsjf": {
                 "bv": 5,
@@ -927,7 +931,8 @@
                 "after": []
               },
               "text": "Workspace packages export a source condition pointing at src, and every Vitest config resolves it, so a local run needs no dist build (generated files such as the SRD manifest handled). CI keeps passing on every suite. Remove the typecheck lane and -BuildFor from withValidationLock.ps1 and the docs (AGENTS.md, ci-validation.md).",
-              "activeWorkbook": "docs/handoffs/phase-08-2-decisions.md"
+              "mergedAt": "2026-10-22T23:09:40Z",
+              "proof": "green ci/platform-13-t18 ef0c589ca (Tests and Live success); merged in m355 514609efc."
             },
             {
               "id": "PLATFORM-13.T19",
@@ -4137,7 +4142,7 @@
             },
             {
               "id": "RULES-2.T6h",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RULES-2.6"],
               "wsjf": {
                 "bv": 5,
@@ -4147,8 +4152,8 @@
                 "after": ["RULES-2.T6e3b2"]
               },
               "text": "The effect-action compiler accepts several direct results in one action, in authored order (for example END_EFFECTS followed by APPLY_GRANT, with or without the grant's own duration). Today any second direct result is refused with \"D&D Effect action must have one fixed direct result without lifecycle overrides\", which is not a genuine rule. A test that fails first compiles and executes the two-result action, and the golden harness explains each changed checksum.",
-              "note": "Found by SPELLS-4.T2f on 2026-10-22: the refusal is the same with and without the grant lifecycle, so the limit is the result count.",
-              "activeWorkbook": "docs/adr/0039-composable-system-neutral-rules-engine.md"
+              "note": "Found by SPELLS-4.T2f on 2026-10-22: the refusal is the same with and without the grant lifecycle, so the limit is the result count. Merged in m354.",
+              "mergedAt": "2026-10-22T22:55:16Z"
             },
             {
               "id": "RULES-2.T9i",
@@ -4181,6 +4186,20 @@
               "mergedAt": "2026-10-22T19:34:15Z"
             },
             {
+              "id": "RULES-2.T9q",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 5,
+                "rr": 8,
+                "size": 5,
+                "after": []
+              },
+              "text": "Encounter reads leave the System document (D180): the encounter read-budget measure pins _creationTime to a fixed-length stand-in so it is deterministic; the Encounter projection sends condition definition IDs only and web labels them from the System vocabulary; presentEncounterRun no longer reads the System document. The 100-actor read passes its unchanged ceiling.",
+              "activeWorkbook": "docs/handoffs/rules-2-t9h-vocabulary-inventory.md"
+            },
+            {
               "id": "RULES-2.T9k",
               "status": "TODO",
               "closes": ["RULES-2.7"],
@@ -4189,7 +4208,7 @@
                 "tc": 5,
                 "rr": 8,
                 "size": 3,
-                "after": ["RULES-2.T9j"]
+                "after": ["RULES-2.T9j", "RULES-2.T9q"]
               },
               "text": "One defaults object on the System record naming definition IDs (default damage type, condition and movement type), seeded from source-data and read by web through apis; the Exhaustion filter in ConditionsEditor filters on a levelled condition attribute instead of the code.",
               "note": "See docs/handoffs/rules-2-t9h-vocabulary-inventory.md (merged m343).",
@@ -10149,6 +10168,19 @@
               "text": "Maze escape (D178): the held creature's action makes a fixed-DC ability check through the generic check flow widened to spell sources (SPELLS-4.T2f1); success ends the owning effect. Replaces the MANUAL_ADJUDICATION, with a parity proof."
             },
             {
+              "id": "SPELLS-4.T2h4",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-4.T2h1"]
+              },
+              "text": "Banishment runs (D178 amendment): the test-action compiler accepts a save-gated sequence of several direct results on one path (incapacitated plus REMOVE_FROM_PLAY), on the RULES-2.T6h direct-result sequence, so Banishment compiles; a return onto an occupied space is a GM placement flagged RETURN_SPACE_OCCUPIED. Golden flip, parity and room journey proofs."
+            },
+            {
               "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2i",
@@ -15191,7 +15223,7 @@
             },
             {
               "id": "SPELLS-33.T6e2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15201,7 +15233,8 @@
                 "after": ["SPELLS-33.T6e", "SPELLS-4.T2m1", "SPELLS-4.T2m1b2b"]
               },
               "text": "Vampire Charm: a generic follow-up-save timing that repeats only on its repeatTriggers (no turn-end save), with the duration still counted down by the turn kernel (D176); Charm repeats its save when the source side harms it. Authoring-parity proof; deletes its kind (2026-10-18 ruling on the T6e design; workbook slice-spells-33.md). No SRD_CREATURE_ATTACK_UNSUPPORTED entry depends on Charm; Vampire Bite stays a separate kind.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-22T23:53:01Z",
+              "note": "Merged in m356."
             },
             {
               "id": "SPELLS-33.T6f",

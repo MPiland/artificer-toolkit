@@ -1,7 +1,6 @@
 import {
   type ActiveEffectSaveTally,
-  type ActiveEffectSaveThresholds,
-  type ActiveRuleEffectLifecycleDto
+  type ActiveEffectSaveThresholds
 } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import { type ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import {
@@ -61,6 +60,13 @@ import {
 } from './effectActionLifetime.js'
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
+import {
+  directResultSequence,
+  mergeDirectResultGraphs,
+  rulingSequence,
+  sequentialComposition,
+  singleEntryAction
+} from './effectActionResultSequences.js'
 import {
   boundedTestOutcome,
   specializedTestOutcome,
@@ -198,7 +204,11 @@ import {
   interpret,
   interpretSpatial
 } from './effectActionInterpretation.js'
-import { repeatedFollowUpSaveResultPath } from './effectActionRepeatSaveEvidence.js'
+import {
+  repeatedFollowUpSaveResultPath,
+  repeatSaveAttemptAllowed,
+  repeatSaveGated
+} from './effectActionRepeatSaveEvidence.js'
 import {
   isChargedFreeActivation,
   isSupportedArea,
@@ -516,79 +526,6 @@ function supportedRecurringPlan(
   }
 }
 
-type CompiledOutcomeEntry = Extract<CompiledEffectGroup['entries'][number], { outcome: unknown }>
-
-/**
- * A cast of SEQUENTIAL entries held in one active effect (D156): at most one grant and at most one
- * recurring heal, the effect-bearing entries, with at most one immediate heal beside them. They
- * share the target, the duration and the maintenance, and no test decides them. Null for any other
- * action.
- */
-function sequentialComposition(action: Dnd5eCompiledEffectActionSource): null | {
-  grant: CompiledOutcomeEntry | null
-  recurring: CompiledOutcomeEntry | null
-  immediate: CompiledOutcomeEntry | null
-} {
-  const { invocation, entries } = action.compiledEffect
-  if (entries.length < 2 || invocation.kind !== 'ACTION' || invocation.triggerCode !== 'ACTIVATED')
-    return null
-  const composed = entries.filter(
-    (entry): entry is CompiledOutcomeEntry =>
-      'outcome' in entry &&
-      entry.resolutionKind === 'DIRECT' &&
-      entry.groupKind === 'SEQUENTIAL' &&
-      entry.pathCode === 'ON_USE' &&
-      !entry.rangeOverride &&
-      !entry.targetingOverride
-  )
-  const [first] = composed
-  const durationKey = (entry: CompiledOutcomeEntry) =>
-    entry.duration
-      ? JSON.stringify([
-          entry.duration.durationKind,
-          'amount' in entry.duration ? entry.duration.amount : null
-        ])
-      : null
-  if (
-    !first ||
-    composed.length !== entries.length ||
-    composed.some(
-      (entry) =>
-        durationKey(entry) !== durationKey(first) ||
-        entry.maintenanceDefinitionId !== first.maintenanceDefinitionId
-    )
-  )
-    return null
-  const grants = composed.filter(({ outcome }) => outcome.effectKind === 'APPLY_GRANT')
-  const heals = composed.filter(({ outcome }) => outcome.effectKind === 'HEAL')
-  const recurring = heals.filter(({ lifecycle }) => lifecycle?.recurringKind !== undefined)
-  const immediate = heals.filter(({ lifecycle }) => lifecycle === undefined)
-  if (
-    grants.length + recurring.length + immediate.length !== composed.length ||
-    grants.length > 1 ||
-    recurring.length > 1 ||
-    immediate.length > 1 ||
-    grants.length + recurring.length === 0
-  )
-    return null
-  return {
-    grant: grants[0] ?? null,
-    recurring: recurring[0] ?? null,
-    immediate: immediate[0] ?? null
-  }
-}
-
-/** The action narrowed to one of its entries, as a cast of that entry alone would author it. */
-function singleEntryAction(
-  action: Dnd5eCompiledEffectActionSource,
-  entry: CompiledOutcomeEntry
-): Dnd5eCompiledEffectActionSource {
-  return {
-    ...action,
-    compiledEffect: { ...action.compiledEffect, entries: [{ ...entry, groupKind: 'SINGLE' }] }
-  }
-}
-
 /**
  * The one active effect a sequential composition holds (D156). A recurring heal is its graph: it
  * fires at each authored turn boundary of the holder, never at cast, for a duration in turns (a
@@ -743,6 +680,26 @@ function compileSequentialComposition(
     checksum: checksumRuleDocument(definition),
     definition
   })
+}
+
+function holdsLastingEffect(action: Dnd5eCompiledEffectActionSource): boolean {
+  return (
+    timedActiveEffectPlan(action) !== null ||
+    relationshipPlan(action) !== null ||
+    (supportedRecurringPlan(action) ?? concealmentPlan(action)) !== null
+  )
+}
+
+function compileDirectResultSequence(
+  results: readonly Dnd5eCompiledEffectActionSource[]
+): ServerPublishedRuleDefinitionDto {
+  return mergeDirectResultGraphs(
+    results.map((result) => {
+      // The sequence's own maintained effect was checked once for the whole action.
+      const { requiresConcentration: _concentration, ...effect } = result.compiledEffect
+      return compileEffectActionGraph({ ...result, compiledEffect: effect }).definition
+    })
+  )
 }
 
 function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
@@ -1888,7 +1845,8 @@ function repeatingDirectFollowUpSavePlan(
     heldConditionIds: leadConditions.map(({ conditionId }) => conditionId),
     escalationConditionId: escalation?.conditionId,
     repeatRollInfluence: save.repeatRollInfluence,
-    repeatAttemptGate: save.repeatAttemptGate
+    repeatAttemptGate: save.repeatAttemptGate,
+    triggersOnly: save.timing === 'ON_TRIGGERS_ONLY'
   })
   const grantPlan =
     lead.effectKind === 'APPLY_GRANT'
@@ -1925,7 +1883,7 @@ function repeatingDirectFollowUpSavePlan(
     !contribution ||
     !UUID.test(leadEntry.resultBlockId) ||
     initialRemaining === null ||
-    save.timing !== 'TARGET_TURN_END' ||
+    (save.timing !== 'TARGET_TURN_END' && save.timing !== 'ON_TRIGGERS_ONLY') ||
     (save.attempts.kind === 'ONCE'
       ? (save.attempts.repeatOnFailure === true) === (escalation !== null)
       : escalation !== null ||
@@ -1974,16 +1932,6 @@ function isTallyCount(count: number) {
   return Number.isSafeInteger(count) && count >= 1 && count <= 255
 }
 
-/** A thresholds effect that has counted its failures stops saving; its duration still runs out. */
-function repeatSaveSettled(
-  thresholds: ActiveEffectSaveThresholds | undefined,
-  lifecycle: ActiveRuleEffectLifecycleDto
-) {
-  return (
-    thresholds !== undefined && (lifecycle.saveTally?.failures ?? 0) >= thresholds.failuresToResolve
-  )
-}
-
 /** The tally once a made or failed save is counted; a consecutive tally zeroes the other count. */
 function countRepeatSave(
   thresholds: ActiveEffectSaveThresholds,
@@ -2015,9 +1963,7 @@ function repeatFollowUpSavePublishedGraph(input: {
     throw new Dnd5eEffectActionCompilerError('D&D repeat-save facts are unavailable.')
   }
   // A gated repeat settles its d20 without a request on a turn the gate refuses the attempt.
-  const gated =
-    DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ATTEMPT_GATE_FACT_KEY in input.plan.adapterFacts ||
-    input.plan.saveThresholds !== undefined
+  const gated = repeatSaveGated(input.plan.adapterFacts, input.plan.saveThresholds)
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
     id: input.action.effectId,
@@ -2342,43 +2288,6 @@ function testPlan(action: Dnd5eCompiledEffectActionSource): TestPlan | null {
     if (!branches.has(entry.pathCode)) branches.set(entry.pathCode, outcome)
   }
   return { kind, branches }
-}
-
-/**
- * An ON_USE SEQUENCE whose other outcomes are all GM rulings (D156): its one executable outcome
- * compiles as the action's result, and each ruling stays beside it as a manual-adjudication node.
- * A sequence with two executable outcomes is not split, so the one-result rule refuses it.
- */
-function rulingSequence(action: Dnd5eCompiledEffectActionSource): {
-  executable: Dnd5eCompiledEffectActionSource
-  rulings: readonly Dnd5eCompiledEffectActionSource['compiledEffect']['entries'][number][]
-} | null {
-  const { entries } = action.compiledEffect
-  if (
-    entries.length < 2 ||
-    !entries.every(
-      (entry) =>
-        entry.resolutionKind === 'DIRECT' &&
-        entry.groupKind === 'SEQUENTIAL' &&
-        entry.pathCode === 'ON_USE'
-    )
-  )
-    return null
-  const isRuling = (entry: (typeof entries)[number]) =>
-    'outcome' in entry && entry.outcome.effectKind === 'MANUAL_ADJUDICATION'
-  const rulings = entries.filter(isRuling)
-  const executable = entries.filter((entry) => !isRuling(entry))
-  if (executable.length !== 1) return null
-  return {
-    executable: {
-      ...action,
-      compiledEffect: {
-        ...action.compiledEffect,
-        entries: [{ ...executable[0]!, groupKind: 'SINGLE' }]
-      }
-    },
-    rulings
-  }
 }
 
 /** The action a plan reads: a ruling sequence's one executable outcome, or the action itself. */
@@ -3682,6 +3591,8 @@ function bindMovementInterruptionOutput(input: {
 
 /** Whether the active-effect plan the action ends up with is held under a maintained effect. */
 function startsMaintainedEffect(action: Dnd5eCompiledEffectActionSource): boolean {
+  const results = directResultSequence(action, holdsLastingEffect)
+  if (results) return results.some(startsMaintainedEffect)
   const plan =
     sequentialCompositionPlan(action) ??
     repeatingFollowUpSavePlan(action) ??
@@ -3747,6 +3658,8 @@ function dnd5eActiveEffectPlans(
 ): CharacterRuleActionActiveEffectPlan[] {
   if (published.id !== action.effectId || published.checksum.length !== 64)
     throw new Dnd5eEffectActionCompilerError('The D&D active effect plan source is invalid.')
+  const results = directResultSequence(action, holdsLastingEffect)
+  if (results) return results.flatMap((result) => dnd5eActiveEffectPlans(result, published))
   const composed = sequentialCompositionPlan(action)
   if (composed) return [composed]
   const repeatPlan = repeatingFollowUpSavePlan(action)
@@ -3927,6 +3840,8 @@ function compileEffectActionGraph(
     refuseGate()
     return compileSequentialComposition(action, composition)
   }
+  const results = directResultSequence(action, holdsLastingEffect)
+  if (results) return compileDirectResultSequence(results)
   if (isExactImmediateFollowUpSaveAction(action) || repeatingDirectFollowUpSavePlan(action)) {
     refuseGate()
     return compileDnd5eEffectActionTestTemplate({ action }).published
@@ -4947,7 +4862,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     defenses,
     conditionImmunityIds,
     perception,
-    rollInfluence
+    rollInfluence,
+    onTrigger
   }) => {
     if (definition.frozenGraph.source.gameSystemId !== DND5E_SYSTEM_ID)
       throw new Dnd5eEffectActionCompilerError(
@@ -5091,7 +5007,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     }
     const contributorChecksum = checksumRuleDocument(contributors)
     const gate = perceptionRequirement?.kind === 'ATTEMPT_GATE' ? perceptionRequirement : null
-    const gated = gate !== null || definition.recurrence.saveThresholds !== undefined
+    const gated = repeatSaveGated(definition.adapterFacts, definition.recurrence.saveThresholds)
     if (
       definition.frozenGraph.nodes.filter(
         (node) =>
@@ -5103,9 +5019,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     ) {
       throw new Dnd5eEffectActionCompilerError('D&D recurring save request binding is invalid.')
     }
-    const attemptAllowed =
-      !repeatSaveSettled(definition.recurrence.saveThresholds, lifecycle) &&
-      (!gate || perception?.satisfied === (gate.allow === 'WHEN_MET'))
+    const attemptAllowed = repeatSaveAttemptAllowed({
+      adapterFacts: definition.adapterFacts,
+      thresholds: definition.recurrence.saveThresholds,
+      lifecycle,
+      gateMet: !gate || perception?.satisfied === (gate.allow === 'WHEN_MET'),
+      onTrigger
+    })
     const successImmunity =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_SUCCESS_IMMUNITY_FACT_KEY]
     // A zone that needs sight of its source is saved against unrolled by an occupant without it.

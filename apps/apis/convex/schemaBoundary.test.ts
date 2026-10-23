@@ -41,6 +41,7 @@ it('keeps UUID-only leaf contracts independent of execution schemas', () => {
       ],
       bundle: true,
       platform: 'browser',
+      conditions: ['source'],
       write: false,
       metafile: true,
       logLevel: 'silent'
@@ -57,6 +58,7 @@ it('keeps typed Character persistence independent of the authored mechanics grap
     entryPoints: [fileURLToPath(new URL('./characters/schema.ts', import.meta.url))],
     bundle: true,
     platform: 'browser',
+    conditions: ['source'],
     write: false,
     metafile: true,
     logLevel: 'silent'
@@ -74,6 +76,7 @@ it('keeps the complete database schema independent of the executable rules kerne
     entryPoints: [fileURLToPath(new URL('./schema.ts', import.meta.url))],
     bundle: true,
     platform: 'browser',
+    conditions: ['source'],
     write: false,
     metafile: true,
     logLevel: 'silent'
@@ -91,6 +94,7 @@ it('evaluates the complete database schema without environment-variable access',
     entryPoints: [fileURLToPath(new URL('./schema.ts', import.meta.url))],
     bundle: true,
     platform: 'browser',
+    conditions: ['source'],
     format: 'iife',
     globalName: 'schemaModule',
     write: false,
@@ -130,12 +134,12 @@ it('evaluates the complete database schema without environment-variable access',
 
 /** The System vocabulary seam's closure: the only rules-runtime files authoring may load. */
 const SYSTEM_VOCABULARY_SEAM = [
-  'platformSystemCoreCodes.js',
-  'systemCoreCodeCapability.js',
-  'systemCapabilityRegistry.js',
-  'systems/dnd5e/coreCodes.js',
-  'systems/dnd5e/identity.js'
-].map((file) => `/packages/rules-runtime/dist/${file}`)
+  'platformSystemCoreCodes.ts',
+  'systemCoreCodeCapability.ts',
+  'systemCapabilityRegistry.ts',
+  'systems/dnd5e/coreCodes.ts',
+  'systems/dnd5e/identity.ts'
+].map((file) => `/packages/rules-runtime/src/${file}`)
 
 /** Rules-runtime and play-schema files a bundle loads outside the System vocabulary seam. */
 function playImportsOf(entry: { entryPoints: string[] } | { stdin: { contents: string } }) {
@@ -145,6 +149,7 @@ function playImportsOf(entry: { entryPoints: string[] } | { stdin: { contents: s
       : entry),
     bundle: true,
     platform: 'browser',
+    conditions: ['source'],
     write: false,
     metafile: true,
     logLevel: 'silent'
@@ -176,8 +181,8 @@ it('refuses a play module loaded beside the System vocabulary seam', () => {
       ].join('\n')
     }
   })
-  expect(playImports).toContain('/packages/rules-runtime/dist/platformPolicyModules.js')
-  expect(playImports.some((path) => path.endsWith('/platformSystemCoreCodes.js'))).toBe(false)
+  expect(playImports).toContain('/packages/rules-runtime/src/platformPolicyModules.ts')
+  expect(playImports.some((path) => path.endsWith('/platformSystemCoreCodes.ts'))).toBe(false)
 })
 
 it.each(['./characters/documents.ts', './content/deletion.ts'])(
@@ -187,6 +192,7 @@ it.each(['./characters/documents.ts', './content/deletion.ts'])(
       entryPoints: [fileURLToPath(new URL(source, import.meta.url))],
       bundle: true,
       platform: 'browser',
+      conditions: ['source'],
       write: false,
       metafile: true,
       logLevel: 'silent'
