@@ -10805,7 +10805,7 @@
               "note": " Merged in m368."
             },
             {
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2o",
               "wsjf": {
@@ -10816,7 +10816,9 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B), ruled before coding: Speed equal to another speed, jumping, elevation and vertical forced movement. Converts SPIDER_CLIMB, ALTER_SELF, JUMP, LEVITATE, REVERSE_GRAVITY, with parity proofs; each kind deleted.",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m384.",
+              "mergedAt": "2026-10-23T19:55:57Z",
+              "proof": "Tests and Live green on tip 36ebeae4; SPEED SET_VALUE accepts { equalsSpeedId } resolved by widestLengthByKey (speedEqualsPayloadSchema); Spider Climb and Alter Self authored with it; Jump, Levitate and Reverse Gravity ship as GM rulings with 3D movement deferred; nativeRoomGrantModifiers.test.ts room proof; compile golden updated."
             },
             {
               "status": "TODO",
@@ -10915,7 +10917,8 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2l"]
               },
               "text": "New generic option (D156 T2 split, class B; T2a2 ruling): WEAPON manifests in Encounters with a granted repeatable attack action (the T2l granted-action option) and COMMAND_MANIFEST compiled in rules-runtime. Converts FLAME_BLADE, PRODUCE_FLAME (an optional later hurl that ends the spell) and makes SPIRITUAL_WEAPON playable, each with a parity proof and a room test; the kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": " D187b (2026-10-23): Spiritual Weapon is a caster-controlled CREATURE manifest; gaps return sized for a user yes."
             },
             {
               "status": "TODO",
@@ -14924,7 +14927,7 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2l"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: bonus-action Dash, Disengage and Hide grants, Aggressive, legendary move, Clay Golem Haste (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b (2026-10-23): user approved standing granted actions on Creature traits; size grows, re-estimate at green.",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
@@ -15396,7 +15399,7 @@
             },
             {
               "id": "SPELLS-33.T6f",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15406,8 +15409,9 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: incoming spell negation by level or kind, spell storing (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m384.",
+              "mergedAt": "2026-10-23T19:55:57Z",
+              "proof": "Tests and Live green on tip 5247ac30; GM-ruling riders per D187a with authoring-parity proofs; closed kinds deleted; SRD data and compile golden updated."
             },
             {
               "id": "SPELLS-33.T6g",
@@ -15427,7 +15431,7 @@
             },
             {
               "id": "SPELLS-33.T6h",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15437,8 +15441,9 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: attackable body parts and damage-triggered splitting (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m384.",
+              "mergedAt": "2026-10-23T19:55:57Z",
+              "proof": "Tests and Live green on tip 41f8567e; GM-ruling riders per D187a with authoring-parity proofs; closed kinds deleted; SRD data and compile golden updated."
             },
             {
               "id": "SPELLS-33.T6i",
