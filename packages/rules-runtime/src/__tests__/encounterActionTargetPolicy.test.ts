@@ -724,3 +724,30 @@ describe('creature type restrictions on an action', () => {
     )
   })
 })
+
+describe('an actor out of play as a target (D178)', () => {
+  const evaluate = (absence: 'GM_REMOVED' | 'DEPARTED' | 'EFFECT' | 'EFFECT_KEEPS_TURN' | null) =>
+    evaluateEncounterActionTargetPolicy({
+      actor: { id: 'source', disposition: 'FRIENDLY' },
+      target: { id: 'target', disposition: 'HOSTILE', absence },
+      targetPolicy: {
+        range: { id: 'range', rangeKind: 'UNLIMITED' },
+        targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+        shape: null,
+        pathOverrides: []
+      },
+      sceneContext: null,
+      makesAttackRoll: false
+    })
+
+  it.each(['GM_REMOVED', 'DEPARTED', 'EFFECT', 'EFFECT_KEEPS_TURN'] as const)(
+    'refuses an actor absent as %s outright, which no acknowledgement overrides',
+    (absence) => {
+      expect(evaluate(absence)).toBeNull()
+    }
+  )
+
+  it('targets an actor in play as before', () => {
+    expect(evaluate(null)).toEqual([])
+  })
+})

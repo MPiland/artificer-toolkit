@@ -21,7 +21,6 @@ import type {
   FollowUpSaveRepeatTriggerAuthored
 } from '@artificer-toolkit/shared/authored'
 import {
-  addNumbersRuleOperation,
   checksumRuleDocument,
   compareCanonicalD20Contributors,
   type CompiledRuleGraph,
@@ -60,6 +59,10 @@ import {
 } from './effectActionLifetime.js'
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
+import {
+  relationshipRecurrenceGraph,
+  relationshipStateGraph
+} from './effectActionRelationshipGraphs.js'
 import {
   directResultSequence,
   mergeDirectResultGraphs,
@@ -116,7 +119,6 @@ import {
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-  DND5E_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
   DND5E_HEAL_TOTAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
@@ -374,6 +376,7 @@ function isActiveEffectPlanOutcome(
     (entry.outcome.effectKind === 'APPLY_GRANT' &&
       entry.pathCode === 'ON_SAVE_FAIL' &&
       timedConditionPlan(action) !== null) ||
+    (entry.outcome.effectKind === 'REMOVE_FROM_PLAY' && timedConditionPlan(action) !== null) ||
     (entry.outcome.effectKind === 'TELEPATHIC_LINK' &&
       entry.pathCode !== 'ON_USE' &&
       actorLinkPlan(action) !== null) ||
@@ -811,168 +814,6 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   }
 }
 
-function relationshipStateGraph(input: {
-  action: Dnd5eCompiledEffectActionSource
-  relationship: ActorRelationshipAuthored
-}): ServerPublishedRuleDefinitionDto {
-  const definition: RuleGraphDefinition = {
-    schemaVersion: 1,
-    id: input.action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      {
-        id: 'relationship-state',
-        operation: {
-          key: DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
-          contractVersion: 1
-        },
-        inputs: {}
-      }
-    ],
-    outputs: {
-      relationshipOutcomeId: { kind: 'LITERAL', value: input.relationship.id }
-    },
-    sourceEntryBindings: [{ sourceEntryId: input.relationship.id, nodeId: 'relationship-state' }]
-  }
-  return publishedGraph(definition)
-}
-
-function relationshipRecurrenceGraph(input: {
-  action: Dnd5eCompiledEffectActionSource
-  relationship: ActorRelationshipAuthored
-  modules: readonly ActorRelationshipAuthored['modules'][number][]
-  recurrenceDamage: NonNullable<ActorRelationshipAuthored['recurrence']>['damage']
-}): ServerPublishedRuleDefinitionDto {
-  if (!('diceConfig' in input.recurrenceDamage))
-    unsupported('D&D relationship recurrence dice are unavailable.')
-  const parsed = parseBoundedDiceConfiguration(input.recurrenceDamage.diceConfig!)
-  const { term } = parsed
-  const dice = Array.from({ length: term.count }, (_, index) => ({
-    id: `relationship-die-${index + 1}`,
-    operation: { key: 'evidence.integer-range', contractVersion: 1 },
-    inputs: {
-      min: { kind: 'LITERAL' as const, value: 1 },
-      max: { kind: 'LITERAL' as const, value: term.die }
-    }
-  }))
-  const sums = Array.from({ length: Math.max(0, term.count - 1) }, (_, index) => ({
-    id: `relationship-sum-${index + 1}`,
-    operation: {
-      key: addNumbersRuleOperation.key,
-      contractVersion: addNumbersRuleOperation.contractVersion
-    },
-    inputs: {
-      left:
-        index === 0
-          ? {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: 'relationship-die-1',
-              port: 'value'
-            }
-          : {
-              kind: 'NODE_OUTPUT' as const,
-              nodeId: `relationship-sum-${index}`,
-              port: 'value'
-            },
-      right: {
-        kind: 'NODE_OUTPUT' as const,
-        nodeId: `relationship-die-${index + 2}`,
-        port: 'value'
-      }
-    }
-  }))
-  const subtotal =
-    term.count === 1
-      ? {
-          kind: 'NODE_OUTPUT' as const,
-          nodeId: 'relationship-die-1',
-          port: 'value'
-        }
-      : {
-          kind: 'NODE_OUTPUT' as const,
-          nodeId: `relationship-sum-${term.count - 1}`,
-          port: 'value'
-        }
-  const amount =
-    parsed.modifier === 0
-      ? subtotal
-      : {
-          kind: 'NODE_OUTPUT' as const,
-          nodeId: 'relationship-damage-total',
-          port: 'value'
-        }
-  const definition: RuleGraphDefinition = {
-    schemaVersion: 1,
-    id: input.action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      ...dice,
-      ...sums,
-      ...(parsed.modifier === 0
-        ? []
-        : [
-            {
-              id: 'relationship-damage-total',
-              operation: {
-                key: DND5E_DAMAGE_TOTAL_OPERATION_KEY,
-                contractVersion: 1
-              },
-              inputs: {
-                subtotal,
-                modifier: { kind: 'LITERAL' as const, value: parsed.modifier }
-              }
-            }
-          ]),
-      {
-        id: 'relationship-recurrence',
-        operation: {
-          key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-          contractVersion: 1
-        },
-        inputs: {
-          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          targetStateChecksum: {
-            kind: 'FACT',
-            factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
-          },
-          amount,
-          damageTypeId: {
-            kind: 'LITERAL',
-            value: damageTypeIdentity(input.recurrenceDamage.damageTypeId)
-          }
-        }
-      }
-    ],
-    outputs: {
-      targetActorId: {
-        kind: 'NODE_OUTPUT',
-        nodeId: 'relationship-recurrence',
-        port: 'targetActorId'
-      },
-      amount: {
-        kind: 'NODE_OUTPUT',
-        nodeId: 'relationship-recurrence',
-        port: 'amount'
-      },
-      damageTypeId: {
-        kind: 'NODE_OUTPUT',
-        nodeId: 'relationship-recurrence',
-        port: 'damageTypeId'
-      }
-    },
-    sourceEntryBindings: [
-      {
-        sourceEntryId: input.relationship.id,
-        nodeId: 'relationship-recurrence'
-      }
-    ]
-  }
-  void input.modules
-  return publishedGraph(definition)
-}
-
 /**
  * The repeat is a separate, target-turn graph rather than a second evidence
  * stage in the originating action. Keep the admitted source shape narrow
@@ -1145,16 +986,23 @@ function timedImmediateConditionPlan(
 function timedConditionPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const entries = entriesBesideSourceImmunity(action)
+  // A manual ruling beside the held entries (Maze's escape) is the GM's, so the effect holds nothing for it.
+  const entries = entriesBesideSourceImmunity(action).filter(
+    (entry) => !('outcome' in entry && entry.outcome.effectKind === 'MANUAL_ADJUDICATION')
+  )
   const outcomeEntries = entries.filter((entry) => 'outcome' in entry)
   const conditionEntries = outcomeEntries.flatMap((entry) =>
     entry.outcome.effectKind === 'CONDITION' ? [{ entry, outcome: entry.outcome }] : []
   )
   const grantEntries = outcomeEntries.filter((entry) => entry.outcome.effectKind === 'APPLY_GRANT')
-  const lead = conditionEntries[0]
+  const removalEntries = outcomeEntries.flatMap((entry) =>
+    entry.outcome.effectKind === 'REMOVE_FROM_PLAY' ? [{ entry, outcome: entry.outcome }] : []
+  )
+  const lead = conditionEntries[0] ?? removalEntries[0]
   if (
     !lead ||
     grantEntries.length > 1 ||
+    removalEntries.length > 1 ||
     outcomeEntries.length !== entries.length ||
     // The held entries and any damage beside them are one authored result: same path, block,
     // duration and lifecycle.
@@ -1162,6 +1010,7 @@ function timedConditionPlan(
       (entry) =>
         (entry.outcome.effectKind !== 'CONDITION' &&
           entry.outcome.effectKind !== 'APPLY_GRANT' &&
+          entry.outcome.effectKind !== 'REMOVE_FROM_PLAY' &&
           entry.outcome.effectKind !== 'DAMAGE') ||
         entry.pathCode !== lead.entry.pathCode ||
         entry.resultBlockId !== lead.entry.resultBlockId ||
@@ -1243,12 +1092,17 @@ function timedConditionPlan(
     ...(grantContribution && {
       modifierGrantContribution: { ...grantContribution, countedByTurnEffects: true }
     }),
+    ...(removalEntries[0] && {
+      playAbsenceContribution: { keepsTurn: removalEntries[0].outcome.keepsTurn }
+    }),
     lifecycle: {
       consumeOnFirstEvents: [...new Set(consumeOnFirstEvents)].sort(),
       endOnEvents: [...new Set(endOnEvents)].sort(),
       endOnTriggers: canonicalEndTriggers(endOnTriggers)
     },
-    adapterFacts: { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true },
+    // A removal held with no condition (Etherealness) has no condition to remove at its end.
+    adapterFacts:
+      conditionEntries.length > 0 ? { [DND5E_ACTIVE_EFFECT_TIMED_CONDITION_FACT_KEY]: true } : {},
     perceptionContributions: [],
     maintenance,
     marginRiders: rider ? [marginRiderPlan(rider)] : []
@@ -2307,7 +2161,7 @@ type DirectOutcomeInput = Readonly<{
   action: Dnd5eCompiledEffectActionSource
   onList: boolean
   selfTeleport: { maxFeet: number; destinationKind: 'VISIBLE' | 'SPECIFIED_POINT' } | null
-  plans: Readonly<{ grant: boolean; link: boolean; form: boolean }>
+  plans: Readonly<{ grant: boolean; link: boolean; form: boolean; absence: boolean }>
 }>
 type AuthoredOutcomeOf<Kind extends Dnd5eAuthoredOutcome['effectKind']> = Extract<
   Dnd5eAuthoredOutcome,
@@ -2391,6 +2245,8 @@ const DND5E_DIRECT_OUTCOMES: {
     plans.link ? { kind: 'ACTOR_LINK' } : unsupportedDirectOutcome(),
   MANIFEST: (_outcome, { plans }) =>
     plans.form ? { kind: 'CREATURE_FORM' } : unsupportedDirectOutcome(),
+  REMOVE_FROM_PLAY: (_outcome, { plans }) =>
+    plans.absence ? { kind: 'PLAY_ABSENCE' } : unsupportedDirectOutcome(),
   HEAL: (outcome, { action }) => {
     if (outcome.valueKind === 'DICE') {
       parseBoundedDiceConfiguration(healDiceConfiguration(outcome, action.spellCastLevel))
@@ -2636,7 +2492,12 @@ function supported(
     action,
     onList: supportsChosenCreatures,
     selfTeleport,
-    plans: { grant: grantPlan !== null, link: linkPlan !== null, form: formPlan !== null }
+    plans: {
+      grant: grantPlan !== null,
+      link: linkPlan !== null,
+      form: formPlan !== null,
+      absence: conditionPlan?.playAbsenceContribution != null
+    }
   })
 }
 
@@ -5172,7 +5033,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     if (
       definition.stateContributions.some(
         ({ kind }) =>
-          kind === 'ACTOR_LINK' || kind === 'CREATURE_FORM' || kind === 'SOURCE_IMMUNITY'
+          kind === 'ACTOR_LINK' ||
+          kind === 'CREATURE_FORM' ||
+          kind === 'PLAY_ABSENCE' ||
+          kind === 'SOURCE_IMMUNITY'
       )
     )
       return { applications: [], terminal: false, emptyApplicationAllowed: true }

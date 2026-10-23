@@ -44,6 +44,7 @@ import {
 } from './actorFormPersistence.js'
 import { readEncounterCharacterPlay } from './characterPlay.js'
 import { listStateZones } from './maintainedStateZones.js'
+import { playAbsenceContribution, syncPlayAbsence } from './playAbsencePersistence.js'
 import type { EncounterDocument, EncounterReadContext, EncounterWriteContext } from './store.js'
 
 const positiveIntegerSchema = z.number().int().positive()
@@ -388,6 +389,16 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
     return count
   }
 
+  /** Puts the holder of a `PLAY_ABSENCE` effect out of play or back in it, from the effects it holds now (D178). */
+  async function syncHolderAbsence(effect: ActiveRuleEffectRecord, owner: ActiveRuleEffectOwner) {
+    if (!playAbsenceContribution(effect.definition)) return
+    await syncPlayAbsence(ctx, {
+      owner,
+      sourceEncounterId: effect.sourceEncounterId,
+      effects: (await listOwner(ctx, owner)).map(({ definition }) => definition)
+    })
+  }
+
   async function removeEffectRow(current: ActiveRuleEffectRecord, owner: ActiveRuleEffectOwner) {
     const { id, version } = current
     if (owner.kind === 'CHARACTER') {
@@ -404,6 +415,7 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
           characterId: owner.characterId,
           effectId: id
         })
+      await syncHolderAbsence(current, owner)
       return
     }
     const row = await ctx.db
@@ -421,6 +433,7 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
         actorId: owner.targetActorId,
         effectId: id
       })
+    await syncHolderAbsence(current, owner)
   }
 
   /** The one place an effect that ended leaves its authored `onEnd` grant behind (Haste's lethargy). */
@@ -598,6 +611,7 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
             actorId: actorRow.targetActorId,
             effectId: effect.id
           })
+        await syncHolderAbsence(effect, effect.owner)
         if (input.removal === 'ENDED') await createOnEndGrant(effect)
       }
       await ctx.db.delete(row._id)
@@ -710,7 +724,9 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
         )
         const row = await ctx.db.get(rowId)
         if (!row) throw new Error('Active rule effect was not created.')
-        return readCharacterEffect(row)
+        const created = readCharacterEffect(row)
+        await syncHolderAbsence(created, owner)
+        return created
       }
       const rowId = await ctx.db.insert(
         'encounterActiveRuleEffects',
@@ -722,7 +738,9 @@ export function createActiveRuleEffectStore(ctx: EncounterWriteContext) {
       )
       const row = await ctx.db.get(rowId)
       if (!row) throw new Error('Active rule effect was not created.')
-      return readEncounterEffect(row)
+      const created = readEncounterEffect(row)
+      await syncHolderAbsence(created, owner)
+      return created
     },
     async updateLifecycleCas(input: {
       id: string

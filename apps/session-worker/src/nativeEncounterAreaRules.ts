@@ -23,6 +23,7 @@ import {
   offerEncounterAreaLegendaryResistance
 } from '@artificer-toolkit/rules-runtime/encounterAreaLegendaryResistance'
 import {
+  absentEncounterActorIds,
   catchEncounterAreaActorIds,
   prepareEncounterAreaTests,
   settleEncounterAreaAction
@@ -109,7 +110,8 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
           shape: area.shape,
           casterActorId: caster.id,
           tokens: scene.tokens.map((token) => ({ ...token, id: token.tokenId })),
-          fromCasterSpace: command.target.kind === 'CASTER_CENTERED'
+          fromCasterSpace: command.target.kind === 'CASTER_CENTERED',
+          absentActorIds: absentEncounterActorIds(actors)
         })
   const inAreaActors = inArea.map((actorId) => {
     const actor = actors.find((candidate) => candidate.id === actorId)

@@ -1,4 +1,7 @@
-import type { EncounterActorDispositionDto } from '@artificer-toolkit/schema/api/encounterData'
+import type {
+  EncounterActorAbsenceDto,
+  EncounterActorDispositionDto
+} from '@artificer-toolkit/schema/api/encounterData'
 import type { CompiledActionTargetPolicy } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { lengthMeasurementInFeet, type LengthUnitCode } from '@artificer-toolkit/shared/core'
@@ -16,7 +19,12 @@ import {
   encounterRuleContributorSource
 } from './encounterRollModeReasons.js'
 
-type DispositionActor = { id: string; disposition: EncounterActorDispositionDto }
+type DispositionActor = {
+  id: string
+  disposition: EncounterActorDispositionDto
+  /** Set while the actor is out of play (D128, D178): it cannot be targeted. */
+  absence?: EncounterActorAbsenceDto | null
+}
 
 type SceneTokenGeometry = Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
 
@@ -162,6 +170,8 @@ export function evaluateEncounterActionTargetPolicy(input: {
   /** The action makes an attack roll; an attack never targets its own user (D99). */
   makesAttackRoll: boolean
 }): EncounterRuleWarningDto[] | null {
+  // An actor out of play, however it left, is no legal target (D178).
+  if (input.target.absence != null) return null
   const measure = singleTargetMeasure(input.targetPolicy)
   if (measure === null) return null
   const targetsSelf = input.target.id === input.actor.id

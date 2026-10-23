@@ -2300,8 +2300,17 @@ through its skipped turns.
 `SPECIAL`) compiles to a target-only `dnd5e.depart-proposal`. Its `DEPART` application sets the chosen actor's
 `absence` to `DEPARTED` (any Run actor kind) in the action commit; revert restores it by the before-state. The
 skip set and the Tabletop stage read `absence`, so initiative skips the actor and its bound token is hidden
-without a Scene write. The GM clears it with `UPDATE_ACTOR returnToInitiative`. Spatial occupancy and targeting of
-an absent token are not modeled (a defeated token behaves the same). In-Scene destinations are T1b.
+without a Scene write. The GM clears it with `UPDATE_ACTOR returnToInitiative`. In-Scene destinations are T1b.
+
+**Removed from play (D178, SPELLS-4.T2h1).** An actor with any `absence` is untargetable: `evaluateEncounterActionTargetPolicy` refuses it
+outright (no acknowledgement overrides) and area resolution (`planNativeLiveEncounterAreaAction`) catches nothing absent.
+`REMOVE_FROM_PLAY { keepsTurn }` is an active-effect-plan outcome that compiles to a `PLAY_ABSENCE` state contribution
+(Banishment: incapacitated condition plus removal; Etherealness: `keepsTurn`; Imprisonment and Maze: removal, the
+ending conditions stay `MANUAL_ADJUDICATION`). The effect store alone sets and clears the holder's absence
+(`syncPlayAbsence`, called from `create` and every delete path): `EFFECT` skips initiative, `EFFECT_KEEPS_TURN` keeps it,
+and the value is recomputed from the removals still held so overlapping ones return the actor only when the last ends.
+`GM_REMOVED` and `DEPARTED` are never overwritten or cleared by an effect ending. A return onto an occupied space is not
+modeled; the token stays where it was and the GM moves it.
 
 **Carry-over (D99 Q1 A, SPELLS-5.9).** COMPLETE ends the effects a Run sourced on its Characters
 (`endCompletedRunCharacterEffects`: Encounter-scoped grants), alongside the Creature effects ADR 0035
