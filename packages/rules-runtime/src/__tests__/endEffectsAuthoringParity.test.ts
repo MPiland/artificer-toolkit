@@ -123,7 +123,11 @@ describe('Lesser Restoration is authorable from core options (D174, SPELLS-4.T2f
 })
 
 describe('a spell-level END_EFFECTS outcome is authorable from core options (D182, SPELLS-4.T2f1a)', () => {
-  const homebrew = (selector: Record<string, unknown>) => ({
+  const homebrew = (selector: {
+    kind: 'SPELL_LEVEL'
+    limit: 'SLOT_LEVEL' | 'FIXED'
+    level?: number
+  }) => ({
     id: testUuid(0x2260),
     order: 1,
     invocation: {

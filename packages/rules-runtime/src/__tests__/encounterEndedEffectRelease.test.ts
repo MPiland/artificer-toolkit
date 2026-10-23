@@ -907,7 +907,13 @@ describe('effects an authored END_EFFECTS outcome ends (SPELLS-4.T2f)', () => {
 describe('effects a spell-level END_EFFECTS selector ends (SPELLS-4.T2f1a, D182)', () => {
   const THIRD_ID = '00000000-0000-4000-8000-00000000f2a3'
   const staged = (id: string, originLevel: number | null) =>
-    activeEffect({ id, owner, createdOrdinal: 1, originLevel, stateContributions: [] })
+    activeEffect({
+      id,
+      owner,
+      createdOrdinal: 1,
+      originLevel,
+      stateContributions: [{ kind: 'TEMPORARY_HIT_POINTS_OWNERSHIP' }]
+    })
   const held = [staged(FIRST_ID, 2), staged(SECOND_ID, 3), staged(THIRD_ID, null)]
   const ids = (
     castLevel: number | null,

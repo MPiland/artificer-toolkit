@@ -157,7 +157,8 @@ describe('a spell-level END_EFFECTS spell cast in the room (SPELLS-4.T2f1a)', ()
   if (outcome?.selectionKind !== 'FIXED') throw new Error('Expected a fixed path.')
   outcome.resultBlock.outcomes = [
     {
-      ...outcome.resultBlock.outcomes[0]!,
+      id: outcome.resultBlock.outcomes[0]!.id,
+      effectKind: 'END_EFFECTS' as const,
       scope: 'ALL' as const,
       selectors: [{ kind: 'SPELL_LEVEL' as const, limit: 'SLOT_LEVEL' as const }]
     }
