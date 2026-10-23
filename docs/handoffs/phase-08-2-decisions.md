@@ -1160,6 +1160,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
   - **Rejected (mirror):** a `mirroredApplications` channel on every receipt root (an envelope change across about 12 roots); any partial mirror outside the transaction.
   - **Return onto an occupied space (T2h4, D178):** the Session Worker commit path diffs actor absence before and after. When an absence clears (EFFECT or EFFECT_KEEPS_TURN) and another visible token's footprint overlaps the returning token's cell, the receipt carries an encounterRuleWarnings entry RETURN_SPACE_OCCUPIED for GM manual placement; there is no Scene write. One shared footprint-overlap function serves the check.
 
+* **D185** (2026-10-23) Active-effect flat d20 modifiers (SPELLS-4.T2g2, AC SPELLS-4.1). Orchestrator ruling.
+  - **Finding:** d20 sites read only added dice, influence and the minimum roll from active effects. The Character grant fold is Builder-snapshot-only, so a stored BONUS/PENALTY grant (the Raise Dead -4) is never applied.
+  - **Ruling:** T2g2 (resized to 8) adds one shared fold that totals an actor's active-effect fixed BONUS/PENALTY grants per roll domain. The sheet roll, encounter attack, saving throw, ability check, movement check and death save all read it, and the roll receipt records it as a labelled modifier, reusing an existing modifier entry shape where one exists. The Builder grant fold stays snapshot-only. Death saves stay a single d20 (D181).
+  - **Rejected:** shipping stepDown with an inert penalty and a follow-up consumer slice (the kinds would be deleted before the behavior is felt); folding play-state effects into the Builder grant fold.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
