@@ -117,6 +117,7 @@ type AuthoringDefaultKind =
   | 'pathLifecycleHolderEnd'
   | 'pathLifecycleOnEnd'
   | 'pathLifecycleTurnAnchor'
+  | 'pathLifecycleTurnEndGate'
   | 'pathHitPointTierRow'
   | 'pathRollTableRow'
   | 'perTargetLockout'
@@ -293,6 +294,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   pathLifecycleHolderEnd: ['pathLifecycleHolderEnd'],
   pathLifecycleOnEnd: ['pathLifecycleOnEnd'],
   pathLifecycleTurnAnchor: ['pathLifecycleTurnAnchor'],
+  pathLifecycleTurnEndGate: ['pathLifecycleTurnEndGate'],
   pathHitPointTierRow: ['hitPointTierRow', 'nonManifestHitPointTierRow'],
   pathRollTableRow: ['rollTableRow', 'nonManifestRollTableRow'],
   perTargetLockout: ['perTargetLockout'],

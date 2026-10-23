@@ -108,3 +108,12 @@ One authored effect graph checksum each for Banishment, Etherealness, Imprisonme
 - Deviation from the packet: the `absence` enum gains `EFFECT` and `EFFECT_KEEPS_TURN` instead of an `absenceSourceEffectId`. The effect store recomputes absence from the `PLAY_ABSENCE` effects the holder still holds, so overlapping removals work and `GM_REMOVED`/`DEPARTED` are never touched.
 - Imprisonment has no mode pick in the SRD authoring, so it is the removal alone; the future-cast immunity marker is description-only.
 - Not built: the `RETURN_SPACE_OCCUPIED` GM-placement flag. No flag surface exists for effect-driven returns (the token never leaves the Scene), so it needs its own slice.
+
+## D178 amendment: the turn-end roll gate (SPELLS-4.T2h2, current)
+
+- A result block's `lifecycle.turnEndGate { minimumRoll }` (2..20) rolls a bare d20 at the end of the holder's turn, on the repeat-save pipeline (no ability, modifier 0, DC = `minimumRoll`). A total at or above it passes.
+- A pass mints one child effect (`turnEndGateChildEffect`, `rules-runtime/encounterEffectTurnEndGate.ts`): `linkedEffectId` is the rolling effect (D172, so it ends with its parent), one tick decremented at the holder's next turn start, and the authored outcome's `PLAY_ABSENCE` state contribution. The id is derived from the parent's, since the prior child is gone by the next turn end. A failed roll mints nothing; the parent keeps rolling until its duration ends.
+- The gating effect itself holds no outcome: Blink authors only `turnEndGate` plus the `REMOVE_FROM_PLAY { keepsTurn: true }` outcome, and `recurringKind` must not be authored beside it.
+- The child carries its own frozen `condition-duration` graph, since it cannot reuse the parent's repeat-save graph.
+- Proofs: `nativeRoomTurnEndGate.test.ts` (room journey: 11+ removes the caster until their next turn starts, 10 leaves them in play, the spell remains), `removeFromPlayAuthoringParity.test.ts` (SRD and homebrew through the effect node map), `playAbsencePersistence.test.ts` (child id, link, absence), and the Blink golden line.
+- The `BLINK` closed rule kind is deleted. Blink returns to the space it left; "space of your choice within 10 feet" stays in [future enhancements](../roadmap/future-enhancements.md#return-placement-and-plane-rules).
