@@ -34,8 +34,8 @@ export async function readEncounterActionTargetModifiers(
   const viewer =
     membership.role === 'OWNER'
       ? null
-      : await readEncounterPlayerViewer(tx, { id: state.id, actors: others }, membership)
-  const listed = others.filter((entry) => !viewer || playerSeesActor(entry, viewer))
+      : await readEncounterPlayerViewer(tx, { id: state.id, actors }, membership)
+  const listed = others.filter((entry) => !viewer || playerSeesActor(entry, viewer, actors))
   const [movementTargets, system] = await Promise.all([
     loadMovementTargets(tx, {
       state,

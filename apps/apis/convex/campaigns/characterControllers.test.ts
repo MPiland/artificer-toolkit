@@ -77,7 +77,7 @@ async function controlsCharacterActor(base: PlayerControlFixture, userId: string
       { userId, role: 'PLAYER' }
     )
     // The two derivations of control must agree.
-    expect(playerControlsActor(actor, { ...viewer, userId })).toBe(control !== null)
+    expect(playerControlsActor(actor, { ...viewer, userId }, [actor])).toBe(control !== null)
     return control
   })
 }

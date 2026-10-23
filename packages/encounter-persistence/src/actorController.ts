@@ -1,9 +1,14 @@
 import {
+  MAX_ACTOR_OWNER_DEPTH,
+  actorOwnerChain
+} from '@artificer-toolkit/shared/campaign/actorOwnership'
+import {
   controlsAssignedCharacter,
   controlsUnboundSceneToken,
   type CharacterControlAssignment
 } from '@artificer-toolkit/shared/campaign/characterControl'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { readStoredRunActor } from './actorProjectionFacts.js'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActor, readRunState } from './documents.js'
 import type { EncounterDocument } from './store.js'
@@ -11,7 +16,7 @@ import type { EncounterReadTransaction } from './ports.js'
 
 type ControlledActor = Pick<
   EncounterRunActorState,
-  'id' | 'kind' | 'sourceId' | 'controllerUserIds'
+  'id' | 'encounterId' | 'kind' | 'sourceId' | 'controllerUserIds' | 'owner'
 >
 type ControlInput = {
   campaign: EncounterDocument<'campaigns'>
@@ -28,33 +33,80 @@ type CharacterControl = {
   assignments: readonly CharacterControlAssignment[]
 }
 
-function actorControl(
+type StoredOwner = ReturnType<typeof readStoredRunActor>
+/** An actor followed by its owners, nearest first (`actorOwnerChain`). */
+type OwnerChain<Actor extends ControlledActor = ControlledActor> = readonly (Actor | StoredOwner)[]
+
+function directlyControls(
   membership: EncounterDocument<'campaignMemberships'>,
   control: CharacterControl,
   actor: ControlledActor
-): EncounterActorControl | null {
-  if (membership.role === 'OWNER') return 'GM'
-  return actor.controllerUserIds.includes(membership.userId) ||
+): boolean {
+  return (
+    actor.controllerUserIds.includes(membership.userId) ||
     (actor.kind === 'CHARACTER' &&
       (actor.sourceId === control.assignedCharacterId ||
         controlsAssignedCharacter(
           control.assignments.find((assignment) => assignment.characterId === actor.sourceId),
           membership.userId
         )))
-    ? 'CONTROLLER'
-    : null
+  )
+}
+
+/** Control is derived through the owner chain and never copied onto the owned actor. */
+function actorControl(
+  membership: EncounterDocument<'campaignMemberships'>,
+  control: CharacterControl,
+  chain: OwnerChain
+): EncounterActorControl | null {
+  if (membership.role === 'OWNER') return 'GM'
+  return chain.some((actor) => directlyControls(membership, control, actor)) ? 'CONTROLLER' : null
+}
+
+/** Reads each actor's owner chain; owners are stored Run actors of the same Encounter. */
+async function readOwnerChains<Actor extends ControlledActor>(
+  ctx: EncounterReadTransaction,
+  actors: readonly Actor[]
+): Promise<Map<string, OwnerChain<Actor>>> {
+  const known = new Map<string, Actor | StoredOwner>()
+  for (const actor of actors) known.set(actor.id, actor)
+  const chains = new Map<string, OwnerChain<Actor>>()
+  for (const actor of actors) {
+    let tail: Actor | StoredOwner = actor
+    for (let depth = 0; tail.owner && depth < MAX_ACTOR_OWNER_DEPTH; depth += 1) {
+      const ownerActorId: string = tail.owner.ownerActorId
+      let next = known.get(ownerActorId)
+      if (!next) {
+        const row = await ctx.db
+          .query('encounterRunActors')
+          .withIndex('by_encounterId_id', (q) =>
+            q.eq('encounterId', actor.encounterId).eq('id', ownerActorId)
+          )
+          .unique()
+        if (!row) break
+        next = readStoredRunActor(row)
+        known.set(next.id, next)
+      }
+      tail = next
+    }
+    chains.set(
+      actor.id,
+      actorOwnerChain(actor, (id) => known.get(id))
+    )
+  }
+  return chains
 }
 
 /** The member's assigned Character and the Campaign assignments (with grants) of `actors`' Characters. */
 async function readCharacterControl(
   ctx: EncounterReadTransaction,
-  input: ControlInput & { actors: readonly ControlledActor[] }
+  input: ControlInput & { chains: ReadonlyMap<string, OwnerChain> }
 ): Promise<CharacterControl> {
   if (input.membership.role !== 'PLAYER') return { assignedCharacterId: null, assignments: [] }
   const characterIds = new Set(
-    input.actors.flatMap((actor) =>
-      actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []
-    )
+    [...input.chains.values()]
+      .flat()
+      .flatMap((actor) => (actor.kind === 'CHARACTER' && actor.sourceId ? [actor.sourceId] : []))
   )
   const [assigned, rows] = await Promise.all([
     ctx.ports.readAssignedCharacter(input.campaign, input.membership),
@@ -73,6 +125,14 @@ async function readCharacterControl(
   }
 }
 
+/** The actor followed by its owners, nearest first, for a read that needs their Character grants. */
+export async function readActorOwnerChain<Actor extends ControlledActor>(
+  ctx: EncounterReadTransaction,
+  actor: Actor
+): Promise<OwnerChain<Actor>> {
+  return (await readOwnerChains(ctx, [actor])).get(actor.id)!
+}
+
 /**
  * The one answer to "can this member act for this Run actor" (ADR 0034 decision 1): the Campaign
  * owner always can; a player can when the GM granted them control or the actor is the Character
@@ -82,10 +142,11 @@ export async function readEncounterActorControl(
   ctx: EncounterReadTransaction,
   input: ControlInput & { actor: ControlledActor }
 ): Promise<EncounterActorControl | null> {
+  const chains = await readOwnerChains(ctx, [input.actor])
   return actorControl(
     input.membership,
-    await readCharacterControl(ctx, { ...input, actors: [input.actor] }),
-    input.actor
+    await readCharacterControl(ctx, { ...input, chains }),
+    chains.get(input.actor.id)!
   )
 }
 
@@ -102,32 +163,37 @@ export async function readEncounterControlledActorIds(
   ctx: EncounterReadTransaction,
   input: ControlInput & { actors: readonly ControlledActor[] }
 ): Promise<ReadonlySet<string>> {
-  const control = await readCharacterControl(ctx, input)
+  const chains = await readOwnerChains(ctx, input.actors)
+  const control = await readCharacterControl(ctx, { ...input, chains })
   return new Set(
     input.actors
-      .filter((actor) => actorControl(input.membership, control, actor) !== null)
+      .filter((actor) => actorControl(input.membership, control, chains.get(actor.id)!) !== null)
       .map((actor) => actor.id)
   )
 }
 
 /**
  * The user whose "Auto-roll my dice" preference applies to a roll routed to this actor's
- * controllers: its assigned player, else its first granted controller, else the GM.
+ * controllers: its assigned player, else its first granted controller, else its owner's, else the
+ * GM.
  */
 export async function readEncounterActorPrimaryController(
   ctx: EncounterReadTransaction,
   campaign: EncounterDocument<'campaigns'>,
   actor: ControlledActor
 ): Promise<string> {
-  const characterId = actor.kind === 'CHARACTER' ? actor.sourceId : null
-  if (characterId) {
-    const assignment = await ctx.db
-      .query('campaignCharacterAssignments')
-      .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
-      .unique()
-    if (assignment?.campaignId === campaign.id) return assignment.userId
+  for (const candidate of (await readOwnerChains(ctx, [actor])).get(actor.id)!) {
+    const characterId = candidate.kind === 'CHARACTER' ? candidate.sourceId : null
+    if (characterId) {
+      const assignment = await ctx.db
+        .query('campaignCharacterAssignments')
+        .withIndex('by_characterId', (q) => q.eq('characterId', characterId))
+        .unique()
+      if (assignment?.campaignId === campaign.id) return assignment.userId
+    }
+    if (candidate.controllerUserIds[0]) return candidate.controllerUserIds[0]
   }
-  return actor.controllerUserIds[0] ?? campaign.ownerUserId
+  return campaign.ownerUserId
 }
 
 /**

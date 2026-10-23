@@ -45,11 +45,12 @@ async function readPlayAuthorization(ctx: QueryCtx, campaign: Doc<'campaigns'>) 
       encounterId: run.id,
       sceneId: binding.sceneId,
       healthDisplayDefault: state.healthDisplayDefault,
-      actors: actors.map(({ id, kind, sourceId, controllerUserIds, healthDisplay }) => ({
+      actors: actors.map(({ id, kind, sourceId, controllerUserIds, owner, healthDisplay }) => ({
         id,
         kind,
         sourceId,
         controllerUserIds,
+        ...(owner && { owner }),
         healthDisplay
       })),
       tokens: tokens.map(({ tokenId, actorId }) => ({ tokenId, actorId }))

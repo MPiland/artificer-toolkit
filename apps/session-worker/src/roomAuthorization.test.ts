@@ -536,6 +536,41 @@ describe('room authorization cache', () => {
     ])
   })
 
+  it('gives an owned actor the control of its owner without a controller list of its own', async () => {
+    const summonId = id(13)
+    const summonTokenId = id(14)
+    const first = fullResponse()
+    const withSummon: Response = {
+      ...first,
+      play: {
+        encounter: {
+          ...first.play!.encounter!,
+          actors: [
+            ...first.play!.encounter!.actors,
+            {
+              id: summonId,
+              kind: 'CREATURE',
+              sourceId: null,
+              controllerUserIds: [],
+              owner: { ownerActorId: creatureActorId },
+              healthDisplay: null
+            }
+          ],
+          tokens: [...first.play!.encounter!.tokens, { tokenId: summonTokenId, actorId: summonId }]
+        }
+      }
+    }
+    const { cache } = cacheWith(withSummon)
+    const loaded = await cache.refresh(epoch)
+    const summonControl = (userId: string) =>
+      roomBoundTokenControl(loaded, userId, { sceneId, encounterId })?.find(
+        (token) => token.tokenId === summonTokenId
+      )?.controlled
+    // The creature is granted to the other player; its summon follows without being granted.
+    expect(summonControl(otherPlayerId)).toBe(true)
+    expect(summonControl(playerId)).toBe(false)
+  })
+
   it('reloads the PLAY section after the room changes Encounter state, without blocking commands', async () => {
     const first = fullResponse()
     const granted: Response = {

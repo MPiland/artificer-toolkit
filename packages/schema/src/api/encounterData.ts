@@ -105,6 +105,18 @@ export const encounterActorControllerUserIdsDtoSchema = lazySchema(() =>
 )
 
 /**
+ * The actor that commands this one. Control is derived from it, never copied onto the owned actor
+ * (`actorOwnerChain`): whoever controls the owner controls the owned actor. `sourceEffectId` is the
+ * active effect that created it (a summon spell); a pet or companion no effect created omits it.
+ */
+export const encounterActorOwnerDtoSchema = lazySchema(() =>
+  z.strictObject({
+    ownerActorId: uuidSchema,
+    sourceEffectId: z.optional(uuidSchema)
+  })
+)
+
+/**
  * The GM's per-actor reveal (ATTACK-17.3): a public actor whose token a player cannot see is
  * listed to that player only when revealed, as an "Unseen creature" (`UNNAMED`) or by name (`NAMED`).
  * It never draws the token. GM-only; the player projection carries no trace of it.
@@ -134,6 +146,8 @@ const encounterActorBaseDtoSchema = lazySchema(() =>
     sourceRevision: z.nullable(z.number().check(z.int()).check(z.positive())),
     public: z.boolean(),
     controllerUserIds: encounterActorControllerUserIdsDtoSchema,
+    /** The actor that commands this one (summon, pet, companion, minion); absent for an independent actor. */
+    owner: z.optional(encounterActorOwnerDtoSchema),
     disposition: encounterActorDispositionDtoSchema,
     initiative: z.nullable(z.number().check(z.int())),
     manualOrder: z.nullable(z.number().check(z.int()).check(z.nonnegative())),

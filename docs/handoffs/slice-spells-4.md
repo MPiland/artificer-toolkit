@@ -571,3 +571,9 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - A `SPEED` `SET_VALUE` payload may be `{ equalsSpeedId }` instead of a length (see [rules-runtime](../architecture/rules-runtime.md), "Speed equal to another speed"). Spider Climb (climbing speed equal to walking speed) and Alter Self (Aquatic Adaptation's swimming speed) author it; Alter Self's other two options and its appearance choice stay with the description and a `MANUAL_ADJUDICATION`.
 - Jump, Levitate and Reverse Gravity need a 3D position model, so each ships as a `MANUAL_ADJUDICATION` GM ruling; 3D movement is in future-enhancements. `SPIDER_CLIMB`, `ALTER_SELF`, `JUMP`, `LEVITATE` and `REVERSE_GRAVITY` left `CLOSED_RULE_KIND`.
 - Proofs: `modifierLengths.test.ts` (Creature and Character folds), `grantAuthoringParity.test.ts` (Spider Climb, Alter Self), `manualBesideSpellAuthoringParity.test.ts` (Jump, Levitate, Reverse Gravity), `nativeRoomGrantModifiers.test.ts` (a Spider Climb target gets a 30-foot climbing allowance in the room).
+
+## T2v2a1 (D187b): owner contract
+
+- A Run actor may carry `owner: { ownerActorId, sourceEffectId? }`; control of an owned actor is derived through `actorOwnerChain` and never copied into `controllerUserIds` (see [persistence](../architecture/persistence.md), "Owned Run actors"). Persistence reads, the player projection and the room authorization cache all use it; the cache pick carries `owner`.
+- Nothing creates an owned actor yet (T2v2a2 adds the SUMMON cast commit and removal; T2v2a3 the owner-economy move and attack).
+- Proofs: `actorOwnership.test.ts` (chain walk, loop, depth), `encounterPlayerProjection.test.ts` (owner's player lists the owned actor), `roomAuthorization.test.ts` (summon token follows the owner), `playerControl.test.ts` (an owned actor no controller list names: GM and the owner's player control it, a stranger does not).

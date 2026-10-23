@@ -1,4 +1,7 @@
-import { createConvexEncounterStoreReader } from '../lib/convexEncounterStore'
+import {
+  createConvexEncounterStore,
+  createConvexEncounterStoreReader
+} from '../lib/convexEncounterStore'
 import { makeFunctionReference } from 'convex/server'
 import { describe, expect, it } from 'vitest'
 import type { z } from 'zod/mini'
@@ -19,7 +22,11 @@ import {
   readEncounterControlledActorIds,
   requireBoundTokenMoveControl
 } from '@artificer-toolkit/encounter-persistence/actorController'
-import { readRunActor, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
+import {
+  readRunActor,
+  readRunState,
+  replaceRunActor
+} from '@artificer-toolkit/encounter-persistence/documents'
 import { readEncounterGmProjection } from '@artificer-toolkit/encounter-persistence/nativeProjection'
 import {
   checkpointLiveRoom,
@@ -219,6 +226,61 @@ describe('Encounter actor control', () => {
       projection.projection.actors.find((actor) => actor.id === base.companion.id)
         ?.controllerUserIds
     ).toEqual([base.player.userId])
+  })
+
+  it("derives an owned actor's control from its owner, never from its own controller list", async () => {
+    const base = await playerControlFixture()
+    // The enemy is owned by the player's Character; no controller list names the player.
+    await base.t.run(async (ctx) => {
+      const row = await ctx.db
+        .query('encounterRuns')
+        .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+        .unique()
+      if (!row) throw new Error('Missing player control Run.')
+      const enemy = await readRunActor(
+        { db: createConvexEncounterStoreReader(ctx) },
+        readRunState(row),
+        base.enemy.id
+      )
+      await replaceRunActor({ db: createConvexEncounterStore(ctx) }, enemy, {
+        ...enemy,
+        owner: { ownerActorId: base.character.id }
+      })
+    })
+    const controlOf = (member: Member) =>
+      base.t.run(async (ctx) => {
+        const [campaign, row, membership] = await Promise.all([
+          ctx.db
+            .query('campaigns')
+            .withIndex('by_publicId', (q) => q.eq('id', base.campaign.id))
+            .unique(),
+          ctx.db
+            .query('encounterRuns')
+            .withIndex('by_publicId', (q) => q.eq('id', base.run.id))
+            .unique(),
+          ctx.db
+            .query('campaignMemberships')
+            .withIndex('by_campaignId_userId', (q) =>
+              q.eq('campaignId', base.campaign.id).eq('userId', member.userId)
+            )
+            .unique()
+        ])
+        if (!campaign || !row || !membership) throw new Error('Missing player control setup.')
+        const actor = await readRunActor(
+          { db: createConvexEncounterStoreReader(ctx) },
+          readRunState(row),
+          base.enemy.id
+        )
+        expect(actor.controllerUserIds).toEqual([])
+        return readEncounterActorControl(encounterReadTransaction(ctx), {
+          campaign,
+          membership,
+          actor
+        })
+      })
+    expect(await controlOf(base.owner)).toBe('GM')
+    expect(await controlOf(base.player)).toBe('CONTROLLER')
+    expect(await controlOf(base.other)).toBeNull()
   })
 
   it('refuses a point-origin target for an action that does not take a point', async () => {

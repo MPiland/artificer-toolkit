@@ -1948,6 +1948,15 @@ A held effect's result block may carry `lifecycle.grantedActions` (generic autho
 - **Allowance:** a `FREE` offer skips the allowance in `evaluateNativeLiveActionEconomy`; any other activation spends the real allowance. A `weaponAttack` offer is the Attack action's fallback when its own economy is unavailable: the attack opens a total-1 Attack action charged to the offer's use key.
 - **Use count:** a capped offer spends `granted:<effectId>:<offerIndex>:<use>` in the turn row's `usedOncePerTurn` (see persistence.md); the commit spends it and an undo restores it.
 
+### Owner-derived control (current, SPELLS-4.T2v2a1)
+
+The actor contract (`owner` on a Run actor, ownership resolved by `actorOwnerChain`, control never copied) is
+recorded in persistence.md "Owned Run actors". The rules-runtime side is the player projection:
+`playerControlsActor(actor, viewer, actors)` and `playerSeesActor(actor, viewer, actors)` take the Encounter's
+actor list so a player who controls an actor's owner controls, and sees, the owned actor. The GM projection carries
+`owner` on each actor. Nothing here is System-specific: the economy an owned actor spends is named for the
+concept (the owner's economy) and a System's data picks the action type (T2v2a3).
+
 ### Effect offers: moving a held effect (current, SPELLS-4.T2d2, D160)
 
 `grantedActions` offer a basic action to the effect's holder; `lifecycle.effectOffers` is the second offer family, made to the effect's **source** (or holder) about the effect itself. Generic authored data, never a spell name: `{ kind: 'MOVE_HELD_EFFECT', offeredTo: 'SOURCE' | 'HOLDER', when: 'HOLDER_AT_ZERO_HP', activation (not REACTION or FREE), range { amount, unit } }`, at most 4, `APPLY_GRANT` only. The compiler stores it on the `MODIFIER_GRANT` contribution (`effectOffers`); the `onEnd` follow-on never inherits it. A later kind (T2lb2's `REPEAT_SOURCE_PATH`) is one more `kind` in `packages/schema/src/effects/effectOffer.ts`; discovery, the listing and the pick envelope do not change.
