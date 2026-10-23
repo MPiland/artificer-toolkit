@@ -184,6 +184,46 @@ describe("Thief's Reflexes (SPELLS-31.T5o2, D187a)", () => {
   })
 })
 
+describe('Dragon Wings, Unarmored Movement Improvement and Second-Story Work (SPELLS-31.T4o)', () => {
+  const featureOf = (recordLabel: string, label: string) => {
+    const found = srdByLabel(SRD.classes, recordLabel).features?.find(
+      (entry) => entry.label === label
+    )
+    if (!found) throw new Error(`${recordLabel} has no ${label}.`)
+    return found
+  }
+  const outcomesOf = (found: ReturnType<typeof featureOf>) => {
+    const path = found.effects?.[0]?.paths[0]
+    return path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes : []
+  }
+
+  it('Dragon Wings grants a fly speed equal to the walking speed, with no closed rule', () => {
+    const outcomes = outcomesOf(featureOf('Draconic Bloodline', 'Dragon Wings'))
+    expect(outcomes.some(({ effectKind }) => effectKind === 'CLOSED_RULE')).toBe(false)
+    const grant = outcomes.find((outcome) => outcome.effectKind === 'APPLY_GRANT')
+    if (grant?.effectKind !== 'APPLY_GRANT') throw new Error('Dragon Wings must apply a grant.')
+    expect(grant.grants?.modifiers?.[0]).toMatchObject({
+      valueDomainCode: 'SPEED',
+      modifierKind: 'SET_VALUE',
+      payload: { equalsSpeedId: expect.any(String) }
+    })
+    expect(outcomes).toHaveLength(1)
+  })
+
+  it.each([
+    ['Monk', 'Unarmored Movement Improvement', /vertical surfaces and across liquids/],
+    ['Thief', 'Second-Story Work', /Dexterity modifier/]
+  ] as const)('%s %s is a passive GM ruling with no closed rule', (owner, label, text) => {
+    const found = featureOf(owner, label)
+    expect(found.effects?.[0]?.invocation.kind).toBe('PASSIVE')
+    const [outcome, ...rest] = outcomesOf(found)
+    expect(rest).toHaveLength(0)
+    if (outcome?.effectKind !== 'MANUAL_ADJUDICATION')
+      throw new Error(`${label} must stay a manual adjudication.`)
+    expect(outcome.instructions).toMatch(text)
+  })
+})
+
 describe('Oath of Devotion Channel Divinity (SPELLS-31.T4e)', () => {
   const oathFeature = (featureLabel: string) =>
     evaluateSrdCharacter({
