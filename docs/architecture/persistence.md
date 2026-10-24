@@ -168,9 +168,12 @@ Scene rows and the Encounter commit or roll back together (Option A). `persistRo
 directly, the sibling of the forced-movement write and not the staged geometry publication: a token without
 vision derives no fog, so the direct write needs no staged preparation, and it carries the same `actionOrigin`.
 The cast's `RESOLVE_ACTION` receipt keeps `summonedTokens` (`{sceneId, sceneCommandId, tokenId, actorId}[]`,
-default `[]`) and the Encounter binds the token to the actor in `encounterActorTokenBindings`. Current: the
-callback (`applyRoomSummonTokens`) and the receipt field exist and the planner supplies none; the actor creation,
-the call and the removal on end and revert are SPELLS-4.T2v2a2c.
+default `[]`) and the Encounter binds the token to the actor in `encounterActorTokenBindings`. Current
+(SPELLS-4.T2v2a2c1): the area planner builds the owned actor with the token (`buildEncounterSummon`), the persister
+inserts the actor (`insertRunActor`) and appends its id to the Run's `actorIds` before the Scene write, and the
+receipt carries the actor id. `REVERT_LAST_ACTION` of a summoning cast refuses (`summonedTokens` non-empty) until
+the removal exists. Target (a2c2): the actor, binding and Scene token leave at expiry, Concentration end, recast,
+dispel and revert.
 A drag (D105) writes the mover's and each dragged token's live row at the move's version; publication refuses it
 unless every dragged token still stands at its recorded `from` and moves by the mover's displacement.
 `publishSceneUndo` restores the mover and every token in the preparation's `draggedTokens`, refusing when any of
@@ -442,7 +445,7 @@ persistence reads (`actorController.ts`) load the owner rows of the same Encount
 player projection (`playerControlsActor`, `playerSeesActor`) and the room's authorization cache
 (`roomBoundTokenControl`) walk the Encounter's actor list they already hold. The cache's actor pick therefore
 carries `owner`. A departed owner's player stops controlling the owned actor because they stop controlling the
-owner; nothing is rewritten. Today only a direct write sets `owner`; the creating command is T2v2a2.
+owner; nothing is rewritten. A summoning cast sets `owner` on the actor it creates (SPELLS-4.T2v2a2c1).
 
 ## Scene storage
 

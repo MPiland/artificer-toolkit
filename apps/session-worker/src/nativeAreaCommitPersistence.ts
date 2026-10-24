@@ -23,6 +23,7 @@ import {
   planNativeEncounterActionMechanics,
   planNativeEncounterAreaSourceSpend
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
+import { buildEncounterSummon } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { buildEncounterAreaStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -64,6 +65,7 @@ export async function settleAreaCommit(args: {
   occurredAt: string
   lead: AreaPrepared
   placement: AreaReach['placement']
+  summon?: AreaReach['summon']
   movementTargets: ReadonlyMap<string, MovementTargets>
   areaOccurrenceId: string
   areaSnapshot: ServerAggregateChoicePendingSnapshotDto | null
@@ -102,6 +104,7 @@ export async function settleAreaCommit(args: {
     occurredAt,
     lead,
     placement,
+    summon,
     movementTargets,
     areaOccurrenceId,
     areaSnapshot,
@@ -347,8 +350,21 @@ export async function settleAreaCommit(args: {
     random: input.random,
     repeatSaves: { damagerActorId: caster.id }
   })
+  const summonedTokens = summon
+    ? [
+        buildEncounterSummon({
+          summon: summon.placement,
+          caster,
+          casterHitPointMaximum: caster.kind === 'CHARACTER' ? null : caster.maxHitPoints,
+          label: summon.placement.label ?? sourceLabel,
+          point: summon.point,
+          edgeLength: summon.edgeLength,
+          occurredAt
+        })
+      ]
+    : []
   const nextFacts = buildEncounterActorRuleFacts({
-    actors: concentration.actors
+    actors: [...concentration.actors, ...summonedTokens.map(({ actor }) => actor)]
   })
   const rules = reconcileEncounterActorRuleOutput(
     evaluateInstalledEncounterActors({
@@ -390,6 +406,6 @@ export async function settleAreaCommit(args: {
     placedZones,
     zoneSourceGrant,
     forcedMovements,
-    summonedTokens: []
+    summonedTokens
   }
 }

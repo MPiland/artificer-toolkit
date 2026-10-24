@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SIZE_CODE, sizeRank } from '../domains/core/size.js'
+import { SIZE_CODE, sizeRank, sizeSpaceFeet } from '../domains/core/size.js'
 
 describe('sizeRank', () => {
   it('orders every size code from smallest to largest', () => {
@@ -30,5 +30,16 @@ describe('sizeRank', () => {
     expect(sizeRank('ENORMOUS')).toBeNull()
     expect(sizeRank(null)).toBeNull()
     expect(sizeRank(undefined)).toBeNull()
+  })
+})
+
+describe('sizeSpaceFeet', () => {
+  it('gives the edge of the square a creature of each size fills, and null for no size', () => {
+    expect(sizeSpaceFeet(SIZE_CODE.TINY)).toBe(2.5)
+    expect(sizeSpaceFeet(SIZE_CODE.MEDIUM)).toBe(5)
+    expect(sizeSpaceFeet(SIZE_CODE.LARGE)).toBe(10)
+    expect(sizeSpaceFeet(SIZE_CODE.GARGANTUAN)).toBe(20)
+    expect(sizeSpaceFeet(undefined)).toBeNull()
+    expect(sizeSpaceFeet('toString')).toBeNull()
   })
 })

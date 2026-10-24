@@ -1,5 +1,7 @@
+import { sizeSpaceFeet } from '@artificer-toolkit/shared/core'
 import type { TargetingDto } from '@artificer-toolkit/schema/effects/targeting'
 import type {
+  CompiledActionSummonPlacement,
   CompiledActionTargetPolicy,
   CompiledActionZoneChoice,
   CompiledActionZonePlacement
@@ -16,6 +18,7 @@ import {
   measureSceneDistance,
   pointAreaInSceneCoordinates,
   sceneFootprintMeasureHalfExtent,
+  sceneTokenFootprintsOverlap,
   wallAreaBoundsInSceneCoordinates,
   type SceneGrid,
   type ScenePoint,
@@ -305,8 +308,16 @@ export function encounterActionChoiceTarget(
   /** The options a cast or a basic action (Shove) picks one of on the creatures it targets (D148). */
   castChoice?: { options: readonly { optionId: string; label: string }[] } | null,
   /** The action is used on an item its creature has equipped (Shillelagh, Heat Metal). */
-  choosesItem?: boolean
+  choosesItem?: boolean,
+  /** The creature the action summons: the caster picks the point it stands at (T2v2a2). */
+  summonPlacement?: Pick<CompiledActionSummonPlacement, 'statBlock'> | null
 ): EncounterActionChoiceDto['target'] {
+  const summonFeet = summonPlacement && sizeSpaceFeet(summonPlacement.statBlock.size)
+  if (summonFeet)
+    return {
+      kind: 'POINT',
+      area: { kind: 'CUBE', edgeLength: { amount: summonFeet, unit: 'FEET' } }
+    }
   const itemChoice = choosesItem ? { choosesItem: true as const } : {}
   const forms = formContribution?.forms
   const offered = (options: readonly { optionId: string; label: string }[] | undefined) =>
@@ -465,6 +476,53 @@ export function evaluateEncounterAreaTargetPolicy(input: {
   if (shape === null) return null
   const rangeWarnings = evaluateRangeWarnings(input, range)
   if (rangeWarnings === null) return null
+  return {
+    shape,
+    warnings: input.pointSeen ? rangeWarnings : [...rangeWarnings, OUT_OF_SIGHT]
+  }
+}
+
+/**
+ * Resolves where a summon stands from the point the caster picked: the square its size fills in
+ * Scene coordinates, and the overridable range and sight warnings for the point. A summon that
+ * occupies space is refused at a square another token already fills; a size no Scene models, or a
+ * range this path cannot measure, is refused as unsupported.
+ */
+export function evaluateEncounterSummonTarget(input: {
+  statBlock: { size?: string; occupiesSpace?: boolean }
+  range: CompiledActionTargetPolicy['range']
+  point: ScenePoint
+  grid: SceneGrid
+  /** The caster's token. */
+  sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
+  /** Whether the caster sees the point. */
+  pointSeen: boolean
+  /** The Scene's tokens, which a summon that occupies space may not overlap. */
+  tokens: readonly Pick<SceneToken, 'position' | 'height' | 'width'>[]
+}):
+  | {
+      /** The square the summon fills, centered on the picked point. */
+      shape: { kind: 'CUBE'; edgeLength: number }
+      warnings: EncounterRuleWarningDto[]
+    }
+  | { refusal: 'UNSUPPORTED_SUMMON' | 'SPACE_OCCUPIED' } {
+  const unsupported = { refusal: 'UNSUPPORTED_SUMMON' } as const
+  const feet = sizeSpaceFeet(input.statBlock.size)
+  const shape =
+    feet === null
+      ? null
+      : pointAreaInSceneCoordinates(
+          { kind: 'CUBE', edgeLength: { amount: feet, unit: 'FEET' } },
+          input.grid
+        )
+  const rangeWarnings = evaluateRangeWarnings(input, input.range)
+  if (shape?.kind !== 'CUBE' || rangeWarnings === null) return unsupported
+  const placed = { position: input.point, width: shape.edgeLength, height: shape.edgeLength }
+  if (
+    input.statBlock.occupiesSpace &&
+    input.tokens.some((token) => sceneTokenFootprintsOverlap(placed, token))
+  )
+    return { refusal: 'SPACE_OCCUPIED' }
   return {
     shape,
     warnings: input.pointSeen ? rangeWarnings : [...rangeWarnings, OUT_OF_SIGHT]

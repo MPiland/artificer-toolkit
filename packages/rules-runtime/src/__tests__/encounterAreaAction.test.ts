@@ -8,7 +8,8 @@ import {
   encounterActionTargetKind,
   evaluateEncounterAreaTargetPolicy,
   evaluateEncounterCasterCenteredAreaTarget,
-  evaluateEncounterDirectedAreaTarget
+  evaluateEncounterDirectedAreaTarget,
+  evaluateEncounterSummonTarget
 } from '../encounterAreaAction.js'
 
 /** 100px cells of 5 feet; a Medium token fills one cell and is anchored at its center. */
@@ -563,6 +564,70 @@ describe('caster-centered area', () => {
     })
     expect(refusal({ targetPolicy: centered(SHAPES.DOME) })).toEqual({
       refusal: 'UNSUPPORTED_AREA'
+    })
+  })
+})
+
+describe('summon target', () => {
+  const at = (cells: number) => ({ x: 50 + cells * 100, y: 50 })
+  const evaluate = (input: Partial<Parameters<typeof evaluateEncounterSummonTarget>[0]>) =>
+    evaluateEncounterSummonTarget({
+      statBlock: { size: 'MEDIUM' },
+      range: RANGE_150,
+      point: at(10),
+      grid: FEET_GRID,
+      sourceToken: SOURCE_TOKEN,
+      pointSeen: true,
+      tokens: [],
+      ...input
+    })
+
+  it('fills the square of the stat block size, centered on the point, with no warning in range and sight', () => {
+    expect(evaluate({})).toEqual({ shape: { kind: 'CUBE', edgeLength: 100 }, warnings: [] })
+    expect(evaluate({ statBlock: { size: 'LARGE' } })).toMatchObject({
+      shape: { kind: 'CUBE', edgeLength: 200 }
+    })
+  })
+
+  it('warns when the point is out of range or out of sight, as an area origin does', () => {
+    expect(evaluate({ point: at(31) })).toMatchObject({
+      warnings: [{ code: 'TARGET_OUT_OF_RANGE' }]
+    })
+    expect(evaluate({ pointSeen: false })).toMatchObject({
+      warnings: [{ code: 'TARGET_OUT_OF_SIGHT' }]
+    })
+  })
+
+  it('refuses a space another token holds only when the summon occupies space', () => {
+    const tokens = [{ position: at(10), width: 100, height: 100 }]
+    expect(evaluate({ statBlock: { size: 'MEDIUM', occupiesSpace: true }, tokens })).toEqual({
+      refusal: 'SPACE_OCCUPIED'
+    })
+    expect(
+      evaluate({ statBlock: { size: 'MEDIUM', occupiesSpace: false }, tokens })
+    ).toHaveProperty('shape')
+  })
+
+  it('refuses a stat block with no size', () => {
+    expect(evaluate({ statBlock: {} })).toEqual({ refusal: 'UNSUPPORTED_SUMMON' })
+  })
+
+  it('makes the choice a point for a summon with a sized stat block', () => {
+    expect(
+      encounterActionChoiceTarget(
+        policy({
+          targeting: { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' },
+          shape: null
+        }),
+        null,
+        null,
+        null,
+        false,
+        { statBlock: { size: 'MEDIUM' } }
+      )
+    ).toMatchObject({
+      kind: 'POINT',
+      area: { kind: 'CUBE', edgeLength: { amount: 5, unit: 'FEET' } }
     })
   })
 })

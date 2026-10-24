@@ -54,6 +54,10 @@ import {
 } from '../shared/encounterRuleWarnings.js'
 import { authoredIdentifierSchema, MAX_ENCOUNTER_ACTORS } from '../shared/authoredLimits.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
+import {
+  encounterRunActorStateSchema,
+  type EncounterRunActorState
+} from '../projections/encounterRunState.js'
 import { sceneStoredTokenDtoSchema } from './vttScenes.js'
 import type { SceneToken } from '@artificer-toolkit/shared/vtt'
 
@@ -380,11 +384,11 @@ export const liveSessionPlacedSpatialEffectSchema: z.ZodMiniType<LiveSessionPlac
     })
   )
 
-/** The creature an action conjures: its Scene token, bound to the Encounter actor the cast created. */
-export type LiveSessionSummonedToken = { actorId: string; token: SceneToken }
+/** The creature an action conjures: the Encounter actor the cast creates, and its Scene token. */
+export type LiveSessionSummonedToken = { actor: EncounterRunActorState; token: SceneToken }
 
 export const liveSessionSummonedTokenSchema: z.ZodMiniType<LiveSessionSummonedToken> = lazySchema(
-  () => z.strictObject({ actorId: postgresUuidSchema, token: sceneStoredTokenDtoSchema })
+  () => z.strictObject({ actor: encounterRunActorStateSchema, token: sceneStoredTokenDtoSchema })
 )
 
 /**

@@ -39,6 +39,8 @@ import { canonicalJsonRecordSchema } from '@artificer-toolkit/schema/shared/json
 import { applySceneDelta } from '@artificer-toolkit/shared/vtt'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
 import { encounterSceneBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { buildEncounterSummon } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { applyRoomSummonTokens } from './roomActionSummonTokens.js'
 import { buildRoomCheckpointRecords } from './roomCheckpointRecords.js'
 import { RoomEncounterStore, SCENE_EVIDENCE_ROW, type RoomRecord } from './roomEncounterStore.js'
@@ -722,7 +724,40 @@ describe('room Scene command persistence', () => {
           createdAt: '2026-10-23T00:00:00.000Z'
         })
       )
-      const actorId = uuid(56)
+      const caster = encounterRunActorStateSchema.parse({
+        id: uuid(57),
+        encounterId,
+        sideId: uuid(58),
+        kind: 'CHARACTER',
+        sourceId: uuid(59),
+        frozenState: null,
+        absence: null,
+        form: null,
+        label: 'Aria',
+        systemId: uuid(60),
+        stableTieKey: uuid(61),
+        public: true,
+        controllerUserIds: [base.input.actorUserId],
+        disposition: 'FRIENDLY',
+        healthDisplay: null,
+        resources: {},
+        gmNotes: null,
+        initiative: null,
+        manualOrder: null,
+        createdAt: '2026-10-23T00:00:00.000Z',
+        updatedAt: '2026-10-23T00:00:00.000Z',
+        snapshot: { kind: 'CHARACTER', id: uuid(59), label: 'Aria', systemId: uuid(60) }
+      })
+      const summoned = buildEncounterSummon({
+        summon: { statBlock: {} },
+        caster,
+        casterHitPointMaximum: null,
+        label: 'Summon',
+        point: base.input.scene.tokens[0]!.position,
+        edgeLength: 5,
+        occurredAt: '2026-10-23T00:00:00.000Z'
+      })
+      const actorId = summoned.actor.id
       const created = await base.room.transact(async (transaction) =>
         applyRoomSummonTokens({
           ctx: { db: memory.store },
@@ -731,9 +766,7 @@ describe('room Scene command persistence', () => {
           summon: {
             state: { id: encounterId },
             commandId: origin.commandId,
-            summons: [
-              { actorId, token: { ...base.input.scene.tokens[0]!, id: summonId, label: 'Summon' } }
-            ]
+            summons: [{ ...summoned, token: { ...summoned.token, id: summonId } }]
           }
         })
       )
