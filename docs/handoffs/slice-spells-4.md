@@ -714,3 +714,11 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - Merge fixes with m416 (SPELLS-31.T4s Wild Shape): the druid's Wild Shape form now authors `retainsProficiencies: true` (absent compiled to `false`; proof `wildShapeScaling.test.ts` "keeps the druid's proficiencies"), and `creatureFormOutcomeFields.ts` imports the form and form-filter node maps from m416's `creatureForm.ts` instead of keeping its own copies.
 - Proof: `characterFormProficiencies.test.ts` (saves, held saves, a check, defenses, a missing holding effect, and the retaining case), `encounterAreaActionCompilation.test.ts` (Polymorph compiles `false`), room `nativeRoomConcentration.test.ts` "a Concentrating Character in a form that replaces its proficiencies", `nativeRoomDisarm.test.ts` "room Disarm of a Character in a form that replaces its proficiencies", and `nativeRoomPolymorph.test.ts` T4d now seeds its form effect (`characterFormFixture.ts`).
 - Not here (follow-ups): a retaining form (Wild Shape) still contests with the Character's own size; a Character in any form keeps its own granted attack traits, innate conditions and movement passage.
+
+## T2w (D187a): Faithful Hound as a summon
+
+- Status: implemented on `spells-4-t2w`; CI is the gate.
+- Data: Faithful Hound's cast summons a `MANIFEST` / `SUMMON` (Medium, `INVULNERABLE`, no speeds) through the same offer-free summon path as Spiritual Weapon, then a `MANUAL_ADJUDICATION` (GM ruling) for invisibility, the barking at a Small or larger creature that comes within 30 feet without the password, the turn-start bite (spell attack bonus, 4d8 piercing), and ending by dismissal or by the caster moving more than 100 feet away.
+- Not built (D187a): an automatic attack a summon makes at the start of its source's turn. It stays in `future-enhancements.md` (SUMMON manifests).
+- Deleted: the `FAITHFUL_HOUND` closed rule kind (`closedRuleKind.ts`).
+- Proof: `coreOptionSpellAuthoringParity.test.ts` (Faithful Hound); room `nativeRoomCoreOptionSpells.test.ts` "Faithful Hound": the cast conjures an owned actor and revert removes it.
