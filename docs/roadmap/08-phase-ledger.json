@@ -662,10 +662,12 @@
             },
             {
               "id": "PLATFORM-13.14",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by PLATFORM-13.T19 (m348), PLATFORM-13.T20 (m362); see each task's proof."
+              ],
               "origin": ["User request 2026-10-22 (validation lock queue)"],
-              "note": "AC confirmed by the user 2026-10-22.",
+              "note": "AC confirmed by the user 2026-10-22. Closed 2026-10-24 by PLATFORM-13.T19, PLATFORM-13.T20.",
               "text": "A validation lane is never blocked by a lock whose owner process has died: the next waiter reclaims it, and a lock held by a live process is never taken."
             }
           ],
@@ -3251,45 +3253,55 @@
           "acs": [
             {
               "id": "RULES-2.1",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
-              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
-              "text": "CI fails a non-test file over 1,500 lines unless it is in the file-size budget, fails any growth of a budgeted file, and fails any new direct import of systems/* from neutral runtime; both lists may only shrink."
+              "note": "Registered 2026-10-20 from the rules-engine composability audit. Closed 2026-10-24 by RULES-2.T1.",
+              "text": "CI fails a non-test file over 1,500 lines unless it is in the file-size budget, fails any growth of a budgeted file, and fails any new direct import of systems/* from neutral runtime; both lists may only shrink.",
+              "proof": ["Closed by RULES-2.T1; see each task's proof."]
             },
             {
               "id": "RULES-2.2",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
-              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
-              "text": "A golden harness compiles every SRD authored effect and pins its graph checksum and plan shape; every refactor step keeps it green or explains each changed checksum and reseeds development data in the same change."
+              "note": "Registered 2026-10-20 from the rules-engine composability audit. Closed 2026-10-24 by RULES-2.T2, RULES-2.T15.",
+              "text": "A golden harness compiles every SRD authored effect and pins its graph checksum and plan shape; every refactor step keeps it green or explains each changed checksum and reseeds development data in the same change.",
+              "proof": ["Closed by RULES-2.T2, RULES-2.T15; see each task's proof."]
             },
             {
               "id": "RULES-2.3",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
-              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
-              "text": "Every d20 check, save and contest settles through one frozen d20 context and one settlement function that verifies its outputs, in rules-runtime and the Session Worker."
+              "note": "Registered 2026-10-20 from the rules-engine composability audit. Closed 2026-10-24 by RULES-2.T3a, RULES-2.T3b.",
+              "text": "Every d20 check, save and contest settles through one frozen d20 context and one settlement function that verifies its outputs, in rules-runtime and the Session Worker.",
+              "proof": ["Closed by RULES-2.T3a, RULES-2.T3b; see each task's proof."]
             },
             {
               "id": "RULES-2.4",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
-              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
-              "text": "Every pending choice (reaction, cast reaction, on-hit, retarget, forced movement, Legendary Resistance, the D168 post-roll window) uses one sealed-choice lifecycle and one pause union in the action snapshot, with one Worker handler per pause kind."
+              "note": "Registered 2026-10-20 from the rules-engine composability audit. Closed 2026-10-24 by RULES-2.T4a, RULES-2.T4b.",
+              "text": "Every pending choice (reaction, cast reaction, on-hit, retarget, forced movement, Legendary Resistance, the D168 post-roll window) uses one sealed-choice lifecycle and one pause union in the action snapshot, with one Worker handler per pause kind.",
+              "proof": ["Closed by RULES-2.T4a, RULES-2.T4b; see each task's proof."]
             },
             {
               "id": "RULES-2.5",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
-              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
-              "text": "Triggers, end and consume events and interception run through one typed event table with one discovery entry and one dispatch site per event; a feature subscribes through authored data without a new call site."
+              "note": "Registered 2026-10-20 from the rules-engine composability audit. Closed 2026-10-24 by RULES-2.T5a, RULES-2.T5b, RULES-2.T5c, RULES-2.T5d, RULES-2.T16.",
+              "text": "Triggers, end and consume events and interception run through one typed event table with one discovery entry and one dispatch site per event; a feature subscribes through authored data without a new call site.",
+              "proof": [
+                "Closed by RULES-2.T5a, RULES-2.T5b, RULES-2.T5c, RULES-2.T5d (m345), RULES-2.T16; see each task's proof."
+              ]
             },
             {
               "id": "RULES-2.6",
-              "status": "TODO",
+              "status": "DONE",
               "origin": ["User approved ADR 0039 and the refactor PBIs (2026-10-20)"],
-              "note": "Registered 2026-10-20 from the rules-engine composability audit.",
-              "text": "The effect-action compiler is decomposed into single-responsibility modules composing test phase, outcomes, lifetime, targeting, activation and zones; it refuses only invalid input or a genuine rule, and System-neutral pieces live outside systems/dnd5e."
+              "note": "Registered 2026-10-20 from the rules-engine composability audit. Closed 2026-10-24 by RULES-2.T6a, RULES-2.T6b, RULES-2.T6c1, RULES-2.T6c2, RULES-2.T6d1, RULES-2.T6d2, RULES-2.T6e, RULES-2.T6f, RULES-2.T6e2, RULES-2.T6e3, RULES-2.T6g, RULES-2.T6e3b1a, RULES-2.T6e3b1b, RULES-2.T6e3b1c, RULES-2.T6e3b2, RULES-2.T6h.",
+              "text": "The effect-action compiler is decomposed into single-responsibility modules composing test phase, outcomes, lifetime, targeting, activation and zones; it refuses only invalid input or a genuine rule, and System-neutral pieces live outside systems/dnd5e.",
+              "proof": [
+                "Closed by RULES-2.T6a, RULES-2.T6b, RULES-2.T6c1, RULES-2.T6c2, RULES-2.T6d1, RULES-2.T6d2, RULES-2.T6e, RULES-2.T6f, RULES-2.T6e2, RULES-2.T6e3, RULES-2.T6g (m347), RULES-2.T6e3b1a, RULES-2.T6e3b1b, RULES-2.T6e3b1c, RULES-2.T6e3b2 (m342), RULES-2.T6h (m354); see each task's proof."
+              ]
             },
             {
               "id": "RULES-2.7",
@@ -9652,10 +9664,12 @@
             },
             {
               "text": "Every SRD hazard zone spell (Spike Growth, Wall of Fire, Wall of Thorns, Moonbeam, Spirit Guardians, Sleet Storm, Incendiary Cloud, Cloudkill, Web, Grease, Entangle, Black Tentacles, Insect Plague) places a zone whose entry and turn rules are authored from core options and resolve in Encounters.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-4.T1, SPELLS-4.T1a, SPELLS-4.T1b, SPELLS-4.T1b2, SPELLS-4.T1c, SPELLS-4.T1d, SPELLS-4.T1f, SPELLS-4.T1e, SPELLS-4.T1g, SPELLS-4.T1h, SPELLS-4.T1i, SPELLS-4.T1j, SPELLS-4.T1k; see each task's proof."
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). The first seven are closed rules; the last six have zones with no entry interaction (audit whether their rules are elsewhere). Spike Growth needs a damage-per-distance-moved option and MOVE-3.4 camouflage.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). The first seven are closed rules; the last six have zones with no entry interaction (audit whether their rules are elsewhere). Spike Growth needs a damage-per-distance-moved option and MOVE-3.4 camouflage. Closed 2026-10-24 by SPELLS-4.T1, SPELLS-4.T1a, SPELLS-4.T1b, SPELLS-4.T1b2, SPELLS-4.T1c, SPELLS-4.T1d, SPELLS-4.T1f, SPELLS-4.T1e, SPELLS-4.T1g, SPELLS-4.T1h, SPELLS-4.T1i, SPELLS-4.T1j, SPELLS-4.T1k.",
               "id": "SPELLS-4.2"
             }
           ],
@@ -10691,7 +10705,7 @@
             },
             {
               "id": "SPELLS-4.T2m1d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10701,11 +10715,12 @@
                 "after": ["SPELLS-4.T2m1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Holder-action repeat save (split from T2m1, ruled 2026-10-20): a save variant of the D105/D146 lifecycle.escape seam (prepare, verify, plan, offers, outputs) beside any held condition, not only spatial; DC pinned at cast through the T2i3 castFactKeys save-DC pin (no second pin path). Converts IRRESISTIBLE_DANCE with a parity proof and room journey; kind deleted. Propose a split at start if still size 8.",
-              "note": "D187a re-plan: size 8 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 8 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2m2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10722,7 +10737,8 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Condition suppression (split from T2m, 2026-10-20): a CONDITION_SUPPRESSION modifier (conditionIds, effect origin any or magical, SUPPRESS keeps the condition counting down, PREVENT blocks it). Converts CALM_EMOTIONS and FREEDOM_OF_MOVEMENT with parity proofs; kinds deleted. The magical-origin filter reuses the D179 SOURCE_TRAIT restriction.",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2m3",
@@ -10826,7 +10842,7 @@
               "proof": "Tests and Live green on tip 36ebeae4; SPEED SET_VALUE accepts { equalsSpeedId } resolved by widestLengthByKey (speedEqualsPayloadSchema); Spider Climb and Alter Self authored with it; Jump, Levitate and Reverse Gravity ship as GM rulings with 3D movement deferred; nativeRoomGrantModifiers.test.ts room proof; compile golden updated."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2p",
               "wsjf": {
@@ -10837,10 +10853,11 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B), ruled before coding: Directional and vertical movement and damage multiplication. Converts GUST_OF_WIND, TELEKINESIS, RAY_OF_ENFEEBLEMENT, SUNBEAM, GASEOUS_FORM, with parity proofs; each kind deleted.",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2q",
               "wsjf": {
@@ -10851,7 +10868,8 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B), ruled before coding: Armed, staged or deferred zones. Converts GLYPH_OF_WARDING, SYMBOL, STORM_OF_VENGEANCE, DELAYED_BLAST_FIREBALL, EARTHQUAKE, with parity proofs; each kind deleted.",
-              "note": "D187a re-plan: size 8 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 8 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -13290,10 +13308,12 @@
             {
               "id": "SPELLS-27.2",
               "text": "Every SRD effect whose text ends it on an event (for example Sanctuary when its target attacks or casts a spell on an enemy, Charm Person when the caster or companions harm the target) authors that end event from core options; a corpus test lists any SRD effect left with such text and no authored end event.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by SPELLS-27.T4, SPELLS-27.T4b, SPELLS-27.T5, SPELLS-27.T8, SPELLS-27.T12, SPELLS-27.T9, SPELLS-27.T10, SPELLS-27.T11; see each task's proof."
+              ],
               "origin": [],
-              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads."
+              "note": "Registered 2026-10-15 from the ATTACK-10.T1 (Hide) design review: only ON_HIT_POINTS_REGAINED has an end-event consumer (mechanicsBatchPersistence.ts); the compiler rejects other grant end events, and Invisibility authors endOnEvents ON_ATTACK_ROLL and ON_CAST_SPELL that nothing reads. Closed 2026-10-24 by SPELLS-27.T4, SPELLS-27.T4b, SPELLS-27.T5, SPELLS-27.T8, SPELLS-27.T12, SPELLS-27.T9, SPELLS-27.T10, SPELLS-27.T11."
             }
           ],
           "wsjf": {
@@ -13781,7 +13801,7 @@
             },
             {
               "id": "SPELLS-31.T4c1a2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -13791,7 +13811,8 @@
                 "after": ["SPELLS-31.T4c1a", "RULES-2.T3a"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site.",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T4c1b",
@@ -16021,10 +16042,10 @@
             },
             {
               "text": "Sheet and Encounter summons are built through the same rules-runtime summon plan, proved by a test that runs both paths from one spell.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by SPELLS-34.T1 (m406); see each task's proof."],
               "origin": [],
-              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "note": "User decision 2026-10-23 (D190, approved scope growth). Closed 2026-10-24 by SPELLS-34.T1.",
               "id": "SPELLS-34.4"
             }
           ],
@@ -17524,9 +17545,12 @@
         {
           "id": "RELIABILITY-9",
           "title": "The web follows React data-flow rules",
-          "status": "IN_PROGRESS",
-          "journeyTests": [],
-          "journeyStatus": "none",
+          "status": "DONE",
+          "journeyTests": [
+            "apps/web/src/domains/campaigns/components/session-workspace/CampaignSessionPrepareView.test.tsx",
+            "apps/web/src/auth/pages/SignOutPage.test.tsx"
+          ],
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -17579,10 +17603,10 @@
             },
             {
               "text": "Production web code holds no test- or story-only modules, fixtures, or exports, no unused exports, and component files export components only.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-9.T3b; see each task's proof."],
               "origin": [],
-              "note": "data/encounters/summaries.ts is imported only by CampaignEncounterBuilderPage.stories.tsx; also countDarknessZones, canUseGuidedSpellAuthoring, hasAuthoringDefaultKind, notificationHistoryLimit, storybookNavigation, VTT/sheet fixtures in domain folders, about 44 unused exports, and getSessionWorkspaceViews (CampaignSessionWorkspace.tsx:131) and isCampaignTableSettingsEditable (CampaignTableSettings.tsx:301) in component files. Also the CampaignEncounterWorkspace.tsx:147 `as EncounterCommandInputDto` cast and the startCharacterBuilderTiming wrapper.",
+              "note": "data/encounters/summaries.ts is imported only by CampaignEncounterBuilderPage.stories.tsx; also countDarknessZones, canUseGuidedSpellAuthoring, hasAuthoringDefaultKind, notificationHistoryLimit, storybookNavigation, VTT/sheet fixtures in domain folders, about 44 unused exports, and getSessionWorkspaceViews (CampaignSessionWorkspace.tsx:131) and isCampaignTableSettingsEditable (CampaignTableSettings.tsx:301) in component files. Also the CampaignEncounterWorkspace.tsx:147 `as EncounterCommandInputDto` cast and the startCharacterBuilderTiming wrapper. Closed 2026-10-24 by RELIABILITY-9.T3b.",
               "id": "RELIABILITY-9.4"
             },
             {
@@ -17603,10 +17627,10 @@
             },
             {
               "text": "Web code narrows unknown data with type guards or schema parsing, not casts: no `as` on route params, select values or query results outside test fixtures.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-9.T3; see each task's proof."],
               "origin": [],
-              "note": "characterBuilderAuthoringSession.ts:43/64, builderEvaluator.ts:40/41/134, abilityGeneration.ts:43/179/199, dependencyClearing.ts:174, SocialHubNavigation.tsx:27, SocialListingFormPage.tsx:212-213, MarketingLinks.tsx:49-60, DiceSettingsControls.tsx:63, CampaignEncounterWorkspace.tsx:147.",
+              "note": "characterBuilderAuthoringSession.ts:43/64, builderEvaluator.ts:40/41/134, abilityGeneration.ts:43/179/199, dependencyClearing.ts:174, SocialHubNavigation.tsx:27, SocialListingFormPage.tsx:212-213, MarketingLinks.tsx:49-60, DiceSettingsControls.tsx:63, CampaignEncounterWorkspace.tsx:147. Closed 2026-10-24 by RELIABILITY-9.T3.",
               "id": "RELIABILITY-9.8"
             }
           ],
