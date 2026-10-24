@@ -937,7 +937,7 @@
 00000000-0002-00ce-0070-009200000000 CREATURE Shortbow | TEST_OUTCOME test=3714f7e91de4942910b7772621cb30cb2425e8b184f765e08b7d2aeafa46736e nodes=3 outputs=5 outcomes=[ON_CRIT=8884eb1c7b9aab2f31272642efeeb30eb0590847896e26f1f08ec78ea66ceb9d,ON_HIT=8884eb1c7b9aab2f31272642efeeb30eb0590847896e26f1f08ec78ea66ceb9d]
 00000000-0002-00ce-0070-00a900000000 CREATURE Bite | TEST_OUTCOME test=c15b4378c28210f32cbcc018f67cee686781ea1ec0dfc29749d73a9ec086d456 nodes=3 outputs=5 outcomes=[ON_CRIT=2bd01ab29d0b0cbc014cb848e641db8d0f0b3e9dab401710e2e692ebc07fbbae,ON_HIT=2bd01ab29d0b0cbc014cb848e641db8d0f0b3e9dab401710e2e692ebc07fbbae]
 00000000-0002-00ce-0070-010500000000 CREATURE Shortsword | TEST_OUTCOME test=21cb328340ccfbacad92a6688594a55a963d2f8c2e8c1769d34e87d685e3fd92 nodes=3 outputs=5 outcomes=[ON_CRIT=33a9528bd82b6c4de95fa0f75c7dc95a143f400fe4da8b6ed5ade85354765ab7,ON_HIT=33a9528bd82b6c4de95fa0f75c7dc95a143f400fe4da8b6ed5ade85354765ab7]
-00000000-0002-00ce-0070-010900000000 CREATURE Slow (Recharge 5-6) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
+00000000-0002-00ce-0070-010900000000 CREATURE Slow (Recharge 5-6) | TEST_OUTCOME test=cae0f3bb4a88a6efbc87cfd39606ee4062c2bf38e41693319806233c5cfeb4c9 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=4ad766e491b9f0b12a09be2f66ebee9ebf85f4ac144bc7840985224fa206591e]
 00000000-0002-00ce-0070-011500000000 CREATURE Regeneration | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ce-0070-011600000000 CREATURE Spider Climb | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ce-0070-012000000000 CREATURE Maul (Humanoid or Hybrid Form Only) | TEST_OUTCOME test=ed71731df454501ff3c591ac07b735762673808119458cfc90b2ca8d466d0488 nodes=3 outputs=5 outcomes=[ON_CRIT=505d3f5d061bda2940abf4da7bd093e565066daafc61fd410ae17c8bafe1c4e3,ON_HIT=505d3f5d061bda2940abf4da7bd093e565066daafc61fd410ae17c8bafe1c4e3]
@@ -1116,19 +1116,19 @@
 00000000-0005-001c-0070-000300000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000400000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000500000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000600000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0005-001c-0070-000700000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0005-001c-0070-000800000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0005-001c-0070-000600000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0005-001c-0070-000700000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0005-001c-0070-000800000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000900000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000a00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000b00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0005-001c-0070-000b00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000c00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000e00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000f00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-001300000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0005-001c-0070-001300000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-001400000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-001500000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-001600000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0005-001c-0070-001600000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-001700000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001d-0070-001000000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001d-0070-151f00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
