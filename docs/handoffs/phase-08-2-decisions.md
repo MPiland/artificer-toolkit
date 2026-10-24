@@ -1245,6 +1245,14 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - **One hit point ability.** The System's `derivedStatisticAbilityCodes.hitPoints` is the only source of the hit point ability. The class's authored `hitpoint.ability` is deleted in T9f3 (not converted), and the per-level rows read the System's. A per-class override is speculative: no SRD class differs, and two sources that agree today drift later.
 - **Authoring node defaults** that name ability codes (`authoringNodeDefaults.ts`) move with T9f2/T9f3, not T9e.
 
+### D194: facet and path wire types stay nested (user ruling, 2026-10-24, RELIABILITY-12.1)
+
+- **The wire stays nested.** No flatten/rebuild codec. A client-side rebuild would be duplicated by every non-TypeScript client, and nested JSON is the natural shape for Swift `Codable` and Kotlin serialization.
+- **`staticApi` stays on (ADR 0029).** A CI trial with it off (2026-10-24) gave 1,450 web and 40 Convex type errors: circular handler inference (TS7022/TS7023) and excessive depth (TS2589), and the web typecheck took about 4 minutes against 1.5–2.
+- **Intersections become flat unions** (AC 12.1 as written), so facet restrictions are fully typed. The facet `where` relation graph is acyclic, so it expands with no `any`; the slice verifies how the converter emits `z.lazy`.
+- **One named recursive leaf.** The only true recursion is follow-up save/check `outcomes` in effect paths. That validator leaf alone stays `v.any()`, named at its definition; every other field is validated at runtime.
+- **One shared TypeScript type.** The workspace DTO type in `packages/schema` is the type: the four `content/definitions.ts` handlers (`get`, `create`, `saveDraft`, `publish`) declare it as their return type, and the web data adapter reads results through a typed reference to the same type, with no client logic. A contract test proves each typed reference names the type its handler declares, and the `generatedApiTypes` test proves no `any` remains outside the named leaf.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
