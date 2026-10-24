@@ -156,6 +156,22 @@ const summonAbilityScoresDtoSchema = lazySchema(() =>
   })
 )
 
+const summonDamageabilityKindSchema = lazySchema(() =>
+  z.enum(['NORMAL', 'INVULNERABLE', 'SPECIAL'])
+)
+
+/**
+ * The body rules a conjured creature's Run actor keeps in its snapshot (`buildEncounterSummon`),
+ * read from its stat block with the defaults resolved: whether damage reaches it, and whether its
+ * token fills its space.
+ */
+export const summonBodyDtoSchema = lazySchema(() =>
+  z.strictObject({
+    damageabilityKind: summonDamageabilityKindSchema,
+    occupiesSpace: z.boolean()
+  })
+)
+
 export const summonStatBlockDtoSchema = lazySchema(() =>
   z.object({
     size: z.optional(sizeCodeSchema),
@@ -170,7 +186,7 @@ export const summonStatBlockDtoSchema = lazySchema(() =>
     damageResistances: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
     damageImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
     conditionImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-    damageabilityKind: z.optional(z.enum(['NORMAL', 'INVULNERABLE', 'SPECIAL'])),
+    damageabilityKind: z.optional(summonDamageabilityKindSchema),
     visibilityKind: z.optional(z.enum(['VISIBLE', 'INVISIBLE', 'SPECIAL'])),
     occupiesSpace: z.optional(z.boolean())
   })

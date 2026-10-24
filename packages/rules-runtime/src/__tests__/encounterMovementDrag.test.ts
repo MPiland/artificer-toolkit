@@ -2,6 +2,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { describe, expect, it } from 'vitest'
 
 import { encounterMovementDrag } from '../encounterMovementDrag.js'
+import { encounterTokenOccupiesSpace, summonBody } from '../encounterActorBody.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 import { zoneToken } from './spatialZoneFixture.js'
@@ -84,6 +85,7 @@ function drag(
     actorIdByTokenId,
     activeEffectsByActorId: holds(MOVER.actorId, [occupiesHand, dragged]),
     sizeOf: (actorId) => sizes[actorId] ?? null,
+    occupiesSpace: encounterTokenOccupiesSpace([], actorIdByTokenId),
     path: walk(250),
     ...input
   })
@@ -151,6 +153,19 @@ describe('a grappler drags the creatures it holds (ATTACK-7.T7, D105)', () => {
     expect(drag({ scene: { ...scene, barriers: [wall] }, path: walk(350) }).kind).toBe('REFUSED')
     // The held creature would land on the other token at 750.
     expect(drag({ path: walk(850) }).kind).toBe('REFUSED')
+  })
+
+  it('drags a creature onto a summon that does not occupy its space (SPELLS-4.T2v2a3c)', () => {
+    const summon = (occupiesSpace: boolean) => [
+      { id: OTHER.actorId, snapshot: { kind: 'CUSTOM', body: summonBody({ occupiesSpace }) } }
+    ]
+    const onto = (occupiesSpace: boolean) =>
+      drag({
+        path: walk(850),
+        occupiesSpace: encounterTokenOccupiesSpace(summon(occupiesSpace), actorIdByTokenId)
+      }).kind
+    expect(onto(false)).toBe('DRAG')
+    expect(onto(true)).toBe('REFUSED')
   })
 
   it('does not refuse a drag for the Scene effects on its way: they settle in the spatial pass (SPELLS-4.T1k)', () => {
