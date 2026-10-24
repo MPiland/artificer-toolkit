@@ -1277,7 +1277,7 @@ describe('VTT lighting model', () => {
     }
 
     it("reads sight into darkness by the System's rank of its access level", () => {
-      const into = (illuminationAccess: IlluminationCode) =>
+      const into = (illuminationAccess: Parameters<typeof senseEffect>[0]['illuminationAccess']) =>
         ({ channel: 'VISUAL', illuminationAccess }) as const
       expect(senseEffect(into('ORDINARY_DARKNESS'), illuminationLevels)).toBe('DARKVISION')
       expect(senseEffect(into('ORDINARY_DARKNESS'), strictLevels)).toBe('DARKVISION')
