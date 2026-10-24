@@ -10726,7 +10726,7 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 3,
                 "after": [
                   "SPELLS-4.T1",
                   "SPELLS-4.T2l",
@@ -10737,7 +10737,7 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Condition suppression (split from T2m, 2026-10-20): a CONDITION_SUPPRESSION modifier (conditionIds, effect origin any or magical, SUPPRESS keeps the condition counting down, PREVENT blocks it). Converts CALM_EMOTIONS and FREEDOM_OF_MOVEMENT with parity proofs; kinds deleted. The magical-origin filter reuses the D179 SOURCE_TRAIT restriction.",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Resized 2 -> 3 2026-10-24 (user-approved growth, D187): spell-sourced conditions carry MAGICAL at the one condition-application point so Freedom of Movement blocks spell conditions on every path; Calm Emotions is a GM ruling.",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
