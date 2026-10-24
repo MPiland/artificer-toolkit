@@ -424,8 +424,11 @@ export const vampire: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(277, 236),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_BITE
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Life drain',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      "The bite works only on a willing creature or one that is grappled, incapacitated, or restrained by the vampire. The target's hit point maximum is reduced by the necrotic damage taken, and the vampire regains hit points equal to that amount. The reduction lasts until the target finishes a long rest, and the target dies if its hit point maximum drops to 0."
                   }
                 ]
               }
