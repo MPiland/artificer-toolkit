@@ -26,7 +26,11 @@ import {
 import { readEncounterChosenItem } from './encounterChosenItem.js'
 import { planEncounterEquipmentDegradation } from './encounterEquipmentDegradation.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
-import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
+import {
+  characterClassLevels,
+  type CharacterMovementFacts,
+  type MovementTarget
+} from './encounterMovementTargets.js'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterSheetState } from '@artificer-toolkit/schema/projections/characterSheetState'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -314,6 +318,7 @@ export function prepareNativeActionEffectsPlan<
     concealment: input.concealment,
     link: input.link,
     form: input.form,
+    sourceClassLevels: characterClassLevels(prepared.sourceFacts.characterFacts),
     ...(chosen ? { chosenItem: { item: chosen.item, released } } : {}),
     spellCastLevel: preparedSpellCastLevel(prepared) ?? undefined,
     attackBonus: preparedSpellAttackBonus(prepared),

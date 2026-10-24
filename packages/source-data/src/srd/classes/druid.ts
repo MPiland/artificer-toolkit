@@ -7,10 +7,16 @@ import {
   CLASS_ATTRIBUTE,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
+  DURATION_KIND,
+  EFFECT_KIND,
   EQUIPMENT_CATEGORY_CODE,
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MANIFEST_KIND,
+  MANUAL_ADJUDICATION_REASON,
+  PATH_CODE,
+  PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
   RANGE_KIND,
   SCALING,
@@ -18,17 +24,21 @@ import {
   SPELLCASTING_ATTRIBUTE,
   STARTING_EQUIPMENT_KIND,
   TRIGGER,
-  type ActivationCode,
   type ClassAuthored,
   type ClosedRuleKind,
-  type EffectAuthored
+  type EffectAuthored,
+  type ManualAdjudicationReason
 } from '@artificer-toolkit/shared'
+import { CR, CREATURE_TYPE } from '../creatures/shared.js'
+import { conditionTypeId } from '../equipment/shared.js'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import {
+  SRD_ABILITY_DEFINITION_IDS,
   SRD_CURRENCIES,
   SRD_LANGUAGES,
   SRD_SKILLS,
+  SRD_SPEEDS,
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
@@ -65,32 +75,174 @@ const D = 4 // Druid class index
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
 
-function selfClassRuleEffect(
-  entry: number,
-  ruleKind: ClosedRuleKind,
-  activationCode?: Exclude<ActivationCode, 'FREE'>,
-  resourceChargeId?: string
-): EffectAuthored {
-  const range = { id: classRowId(D, 0x69, entry), rangeKind: RANGE_KIND.SELF } as const
+function selfClassRuleEffect(entry: number, ruleKind: ClosedRuleKind): EffectAuthored {
   return closedRuleEffect({
     id: classRowId(D, 0x60, entry),
     ruleKind,
-    invocation: activationCode
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          ...(resourceChargeId ? { resourceUse: { chargeId: resourceChargeId, cost: 1 } } : {}),
-          activation: { code: activationCode, amount: 1 },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: classRowId(D, 0x69, entry), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    }
   })
+}
+
+/** A passive class feature whose whole rule is a ruling the GM makes at the table. */
+function gmRulingClassEffect(
+  entry: number,
+  label: string,
+  instructions: string,
+  reasonCode: ManualAdjudicationReason
+): EffectAuthored {
+  return {
+    id: classRowId(D, 0x60, entry),
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: classRowId(D, 0x69, entry), rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    },
+    paths: [
+      {
+        id: classRowId(D, 0x80, entry),
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: classRowId(D, 0x81, entry),
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: classRowId(D, 0x82, entry),
+              effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+              label,
+              reasonCode,
+              instructions
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
+const beastShapeSpeedIds = (...codes: string[]) =>
+  SRD_SPEEDS.filter(({ code }) => codes.includes(code)).map(({ id }) => id)
+
+/**
+ * Wild Shape as authored data: an action that spends one of the feature's two short-rest uses and
+ * swaps the druid into a beast the table names. The Beast Shapes table is the filter's scaling by
+ * druid level, and the stay of half the druid level in hours is the duration's.
+ */
+const wildShapeEffect: EffectAuthored = {
+  id: classRowId(D, 0x60, 3),
+  order: 1,
+  invocation: {
+    kind: 'ACTION',
+    triggerCode: TRIGGER.ACTIVATED,
+    resourceUse: { chargeId: classRowId(D, 0x66, 3), cost: 1 },
+    activation: { code: ACTIVATION_CODE.ACTION, amount: 1 },
+    range: { id: classRowId(D, 0x69, 3), rangeKind: RANGE_KIND.SELF },
+    targeting: { selectionKind: 'SELF' }
+  },
+  paths: [
+    {
+      id: classRowId(D, 0x80, 3),
+      order: 1,
+      pathCode: PATH_CODE.ON_USE,
+      groupType: PATH_GROUP_TYPE.SINGLE,
+      originKind: 'SOURCE',
+      selectionKind: 'FIXED',
+      resultBlock: {
+        id: classRowId(D, 0x81, 3),
+        resultKind: 'SEQUENCE',
+        duration: {
+          id: classRowId(D, 0x83, 3),
+          durationKind: DURATION_KIND.HOUR,
+          amount: 1,
+          scaling: {
+            scalingKind: 'BREAKPOINTS',
+            scalingSource: 'CLASS_LEVEL',
+            classId: CLASS_IDS.DRUID,
+            // Half the druid level, rounded down, in hours.
+            breakpoints: Array.from({ length: 10 }, (_, index) => ({
+              id: classRowId(D, 0x85, index + 1),
+              level: (index + 1) * 2,
+              order: 1,
+              value: { amount: index + 1 }
+            }))
+          }
+        },
+        lifecycle: {
+          endOnConditionIds: [conditionTypeId('UNCONSCIOUS')],
+          holderEnd: { activation: 'BONUS_ACTION' }
+        },
+        outcomes: [
+          {
+            id: classRowId(D, 0x82, 3),
+            effectKind: EFFECT_KIND.MANIFEST,
+            manifestKind: MANIFEST_KIND.CREATURE,
+            excessDamageCarriesOver: true,
+            retainedAbilityDefinitionIds: [
+              SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE,
+              SRD_ABILITY_DEFINITION_IDS.WISDOM,
+              SRD_ABILITY_DEFINITION_IDS.CHARISMA
+            ],
+            formFilter: {
+              id: classRowId(D, 0x84, 3),
+              creatureTypeId: CREATURE_TYPE.BEAST,
+              challengeRatingCapKind: 'SCALED',
+              // Below 4th level: Challenge 1/4, no flying or swimming speed.
+              maxChallengeRatingId: CR.CR_1_4,
+              excludedSpeedIds: beastShapeSpeedIds('FLY', 'SWIM'),
+              scaling: {
+                scalingKind: 'BREAKPOINTS',
+                scalingSource: 'CLASS_LEVEL',
+                classId: CLASS_IDS.DRUID,
+                breakpoints: [
+                  {
+                    id: classRowId(D, 0x86, 1),
+                    level: 4,
+                    order: 1,
+                    value: {
+                      maxChallengeRatingId: CR.CR_1_2,
+                      excludedSpeedIds: beastShapeSpeedIds('FLY')
+                    }
+                  },
+                  {
+                    id: classRowId(D, 0x86, 2),
+                    level: 8,
+                    order: 1,
+                    value: { maxChallengeRatingId: CR.CR_1 }
+                  }
+                ]
+              }
+            }
+          },
+          {
+            id: classRowId(D, 0x82, 4),
+            effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+            label: 'Wild Shape Limits',
+            reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+            instructions:
+              "The druid keeps alignment, personality, proficiencies (using the higher bonus where the beast shares one) and class features the beast shape can physically use, and its special senses only where the beast has them. It can't cast spells, and its speech and hand use are limited to the beast form; a spell already cast keeps its concentration. The GM refuses a legendary or lair action. The druid may revert to its normal form earlier as a bonus action, and reverts on falling unconscious, dropping to 0 hit points or dying."
+          },
+          {
+            id: classRowId(D, 0x82, 5),
+            effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+            label: 'Determine Equipment Practicality',
+            reasonCode: MANUAL_ADJUDICATION_REASON.NARRATIVE_JUDGMENT,
+            instructions:
+              "The druid chooses whether its equipment falls to the ground, merges into the beast form or is worn by it. The GM decides whether it is practical for the form to wear a piece of equipment, based on the creature's shape and size."
+          }
+        ]
+      }
+    }
+  ]
 }
 
 // Druid spell slot charge — full caster, resets on long rest
@@ -693,14 +845,7 @@ export const druid: ClassAuthored = {
         resetKind: 'SHORT_REST',
         amount: 2
       },
-      effects: [
-        selfClassRuleEffect(
-          3,
-          CLOSED_RULE_KIND.CLASS_DRUID_WILD_SHAPE,
-          ACTIVATION_CODE.ACTION,
-          classRowId(D, 0x66, 3)
-        )
-      ]
+      effects: [wildShapeEffect]
     },
     {
       id: classRowId(D, 3, 4),
@@ -804,7 +949,14 @@ export const druid: ClassAuthored = {
         "Beginning at 18th level, you can cast many of your druid spells in any shape you assume using Wild Shape. You can perform the somatic and verbal components of a druid spell while in a beast shape, but you aren't able to provide material components.",
       availableAtLevel: 18,
       order: 12,
-      effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_DRUID_BEAST_SPELLS)]
+      effects: [
+        gmRulingClassEffect(
+          13,
+          'Beast Spells',
+          "While in a Wild Shape beast form, the druid casts its druid spells with their somatic and verbal components but can't provide material components. The GM allows each such cast.",
+          MANUAL_ADJUDICATION_REASON.GM_CHOICE
+        )
+      ]
     },
     {
       id: classRowId(D, 3, 14),
@@ -828,7 +980,14 @@ export const druid: ClassAuthored = {
         "At 20th level, you can use your Wild Shape an unlimited number of times. Additionally, you can ignore the verbal and somatic components of your druid spells, as well as any material components that lack a cost and aren't consumed by a spell. You gain this benefit in both your normal shape and your beast shape from Wild Shape.",
       availableAtLevel: 20,
       order: 14,
-      effects: [selfClassRuleEffect(15, CLOSED_RULE_KIND.CLASS_DRUID_ARCHDRUID)]
+      effects: [
+        gmRulingClassEffect(
+          15,
+          'Archdruid',
+          "The druid uses Wild Shape without limit, and casts its druid spells without verbal or somatic components, and without material components that lack a cost and aren't consumed, in its normal shape and its beast shape. The GM allows each such use and cast; the druid's Wild Shape uses are not spent.",
+          MANUAL_ADJUDICATION_REASON.GM_CHOICE
+        )
+      ]
     }
   ]
 }
