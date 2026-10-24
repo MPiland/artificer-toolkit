@@ -1,5 +1,12 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  ATTACK_DOMAIN_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -17,6 +24,46 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+const grantId = (index: number) => spellChildId(SPELL_IDS.IRRESISTIBLE_DANCE, 0x216, index + 1)
+const grant = {
+  grantKind: GRANT_KIND.MODIFIER_GRANT,
+  scope: MODIFIER_SCOPE_KIND.GLOBAL,
+  selectionKind: AUTHORING_SELECTION_KIND.GRANTED
+} as const
+const attackDomains = Object.values(ATTACK_DOMAIN_CODE)
+// The dance uses all the target's movement, gives it disadvantage on attack rolls and Dexterity
+// saves, and gives other creatures advantage on attack rolls against it. The holder-action Wisdom
+// save and the charm immunity are the GM ruling below (D187a).
+const danceModifiers = [
+  {
+    ...grant,
+    valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+    domain: {},
+    modifierKind: MODIFIER_KIND.SET_VALUE,
+    payload: { amount: 0 }
+  },
+  ...attackDomains.map((attackDomain) => ({
+    ...grant,
+    valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
+    domain: { attackDomain },
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'DISADVANTAGE' }
+  })),
+  {
+    ...grant,
+    valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+    domain: { ability: ABILITY_CODE.DEXTERITY },
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'DISADVANTAGE' }
+  },
+  ...attackDomains.map((attackDomain) => ({
+    ...grant,
+    valueDomainCode: VALUE_DOMAIN_CODE.ATTACKS_AGAINST,
+    domain: { attackDomain, requiresHolderSeesAttacker: false },
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'ADVANTAGE' }
+  }))
+].map((modifier, index) => ({ id: grantId(index), ...modifier, order: index + 1 }))
 export const irresistibleDance: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.IRRESISTIBLE_DANCE,
@@ -70,8 +117,16 @@ export const irresistibleDance: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.IRRESISTIBLE_DANCE, 0x215, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'IRRESISTIBLE_DANCE' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: { modifiers: danceModifiers }
+              },
+              {
+                id: spellChildId(SPELL_IDS.IRRESISTIBLE_DANCE, 0x215, 2),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Dance rulings',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "A creature that can't be charmed is immune to this spell. As an action, the dancing creature makes a Wisdom saving throw against your spell save DC to regain control of itself; on a success the spell ends."
               }
             ]
           }
