@@ -43,8 +43,10 @@ import {
   evaluateEncounterAreaTargetPolicy,
   evaluateEncounterCasterCenteredAreaTarget,
   evaluateEncounterDirectedAreaTarget,
+  evaluateEncounterSummonTarget,
   evaluateEncounterZoneTarget
 } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { casterHitPointMaximum } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { chosenZonePlacement } from '@artificer-toolkit/rules-runtime/encounterZonePlacement'
@@ -163,7 +165,11 @@ const AREA_REFUSALS = {
   AREA_TOO_LARGE: 'This area is larger than the action allows.',
   AREA_TOO_SMALL: 'This area is too small to place.',
   SIDE_REQUIRED: 'Pick the side of the wall this zone also reaches.',
-  SIDE_NOT_OFFERED: 'This zone has no side to pick.'
+  SIDE_NOT_OFFERED: 'This zone has no side to pick.',
+  UNSUPPORTED_SUMMON: "This summon's size or range is not supported.",
+  SPACE_OCCUPIED: 'Another creature already fills that space.',
+  HIT_POINTS_UNKNOWN:
+    "This summon's hit points depend on a maximum this caster does not carry here."
 } as const
 
 /** What a command that names the wrong kind of target is told, by the target the action takes. */
@@ -223,9 +229,15 @@ export async function prepareCasterSource(
       reason: 'TARGET_UNAVAILABLE',
       message: 'Pick one of the zones this action offers.'
     })
-  const takes = zone
-    ? (encounterZoneChoiceTarget(zone, targetPolicy.range.rangeKind)?.kind ?? null)
-    : encounterActionTargetKind(targetPolicy)
+  const summonPlacement =
+    source.kind === 'CHARACTER_ACTION' && source.entry.schemaVersion === 4
+      ? (source.entry.compilation.summonPlacement ?? null)
+      : null
+  const takes = summonPlacement
+    ? 'POINT'
+    : zone
+      ? (encounterZoneChoiceTarget(zone, targetPolicy.range.rangeKind)?.kind ?? null)
+      : encounterActionTargetKind(targetPolicy)
   if (takes !== targetKind)
     throw new LiveSessionDomainRejectionError(422, {
       code: 'DOMAIN_REJECTED',
@@ -249,7 +261,16 @@ export async function prepareCasterSource(
     source.kind === 'CHARACTER_ACTION' &&
     source.entry.schemaVersion === 4 &&
     source.entry.compilation.executionPlan.kind === 'TEST_OUTCOME'
-  return { caster, casterFacts, movementTargets, source, targetPolicy, zone, appearSave }
+  return {
+    caster,
+    casterFacts,
+    movementTargets,
+    source,
+    targetPolicy,
+    zone,
+    summonPlacement,
+    appearSave
+  }
 }
 
 /**
@@ -262,8 +283,16 @@ export async function prepareAreaScene(
   prepared?: Awaited<ReturnType<typeof prepareCasterSource>>
 ) {
   const { command, state, capture } = input
-  const { caster, casterFacts, movementTargets, source, targetPolicy, zone, appearSave } =
-    prepared ?? (await prepareCasterSource(input, command.target.kind))
+  const {
+    caster,
+    casterFacts,
+    movementTargets,
+    source,
+    targetPolicy,
+    zone,
+    summonPlacement,
+    appearSave
+  } = prepared ?? (await prepareCasterSource(input, command.target.kind))
   const captured = await capture({
     kind: 'ACTION_AREA_SCENE',
     command: {
@@ -296,8 +325,22 @@ export async function prepareAreaScene(
         : target.kind === 'RING'
           ? [target.center]
           : []
+  const summonArea =
+    summonPlacement && target.kind === 'POINT'
+      ? evaluateEncounterSummonTarget({
+          statBlock: summonPlacement.statBlock,
+          casterHitPointMaximum: casterHitPointMaximum(caster),
+          range: targetPolicy.range,
+          point: target.point,
+          grid,
+          sourceToken: scene.sourceToken,
+          pointSeen: await seen(target.point),
+          tokens: scene.tokens
+        })
+      : null
   const area =
-    zone && target.kind !== 'DIRECTED'
+    summonArea ??
+    (zone && target.kind !== 'DIRECTED'
       ? evaluateEncounterZoneTarget({
           zone,
           range: targetPolicy.range,
@@ -328,7 +371,7 @@ export async function prepareAreaScene(
                 sourceToken: scene.sourceToken,
                 pointSeen: await seen(target.point)
               })
-            : { refusal: 'UNSUPPORTED_AREA' as const }
+            : { refusal: 'UNSUPPORTED_AREA' as const })
   if (!area) throw new Error('The selected action area is not supported.')
   if ('refusal' in area)
     throw new LiveSessionDomainRejectionError(422, {
@@ -355,6 +398,10 @@ export async function prepareAreaScene(
     movementTargets,
     source,
     targetPolicy,
+    summon:
+      summonPlacement && summonArea && 'shape' in summonArea
+        ? { placement: summonPlacement, point: origin, edgeLength: summonArea.shape.edgeLength }
+        : null,
     scene: { ...scene, grid },
     area: { ...area, origin },
     placement: zone
@@ -385,6 +432,8 @@ export type AreaReach = Pick<
 > & {
   scene: AreaScene['scene'] | null
   area: AreaScene['area'] | null
+  /** The creature the action summons at the picked point; only a point action authors one. */
+  summon?: AreaScene['summon']
 }
 
 /**

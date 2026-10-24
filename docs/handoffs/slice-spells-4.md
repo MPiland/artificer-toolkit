@@ -600,5 +600,13 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - `ApplyEncounterSummonTokens` (encounter-persistence) is injected beside `applyForcedMovements`; the area persister calls it with the plan's `summonedTokens` and stores the returned `{sceneId, sceneCommandId, tokenId, actorId}[]` on the `RESOLVE_ACTION` receipt. The room callback `applyRoomSummonTokens` writes the token through `persistRoomSceneTokenCreate` and inserts the actor-token binding. Boundary recorded in [persistence](../architecture/persistence.md).
 - Deviation from "staged UPSERT": the write is direct, not the staged geometry publication. A vision-less token derives no fog, forced movement is the precedent, and the receipt names the cast as `actionOrigin`; a token with vision is refused.
 - The caster's chosen square reuses the POINT cast target (`{point, sceneId, expectedSceneVersion}`); no new request field. a2c validates it (range, free square for an occupying summon, sight if required).
-- Not yet: the planner supplies `summonedTokens: []`. a2c: actor id and creation, the call, removal at effect end, maintained-state delete and revert.
+- Not yet: the planner supplies `summonedTokens: []`. a2c: actor id and creation, the call, removal at effect end, maintained-state delete and revert (a2c1 and a2c2 below).
 - Proof: `roomSceneCommandPersistence.test.ts` "a token an action conjures".
+
+## T2v2a2c1 (D187b): the cast creates the owned actor and token
+
+- `encounterActionChoiceTarget` offers a summon as a POINT cube of the stat block's size; `evaluateEncounterSummonTarget` validates range/sight (warnings) and a free square (refusal, only for `occupiesSpace`). Zone placement is the model: the planner commits the cast with nobody caught.
+- `buildEncounterSummon` (rules-runtime) builds the CUSTOM actor (`owner` = caster) and its token; `LiveSessionSummonedToken` is now `{actor, token}` and the persister inserts the actor, extends `state.actorIds`, and projects it in the same transaction. The receipt keeps `actorId`.
+- A revert of a summoning cast refuses until a2c2 adds removal.
+- Not yet (a2c2): carrier effect with Concentration; removal of actor, binding and Scene token at expiry, Concentration end, recast, dispel and revert (a Scene token-remove direct write and a revert port); a Character caster's hit point maximum (T2v2b): until then a `HIT_POINT_MAXIMUM` stat block on a Character caster is refused (`HIT_POINTS_UNKNOWN`) instead of creating a 0 HP actor. Arcane Hand is the only SRD spell that reads it, and it is not yet a summon.
+- Proof: `encounterAreaAction.test.ts` "summon target", `encounterSummon.test.ts`, `numericExprEvaluate.test.ts`, `sizeRank.test.ts`, `roomSceneCommandPersistence.test.ts` "a token an action conjures".

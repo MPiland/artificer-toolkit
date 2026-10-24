@@ -32,7 +32,10 @@ export async function applyRoomSummonTokens(input: {
     JSON.parse(sourceRecord.json)
   )
   const created: Awaited<ReturnType<ApplyEncounterSummonTokens>> = []
-  for (const { actorId, token } of summons) {
+  for (const {
+    actor: { id: actorId },
+    token
+  } of summons) {
     const { scene } = await readRoomSceneState(transaction, sceneId)
     const sceneCommandId = crypto.randomUUID()
     persistRoomSceneTokenCreate({

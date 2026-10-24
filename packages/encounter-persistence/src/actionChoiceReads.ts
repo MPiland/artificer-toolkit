@@ -366,7 +366,10 @@ export async function readEncounterActionChoices(
             entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
               ? entry.compilation.choice
               : undefined,
-            Boolean(activeEffectPlan?.chosenItem)
+            Boolean(activeEffectPlan?.chosenItem),
+            entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
+              ? entry.compilation.summonPlacement
+              : undefined
           ),
           warnings: [
             ...economy.warnings,

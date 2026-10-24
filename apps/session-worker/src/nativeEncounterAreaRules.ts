@@ -103,7 +103,7 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
   // of the action (D156), or of a creature type the action has no effect on, is caught but left
   // out, with no save.
   const inArea =
-    base.placement && !base.placement.appearSave
+    base.summon || (base.placement && !base.placement.appearSave)
       ? []
       : catchEncounterAreaActorIds({
           origin: area.origin,
@@ -920,6 +920,7 @@ export async function planNativeLiveEncounterAreaCommit(
     unaffectedActorIds: context.unaffectedActorIds ?? [],
     sealedRays: context.forcedMovement?.rays,
     placement: base.placement,
+    summon: base.summon,
     occurrenceVersion: resumed ? resumed.expectedOccurrenceVersion + 1 : 0,
     response: input.response,
     removal: input.removal ?? null

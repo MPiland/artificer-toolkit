@@ -779,6 +779,9 @@ export async function revertLastEncounterAction(
         movements: root.forcedMovements
       })
     }
+    // The creatures the action conjured leave with it once removal exists (SPELLS-4.T2v2a2c2); until then a revert refuses rather than strand them.
+    if (root.summonedTokens.length)
+      revertUnavailable('This action conjured a creature; adjust manually.')
     // The once-per-turn uses the attack spent return to the attacker's turn record.
     if (root.turnUses)
       await restoreTurnUses(ctx, {
