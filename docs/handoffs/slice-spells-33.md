@@ -652,3 +652,10 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 #### T6f (D187a: description-only)
 
 - Status: implemented; CI on `ci/spells-33-t6f`. Rakshasa Limited Magic Immunity, Shield Guardian Spell Storing and Tarrasque Reflective Carapace keep their feature descriptions as the GM's ruling; the three closed-rule kinds are deleted. No negation or storing piece is built (future-enhancements: spell negation and storing). Authoring-parity proof: `descriptionOnlyCreatureAndRaceRules.test.ts` over the real SRD creatures.
+
+#### T6d2 (D187a: terrain and underwater riders as GM rulings)
+
+- Status: implemented; CI on `ci/spells-33-t6d2`. No terrain or underwater predicate is built (future-enhancements "Deferred rules pieces (D187a)": terrain and underwater predicates).
+- Octopus Ink Cloud is authored as the Giant Octopus's is (T4l1): the bonus-action Dash offer is the existing `grantedActions` option, and the 5 ft ink cloud is a MANUAL_ADJUDICATION ruling. Proof: `creatureStandingGrantedActionsAuthoringParity.test.ts` (creature node map) and the compile golden row, which now compiles instead of being refused.
+- Deep Gnome Stone Camouflage, Octopus and Giant Octopus Underwater Camouflage, Vampire Harmed by Running Water and Young White Dragon Ice Walk are each one MANUAL_ADJUDICATION ruling with the description kept. The Vampire's 20 acid damage was a passive DAMAGE outcome with no trigger, so it moves into the ruling, matching Sunlight Hypersensitivity (T6d1). Proof: `descriptionOnlyCreatureAndRaceRules.test.ts`.
+- The six closed-rule kinds are deleted. Note for T4o: the Adult and Ancient White Dragon `CREATURE_ICE_WALK` is the same trait; no existing option limits a movement cost to ice or snow terrain, so it should ship as the same ruling for consistency.
