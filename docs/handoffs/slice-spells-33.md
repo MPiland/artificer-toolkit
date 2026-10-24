@@ -596,6 +596,14 @@ Folded in 2026-10-20 from ATTACK-5.T4d/T4e. Push to `ci/spells-33-t4i`. If the w
 - Purple Worm Bite goes to SPELLS-33.T6a1 (not here).
 - Per D156 each conversion deletes its kind and carries an authoring-parity proof. Do not edit the ledger.
 
+## T6k3: Bulette Deadly Leap as a GM ruling (D187a)
+
+Status: Deadly Leap is authored as a DC 16 Strength save over `AREA_CONTENTS` with both 3d6 + 4 damage types, prone on a failure and
+half damage on a success, mirroring the Air Elemental Whirlwind. A `MANUAL_ADJUDICATION` on each save path carries what no option
+holds: the target's Strength or Dexterity choice, the 15-foot jump precondition and the 5-foot push or prone fallback. The
+`BULETTE_DEADLY_LEAP` closed kind is deleted; proof is `creatureDeadlyLeapRulingAuthoringParity.test.ts` plus the `srdEffectCompile`
+golden line. The deferred piece is listed in future-enhancements ("Target-chosen save ability").
+
 ## T5n2: Charge rider and the four conversions (done, `ci/spells-33-t5n2`)
 
 Status: a passive attack rider may name `ridesFeatureId` (schema, authored type, node map `ridesFeatureId` over the record's

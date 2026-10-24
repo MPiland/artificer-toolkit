@@ -15142,9 +15142,9 @@
             },
             {
               "closes": ["SPELLS-33.1"],
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-33.T4l2b",
-              "note": "Split from T4l2 2026-10-24.",
+              "note": "Split from T4l2 2026-10-24. Merged in m408.",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
@@ -15153,7 +15153,8 @@
                 "after": ["SPELLS-33.T4l2", "SPELLS-33.T5n2"]
               },
               "text": "Warhorse Trampling Charge and Weretiger Pounce on the T5n2 Feature-scoped ON_HIT rider (gated save and prone merged into the attack result); the bonus-action follow-up attack is a GM ruling (D187a). Parity proofs; deletes the kinds.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-24T13:18:26Z",
+              "proof": "Tests and Live green on tip b10ca68c8; Warhorse Trampling Charge and Weretiger Pounce on the T5n2 Feature-scoped ON_HIT rider through chargeEffect (damage optional, gated save and prone merged into the attack result); the bonus-action follow-up attack is a GM ruling (D187a); kinds deleted; proof chargeAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-33.T4m",
@@ -15825,7 +15826,7 @@
             },
             {
               "id": "SPELLS-33.T6k3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15835,8 +15836,9 @@
                 "after": ["SPELLS-33.T6k2b", "SPELLS-33.T5n2"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: Bulette Deadly Leap, a target-chosen saving-throw ability (players choose, creatures take the higher modifier) and landing in an occupied space through the T6k1 passage rule, with prone as the fallback (1 kind, D159 split). Authoring-parity proof; deletes its kind (workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m408.",
+              "mergedAt": "2026-10-24T13:18:26Z",
+              "proof": "Tests and Live green on tip d9b6452d1; Bulette Deadly Leap authored as a DC 16 Strength save over the creatures in its space (fail: 3d6+4 bludgeoning and 3d6+4 slashing and prone; success: half), with the 15-foot jump, the Strength-or-Dexterity choice and the push out as a GM ruling (D187a); kind deleted; proof creatureDeadlyLeapRulingAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-33.T6m1",
