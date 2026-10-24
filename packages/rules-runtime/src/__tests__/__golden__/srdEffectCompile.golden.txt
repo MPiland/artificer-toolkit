@@ -1187,7 +1187,7 @@
 00000020-0000-0210-0039-000000000001 CHARACTER:spells Conjure Minor Elementals | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-003b-000000000001 CHARACTER:spells Conjure Woodland Beings | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-003c-000000000001 CHARACTER:spells Contact Other Plane | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=57e330920669eac28b2a7a679290c8faaa4284415104063666a525c7034fe9aa]
-00000020-0000-0210-003d-000000000001 CHARACTER:spells Contagion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
+00000020-0000-0210-003d-000000000001 CHARACTER:spells Contagion | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=911992a6af31c4c27ccb114570d3d211b94a0bb23941d0488b9f2bc3f0cf3e9e,ON_HIT=911992a6af31c4c27ccb114570d3d211b94a0bb23941d0488b9f2bc3f0cf3e9e]
 00000020-0000-0210-003e-000000000001 CHARACTER:spells Contingency | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-003f-000000000001 CHARACTER:spells Continual Flame | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-0040-000000000001 CHARACTER:spells Control Water | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

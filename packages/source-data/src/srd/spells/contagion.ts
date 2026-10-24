@@ -3,7 +3,6 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
-  DURATION_KIND,
   EFFECT_KIND,
   RANGE_KIND,
   SPELL_COMPONENT,
@@ -57,16 +56,14 @@ export const contagion: SpellAuthored = {
           resultBlock: {
             id: spellChildId(SPELL_IDS.CONTAGION, 0x212, 1) + '__result',
             resultKind: 'SINGLE' as const,
-            duration: {
-              id: spellChildId(SPELL_IDS.CONTAGION, 0x213, 1),
-              durationKind: DURATION_KIND.DAY,
-              amount: 7
-            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CONTAGION, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'CONTAGION' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Afflict Disease',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "The caster chooses one of the spell's diseases, which lasts 7 days. At the end of each of the target's turns it makes a Constitution saving throw: after three successes it recovers and the spell ends; after three failures it stops saving and the disease lasts the full duration. Apply the chosen disease's effects, including Slimy Doom's stun until the end of the target's next turn whenever it takes damage."
               }
             ]
           }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+import { contagion } from '@artificer-toolkit/source-data/srd/spells/contagion.js'
 import { feeblemind } from '@artificer-toolkit/source-data/srd/spells/feeblemind.js'
 import { jump } from '@artificer-toolkit/source-data/srd/spells/jump.js'
 import { levitate } from '@artificer-toolkit/source-data/srd/spells/levitate.js'
@@ -18,7 +19,7 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
-describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-4.T2a5, SPELLS-4.T2u, SPELLS-4.T2l3, D156)', () => {
+describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-4.T2a5, SPELLS-4.T2u, SPELLS-4.T2l3, SPELLS-4.T2m3, D156)', () => {
   it.each([
     ['Feeblemind', feeblemind],
     ['Silent Image', silentImage],
@@ -27,7 +28,9 @@ describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-
     ['Jump', jump],
     ['Levitate', levitate],
     ['Reverse Gravity', reverseGravity],
-    ['Time Stop', timeStop]
+    ['Time Stop', timeStop],
+    // SPELLS-4.T2m3 (D187a): the 7-day disease outlasts the active-effect turn cap, so it is a GM ruling.
+    ['Contagion', contagion]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     // Equipment authoring the spell's effects: the effect list every owner shares.
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }
