@@ -287,19 +287,19 @@ describe('Creature mechanics batch plan', () => {
         maximum
       })
     ]
-    const plan = (actor: EncounterRunActorState, maximum: number) =>
+    const plan = (actor: EncounterRunActorState, current: number, maximum: number) =>
       planEncounterMechanicsBatch({
-        batch: batch(area(actor.currentHitPoints, maximum), {
+        batch: batch(area(current, maximum), {
           effectiveMaximumHitPoints: maximum
         }),
         actor,
         userId: USER_ID
       })
 
-    const creaturePlan = plan(creature({ current: 11, temporary: 0, max: 11 }), 11)
+    const creaturePlan = plan(creature({ current: 11, temporary: 0, max: 11 }), 11, 11)
     expect(creaturePlan.updatedActor).toMatchObject({ currentHitPoints: 0, defeated: true })
 
-    const invulnerablePlan = plan(summon('INVULNERABLE'), 10)
+    const invulnerablePlan = plan(summon('INVULNERABLE'), 10, 10)
     expect(invulnerablePlan.updatedActor).toMatchObject({ currentHitPoints: 10, defeated: false })
     const untouched = {
       kind: 'DAMAGE',
@@ -316,7 +316,7 @@ describe('Creature mechanics batch plan', () => {
     expect(invulnerablePlan.stateChanged).toBe(false)
 
     // A summon whose stat block is damageable takes the area like any creature.
-    expect(plan(summon('NORMAL'), 10).updatedActor).toMatchObject({ currentHitPoints: 0 })
+    expect(plan(summon('NORMAL'), 10, 10).updatedActor).toMatchObject({ currentHitPoints: 0 })
   })
 
   it('refuses a damage application whose resolved amount ignores its disposition', () => {
