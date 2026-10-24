@@ -29,22 +29,14 @@ import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runt
 import {
   encounterBasicActionCheckPendingSnapshot,
   evaluateRolledEncounterBasicActionCheck,
-  rollEncounterCheck,
   startEncounterBasicActionCheck,
   storedCheckResult
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
-import {
-  encounterD20WindowSelection,
-  encounterHeldCheckDice,
-  openEncounterD20Window,
-  settleEncounterD20Window
-} from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { bindEncounterD20Evidence } from './nativeD20Evidence.js'
+import { answerNativeD20Check } from './nativeD20Window.js'
 import type { liveEncounterCaptures } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -107,7 +99,7 @@ export async function planNativeLiveCheckActionResponse(input: {
   }
   const pause = (
     next: ServerKernelRuleExecutionPendingSnapshotDto,
-    spentEffect?: ActiveRuleEffectRecord | null
+    window?: { spentEffect: ActiveRuleEffectRecord | null }
   ) => ({
     kind: 'CHECK_ACTION_PAUSE' as const,
     input: liveSessionEncounterCheckPauseCommitInputSchema.parse({
@@ -116,79 +108,33 @@ export async function planNativeLiveCheckActionResponse(input: {
       revisions: reads.revisions(),
       occurredAt,
       snapshot: next,
-      ...(spentEffect !== undefined && { window: { spentEffect } }),
+      ...(window && { window }),
       rules: rulesFor(actors)
     })
   })
-  // What the answer settles from: the d20 it rolls, the window's chosen die, or the rolled d20 an
-  // outcome's dice follow.
-  const settledWindow = window
-    ? await settleEncounterD20Window({
-        runtime,
-        context: window,
-        continuation,
-        selection: encounterD20WindowSelection(command.resolution),
-        random
-      })
-    : null
+  // What the answer settles from: the check's d20 (or the die a window on it chose), or the rolled
+  // d20 an outcome's dice follow. A window always follows the check's own d20.
   const rolled =
-    window && settledWindow
+    context.phase.kind === 'OUTCOME'
       ? {
-          ...window.pause.payload,
-          rolled: { ...window.pause.payload.rolled, d20: settledWindow.d20 },
-          windowDice: settledWindow.option ? [settledWindow.option] : []
+          ...context.phase,
+          occurrenceVersion: command.expectedOccurrenceVersion,
+          window: undefined
         }
-      : context.phase.kind === 'OUTCOME'
-        ? context.phase
-        : {
-            rolled: {
-              ...(await rollEncounterCheck({
-                gameSystemId: state.gameSystemId,
-                runtime,
-                context,
-                continuation,
-                answer: bindEncounterD20Evidence({
-                  response: { resolution: command.resolution, appRoll: ready.appRoll },
-                  refusal: 'A check action requires d20 evidence.'
-                }),
-                rollD20: () => random(20) + 1,
-                random,
-                expectedOccurrenceId: snapshot.occurrenceId
-              })),
-              initialFactsChecksum: checksumRuleDocument(continuation.facts)
-            },
-            appRollId: ready.appRoll?.rollId ?? null,
-            windowDice: []
-          }
-  const spentEffect = settledWindow
-    ? settledWindow.option
-      ? (activeEffectsByActorId
-          .get(context.actorId)
-          ?.find((effect) => effect.id === settledWindow.option?.effectId) ?? null)
-      : null
-    : undefined
-  // The roller's after-roll dice pause the d20 once it is seen, before the check settles.
-  const heldDice =
-    !window && context.phase.kind === 'CHECK'
-      ? encounterHeldCheckDice(
+      : await answerNativeD20Check({
+          runtime,
+          random,
+          gameSystemId: state.gameSystemId,
           system,
-          activeEffectsByActorId.get(context.actorId) ?? [],
-          context.check.checkDefinitionId
-        )
-      : []
-  if (heldDice.length > 0) {
-    const opened = await openEncounterD20Window({
-      runtime,
-      occurrenceId: snapshot.occurrenceId,
-      gameSystemId: state.gameSystemId,
-      source: { kind: 'CHECK_ACTION', context },
-      rolled: rolled.rolled,
-      appRollId: rolled.appRollId,
-      heldDice,
-      optionalCombatSnapshotChecksum
-    })
-    return pause(opened.snapshot)
-  }
+          command,
+          appRoll: ready.appRoll,
+          source: { kind: 'CHECK_ACTION', context },
+          pending: { snapshot, continuation, window },
+          rollerEffects: activeEffectsByActorId.get(context.actorId) ?? [],
+          optionalCombatSnapshotChecksum,
+          refusal: 'A check action requires d20 evidence.'
+        })
+  if (rolled.kind === 'WINDOW') return pause(rolled.snapshot)
   const evaluated = evaluateRolledEncounterBasicActionCheck(rolled.rolled, context.check.dc)
   const step = context.candidates
     ? await planCandidateStep({
@@ -235,14 +181,13 @@ export async function planNativeLiveCheckActionResponse(input: {
         },
         optionalCombatSnapshotChecksum
       }),
-      spentEffect
+      rolled.window
     )
   const execution = storedCheckResult({
     evaluated,
     continuation,
     // A d20 that paused keeps the version and facts it was recorded under.
-    occurrenceVersion:
-      command.expectedOccurrenceVersion + (window || context.phase.kind === 'OUTCOME' ? 0 : 1),
+    occurrenceVersion: rolled.occurrenceVersion,
     initialFactsChecksum: rolled.rolled.initialFactsChecksum,
     applicationOutputs: checkActionApplicationOutputDtoSchema.parse({
       kind: 'CHECK_ACTION',
@@ -272,7 +217,7 @@ export async function planNativeLiveCheckActionResponse(input: {
         execution,
         appRollId: rolled.appRollId,
         forcedMovements: outcome?.forcedMovements ?? [],
-        ...(spentEffect !== undefined && { window: { spentEffect } }),
+        ...(rolled.window && { window: rolled.window }),
         ...(step && { candidate: { endedEffects: step.endedEffects, next: step.next } })
       },
       rules: rulesFor(

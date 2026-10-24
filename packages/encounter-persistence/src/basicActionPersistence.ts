@@ -99,7 +99,11 @@ export async function persistEncounterBasicAction(
     !input.ruleOverrides.some((warning) => TARGET_PRECONDITION_WARNING_CODES.has(warning.code))
   )
     throw new Error('Live Session basic action check scope mismatch.')
-  if (check === null && input.consumedGrants.length > 0)
+  // A d20 the action rolls itself never answered a window, so it spends no held die.
+  if (
+    (check === null && input.consumedGrants.length > 0) ||
+    (check?.kind === 'SETTLED' && check.settlement.window)
+  )
     throw new Error('Live Session basic action check scope mismatch.')
   const pendingContext = check?.kind === 'PENDING' ? check.snapshot.applicationContext : null
   const authoredCheck = admitted.check

@@ -13,12 +13,14 @@ import {
   SRD_ATHLETICS_SKILL_ID,
   SRD_MEDICINE_SKILL_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { guidance } from '@artificer-toolkit/source-data/srd/spells/guidance.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, type ActionRoomConfig } from './actionRoomFixture.js'
+import { heldDieEffect, seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
@@ -77,6 +79,8 @@ function escapeRoom(
     hideGrappler?: boolean
     /** The grappler holds the turn, so the holder is out of turn. */
     grapplerTurn?: boolean
+    /** A die the holder holds for after its d20 (D168). */
+    heldDie?: ReturnType<typeof heldDieEffect>
   } & Pick<ActionRoomConfig, 'playerControlledActorIds'>
 ) {
   const holder = heldWolf()
@@ -93,7 +97,8 @@ function escapeRoom(
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })
     ],
     ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
-    seed: async ({ effects, encounterId, occurredAt }) => {
+    seed: async (seeding) => {
+      const { effects, encounterId, occurredAt } = seeding
       await effects.create({
         id: EFFECT_ID,
         owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: HOLDER_ID },
@@ -106,6 +111,14 @@ function escapeRoom(
         }),
         occurredAt
       })
+      if (options.heldDie)
+        await seedModifierGrant({
+          sourceActorId: HOLDER_ID,
+          holderActorId: HOLDER_ID,
+          lifecycle: {},
+          effect: options.heldDie,
+          sourceLabel: guidance.label
+        })(seeding)
     }
   })
 }
@@ -437,5 +450,132 @@ describe('Escape from a fixed-DC grapple, in the room', () => {
       expect(state.effectIds).toEqual([])
       expect(state.spent).toBe(1)
     })
+  })
+})
+
+describe('a die the holder holds for after the d20, in the Escape room (SPELLS-31.T4c1a2)', () => {
+  /** The holder enters a natural `face` (7: Athletics total 11 against DC 13) and meets the window. */
+  async function openWindow(room: EscapeRoom, face = 7) {
+    const answer = await escape(room)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const opened = await answerD20(room, face)
+    expect(opened.type, JSON.stringify(opened)).toBe('COMMAND_COMMITTED')
+    expect((await escapeState(room)).outputs).toEqual([])
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    return { decision, pending: decision.pending }
+  }
+
+  it('offers the die once the d20 is seen, and spending it turns a miss into an escape and ends the die', async () => {
+    const room = await escapeRoom({ autoRoll: false, heldDie: heldDieEffect() })
+    const { decision, pending } = await openWindow(room)
+    expect(pending).toMatchObject({
+      rollerActorId: HOLDER_ID,
+      d20: { selectedNatural: 7, total: 11 },
+      options: [{ label: 'Guidance', count: 1, faces: 4, sign: 'ADD' }]
+    })
+    expect((await escapeState(room)).effectIds).toHaveLength(2)
+
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [3]
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+
+    const state = await escapeState(room)
+    expect(state.outputs).toMatchObject([
+      {
+        d20: {
+          selectedNatural: 7,
+          total: 14,
+          addedDice: [{ label: 'Guidance', rolledFaces: [3] }]
+        },
+        outcome: 'ESCAPED',
+        removedConditionIds: HELD
+      }
+    ])
+    expect(state.occurrences.map((occurrence) => occurrence.state)).toEqual(['COMPLETED'])
+    // The grapple and the spent Guidance die have both ended.
+    expect(state.effectIds).toEqual([])
+    expect(state.conditions).toEqual([])
+  })
+
+  it('keeps the roll and the die when the holder declines', async () => {
+    const room = await escapeRoom({ autoRoll: false, heldDie: heldDieEffect() })
+    const { decision, pending } = await openWindow(room)
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_DECLINE',
+      requestId: pending.requestId
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    const state = await escapeState(room)
+    expect(state.outputs).toMatchObject([{ d20: { total: 11 }, outcome: 'FAILED' }])
+    expect(state.effectIds).toHaveLength(2)
+    expect(state.conditions).toEqual(HELD)
+  })
+
+  it('gives the spent die back with the Action when the GM undoes an escape the die could not save', async () => {
+    const room = await escapeRoom({ autoRoll: false, heldDie: heldDieEffect() })
+    const before = await escapeState(room)
+    // A natural 2 is 6; the d4 of 3 makes 9, still short of DC 13.
+    const { decision, pending } = await openWindow(room, 2)
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [3]
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    const spent = await escapeState(room)
+    expect(spent.outputs).toMatchObject([{ d20: { total: 9 }, outcome: 'FAILED' }])
+    expect(spent.effectIds).toEqual([EFFECT_ID])
+
+    const undone = await undo(room)
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    const restored = await escapeState(room)
+    expect(restored.effectIds.sort()).toEqual([...before.effectIds].sort())
+    expect(restored.spent).toBe(before.spent)
+  })
+
+  it('offers a homebrew die authored differently (two dice, Strength only) through the same path', async () => {
+    const room = await escapeRoom({
+      autoRoll: false,
+      heldDie: heldDieEffect({ count: 2, ability: 'STRENGTH' })
+    })
+    const { decision, pending } = await openWindow(room)
+    expect(pending.options).toMatchObject([{ count: 2, faces: 4 }])
+    const settled = await room.resolve(decision, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [1, 1]
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect((await escapeState(room)).outputs).toMatchObject([
+      { d20: { total: 13 }, outcome: 'ESCAPED' }
+    ])
+  })
+
+  it('offers no die whose ability the check is not, and settles the d20 at once', async () => {
+    const room = await escapeRoom({
+      autoRoll: false,
+      heldDie: heldDieEffect({ ability: 'WISDOM' })
+    })
+    await escape(room)
+    const settled = await answerD20(room, 7)
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect((await escapeState(room)).outputs).toMatchObject([
+      { d20: { total: 11 }, outcome: 'FAILED' }
+    ])
+  })
+
+  it('asks a holder who rolls automatically for the d20 while it holds a die', async () => {
+    const room = await escapeRoom({ autoRoll: true, faces: [9], heldDie: heldDieEffect() })
+    const answer = await escape(room)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    expect((await escapeState(room)).outputs).toEqual([])
+    expect((await room.pendingDecision()).pending.kind).toBe('D20_EVIDENCE')
   })
 })

@@ -1406,7 +1406,7 @@ Spare the Dying and Sheet tracking of death saves are not built (target).
 
 **d20 window (SPELLS-31.T4c1a, current).** A roller holding `AFTER_ROLL` rolled dice on its own active effects pauses a rolled d20
 before the check settles. Two commands act on one occurrence: the d20 response pends a second `ENCOUNTER_D20_WINDOW`
-`KERNEL_EVIDENCE` snapshot (discriminated `source`, today `CHECK_ACTION`; no rule receipt, version +1), then
+`KERNEL_EVIDENCE` snapshot (discriminated `source`: `CHECK_ACTION`, `CONCEALMENT_CHECK`, `ESCAPE_CHECK`; no rule receipt, version +1), then
 its `pause` is the `D20_WINDOW` member of the one pause union. `D20_WINDOW_USE { requestId, optionId, faces? }` or
 `D20_WINDOW_DECLINE` resumes the System-owned bounded choice (index 0 declines),
 appends the die to the d20's `addedDice`, settles the check with the final total and ends the spending effect in the same transaction.
@@ -2678,7 +2678,11 @@ settles the check; a success re-prepares the action from the root command on the
 (`prepareNativeLiveRootActionMechanics`) and runs its outcome, which pauses in the `OUTCOME` phase on its dice
 (`ACTION_OUTCOME_EVIDENCE`) unless the roller's preference rolls them. The room plans each answer
 (`planNativeLiveCheckActionResponse`); Convex records a pause through `persistEncounterCheckActionPause` and the settled
-check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Undo returns the check's
+check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Every pending d20 (check action,
+concealment, Escape) is answered by the one Worker step `answerNativeD20Check` (`apps/session-worker/src/nativeD20Window.ts`,
+SPELLS-31.T4c1a2): it opens the window or returns the settled d20 and the die it spent. A concealment or Escape window opens
+through `persistEncounterCheckD20WindowOpen` (room plan `D20_WINDOW_PAUSE`) and its answer settles through that check's
+response commit; the spent die ends after the settle, and on an `ESCAPE` root it joins `receipt.consumedGrants` for undo. Undo returns the check's
 economy, feature charges and grants and, for a success, inverts its outcome's mechanics behind the generic
 `targetOutcomeTransition` stream-version fence (RULES-2.T6e3b2).
 
