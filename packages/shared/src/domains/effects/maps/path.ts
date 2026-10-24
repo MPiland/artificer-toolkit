@@ -1484,6 +1484,14 @@ function registerOutcomeFields(
     nodes
   const { and, or, not } = logic
   const local = cond.local()
+  const manifestsCreature = and([
+    local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+    local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
+  ])
+  const manifestsOther = and([
+    local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+    not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
+  ])
   const { table } = data
   const scalarReductionGroupObject =
     groupObject as unknown as ScalarReductionNodeMapApi['nodes']['groupObject']
@@ -2217,29 +2225,20 @@ function registerOutcomeFields(
       'forms',
       groupArray(['forms'], 'Forms', () => MANIFEST_CREATURE_FORM_NODE_MAP, {
         presentation: 'summary',
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-          local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
-        ])
+        showIf: manifestsCreature
       })
     )
     .set(
       'formFilter',
       groupObject(['formFilter'], 'Form Filter', () => MANIFEST_CREATURE_FORM_FILTER_NODE_MAP, {
         presentation: 'inline',
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-          local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
-        ])
+        showIf: manifestsCreature
       })
     )
     .set(
       'excessDamageCarriesOver',
       toggle(['excessDamageCarriesOver'], 'Excess Damage Carries Over', {
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-          local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
-        ])
+        showIf: manifestsCreature
       })
     )
     .set(
@@ -2253,22 +2252,14 @@ function registerOutcomeFields(
             selectColumns: ['id', 'label', 'description']
           })
         },
-        {
-          showIf: and([
-            local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-            local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
-          ])
-        }
+        { showIf: manifestsCreature }
       )
     )
     .set(
       'shape',
       groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, {
         presentation: 'inline',
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-          not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
-        ])
+        showIf: manifestsOther
       })
     )
     .set(
@@ -2778,20 +2769,14 @@ function registerOutcomeFields(
       'behaviors',
       groupArray(['behaviors'], 'Behaviors', () => MANIFEST_BEHAVIOR_NODE_MAP, {
         presentation: 'inline',
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-          not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
-        ])
+        showIf: manifestsOther
       })
     )
     .set(
       'components',
       groupArray(['components'], 'Components', () => MANIFEST_COMPONENT_NODE_MAP, {
         presentation: 'summary',
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-          not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
-        ])
+        showIf: manifestsOther
       })
     )
     .set(
@@ -2835,10 +2820,7 @@ function registerOutcomeFields(
     .set(
       'placementMustBeUnoccupied',
       toggle(['placementMustBeUnoccupied'], 'Placement Must Be Unoccupied', {
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-          not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
-        ])
+        showIf: manifestsOther
       })
     )
     .set(
@@ -2850,10 +2832,7 @@ function registerOutcomeFields(
     .set(
       'designatedCreatureImmunity',
       toggle(['designatedCreatureImmunity'], 'Caster-Designated Creature Immunity', {
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-          not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
-        ])
+        showIf: manifestsOther
       })
     )
     .set(
@@ -2875,10 +2854,7 @@ function registerOutcomeFields(
       'light',
       groupObject(['light'], 'Light', () => MANIFEST_LIGHT_NODE_MAP, {
         presentation: 'inline',
-        showIf: and([
-          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-          not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
-        ])
+        showIf: manifestsOther
       })
     )
     .set(
@@ -2944,10 +2920,7 @@ function registerOutcomeFields(
         () => MANIFEST_DESTRUCTION_CRITERION_NODE_MAP,
         {
           presentation: 'summary',
-          showIf: and([
-            local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-            not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
-          ])
+          showIf: manifestsOther
         }
       )
     )
@@ -2960,12 +2933,7 @@ function registerOutcomeFields(
           kind: 'INLINE_OPTIONS',
           options: MANIFEST_SUPPRESSION_IMMUNITY_OPTIONS
         },
-        {
-          showIf: and([
-            local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-            not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
-          ])
-        }
+        { showIf: manifestsOther }
       )
     )
     .set(
