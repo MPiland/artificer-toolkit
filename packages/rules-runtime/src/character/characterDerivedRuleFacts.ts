@@ -12,6 +12,8 @@ import {
   resolveSystemSkillAbilities
 } from '@artificer-toolkit/shared/character'
 
+import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+
 type DerivedFacts = CharacterRulePolicyInput['derivedBaseFacts']
 type NumericBonus = DerivedFacts['abilities'][number]['bonuses'][number]
 
@@ -277,14 +279,17 @@ export function buildCharacterDerivedRuleFacts(
     const abilityId = registry.classes[classId]?.spellcasting?.ability
     return abilityId ? [abilityRecordKey(snapshot.abilities, abilityId)] : []
   })[0]
+  const { initiative } = abilityScoreCapabilityRegistry.require(
+    snapshot.systemId
+  ).derivedStatisticAbilityCodes
 
   return {
     abilities,
     savingThrows,
     skills,
     initiative: {
-      abilityId: abilityRecordKey(snapshot.abilities, 'DEXTERITY'),
-      abilityIndex: abilityRecordIndex(snapshot.abilities, 'DEXTERITY'),
+      abilityId: abilityRecordKey(snapshot.abilities, initiative),
+      abilityIndex: abilityRecordIndex(snapshot.abilities, initiative),
       bonuses: modifierBonuses('INITIATIVE', {}, false)
     },
     spellcasting: spellcastingAbility

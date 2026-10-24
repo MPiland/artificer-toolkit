@@ -2,17 +2,19 @@ import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/cha
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
 import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 
-type ArmorClassFacts = NonNullable<CharacterRulePolicyInput['armorClassFacts']>
+import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
 
-function isDexterity(abilityId: string): boolean {
-  return (resolveAbilityAlias(abilityId) ?? abilityId) === 'DEXTERITY'
-}
+type ArmorClassFacts = NonNullable<CharacterRulePolicyInput['armorClassFacts']>
 
 export function buildCharacterArmorClassRuleFacts(
   snapshot: CharacterBuildSnapshot
 ): Pick<CharacterRulePolicyInput, 'armorClassFacts'> {
-  const abilityIds = Object.keys(snapshot.abilities)
-  const dexterityAbilityIndex = abilityIds.findIndex(isDexterity)
+  const { armorClass } = abilityScoreCapabilityRegistry.require(
+    snapshot.systemId
+  ).derivedStatisticAbilityCodes
+  const dexterityAbilityIndex = Object.keys(snapshot.abilities).findIndex(
+    (abilityId) => (resolveAbilityAlias(abilityId) ?? abilityId) === armorClass
+  )
   const equipment: ArmorClassFacts['equipment'] = snapshot.equipmentItems.flatMap((item) => {
     if (!item.equippedState) return []
     if (item.compiledItem.category !== 'ARMOR' && item.compiledItem.category !== 'SHIELD') return []

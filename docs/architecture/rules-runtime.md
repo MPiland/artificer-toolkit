@@ -390,7 +390,8 @@ neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `attackProfileCapability`, `modifierScopeCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
 `combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
-Creature form keeps; the web Creature detail, Encounter enemy stat block and Builder hit points read the
+Creature form keeps, and `derivedStatisticAbilityCodes`: the ability armor class, initiative and hit points add,
+which the character fact builders and the Sheet hit die check read, RULES-2.T9e; the web Creature detail, Encounter enemy stat block and Builder hit points read the
 modifier through it), `characterProgressionCapabilityRegistry` (`characterProgressionCapability.ts`: hit die
 size and average, the hit points a level adds and the proficiency bonus, read by the Builder hit point step
 and Class detail) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and

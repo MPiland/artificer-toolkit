@@ -71,6 +71,17 @@ const illuminationBeforeLiteral = /[iI]llumination\s*[!=]==?\s*(['"`])([A-Z][A-Z
 const literalBeforeIllumination = /(['"`])([A-Z][A-Z_]*)\1\s*[!=]==?\s*[\w.?]*[iI]llumination\b/g
 const SYSTEM_MODULE = /packages[\\/]rules-runtime[\\/]src[\\/]systems[\\/]/
 
+/**
+ * RULES-2.T9e: which ability a derived statistic adds, and which speed is a creature's walk, are
+ * System data (`derivedStatisticAbilityCodes`, `defaults`). Outside a System module, no value is
+ * compared to an ability or speed code, whatever the compared variable is named.
+ */
+const statisticCodes = new Set(
+  [...srdSystemRecord.abilities, ...srdSystemRecord.speeds].map(({ code }) => code)
+)
+const comparedBeforeLiteral = /[!=]==?\s*(['"`])([A-Z][A-Z0-9_]*)\1/g
+const literalBeforeCompared = /(['"`])([A-Z][A-Z0-9_]*)\1\s*[!=]==?/g
+
 function violations(source: string, path = ''): string[] {
   const found: string[] = []
   if (!SYSTEM_MODULE.test(path))
@@ -84,6 +95,13 @@ function violations(source: string, path = ''): string[] {
     ...source.matchAll(literalBeforeCode)
   ])
     if (vocabularyCodes.has(match[2]!)) found.push(`compares code ${match[2]}`)
+  if (!SYSTEM_MODULE.test(path))
+    for (const match of [
+      ...source.matchAll(comparedBeforeLiteral),
+      ...source.matchAll(literalBeforeCompared)
+    ])
+      if (statisticCodes.has(match[2]!) && !found.includes(`compares code ${match[2]}`))
+        found.push(`compares ${match[2]}`)
   for (const [list] of source.matchAll(quotedList)) {
     const members = [...list.matchAll(/['"]([A-Z][A-Z0-9_]*)['"]/g)].map((member) => member[1]!)
     const domain = Object.entries(vocabularyDomains).some(([key, entries]) => {
@@ -115,6 +133,16 @@ describe('System vocabulary boundary (RULES-2.T9o)', () => {
       []
     )
     expect(violations("renderClass === 'DIM'")).toEqual([])
+  })
+
+  it('detects an ability or speed comparison outside a System module (RULES-2.T9e)', () => {
+    const comparison = "(resolveAbilityAlias(abilityId) ?? abilityId) === 'DEXTERITY'"
+    expect(violations(comparison)).toEqual(['compares DEXTERITY'])
+    expect(violations("'CONSTITUTION' !== ability.ability")).toEqual(['compares CONSTITUTION'])
+    expect(
+      violations(comparison, 'packages/rules-runtime/src/systems/dnd5e/armorClass.ts')
+    ).toEqual([])
+    expect(violations("kind === 'ARMOR'")).toEqual([])
   })
 
   it('keeps production files free of vocabulary lists and code comparisons', () => {
