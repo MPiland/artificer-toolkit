@@ -918,14 +918,14 @@ function resolveLocalEnvironment(
     sources,
     (contribution) =>
       contribution.kind === 'ILLUMINATION_EFFECT' ? contribution.illumination : null,
-    illuminationRank
+    illuminationValues
   )
   const obscurement = resolveEnvironmentValue(
     environment.obscurement,
     sources,
     (contribution) =>
       contribution.kind === 'ILLUMINATION_EFFECT' ? contribution.obscurement : null,
-    obscurementRank
+    obscurementValues
   )
   return { ...environment, illumination, obscurement }
 }
@@ -934,7 +934,7 @@ function resolveEnvironmentValue<T extends string>(
   base: T,
   sources: readonly CombatPerceptionContributionSource[],
   select: (contribution: CombatPerceptionContribution) => T | null,
-  rank: Readonly<Record<T, number>>
+  ranked: readonly T[]
 ): T {
   let selectedValue = base
   let selectedPrecedence: number | null = null
@@ -945,7 +945,8 @@ function resolveEnvironmentValue<T extends string>(
     if (
       selectedPrecedence === null ||
       source.contribution.precedence > selectedPrecedence ||
-      (source.contribution.precedence === selectedPrecedence && rank[value] > rank[selectedValue])
+      (source.contribution.precedence === selectedPrecedence &&
+        ranked.indexOf(value) > ranked.indexOf(selectedValue))
     ) {
       selectedValue = value
       selectedPrecedence = source.contribution.precedence
