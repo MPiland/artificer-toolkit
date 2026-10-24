@@ -1575,11 +1575,16 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
             path: ['placedSpatialEffectIds'],
             message: 'Placed spatial effects must be unique.'
           })
-        if (value.maintenanceTransition && value.placedSpatialEffectIds.length === 0)
+        if (
+          value.maintenanceTransition &&
+          value.placedSpatialEffectIds.length === 0 &&
+          !value.sourceGrantTransition
+        )
           context.addIssue({
             code: 'custom',
             path: ['maintenanceTransition'],
-            message: 'An area root carries a maintained effect only for the zone it placed.'
+            message:
+              'An area root carries a maintained effect only for the zone it placed or the carrier effect it left on its source.'
           })
       })
     )
