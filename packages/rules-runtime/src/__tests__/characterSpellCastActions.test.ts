@@ -2847,6 +2847,63 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
     expect(cast?.summonPlacement?.entry.maintenance).not.toBeNull()
   })
 
+  it('holds a CONJURED repeat on the carrier of an empty grant beside the summon (SPELLS-4.T2v2a3a)', () => {
+    // A homebrew hand whose owner attacks through it: the attack is a sibling Effect, offered back
+    // to the caster for as long as the hand lasts and measured from the hand.
+    const conjuring = (edit?: (block: { outcomes: unknown[]; lifecycle?: unknown }) => void) => {
+      const authored = structuredClone(spell('Arcane Hand'))
+      const attack = structuredClone(spell('Flame Blade').effects?.[1])
+      const path = authored.effects?.[0]?.paths[0]
+      if (!attack || path?.selectionKind !== 'FIXED') throw new Error('The spells must author.')
+      authored.effects?.push({ ...attack, order: 2 })
+      path.resultBlock.lifecycle = {
+        effectOffers: [
+          {
+            kind: 'REPEAT_SOURCE_PATH',
+            offeredTo: 'SOURCE',
+            activation: 'BONUS_ACTION',
+            effectId: attack.id,
+            target: 'INVOCATION',
+            origin: 'CONJURED'
+          }
+        ]
+      }
+      path.resultBlock.outcomes.push({ id: testUuid(0xa3a1), effectKind: 'APPLY_GRANT', grants: {} })
+      edit?.(path.resultBlock)
+      return authored
+    }
+    const cast = compiledCast(conjuring())
+
+    expect(cast?.summonPlacement?.entry).toMatchObject({
+      initialRemaining: 10,
+      frozenGraphNodeId: 'modifier-grant',
+      modifierGrantContribution: {
+        modifiers: [],
+        effectOffers: [{ kind: 'REPEAT_SOURCE_PATH', origin: 'CONJURED', target: 'INVOCATION' }]
+      }
+    })
+    expect(cast?.summonPlacement?.entry.maintenance).not.toBeNull()
+    expect(cast?.executionPlan).toMatchObject({
+      kind: 'SINGLE_GRAPH',
+      published: cast?.summonPlacement?.entry.frozenGraph
+    })
+    // An empty grant that holds no offers, or a third outcome, is refused rather than partly honored.
+    expect(
+      compiledCastEntry(
+        conjuring((block) => {
+          delete block.lifecycle
+        })
+      )
+    ).toBeNull()
+    expect(
+      compiledCastEntry(
+        conjuring(({ outcomes }) =>
+          outcomes.push({ id: testUuid(0xa3a3), effectKind: 'APPLY_GRANT', grants: {} })
+        )
+      )
+    ).toBeNull()
+  })
+
   it.each(['Mage Hand', 'Spiritual Weapon'])(
     'leaves %s to the GM until its stat block and behaviors are modelled',
     (label) => {

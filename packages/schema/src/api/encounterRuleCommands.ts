@@ -267,11 +267,15 @@ export function areaActionTargetOrigin(
   }
 }
 
+const encounterActionIdSchema = lazySchema(() =>
+  z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+)
+
 export const resolveEncounterActionInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
     type: z.literal('RESOLVE_ACTION'),
     actorId: uuidSchema,
-    actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
+    actionId: encounterActionIdSchema,
     target: resolveEncounterActionTargetDtoSchema,
     optionalCombatIntent: z.optional(z.nullable(optionalCombatActionIntentDtoSchema)),
     /**
@@ -342,7 +346,13 @@ export type ActionAreaSceneRequestDto = z.infer<typeof actionAreaSceneRequestDto
 /** The Scene read for one source and one target actor's tokens, however the action names its target. */
 export const actionSceneRequestDtoSchema = lazySchema(() =>
   z.extend(z.pick(resolveEncounterActionInputDtoSchema, { actorId: true, sceneContext: true }), {
-    targetActorId: uuidSchema
+    targetActorId: uuidSchema,
+    /**
+     * The action whose range the source token measures. Absent, or any action but a CONJURED
+     * repeat, the source token is `actorId`'s; a CONJURED repeat's is the creature its carrier
+     * conjured, which the read resolves from the stored carrier.
+     */
+    actionId: z.optional(encounterActionIdSchema)
   })
 )
 export type ActionSceneRequestDto = z.infer<typeof actionSceneRequestDtoSchema>

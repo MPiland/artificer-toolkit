@@ -8,7 +8,12 @@ import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.j
 
 import { liveEffectOffers } from '../encounterEffectOffers.js'
 import { featureActionMechanic } from '../encounterFeatureActionCapabilityDiscovery.js'
-import { parseRepeatPathActionId, repeatPathActionId } from '../encounterRepeatPathAction.js'
+import {
+  encounterActionOriginActorId,
+  parseRepeatPathActionId,
+  repeatOfferOriginActorId,
+  repeatPathActionId
+} from '../encounterRepeatPathAction.js'
 import { resolveEncounterActionSource } from '../encounterActionSources.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
@@ -217,6 +222,47 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
     expect(resolve(7).attackMechanic).toEqual({ attackBonus: 7, rollMode: 'NORMAL' })
     expect(featureActionMechanic(resolve(7))).toMatchObject({ attackBonus: 7 })
     expect(resolve().attackMechanic).toBeNull()
+  })
+
+  describe('the creature its range is measured from (SPELLS-4.T2v2a3a)', () => {
+    const SUMMON_ID = testUuid(0xf807)
+    const summon = { id: SUMMON_ID, owner: { ownerActorId: SOURCE_ID, sourceEffectId: CARRIER_ID } }
+    const origin = (offer: ReturnType<typeof compiledOffer>, actors: (typeof summon)[]) =>
+      encounterActionOriginActorId({
+        actorId: SOURCE_ID,
+        actionId,
+        actors: [{ id: SOURCE_ID }, ...actors],
+        effectsByHolder: new Map([[HOLDER_ID, [heldCarrier(offer)]]])
+      })
+    const conjured = { ...compiledOffer(flameBlade), origin: 'CONJURED' as const }
+
+    it('is the actor for any action but a CONJURED repeat, even beside a creature it owns', () => {
+      expect(origin(compiledOffer(flameBlade), [summon])).toBe(SOURCE_ID)
+      expect(origin({ ...compiledOffer(flameBlade), origin: 'ACTOR' }, [summon])).toBe(SOURCE_ID)
+      expect(
+        encounterActionOriginActorId({
+          actorId: SOURCE_ID,
+          actionId: `${SOURCE_ID}:basic:ATTACK`,
+          actors: [summon],
+          effectsByHolder: new Map()
+        })
+      ).toBe(SOURCE_ID)
+    })
+
+    it('is the creature a CONJURED repeat’s carrier conjured, and stale once it is gone', () => {
+      expect(origin(conjured, [summon])).toBe(SUMMON_ID)
+      // Another creature the actor owns, conjured by another effect, is never the origin.
+      const other = { ...summon, owner: { ownerActorId: SOURCE_ID, sourceEffectId: ITEM_ID } }
+      expect(() => origin(conjured, [other])).toThrow('stale')
+      expect(() => origin(conjured, [])).toThrow('stale')
+      expect(
+        repeatOfferOriginActorId({
+          actorId: HOLDER_ID,
+          offer: { effectId: CARRIER_ID, origin: 'CONJURED' },
+          actors: [summon]
+        })
+      ).toBeNull()
+    })
   })
 
   it('is stale once the carrier is gone or the id names another offer', () => {

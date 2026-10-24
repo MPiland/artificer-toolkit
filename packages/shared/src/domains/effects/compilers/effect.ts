@@ -74,6 +74,7 @@ export type CompiledEffectOffer =
       activation: AuthoredEffectOffer['activation']
       effect: EffectAuthored
       target?: NonNullable<AuthoredEffectOffer['target']>
+      origin?: NonNullable<AuthoredEffectOffer['origin']>
     }
 
 export type CompiledPathLifecycle = Omit<PathLifecycleAuthored, 'effectOffers'> & {
@@ -469,7 +470,8 @@ function compileLifecycle(
           invocation: { ...invocation, activation: { code: offer.activation, amount: 1 } },
           paths
         },
-        ...(offer.target ? { target: offer.target } : {})
+        ...(offer.target ? { target: offer.target } : {}),
+        ...(offer.origin ? { origin: offer.origin } : {})
       }
     })
   }

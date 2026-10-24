@@ -229,7 +229,8 @@ export async function persistEncounterActionPending(
       {
         actorId: admission.input.actorId,
         targetActorId: target.actorId,
-        sceneContext: admission.input.sceneContext
+        sceneContext: admission.input.sceneContext,
+        actionId: admission.input.actionId
       },
       membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
     )

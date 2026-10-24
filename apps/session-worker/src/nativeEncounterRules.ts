@@ -507,7 +507,8 @@ export async function planNativeLiveEncounterAction(
         command: {
           actorId: command.actorId,
           targetActorId,
-          sceneContext: command.sceneContext
+          sceneContext: command.sceneContext,
+          actionId: command.actionId
         }
       })
     : null

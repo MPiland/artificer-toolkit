@@ -7,8 +7,10 @@ import {
   EFFECT_OFFER_ACTIVATION_MESSAGE,
   MAX_EFFECT_OFFERS,
   moveHeldEffectOfferSchema,
+  repeatOfferOriginSchema,
   repeatOfferTargetSchema,
   type MoveHeldEffectOffer,
+  type RepeatOfferOrigin,
   type RepeatOfferTarget
 } from './effectOffer.js'
 
@@ -28,6 +30,8 @@ export interface CompiledRepeatSourcePathOffer {
   attackBonus?: number
   /** Absent means `HOLDER`. */
   target?: RepeatOfferTarget
+  /** Absent means `ACTOR`. */
+  origin?: RepeatOfferOrigin
 }
 
 /** The offers a compiled effect action plans, before the cast freezes them onto a held effect. */
@@ -44,7 +48,8 @@ const compiledRepeatSourcePathOfferSchema = lazySchema(() =>
     effect: embeddedEffectSchema,
     castLevel: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(9))),
     attackBonus: z.optional(z.number().check(z.int())),
-    target: z.optional(repeatOfferTargetSchema)
+    target: z.optional(repeatOfferTargetSchema),
+    origin: z.optional(repeatOfferOriginSchema)
   })
 )
 

@@ -124,6 +124,21 @@ export const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
       )
     )
     .set(
+      'origin',
+      selectSingle(
+        ['origin'],
+        'Measured From',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [
+            { code: 'ACTOR', label: 'The creature taking the offer' },
+            { code: 'CONJURED', label: 'The creature the effect conjured' }
+          ]
+        },
+        { showIf: isRepeat, hiddenBehavior: 'CLEAR' }
+      )
+    )
+    .set(
       'activation',
       selectSingle(
         ['activation'],

@@ -526,6 +526,7 @@ export async function readRoomEncounterTurnCapture(
       context: await readRoomActionSceneInputs(ctx, transaction, state, {
         actorId,
         targetActorId,
+        ...(request.command.actionId && { actionId: request.command.actionId }),
         sceneContext: request.command.sceneContext
           ? {
               ...request.command.sceneContext,
