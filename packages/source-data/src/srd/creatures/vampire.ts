@@ -197,25 +197,20 @@ export const vampire: CreatureAuthored = {
               id: S.actionId(277, 250),
               order: 1,
               pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
                 id: S.actionId(277, 251),
-                resultKind: 'SEQUENCE',
+                resultKind: 'SINGLE',
                 outcomes: [
                   {
-                    id: S.actionId(277, 252),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('ACID'),
-                    valueKind: S.DAMAGE_VALUE_KIND.FIXED,
-                    scalingKind: S.SCALING.NONE,
-                    amount: 20
-                  },
-                  {
                     id: S.actionId(277, 253),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_HARMED_BY_RUNNING_WATER
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Harmed by Running Water',
+                    instructions:
+                      'The vampire takes 20 acid damage if it ends its turn in running water.',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE
                   }
                 ]
               }

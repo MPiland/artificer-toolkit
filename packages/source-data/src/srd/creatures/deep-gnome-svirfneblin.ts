@@ -48,7 +48,7 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
       description:
         'Stone Camouflage. The gnome has advantage on Dexterity (Stealth) checks made to hide in rocky terrain.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(78, 201),
           invocation: {
             kind: 'PASSIVE',
@@ -56,7 +56,10 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
             range: { id: S.actionId(78, 1201), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEEP_GNOME_STONE_CAMOUFLAGE
+          label: 'Stone Camouflage',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            'The gnome has advantage on Dexterity (Stealth) checks made to hide in rocky terrain.'
         })
       ],
       order: 1
