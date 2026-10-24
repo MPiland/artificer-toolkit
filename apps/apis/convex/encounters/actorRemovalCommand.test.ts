@@ -199,6 +199,7 @@ describe('native actor removal transaction', () => {
           campaignId: base.campaign.id,
           name: 'Removal Scene',
           ambientIllumination: 'BRIGHT',
+          daylight: false,
           fogMode: 'SHARED_PARTY',
           visionRevealMode: 'ON_DRAG',
           grid: {

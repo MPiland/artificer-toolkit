@@ -99,6 +99,7 @@ export function doorScene(campaignId: string) {
     scene: {
       annotations: [],
       ambientIllumination: 'BRIGHT' as const,
+      daylight: false,
       barriers: [
         {
           a: { x: 0, y: 0 },
@@ -242,6 +243,7 @@ export async function fixture(
     sceneHeader: scene
       ? {
           ambientIllumination: scene.ambientIllumination,
+          daylight: scene.daylight,
           campaignId,
           counts: {
             annotations: scene.annotations.length,

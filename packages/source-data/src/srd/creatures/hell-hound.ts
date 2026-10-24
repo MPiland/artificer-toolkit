@@ -1,6 +1,7 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 export const hellHound: CreatureAuthored = {
   id: S.CREATURE_IDS.HELL_HOUND,
   label: 'Hell Hound',
@@ -50,7 +51,7 @@ export const hellHound: CreatureAuthored = {
       label: 'Pack Tactics',
       description:
         "Pack Tactics. The hound has advantage on an attack roll against a creature if at least one of the hound's allies is within 5 feet of the creature and the ally isn't incapacitated.",
-      grants: S.conditionalAttackAdvantageGrants(161, 1, S.ENEMY_WITHIN_5_FEET_OF_TARGET),
+      grants: R.conditionalAttackAdvantageGrants(161, 1, R.ENEMY_WITHIN_5_FEET_OF_TARGET),
       order: 2
     },
     {

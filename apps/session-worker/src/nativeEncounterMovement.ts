@@ -58,6 +58,7 @@ import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterM
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { readNativeLiveMovementInputs } from './nativeEncounterMovementInputs.js'
 import { measureNativeEnemyProximity } from './nativeAttackEnemyProximity.js'
+import { measureHolderLight } from './nativeHolderLight.js'
 import { readNativeLiveHasNotTakenTurn, readNativeLiveTurnUses } from './nativeTurnUses.js'
 import { planNativeLiveMeleeRetaliation } from './nativeMeleeRetaliation.js'
 import { prepareNativeLiveMovementConcentration } from './nativeEncounterMovementConcentration.js'
@@ -249,6 +250,15 @@ export async function prepareNativeLiveMovement(
               loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
               loadTargetHasNotTakenTurn: ({ targetFacts }) =>
                 readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
+              // The reactor attacks from its own square.
+              loadHolderLight: async ({ sourceFacts }) => {
+                const reactorToken = scene.tokens.find(
+                  (token) => captured.actorIdByTokenId.get(token.id) === sourceFacts.actor.id
+                )
+                return reactorToken
+                  ? measureHolderLight(captured.perceptionScene, reactorToken.position)
+                  : null
+              },
               loadRelationshipFacts: async (relationship) => {
                 return lockedRelationshipActionFacts({
                   actionEffectId: relationship.actionEffectId,

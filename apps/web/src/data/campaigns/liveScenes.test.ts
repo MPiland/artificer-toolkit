@@ -25,6 +25,7 @@ const header = sceneRecipientHeaderSchema.parse({
   version: 2,
   name: 'Courtyard',
   ambientIllumination: 'BRIGHT',
+  daylight: false,
   fogMode: 'PER_PLAYER',
   visionRevealMode: 'ON_DRAG',
   grid: { kind: 'GRIDLESS', pixelsPerUnit: 50, unit: 'FEET' },

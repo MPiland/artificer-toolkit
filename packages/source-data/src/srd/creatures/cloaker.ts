@@ -1,8 +1,10 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import { SRD_BREATHING_CAPABILITY_DEFINITION_ID } from '../ruleState.js'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 export const cloaker: CreatureAuthored = {
   id: S.CREATURE_IDS.CLOAKER,
   label: 'Cloaker',
@@ -73,17 +75,7 @@ export const cloaker: CreatureAuthored = {
       label: 'Light Sensitivity',
       description:
         'Light Sensitivity. While in bright light, the cloaker has disadvantage on attack rolls and Wisdom (Perception) checks that rely on sight.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(65, 105),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(65, 106), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLOAKER_LIGHT_SENSITIVITY
-        })
-      ],
+      grants: R.lightSensitivityGrants(65, 100, false),
       order: 3
     },
     {
@@ -200,8 +192,11 @@ export const cloaker: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(65, 124),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLOAKER_PHANTASMS
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Phantasms in bright light',
+                    instructions:
+                      'The duplicates vanish if the cloaker is in bright light; the GM ends them then.',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.NARRATIVE_JUDGMENT
                   }
                 ]
               }

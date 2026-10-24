@@ -1,8 +1,14 @@
-# Workbook: SPELLS-34 summons cast from the Sheet
+# Slice SPELLS-34: summons on the sheet Extras tab
 
-**Status:** T1 in CI on `ci/spells-34-t1` (branch `ci-spells-34-t1`). T2 (summon attacks) not started.
+Living handoff for SPELLS-34 (a summon cast shows the creature on the caster's sheet Extras tab, for groups that play without the VTT). Decision: D190 in [phase-08-2-decisions.md](phase-08-2-decisions.md).
 
-T1 closes AC SPELLS-34.1, .3 and .4 (D190).
+## Current task
+
+SPELLS-34.T1: sheet summons persist as `state.spellSummons[]` and read as a `SPELL_SUMMON` Extras member; a Concentration summon is the sheet's Concentration. Closes SPELLS-34.3 and SPELLS-34.4.
+
+## Next
+
+SPELLS-34.T2: Encounter summons in Extras and summon attacks on both paths (after SPELLS-4.T2v2a2c3, T2v2a3, T2v2b and SPELLS-34.T1).
 
 ## Rulings (orchestrator, binding)
 
@@ -15,7 +21,7 @@ T1 closes AC SPELLS-34.1, .3 and .4 (D190).
   0 HP end it.
 - Attacks move to T2. The row shows no attacks placeholder.
 
-## T1 (done in CI)
+## T1 contents (in CI on `ci/spells-34-t1`)
 
 - **Schema:**
   - `effects/summonStatBlock.ts` is its own module.

@@ -7464,6 +7464,7 @@ it('commits an inline GM edit with its INLINE receipt, checkpoints it and replay
   const command = {
     commandId,
     expectedSceneVersion: 0,
+    daylight: true,
     illumination: 'DIM',
     sceneId: scene.id,
     type: 'SET_SCENE_AMBIENT_ILLUMINATION'
@@ -7475,14 +7476,14 @@ it('commits an inline GM edit with its INLINE receipt, checkpoints it and replay
     delta: {
       scope: 'SCENE',
       result: {
-        delta: { kind: 'AMBIENT_ILLUMINATION_SET', illumination: 'DIM' },
+        delta: { kind: 'AMBIENT_ILLUMINATION_SET', daylight: true, illumination: 'DIM' },
         replayed: false,
         version: 1
       }
     },
     sequence: 1
   })
-  expect((await storedScene(base))?.ambientIllumination).toBe('DIM')
+  expect(await storedScene(base)).toMatchObject({ ambientIllumination: 'DIM', daylight: true })
 
   await publishPending(base.stub)
   expect(publications).toHaveLength(1)
@@ -7512,6 +7513,7 @@ it('serves a joining player the committed Scene from the room store without a Co
       {
         commandId,
         expectedSceneVersion: 0,
+        daylight: false,
         illumination: 'DIM',
         sceneId: scene.id,
         type: 'SET_SCENE_AMBIENT_ILLUMINATION'
@@ -7550,6 +7552,7 @@ it('checkpoints unpublished commands before reloading the room aggregate for a S
       {
         commandId,
         expectedSceneVersion: 0,
+        daylight: false,
         illumination: 'DIM',
         sceneId: scene.id,
         type: 'SET_SCENE_AMBIENT_ILLUMINATION'
@@ -7655,6 +7658,7 @@ it('rebases an inline edit over unrelated changes and refuses a stale target', a
   base.messages.length = 0
   const ambient = (expectedSceneVersion: number, illumination: string) => ({
     commandId: crypto.randomUUID(),
+    daylight: false,
     expectedSceneVersion,
     illumination,
     sceneId: scene.id,
@@ -7692,6 +7696,7 @@ it('rebases an inline edit over unrelated changes and refuses a stale target', a
   })
   expect(await storedScene(base)).toMatchObject({
     ambientIllumination: 'DIM',
+    daylight: false,
     version: 2,
     visionRevealMode: 'ON_DROP'
   })
@@ -7713,6 +7718,7 @@ it('keeps undo working past an inline edit in the Scene history', async () => {
       {
         commandId: inlineCommandId,
         expectedSceneVersion: 1,
+        daylight: false,
         illumination: 'DIM',
         sceneId: value.scene.id,
         type: 'SET_SCENE_AMBIENT_ILLUMINATION'

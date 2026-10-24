@@ -615,6 +615,7 @@ async function setup({
         campaignId: campaign.id,
         name: 'Distance action Scene',
         ambientIllumination: 'BRIGHT' as const,
+        daylight: false,
         fogMode: 'SHARED_PARTY' as const,
         visionRevealMode: 'ON_DRAG' as const,
         grid: {
@@ -766,7 +767,7 @@ async function advanceSceneVersion(t: Awaited<ReturnType<typeof fixture>>['t'], 
           measurements: 0
         },
         settings: {
-          ambientIllumination: { value: 'BRIGHT', version: 0 },
+          ambientIllumination: { value: 'BRIGHT', daylight: false, version: 0 },
           visionRevealMode: { value: 'ON_DRAG', version: 0 },
           fogMode: { value: 'SHARED_PARTY', version: 0 }
         }

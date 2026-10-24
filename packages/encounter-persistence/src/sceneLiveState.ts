@@ -37,7 +37,11 @@ export function advanceLiveState(
     counts: header.currentCounts,
     nextOrdinals: live?.nextOrdinals ?? { ...header.counts, measurements: 0 },
     settings: live?.settings ?? {
-      ambientIllumination: { value: header.ambientIllumination, version: 0 },
+      ambientIllumination: {
+        value: header.ambientIllumination,
+        daylight: header.daylight,
+        version: 0
+      },
       visionRevealMode: { value: header.visionRevealMode, version: 0 },
       fogMode: { value: header.fogMode, version: 0 }
     }

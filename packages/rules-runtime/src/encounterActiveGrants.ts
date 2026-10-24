@@ -1122,6 +1122,18 @@ export function featureModifiersReadTargetTurn(modifiers: FeatureModifiers): boo
   )
 }
 
+/** The light on the holder's square: bright, and whether the Scene's daylight reaches it (D189). */
+export type EncounterHolderLight = { brightLight: boolean; daylight: boolean }
+
+/** Whether a Creature's feature grants ask how the holder is lit (Sunlight Sensitivity). */
+export function featureModifiersReadHolderLight(modifiers: FeatureModifiers): boolean {
+  return modifiers.some(({ deferredRequirements }) =>
+    deferredRequirements.some(
+      (group) => conditionsOfKind(group, 'HOLDER_IN_BRIGHT_LIGHT').length > 0
+    )
+  )
+}
+
 /**
  * Whether a deferred requirement group holds: every condition is an INCLUDE check of the Encounter
  * state this attack read, and each of those holds. Any other condition fails closed.
@@ -1129,7 +1141,8 @@ export function featureModifiersReadTargetTurn(modifiers: FeatureModifiers): boo
 function deferredGroupMet(
   group: DeferredGroup,
   nearestEnemyFeet: number | null,
-  targetHasNotTakenTurn: boolean
+  targetHasNotTakenTurn: boolean,
+  holderLight: EncounterHolderLight | null
 ): boolean {
   return (
     group.conditions.length > 0 &&
@@ -1138,6 +1151,12 @@ function deferredGroupMet(
       if (condition.kind === 'ENEMY_NEAR_TARGET')
         return (
           nearestEnemyFeet !== null && condition.max !== null && nearestEnemyFeet <= condition.max
+        )
+      if (condition.kind === 'HOLDER_IN_BRIGHT_LIGHT')
+        return (
+          holderLight !== null &&
+          holderLight.brightLight &&
+          (!condition.requiresDaylight || holderLight.daylight)
         )
       return condition.kind === 'TARGET_HAS_NOT_TAKEN_TURN' && targetHasNotTakenTurn
     })
@@ -1150,7 +1169,8 @@ function deferredGroupMet(
  * requirement or some requirement group asks only for an enemy of the target within a distance
  * `nearestEnemyFeet` meets (Pack Tactics) or a target that has yet to take a turn (Assassinate); any
  * other deferred requirement fails closed. `nearestEnemyFeet` is null when no enemy stands near the
- * target or there is no Scene to measure on.
+ * target or there is no Scene to measure on. `holderLight` is the light on the holder's square
+ * (Sunlight Sensitivity), null without a Scene.
  */
 export function creatureFeatureAttackContributors(
   holderActorId: string,
@@ -1158,7 +1178,8 @@ export function creatureFeatureAttackContributors(
   attackAbility: string | null,
   modifiers: FeatureModifiers,
   nearestEnemyFeet: number | null,
-  targetHasNotTakenTurn = false
+  targetHasNotTakenTurn = false,
+  holderLight: EncounterHolderLight | null = null
 ): EncounterRelationshipD20Contributor[] {
   return modifiers.flatMap((modifier) => {
     const grantAbility = modifier.domain.ability ?? null
@@ -1166,7 +1187,7 @@ export function creatureFeatureAttackContributors(
     const requirementsMet =
       modifier.deferredRequirements.length === 0 ||
       modifier.deferredRequirements.some((group) =>
-        deferredGroupMet(group, nearestEnemyFeet, targetHasNotTakenTurn)
+        deferredGroupMet(group, nearestEnemyFeet, targetHasNotTakenTurn, holderLight)
       )
     return influence !== null &&
       modifier.valueDomainCode === 'ATTACK_ROLL' &&

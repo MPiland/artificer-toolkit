@@ -32,6 +32,7 @@ function scene(): CampaignSceneStateDto {
   return validated(campaignSceneStateDtoSchema)({
     annotations: [],
     ambientIllumination: 'BRIGHT',
+    daylight: false,
     barriers: [],
     campaignId: '00000000-0000-4000-8000-000000000002',
     darknessZones: [],

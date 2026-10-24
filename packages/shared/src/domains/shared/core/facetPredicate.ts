@@ -101,6 +101,13 @@ export type PredicatePayloadByCode = {
   MOVED_TOWARD_TARGET: {
     minFeet: number
   }
+  /**
+   * The holder stands in bright light on its Scene. `requiresDaylight` narrows that to a Scene
+   * lit by the sun (D189): daylight reaches the square and no darkness covers it.
+   */
+  HOLDER_IN_BRIGHT_LIGHT: {
+    requiresDaylight: boolean
+  }
   EQUIPMENT_PROFICIENCY: Selectable<
     { equipmentIds: string[] },
     {
@@ -379,6 +386,14 @@ export const PREDICATE_REGISTRY = {
     label: 'Moved Toward Target',
     description:
       'Requires the attacker, in its latest move this turn, to have closed its distance to the target by at least the number of feet.',
+    subjects: ['EQUIPMENT']
+  },
+
+  HOLDER_IN_BRIGHT_LIGHT: {
+    code: 'HOLDER_IN_BRIGHT_LIGHT',
+    label: 'Holder in Bright Light',
+    description:
+      'Requires the holder to stand in bright light on its Scene, or in daylight when the Scene must be lit by the sun.',
     subjects: ['EQUIPMENT']
   },
 

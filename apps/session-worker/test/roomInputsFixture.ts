@@ -271,6 +271,7 @@ export type RoomSceneFixture = {
     | 'id'
     | 'version'
     | 'ambientIllumination'
+    | 'daylight'
     | 'visionRevealMode'
     | 'fogMode'
     | 'annotations'
@@ -393,7 +394,11 @@ export function rawSceneInputs(fixture: RoomSceneFixture): LiveRoomInputsRespons
         fogLayerCount: scene.fogLayers.length,
         nextFogOrdinal: scene.fogLayers.length,
         settings: {
-          ambientIllumination: { value: scene.ambientIllumination, version: 0 },
+          ambientIllumination: {
+            value: scene.ambientIllumination,
+            daylight: scene.daylight,
+            version: 0
+          },
           visionRevealMode: { value: scene.visionRevealMode, version: 0 },
           fogMode: { value: scene.fogMode, version: 0 }
         }

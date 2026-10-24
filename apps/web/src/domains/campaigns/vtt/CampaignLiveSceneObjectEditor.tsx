@@ -96,6 +96,7 @@ export function CampaignLiveSceneObjectEditor({
     ambientIllumination: scene.ambientIllumination,
     barriers: scene.barriers,
     campaignId: scene.campaignId,
+    daylight: scene.daylight,
     darknessZones: scene.darknessZones,
     fogMode: scene.fogMode,
     grid: scene.grid,

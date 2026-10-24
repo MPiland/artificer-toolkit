@@ -1,6 +1,7 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 export const assassin: CreatureAuthored = {
   id: S.CREATURE_IDS.ASSASSIN,
   label: 'Assassin',
@@ -47,7 +48,7 @@ export const assassin: CreatureAuthored = {
       label: 'Assassinate',
       description:
         "Assassinate. During its first turn, the assassin has advantage on attack rolls against any creature that hasn't taken a turn. Any hit the assassin scores against a surprised creature is a critical hit.",
-      grants: S.conditionalAttackAdvantageGrants(29, 1, S.TARGET_HAS_NOT_TAKEN_TURN),
+      grants: R.conditionalAttackAdvantageGrants(29, 1, R.TARGET_HAS_NOT_TAKEN_TURN),
       order: 1
     },
     {

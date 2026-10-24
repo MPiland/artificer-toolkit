@@ -33,92 +33,10 @@ import {
 import { createFacetConditionNodeMap } from './facetCondition.js'
 import { createFacetExistsNodeMap, type FacetExistMin } from './facetExists.js'
 import {
-  actionAppearancePresets,
-  actionPresentationPresets
-} from '@artificer-toolkit/design-system'
-
-const LOGIC_OPTION_AUTHORING = {
-  authoring: {
-    collection: {
-      actions: [
-        {
-          type: 'collection.add',
-          label: 'Add option',
-          presentation: {
-            default: actionAppearancePresets.text,
-            compact: {
-              ...actionAppearancePresets.button,
-              width: 'full',
-              density: 'comfortable'
-            }
-          }
-        },
-        {
-          type: 'collection.remove',
-          label: 'Remove option',
-          presentation: actionPresentationPresets.icon
-        }
-      ],
-      ordering: { mode: 'derived' },
-      itemLabel: 'option',
-      emptyLabel: 'No restriction options added yet.',
-      showHeading: false,
-      join: 'OR',
-      rowLayout: 'card',
-      rowExpansion: 'expanded'
-    }
-  }
-} as const
-
-const LOGIC_CONTEXT_AUTHORING = {
-  authoring: {
-    collection: {
-      actions: [
-        {
-          type: 'collection.add',
-          label: 'Add condition',
-          presentation: {
-            default: actionAppearancePresets.text,
-            compact: {
-              ...actionAppearancePresets.button,
-              width: 'full',
-              density: 'comfortable'
-            }
-          }
-        },
-        {
-          type: 'collection.remove',
-          label: 'Remove condition',
-          presentation: actionPresentationPresets.text
-        }
-      ],
-      ordering: { mode: 'derived' },
-      itemLabel: 'condition',
-      emptyLabel: 'No conditions added yet.',
-      showHeading: false,
-      join: 'AND',
-      rowLayout: 'flat',
-      rowExpansion: 'expanded',
-      rowSummary: 'facet-context'
-    }
-  }
-} as const
-
-const LOGIC_CONDITION_AUTHORING = {
-  authoring: {
-    collection: {
-      actions: [],
-      ordering: { mode: 'derived' },
-      itemLabel: 'condition',
-      emptyLabel: 'This condition has not been configured yet.',
-      showHeading: false,
-      join: 'AND',
-      rowLayout: 'compact',
-      rowExpansion: 'expanded',
-      rowSummary: 'facet-condition'
-    }
-  }
-} as const
+  LOGIC_CONDITION_AUTHORING,
+  LOGIC_CONTEXT_AUTHORING,
+  LOGIC_OPTION_AUTHORING
+} from './facetLogicAuthoring.js'
 
 const facetBodyGroupNode = buildNodeMap<FacetBodyGroupAuthored>()
 
@@ -1463,6 +1381,13 @@ function createFacetPredicateNodeMap(
           order: 3,
           showIf: local.field(['predicateCode']).eq('MOVED_TOWARD_TARGET'),
           requiredIf: local.field(['predicateCode']).eq('MOVED_TOWARD_TARGET')
+        })
+      )
+      .set(
+        'requiresDaylight',
+        toggle(['requiresDaylight'], 'Daylight only', {
+          order: 3,
+          showIf: local.field(['predicateCode']).eq('HOLDER_IN_BRIGHT_LIGHT')
         })
       )
       .set(

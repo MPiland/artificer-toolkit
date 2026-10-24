@@ -195,6 +195,7 @@ export function materializeCampaignScene(
     ambientIllumination: definition.ambientIllumination,
     barriers: definition.barriers.map((barrier) => ({ ...barrier })),
     campaignId: definition.campaignId,
+    daylight: definition.daylight,
     darknessZones: definition.darknessZones.map((zone) => ({
       ...zone,
       polygon: { points: zone.polygon.points.map((point) => ({ ...point })) }
@@ -229,7 +230,7 @@ export function materializeCampaignScene(
 function applyAtomicDelta(state: CampaignSceneState, delta: SceneAtomicDelta): CampaignSceneState {
   switch (delta.kind) {
     case 'AMBIENT_ILLUMINATION_SET':
-      return { ...state, ambientIllumination: delta.illumination }
+      return { ...state, ambientIllumination: delta.illumination, daylight: delta.daylight }
     case 'TOKEN_UPSERTED':
     case 'TOKEN_REMOVED':
     case 'TOKEN_MOVED':
