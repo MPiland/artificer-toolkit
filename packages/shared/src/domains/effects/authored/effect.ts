@@ -177,6 +177,8 @@ export type PassiveEffectInvocationAuthored<TTrigger extends Trigger = Trigger> 
       shape?: ShapeAuthored
       targeting?: TargetingAuthored
       optionalOnHit?: OptionalOnHitAuthored
+      /** The sibling Feature whose attacks alone this rider rides; absent, it rides every attack its trigger names. */
+      ridesFeatureId?: string
     }
   /**
    * The holder takes damage of one of the named damage types; the passive's PASSIVE path then

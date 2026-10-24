@@ -37,6 +37,8 @@ async function attackOgre(input: {
   option?: string
   /** The label of the target Creature; the Ogre unless the attack is size-capped. */
   target?: string
+  /** How far the attacker closed on the Ogre in a straight line before the attack. */
+  closedFeet?: number
 }) {
   const attacker = srdByLabel(SRD.creatures, input.attacker)
   const prepared = await prepareCreatureAction({
@@ -57,6 +59,7 @@ async function attackOgre(input: {
         ({ label }) => label === input.option
       )?.effects?.[0]?.id
     }),
+    ...(input.closedFeet === undefined ? {} : { closedFeet: input.closedFeet }),
     overridable: true
   })
   const { execution, mechanics } = await settleCreatureAction({ prepared, rolls: input.rolls })
@@ -817,5 +820,101 @@ describe('SRD Creature hits that force a saving throw', () => {
       },
       lifecycle: { remainingTicks: 10 }
     })
+  })
+})
+
+describe('a straight-line Charge rides only its named attack (SPELLS-33 T5n2, D164)', () => {
+  it('adds the Giant Elk’s Charge damage and prone save to a Ram after a 20-foot charge', async () => {
+    // Ram, +6: 2d6 + 4 bludgeoning; Charge: 2d6 more, then DC 14 Strength or prone.
+    const failed = await attackOgre({
+      attacker: 'Giant Elk',
+      feature: 'Ram',
+      closedFeet: 20,
+      rolls: [9, 0, 0, 0, 0, 0]
+    })
+    expect(failed.damage).toEqual([
+      [2 + 4, srdDamageTypeId('BLUDGEONING')],
+      [2, srdDamageTypeId('BLUDGEONING')]
+    ])
+    expect(failed.execution.nestedD20).toMatchObject({
+      total: 1 + 4,
+      defenseOrDc: 14,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.conditionIds).toEqual([srdCondition('Prone')])
+
+    const saved = await attackOgre({
+      attacker: 'Giant Elk',
+      feature: 'Ram',
+      closedFeet: 20,
+      rolls: [9, 0, 0, 0, 0, 19]
+    })
+    expect(saved.execution.nestedD20).toMatchObject({ resultPath: 'ON_SAVE_SUCCESS' })
+    expect(saved.conditionIds).toEqual([])
+  })
+
+  it('deals only the Ram’s damage when the elk closed less than 20 feet', async () => {
+    const short = await attackOgre({
+      attacker: 'Giant Elk',
+      feature: 'Ram',
+      closedFeet: 15,
+      rolls: [9, 0, 0]
+    })
+    expect(short.damage).toEqual([[2 + 4, srdDamageTypeId('BLUDGEONING')]])
+    expect(short.execution.nestedD20).toBeNull()
+    expect(short.conditionIds).toEqual([])
+  })
+
+  it('pushes the target 10 feet and knocks it prone after the Minotaur Skeleton’s Gore charge', async () => {
+    // Gore, +6: 2d8 + 4 piercing; Charge: 2d8 more, then DC 14 Strength or pushed and prone.
+    const failed = await attackOgre({
+      attacker: 'Minotaur Skeleton',
+      feature: 'Gore',
+      closedFeet: 10,
+      rolls: [9, 0, 0, 0, 0, 0]
+    })
+    expect(failed.damage).toEqual([
+      [2 + 4, srdDamageTypeId('PIERCING')],
+      [2, srdDamageTypeId('PIERCING')]
+    ])
+    expect(failed.conditionIds).toEqual([srdCondition('Prone')])
+    expect(failed.spatial).toEqual([
+      expect.objectContaining({
+        kind: 'FORCED_MOVEMENT',
+        targetActorId: TARGET_ID,
+        direction: 'AWAY_FROM_SOURCE',
+        feet: 10
+      })
+    ])
+  })
+
+  it('does not ride the Minotaur Skeleton’s Greataxe, however far it charged', async () => {
+    const axe = await attackOgre({
+      attacker: 'Minotaur Skeleton',
+      feature: 'Greataxe',
+      closedFeet: 30,
+      rolls: [9, 0, 0]
+    })
+    expect(axe.damage).toEqual([[2 + 4, srdDamageTypeId('SLASHING')]])
+    expect(axe.execution.nestedD20).toBeNull()
+  })
+
+  it('adds the Unicorn’s Charge to a Horn after a 20-foot charge', async () => {
+    // Horn, +7: 1d8 + 4 piercing; Charge: 2d8 more, then DC 15 Strength or prone.
+    const failed = await attackOgre({
+      attacker: 'Unicorn',
+      feature: 'Horn',
+      closedFeet: 20,
+      rolls: [9, 0, 0, 0, 0]
+    })
+    expect(failed.damage).toEqual([
+      [1 + 4, srdDamageTypeId('PIERCING')],
+      [2, srdDamageTypeId('PIERCING')]
+    ])
+    expect(failed.execution.nestedD20).toMatchObject({
+      defenseOrDc: 15,
+      resultPath: 'ON_SAVE_FAIL'
+    })
+    expect(failed.conditionIds).toEqual([srdCondition('Prone')])
   })
 })
