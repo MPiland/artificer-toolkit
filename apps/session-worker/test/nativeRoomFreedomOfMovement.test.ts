@@ -96,12 +96,10 @@ function characterRoom(
 
 type Room = Awaited<ReturnType<typeof actionRoom>>
 
+/** The Guard's stored conditions, as `{ conditionTypeId }` rows. */
 async function conditionsOf(room: Room) {
-  return (
-    vitalsOf(await readRoomHistory(room.room.base.stub))
-      .find(({ id }) => id === GUARD_ID)
-      ?.conditions.map(({ conditionTypeId: id }) => id) ?? []
-  )
+  return vitalsOf(await readRoomHistory(room.room.base.stub)).find(({ id }) => id === GUARD_ID)
+    ?.conditions
 }
 
 const committed = ({ answer }: { answer: { type: string } }) =>
@@ -109,7 +107,11 @@ const committed = ({ answer }: { answer: { type: string } }) =>
 
 describe('room Freedom of Movement (SPELLS-4.T2m2)', () => {
   it.each([
-    { holder: 'paralyzes a Guard that fails its save', warded: false, expected: [PARALYZED] },
+    {
+      holder: 'paralyzes a Guard that fails its save',
+      warded: false,
+      expected: [{ conditionTypeId: PARALYZED }]
+    },
     { holder: 'cannot paralyze a Guard holding the spell', warded: true, expected: [] }
   ])('Hold Person $holder', async ({ warded, expected }) => {
     const room = await characterRoom({
@@ -124,7 +126,11 @@ describe('room Freedom of Movement (SPELLS-4.T2m2)', () => {
   })
 
   it.each([
-    { holder: 'restrains a Guard that fails its save', warded: false, expected: [RESTRAINED] },
+    {
+      holder: 'restrains a Guard that fails its save',
+      warded: false,
+      expected: [{ conditionTypeId: RESTRAINED }]
+    },
     { holder: 'cannot restrain a Guard holding the spell', warded: true, expected: [] }
   ])('Web $holder', async ({ warded, expected }) => {
     const room = await characterRoom({
@@ -152,7 +158,7 @@ describe('room Freedom of Movement (SPELLS-4.T2m2)', () => {
 
     committed(await room.startAction(GUARD_ID, []))
 
-    expect(await conditionsOf(room)).toContain(RESTRAINED)
+    expect(await conditionsOf(room)).toContainEqual({ conditionTypeId: RESTRAINED })
   })
 
   it('does not stop a Giant Frog’s grapple from restraining the Guard', async () => {
@@ -170,6 +176,6 @@ describe('room Freedom of Movement (SPELLS-4.T2m2)', () => {
 
     committed(await room.startAction(GUARD_ID, []))
 
-    expect(await conditionsOf(room)).toContain(RESTRAINED)
+    expect(await conditionsOf(room)).toContainEqual({ conditionTypeId: RESTRAINED })
   })
 })
