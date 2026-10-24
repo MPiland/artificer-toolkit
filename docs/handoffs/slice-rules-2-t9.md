@@ -25,3 +25,9 @@ Each task extends the RULES-2.T9o vocabulary boundary guard, so the moved litera
   - **Left for later (not T9d scope):**
     - `actorSenses.ts` `ILLUMINATION_ACCESS_RANK` and the `SenseDefinitionEditor` access options: illumination access, not levels.
     - The Scene darkness-zone schema's DIM-or-darker enum: a contract, no reseed per the ruling.
+- 2026-10-24, T9d review (independent opus): no D&D regression and no weakened assertion. Fixed in a follow-up commit:
+  - **Light bands:** a light's radii shed the `BRIGHT` and `DIM` codes they are named for, not "the first level of a render class"; a System lacking one now fails closed. The renderer draws each band at its level's class alpha.
+  - **Sight:** a sense's reach carries its access level. Sight reveals a token in darkness only when the System ranks that darkness at or below the access, as the rules engine's access rank does; truesight means access to the darkest level. My own two T9d assertions that pinned the old reading (strict `ORDINARY_DARKNESS` access giving truesight, and not revealing its own level) were replaced with the rank reading; the D&D assertions are unchanged.
+  - **dnd5e:** the rank cast became `illuminationValues.indexOf`.
+  - **Escalated (D-pending-rules-2-t9-1):** what "bright light" means for Sunlight Sensitivity and daylight. Render class `LIT` today; rank 0 or an explicit level property are the alternatives. `measureHolderLight` keeps its two resolutions until that ruling.
+  - **Recorded, not fixed (Systems other than D&D only):** the renderer's darkvision and truesight drawing still composes by `suppressesLight`; the diagnostics keep the `ordinary` and `magical` key names; a Scene code the System lacks throws in the renderer; the level table is not validated (empty, duplicate or out-of-order).

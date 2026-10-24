@@ -2968,11 +2968,13 @@ Illumination levels (current, RULES-2.T9d): the illumination codes (`BRIGHT`, `D
 `illuminationLevels` lists the System's levels brightest first, each with its `label`, `renderClass`
 (`LIT`, `DIM` or `DARK`) and `suppressesLight`. The shared resolvers take the levels as a parameter, since
 `shared` does not import `rules-runtime`: `resolveSceneIlluminationAt` darkens by list order, lets a light's bright
-radius shed the brightest `LIT` level and its dim radius the brightest `DIM` one, and lets a light-suppressing
-ambient or zone override lights;
+and dim radii shed the `BRIGHT` and `DIM` levels they are named for (ranked and drawn as the System defines them),
+and lets a light-suppressing ambient or zone override lights;
 `requireSceneIlluminationLevel` fails closed on a code the System does not define. The Worker's holder light,
 the web renderer's overlays, darkness outlines, token concealment, sense effects and lighting labels read the
 levels from the Campaign's System (`combatPerceptionCapabilityRegistry.require(gameSystemId)`), never a code.
+The web reveals a token in darkness through sight only when the System ranks that darkness at or below the
+sense's access level, as the rules engine's access rank does.
 `systemVocabularyBoundary.test.ts` rejects an illumination code comparison outside `rules-runtime/src/systems/`.
 
 Token light (current, SPELLS-33.T6j): a Creature's passive Feature that authors a MANIFEST OBJECT `light`

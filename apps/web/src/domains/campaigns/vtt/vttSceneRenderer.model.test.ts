@@ -1027,8 +1027,11 @@ describe('VTT view token and senses', () => {
       isTokenRevealed({
         halfSize: 35,
         illumination: level('ORDINARY_DARKNESS'),
+        illuminationLevels,
         point: { x: 1_000, y: 1_000 },
-        reaches: [{ effect: 'DARKVISION', origin, polygon, radius }]
+        reaches: [
+          { access: level('ORDINARY_DARKNESS'), effect: 'DARKVISION', origin, polygon, radius }
+        ]
       })
     ).toBe(true)
   })
@@ -1040,7 +1043,10 @@ describe('VTT view token and senses', () => {
       x: 100 * Math.cos((step * Math.PI) / 4),
       y: 100 * Math.sin((step * Math.PI) / 4)
     }))
+    // The D&D darkness each sight sense reaches into.
+    const sightInto = { DARKVISION: 'ORDINARY_DARKNESS', TRUESIGHT: 'MAGICAL_DARKNESS' } as const
     const reach = (effect: VttSenseReach['effect']): VttSenseReach => ({
+      access: effect === 'DARKVISION' || effect === 'TRUESIGHT' ? level(sightInto[effect]) : null,
       effect,
       origin,
       polygon,
@@ -1054,6 +1060,7 @@ describe('VTT view token and senses', () => {
       isTokenRevealed({
         halfSize: 35,
         illumination: level(illumination),
+        illuminationLevels,
         point,
         reaches: effects.map(reach)
       })
@@ -1083,11 +1090,18 @@ describe('VTT view token and senses', () => {
     })
 
     it('lets tremorsense feel a token through walls within range, measured to its edge', () => {
-      const behindWall: VttSenseReach = { effect: 'TREMORSENSE', origin, polygon: [], radius: 100 }
+      const behindWall: VttSenseReach = {
+        access: null,
+        effect: 'TREMORSENSE',
+        origin,
+        polygon: [],
+        radius: 100
+      }
       const feel = (x: number) =>
         isTokenRevealed({
           halfSize: 35,
           illumination: level('ORDINARY_DARKNESS'),
+          illuminationLevels,
           point: { x, y: 0 },
           reaches: [behindWall]
         })
@@ -1250,6 +1264,7 @@ describe('VTT lighting model', () => {
     const strict = (code: IlluminationCode) => requireSceneIlluminationLevel(strictLevels, code)
     const origin = { x: 0, y: 0 }
     const reach: VttSenseReach = {
+      access: strict('ORDINARY_DARKNESS'),
       effect: 'DARKVISION',
       origin,
       polygon: [
@@ -1261,19 +1276,33 @@ describe('VTT lighting model', () => {
       radius: 100
     }
 
-    it('reads sight into darkness from whether the level dispels light', () => {
-      const access = { channel: 'VISUAL', illuminationAccess: 'ORDINARY_DARKNESS' } as const
-      expect(senseEffect(access, illuminationLevels)).toBe('DARKVISION')
-      expect(senseEffect(access, strictLevels)).toBe('TRUESIGHT')
+    it("reads sight into darkness by the System's rank of its access level", () => {
+      const into = (illuminationAccess: IlluminationCode) =>
+        ({ channel: 'VISUAL', illuminationAccess }) as const
+      expect(senseEffect(into('ORDINARY_DARKNESS'), illuminationLevels)).toBe('DARKVISION')
+      expect(senseEffect(into('ORDINARY_DARKNESS'), strictLevels)).toBe('DARKVISION')
+      expect(senseEffect(into('MAGICAL_DARKNESS'), strictLevels)).toBe('TRUESIGHT')
     })
 
-    it('reveals by render class, and darkvision only where light is not dispelled', () => {
+    it('reveals by render class, and sight only into darkness no darker than its access', () => {
       const revealed = (illumination: SceneIlluminationLevel) =>
-        isTokenRevealed({ halfSize: 35, illumination, point: origin, reaches: [reach] })
-      expect(revealed(level('ORDINARY_DARKNESS'))).toBe(true)
-      expect(revealed(strict('ORDINARY_DARKNESS'))).toBe(false)
+        isTokenRevealed({
+          halfSize: 35,
+          illumination,
+          illuminationLevels: strictLevels,
+          point: origin,
+          reaches: [reach]
+        })
+      expect(revealed(strict('ORDINARY_DARKNESS'))).toBe(true)
+      expect(revealed(strict('MAGICAL_DARKNESS'))).toBe(false)
       expect(
-        isTokenRevealed({ halfSize: 35, illumination: strict('DIM'), point: origin, reaches: [] })
+        isTokenRevealed({
+          halfSize: 35,
+          illumination: strict('DIM'),
+          illuminationLevels: strictLevels,
+          point: origin,
+          reaches: []
+        })
       ).toBe(true)
     })
 

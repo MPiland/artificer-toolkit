@@ -156,26 +156,15 @@ function withinLightCone(light: SceneLight, point: ScenePoint): boolean {
   return Math.abs(offset) <= (light.angleDegrees * Math.PI) / 360
 }
 
-function brightestIlluminationOf(
-  levels: readonly SceneIlluminationLevel[],
-  renderClass: SceneIlluminationRenderClass
-): CombatPerceptionIllumination | null {
-  return levels.find((item) => item.renderClass === renderClass)?.code ?? null
-}
-
-/**
- * A light's bright radius sheds the System's brightest lit level, its dim radius its brightest dim
- * one; a band whose class the System lacks sheds nothing.
- */
+/** A light's radii shed the levels they are named for; the System ranks and draws them. */
 function illuminationFromLight(
   light: SceneLight,
-  point: ScenePoint,
-  levels: readonly SceneIlluminationLevel[]
+  point: ScenePoint
 ): CombatPerceptionIllumination | null {
   if (!withinLightCone(light, point)) return null
   const distance = Math.hypot(point.x - light.position.x, point.y - light.position.y)
-  if (distance <= light.brightRadius) return brightestIlluminationOf(levels, 'LIT')
-  if (distance <= light.dimRadius) return brightestIlluminationOf(levels, 'DIM')
+  if (distance <= light.brightRadius) return 'BRIGHT'
+  if (distance <= light.dimRadius) return 'DIM'
   return null
 }
 
@@ -268,7 +257,7 @@ export function resolveSceneIlluminationAt(
   }
   for (const light of [...scene.lights, ...sceneTokenLights(scene)]) {
     if (!canLightPassBetween(scene, light.position, point, barrierIndex)) continue
-    const candidate = illuminationFromLight(light, point, illuminationLevels)
+    const candidate = illuminationFromLight(light, point)
     if (candidate) illumination = brighterIllumination(illuminationLevels, illumination, candidate)
   }
   const suppressing = [

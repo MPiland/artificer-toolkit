@@ -809,10 +809,19 @@ export function resolveViewTokenId(input: {
 
 /**
  * What a sense does to the picture. A sense is told apart by its channel and the System level of
- * its illumination access: sight into darkness that light dispels, or into darkness that dispels
- * light.
+ * its illumination access: sight into some darkness, or into the System's darkest level.
  */
 export type VttSenseEffect = 'BLINDSIGHT' | 'DARKVISION' | 'TREMORSENSE' | 'TRUESIGHT'
+
+/** The System level a sense's sight reaches into, when that level is a darkness. */
+export function senseAccessLevel(
+  sense: Pick<SceneTokenSense, 'channel' | 'illuminationAccess'>,
+  illuminationLevels: readonly SceneIlluminationLevel[]
+): SceneIlluminationLevel | null {
+  if (sense.channel !== 'VISUAL') return null
+  const access = illuminationLevels.find(({ code }) => code === sense.illuminationAccess)
+  return access?.renderClass === 'DARK' ? access : null
+}
 
 export function senseEffect(
   sense: Pick<SceneTokenSense, 'channel' | 'illuminationAccess'>,
@@ -820,10 +829,9 @@ export function senseEffect(
 ): VttSenseEffect | null {
   if (sense.channel === 'NONVISUAL') return 'BLINDSIGHT'
   if (sense.channel === 'VIBRATION') return 'TREMORSENSE'
-  if (sense.channel !== 'VISUAL') return null
-  const access = illuminationLevels.find(({ code }) => code === sense.illuminationAccess)
-  if (access?.renderClass !== 'DARK') return null
-  return access.suppressesLight ? 'TRUESIGHT' : 'DARKVISION'
+  const access = senseAccessLevel(sense, illuminationLevels)
+  if (!access) return null
+  return access === illuminationLevels.at(-1) ? 'TRUESIGHT' : 'DARKVISION'
 }
 
 /**
@@ -844,6 +852,8 @@ export function senseReachRadius(
 
 /** The area one sense reaches: its radius and the line of sight clamped to it. */
 export interface VttSenseReach {
+  /** The darkest System level the sense's sight reaches into; null for a sense that is not sight. */
+  access: SceneIlluminationLevel | null
   effect: VttSenseEffect
   origin: ScenePoint
   polygon: readonly ScenePoint[]
@@ -852,18 +862,21 @@ export interface VttSenseReach {
 
 /**
  * Whether a token at this System illumination level is seen. Lit and dim levels show it; in
- * darkness only a sense does, and darkvision only where the darkness does not dispel light.
- * Tremorsense feels the ground, so a token counts as on the ground and is felt at any distance
- * within range with no sight line.
+ * darkness only a sense does, and sight only into darkness no darker than its access level, as the
+ * rules rank it. Tremorsense feels the ground, so a token counts as on the ground and is felt at
+ * any distance within range with no sight line.
  */
 export function isTokenRevealed(input: {
   halfSize: number
   illumination: SceneIlluminationLevel
+  illuminationLevels: readonly SceneIlluminationLevel[]
   point: ScenePoint
   reaches: readonly VttSenseReach[]
 }): boolean {
-  const { halfSize, illumination, point, reaches } = input
+  const { halfSize, illumination, illuminationLevels, point, reaches } = input
   if (illumination.renderClass !== 'DARK') return true
+  const rank = (level: SceneIlluminationLevel) =>
+    illuminationLevels.findIndex(({ code }) => code === level.code)
   return reaches.some((reach) => {
     if (reach.effect === 'TREMORSENSE') {
       // Every token is treated as standing on the ground: the Scene has no flying data.
@@ -872,8 +885,8 @@ export function isTokenRevealed(input: {
       )
     }
     if (!scenePointInPolygon(point, { points: [...reach.polygon] })) return false
-    if (reach.effect === 'BLINDSIGHT' || reach.effect === 'TRUESIGHT') return true
-    return !illumination.suppressesLight
+    if (reach.effect === 'BLINDSIGHT') return true
+    return reach.access !== null && rank(illumination) <= rank(reach.access)
   })
 }
 

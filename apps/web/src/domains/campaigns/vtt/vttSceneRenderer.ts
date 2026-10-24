@@ -61,6 +61,7 @@ import {
   resolveSceneTokenMove,
   resolveVttTokenFocusScale,
   resolveVttZoomScale,
+  senseAccessLevel,
   senseEffect,
   senseReachRadius,
   selectionOutlineColor,
@@ -1096,6 +1097,9 @@ export async function createVttSceneRenderer(
         )
       }
     }
+    // A light's radii shed the levels they are named for, drawn at those levels' classes.
+    const brightBandAlpha = illuminationOverlayAlpha(levelOf('BRIGHT').renderClass)
+    const dimBandAlpha = illuminationOverlayAlpha(levelOf('DIM').renderClass)
     for (const light of [...scene.lights, ...tokenLights]) {
       const polygon = visibilityPolygonForLight(
         light,
@@ -1107,13 +1111,13 @@ export async function createVttSceneRenderer(
       const radii = lightRadii(light)
       if (radii.dim > radii.bright) {
         const reach = clampPolygonToRadius(polygon.points, light.position, radii.dim)
-        classMap.addChild(overlayShape(reach, dimOverlayAlpha, 'min', 'light-dim'))
+        classMap.addChild(overlayShape(reach, dimBandAlpha, 'min', 'light-dim'))
         lightCutPolygons.push(reach)
         lightTintLayer.addChild(tintShape(reach, light, lightTintDimLabel))
       }
       if (radii.bright > 0) {
         const core = clampPolygonToRadius(polygon.points, light.position, radii.bright)
-        classMap.addChild(overlayShape(core, 0, 'min', 'light-bright'))
+        classMap.addChild(overlayShape(core, brightBandAlpha, 'min', 'light-bright'))
         lightCutPolygons.push(core)
         lightTintLayer.addChild(tintShape(core, light, lightTintBrightLabel))
       }
@@ -1321,6 +1325,7 @@ export async function createVttSceneRenderer(
       const radius = senseReachRadius(grid, viewToken, sense)
       if ((widest.get(effect)?.radius ?? -1) >= radius) continue
       widest.set(effect, {
+        access: senseAccessLevel(sense, illuminationLevels),
         effect,
         origin: viewToken.position,
         polygon:
@@ -1464,6 +1469,7 @@ export async function createVttSceneRenderer(
             resolveSceneIlluminationAt(scene, token.position, barrierIndex, illuminationLevels)
               .illumination
           ),
+          illuminationLevels,
           point: token.position,
           reaches: senseReaches
         })

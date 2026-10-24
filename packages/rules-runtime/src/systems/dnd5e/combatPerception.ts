@@ -3,7 +3,6 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   type CombatPerceptionAccessGrade,
   type CombatPerceptionRequirement,
-  type CombatPerceptionIllumination,
   type CombatPerceptionIlluminationAccess,
   type CombatPerceptionObscurement,
   type CombatPerceptionObscurementAccess,
@@ -65,9 +64,6 @@ const obscurementValues = ['NONE', 'LIGHT', 'HEAVY'] as const
 const obscurementAccessValues = ['NONE', 'LIGHT', 'HEAVY', 'IGNORE'] as const
 const physicalConstraintValues = ['LINE_OF_EFFECT', 'SHARED_SURFACE'] as const
 
-const illuminationRank = Object.fromEntries(
-  DND5E_ILLUMINATION_LEVELS.map(({ code }, rank) => [code, rank])
-) as Readonly<Record<CombatPerceptionIllumination, number>>
 const illuminationAccessRank: Readonly<
   Record<Exclude<CombatPerceptionIlluminationAccess, 'IGNORE'>, number>
 > = {
@@ -786,7 +782,7 @@ function resolveParsedCombatPerception(parsed: {
       reasons.push('INVISIBLE_SUBJECT')
     if (
       capability.illuminationAccess !== 'IGNORE' &&
-      illuminationRank[parsed.environment.illumination] >
+      illuminationValues.indexOf(parsed.environment.illumination) >
         illuminationAccessRank[capability.illuminationAccess]
     )
       reasons.push('ILLUMINATION_INSUFFICIENT')

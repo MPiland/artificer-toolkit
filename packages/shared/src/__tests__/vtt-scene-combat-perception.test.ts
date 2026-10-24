@@ -346,6 +346,21 @@ describe('Scene combat-perception environment', () => {
       ).toBe('ORDINARY_DARKNESS')
     })
 
+    it('sheds the level each light radius is named for, whatever its render class', () => {
+      const litGloomLevels: readonly SceneIlluminationLevel[] = [
+        { code: 'BRIGHT', label: 'Lit', renderClass: 'LIT', suppressesLight: false },
+        { code: 'DIM', label: 'Gloom', renderClass: 'LIT', suppressesLight: false },
+        { code: 'ORDINARY_DARKNESS', label: 'Dark', renderClass: 'DARK', suppressesLight: false },
+        { code: 'MAGICAL_DARKNESS', label: 'Void', renderClass: 'DARK', suppressesLight: true }
+      ]
+      const environment = scene({ ambientIllumination: 'ORDINARY_DARKNESS', lights: [torch] })
+      const at = (x: number) =>
+        resolve(observer, token({ x, y: 50 }), environment, litGloomLevels).illumination
+
+      expect(at(100)).toBe('BRIGHT')
+      expect(at(250)).toBe('DIM')
+    })
+
     it("finds daylight by the level's render class, not its code", () => {
       const environment = { ...scene({ ambientIllumination: 'DIM' }), daylight: true }
       const daylight = (illuminationLevels: readonly SceneIlluminationLevel[]) =>
