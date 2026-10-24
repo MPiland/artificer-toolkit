@@ -51,7 +51,7 @@ export const giantOctopus: CreatureAuthored = {
       description:
         'Underwater Camouflage. The octopus has advantage on Dexterity (Stealth) checks made while underwater.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(128, 202),
           invocation: {
             kind: 'PASSIVE',
@@ -59,7 +59,10 @@ export const giantOctopus: CreatureAuthored = {
             range: { id: S.actionId(128, 1202), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_UNDERWATER_CAMOUFLAGE
+          label: 'Underwater Camouflage',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            'The octopus has advantage on Dexterity (Stealth) checks made while underwater.'
         })
       ],
       order: 2

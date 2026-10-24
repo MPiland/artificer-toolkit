@@ -6,6 +6,7 @@ import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { clayGolem } from '@artificer-toolkit/source-data/srd/creatures/clay-golem.js'
 import { giantOctopus } from '@artificer-toolkit/source-data/srd/creatures/giant-octopus.js'
 import { goblin } from '@artificer-toolkit/source-data/srd/creatures/goblin.js'
+import { octopus } from '@artificer-toolkit/source-data/srd/creatures/octopus.js'
 import { orc } from '@artificer-toolkit/source-data/srd/creatures/orc.js'
 import { shadow } from '@artificer-toolkit/source-data/srd/creatures/shadow.js'
 import { spy } from '@artificer-toolkit/source-data/srd/creatures/spy.js'
@@ -19,10 +20,10 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 /**
  * SPELLS-33 T4l1 (D160, D187a): the Creature traits that offer basic actions (Goblin Nimble Escape,
- * Spy Cunning Action, Shadow Stealth, Orc Aggressive, Giant Octopus Ink Cloud, Clay Golem Haste) are
- * authored from the `grantedActions` option a Builder author has on an APPLY_GRANT result block, and
- * the Vampire's legendary Move ships as a GM ruling. Each must pass the creature node map exactly as
- * authored, and the seven closed rule kinds they used are gone.
+ * Spy Cunning Action, Shadow Stealth, Orc Aggressive, Giant Octopus and Octopus Ink Cloud, Clay Golem
+ * Haste) are authored from the `grantedActions` option a Builder author has on an APPLY_GRANT result
+ * block, and the Vampire's legendary Move ships as a GM ruling. Each must pass the creature node map
+ * exactly as authored, and the closed rule kinds they used are gone (Octopus Ink Cloud: T6d2).
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -79,6 +80,12 @@ describe('Creature traits that offer basic actions (D160)', () => {
       offers: [{ activation: 'BONUS_ACTION', actionDefinitionIds: [DASH] }]
     },
     {
+      creature: octopus,
+      label: 'Ink Cloud (Recharges after a Short or Long Rest)',
+      standing: false,
+      offers: [{ activation: 'BONUS_ACTION', actionDefinitionIds: [DASH] }]
+    },
+    {
       creature: clayGolem,
       label: 'Haste (Recharge 5-6)',
       standing: false,
@@ -114,11 +121,12 @@ describe('Creature traits that offer basic actions (D160)', () => {
     expect(getValueAtPath(result.values, ['features'])).toEqual(vampire.features)
   })
 
-  it('no longer lists the seven closed rule kinds', () => {
+  it('no longer lists their closed rule kinds', () => {
     for (const kind of [
       'CLAY_GOLEM_HASTE',
       'CREATURE_GIANT_OCTOPUS_INK_CLOUD',
       'CREATURE_GOBLIN_NIMBLE_ESCAPE',
+      'CREATURE_OCTOPUS_INK_CLOUD',
       'CREATURE_ORC_AGGRESSIVE',
       'CREATURE_SHADOW_STEALTH',
       'CREATURE_SPY_CUNNING_ACTION',
