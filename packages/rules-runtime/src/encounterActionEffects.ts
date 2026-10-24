@@ -57,10 +57,11 @@ function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
 }
 
 /**
- * The timed grant a placed zone gives the creature that placed it (D153), as an effect on the acting
- * creature. It comes from the zone's own plan rather than from an outcome, so no execution binds it.
+ * The effect a cast leaves on the acting creature from a plan of its own rather than from an
+ * outcome, so no execution binds it: the timed grant a placed zone gives its placer (D153) and the
+ * carrier effect that holds a summon for its duration.
  */
-export function prepareNativeZoneSourceGrantEffect<
+export function prepareNativeSourceEffect<
   TCharacterFacts extends CharacterActionMovementFacts
 >(input: {
   prepared: PreparedMechanics<TCharacterFacts>
@@ -88,7 +89,7 @@ export function prepareNativeZoneSourceGrantEffect<
     published: input.published,
     d20: null
   })
-  if (!effect) throw new Error('A zone’s placer grant yields no effect.')
+  if (!effect) throw new Error('The cast’s source effect yields no effect.')
   return effect
 }
 

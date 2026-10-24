@@ -777,10 +777,14 @@ export async function persistEncounterAreaCommit(
         sceneId: scope.zoneSceneId,
         zone
       })
-  // The placed zone's timed grant lands on its placer (D153), exactly as the root receipted it.
+  // The placed zone's timed grant (D153) or the summon's carrier effect lands on the caster, exactly
+  // as the root receipted it; the carrier depends on the cast's Concentration and holds the summon.
   const grant = input.zoneSourceGrant
   const origin = grant?.definition.origin
+  const hasSummon = input.summonedTokens.length > 0
   if (
+    (hasSummon && !grant) ||
+    input.summonedTokens.some(({ actor }) => actor.owner?.sourceEffectId !== grant?.id) ||
     checksumCanonicalJson(
       (grant &&
         projectNativeActionEffectTransitions({
@@ -791,10 +795,11 @@ export async function persistEncounterAreaCommit(
         null
     ) !== checksumCanonicalJson(root.sourceGrantTransition ?? null) ||
     (grant &&
-      (input.placedZones.length === 0 ||
+      (input.placedZones.length > 0 === hasSummon ||
         checksumCanonicalJson(grant.owner) !==
           checksumCanonicalJson(turnEffectOwner(source, state.id)) ||
-        grant.maintainedEffectStateId !== null ||
+        grant.maintainedEffectStateId !==
+          (hasSummon ? (input.maintainedState?.id ?? null) : null) ||
         origin?.kind !== 'ENCOUNTER' ||
         origin.sourceAggregateId !== state.id ||
         origin.sourceActorId !== source.id ||
@@ -809,7 +814,7 @@ export async function persistEncounterAreaCommit(
       owner: grant.owner,
       definition: grant.definition,
       lifecycle: grant.lifecycle,
-      maintainedEffectStateId: null,
+      maintainedEffectStateId: grant.maintainedEffectStateId,
       occurredAt: input.occurredAt
     })
     if (checksumCanonicalJson(created) !== checksumCanonicalJson(grant))
