@@ -4,8 +4,10 @@ import type { EquipmentAuthored, SpellAuthored } from '@artificer-toolkit/shared
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
 import { CREATURE_IDS } from '@artificer-toolkit/source-data/srd/ids.js'
+import { animalShapes } from '@artificer-toolkit/source-data/srd/spells/animal-shapes.js'
 import { giantInsect } from '@artificer-toolkit/source-data/srd/spells/giant-insect.js'
 import { polymorph } from '@artificer-toolkit/source-data/srd/spells/polymorph.js'
+import { shapechange } from '@artificer-toolkit/source-data/srd/spells/shapechange.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -67,6 +69,20 @@ describe('the creature form through the effect node map (ADR 0038)', () => {
     expect(result.clearedPaths).toEqual([])
     expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
   })
+
+  // SPELLS-4.T2s (D191): the form keeps the holder's mental scores; the rest is a GM ruling beside it.
+  it.each([
+    ['Animal Shapes', animalShapes],
+    ['Shapechange', shapechange]
+  ])(
+    'keeps the SRD %s form, its retained scores and its ruling exactly as authored',
+    async (_name, spell) => {
+      const authored = equipmentWith(spell.effects)
+      const result = await normalize(authored)
+      expect(result.clearedPaths).toEqual([])
+      expect(getValueAtPath(result.values, ['effects'])).toEqual(authored.effects)
+    }
+  )
 
   it('keeps a form that carries excess damage over, so an author builds what the SRD does', async () => {
     const authored = polymorphShaped()

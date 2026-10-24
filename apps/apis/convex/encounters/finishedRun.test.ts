@@ -715,7 +715,8 @@ it('carries a Character’s creature form out of the Run with its hit points, an
       kind: 'CREATURE_FORM' as const,
       formOutcomeId: 'form',
       creatureId: crypto.randomUUID(),
-      excessDamageCarriesOver: true
+      excessDamageCarriesOver: true,
+      retainedAbilityIds: []
     }
     const created = await createActiveRuleEffectStore({
       db: createConvexEncounterStore(ctx)

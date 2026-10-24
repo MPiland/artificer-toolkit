@@ -8,7 +8,7 @@ import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/sha
 import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { campaignMinutesForRounds, ROUNDS_PER_CAMPAIGN_MINUTE } from './campaignClock.js'
-import { carriedCreatureForm } from './encounterActorForm.js'
+import { carriedCreatureForm, creatureFormContribution } from './encounterActorForm.js'
 import { encounterActorIdleTurnMark } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import { endSubscriptions } from './events/effectHooks.js'
@@ -39,15 +39,16 @@ export function ownsCondition(effect: ActiveRuleEffectRecord) {
 }
 
 /**
- * Grants whose lifetime follows their holder's state: they end on incapacitation, on a named
- * condition, or when the holder lets go of the item they are bound to.
+ * Grants and creature forms whose lifetime follows their holder's state: they end on
+ * incapacitation, on a named condition (Wild Shape on Unconscious), or when the holder lets go of
+ * the item they are bound to.
  */
 export function stateBoundGrants<Effect extends ActiveRuleEffectRecord>(
   effects: readonly Effect[]
 ) {
   return effects.filter(
     (effect) =>
-      isModifierGrant(effect) &&
+      (isModifierGrant(effect) || creatureFormContribution(effect) !== null) &&
       endSubscriptions(effect).some(
         (subscription) =>
           (subscription.event === 'INCAPACITATED' && subscription.of === 'HOLDER') ||

@@ -204,6 +204,12 @@ export interface CharacterRuleActionActiveEffectPlan {
     formOutcomeId: string
     /** Whether damage past the form's last hit point reduces the origin's (Polymorph) or is lost. */
     excessDamageCarriesOver: boolean
+    /** The holder's own ability scores the form keeps, by ability definition id. */
+    retainedAbilityIds: readonly string[]
+    /** The holder may end the form on its own turn (Wild Shape: a Bonus Action). */
+    holderEnd: ActiveGrantHolderEnd | null
+    /** The form ends when its holder gains one of these Conditions (Wild Shape: Unconscious). */
+    endOnConditionIds: readonly string[]
     forms: readonly { id: string; label: string; creatureId: string; maxTargets: number }[]
     /**
      * A rule-filtered choice beside the fixed forms: the cast names the Creature on the command and

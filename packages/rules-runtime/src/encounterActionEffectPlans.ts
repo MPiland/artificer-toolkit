@@ -542,8 +542,9 @@ export function prepareRecurringActiveEffect(
       endOnEvents: sortedUnion(grantContribution?.endOnEvents, endLifecycle?.endOnEvents),
       endOnTriggers: endLifecycle?.endOnTriggers ?? [],
       ...(endLifecycle?.repeatTriggers?.length && { repeatTriggers: endLifecycle.repeatTriggers }),
-      endOnConditionIds: grantContribution?.endOnConditionIds ?? [],
-      holderEnd: grantContribution?.holderEnd ?? null,
+      endOnConditionIds:
+        grantContribution?.endOnConditionIds ?? formContribution?.endOnConditionIds ?? [],
+      holderEnd: grantContribution?.holderEnd ?? formContribution?.holderEnd ?? null,
       ...(grantContribution?.fromSourceOnly && { fromSourceOnly: true }),
       ...(grantContribution?.activeOnlyOnFinalAnchorTurn && { activeOnlyOnFinalAnchorTurn: true }),
       ...(grantContribution?.uses !== undefined && { uses: grantContribution.uses }),
@@ -589,7 +590,8 @@ export function prepareRecurringActiveEffect(
               kind: 'CREATURE_FORM' as const,
               formOutcomeId: formContribution.formOutcomeId,
               creatureId: input.form.creatureId,
-              excessDamageCarriesOver: formContribution.excessDamageCarriesOver
+              excessDamageCarriesOver: formContribution.excessDamageCarriesOver,
+              retainedAbilityIds: [...formContribution.retainedAbilityIds]
             }
           ]
         : []),
