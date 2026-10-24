@@ -34,6 +34,8 @@ export async function settleEncounterEscapeCheck(
     initiatorUserId: string
     occurredAt: string
     occurrenceVersion: number
+    /** The held dice a d20 window added to the frozen check's d20. */
+    windowDice?: Parameters<typeof settledCheckD20MatchesFrozen>[2]
   }
 ): Promise<{ actors: EncounterRunActorState[]; output: EscapeCheckOutput }> {
   const { state, actors, settlement } = input
@@ -63,7 +65,7 @@ export async function settleEncounterEscapeCheck(
     output.activeEffectId !== context.activeEffectId ||
     output.check.checkDefinitionId !== context.check.checkDefinitionId ||
     output.check.dc !== context.check.dc ||
-    !settledCheckD20MatchesFrozen(output.d20, context.d20)
+    !settledCheckD20MatchesFrozen(output.d20, context.d20, input.windowDice)
   )
     throw new Error('Live Session escape check scope mismatch.')
   const stillHeld =

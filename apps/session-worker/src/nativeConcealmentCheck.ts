@@ -4,6 +4,7 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { D20WindowPausePayloadDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20WindowOffer'
 import type { EncounterConcealmentCheckPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionDirectActionPendingContexts'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { EncounterBasicActionCapabilityDescriptor } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
@@ -12,6 +13,7 @@ import {
   rollEncounterCheck,
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { encounterHeldCheckDice } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import {
   completeEncounterConcealmentCheckResult,
@@ -38,8 +40,11 @@ import {
 export function settleNativeConcealmentCheck(input: {
   context: EncounterConcealmentCheckPendingContextDto
   continuation: ServerRuleExecutionContinuationDto
-  evaluated: Awaited<ReturnType<typeof rollEncounterCheck>>
+  /** The check's d20, as the roller rolled it or a d20 window settled it. */
+  rolled: D20WindowPausePayloadDto['rolled']
   appRollId: string | null
+  /** The held die a d20 window spent on the roll, when one opened. */
+  window?: ConcealmentCheckSettlement['window']
   state: { id: string; gameSystemId: string; currentActorId: string | null }
   actors: readonly EncounterRunActorState[]
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
@@ -47,10 +52,10 @@ export function settleNativeConcealmentCheck(input: {
   occurredAt: string
   occurrenceVersion: number
 }): ConcealmentCheckSettlement {
-  const { context, continuation, evaluated, state } = input
+  const { context, continuation, rolled, state } = input
   const decision = decideEncounterConcealmentCheck({
     context,
-    total: evaluated.d20.total,
+    total: rolled.d20.total,
     held: heldConcealments(input.activeEffectsByActorId)
   })
   const roller = input.actors.find((entry) => entry.id === context.actorId)
@@ -68,20 +73,26 @@ export function settleNativeConcealmentCheck(input: {
           roller,
           rollerEffects: input.activeEffectsByActorId.get(roller.id) ?? [],
           capability: input.capability,
-          concealmentTotal: evaluated.d20.total,
+          concealmentTotal: rolled.d20.total,
           observerActorIds: decision.hiddenFromActorIds
         })
       : null
   const { result } = completeEncounterConcealmentCheckResult({
     context,
     continuation,
-    evaluated,
+    evaluated: rolled,
     decision,
     createdEffect,
     occurrenceVersion: input.occurrenceVersion,
-    initialFactsChecksum: checksumRuleDocument(continuation.facts)
+    initialFactsChecksum: rolled.initialFactsChecksum
   })
-  return { context, execution: result, appRollId: input.appRollId, createdEffect }
+  return {
+    context,
+    execution: result,
+    appRollId: input.appRollId,
+    createdEffect,
+    ...(input.window && { window: input.window })
+  }
 }
 
 /**
@@ -147,23 +158,30 @@ export async function planNativeLiveConcealmentCheckAction(
     occurrenceId,
     addedDice: context.d20.addedDice
   })
-  const { autoRoll } = input
+  // A roller holding after-roll dice sees its d20 before the check settles, so it rolls the d20 itself.
+  const autoRoll =
+    encounterHeldCheckDice(input.system, input.actorEffects, checkDefinitionId).length > 0
+      ? null
+      : input.autoRoll
   const check: LiveSessionEncounterBasicActionCommitInput['check'] = autoRoll
     ? {
         kind: 'SETTLED',
         settlement: settleNativeConcealmentCheck({
           context,
           continuation,
-          evaluated: await rollEncounterCheck({
-            gameSystemId: state.gameSystemId,
-            runtime: input.runtime,
-            context,
-            continuation,
-            answer: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
-            rollD20: () => autoRoll(20) + 1,
-            random: autoRoll,
-            expectedOccurrenceId: occurrenceId
-          }),
+          rolled: {
+            ...(await rollEncounterCheck({
+              gameSystemId: state.gameSystemId,
+              runtime: input.runtime,
+              context,
+              continuation,
+              answer: { kind: 'AUTO_ROLL', requestId: continuation.request.requestId },
+              rollD20: () => autoRoll(20) + 1,
+              random: autoRoll,
+              expectedOccurrenceId: occurrenceId
+            })),
+            initialFactsChecksum: checksumRuleDocument(continuation.facts)
+          },
           appRollId: null,
           state,
           actors: input.actors,

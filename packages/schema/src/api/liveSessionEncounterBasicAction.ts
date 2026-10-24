@@ -53,13 +53,15 @@ const d20WindowSpendSchema = lazySchema(() =>
 
 /**
  * A settled concealment check (Hide, Search): the frozen check, its stored result, the app roll it
- * used and the concealment a successful Hide stores on its roller.
+ * used and the concealment a successful Hide stores on its roller. `window` is present when the d20
+ * settled through a d20 window.
  */
 export type ConcealmentCheckSettlement = {
   context: EncounterConcealmentCheckPendingContextDto
   execution: z.infer<typeof storedRuleExecutionResultDtoSchema>
   appRollId: z.infer<typeof postgresUuidSchema> | null
   createdEffect: ActiveRuleEffectRecord | null
+  window?: { spentEffect: ActiveRuleEffectRecord | null }
 }
 
 // Explicitly typed so the commit inputs stay within the compiler's declaration size limit (TS7056).
@@ -68,7 +70,8 @@ const concealmentCheckSettlementSchema: z.ZodMiniType<ConcealmentCheckSettlement
     context: encounterConcealmentCheckPendingContextDtoSchema,
     execution: storedRuleExecutionResultDtoSchema,
     appRollId: z.nullable(postgresUuidSchema),
-    createdEffect: z.nullable(activeRuleEffectRecordSchema)
+    createdEffect: z.nullable(activeRuleEffectRecordSchema),
+    window: z.optional(d20WindowSpendSchema)
   })
 )
 
@@ -179,12 +182,16 @@ export const liveSessionEncounterCheckPauseCommitInputSchema = lazySchema(() =>
   })
 )
 
-/** A settled Escape check: the frozen check, its stored result and the app roll it used. */
+/**
+ * A settled Escape check: the frozen check, its stored result and the app roll it used. `window` is
+ * present when the d20 settled through a d20 window.
+ */
 const escapeCheckSettlementSchema = lazySchema(() =>
   z.strictObject({
     context: encounterEscapeCheckPendingContextDtoSchema,
     execution: storedRuleExecutionResultDtoSchema,
-    appRollId: z.nullable(postgresUuidSchema)
+    appRollId: z.nullable(postgresUuidSchema),
+    window: z.optional(d20WindowSpendSchema)
   })
 )
 

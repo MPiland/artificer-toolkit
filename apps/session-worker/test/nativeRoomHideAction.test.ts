@@ -23,7 +23,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf, withCheckTotals } from './actionRoomFixture.js'
-import { seedModifierGrant } from './grantSeed.js'
+import { heldDieEffect, seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
 import {
   parseReceiptExecution,
@@ -90,7 +90,7 @@ const sightWall = { ...wall, blocksMovement: false }
  * A Wolf hider with Stealth +5, acting first, beside three friendly Wolves of differing Perception.
  * `walled` puts a wall of the Scene between the hider and the two Wolves further away;
  * `playerHider` makes the hider a player's creature and the Sharp Wolf another player's; `rolls` feeds the room's own dice;
- * `definitions` adds published definitions to the System's.
+ * `definitions` adds published definitions to the System's; `autoRoll` rolls the d20 for the roller.
  */
 function hideRoom(
   options: {
@@ -99,12 +99,14 @@ function hideRoom(
     rolls?: number[]
     definitions?: ReturnType<typeof currentSrdDefinition>[]
     seed?: Parameters<typeof actionRoom>[0]['seed']
+    autoRoll?: boolean
   } = {}
 ) {
   const hider = withCheckTotals(srdCreatureActor({ id: HIDER_ID, creature: bite }), {
     [SRD_STEALTH_SKILL_ID]: 5
   })
   return actionRoom({
+    ...(options.autoRoll ? { autoRoll: 'BOTH' as const } : {}),
     ...(options.walled
       ? { sceneOverrides: { barriers: [options.walled === 'SIGHT_ONLY' ? sightWall : wall] } }
       : {}),
@@ -777,5 +779,114 @@ describe('a held d20 floor on a Hide check, in the room', () => {
     const [card] = await readRoomRollCards(fixture.room.room.base.stub)
     expect(card?.roll.evidence.terms).toHaveLength(2)
     expect(card?.roll.evidence.total).toBe(18)
+  })
+})
+
+describe('a die the hider holds for after the d20, in the Hide room (SPELLS-31.T4c1a2)', () => {
+  const heldDieSeed = (effect: ReturnType<typeof heldDieEffect>) =>
+    seedModifierGrant({
+      sourceActorId: HIDER_ID,
+      holderActorId: HIDER_ID,
+      lifecycle: {},
+      effect,
+      sourceLabel: guidance.label
+    })
+
+  /** The hider rolls a natural 5 (Stealth total 10, beating no observer) and meets the window. */
+  async function openWindow(fixture: Fixture) {
+    await hide(fixture, 5)
+    expect(await concealmentOutputs(fixture)).toEqual([])
+    const decision = await fixture.room.pendingDecision()
+    if (decision.pending.kind !== 'D20_WINDOW') throw new Error('Expected the d20 window.')
+    return { decision, pending: decision.pending }
+  }
+
+  it('offers the die once the d20 is seen, and spending it hides the hider from the observer the new total beats', async () => {
+    const fixture = await hideRoom({ seed: heldDieSeed(heldDieEffect()) })
+    const { decision, pending } = await openWindow(fixture)
+    expect(pending).toMatchObject({
+      rollerActorId: HIDER_ID,
+      d20: { selectedNatural: 5, total: 10 },
+      options: [{ label: 'Guidance', count: 1, faces: 4, sign: 'ADD' }]
+    })
+    expect(await activeEffects(fixture)).toHaveLength(1)
+
+    const settled = await fixture.room.resolve(decision, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [3]
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+
+    // 10 + the d4 of 3 = 13: above passive 10, below passive 15 and 20.
+    expect(await concealments(fixture)).toEqual([
+      { holder: HIDER_ID, observers: [SHARP_ID], concealmentTotal: 13 }
+    ])
+    expect(await concealmentOutputs(fixture)).toMatchObject([
+      {
+        d20: {
+          selectedNatural: 5,
+          total: 13,
+          addedDice: [{ label: 'Guidance', rolledFaces: [3] }]
+        },
+        resolution: { kind: 'CONCEAL', hiddenFromActorIds: [SHARP_ID] }
+      }
+    ])
+    const history = await readRoomHistory(fixture.room.room.base.stub)
+    expect(history.occurrences.map((occurrence) => occurrence.state)).toEqual(['COMPLETED'])
+    // The Guidance die is spent: only the concealment remains.
+    expect(history.activeEffects.map((effect) => effect.lifecycle.concealedFromActorIds)).toEqual([
+      [SHARP_ID]
+    ])
+  })
+
+  it('keeps the roll and the die when the hider declines', async () => {
+    const fixture = await hideRoom({ seed: heldDieSeed(heldDieEffect()) })
+    const { decision, pending } = await openWindow(fixture)
+    const settled = await fixture.room.resolve(decision, {
+      kind: 'D20_WINDOW_DECLINE',
+      requestId: pending.requestId
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    expect(await concealments(fixture)).toEqual([])
+    expect(await concealmentOutputs(fixture)).toMatchObject([{ d20: { total: 10 } }])
+    expect(await activeEffects(fixture)).toHaveLength(1)
+  })
+
+  it('offers a homebrew die authored differently (two dice) through the same path', async () => {
+    const fixture = await hideRoom({ seed: heldDieSeed(heldDieEffect({ count: 2 })) })
+    const { decision, pending } = await openWindow(fixture)
+    expect(pending.options).toMatchObject([{ count: 2, faces: 4 }])
+    const settled = await fixture.room.resolve(decision, {
+      kind: 'D20_WINDOW_USE',
+      requestId: pending.requestId,
+      optionId: pending.options[0]!.optionId,
+      faces: [4, 2]
+    })
+    expect(settled.type, JSON.stringify(settled)).toBe('COMMAND_COMMITTED')
+    // 10 + 6 = 16: above passive 10 and 15, below passive 20.
+    expect(await concealments(fixture)).toEqual([
+      { holder: HIDER_ID, observers: [SHARP_ID, KEEN_ID].sort(), concealmentTotal: 16 }
+    ])
+  })
+
+  it('offers no die whose ability the check is not, and settles the Stealth d20 at once', async () => {
+    const fixture = await hideRoom({ seed: heldDieSeed(heldDieEffect({ ability: 'STRENGTH' })) })
+    await hide(fixture, 10)
+    expect(await concealments(fixture)).toEqual([
+      { holder: HIDER_ID, observers: [SHARP_ID], concealmentTotal: 15 }
+    ])
+  })
+
+  it('asks a hider who rolls automatically for the d20 while it holds a die', async () => {
+    const fixture = await hideRoom({
+      autoRoll: true,
+      rolls: [9],
+      seed: heldDieSeed(heldDieEffect())
+    })
+    await hide(fixture, 5)
+    const decision = await fixture.room.pendingDecision()
+    expect(decision.pending.kind).toBe('D20_WINDOW')
   })
 })

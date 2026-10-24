@@ -187,6 +187,19 @@ export async function addResponseChangesToRoot(
       q.eq('campaignId', input.campaignId).eq('commandId', occurrence.rootCommandId)
     )
     .unique()
+  // An Escape's check ends only grants (a d20 window's held die); its receipt keeps them for undo.
+  if (root?.commandType === 'ESCAPE' && !markChanges.length && !moves.length) {
+    await ctx.db.patch(root._id, {
+      receipt: {
+        ...root.receipt,
+        consumedGrants: receiptConsumedGrants({
+          consumedGrants: root.receipt.consumedGrants,
+          endedGrants: input.endedGrants
+        })
+      }
+    })
+    return
+  }
   if (root?.commandType !== 'RESOLVE_ACTION') throw new Error('Stored action root is missing.')
   await ctx.db.patch(root._id, {
     consumedGrants: receiptConsumedGrants({
