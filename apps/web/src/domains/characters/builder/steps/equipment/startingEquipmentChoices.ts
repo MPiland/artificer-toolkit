@@ -3,6 +3,7 @@ import type {
   CharacterBuilderStartingEquipmentViewDto
 } from '@artificer-toolkit/schema/api/characters'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared'
+import { formatEnumLabel } from '#components/AuthoredDetail'
 import { CharacterStartingEquipmentSource } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterStartingEquipmentDecision } from '../../core/characterBuilder.types'
 
@@ -340,11 +341,11 @@ function formatStartingEquipmentTarget(
   }
 
   const propertyText = ('properties' in item ? (item.properties ?? []) : [])
-    .map((property) => propertyLabels[property] ?? toReadableToken(property))
+    .map((property) => propertyLabels[property] ?? formatEnumLabel(property).toLowerCase())
     .join(' ')
   const category = 'category' in item ? item.category : undefined
   const categoryText = category
-    ? (categoryLabels[category] ?? toReadableToken(category))
+    ? (categoryLabels[category] ?? formatEnumLabel(category).toLowerCase())
     : 'equipment'
 
   return [propertyText, categoryText].filter(Boolean).join(' ')
@@ -377,8 +378,4 @@ function pluralizeLastWord(value: string): string {
   }
 
   return `${prefix}${plural}`
-}
-
-function toReadableToken(value: string): string {
-  return value.toLowerCase().replace(/_/g, ' ')
 }
