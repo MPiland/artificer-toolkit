@@ -10990,18 +10990,32 @@
             },
             {
               "closes": ["SPELLS-4.1"],
-              "note": "Split from T2v2a2c 2026-10-24 (re-estimate, same scope; D187b option A).",
+              "note": "Split from T2v2a2c 2026-10-24 (re-estimate, same scope; D187b option A). 2026-10-24 split (option B): the carrier effect and effect-end hooks moved to T2v2a2c3.",
               "status": "IN_PROGRESS",
               "id": "SPELLS-4.T2v2a2c2",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 5,
-                "size": 8,
+                "size": 5,
                 "after": ["SPELLS-4.T2v2a2c1"]
               },
-              "text": "D187b summon piece, part 2c2: the actor, binding and Scene token are removed through one room removal port when the effect ends (expiry, Concentration end, recast, dispel) and when a summoning cast is undone or reverted (revert refuses until then, orchestrator ruling 2026-10-24).",
+              "text": "D187b summon piece, part 2c2: one room removal port removes the summon actor, its binding and its Scene token; undo and revert of a summoning cast use it (replacing the a2c1 revert refusal).",
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+            },
+            {
+              "closes": ["SPELLS-4.1"],
+              "status": "TODO",
+              "id": "SPELLS-4.T2v2a2c3",
+              "note": "Split from T2v2a2c2 2026-10-24 (option B, same scope).",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-4.T2v2a2c2"]
+              },
+              "text": "D187b summon piece, part 2c3: the summoning cast creates the carrier effect from the compiled summon entry (duration and Concentration maintenance) and sets owner.sourceEffectId; expiry, Concentration end, recast and dispel call the a2c2 removal port."
             },
             {
               "closes": ["SPELLS-4.1"],
@@ -15950,7 +15964,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T2v2a2c2", "SPELLS-34.T1"]
+                "after": ["SPELLS-4.T2v2a2c3", "SPELLS-34.T1"]
               }
             }
           ]
