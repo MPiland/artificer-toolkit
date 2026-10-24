@@ -10958,8 +10958,8 @@
             },
             {
               "closes": ["SPELLS-4.1"],
-              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A). 2026-10-23 ruling: the caster picks the summon point (reuse the cast's existing point contract if one fits, else one optional summonPlacement { position }), validated for range, free square and sight; this slice adds the ApplyEncounterSummonTokens callback against a fixture actor id, a2c creates the actor.",
-              "status": "IN_PROGRESS",
+              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A). 2026-10-23 ruling: the caster picks the summon point (reuse the cast's existing point contract if one fits, else one optional summonPlacement { position }), validated for range, free square and sight; this slice adds the ApplyEncounterSummonTokens callback against a fixture actor id, a2c creates the actor. Merged in m396.",
+              "status": "DONE",
               "id": "SPELLS-4.T2v2a2b",
               "wsjf": {
                 "bv": 8,
@@ -10969,12 +10969,13 @@
                 "after": ["SPELLS-4.T2v2a2a"]
               },
               "text": "D187b summon piece, part 2b: the cast commit writes Scene rows (token and binding) in the cast's own room transaction through the staged-Scene planner movement uses; boundary recorded in persistence.md.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-24T00:45:53Z",
+              "proof": "Tests and Live green on tip 3a32274e; the cast commit writes the summon token to the staged Scene in the same room transaction (ApplyEncounterSummonTokens against a fixture actor id), at a caster-picked point validated for range, free square and sight."
             },
             {
               "closes": ["SPELLS-4.1"],
               "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-4.T2v2a2c",
               "wsjf": {
                 "bv": 8,
@@ -10983,7 +10984,8 @@
                 "size": 8,
                 "after": ["SPELLS-4.T2v2a2b"]
               },
-              "text": "D187b summon piece, part 2c: create the owned actor and its token on cast and remove both at the effect-end chokepoints (expiry, Concentration end, recast, dispel, undo); replay receipts carry the created actor id."
+              "text": "D187b summon piece, part 2c: create the owned actor and its token on cast and remove both at the effect-end chokepoints (expiry, Concentration end, recast, dispel, undo); replay receipts carry the created actor id.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "closes": ["SPELLS-4.1"],
@@ -15220,7 +15222,7 @@
             },
             {
               "id": "SPELLS-33.T6a1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15230,8 +15232,9 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: swallowed creatures (containment with total cover, acid each turn, regurgitate on a damage threshold) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Includes Purple Worm Bite (from ATTACK-5.T4d, 2026-10-20).",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Includes the one proof that a creature ON_HIT attack with damage plus MANUAL_ADJUDICATION compiles through the attack sweep, and removes those allowlist entries.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Includes the one proof that a creature ON_HIT attack with damage plus MANUAL_ADJUDICATION compiles through the attack sweep, and removes those allowlist entries. Merged in m395.",
+              "mergedAt": "2026-10-24T00:13:00Z",
+              "proof": "Tests and Live green on tip fb4c91dc; Remorhaz and Tarrasque Swallow ship as ON_HIT MANUAL_ADJUDICATION GM rulings beside the automated bite attack and damage (D187a); swallow closed kinds deleted with parity proofs; compile golden updated."
             },
             {
               "id": "SPELLS-33.T6a2",
