@@ -2301,6 +2301,13 @@ without it (no Scene, or a reaction or opportunity attack, which have no turn re
 the constraint. The Session Worker reads the record through the `TURN_LAST_MOVE` capture. A move published in
 segments records only its last segment.
 
+A Charge is a passive attack rider that names the Feature whose attack it rides (`ridesFeatureId`, T5n2), so it
+never rides the creature's other attacks of the same trigger. `mergeOnHitRiders(effect, riders, attackFeatureId)`
+moves a scoped rider's entries, and the weapon's own, into the weapon's result block as SEQUENTIAL, so the
+rider's damage and follow-up save compile into the hit's immediate save band. That band deals each damage
+entry, and calls the save, only when its path is owed: without the closing move the attack is the plain weapon
+hit. The SRD Giant Elk, Minotaur Skeleton, Unicorn and Wereboar author it through `chargeEffect`.
+
 **Once per turn (D119 f).** `usage: ONCE_PER_TURN` on a path limits it to one hit per turn of any creature
 (Sneak Attack can land on a reaction). The usage key is the compiled effect id for a path in the attack's own
 Effect and the Feature id for a passive Feature rider merged onto the attack (`oncePerTurnUsageKey`; a
