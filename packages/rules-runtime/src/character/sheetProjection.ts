@@ -1007,7 +1007,7 @@ export function projectCharacterSheetBundle(
   const summonExtras: CharacterSheetResponseDto['extras']['items'] = (
     character.state.spellSummons ?? []
   ).map((summon) => {
-    const speedLabel = formatExtraSpeedLabel(summon.statBlock.speeds, resolution.registry.system)
+    const speedLabel = formatExtraSpeedLabel(summon.speeds, resolution.registry.system)
     return {
       kind: 'SPELL_SUMMON' as const,
       kindLabel: 'Spell Summon',
@@ -1028,7 +1028,11 @@ export function projectCharacterSheetBundle(
         maximum: summon.maximumHitPoints,
         temp: summon.tempHitPoints ?? 0
       },
-      statBlock: summon.statBlock,
+      ...(summon.size ? { size: summon.size } : {}),
+      ...(summon.abilityScores ? { abilityScores: summon.abilityScores } : {}),
+      ...(summon.passivePerception === undefined
+        ? {}
+        : { passivePerception: summon.passivePerception }),
       // A summon's attacks are actions its spell authors (SPELLS-34.T2).
       actions: [],
       features: [],

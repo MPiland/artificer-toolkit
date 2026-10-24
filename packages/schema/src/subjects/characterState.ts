@@ -1,7 +1,9 @@
 import { z, lazySchema } from '../zod.js'
 import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { summonStatBlockDtoSchema } from '../effects/summonStatBlock.js'
+import { speedDtoSchema } from '../shared/speed.js'
+import { abilityCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import type { CharacterSpellSummonState } from '@artificer-toolkit/shared/authored'
 
 import {
   CREATURE_ORIGIN_KIND_CODE,
@@ -114,26 +116,29 @@ const characterOwnedCreatureStateDtoSchemaRaw = lazySchema(() =>
 )
 /**
  * A creature a spell cast from the Sheet conjured outside an Encounter (D190): play state the Sheet
- * owns. The stat block is the compiled summon plan's snapshot; only the values the cast resolves
- * against the caster (armor class, maximum hit points) are stored beside it.
+ * owns, holding the stat block values the cast resolved against the caster.
  */
-const characterSpellSummonStateDtoSchemaRaw = lazySchema(() =>
-  z.object({
-    id: postgresUuidSchema,
-    spellId: z.string(),
-    summonOutcomeId: z.string(),
-    label: z.string().check(z.minLength(1)),
-    /** The cast opened Concentration: this summon is the Sheet's Concentration and ends with it. */
-    concentration: z.boolean(),
-    statBlock: summonStatBlockDtoSchema,
-    armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-    maximumHitPoints: z.number().check(z.int()).check(z.positive()),
-    currentHitPoints: z.number().check(z.int()).check(z.positive()),
-    tempHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
-    customName: z.optional(z.string()),
-    notes: z.optional(z.string()),
-    castAt: z.iso.datetime()
-  })
+const characterSpellSummonStateDtoSchemaRaw: z.ZodMiniType<CharacterSpellSummonState> = lazySchema(
+  () =>
+    z.object({
+      id: postgresUuidSchema,
+      spellId: z.string(),
+      summonOutcomeId: z.string(),
+      label: z.string().check(z.minLength(1)),
+      /** The cast opened Concentration: this summon is the Sheet's Concentration and ends with it. */
+      concentration: z.boolean(),
+      size: z.optional(sizeCodeSchema),
+      armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+      abilityScores: z.optional(z.partialRecord(abilityCodeSchema, z.number().check(z.int()))),
+      speeds: z.optional(z.array(speedDtoSchema)),
+      passivePerception: z.optional(z.number().check(z.int())),
+      maximumHitPoints: z.number().check(z.int()).check(z.positive()),
+      currentHitPoints: z.number().check(z.int()).check(z.positive()),
+      tempHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+      customName: z.optional(z.string()),
+      notes: z.optional(z.string()),
+      castAt: z.iso.datetime()
+    })
 )
 const characterOwnedVehicleStateDtoSchemaRaw = lazySchema(() =>
   z.object({

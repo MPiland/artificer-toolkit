@@ -58,7 +58,6 @@ const state = fc.record(
         summonOutcomeId: text,
         label: fc.constant('Arcane Hand'),
         concentration: fc.boolean(),
-        statBlock: fc.constant({}),
         armorClass: fc.option(count, { nil: null }),
         maximumHitPoints: fc.constant(40),
         currentHitPoints: fc.integer({ min: 1, max: 40 }),

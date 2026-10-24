@@ -2905,8 +2905,11 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       armorClass: 20,
       concentration: true,
       summonOutcomeId: placement.summonOutcomeId,
-      statBlock: placement.statBlock
+      size: 'LARGE',
+      abilityScores: { STRENGTH: 26 },
+      speeds: placement.statBlock.speeds
     })
+    expect(sheetSummon).not.toHaveProperty('passivePerception')
     expect(actor.maxHitPoints).toBe(40)
   })
 

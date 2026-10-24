@@ -877,7 +877,6 @@ describe('Character Sheet spell summons (D190)', () => {
     summonOutcomeId: 'summon',
     label: 'Hand',
     concentration,
-    statBlock: {},
     armorClass: 20,
     maximumHitPoints: 20,
     currentHitPoints: 20,

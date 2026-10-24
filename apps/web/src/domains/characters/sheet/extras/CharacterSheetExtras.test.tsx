@@ -114,7 +114,6 @@ describe('CharacterSheetExtras spell summons (D190)', () => {
                     armorClass: 20,
                     speedLabel: 'Fly 60 ft.',
                     hitPoints: { current: 40, maximum: 40, temp: 0 },
-                    statBlock: {},
                     actions: [],
                     features: [],
                     equipmentItemIds: []

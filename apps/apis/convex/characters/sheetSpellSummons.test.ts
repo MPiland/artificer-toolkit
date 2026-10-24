@@ -109,7 +109,9 @@ describe('a summon cast from the Sheet outside an Encounter (D190, SPELLS-34)', 
       originKind: 'SUMMONED',
       displayName: 'Arcane Hand',
       concentration: true,
+      size: 'LARGE',
       armorClass: 20,
+      abilityScores: { STRENGTH: 26 },
       hitPoints: { current: maximum, maximum, temp: 0 }
     })
     expect(hand?.speedLabel).toMatch(/60/)

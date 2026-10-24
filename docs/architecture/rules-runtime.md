@@ -1995,8 +1995,9 @@ Current (a2c2): a revert of the cast removes the conjured creature (see persiste
 capability discovery and entry-point compile. The Encounter's movement targets and the Convex Sheet command both call
 it. `sheetSpellCastSummonPlacement` picks the plan for the cast's spell and level. `buildSheetSpellSummon` and
 `buildEncounterSummon` share `summonHitPoints`. The Sheet entry is `state.spellSummons[]` (play state; see
-[persistence](persistence.md)). It stores the plan's stat block and the two values the cast resolves against the caster:
-armor class and maximum hit points. The Sheet projects it as an Extras item of kind `SPELL_SUMMON`, and
+[persistence](persistence.md)). It stores only the stat block values the cast resolved against the caster at cast time:
+size, armor class, ability scores, speeds, passive Perception and maximum hit points, never the plan's expressions. The
+shared `CharacterSpellSummonState` owns the shape, and the schema is typed against it. The Sheet projects it as an Extras item of kind `SPELL_SUMMON`, and
 UPDATE/REMOVE_SHEET_EXTRA edit and dismiss it.
 
 - A summon whose plan maintains Concentration is the Sheet's Concentration. The overview shows it when no carried

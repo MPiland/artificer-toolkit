@@ -38,8 +38,8 @@ export function sheetSpellCastSummonPlacement(input: {
 }
 
 /**
- * The creature a Sheet cast conjures outside an Encounter: the plan's stat block with the values the
- * cast resolves against the caster. It is the Sheet's Concentration when the plan maintains one.
+ * The creature a Sheet cast conjures outside an Encounter: the plan's stat block resolved against the
+ * caster once, at cast time. It is the Sheet's Concentration when the plan maintains one.
  */
 export function buildSheetSpellSummon(input: {
   placement: CompiledActionSummonPlacement
@@ -51,21 +51,31 @@ export function buildSheetSpellSummon(input: {
   castAt: string
 }): CharacterSpellSummonStateDto {
   const { placement } = input
-  const maximumHitPoints = summonHitPoints(placement.statBlock, input.casterHitPointMaximum)
+  const { statBlock } = placement
+  const maximumHitPoints = summonHitPoints(statBlock, input.casterHitPointMaximum)
   if (!maximumHitPoints) throw new Error('A summon the Sheet tracks needs hit points.')
-  const { armorClass } = placement.statBlock
+  const resolve = (expr: unknown) =>
+    expr === undefined
+      ? null
+      : evaluateNumericExpr(expr as NumericExpr, { hitPointMaximum: input.casterHitPointMaximum })
+  const abilityScores = Object.fromEntries(
+    Object.entries(statBlock.abilityScores ?? {}).flatMap(([ability, expr]) => {
+      const score = resolve(expr)
+      return score === null ? [] : [[ability, score]]
+    })
+  )
+  const passivePerception = resolve(statBlock.passivePerception)
   return {
     id: input.id,
     spellId: input.spellId,
     summonOutcomeId: placement.summonOutcomeId,
     label: placement.label ?? input.label,
     concentration: placement.entry.maintenance !== null,
-    statBlock: placement.statBlock,
-    armorClass: armorClass
-      ? evaluateNumericExpr(armorClass as NumericExpr, {
-          hitPointMaximum: input.casterHitPointMaximum
-        })
-      : null,
+    ...(statBlock.size ? { size: statBlock.size } : {}),
+    armorClass: resolve(statBlock.armorClass),
+    ...(Object.keys(abilityScores).length ? { abilityScores } : {}),
+    ...(statBlock.speeds?.length ? { speeds: statBlock.speeds } : {}),
+    ...(passivePerception === null ? {} : { passivePerception }),
     maximumHitPoints,
     currentHitPoints: maximumHitPoints,
     castAt: input.castAt

@@ -15,7 +15,11 @@ SPELLS-34.T2: Encounter summons in Extras and summon attacks on both paths (afte
 - The entry lives in its own optional `state.spellSummons[]`, which is play state. The Extras DTO adds a
   `SPELL_SUMMON` member. UPDATE_SHEET_EXTRA and REMOVE_SHEET_EXTRA take kind `SPELL_SUMMON`. Only CAST_SPELL creates
   an entry.
-- Only `armorClass` and `maximumHitPoints` are stored as resolved values. The UI reads everything else from `statBlock`.
+- The entry stores only resolved, typed stat block values: size (the size enum), AC, ability scores, speeds, passive
+  Perception and max/current HP. It never stores the plan's expressions (review of e1c6cd83c). The shared
+  `CharacterSpellSummonState` owns the shape, because `packages/schema` depends on `packages/shared` and not the reverse.
+  The schema is typed `z.ZodMiniType<CharacterSpellSummonState>`, so the two cannot drift.
+- The summon stat block's `size` parses as the size enum.
 - There is one shared compile (`compileCharacterSpellCasts`). The Sheet and Encounter builders share `summonHitPoints`.
 - A Concentration summon is the Sheet's Concentration. END_CONCENTRATION, a new Concentration cast and the caster at
   0 HP end it.

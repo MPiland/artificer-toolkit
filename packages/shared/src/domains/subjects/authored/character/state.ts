@@ -1,5 +1,11 @@
-import type { CreatureOriginKindCode, CreatureRelationshipKindCode, EquippedSlotCode } from '#core'
-import type { SummonStatBlockAuthored } from '#authored'
+import type {
+  AbilityCode,
+  CreatureOriginKindCode,
+  CreatureRelationshipKindCode,
+  EquippedSlotCode,
+  SizeCode
+} from '#core'
+import type { SpeedAuthored } from '#authored'
 
 export interface CharacterEquipmentItemState {
   /** Character-owned item id */
@@ -115,32 +121,21 @@ export interface CharacterExhaustionState {
   notes?: string
 }
 
-type SummonAbilityScores = NonNullable<SummonStatBlockAuthored['abilityScores']>
-
 /**
- * The summon plan's stat block as play state snapshots it. The schema parses numeric expressions as
- * `unknown` and size as an identifier, so the snapshot keeps those fields as loose as the parse.
+ * A creature a Sheet spell cast conjured outside an Encounter (D190). It holds the stat block values
+ * the cast resolved against the caster, never the plan's expressions.
  */
-export type CharacterSpellSummonStatBlockState = Omit<
-  SummonStatBlockAuthored,
-  'size' | 'armorClass' | 'hitPoints' | 'passivePerception' | 'abilityScores'
-> & {
-  size?: string
-  armorClass?: unknown
-  hitPoints?: unknown
-  passivePerception?: unknown
-  abilityScores?: { [Ability in keyof SummonAbilityScores]?: unknown }
-}
-
-/** A creature a Sheet spell cast conjured outside an Encounter (D190). */
 export interface CharacterSpellSummonState {
   id: string
   spellId: string
   summonOutcomeId: string
   label: string
   concentration: boolean
-  statBlock: CharacterSpellSummonStatBlockState
+  size?: SizeCode
   armorClass: number | null
+  abilityScores?: Partial<Record<AbilityCode, number>>
+  speeds?: SpeedAuthored[]
+  passivePerception?: number
   maximumHitPoints: number
   currentHitPoints: number
   tempHitPoints?: number

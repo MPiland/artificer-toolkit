@@ -273,7 +273,6 @@ describe('Sheet rest cleanup', () => {
       summonOutcomeId: 'summon',
       label: 'Hand',
       concentration,
-      statBlock: {},
       armorClass: 20,
       maximumHitPoints: 11,
       currentHitPoints: 11,

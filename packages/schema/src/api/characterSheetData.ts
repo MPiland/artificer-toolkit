@@ -28,7 +28,6 @@ import { characterSheetReferenceFeatureDtoSchema } from './characterBuilder.js'
 import { characterActionReasonCodeSchema } from './characterActionRules.js'
 import { characterPartyVisibilityDtoSchema } from './healthDisplay.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
-import { summonStatBlockDtoSchema } from '../effects/summonStatBlock.js'
 import {
   activeGrantListingDtoSchema,
   concentrationListingDtoSchema
@@ -418,8 +417,7 @@ const characterSheetVehicleExtraDtoSchema = lazySchema(() =>
 
 /**
  * A creature a spell cast from the Sheet conjured (D190). Only `CAST_SPELL` creates one, so its kind
- * is never an add option. The stat block is the compiled summon plan's snapshot; armor class and
- * maximum hit points are the values the cast resolved against the caster.
+ * is never an add option. Its stat block values are the ones the cast resolved against the caster.
  */
 const characterSheetSpellSummonExtraDtoSchema = lazySchema(() =>
   z.extend(characterSheetExtraCommonDtoSchema, {
@@ -432,7 +430,9 @@ const characterSheetSpellSummonExtraDtoSchema = lazySchema(() =>
     armorClass: z.nullable(integerSchema.check(z.nonnegative())),
     speedLabel: z.optional(stringSchema.check(z.minLength(1))),
     hitPoints: characterSheetExtraCreatureHitPointsDtoSchema,
-    statBlock: summonStatBlockDtoSchema
+    size: z.optional(sizeCodeSchema),
+    abilityScores: z.optional(z.partialRecord(abilityCodeSchema, integerSchema)),
+    passivePerception: z.optional(integerSchema)
   })
 )
 
