@@ -10726,7 +10726,7 @@
             },
             {
               "id": "SPELLS-4.T2m3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10743,8 +10743,9 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Damage-taken lifecycle triggers (split from T2m, 2026-10-20): lifecycle onTriggers DAMAGE_TAKEN applying a condition with a duration, on the shared damage-commit hook. Slimy Doom and the remaining Contagion disease rows, with parity proofs. Contagion lasts 7 days, over MAX_ACTIVE_EFFECT_TURNS (14,400); it needs a longer-duration path or a Campaign-clock lifecycle before it compiles as an active effect (found in T2m1c).",
-              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m404.",
+              "mergedAt": "2026-10-24T05:12:30Z",
+              "proof": "Tests and Live green on tip e0e2f81f0; Contagion's melee spell attack stays automated and on a hit the whole disease (choice, 3/3 threshold saves, every row, Slimy Doom's damage-taken stun) is one MANUAL_ADJUDICATION GM_CHOICE (D187a); CONTAGION kind deleted; DAMAGE_TAKEN condition trigger and the long-clock path recorded under Deferred rules pieces; proof manualBesideSpellAuthoringParity.test.ts; golden REFUSED to TEST_OUTCOME."
             },
             {
               "id": "SPELLS-4.T2n1",
