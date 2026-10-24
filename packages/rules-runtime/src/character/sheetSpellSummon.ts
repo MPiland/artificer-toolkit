@@ -7,7 +7,7 @@ import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/ch
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { CharacterSpellSummonStateDto } from '@artificer-toolkit/schema/subjects/characterState'
-import { summonHitPoints } from '../encounterSummon.js'
+import { summonHitPoints } from '../summonHitPoints.js'
 import type { CharacterSpellCastActions } from './characterSpellCastActions.js'
 
 /**

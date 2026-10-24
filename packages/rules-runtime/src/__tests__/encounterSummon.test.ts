@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { buildEncounterSummon, casterHitPointMaximum, summonHitPoints } from '../encounterSummon.js'
+import { buildEncounterSummon, casterHitPointMaximum } from '../encounterSummon.js'
+import { summonHitPoints } from '../summonHitPoints.js'
 
 const USER = crypto.randomUUID()
 const NOW = '2026-10-23T00:00:00.000Z'
