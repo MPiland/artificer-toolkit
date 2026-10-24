@@ -2991,12 +2991,19 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   ) {
     const immediate = immediateFollowUpSaveEntries(input.action.compiledEffect.entries)
     if (!immediate) unsupported('D&D immediate follow-up save primary damage is unavailable.')
-    const primaryDefinitions = immediate.primaryDamageEntries.map((primaryDamageEntry, index) => {
+    const owed = (entry: CompiledEffectGroup['entries'][number]) =>
+      isChosenEntry(entry, input.facts) &&
+      pathOwed(entry, input.action.compiledEffect.id, input.facts)
+    // A rider merged into the hit (D164 Charge) deals its damage and calls its save only when owed.
+    const owedPrimaryEntries = immediate.primaryDamageEntries.filter(owed)
+    const saveOwed = owed(immediate.saveEntry)
+    if (owedPrimaryEntries.length === 0 && !saveOwed) return null
+    const primaryDefinitions = owedPrimaryEntries.map((primaryDamageEntry, index) => {
       if (!('outcome' in primaryDamageEntry))
         unsupported('D&D immediate follow-up save primary damage is unavailable.')
       const primaryDamage = specializedTestOutcome(primaryDamageEntry)
       const nodePrefix =
-        immediate.primaryDamageEntries.length > 1 ? { nodePrefix: `primary-${index + 1}-` } : {}
+        owedPrimaryEntries.length > 1 ? { nodePrefix: `primary-${index + 1}-` } : {}
       // A fixed amount ("1 piercing damage") has no dice to double on a critical hit.
       if (primaryDamage.kind === 'DAMAGE')
         return fixedOutcomeGraphDefinition({
@@ -3024,7 +3031,10 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     })
     const definition = mergedOutcomeGraphDefinition({
       action: input.action,
-      definitions: [...primaryDefinitions, immediateFollowUpSaveGraphDefinition(input.action)]
+      definitions: [
+        ...primaryDefinitions,
+        ...(saveOwed ? [immediateFollowUpSaveGraphDefinition(input.action)] : [])
+      ]
     })
     const published = publishedGraph(definition)
     return {

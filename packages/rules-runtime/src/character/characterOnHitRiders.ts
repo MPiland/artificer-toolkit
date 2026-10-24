@@ -10,6 +10,8 @@ export type OnHitRider = {
   triggerCode: CompiledEffectGroup['invocation']['triggerCode']
   /** Present when the player chooses whether the rider applies (D123); absent when it always does. */
   optionalOnHit?: OptionalOnHitAuthored
+  /** Present when the rider rides only the attacks of this sibling Feature (D164 Charge). */
+  ridesFeatureId?: string
   entries: readonly CompiledEffectEntry[]
 }
 
@@ -51,6 +53,9 @@ export function collectOnHitRiders(
             ...('optionalOnHit' in effect.invocation && effect.invocation.optionalOnHit
               ? { optionalOnHit: effect.invocation.optionalOnHit }
               : {}),
+            ...('ridesFeatureId' in effect.invocation && effect.invocation.ridesFeatureId
+              ? { ridesFeatureId: effect.invocation.ridesFeatureId }
+              : {}),
             entries
           }
         ]
@@ -63,14 +68,23 @@ export function collectOnHitRiders(
  * resolves one outcome (an optional rider's entries are marked, and resolve only when chosen): resistance, critical doubling and the dice rows treat a rider exactly as
  * the weapon's own damage. A rider that names the triggering weapon's damage type takes the type
  * of the attack's first `ON_HIT` damage. An attack with no `ON_HIT` damage takes no rider.
+ *
+ * A rider scoped to one Feature rides only that Feature's attacks, and joins the result block of the
+ * attack's first `ON_HIT` damage as one sequence with it, so its damage and its follow-up save
+ * resolve as part of the hit (D164 Charge).
  */
 export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
   effect: TEffect,
-  riders: readonly OnHitRider[]
+  riders: readonly OnHitRider[],
+  attackFeatureId: string
 ): TEffect {
   if (effect.invocation.kind === 'PASSIVE') return effect
   const { triggerCode } = effect.invocation
-  const matching = riders.filter((rider) => rider.triggerCode === triggerCode)
+  const matching = riders.filter(
+    (rider) =>
+      rider.triggerCode === triggerCode &&
+      (rider.ridesFeatureId === undefined || rider.ridesFeatureId === attackFeatureId)
+  )
   const [weaponDamage] = effect.entries
     .filter(isOnHitDamage)
     .filter((entry) => entry.outcome.damageTypeId !== undefined)
@@ -96,9 +110,19 @@ export function mergeOnHitRiders<TEffect extends CompiledEffectGroup>(
     outcome: withWeaponDamageType(entry.outcome, weaponDamageTypeId),
     ...(rider.optionalOnHit
       ? { optionalRider: { riderId: rider.riderId, cost: rider.optionalOnHit } }
+      : {}),
+    ...(rider.ridesFeatureId !== undefined
+      ? { resultBlockId: weaponDamage.resultBlockId, groupKind: 'SEQUENTIAL' as const }
       : {})
   }))
-  return { ...effect, entries: [...effect.entries, ...merged] }
+  const sequenced = matching.some((rider) => rider.ridesFeatureId !== undefined)
+    ? effect.entries.map((entry) =>
+        'resultBlockId' in entry && entry.resultBlockId === weaponDamage.resultBlockId
+          ? { ...entry, groupKind: 'SEQUENTIAL' as const }
+          : entry
+      )
+    : effect.entries
+  return { ...effect, entries: [...sequenced, ...merged] }
 }
 
 function withWeaponDamageType(

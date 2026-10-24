@@ -70,15 +70,14 @@ export const wereboar: CreatureAuthored = {
       description:
         'Charge (Boar or Hybrid Form Only). If the wereboar moves at least 15 feet straight toward a target and then hits it with its tusks on the same turn, the target takes an extra 7 (2d6) slashing damage. If the target is a creature, it must succeed on a DC 13 Strength saving throw or be knocked prone.',
       effects: [
-        S.closedRuleEffect({
-          id: S.actionId(288, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(288, 203), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEREBOAR_CHARGE
+        S.chargeEffect({
+          creatureIndex: 288,
+          localIndex: 300,
+          ridesFeatureId: S.featureId(288, 4),
+          minFeet: 15,
+          damageType: 'SLASHING',
+          diceConfig: '2d6',
+          dc: 13
         })
       ],
       order: 2

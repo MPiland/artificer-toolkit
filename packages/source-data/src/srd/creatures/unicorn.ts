@@ -43,15 +43,14 @@ export const unicorn: CreatureAuthored = {
       description:
         'Charge. If the unicorn moves at least 20 feet straight toward a target and then hits it with a horn attack on the same turn, the target takes an extra 9 (2d8) piercing damage. If the target is a creature, it must succeed on a DC 15 Strength saving throw or be knocked prone.',
       effects: [
-        S.closedRuleEffect({
-          id: S.actionId(276, 200),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(276, 201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_UNICORN_CHARGE
+        S.chargeEffect({
+          creatureIndex: 276,
+          localIndex: 300,
+          ridesFeatureId: S.featureId(276, 8),
+          minFeet: 20,
+          damageType: 'PIERCING',
+          diceConfig: '2d8',
+          dc: 15
         })
       ],
       order: 1

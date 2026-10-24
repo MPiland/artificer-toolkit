@@ -1,6 +1,4 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const minotaurSkeleton: CreatureAuthored = {
   id: S.CREATURE_IDS.MINOTAUR_SKELETON,
@@ -45,100 +43,16 @@ export const minotaurSkeleton: CreatureAuthored = {
       description:
         'Charge. If the skeleton moves at least 10 feet straight toward a target and then hits it with a gore attack on the same turn, the target takes an extra 9 (2d8) piercing damage. If the target is a creature, it must succeed on a DC 14 Strength saving throw or be pushed up to 10 feet away and knocked prone.',
       effects: [
-        {
-          id: S.actionId(199, 501),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE' as const,
-            triggerCode: S.TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: S.actionId(199, 601),
-              dcMethod: 'FIXED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
-              baseDc: 14
-            },
-            range: {
-              id: S.actionId(199, 602),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(199, 801),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(199, 801) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(199, 910),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('PIERCING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d8'
-                  },
-                  {
-                    id: S.actionId(199, 911),
-                    effectKind: S.EFFECT_KIND.FORCED_MOVEMENT,
-                    direction: 'AWAY_FROM_SOURCE' as const,
-                    actionEconomy: 'NONE' as const,
-                    distanceMode: 'EXACT' as const,
-                    amount: 10,
-                    unit: S.MEASUREMENT_UNIT_CODE.FEET
-                  },
-                  {
-                    id: S.actionId(199, 912),
-                    effectKind: S.EFFECT_KIND.CONDITION,
-                    conditionId: conditionTypeId('PRONE')
-                  },
-                  {
-                    id: S.actionId(199, 918),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MINOTAUR_SKELETON_CHARGE
-                  }
-                ]
-              }
-            },
-            {
-              id: S.actionId(199, 802),
-              order: 2,
-              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: S.actionId(199, 802) + '__result',
-                resultKind: 'SEQUENCE' as const,
-                outcomes: [
-                  {
-                    id: S.actionId(199, 920),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('PIERCING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d8'
-                  },
-                  {
-                    id: S.actionId(199, 928),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MINOTAUR_SKELETON_CHARGE
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        S.chargeEffect({
+          creatureIndex: 199,
+          localIndex: 300,
+          ridesFeatureId: S.featureId(199, 4),
+          minFeet: 10,
+          damageType: 'PIERCING',
+          diceConfig: '2d8',
+          dc: 14,
+          pushFeet: 10
+        })
       ],
       order: 1
     },
