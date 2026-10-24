@@ -139,18 +139,6 @@ export const lich: CreatureAuthored = {
       label: 'Turn Resistance',
       description:
         'Turn Resistance. The lich has advantage on saving throws against any effect that turns undead.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(183, 503),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(183, 603), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LICH_TURN_RESISTANCE
-        })
-      ],
       order: 4
     },
     {

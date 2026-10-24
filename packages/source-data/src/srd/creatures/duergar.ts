@@ -125,18 +125,10 @@ export const duergar: CreatureAuthored = {
       label: 'Duergar Resilience',
       description:
         'Duergar Resilience. The duergar has advantage on saving throws against poison, spells, and illusions, as well as to resist being charmed or paralyzed.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(91, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
-            range: { id: S.actionId(91, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DUERGAR_RESILIENCE
-        })
-      ],
+      grants: S.advantageGrants(91, 201, {
+        savesAgainst: ['POISONED', 'CHARMED', 'PARALYZED'],
+        savesAgainstMagic: Object.values(S.ABILITY_CODE)
+      }),
       order: 1
     },
     {
