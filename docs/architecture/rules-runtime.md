@@ -1989,6 +1989,14 @@ a zone placed at the point with nobody caught, and `buildEncounterSummon` makes 
 no controllers of its own, hit points from `evaluateNumericExpr` against the caster's maximum when the Run holds it;
 a Character caster's maximum lives on the Sheet, so a `HIT_POINT_MAXIMUM` stat block is refused with `HIT_POINTS_UNKNOWN` until T2v2b feeds it).
 Current (a2c2): a revert of the cast removes the conjured creature (see persistence). Current (a2c3): the cast creates the carrier effect on the caster from the compiled summon entry (`prepareNativeSourceEffect`), with the summon's duration and Concentration (`prepareEncounterActionMaintenance` names the summon's policy), and `buildEncounterSummon` sets `owner.sourceEffectId` to it. Removal at every end is the persistence sweep.
+Current (a3c, D190a): `buildEncounterSummon` keeps the stat block's body in the actor snapshot (`body`:
+`damageabilityKind`, `occupiesSpace`; `summonBody` fills the defaults: damageable, no space). `encounterActorBody` is its
+one reader; an actor without a body (Character, Creature) is damageable and fills its space. An INVULNERABLE body takes
+no damage in the one settlement fold (`foldCharacterMechanicsApplications`, `invulnerable`): each damage settles as
+IMMUNE at 0 and later hit point changes are rebased, so the batch plan, the spatial evidence and turn effects agree. A
+body that does not occupy its space neither blocks voluntary movement through or into it
+(`discoverEncounterMovementPassage`) nor counts in the placement overlap check (`evaluateEncounterSummonTarget`).
+SPECIAL damageability is the GM's to adjudicate.
 
 **Sheet summons (current, SPELLS-34.T1, D190).** A summon cast from the Sheet outside an Encounter reads the same plan.
 `compileCharacterSpellCasts` (`character/characterSpellCastActions.ts`) is the one compile of a Character's casts: build,
