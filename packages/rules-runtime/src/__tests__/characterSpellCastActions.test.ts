@@ -2884,6 +2884,7 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       summon: placement,
       caster,
       casterHitPointMaximum: 40,
+      sourceEffectId: testUuid(8),
       label,
       point: { x: 0, y: 0 },
       edgeLength: 100,
