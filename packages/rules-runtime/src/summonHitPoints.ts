@@ -10,9 +10,10 @@ export function summonHitPoints(
   casterHitPointMaximum: number
 ): number {
   const { hitPoints } = statBlock
-  return hitPoints
-    ? evaluateNumericExpr(hitPoints as NumericExpr, {
-        hitPointMaximum: casterHitPointMaximum
-      })
-    : 0
+  if (!hitPoints) return 0
+  const value = evaluateNumericExpr(hitPoints as NumericExpr, {
+    hitPointMaximum: casterHitPointMaximum
+  })
+  if (value === null) throw new Error("The summon's hit points do not evaluate.")
+  return value
 }

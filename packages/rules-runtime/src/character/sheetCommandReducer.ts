@@ -670,7 +670,7 @@ export function applyCharacterSheetCommand(
         const maximumHitPoints =
           sheet.extras.items.find(
             (item) => item.kind === 'VEHICLE' && item.id === command.extra.extraId
-          )?.hitPoints.maximum ?? 0
+          )?.hitPoints?.maximum ?? 0
         next.state.vehicles = next.state.vehicles?.map((vehicle) =>
           vehicle.id !== command.extra.extraId
             ? vehicle
@@ -712,7 +712,7 @@ export function applyCharacterSheetCommand(
         (item) => item.kind === creatureExtra.kind && item.id === creatureExtra.extraId
       )
       const maximumHitPoints =
-        sheetExtra?.kind === 'VEHICLE' ? 0 : (sheetExtra?.hitPoints.maximum ?? 0)
+        sheetExtra?.kind === 'VEHICLE' ? 0 : (sheetExtra?.hitPoints?.maximum ?? 0)
       next.state.creatures = next.state.creatures?.map((creature) =>
         creature.id !== creatureExtra.extraId
           ? creature
