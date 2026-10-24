@@ -9,6 +9,7 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
 import { encounterInitiativePolicySnapshotDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSnapshotDtoSchema } from '../shared/optionalCombat.js'
+import { encounterActorMoraleDtoSchema } from '../shared/encounterMorale.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { jsonValueSchema, projectionChecksumSchema } from './identity.js'
 
@@ -31,10 +32,14 @@ const encounterRunActorStateBaseSchema = lazySchema(() =>
       activeGrants: true,
       concentration: true,
       concealment: true,
-      defeated: true
+      defeated: true,
+      morale: true,
+      moraleOffers: true
     }),
     {
       sideId: postgresUuidSchema,
+      /** The actor's latest morale check (ENCOUNTER-6.2), absent when none was made. */
+      morale: z.optional(encounterActorMoraleDtoSchema),
       snapshot: jsonValueSchema,
       resources: jsonValueSchema,
       createdAt: z.iso.datetime(),
@@ -176,7 +181,6 @@ export const encounterRunActorStateSchema = lazySchema(() =>
 
 const encounterActorProjectionFactsBaseSchema = lazySchema(() =>
   z.omit(encounterRunActorStateBaseSchema, {
-    sideId: true,
     snapshot: true,
     createdAt: true,
     updatedAt: true

@@ -279,6 +279,35 @@ const PARITY: Record<CommandType, Entry> = {
       remove: []
     })
   },
+  MORALE_SAVE: {
+    access: 'TABLE',
+    rule: table(
+      'ENCOUNTER-6.1: the GM checks morale for creatures; players decide for their own Characters'
+    ),
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'MORALE_SAVE',
+      actorId: probe.actorId,
+      triggerKind: 'INDIVIDUAL_SURPRISED',
+      leaderActorId: null,
+      overwhelmingOpposition: false,
+      escapePossible: true,
+      roll: { kind: 'AUTO_ROLL' },
+      visibility: 'PUBLIC'
+    })
+  },
+  CONFIRM_MORALE: {
+    access: 'TABLE',
+    rule: table('ENCOUNTER-6.2: the GM confirms a morale outcome'),
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'CONFIRM_MORALE',
+      actorId: probe.actorId,
+      disposition: 'FLEE'
+    })
+  },
   UPDATE_ACTOR: {
     access: 'TABLE',
     rule: table(

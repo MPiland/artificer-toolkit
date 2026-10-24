@@ -26,6 +26,7 @@ import type {
 } from '@artificer-toolkit/schema/api/vttScenes'
 import { ActiveGrantList } from '../../../components/activeGrants/ActiveGrantList'
 import { CampaignTabletopConcealmentObservers } from './CampaignTabletopConcealmentObservers'
+import { CampaignTabletopMorale } from './CampaignTabletopMorale'
 import { CampaignTabletopReleases } from './CampaignTabletopReleases'
 import { EncounterActorControlFields } from '../components/EncounterActorControlFields'
 import { EncounterActorHealth } from './EncounterActorHealth'
@@ -326,6 +327,36 @@ export function CampaignTabletopEncounterDrawer({
                             encounterId: encounter.id,
                             expectedVersion: encounter.version,
                             type: 'SET_CONCEALMENT_OBSERVERS'
+                          })
+                        }
+                      />
+                    ) : null}
+                    {'moraleOffers' in actor ? (
+                      <CampaignTabletopMorale
+                        actor={actor}
+                        disabled={controlsDisabled}
+                        leaders={encounter.actors.filter(
+                          (leader) => leader.kind !== 'CHARACTER' && !leader.defeated
+                        )}
+                        onCheck={(check) =>
+                          onCommand({
+                            ...check,
+                            actorId: actor.id,
+                            commandId: crypto.randomUUID(),
+                            encounterId: encounter.id,
+                            expectedVersion: encounter.version,
+                            roll: { kind: 'AUTO_ROLL' },
+                            type: 'MORALE_SAVE'
+                          })
+                        }
+                        onConfirm={(disposition) =>
+                          onCommand({
+                            actorId: actor.id,
+                            commandId: crypto.randomUUID(),
+                            disposition,
+                            encounterId: encounter.id,
+                            expectedVersion: encounter.version,
+                            type: 'CONFIRM_MORALE'
                           })
                         }
                       />

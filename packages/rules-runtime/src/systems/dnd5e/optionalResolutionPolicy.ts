@@ -1,75 +1,21 @@
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
-import {
-  activeOptionalCombatDefinitions,
-  encounterOptionalCombatSnapshotDtoSchema,
-  type Dnd5eOptionalCombatRuleKindDto,
-  type EncounterOptionalCombatSnapshotDto
-} from '@artificer-toolkit/schema/shared/optionalCombat'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CLEAVING_POLICY_MODULE } from './policyModuleRegistration.js'
 import { prepareDnd5eDisarmContest } from './optionalActionPolicy.js'
 import { prepareDnd5eOverrunContest, prepareDnd5eTumbleContest } from './optionalMovementPolicy.js'
+import { exactOptionalCombatDefinition, optionalCombatPolicyPin } from './optionalCombatDefinition.js'
+import { offerDnd5eMoraleTriggers, prepareDnd5eMoraleSave } from './moralePolicy.js'
 import type {
   CleavingInput,
   CleavingProposal,
   OptionalCombatPolicyCapabilityAdapter,
-  OptionalCombatPolicyInput,
-  OptionalCombatPolicyPin,
   OptionalCombatResolution
 } from '../../optionalCombatPolicyCapability.js'
 
 /** Attacker and initial target consume two Encounter actor identities. */
 const MAX_DND5E_CLEAVING_TARGETS = MAX_ENCOUNTER_ACTORS - 2
-
-type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
-
-function exactDefinition(
-  input: OptionalCombatPolicyInput & {
-    readonly kind: Dnd5eOptionalCombatRuleKindDto
-    readonly module: { readonly key: string; readonly contractVersion: number }
-  }
-): PolicyDefinition | null {
-  if (
-    input.automationMode === 'MANUAL' ||
-    input.gameSystemId !== DND5E_SYSTEM_ID ||
-    input.optionalCombatSnapshot === null ||
-    input.optionalCombatSnapshotChecksum === null
-  ) {
-    return null
-  }
-  const parsed = encounterOptionalCombatSnapshotDtoSchema.safeParse(input.optionalCombatSnapshot)
-  if (
-    !parsed.success ||
-    parsed.data.gameSystemId !== input.gameSystemId ||
-    checksumRuleDocument(parsed.data) !== input.optionalCombatSnapshotChecksum
-  ) {
-    return null
-  }
-  const matches = activeOptionalCombatDefinitions({
-    automationMode: input.automationMode,
-    snapshot: parsed.data
-  }).filter(
-    (definition) =>
-      definition.document.kind === input.kind &&
-      checksumRuleDocument(definition.document) === definition.definitionChecksum &&
-      definition.document.module.policyModuleKey === input.module.key &&
-      definition.document.module.contractVersion === input.module.contractVersion
-  )
-  return matches.length === 1 ? matches[0]! : null
-}
-
-function pin(definition: PolicyDefinition): OptionalCombatPolicyPin {
-  return {
-    definitionId: definition.definitionId,
-    definitionVersion: definition.definitionVersion,
-    definitionChecksum: definition.definitionChecksum,
-    moduleKey: definition.document.module.policyModuleKey,
-    moduleContractVersion: definition.document.module.contractVersion
-  }
-}
 
 function canonicalUuid(value: string): boolean {
   const parsed = postgresUuidSchema.safeParse(value)
@@ -129,7 +75,7 @@ function canonicalizeCleavingCandidates(candidateActorIds: readonly string[]): r
 export function resolveDnd5eCleaving(
   input: CleavingInput
 ): OptionalCombatResolution<CleavingProposal> {
-  const definition = exactDefinition({
+  const definition = exactOptionalCombatDefinition({
     ...input,
     kind: 'CLEAVING',
     module: DND5E_CLEAVING_POLICY_MODULE
@@ -205,7 +151,7 @@ export function resolveDnd5eCleaving(
   return {
     kind: 'PROPOSED',
     proposal: {
-      pin: pin(definition),
+      pin: optionalCombatPolicyPin(definition),
       chainStep: input.chainStep + 1,
       attackTotal: input.attackTotal,
       eligibleTargetActorIds,
@@ -221,5 +167,7 @@ export const dnd5eOptionalCombatPolicyCapabilityAdapter = {
   prepareDisarmContest: prepareDnd5eDisarmContest,
   prepareOverrunContest: prepareDnd5eOverrunContest,
   prepareTumbleContest: prepareDnd5eTumbleContest,
-  resolveCleaving: resolveDnd5eCleaving
+  resolveCleaving: resolveDnd5eCleaving,
+  offerMoraleTriggers: offerDnd5eMoraleTriggers,
+  prepareMoraleSave: prepareDnd5eMoraleSave
 } as const satisfies OptionalCombatPolicyCapabilityAdapter

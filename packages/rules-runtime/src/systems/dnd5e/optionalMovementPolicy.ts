@@ -1,14 +1,10 @@
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  activeOptionalCombatDefinitions,
-  encounterOptionalCombatSnapshotDtoSchema,
-  type Dnd5eOptionalCombatRuleKindDto,
-  type EncounterOptionalCombatSnapshotDto
-} from '@artificer-toolkit/schema/shared/optionalCombat'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
-import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import {
+  exactOptionalCombatDefinition,
+  optionalCombatPolicyPin,
+  type OptionalCombatPolicyDefinition
+} from './optionalCombatDefinition.js'
 import {
   DND5E_OVERRUN_POLICY_MODULE,
   DND5E_TUMBLE_POLICY_MODULE
@@ -16,8 +12,6 @@ import {
 import { resolveDnd5eRollMode } from './rollModePolicy.js'
 import type {
   MovementPassageProposal,
-  OptionalCombatPolicyInput,
-  OptionalCombatPolicyPin,
   OptionalCombatResolution,
   OptionalMovementContributor,
   OverrunContestProposal,
@@ -25,53 +19,6 @@ import type {
   TumbleContestProposal,
   TumblePreparationInput
 } from '../../optionalCombatPolicyCapability.js'
-
-type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
-
-function exactDefinition(
-  input: OptionalCombatPolicyInput & {
-    readonly kind: Dnd5eOptionalCombatRuleKindDto
-    readonly module: { readonly key: string; readonly contractVersion: number }
-  }
-): PolicyDefinition | null {
-  if (
-    input.automationMode === 'MANUAL' ||
-    input.gameSystemId !== DND5E_SYSTEM_ID ||
-    input.optionalCombatSnapshot === null ||
-    input.optionalCombatSnapshotChecksum === null
-  ) {
-    return null
-  }
-  const parsed = encounterOptionalCombatSnapshotDtoSchema.safeParse(input.optionalCombatSnapshot)
-  if (
-    !parsed.success ||
-    parsed.data.gameSystemId !== input.gameSystemId ||
-    checksumCanonicalJson(parsed.data) !== input.optionalCombatSnapshotChecksum
-  ) {
-    return null
-  }
-  const matches = activeOptionalCombatDefinitions({
-    automationMode: input.automationMode,
-    snapshot: parsed.data
-  }).filter(
-    (definition) =>
-      definition.document.kind === input.kind &&
-      checksumRuleDocument(definition.document) === definition.definitionChecksum &&
-      definition.document.module.policyModuleKey === input.module.key &&
-      definition.document.module.contractVersion === input.module.contractVersion
-  )
-  return matches.length === 1 ? matches[0]! : null
-}
-
-function pin(definition: PolicyDefinition): OptionalCombatPolicyPin {
-  return {
-    definitionId: definition.definitionId,
-    definitionVersion: definition.definitionVersion,
-    definitionChecksum: definition.definitionChecksum,
-    moduleContractVersion: definition.document.module.contractVersion,
-    moduleKey: definition.document.module.policyModuleKey
-  }
-}
 
 function exactUuid(value: string): boolean {
   const parsed = postgresUuidSchema.safeParse(value)
@@ -96,7 +43,7 @@ function sizeContributor(input: {
 }
 
 function resolvedInitiatorD20(
-  definition: PolicyDefinition,
+  definition: OptionalCombatPolicyDefinition,
   initiatorSizeRank: number,
   targetSizeRank: number,
   qualifiedContributors: readonly OptionalMovementContributor[]
@@ -148,7 +95,7 @@ function passage(blockerActorId: string): MovementPassageProposal {
 export function prepareDnd5eOverrunContest(
   input: OverrunPreparationInput
 ): OptionalCombatResolution<OverrunContestProposal> {
-  const definition = exactDefinition({
+  const definition = exactOptionalCombatDefinition({
     ...input,
     kind: 'OVERRUN',
     module: DND5E_OVERRUN_POLICY_MODULE
@@ -172,7 +119,7 @@ export function prepareDnd5eOverrunContest(
   return {
     kind: 'PROPOSED',
     proposal: {
-      pin: pin(definition),
+      pin: optionalCombatPolicyPin(definition),
       consumes: { economy, amount: 1 },
       contest: {
         initiatorCheckDefinitionId: parameters.initiatorCheckDefinitionId,
@@ -202,7 +149,7 @@ function validTumbleFacts(
 export function prepareDnd5eTumbleContest(
   input: TumblePreparationInput
 ): OptionalCombatResolution<TumbleContestProposal> {
-  const definition = exactDefinition({
+  const definition = exactOptionalCombatDefinition({
     ...input,
     kind: 'TUMBLE',
     module: DND5E_TUMBLE_POLICY_MODULE
@@ -220,7 +167,7 @@ export function prepareDnd5eTumbleContest(
   return {
     kind: 'PROPOSED',
     proposal: {
-      pin: pin(definition),
+      pin: optionalCombatPolicyPin(definition),
       consumes: { economy, amount: 1 },
       contest: {
         initiatorCheckDefinitionId: parameters.initiatorCheckDefinitionId,

@@ -14,6 +14,10 @@ import {
 import { encounterInitiativePolicySummaryDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSummaryDtoSchema } from '../shared/optionalCombat.js'
 import {
+  encounterActorMoraleDtoSchema,
+  encounterMoraleOfferDtoSchema
+} from '../shared/encounterMorale.js'
+import {
   encounterRuleOccurrenceSummaryDtoSchema,
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
   type EncounterRuleOccurrenceSummaryDto,
@@ -249,7 +253,11 @@ export const encounterGmActorDtoSchema = lazySchema(() =>
      * The concealment this actor holds and who it is hidden from (D116); GM-only, so the player
      * actor contract has no such field. Null when the actor is not hidden.
      */
-    concealment: z._default(z.nullable(concealmentListingDtoSchema), null)
+    concealment: z._default(z.nullable(concealmentListingDtoSchema), null),
+    /** The actor's latest morale check (ENCOUNTER-6.2); GM-only. Null when none was made. */
+    morale: z._default(z.nullable(encounterActorMoraleDtoSchema), null),
+    /** The morale triggers the GM may check for this actor now (ENCOUNTER-6.1). */
+    moraleOffers: z._default(z.array(encounterMoraleOfferDtoSchema).check(z.maxLength(8)), [])
   })
 )
 
