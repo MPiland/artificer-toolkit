@@ -1,3 +1,4 @@
+import type { SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import type { FunctionArgs, FunctionReturnType } from 'convex/server'
 import { describe, expectTypeOf, it } from 'vitest'
 
@@ -31,6 +32,15 @@ describe('generated Convex API types stay real', () => {
       FunctionArgs<typeof api.campaigns.gmWrites.saveAdjustment>['adjustment']
     >().not.toBeAny()
     expectTypeOf<Saved['adjustment']>().not.toBeAny()
+  })
+
+  it('types an encounter stat block speed as the stored Creature speed', () => {
+    type Projection = NonNullable<FunctionReturnType<typeof api.encounters.projectionReads.get>>
+    type StatBlock = NonNullable<
+      Extract<Projection['actors'][number], { statBlock: unknown }>['statBlock']
+    >
+    expectTypeOf<StatBlock['speeds'][number]>().not.toBeAny()
+    expectTypeOf<StatBlock['speeds'][number]>().toEqualTypeOf<SpeedDto>()
   })
 
   it('types the adjustment of a Sheet command', () => {
