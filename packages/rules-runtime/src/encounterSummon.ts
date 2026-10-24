@@ -1,4 +1,4 @@
-import { evaluateNumericExpr } from '@artificer-toolkit/shared/core'
+import { evaluateNumericExpr, type NumericExpr } from '@artificer-toolkit/shared/core'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { LiveSessionSummonedToken } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -29,7 +29,9 @@ export function buildEncounterSummon(input: {
   const { hitPoints } = summon.statBlock
   const maxHitPoints =
     (hitPoints &&
-      evaluateNumericExpr(hitPoints, { hitPointMaximum: casterHitPointMaximum ?? undefined })) ||
+      evaluateNumericExpr(hitPoints as NumericExpr, {
+        hitPointMaximum: casterHitPointMaximum ?? undefined
+      })) ||
     0
   const actor = encounterRunActorStateSchema.parse({
     id: crypto.randomUUID(),
