@@ -1,5 +1,6 @@
 import { sizeSpaceFeet } from '@artificer-toolkit/shared/core'
 import { summonHitPoints } from './summonHitPoints.js'
+import { encounterActorBody, summonBody } from './encounterActorBody.js'
 import type { TargetingDto } from '@artificer-toolkit/schema/effects/targeting'
 import type {
   CompiledActionSummonPlacement,
@@ -11,6 +12,7 @@ import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/e
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { ResolveEncounterActionTargetDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { ShapeDto } from '@artificer-toolkit/schema/shared/shape'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   authoredLengthInSceneCoordinates,
   directedAreaInSceneCoordinates,
@@ -503,8 +505,12 @@ export function evaluateEncounterSummonTarget(input: {
   sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
   /** Whether the caster sees the point. */
   pointSeen: boolean
-  /** The Scene's tokens, which a summon that occupies space may not overlap. */
-  tokens: readonly Pick<SceneToken, 'position' | 'height' | 'width'>[]
+  /**
+   * The Scene's tokens and their actors. A summon that occupies space may not overlap a token
+   * whose actor's body occupies space (`encounterActorBody`).
+   */
+  tokens: readonly (Pick<SceneToken, 'position' | 'height' | 'width'> & { actorId: string })[]
+  actors: readonly Pick<EncounterRunActorState, 'id' | 'snapshot'>[]
 }):
   | {
       /** The square the summon fills, centered on the picked point. */
@@ -527,8 +533,12 @@ export function evaluateEncounterSummonTarget(input: {
     return { refusal: 'HIT_POINTS_UNKNOWN' }
   const placed = { position: input.point, width: shape.edgeLength, height: shape.edgeLength }
   if (
-    input.statBlock.occupiesSpace &&
-    input.tokens.some((token) => sceneTokenFootprintsOverlap(placed, token))
+    summonBody(input.statBlock).occupiesSpace &&
+    input.tokens.some((token) => {
+      const actor = input.actors.find((entry) => entry.id === token.actorId)
+      if (!actor) throw new Error('Summon placement token actor is unavailable.')
+      return encounterActorBody(actor).occupiesSpace && sceneTokenFootprintsOverlap(placed, token)
+    })
   )
     return { refusal: 'SPACE_OCCUPIED' }
   return {

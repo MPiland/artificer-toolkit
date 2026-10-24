@@ -5,7 +5,9 @@ import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { giantElk } from '@artificer-toolkit/source-data/srd/creatures/giant-elk.js'
 import { minotaurSkeleton } from '@artificer-toolkit/source-data/srd/creatures/minotaur-skeleton.js'
 import { unicorn } from '@artificer-toolkit/source-data/srd/creatures/unicorn.js'
+import { warhorse } from '@artificer-toolkit/source-data/srd/creatures/warhorse.js'
 import { wereboar } from '@artificer-toolkit/source-data/srd/creatures/wereboar.js'
+import { weretiger } from '@artificer-toolkit/source-data/srd/creatures/weretiger.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
@@ -42,12 +44,14 @@ function elkChargeRiding(ridesFeatureId: string): CreatureAuthored {
   return authored
 }
 
-describe('a Feature-scoped Charge through the creature node map (SPELLS-33.T5n2)', () => {
+describe('a Feature-scoped Charge through the creature node map (SPELLS-33.T5n2, T4l2b)', () => {
   it.each([
     ['Giant Elk', giantElk],
     ['Minotaur Skeleton', minotaurSkeleton],
     ['Unicorn', unicorn],
-    ['Wereboar', wereboar]
+    ['Wereboar', wereboar],
+    ['Warhorse (Trampling Charge, prone only)', warhorse],
+    ['Weretiger (Pounce, prone only)', weretiger]
   ])('keeps the SRD %s’s Charge exactly as authored', async (_label, creature) => {
     const result = await normalize(creature)
     expect(result.clearedPaths).toEqual([])

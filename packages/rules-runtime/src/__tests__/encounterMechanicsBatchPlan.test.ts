@@ -14,8 +14,10 @@ import {
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import { enterActorForm, revertActorForm } from '../encounterActorForm.js'
+import { buildEncounterSummon } from '../encounterSummon.js'
 import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from '../systems/dnd5e/identity.js'
 import {
   planEncounterMechanicsBatch,
@@ -254,6 +256,67 @@ describe('Creature mechanics batch plan', () => {
     expect(plan.receiptApplications).toMatchObject([
       { kind: 'DAMAGE', afterCurrentHitPoints: 1, appliedAmount: 4, interceptedBy: ward.effectId }
     ])
+  })
+
+  it('settles an area that damages a creature and an invulnerable summon beside it: the summon takes none (SPELLS-4.T2v2a3c)', () => {
+    const summon = (damageabilityKind: 'NORMAL' | 'INVULNERABLE') => ({
+      ...buildEncounterSummon({
+        summon: { statBlock: { damageabilityKind, hitPoints: { kind: 'FIXED', value: 10 } } },
+        caster: creatureActor({ id: CHARACTER_ID, snapshot: {} }),
+        casterHitPointMaximum: null,
+        label: 'Conjured',
+        sourceEffectId: ACTIVE_EFFECT_ID,
+        point: { x: 0, y: 0 },
+        edgeLength: 100,
+        occurredAt: TIMESTAMP
+      }).actor,
+      id: ACTOR_ID
+    })
+    // The area's two hits, planned against each target's pools as they stood.
+    const area = (current: number, maximum: number) => [
+      damage({
+        requested: 8,
+        before: { current, temporary: 0 },
+        after: { current: Math.max(current - 8, 0), temporary: 0 },
+        maximum
+      }),
+      damage({
+        requested: 5,
+        before: { current: Math.max(current - 8, 0), temporary: 0 },
+        after: { current: Math.max(current - 13, 0), temporary: 0 },
+        maximum
+      })
+    ]
+    const plan = (actor: EncounterRunActorState, current: number, maximum: number) =>
+      planEncounterMechanicsBatch({
+        batch: batch(area(current, maximum), {
+          effectiveMaximumHitPoints: maximum
+        }),
+        actor,
+        userId: USER_ID
+      })
+
+    const creaturePlan = plan(creature({ current: 11, temporary: 0, max: 11 }), 11, 11)
+    expect(creaturePlan.updatedActor).toMatchObject({ currentHitPoints: 0, defeated: true })
+
+    const invulnerablePlan = plan(summon('INVULNERABLE'), 10, 10)
+    expect(invulnerablePlan.updatedActor).toMatchObject({ currentHitPoints: 10, defeated: false })
+    const untouched = {
+      kind: 'DAMAGE',
+      damageDisposition: 'IMMUNE',
+      resolvedAmount: 0,
+      appliedAmount: 0,
+      beforeCurrentHitPoints: 10,
+      afterCurrentHitPoints: 10
+    }
+    expect(invulnerablePlan.receiptApplications).toMatchObject([
+      { ...untouched, requestedAmount: 8 },
+      { ...untouched, requestedAmount: 5 }
+    ])
+    expect(invulnerablePlan.stateChanged).toBe(false)
+
+    // A summon whose stat block is damageable takes the area like any creature.
+    expect(plan(summon('NORMAL'), 10, 10).updatedActor).toMatchObject({ currentHitPoints: 0 })
   })
 
   it('refuses a damage application whose resolved amount ignores its disposition', () => {

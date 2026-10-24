@@ -639,6 +639,21 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - Not here: FREE_ONCE (a3b), the bonus-action move (GM ruling, description only), the bonus-action casting time (a3d), ending by recast (GM ruling).
 - Proof: `encounterRepeatPathAction.test.ts` "the creature its range is measured from", `characterSpellCastActions.test.ts` "holds a CONJURED repeat on the carrier", room `nativeRoomCoreOptionSpells.test.ts` "room Flame Blade reach" (a non-conjured repeat still measures from the caster: a Wolf beyond reach is `TARGET_OUT_OF_RANGE` until overridden).
 
+## T2v2a3b (D190a): a free repeat on the cast turn
+
+- Contract: `castTurnUse?: 'FREE_ONCE'` on the `REPEAT_SOURCE_PATH` offer (schema, authored type, compiler, node map "On the Cast Turn", shown only for a repeat). The held offer adds `castTurnSequence`, the Run `turnSequence` its cast froze; the stored schema requires it exactly when `castTurnUse` is set. Generic: no spell is wired here (Spiritual Weapon is a3d).
+- Rule: `repeatOfferFreeUseKey` (rules-runtime `encounterRepeatPathAction.ts`) gives the key `repeat-free:<effectId>:<offerIndex>` only in the frozen turn, only while a turn runs, and only until spent. `discoverEncounterRepeatPath` then charges `FREE`, and the REPEAT_PATH source carries `grantedUseKey`; the worker economy (`nativeEncounterActionEconomy.ts`) spends no allowance and records the key as a granted action does. Both source loaders (worker `nativeEncounterRules.ts`, Convex `actionPreparationReads.ts`) pass the turn and the spent keys; the choice listing (`actionChoiceReads.ts`) shows `FREE` while open.
+- Proof: `encounterRepeatPathAction.test.ts` "a free cast-turn use" (once, only in the cast turn and never between turns, a spent key charges the authored activation, caster only, the stored refinement); room `nativeRoomCoreOptionSpells.test.ts` "room free cast-turn repeat" (a FREE_ONCE Flame Blade attacks free after its Action cast, the second attack is refused for the spent Action, and the next turn's offer costs the Action).
+
+## T2v2a3c (D190a): an invulnerable summon, and one that takes no space
+
+- Persisted: the summon's CUSTOM actor snapshot gains `body` (`summonBodyDtoSchema`: `damageabilityKind`, `occupiesSpace`), written by `buildEncounterSummon` through `summonBody`. A missing `occupiesSpace` is false, as the placement check always read it. Pre-launch: no migration.
+- Reader: `encounterActorBody` (`encounterActorBody.ts`) is the one reader; actors with no body are damageable and occupy space.
+- Damage: `foldCharacterMechanicsApplications` takes `invulnerable` and re-settles through `applyDamageInterceptions` (no interceptions, `invulnerable`): every damage is IMMUNE at 0, and later applications are rebased whenever a settled damage changes the pools. The batch plan, `spatialExecutionOutcome` and turn-effect `completeExecution` pass it, so plan and evidence agree. `SpatialMovementTarget.actor` now carries `snapshot`.
+- Space: `discoverEncounterMovementPassage` skips a blocker or mover whose body does not occupy space; `evaluateEncounterSummonTarget` takes the actors and skips their non-occupying tokens. Every other end-position overlap check asks `encounterTokenOccupiesSpace` (a token bound to no actor occupies): drag arrival (`encounterMovementDrag`), teleport (`selectTeleportAllowance` in `shared` takes it as an `occupiesSpace` predicate from the Worker) and return to play (`flagRoomReturnsOntoOccupiedSpace`).
+- Not here: SPECIAL damageability stays with the GM.
+- Proof: `encounterMechanicsBatchPlan.test.ts` (an area damages a creature and an invulnerable summon; the summon takes none), `encounterMovementPassage.test.ts` (through and ending in a non-occupying hostile summon, and a non-occupying mover), `encounterAreaAction.test.ts` (placement onto a non-occupying token), `encounterMovementDrag.test.ts` and `vtt-teleport-destination.test.ts` (arriving on a non-occupying summon), room `nativeRoomRemoveFromPlay.test.ts` (a Wolf returns onto one unflagged), `encounterSummon.test.ts` (the snapshot carries the body).
+
 ## T2s (D191): forms and possession
 
 - Status: implemented on `spells-4-t2s`; CI is the gate.

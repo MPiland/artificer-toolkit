@@ -71,14 +71,16 @@ const door = {
 const select = (
   destination: { x: number; y: number },
   allowances: readonly (typeof misty | typeof door)[],
-  state: SceneExplorationState = scene()
+  state: SceneExplorationState = scene(),
+  occupiesSpace: (tokenId: string) => boolean = () => true
 ) =>
   selectTeleportAllowance({
     scene: state,
     moverTokenId: ids.hero,
     viewerUserId: ids.player,
     destination,
-    allowances
+    allowances,
+    occupiesSpace
   })
 
 describe('selecting the teleport allowance a destination spends', () => {
@@ -126,6 +128,15 @@ describe('selecting the teleport allowance a destination spends', () => {
       reason: 'OCCUPIED'
     })
     expect(select({ x: 60, y: 50 }, [misty])).toMatchObject({ allowed: true })
+  })
+
+  it('arrives on a token that does not occupy its space, and lets such a mover arrive on any (SPELLS-4.T2v2a3c)', () => {
+    const notBlocker = (tokenId: string) => tokenId !== ids.blocker
+    expect(select({ x: 500, y: 50 }, [door], scene(), notBlocker)).toMatchObject({
+      allowed: true
+    })
+    const notHero = (tokenId: string) => tokenId !== ids.hero
+    expect(select({ x: 500, y: 50 }, [door], scene(), notHero)).toMatchObject({ allowed: true })
   })
 
   describe('with fog of war', () => {

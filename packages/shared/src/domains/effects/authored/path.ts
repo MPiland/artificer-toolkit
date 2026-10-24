@@ -128,8 +128,9 @@ export type PathLifecycleAuthored = {
    * named paths of the Effect that made it against the holder, charged to `activation`. Only an
    * `APPLY_GRANT` effect carries one. `when` and `range` belong to a move offer; a repeat offer names
    * `pathIds` of this Effect or an `effectId` of a sibling Effect (all its paths, with its
-   * invocation), a `target`: `HOLDER` (default) or the re-run invocation's own targets, and an
-   * `origin` its range is measured from: the actor (default) or the creature the effect conjured.
+   * invocation), a `target`: `HOLDER` (default) or the re-run invocation's own targets, an
+   * `origin` its range is measured from: the actor (default) or the creature the effect conjured,
+   * and a `castTurnUse`: `FREE_ONCE` makes one use free in the turn the effect was made (D190a).
    */
   effectOffers?: {
     kind: 'MOVE_HELD_EFFECT' | 'REPEAT_SOURCE_PATH'
@@ -141,6 +142,7 @@ export type PathLifecycleAuthored = {
     effectId?: string
     target?: 'HOLDER' | 'INVOCATION'
     origin?: 'ACTOR' | 'CONJURED'
+    castTurnUse?: 'FREE_ONCE'
   }[]
 }
 

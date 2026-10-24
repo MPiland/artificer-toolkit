@@ -7,9 +7,11 @@ import {
   EFFECT_OFFER_ACTIVATION_MESSAGE,
   MAX_EFFECT_OFFERS,
   moveHeldEffectOfferSchema,
+  repeatOfferCastTurnUseSchema,
   repeatOfferOriginSchema,
   repeatOfferTargetSchema,
   type MoveHeldEffectOffer,
+  type RepeatOfferCastTurnUse,
   type RepeatOfferOrigin,
   type RepeatOfferTarget
 } from './effectOffer.js'
@@ -32,6 +34,10 @@ export interface CompiledRepeatSourcePathOffer {
   target?: RepeatOfferTarget
   /** Absent means `ACTOR`. */
   origin?: RepeatOfferOrigin
+  /** Absent means every use is charged to `activation`. */
+  castTurnUse?: RepeatOfferCastTurnUse
+  /** The Run's `turnSequence` the cast was made in, which a held `FREE_ONCE` offer freezes. */
+  castTurnSequence?: number
 }
 
 /** The offers a compiled effect action plans, before the cast freezes them onto a held effect. */
@@ -49,18 +55,28 @@ const compiledRepeatSourcePathOfferSchema = lazySchema(() =>
     castLevel: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(9))),
     attackBonus: z.optional(z.number().check(z.int())),
     target: z.optional(repeatOfferTargetSchema),
-    origin: z.optional(repeatOfferOriginSchema)
+    origin: z.optional(repeatOfferOriginSchema),
+    castTurnUse: z.optional(repeatOfferCastTurnUseSchema),
+    castTurnSequence: z.optional(z.number().check(z.int()).check(z.nonnegative()))
   })
 )
 
 const storedRepeatSourcePathOfferSchema = lazySchema(() =>
-  compiledRepeatSourcePathOfferSchema.check(
-    z.refine(
-      ({ effect: { invocation } }) =>
-        !('savingThrow' in invocation) || invocation.savingThrow.dcMethod === 'FIXED_DC',
-      'A stored repeat offer freezes its saving throw at the DC the cast settled.'
+  compiledRepeatSourcePathOfferSchema
+    .check(
+      z.refine(
+        ({ effect: { invocation } }) =>
+          !('savingThrow' in invocation) || invocation.savingThrow.dcMethod === 'FIXED_DC',
+        'A stored repeat offer freezes its saving throw at the DC the cast settled.'
+      )
     )
-  )
+    .check(
+      z.refine(
+        ({ castTurnUse, castTurnSequence }) =>
+          (castTurnUse === undefined) === (castTurnSequence === undefined),
+        'A stored FREE_ONCE repeat offer freezes the turn its cast was made in, and only it does.'
+      )
+    )
 )
 
 export const compiledEffectOffersSchema: z.ZodMiniType<CompiledEffectOffer[]> = lazySchema(() =>

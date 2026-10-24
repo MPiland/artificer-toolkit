@@ -6,6 +6,7 @@ import { encounterReturnedToPlayInputSchema } from '@artificer-toolkit/schema/pr
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { sceneTokenFootprintsOverlap } from '@artificer-toolkit/shared/vtt'
 import type { RoomTransaction } from './roomEncounterStore.js'
+import { encounterTokenOccupiesSpace } from '@artificer-toolkit/rules-runtime/encounterActorBody'
 import { readRoomSceneState } from './roomSceneRead.js'
 
 /** The actors the effect holds out of play: the ones a command may return (D178). */
@@ -18,7 +19,7 @@ export const actorIdsOutOfPlayByEffect = (actors: readonly EncounterRunActorStat
 
 /**
  * Flags the actors a committed command returned to play onto a space another visible token holds
- * (D184). The room never moves a Scene token for the return: the GM places the creature by hand, so
+ * (D184), when both fill their space (`encounterTokenOccupiesSpace`). The room never moves a Scene token for the return: the GM places the creature by hand, so
  * the flag is one GM-only `RETURN_SPACE_OCCUPIED` timeline entry. An actor with no token on the
  * Encounter's Scene, or whose space is free, raises nothing. Returns whether an entry was written.
  */
@@ -38,7 +39,8 @@ export async function flagRoomReturnsOntoOccupiedSpace(input: {
     .withIndex('by_publicId', (query) => query.eq('id', encounterId))
     .unique()
   if (!run) return false
-  const returned = (await readRunActors(ctx, readRunState(run))).filter(
+  const actors = await readRunActors(ctx, readRunState(run))
+  const returned = actors.filter(
     ({ id, absence }) => input.outOfPlayBefore.has(id) && absence == null
   )
   if (returned.length === 0) return false
@@ -52,14 +54,23 @@ export async function flagRoomReturnsOntoOccupiedSpace(input: {
     .withIndex('by_encounterId_actorId', (query) => query.eq('encounterId', encounterId))
     .take(MAX_ENCOUNTER_ACTORS)
   const { scene } = await readRoomSceneState(input.transaction, binding.sceneId)
+  const occupies = encounterTokenOccupiesSpace(
+    actors,
+    new Map(tokenBindings.map(({ tokenId, actorId }) => [tokenId, actorId]))
+  )
+  const occupiesSpace = (sceneTokenId: string) => occupies(sceneTokenId.toLowerCase())
   const crowded = returned.filter((actor) => {
     const tokenId = tokenBindings.find(({ actorId }) => actorId === actor.id)?.tokenId
     const token = scene.tokens.find(({ id }) => id.toLowerCase() === tokenId)
     return (
       token !== undefined &&
+      occupiesSpace(token.id) &&
       scene.tokens.some(
         (other) =>
-          other.id !== token.id && !other.hidden && sceneTokenFootprintsOverlap(token, other)
+          other.id !== token.id &&
+          !other.hidden &&
+          occupiesSpace(other.id) &&
+          sceneTokenFootprintsOverlap(token, other)
       )
     )
   })

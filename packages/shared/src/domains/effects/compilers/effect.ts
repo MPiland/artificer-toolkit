@@ -75,6 +75,7 @@ export type CompiledEffectOffer =
       effect: EffectAuthored
       target?: NonNullable<AuthoredEffectOffer['target']>
       origin?: NonNullable<AuthoredEffectOffer['origin']>
+      castTurnUse?: NonNullable<AuthoredEffectOffer['castTurnUse']>
     }
 
 export type CompiledPathLifecycle = Omit<PathLifecycleAuthored, 'effectOffers'> & {
@@ -471,7 +472,8 @@ function compileLifecycle(
           paths
         },
         ...(offer.target ? { target: offer.target } : {}),
-        ...(offer.origin ? { origin: offer.origin } : {})
+        ...(offer.origin ? { origin: offer.origin } : {}),
+        ...(offer.castTurnUse ? { castTurnUse: offer.castTurnUse } : {})
       }
     })
   }

@@ -151,6 +151,18 @@ export const PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP: NodeMap<
       )
     )
     .set(
+      'castTurnUse',
+      selectSingle(
+        ['castTurnUse'],
+        'On the Cast Turn',
+        {
+          kind: 'INLINE_OPTIONS',
+          options: [{ code: 'FREE_ONCE', label: 'One use costs nothing' }]
+        },
+        { showIf: isRepeat, hiddenBehavior: 'CLEAR' }
+      )
+    )
+    .set(
       'range',
       groupObject(['range'], 'Range', () => PATH_LIFECYCLE_EFFECT_OFFER_RANGE_NODE_MAP, {
         presentation: 'inline',

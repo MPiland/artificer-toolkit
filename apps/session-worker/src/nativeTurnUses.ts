@@ -2,6 +2,10 @@ import type {
   LiveSessionEncounterRulesRequest,
   LiveSessionEncounterRulesResponse
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { EncounterActionSourceInput } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { parseGrantedActionId } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
+import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 
 /** The feet an actor has moved this turn, read from the room's store. */
 export async function readNativeLiveTurnMovedFeet(
@@ -49,6 +53,28 @@ export async function readNativeLiveTurnUses(
   const captured = await capture({ kind: 'TURN_USES', actorId })
   if (captured.kind !== 'TURN_USES') throw new Error('Turn uses are unavailable.')
   return captured.keys
+}
+
+/**
+ * What an action source reads of the offers held effects make, as they stand now: a granted action's
+ * holder effects and spent uses (D160), or a repeat's every-holder effects, turn and spent uses (D166,
+ * D190a). Any other action reads neither.
+ */
+export async function readNativeActionSourceOffers(input: {
+  capture: Parameters<typeof readNativeLiveTurnUses>[0]
+  actorId: string
+  actionId: string
+  state: EncounterRunState
+  activeEffectsByActorId: NonNullable<EncounterActionSourceInput['repeat']>['effectsByHolder']
+}): Promise<Pick<EncounterActionSourceInput, 'granted' | 'repeat'>> {
+  const granted = parseGrantedActionId(input.actionId)
+  if (!granted && !parseRepeatPathActionId(input.actorId, input.actionId)) return {}
+  const spentKeys = await readNativeLiveTurnUses(input.capture, input.actorId)
+  return granted
+    ? {
+        granted: { heldEffects: input.activeEffectsByActorId.get(input.actorId) ?? [], spentKeys }
+      }
+    : { repeat: { effectsByHolder: input.activeEffectsByActorId, turn: input.state, spentKeys } }
 }
 
 /**

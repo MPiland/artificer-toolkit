@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
@@ -11,6 +12,7 @@ import { featureActionMechanic } from '../encounterFeatureActionCapabilityDiscov
 import {
   encounterActionOriginActorId,
   parseRepeatPathActionId,
+  repeatOfferFreeUseKey,
   repeatOfferOriginActorId,
   repeatPathActionId
 } from '../encounterRepeatPathAction.js'
@@ -33,6 +35,12 @@ const FROZEN_DC = 23
 const FROZEN_CAST_LEVEL = 5
 
 const system = srdSystemRecord
+const CAST_TURN = 4
+/** A turn after the cast's, in which a repeat costs its authored activation. */
+const LATER_TURN = {
+  turn: { turnSequence: CAST_TURN + 2, currentActorId: SOURCE_ID },
+  spentKeys: []
+}
 
 /** The offer Heat Metal compiles to, with the DC and cast level its cast froze written in. */
 function frozenOffer() {
@@ -154,7 +162,7 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
       gameSystemId: DND5E_SYSTEM_ID,
       system,
       spells: new Map(),
-      repeat: { effectsByHolder: new Map([[HOLDER_ID, [heldCarrier()]]]) }
+      repeat: { ...LATER_TURN, effectsByHolder: new Map([[HOLDER_ID, [heldCarrier()]]]) }
     })
     if (source.kind !== 'REPEAT_PATH') throw new Error('The id must resolve to a repeat.')
     expect(source.boundItemInstanceId).toBe(ITEM_ID)
@@ -177,7 +185,7 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
       const source = resolveEncounterActionSource({
         ...input,
         actionId,
-        repeat: { effectsByHolder: new Map([[HOLDER_ID, [heldCarrier(offer)]]]) }
+        repeat: { ...LATER_TURN, effectsByHolder: new Map([[HOLDER_ID, [heldCarrier(offer)]]]) }
       })
       if (source.kind !== 'REPEAT_PATH') throw new Error('The id must resolve to a repeat.')
       return source.capability
@@ -202,6 +210,7 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
         ...input,
         actionId,
         repeat: {
+          ...LATER_TURN,
           effectsByHolder: new Map([
             [
               HOLDER_ID,
@@ -265,20 +274,120 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
     })
   })
 
+  describe('a free cast-turn use (SPELLS-4.T2v2a3b, D190a)', () => {
+    const freeOnce = {
+      ...compiledOffer(flameBlade),
+      castTurnUse: 'FREE_ONCE' as const,
+      castTurnSequence: CAST_TURN
+    }
+    const resolve = (
+      turn: { turnSequence: number; currentActorId: string | null },
+      spentKeys: readonly string[] = [],
+      offer: ReturnType<typeof compiledOffer> = freeOnce
+    ) => {
+      const source = resolveEncounterActionSource({
+        actor: caster,
+        actionId,
+        gameSystemId: DND5E_SYSTEM_ID,
+        system,
+        spells: new Map(),
+        repeat: { effectsByHolder: new Map([[HOLDER_ID, [heldCarrier(offer)]]]), turn, spentKeys }
+      })
+      if (source.kind !== 'REPEAT_PATH') throw new Error('The id must resolve to a repeat.')
+      return source
+    }
+    const castTurn = { turnSequence: CAST_TURN, currentActorId: SOURCE_ID }
+    const authored = featureActionMechanic(resolve(LATER_TURN.turn).capability).activation
+    const freeKey = repeatOfferFreeUseKey({
+      offer: { effectId: CARRIER_ID, offerIndex: 0, castTurnSequence: CAST_TURN },
+      turn: castTurn,
+      spentKeys: []
+    })
+
+    it('costs nothing once in the cast’s turn, spending a once-per-turn key instead', () => {
+      expect(authored).toEqual({ code: 'ACTION', amount: 1 })
+      expect(freeKey).toEqual(expect.any(String))
+      const free = resolve(castTurn)
+      expect(free.grantedUseKey).toBe(freeKey)
+      expect(featureActionMechanic(free.capability).activation).toEqual({
+        code: 'FREE',
+        amount: 1
+      })
+    })
+
+    it('costs the authored activation once its key is spent in that turn', () => {
+      const second = resolve(castTurn, [freeKey ?? ''])
+      expect(second).not.toHaveProperty('grantedUseKey')
+      expect(featureActionMechanic(second.capability).activation).toEqual(authored)
+    })
+
+    it('costs the authored activation in any other turn, and between turns', () => {
+      for (const turn of [
+        { turnSequence: CAST_TURN + 1, currentActorId: SOURCE_ID },
+        { turnSequence: CAST_TURN - 1, currentActorId: SOURCE_ID },
+        { turnSequence: CAST_TURN, currentActorId: null }
+      ]) {
+        const later = resolve(turn)
+        expect(later).not.toHaveProperty('grantedUseKey')
+        expect(featureActionMechanic(later.capability).activation).toEqual(authored)
+      }
+      // An offer that authors no free use is never free, even in the turn it was made.
+      const plain = resolve(castTurn, [], compiledOffer(flameBlade))
+      expect(plain).not.toHaveProperty('grantedUseKey')
+      expect(featureActionMechanic(plain.capability).activation).toEqual(authored)
+    })
+
+    it('is stored only with the turn its cast froze', () => {
+      const stored = (offer: ReturnType<typeof compiledOffer>) =>
+        activeRuleEffectDefinitionDtoSchema.safeParse(heldCarrier(offer).definition).success
+      const { castTurnSequence: _turn, ...unfrozen } = freeOnce
+      const { castTurnUse: _use, ...stray } = freeOnce
+      expect(stored(compiledOffer(flameBlade))).toBe(true)
+      expect(stored(freeOnce)).toBe(true)
+      expect(stored(unfrozen)).toBe(false)
+      expect(stored(stray)).toBe(false)
+    })
+
+    it('is taken by the caster alone', () => {
+      const effectsByHolder = new Map([[HOLDER_ID, [heldCarrier(freeOnce)]]])
+      expect(
+        liveEffectOffers({ actorId: HOLDER_ID, effectsByHolder, zeroHitPointActorIds: new Set() })
+      ).toEqual([])
+      const holder = srdCreatureActor({
+        id: HOLDER_ID,
+        creature: srdByLabel(SRD.creatures, 'Ogre')
+      })
+      expect(() =>
+        resolveEncounterActionSource({
+          actor: holder,
+          actionId: repeatPathActionId(HOLDER_ID, CARRIER_ID, 0),
+          gameSystemId: DND5E_SYSTEM_ID,
+          system,
+          spells: new Map(),
+          repeat: {
+            effectsByHolder,
+            turn: { turnSequence: CAST_TURN, currentActorId: HOLDER_ID },
+            spentKeys: []
+          }
+        })
+      ).toThrow('stale')
+    })
+  })
+
   it('is stale once the carrier is gone or the id names another offer', () => {
     const input = { actor: caster, gameSystemId: DND5E_SYSTEM_ID, system, spells: new Map() }
     expect(() =>
       resolveEncounterActionSource({
         ...input,
         actionId,
-        repeat: { effectsByHolder: new Map([[HOLDER_ID, []]]) }
+        repeat: { ...LATER_TURN, effectsByHolder: new Map([[HOLDER_ID, []]]) }
       })
     ).toThrow('stale')
     expect(() =>
       resolveEncounterActionSource({
         ...input,
         actionId: repeatPathActionId(SOURCE_ID, CARRIER_ID, 1),
-        repeat: { effectsByHolder: new Map([[HOLDER_ID, [heldCarrier()]]]) }
+        repeat: { ...LATER_TURN, effectsByHolder: new Map([[HOLDER_ID, [heldCarrier()]]]) }
       })
     ).toThrow('stale')
   })
