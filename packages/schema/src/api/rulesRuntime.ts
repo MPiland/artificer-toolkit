@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { authoredSubjectKindSchema } from '../projections/identity.js'
 
 const uuidSchema = lazySchema(() =>
   z.pipe(
@@ -86,6 +87,7 @@ export const gameSystemRuleCapabilityDtoSchema = lazySchema(() =>
     authoredRootKinds: z
       .array(ruleCapabilityKeyDtoSchema)
       .check(z.maxLength(RULE_GRAPH_LIMITS.AUTHORED_ROOT_KINDS)),
+    contentKinds: z.array(authoredSubjectKindSchema).check(z.maxLength(8)),
     definitionFamilyKeys: z
       .array(ruleCapabilityKeyDtoSchema)
       .check(z.maxLength(RULE_GRAPH_LIMITS.DEFINITION_FAMILIES)),

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { Shell, platformNavigation } from '#app/shell'
+import { Shell, buildPlatformNavigation, contentKindOrder } from '#app/shell'
 import { AuthoredListPage } from './AuthoredListPage'
 import { spellListFilters, spellListItems } from './spellList.fixtures'
 
@@ -67,7 +67,7 @@ export const MobileInAppShell: Story = {
   },
   render: (args) => (
     <Shell
-      navigation={platformNavigation}
+      navigation={buildPlatformNavigation(contentKindOrder)}
       currentPath='/spells'
       isAuthenticated
       userEmail='creator@example.test'
@@ -122,7 +122,7 @@ export const MobileEmptyInAppShell: Story = {
   args: MobileEmpty.args,
   render: (args) => (
     <Shell
-      navigation={platformNavigation}
+      navigation={buildPlatformNavigation(contentKindOrder)}
       currentPath='/characters'
       isAuthenticated
       userEmail='creator@example.test'

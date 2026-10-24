@@ -22,7 +22,7 @@ import {
   createDefaultAuthoringArrayItem,
   createDefaultAuthoringObjectItem
 } from '#forms/rendering/authoringNodeDefaults'
-import { Shell, platformNavigation } from '#app/shell'
+import { Shell, buildPlatformNavigation, contentKindOrder } from '#app/shell'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { wideField } from '../rendering/FormRenderer.css'
 import { getRequiredValidators } from '../rendering/FormRenderer.utils'
@@ -1362,7 +1362,10 @@ describe('authoring form platform', () => {
 
     await renderForm(
       <TestRouterProvider>
-        <Shell currentPath='/forms/fire-lace/edit' navigation={platformNavigation}>
+        <Shell
+          currentPath='/forms/fire-lace/edit'
+          navigation={buildPlatformNavigation(contentKindOrder)}
+        >
           <TestForm canSaveDraft model={multiStepResolvedModel} />
         </Shell>
       </TestRouterProvider>

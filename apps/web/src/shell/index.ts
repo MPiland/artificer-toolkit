@@ -1,3 +1,4 @@
 export { Shell, PageHeader } from './Shell'
-export { platformNavigation } from './navigation'
+export { buildPlatformNavigation, contentKindOrder } from './navigation'
+export { useShellNavigation } from './useShellNavigation'
 export { useShellHeaderSupplement } from './headerSupplement'

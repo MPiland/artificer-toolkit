@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { expect, userEvent, within } from 'storybook/test'
-import { Shell, platformNavigation } from '#app/shell'
+import { Shell, buildPlatformNavigation, contentKindOrder } from '#app/shell'
 import { Route } from '#routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
 import { AuthoringLayout } from '#forms'
 import {
@@ -84,7 +84,7 @@ export const ShortswordPlusOne: Story = {
   parameters: OwnedDraft.parameters,
   render: () => (
     <Shell
-      navigation={platformNavigation}
+      navigation={buildPlatformNavigation(contentKindOrder)}
       currentPath='/equipment/longsword/longsword/edit'
       isAuthenticated
       userEmail='creator@example.test'
@@ -153,7 +153,7 @@ export const AstralTearAwakenedStructure: Story = {
   },
   render: () => (
     <Shell
-      navigation={platformNavigation}
+      navigation={buildPlatformNavigation(contentKindOrder)}
       currentPath='/equipment/longsword/longsword/edit'
       isAuthenticated
       userEmail='creator@example.test'

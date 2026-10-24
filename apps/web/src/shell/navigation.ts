@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import type { GameSystemRuleCapabilityDto } from '@artificer-toolkit/schema/api/rulesRuntime'
 import IBook from '#assets/icons/IBook'
 import ICategory from '#assets/icons/ICategory'
 import IChar from '#assets/icons/IChar'
@@ -21,85 +22,77 @@ export interface AppShellNavItem {
 export interface AppShellNavGroup {
   label: string
   items: AppShellNavItem[]
+  /** Shown in the navigation menu when the group has no entries. */
+  emptyLabel?: string
 }
 
-export const platformNavigation: AppShellNavGroup[] = [
-  {
-    label: 'Workspace',
-    items: [
-      {
-        label: 'Home',
-        href: '/home',
-        icon: IHome
-      },
-      {
-        label: 'Characters',
-        href: '/characters',
-        icon: IChar
-      },
-      {
-        label: 'Campaigns',
-        href: '/campaigns',
-        icon: ICampaign
-      },
-      {
-        label: 'Game Systems',
-        href: '/systems',
-        icon: ICategory
-      },
-      {
-        label: 'Social Hub',
-        href: '/social',
-        icon: IUser
-      }
-    ]
-  },
-  {
-    label: 'Content',
-    items: [
-      {
-        label: 'Spells',
-        href: '/spells',
-        icon: IScroll
-      },
-      {
-        label: 'Backgrounds',
-        href: '/backgrounds',
-        icon: IBook
-      },
-      {
-        label: 'Feats',
-        href: '/feats',
-        icon: IFeat
-      },
-      {
-        label: 'Races',
-        href: '/races',
-        icon: IRaces
-      },
-      {
-        label: 'Classes',
-        href: '/classes',
-        icon: IClass
-      },
-      {
-        label: 'Equipment',
-        href: '/equipment',
-        icon: ISack
-      },
-      {
-        label: 'Creatures',
-        href: '/creatures',
-        icon: ICreature
-      },
-      {
-        label: 'Vehicles',
-        href: '/vehicles',
-        icon: ICategory
-      }
-    ]
-  }
-]
+export type ContentKind = GameSystemRuleCapabilityDto['contentKinds'][number]
+
+/** Presentation of each authored content kind; its key order is the Content group's order. */
+const contentKindNavigation = {
+  SPELL: { label: 'Spells', href: '/spells', icon: IScroll },
+  BACKGROUND: { label: 'Backgrounds', href: '/backgrounds', icon: IBook },
+  FEAT: { label: 'Feats', href: '/feats', icon: IFeat },
+  RACE: { label: 'Races', href: '/races', icon: IRaces },
+  CLASS: { label: 'Classes', href: '/classes', icon: IClass },
+  EQUIPMENT: { label: 'Equipment', href: '/equipment', icon: ISack },
+  CREATURE: { label: 'Creatures', href: '/creatures', icon: ICreature },
+  VEHICLE: { label: 'Vehicles', href: '/vehicles', icon: ICategory }
+} satisfies Record<ContentKind, AppShellNavItem>
+
+export const contentKindOrder = Object.keys(contentKindNavigation) as ContentKind[]
+
+const workspaceNavigation: AppShellNavGroup = {
+  label: 'Workspace',
+  items: [
+    {
+      label: 'Home',
+      href: '/home',
+      icon: IHome
+    },
+    {
+      label: 'Characters',
+      href: '/characters',
+      icon: IChar
+    },
+    {
+      label: 'Campaigns',
+      href: '/campaigns',
+      icon: ICampaign
+    },
+    {
+      label: 'Game Systems',
+      href: '/systems',
+      icon: ICategory
+    },
+    {
+      label: 'Social Hub',
+      href: '/social',
+      icon: IUser
+    }
+  ]
+}
+
+/**
+ * Builds the navigation from the content kinds the visible Systems publish. `undefined` means the
+ * kinds are still loading, so no Content group shows yet; an empty list shows an explicit empty state.
+ */
+export function buildPlatformNavigation(
+  publishedKinds: readonly ContentKind[] | undefined
+): AppShellNavGroup[] {
+  if (!publishedKinds) return [workspaceNavigation]
+  const items = contentKindOrder
+    .filter((kind) => publishedKinds.includes(kind))
+    .map((kind) => contentKindNavigation[kind])
+  return [
+    workspaceNavigation,
+    {
+      label: 'Content',
+      items,
+      emptyLabel: items.length === 0 ? 'No Game System content available' : undefined
+    }
+  ]
+}
 
 export function isNavItemActive(item: AppShellNavItem, currentPath: string) {
   if (!item.href) {
