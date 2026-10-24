@@ -3742,18 +3742,46 @@
               "activeWorkbook": "docs/handoffs/slice-rules-2-t9.md"
             },
             {
-              "id": "RULES-2.T9f",
+              "id": "RULES-2.T9f1",
               "status": "IN_PROGRESS",
               "closes": ["RULES-2.7"],
+              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T9b"]
+              },
+              "text": "System vocabulary (D192 split of T9f): sizes become System core codes; rank and spaceFeet on the dnd5e adapter; no reseed."
+            },
+            {
+              "id": "RULES-2.T9f2",
+              "status": "IN_PROGRESS",
+              "closes": ["RULES-2.7"],
+              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["RULES-2.T9b"]
+                "after": ["RULES-2.T9f1"]
               },
-              "text": "System vocabulary (split 2026-10-21): ability codes become ability definition ids in authored data and the System supplies its sizes list (needed for the T12 tracer System); reseed, golden flips enumerated.",
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md"
+              "text": "System vocabulary (D192 split of T9f): ability-score records keyed by ability definition id; labels and abbreviations from the System record; shared core/ability.ts deleted; reseed, golden flips enumerated."
+            },
+            {
+              "id": "RULES-2.T9f3",
+              "status": "IN_PROGRESS",
+              "closes": ["RULES-2.7"],
+              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["RULES-2.T9f2"]
+              },
+              "text": "System vocabulary (D192 split of T9f): authored ability references (grants, effects, facets, charge, numericExpr, class) become abilityDefinitionId; reseed; one-off ts-morph codemod allowed (D192)."
             },
             {
               "id": "RULES-2.T10",
@@ -3919,7 +3947,9 @@
                   "RULES-2.T11g3",
                   "RULES-2.T5b",
                   "RULES-2.T5c",
-                  "RULES-2.T5d"
+                  "RULES-2.T5d",
+                  "RULES-2.T9f1",
+                  "RULES-2.T9f2"
                 ]
               },
               "text": "Second neutral tracer System (Fate-like fixture) driving the Encounter pipeline through the adapters.",
