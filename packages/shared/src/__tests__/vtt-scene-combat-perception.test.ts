@@ -5,8 +5,8 @@ import type { CampaignSceneState, SceneDarknessZone, SceneToken } from '../domai
 import {
   measureSceneTokenFootprintDistance,
   resolveSceneCombatPerceptionEnvironment,
-  resolveSceneDaylightAt,
   resolveSceneIlluminationAt,
+  resolveSceneLightAt,
   sceneTokenLights,
   type SceneIlluminationLevel
 } from '../domains/vtt/sceneCombatPerception.js'
@@ -361,18 +361,23 @@ describe('Scene combat-perception environment', () => {
       expect(at(250)).toBe('DIM')
     })
 
-    it("finds daylight by the level's render class, not its code", () => {
-      const environment = { ...scene({ ambientIllumination: 'DIM' }), daylight: true }
-      const daylight = (illuminationLevels: readonly SceneIlluminationLevel[]) =>
-        resolveSceneDaylightAt(
+    it("finds bright light and daylight at the System's brightest level, not by render class", () => {
+      const lightAt = (
+        ambientIllumination: PerceptionScene['ambientIllumination'],
+        illuminationLevels: readonly SceneIlluminationLevel[]
+      ) => {
+        const environment = { ...scene({ ambientIllumination }), daylight: true }
+        return resolveSceneLightAt(
           environment,
           { x: 50, y: 50 },
           new SceneBarrierIndex(environment.barriers),
           illuminationLevels
         )
+      }
 
-      expect(daylight(levels)).toBe(false)
-      expect(daylight(strictLevels)).toBe(true)
+      expect(lightAt('DIM', strictLevels)).toEqual({ brightLight: false, daylight: false })
+      expect(lightAt('BRIGHT', strictLevels)).toEqual({ brightLight: true, daylight: true })
+      expect(lightAt('DIM', levels)).toEqual({ brightLight: false, daylight: false })
     })
 
     it('refuses a Scene code the System does not define', () => {
@@ -494,12 +499,12 @@ describe('Scene combat-perception environment', () => {
     }
     const daylightAt = (overrides: Partial<PerceptionScene>, daylight: boolean) => {
       const environment = { ...scene(overrides), daylight }
-      return resolveSceneDaylightAt(
+      return resolveSceneLightAt(
         environment,
         point,
         new SceneBarrierIndex(environment.barriers),
         levels
-      )
+      ).daylight
     }
 
     it('is sunlight where a daylit Scene resolves BRIGHT', () => {

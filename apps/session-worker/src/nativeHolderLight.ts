@@ -5,12 +5,7 @@ import type {
 import type { EncounterHolderLight } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { combatPerceptionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
-import {
-  requireSceneIlluminationLevel,
-  resolveSceneDaylightAt,
-  resolveSceneIlluminationAt,
-  SceneBarrierIndex
-} from '@artificer-toolkit/shared/vtt'
+import { resolveSceneLightAt, SceneBarrierIndex } from '@artificer-toolkit/shared/vtt'
 import { readNativeLivePerceptionScene } from './nativeTurnEffectPerception.js'
 
 /**
@@ -39,23 +34,17 @@ export async function readNativeLiveHolderLight(
   return measureHolderLight(gameSystemId, loaded.scene, token.position)
 }
 
-/** The light on one square of an already-read Scene: lit by the System's levels or not, and daylit or not. */
+/** The light on one square of an already-read Scene, by the Campaign System's illumination levels. */
 export function measureHolderLight(
   gameSystemId: string,
-  scene: Parameters<typeof resolveSceneDaylightAt>[0],
-  position: Parameters<typeof resolveSceneDaylightAt>[1]
+  scene: Parameters<typeof resolveSceneLightAt>[0],
+  position: Parameters<typeof resolveSceneLightAt>[1]
 ): EncounterHolderLight {
   const { illuminationLevels } = combatPerceptionCapabilityRegistry.require(gameSystemId)
-  const barrierIndex = new SceneBarrierIndex(scene.barriers)
-  const { illumination } = resolveSceneIlluminationAt(
+  return resolveSceneLightAt(
     scene,
     position,
-    barrierIndex,
+    new SceneBarrierIndex(scene.barriers),
     illuminationLevels
   )
-  return {
-    brightLight:
-      requireSceneIlluminationLevel(illuminationLevels, illumination).renderClass === 'LIT',
-    daylight: resolveSceneDaylightAt(scene, position, barrierIndex, illuminationLevels)
-  }
 }

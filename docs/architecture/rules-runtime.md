@@ -2967,7 +2967,9 @@ that provides no perception policy. The Rules Kernel holds no perception rules (
 Illumination levels (current, RULES-2.T9d): the illumination codes (`BRIGHT`, `DIM`, `ORDINARY_DARKNESS`,
 `MAGICAL_DARKNESS`) stay a shared enum that Scenes store, but what each means is System data. The adapter's
 `illuminationLevels` lists the System's levels brightest first, each with its `label`, `renderClass`
-(`LIT`, `DIM` or `DARK`) and `suppressesLight`. The shared resolvers take the levels as a parameter, since
+(`LIT`, `DIM` or `DARK`) and `suppressesLight`. A level's rank is its position, and rank 0 is bright light
+(D193): `resolveSceneLightAt` reports bright light and sunlight (bright light in a daylit Scene, D189) by rank,
+never by render class, which only draws the level. The shared resolvers take the levels as a parameter, since
 `shared` does not import `rules-runtime`: `resolveSceneIlluminationAt` darkens by list order, lets a light's bright
 and dim radii shed the `BRIGHT` and `DIM` levels they are named for (ranked and drawn as the System defines them),
 and lets a light-suppressing ambient or zone override lights;

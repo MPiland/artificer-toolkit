@@ -21,7 +21,8 @@ export type SceneIlluminationRenderClass = 'LIT' | 'DIM' | 'DARK'
 
 /**
  * One illumination level of a System (ADR 0039). A System lists its levels brightest first, so a
- * level's rank is its position; no light brightens a point a light-suppressing level covers.
+ * level's rank is its position and rank 0 is bright light; no light brightens a point a
+ * light-suppressing level covers. The render class only draws the level.
  */
 export interface SceneIlluminationLevel {
   code: CombatPerceptionIllumination
@@ -271,21 +272,25 @@ export function resolveSceneIlluminationAt(
   return { illumination, obscurement }
 }
 
-/** Sunlight at a Scene point: the Scene is daylit and that point resolves to a lit level (D189). */
-export function resolveSceneDaylightAt(
+/**
+ * The light at a Scene point: bright light is the System's brightest level (rank 0, D193), and
+ * sunlight is bright light in a daylit Scene (D189).
+ */
+export function resolveSceneLightAt(
   scene: PerceptionSceneState & Pick<CampaignSceneState, 'daylight'>,
   point: ScenePoint,
   barrierIndex: SceneBarrierIndex,
   illuminationLevels: readonly SceneIlluminationLevel[]
-): boolean {
-  if (!scene.daylight) return false
+): { brightLight: boolean; daylight: boolean } {
   const { illumination } = resolveSceneIlluminationAt(
     scene,
     point,
     barrierIndex,
     illuminationLevels
   )
-  return requireSceneIlluminationLevel(illuminationLevels, illumination).renderClass === 'LIT'
+  const brightLight =
+    requireSceneIlluminationLevel(illuminationLevels, illumination) === illuminationLevels[0]
+  return { brightLight, daylight: scene.daylight && brightLight }
 }
 
 /**
