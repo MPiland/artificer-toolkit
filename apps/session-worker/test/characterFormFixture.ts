@@ -57,7 +57,7 @@ export function characterInForm(input: {
     await effects.create({
       id: input.effectId,
       owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: input.actorId },
-      lifecycle: { schemaVersion: 1, remainingTicks: 600 },
+      lifecycle: { schemaVersion: 1, remainingTicks: 3 },
       definition: {
         ...dependentEffectDefinition({ encounterId, sourceActorId: input.actorId }),
         stateContributions: [

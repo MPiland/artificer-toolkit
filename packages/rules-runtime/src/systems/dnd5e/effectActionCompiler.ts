@@ -1452,9 +1452,8 @@ function actorLinkPlan(
 function creatureFormPlan(
   action: Dnd5eCompiledEffectActionSource
 ): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const { entries } = action.compiledEffect
-  const entry = entries[0]
-  if (entries.length !== 1 || !entry || !('outcome' in entry)) return null
+  const [entry, ...otherEntries] = action.compiledEffect.entries
+  if (otherEntries.length > 0 || !entry || !('outcome' in entry)) return null
   const { outcome } = entry
   if (
     outcome.effectKind !== 'MANIFEST' ||

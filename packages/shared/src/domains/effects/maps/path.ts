@@ -10,8 +10,6 @@ import type {
   ForcedMovementCollisionAuthored,
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
-  ManifestCreatureFormAuthored,
-  ManifestCreatureFormFilterAuthored,
   ManifestDestructionCriterionAuthored,
   ManifestLightAuthored,
   ManifestOccupantSaveBonusAuthored,
@@ -110,6 +108,7 @@ import {
   PATH_LIFECYCLE_ON_END_NODE_MAP,
   PATH_LIFECYCLE_TURN_END_GATE_NODE_MAP
 } from './pathLifecycleEnds.js'
+import { registerCreatureFormOutcomeFields } from './creatureFormOutcomeFields.js'
 import { registerOutcomeKindFields } from './outcomeKindFields.js'
 import { PATH_LIFECYCLE_END_TRIGGER_NODE_MAP } from './lifecycleEndTrigger.js'
 import { PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP } from './pathLifecycleEffectOffer.js'
@@ -237,8 +236,6 @@ const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
 const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
 const manifestComponentRegion = buildNodeMap<ManifestComponentRegionNode>()
-const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
-const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthored>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
 const manifestLight = buildNodeMap<ManifestLightAuthored>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
@@ -726,92 +723,6 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
       )
   }
 )
-
-const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthored> =
-  manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, data }) => {
-    const { text, number, selectSingle } = nodes
-    const { table } = data
-
-    map
-      .set('id', text(['id'], 'ID'))
-      .set('order', number(['order'], 'Order', { requiredIf: true }))
-      .set('label', text(['label'], 'Label', { requiredIf: true }))
-      .set(
-        'creatureId',
-        selectSingle(
-          ['creatureId'],
-          'Creature',
-          {
-            kind: 'DATA',
-            relationship: table('creatures', { selectColumns: ['id', 'label'] })
-          },
-          { requiredIf: true }
-        )
-      )
-      .set(
-        'maxTargets',
-        number(['maxTargets'], 'Maximum Creatures', {
-          constraints: { minimum: 1 },
-          requiredIf: true
-        })
-      )
-  })
-
-const MANIFEST_CREATURE_FORM_FILTER_NODE_MAP: NodeMap<ManifestCreatureFormFilterAuthored> =
-  manifestCreatureFormFilter.define('manifestCreatureFormFilter', ({ map, nodes, cond, data }) => {
-    const { text, selectSingle, selectMulti } = nodes
-    const local = cond.local()
-    const { table } = data
-
-    map
-      .set('id', text(['id'], 'ID'))
-      .set(
-        'creatureTypeId',
-        selectSingle(['creatureTypeId'], 'Creature Type', {
-          kind: 'DATA',
-          relationship: table('creature_types', { selectColumns: ['id', 'label', 'description'] })
-        })
-      )
-      .set(
-        'challengeRatingCapKind',
-        selectSingle(
-          ['challengeRatingCapKind'],
-          'Challenge Rating Cap',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: [
-              { code: 'TARGET', label: "Target's Challenge Rating or Level" },
-              { code: 'FIXED', label: 'Fixed Challenge Rating' }
-            ]
-          },
-          { requiredIf: true }
-        )
-      )
-      .set(
-        'maxChallengeRatingId',
-        selectSingle(
-          ['maxChallengeRatingId'],
-          'Maximum Challenge Rating',
-          {
-            kind: 'DATA',
-            relationship: table('challenge_ratings', {
-              selectColumns: ['id', 'label', 'description']
-            })
-          },
-          {
-            requiredIf: local.field(['challengeRatingCapKind']).eq('FIXED'),
-            showIf: local.field(['challengeRatingCapKind']).eq('FIXED')
-          }
-        )
-      )
-      .set(
-        'excludedSpeedIds',
-        selectMulti(['excludedSpeedIds'], 'Excluded Speeds', {
-          kind: 'DATA',
-          relationship: table('speeds', { selectColumns: ['id', 'label', 'description'] })
-        })
-      )
-  })
 
 const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriterionNode> =
   manifestDestructionCriterion.define(
@@ -1484,10 +1395,6 @@ function registerOutcomeFields(
     nodes
   const { and, or, not } = logic
   const local = cond.local()
-  const manifestsCreature = and([
-    local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-    local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
-  ])
   const manifestsOther = and([
     local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
     not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
@@ -2221,46 +2128,8 @@ function registerOutcomeFields(
         { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
       )
     )
-    .set(
-      'forms',
-      groupArray(['forms'], 'Forms', () => MANIFEST_CREATURE_FORM_NODE_MAP, {
-        presentation: 'summary',
-        showIf: manifestsCreature
-      })
-    )
-    .set(
-      'formFilter',
-      groupObject(['formFilter'], 'Form Filter', () => MANIFEST_CREATURE_FORM_FILTER_NODE_MAP, {
-        presentation: 'inline',
-        showIf: manifestsCreature
-      })
-    )
-    .set(
-      'excessDamageCarriesOver',
-      toggle(['excessDamageCarriesOver'], 'Excess Damage Carries Over', {
-        showIf: manifestsCreature
-      })
-    )
-    .set(
-      'retainedAbilityDefinitionIds',
-      selectMulti(
-        ['retainedAbilityDefinitionIds'],
-        'Retained Ability Scores',
-        {
-          kind: 'DATA',
-          relationship: table('ability_definitions', {
-            selectColumns: ['id', 'label', 'description']
-          })
-        },
-        { showIf: manifestsCreature }
-      )
-    )
-    .set(
-      'retainsProficiencies',
-      toggle(['retainsProficiencies'], 'Retains Proficiencies', {
-        showIf: manifestsCreature
-      })
-    )
+  registerCreatureFormOutcomeFields(map, nodes, cond, logic, data)
+  map
     .set(
       'shape',
       groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, {
