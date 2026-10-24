@@ -71,6 +71,11 @@ describe('the Wild Shape plan from the SRD druid', () => {
     expect(contribution.excessDamageCarriesOver).toBe(true)
   })
 
+  // SPELLS-4.T2s2 (D191): unlike Polymorph, the druid keeps its own proficiencies in the beast form.
+  it("keeps the druid's proficiencies", () => {
+    expect(contribution.retainsProficiencies).toBe(true)
+  })
+
   it('caps the form at a quarter challenge rating, with no flying, at druid level 2', () => {
     expect(refusalAtDruidLevel(2, giantCentipede)).toBeNull()
     expect(refusalAtDruidLevel(2, wolf)).toBeNull()

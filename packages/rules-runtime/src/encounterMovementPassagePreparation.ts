@@ -157,7 +157,9 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
       roll: facts
     })
   })
-  if (target.actor.kind === 'CHARACTER') {
+  // A Character whose form replaces its proficiencies checks as the form's Creature (D191).
+  const { formCreature } = target
+  if (target.actor.kind === 'CHARACTER' && !formCreature) {
     const facts = target.characterFacts
     const policy = target.effectiveRulePolicyOutput
     if (!facts || !policy || !target.actor.sourceId || facts.active.id !== target.actor.sourceId)
@@ -204,19 +206,18 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
       size: initiative.effectiveSize
     })
   }
-  if (target.actor.kind === 'CREATURE') {
+  const creature = formCreature ?? target.actor
+  if (creature.kind === 'CREATURE') {
     if (
-      typeof target.actor.snapshot !== 'object' ||
-      target.actor.snapshot === null ||
-      Array.isArray(target.actor.snapshot) ||
-      typeof target.actor.snapshot.payload !== 'object' ||
-      target.actor.snapshot.payload === null ||
-      Array.isArray(target.actor.snapshot.payload)
+      typeof creature.snapshot !== 'object' ||
+      creature.snapshot === null ||
+      Array.isArray(creature.snapshot) ||
+      typeof creature.snapshot.payload !== 'object' ||
+      creature.snapshot.payload === null ||
+      Array.isArray(creature.snapshot.payload)
     )
       throw new Error('Movement passage Creature facts are unavailable.')
-    const ruleFacts = encounterCreatureRuleFactsSnapshotSchema.parse(
-      target.actor.snapshot.ruleFacts
-    )
+    const ruleFacts = encounterCreatureRuleFactsSnapshotSchema.parse(creature.snapshot.ruleFacts)
     if (ruleFacts.gameSystemId !== input.gameSystemId)
       throw new Error('Movement passage Creature facts are stale.')
     const abilityScore = ruleFacts.abilityScores[input.checkDefinitionId]
@@ -234,17 +235,17 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
       input.gameSystemId,
       [],
       creatureActiveGrantCheckContributors(
-        target.actor.id,
+        creature.id,
         checkAbilityCode(input.system, input.checkKind, input.checkDefinitionId),
         target.activeEffects
       )
     )
     return withConditions({
-      controllerCharacterId: null,
+      controllerCharacterId: target.actor.kind === 'CHARACTER' ? target.actor.sourceId : null,
       contributors: granted.contributors,
       modifier: typeof modifier === 'number' && Number.isSafeInteger(modifier) ? modifier : null,
       rollMode: granted.rollMode,
-      size: sizeCodeSchema.parse(target.actor.snapshot.payload.size)
+      size: sizeCodeSchema.parse(creature.snapshot.payload.size)
     })
   }
   throw new Error('Movement passage Custom actors cannot contest passage.')

@@ -145,6 +145,7 @@ export type EncounterMechanicsBatchPlan = {
     checksum: string
     before: TargetState
     after: TargetState
+    inForm?: true
   }
   characterStreamVersion: number | null
   itemUseStateTransition: CharacterItemUseStateTransitionDto | null
@@ -290,7 +291,7 @@ export function planEncounterMechanicsBatch(input: {
     return {
       updatedActor: changedActor ? encounterRunActorStateSchema.parse(changedActor) : formed,
       receiptApplications: folded.applications,
-      targetTransition: transition(actor.id, folded.before, folded.after),
+      targetTransition: transition(actor.id, folded),
       characterStreamVersion: null,
       itemUseStateTransition: null,
       itemDegradationTransition: null,
@@ -667,7 +668,7 @@ export function planEncounterMechanicsBatch(input: {
   return {
     updatedActor,
     receiptApplications: folded.applications,
-    targetTransition: transition(actor.id, folded.before, folded.after),
+    targetTransition: transition(actor.id, folded),
     characterStreamVersion: shouldAdvance ? loaded.active.play.streamVersion + 1 : null,
     itemUseStateTransition: stowItemId === undefined ? null : itemTransition(stowItemId, afterStow),
     itemDegradationTransition,
@@ -770,6 +771,7 @@ function foldCharacterBatch(input: {
   if (inForm.after.currentHitPoints > 0)
     return {
       ...inForm,
+      inForm: true as const,
       form: withActorTemporaryHitPoints(
         {
           ...form,
@@ -836,15 +838,20 @@ function foldCharacterBatch(input: {
     afterOwnConditionIds: onSheet.afterOwnConditionIds,
     afterAbsence: onSheet.afterAbsence,
     stateChanged: true,
+    inForm: true as const,
     form: null,
     sheet: onSheet.after
   }
 }
 
-function transition(actorId: string, before: TargetState, after: TargetState) {
+function transition(
+  actorId: string,
+  { before, after, inForm }: { before: TargetState; after: TargetState; inForm?: true }
+) {
   return {
     checksum: targetTransitionChecksum(actorId, before),
     before,
-    after
+    after,
+    ...(inForm && { inForm })
   }
 }

@@ -605,7 +605,8 @@ export function prepareRecurringActiveEffect(
               formOutcomeId: formContribution.formOutcomeId,
               creatureId: input.form.creatureId,
               excessDamageCarriesOver: formContribution.excessDamageCarriesOver,
-              retainedAbilityIds: [...formContribution.retainedAbilityIds]
+              retainedAbilityIds: [...formContribution.retainedAbilityIds],
+              retainsProficiencies: formContribution.retainsProficiencies
             }
           ]
         : []),

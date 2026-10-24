@@ -77,6 +77,7 @@ export const shapechange: SpellAuthored = {
                   SRD_ABILITY_DEFINITION_IDS.WISDOM,
                   SRD_ABILITY_DEFINITION_IDS.CHARISMA
                 ],
+                retainsProficiencies: true,
                 formFilter: {
                   id: spellChildId(SPELL_IDS.SHAPECHANGE, 0x214, 1),
                   challengeRatingCapKind: 'TARGET'

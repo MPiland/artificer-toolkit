@@ -281,6 +281,11 @@ export function readEncounterDisarmSelection(input: {
         registry: character.ruleEvaluation.registry,
         rulePolicyOutput: targetFacts.effectiveRulePolicyOutput
       })
+      // A form that replaces the Character's proficiencies contests with its stat block (D191).
+      const form = targetFacts.formCreature
+        ? readEncounterActorOptionalContestFacts(targetFacts.formCreature)
+        : undefined
+      if (form === null) throw new Error('Optional combat Character form is stale.')
       return {
         ownerState: 'CHARACTER_SHEET' as const,
         // Only what a hand holds can be struck away; worn items stay.
@@ -288,9 +293,9 @@ export function readEncounterDisarmSelection(input: {
           .filter(({ slot }) => slot !== 'WORN')
           .map(({ itemId }) => itemId),
         equipped: character.character.state.equipment.equipped,
-        checkTotals: facts.checkTotals,
+        checkTotals: form ? form.ruleFacts.checkTotals : facts.checkTotals,
         equipment: facts.equippedItems,
-        size: facts.effectiveSize,
+        size: form ? form.size : facts.effectiveSize,
         character,
         currentness: targetFacts.characterCurrentness
       }
@@ -429,7 +434,7 @@ export function prepareEncounterDisarmContest(input: {
   // The defender's own active check grants (a Help) join the size relation; a Character's come
   // from its policy evidence, a Creature's from its grants directly.
   const defenderGrantContributors =
-    target.kind === 'CHARACTER'
+    target.kind === 'CHARACTER' && !prepared.targetFacts.formCreature
       ? (prepared.targetFacts.effectiveRulePolicyOutput?.rollContributorEvidence.skillChecks[
           characterCheckSkillId(
             prepared.targetFacts.characterFacts?.ruleEvaluation.registry,

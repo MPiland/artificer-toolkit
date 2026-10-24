@@ -6,11 +6,14 @@ import schema from '../schema'
 import { internalMutation } from '../lib/mutations'
 
 /**
- * SPELLS-4.T2s backfill: a stored `CREATURE_FORM` contribution gains `retainedAbilityIds`, the
- * scores its form keeps, now authored on the form effect instead of System-wide. Every form stored
- * before it is Polymorph, True Polymorph or Giant Insect, which keep none, so each gains `[]`. Each
- * rewritten definition is validated and re-checksummed. Idempotent: a contribution that has the
- * field is left alone.
+ * SPELLS-4.T2s and T2s2 backfill: a stored `CREATURE_FORM` contribution gains `retainedAbilityIds`
+ * (the scores its form keeps) and `retainsProficiencies` (whether its holder keeps its own
+ * proficiencies), both now authored on the form effect instead of System-wide. A missing
+ * `retainedAbilityIds` becomes `[]`: every form stored before T2s is Polymorph, True Polymorph or
+ * Giant Insect, which keep none. A missing `retainsProficiencies` becomes `false`, as every SRD form
+ * but Shapechange authors it; a stored Shapechange form keeps the form's proficiencies until recast.
+ * Each rewritten definition is validated and re-checksummed. Idempotent: a contribution that has
+ * both fields is left alone.
  */
 const migrations = new Migrations(components.migrations, { schema, internalMutation })
 
@@ -23,11 +26,11 @@ function migratedDefinition(definitionJson: string) {
       contribution === null ||
       !('kind' in contribution) ||
       contribution.kind !== 'CREATURE_FORM' ||
-      'retainedAbilityIds' in contribution
+      ('retainedAbilityIds' in contribution && 'retainsProficiencies' in contribution)
     )
       return contribution
     changed = true
-    return { ...contribution, retainedAbilityIds: [] }
+    return { retainedAbilityIds: [], retainsProficiencies: false, ...contribution }
   })
   if (!changed) return undefined
   const definition = activeRuleEffectDefinitionDtoSchema.parse({ ...stored, stateContributions })
@@ -38,19 +41,19 @@ function migratedDefinition(definitionJson: string) {
 }
 
 // Definitions can approach the document size limit.
-export const characterEffectFormRetention = migrations.define({
+export const characterEffectFormProficiencies = migrations.define({
   table: 'characterActiveRuleEffects',
   batchSize: 1,
   migrateOne: (_ctx, row) => migratedDefinition(row.definitionJson)
 })
 
-export const encounterEffectFormRetention = migrations.define({
+export const encounterEffectFormProficiencies = migrations.define({
   table: 'encounterActiveRuleEffects',
   batchSize: 1,
   migrateOne: (_ctx, row) => migratedDefinition(row.definitionJson)
 })
 
 export const run = migrations.runner([
-  internal.encounters.formRetentionMigration.characterEffectFormRetention,
-  internal.encounters.formRetentionMigration.encounterEffectFormRetention
+  internal.encounters.formRetentionMigration.characterEffectFormProficiencies,
+  internal.encounters.formRetentionMigration.encounterEffectFormProficiencies
 ])

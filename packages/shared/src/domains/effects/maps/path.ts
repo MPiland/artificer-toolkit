@@ -94,10 +94,6 @@ import {
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
-import {
-  MANIFEST_CREATURE_FORM_FILTER_NODE_MAP,
-  MANIFEST_CREATURE_FORM_NODE_MAP
-} from './creatureForm.js'
 import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
@@ -112,6 +108,7 @@ import {
   PATH_LIFECYCLE_ON_END_NODE_MAP,
   PATH_LIFECYCLE_TURN_END_GATE_NODE_MAP
 } from './pathLifecycleEnds.js'
+import { registerCreatureFormOutcomeFields } from './creatureFormOutcomeFields.js'
 import { registerOutcomeKindFields } from './outcomeKindFields.js'
 import { PATH_LIFECYCLE_END_TRIGGER_NODE_MAP } from './lifecycleEndTrigger.js'
 import { PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP } from './pathLifecycleEffectOffer.js'
@@ -1398,10 +1395,6 @@ function registerOutcomeFields(
     nodes
   const { and, or, not } = logic
   const local = cond.local()
-  const manifestsCreature = and([
-    local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
-    local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
-  ])
   const manifestsOther = and([
     local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
     not(local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE))
@@ -2133,40 +2126,8 @@ function registerOutcomeFields(
         { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
       )
     )
-    .set(
-      'forms',
-      groupArray(['forms'], 'Forms', () => MANIFEST_CREATURE_FORM_NODE_MAP, {
-        presentation: 'summary',
-        showIf: manifestsCreature
-      })
-    )
-    .set(
-      'formFilter',
-      groupObject(['formFilter'], 'Form Filter', () => MANIFEST_CREATURE_FORM_FILTER_NODE_MAP, {
-        presentation: 'inline',
-        showIf: manifestsCreature
-      })
-    )
-    .set(
-      'excessDamageCarriesOver',
-      toggle(['excessDamageCarriesOver'], 'Excess Damage Carries Over', {
-        showIf: manifestsCreature
-      })
-    )
-    .set(
-      'retainedAbilityDefinitionIds',
-      selectMulti(
-        ['retainedAbilityDefinitionIds'],
-        'Retained Ability Scores',
-        {
-          kind: 'DATA',
-          relationship: table('ability_definitions', {
-            selectColumns: ['id', 'label', 'description']
-          })
-        },
-        { showIf: manifestsCreature }
-      )
-    )
+  registerCreatureFormOutcomeFields(map, nodes, cond, logic, data)
+  map
     .set(
       'shape',
       groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, {

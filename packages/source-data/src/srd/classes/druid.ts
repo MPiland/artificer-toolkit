@@ -192,6 +192,7 @@ const wildShapeEffect: EffectAuthored = {
               SRD_ABILITY_DEFINITION_IDS.WISDOM,
               SRD_ABILITY_DEFINITION_IDS.CHARISMA
             ],
+            retainsProficiencies: true,
             formFilter: {
               id: classRowId(D, 0x84, 3),
               creatureTypeId: CREATURE_TYPE.BEAST,

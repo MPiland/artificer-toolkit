@@ -4,7 +4,10 @@ import type { EncounterMovementReactionCharacterSource } from './encounterMoveme
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
-import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import {
+  characterSavingThrowDefinitionsSchema,
+  type CharacterRulePolicyOutput
+} from '@artificer-toolkit/schema/api/characterRules'
 import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
 import {
   featureHeldDamageInterceptions,
@@ -55,6 +58,7 @@ import {
 } from './encounterActorRuleOutput.js'
 import { snapshotCreatureTypeId, snapshotFeatureDefinitions } from './encounterActorState.js'
 import { characterFormStatBlock, snapshotStatBlock } from './encounterProjection.js'
+import { characterFormCreatureView, formRetainsProficiencies } from './encounterActorForm.js'
 import type { TargetBoundActiveRuleEffectExecutionInput } from './targetBoundActiveRuleEffectExecutor.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
@@ -133,6 +137,11 @@ export type MovementTarget<
   innateConditionIds: readonly string[]
   /** What the actor's own grants let it move through (D154). */
   movementPassage: EncounterMovementPassage
+  /**
+   * The Creature a Character in a form that replaces its proficiencies (Polymorph, D191) checks
+   * as: the form's stat block with the Character's identity. Absent for every other actor.
+   */
+  formCreature?: EncounterRunActorState
   /** The attack traits the actor's grants (a Character's fold, a Creature's features) give every attack. */
   grantedAttackTraits: readonly DamageDefenseBypassCode[]
   /** A Creature's folded feature grants, whose attack roll modes its attacks read; empty for a Character, whose policy output carries its own. */
@@ -352,11 +361,46 @@ export function buildMovementTarget<
         ? null
         : (withCreatureActiveGrantArmorClass(formStatBlock.armorClass, activeEffects) ??
           formStatBlock.armorClass)
-    const effectiveRulePolicyOutput =
+    const characterOutput =
       formArmorClass === null ? policyOutput : withFormArmorClass(policyOutput, formArmorClass)
-    const qualifiedDefenses = effectiveRulePolicyOutput.qualifiedDefenses.map(
-      ({ kind, damageTypeId, bypassedBy }) => ({ kind, damageTypeId, bypassedBy })
-    )
+    // A form that replaces the Character's proficiencies (Polymorph) saves, checks and defends as
+    // its Creature; the Sheet's conditions, Concentration and hit points stay the Character's (D191).
+    const formCreature =
+      form !== null && !formRetainsProficiencies(form, activeEffects)
+        ? characterFormCreatureView(actor)
+        : null
+    const formTarget =
+      formCreature &&
+      buildMovementTarget({
+        actor: formCreature,
+        activeEffects,
+        gameSystemId,
+        campaignId,
+        characterFacts: null
+      })
+    const effectiveRulePolicyOutput: CharacterRulePolicyOutput = formTarget
+      ? {
+          ...characterOutput,
+          savingThrowDefinitions: characterSavingThrowDefinitionsSchema.parse(
+            formTarget.targetDerivedFacts.savingThrowDefinitions
+          )
+        }
+      : characterOutput
+    const protection = formTarget
+      ? {
+          defenses: formTarget.defenses,
+          qualifiedDefenses: formTarget.qualifiedDefenses,
+          conditionImmunityIds: formTarget.conditionImmunityIds,
+          spellSchoolImmunityIds: formTarget.spellSchoolImmunityIds
+        }
+      : {
+          defenses: effectiveRulePolicyOutput.defenses,
+          qualifiedDefenses: effectiveRulePolicyOutput.qualifiedDefenses.map(
+            ({ kind, damageTypeId, bypassedBy }) => ({ kind, damageTypeId, bypassedBy })
+          ),
+          conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
+          spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds
+        }
     const sheetInputs = nativeCharacterBatchInputs(characterFacts, activeEffects)
     const { effectiveMaximumHitPoints, damageInterceptions } =
       form === null
@@ -480,17 +524,10 @@ export function buildMovementTarget<
         ...(formStatBlock ? { statBlock: formStatBlock } : {}),
         savingThrowAddedDice: encounterSavingThrowAddedDice(gameSystemId, activeEffects),
         healingMaximized: encounterGrantsEnabledDomain(activeEffects, 'HEALING_RECEIVED'),
-        targetProtection: {
-          status: 'NORMALIZED',
-          defenses: effectiveRulePolicyOutput.defenses,
-          qualifiedDefenses,
-          conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
-          spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds
-        }
+        targetProtection: { status: 'NORMALIZED', ...protection }
       },
-      defenses: effectiveRulePolicyOutput.defenses,
-      qualifiedDefenses,
-      conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
+      ...protection,
+      ...(formCreature ? { formCreature } : {}),
       movementPassage: encounterActorMovementPassage(
         gameSystemId,
         actor,
@@ -501,7 +538,6 @@ export function buildMovementTarget<
         .grantedAttackTraits(effectiveRulePolicyOutput.grantFold.modifiers),
       innateConditionIds: innateConditionIds(effectiveRulePolicyOutput.grantFold.modifiers),
       featureModifiers: [],
-      spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds,
       attackAgainstContributors: [],
       sourceSightSaves: [],
       sourceConditionImmunities: [],

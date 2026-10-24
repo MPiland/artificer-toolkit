@@ -285,6 +285,8 @@ type CreatureManifestAuthored = ManifestAuthoredBase & {
   excessDamageCarriesOver?: boolean
   /** The holder's own ability scores the form keeps (Wild Shape: Intelligence, Wisdom, Charisma). */
   retainedAbilityDefinitionIds?: string[]
+  /** The holder keeps its own proficiencies (Wild Shape); absent, the form's stat block replaces them (Polymorph). */
+  retainsProficiencies?: boolean
   statBlock?: never
   behaviors?: never
 }
@@ -295,6 +297,7 @@ type SummonManifestAuthored = ManifestAuthoredBase & {
   formFilter?: never
   excessDamageCarriesOver?: never
   retainedAbilityDefinitionIds?: never
+  retainsProficiencies?: never
   statBlock?: SummonStatBlockAuthored
   behaviors?: ManifestBehaviorAuthored[]
 }
@@ -305,6 +308,7 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
   formFilter?: never
   excessDamageCarriesOver?: never
   retainedAbilityDefinitionIds?: never
+  retainsProficiencies?: never
   statBlock?: never
   behaviors?: ManifestBehaviorAuthored[]
   components?: ManifestComponentAuthored[]

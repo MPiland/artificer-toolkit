@@ -139947,7 +139947,7 @@ export declare const internal: {
       >;
     };
     formRetentionMigration: {
-      characterEffectFormRetention: FunctionReference<
+      characterEffectFormProficiencies: FunctionReference<
         "mutation",
         "internal",
         {
@@ -139961,7 +139961,7 @@ export declare const internal: {
         },
         any
       >;
-      encounterEffectFormRetention: FunctionReference<
+      encounterEffectFormProficiencies: FunctionReference<
         "mutation",
         "internal",
         {

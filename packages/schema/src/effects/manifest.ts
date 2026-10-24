@@ -340,7 +340,9 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
         /** The holder's own ability scores the form keeps (Wild Shape: Intelligence, Wisdom, Charisma). */
         retainedAbilityDefinitionIds: z.optional(
           authoredReferenceCollectionSchema(authoredIdentifierSchema)
-        )
+        ),
+        /** The holder keeps its own proficiencies (Wild Shape); absent, the form's stat block replaces them (Polymorph). */
+        retainsProficiencies: z.optional(z.boolean())
       }),
       z.extend(baseSchema, {
         manifestKind: z.literal('SUMMON'),
