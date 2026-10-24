@@ -190,6 +190,16 @@ describe('disease as a GM ruling (D187a, SPELLS-33.T6b3)', () => {
   })
 })
 
+describe('effect-tag save qualifiers as GM rulings (D187a, SPELLS-33.T4j)', () => {
+  it('Lich: Turn Resistance is one manual adjudication and nothing automated', () => {
+    const authored = srdCreatures.find((entry) => entry.label === 'Lich')
+    const owner = authored?.features?.find((entry) => entry.label === 'Turn Resistance')
+    const outcomes = nodesWhere(owner, (node) => typeof node.effectKind === 'string')
+    expect(outcomes.map((node) => node.effectKind)).toEqual(['MANUAL_ADJUDICATION'])
+    expect(String(outcomes[0]?.instructions)).toMatch(/turns undead/i)
+  })
+})
+
 describe('terrain and underwater riders as GM rulings (D187a, SPELLS-33.T6d2)', () => {
   it.each([
     ['Deep Gnome (Svirfneblin)', 'Stone Camouflage', /rocky terrain/i],

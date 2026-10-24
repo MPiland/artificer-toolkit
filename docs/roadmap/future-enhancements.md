@@ -410,10 +410,6 @@ Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. 
 
 Encounters have no surprise step, so Foresight's "can't be surprised", Assassinate's automatic critical against a surprised creature and Surprise Attack's extra 2d6 ship as description only (SPELLS-4.T2a2, SPELLS-33.T6d3b, D165). A surprise round, with creatures that can't be surprised exempt, would let it resolve.
 
-### Turn resistance (D156)
-
-The Lich's Turn Resistance (advantage on saves against effects that turn undead) ships as description only (SPELLS-33.T4j). A "turn undead" source qualifier on save grants, alongside the magical-source one (D179), would let it resolve.
-
 ### Shared table screen extras (SCENE-5, 2026-10-19)
 
 - **Prompts that follow a member to any app page**: a global prompt modal on every signed-in page while a Session is ACTIVE, answered once for every tab and device, plus a "your turn" notice.

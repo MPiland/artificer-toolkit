@@ -27,6 +27,7 @@ import { SRD, evaluateSrdCharacter, srdByLabel } from '../testing/dnd5eSrdCharac
  * limited to a magical source (D179) or scoped to the POISONED condition, authored from core options.
  */
 const HOLDER_ID = testUuid(0xd7a1)
+/** A source with no MAGICAL trait, such as a poison trap or a creature's nonmagical breath. */
 const NONMAGICAL = { creatureTypeIds: [] }
 const MAGICAL = { creatureTypeIds: [], traits: ['MAGICAL' as const] }
 const unconscious = conditionTypeId('UNCONSCIOUS')

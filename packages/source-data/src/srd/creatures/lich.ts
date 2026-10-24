@@ -1,4 +1,5 @@
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const lich: CreatureAuthored = {
@@ -139,6 +140,42 @@ export const lich: CreatureAuthored = {
       label: 'Turn Resistance',
       description:
         'Turn Resistance. The lich has advantage on saving throws against any effect that turns undead.',
+      effects: [
+        {
+          id: S.actionId(183, 503),
+          order: 1,
+          invocation: {
+            kind: 'PASSIVE',
+            triggerCode: S.TRIGGER.ACTIVATED,
+            range: { id: S.actionId(183, 603), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
+          },
+          paths: [
+            {
+              id: S.actionId(183, 604),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(183, 605),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(183, 606),
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Turn Resistance',
+                    instructions:
+                      'The lich has advantage on saving throws against any effect that turns undead.',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
       order: 4
     },
     {

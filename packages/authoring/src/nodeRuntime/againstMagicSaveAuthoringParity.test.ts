@@ -18,7 +18,7 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
  * Duergar and Dwarven Resilience and the angelic and hellish weapons are saving-throw advantages,
  * magical-source restrictions, condition immunities and attack traits, the options a Builder author
  * has on a creature or race feature, so each passes its node map exactly as authored with no closed
- * rule. Turn Resistance is a description with no mechanic.
+ * rule. Turn Resistance is a GM ruling.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
