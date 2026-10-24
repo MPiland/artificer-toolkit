@@ -14113,11 +14113,12 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2s", "SPELLS-4.T2h1"]
               },
               "text": "Join SPELLS-4.T2s: Wild Shape, Beast Spells, Archdruid, Hurl Through Hell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
+              "note": "Resized 3 -> 5 on 2026-10-24 (user-approved growth): Wild Shape needs a level-scaled form filter, a SCALED challengeRatingCapKind with CLASS_LEVEL breakpoints that the compiler resolves at cast time into the stored FIXED filter."
             },
             {
               "id": "SPELLS-31.T4v",
