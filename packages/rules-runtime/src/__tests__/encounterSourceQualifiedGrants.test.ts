@@ -144,6 +144,18 @@ describe('Freedom of Movement as a magical-source condition immunity (SPELLS-4.T
       ].sort()
     ).toEqual([paralyzed, restrained].sort())
   })
+
+  it('holds no immunity against an equipment source such as a net, which is not a spell cast', async () => {
+    const target = await freed()
+    expect(
+      conditionImmunityIdsAgainstSource(
+        target.conditionImmunityIds,
+        target.sourceConditionImmunities,
+        { creatureTypeIds: [] },
+        null
+      )
+    ).toEqual([])
+  })
 })
 
 describe('Stoneskin as a qualified damage resistance', () => {
