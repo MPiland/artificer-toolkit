@@ -84,6 +84,7 @@ import { CampaignTabletopMovementReadout } from './CampaignTabletopMovementReado
 import { selectMovementAllowance } from './CampaignTabletopMovementReadout.model'
 import { CampaignEncounterDecision } from '../components/CampaignEncounterDecision'
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
+import { CampaignVttSceneEnvironmentControls } from './CampaignVttSceneEnvironmentControls'
 import { VttZoomControl } from './VttZoomControl'
 import { readStoredVttZoom, vttZoomStorageKey, writeStoredVttZoom } from './vttZoom.model'
 import * as styles from './CampaignVttStage.css'
@@ -1363,54 +1364,15 @@ export function CampaignVttStage({
                   setTool('SELECT')
                 }}
               />
-              <Select
-                aria-label='Fog of war'
-                data={[
-                  { label: 'Fog off', value: 'OFF' },
-                  { label: 'Shared party fog', value: 'SHARED_PARTY' },
-                  { label: 'Per-player fog', value: 'PER_PLAYER' }
-                ]}
+              <CampaignVttSceneEnvironmentControls
                 disabled={live.status !== 'CONNECTED'}
-                size='xs'
-                value={scene.fogMode}
-                onChange={(value) => {
-                  if (value !== 'OFF' && value !== 'SHARED_PARTY' && value !== 'PER_PLAYER') return
-                  const current = sceneRef.current
-                  if (!current) return
-                  if (value === 'OFF' && isFogTool(tool)) setTool('SELECT')
-                  dispatchRef.current({
-                    commandId: crypto.randomUUID(),
-                    expectedSceneVersion: current.version,
-                    mode: value,
-                    sceneId: current.id,
-                    type: 'SET_SCENE_FOG_MODE'
-                  })
+                dispatch={(command) => dispatchRef.current(command)}
+                scene={scene}
+                sceneRef={sceneRef}
+                onFogOff={() => {
+                  if (isFogTool(tool)) setTool('SELECT')
                 }}
               />
-              {fogEnabled ? (
-                <Select
-                  aria-label='Vision reveal timing'
-                  data={[
-                    { label: 'Reveal while dragging', value: 'ON_DRAG' },
-                    { label: 'Reveal on drop', value: 'ON_DROP' }
-                  ]}
-                  disabled={live.status !== 'CONNECTED'}
-                  size='xs'
-                  value={scene.visionRevealMode}
-                  onChange={(value) => {
-                    if (value !== 'ON_DRAG' && value !== 'ON_DROP') return
-                    const current = sceneRef.current
-                    if (!current) return
-                    dispatchRef.current({
-                      commandId: crypto.randomUUID(),
-                      expectedSceneVersion: current.version,
-                      mode: value,
-                      sceneId: current.id,
-                      type: 'SET_SCENE_VISION_REVEAL_MODE'
-                    })
-                  }}
-                />
-              ) : null}
               <Tooltip
                 label={
                   sharePreviews

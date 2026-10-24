@@ -28,8 +28,10 @@ export const sceneStoredLiveStateSchema = lazySchema(() =>
     fogLayerCount: z.number().check(z.int()).check(z.gte(0)).check(z.lte(101)),
     nextFogOrdinal: z.number().check(z.int()).check(z.nonnegative()),
     settings: z.strictObject({
+      // Illumination and daylight change in one command, so they share one version.
       ambientIllumination: z.strictObject({
         value: sceneDefinitionSettingsDtoSchema.shape.ambientIllumination,
+        daylight: sceneDefinitionSettingsDtoSchema.shape.daylight,
         version: z.number().check(z.int()).check(z.nonnegative())
       }),
       visionRevealMode: z.strictObject({

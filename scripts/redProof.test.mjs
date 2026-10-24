@@ -1,7 +1,7 @@
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { classify, isTestPath, packagesToRebuild, summary } from './redProof.mjs'
+import { classify, isTestPath, packagesToRebuild, suiteRows, summary } from './redProof.mjs'
 
 describe('isTestPath', () => {
   it('takes test files and anything under a test directory', () => {
@@ -104,5 +104,29 @@ describe('summary', () => {
   it('lists each file with its outcome and escapes table pipes', () => {
     const text = summary([{ file: 'a/red.test.ts', outcome: 'RED', detail: 'expected a | b' }])
     expect(text).toContain('| `a/red.test.ts` | RED | expected a \\| b |')
+  })
+})
+
+describe('suiteRows', () => {
+  const suite = { name: 'worker', tests: ['apps/session-worker/test/a.test.ts', 'b.test.ts'] }
+  const missingReport = join(tmpdir(), 'redProof-no-such-report.json')
+
+  it('labels every file of a killed suite RED-TIMEOUT instead of throwing', () => {
+    const rows = suiteRows(suite, tmpdir(), { killed: true, report: missingReport })
+    expect(rows.map((row) => [row.file, row.outcome])).toEqual([
+      ['apps/session-worker/test/a.test.ts', 'RED-TIMEOUT'],
+      ['b.test.ts', 'RED-TIMEOUT']
+    ])
+    expect(rows[0].detail).toContain('killed after 8 minutes')
+  })
+
+  it('labels a suite that wrote no report RED-TIMEOUT', () => {
+    const rows = suiteRows(suite, tmpdir(), { killed: false, report: missingReport })
+    expect(rows.every((row) => row.outcome === 'RED-TIMEOUT')).toBe(true)
+    expect(rows[0].detail).toContain('wrote no report')
+  })
+
+  it('explains RED-TIMEOUT in the summary', () => {
+    expect(summary([])).toContain('RED-TIMEOUT')
   })
 })

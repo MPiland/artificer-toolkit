@@ -122,6 +122,7 @@ export async function createSceneDefinitionFixture() {
       campaignId: campaign.id,
       name: 'Courtyard',
       ambientIllumination: 'BRIGHT',
+      daylight: false,
       fogMode: 'PER_PLAYER',
       visionRevealMode: 'ON_DRAG',
       grid: { kind: 'GRIDLESS', pixelsPerUnit: 50, unit: 'FEET' },

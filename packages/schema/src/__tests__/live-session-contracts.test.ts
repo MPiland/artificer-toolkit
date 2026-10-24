@@ -50,6 +50,7 @@ const envelope = {
 const scene = {
   annotations: [],
   ambientIllumination: 'BRIGHT' as const,
+  daylight: false,
   barriers: [],
   campaignId: ids.campaign,
   darknessZones: [],

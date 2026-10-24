@@ -92,6 +92,7 @@ const sceneDefinitionHeader = sceneLiveStateHeaderSchema.parse({
   version: 2,
   name: 'Room fixture Scene',
   ambientIllumination: 'BRIGHT',
+  daylight: false,
   visionRevealMode: 'ON_DRAG',
   fogMode: 'OFF',
   grid: { kind: 'GRIDLESS', pixelsPerUnit: 50, unit: 'FEET' },
@@ -318,7 +319,7 @@ function sceneDocuments() {
       fogLayerCount: 1,
       nextFogOrdinal: 1,
       settings: {
-        ambientIllumination: { value: 'BRIGHT', version: 0 },
+        ambientIllumination: { value: 'BRIGHT', daylight: false, version: 0 },
         visionRevealMode: { value: 'ON_DRAG', version: 0 },
         fogMode: { value: 'OFF', version: 0 }
       },

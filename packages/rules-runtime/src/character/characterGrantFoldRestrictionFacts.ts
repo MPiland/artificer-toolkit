@@ -32,7 +32,8 @@ function baseCondition(
     minimumRank: null,
     category: null,
     requiredProperties: [],
-    sourceState: null
+    sourceState: null,
+    requiresDaylight: false
   }
 }
 
@@ -272,6 +273,11 @@ function normalizeItemContext(
         return { ...baseCondition(condition, 'ENEMY_NEAR_TARGET'), max: condition.feet }
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'TARGET_HAS_NOT_TAKEN_TURN')
         return baseCondition(condition, 'TARGET_HAS_NOT_TAKEN_TURN')
+      if (condition.kind === 'PREDICATE' && condition.predicateCode === 'HOLDER_IN_BRIGHT_LIGHT')
+        return {
+          ...baseCondition(condition, 'HOLDER_IN_BRIGHT_LIGHT'),
+          requiresDaylight: condition.requiresDaylight
+        }
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'SOLE_WIELDED_WEAPON')
         return baseCondition(condition, 'ITEM_SOLE_WEAPON')
       if (condition.kind === 'PREDICATE' && condition.predicateCode === 'ATTACK_ABILITY')

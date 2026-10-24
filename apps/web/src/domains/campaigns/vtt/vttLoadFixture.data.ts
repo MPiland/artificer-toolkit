@@ -73,6 +73,7 @@ const walls = Array.from({ length: 190 }, (_, index) => ({
 export const vttLoadFixtureScene = validated(campaignSceneStateDtoSchema)({
   annotations: [],
   ambientIllumination: 'BRIGHT' as const,
+  daylight: false,
   barriers: [...doors, ...walls],
   campaignId: fixtureUuid(4),
   darknessZones: Array.from({ length: 8 }, (_, index) => {

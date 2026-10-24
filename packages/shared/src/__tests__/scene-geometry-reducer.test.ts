@@ -54,6 +54,7 @@ function fullState(): CampaignSceneState {
   return {
     annotations: [],
     ambientIllumination: 'BRIGHT',
+    daylight: false,
     barriers: [door, wall],
     campaignId: 'campaign-1',
     darknessZones: [],

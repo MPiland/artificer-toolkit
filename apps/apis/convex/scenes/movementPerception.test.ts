@@ -79,6 +79,7 @@ async function setup(withVision = false, returnsToOrigin = false) {
     campaignId: base.campaign.id,
     name: 'Reaction Scene',
     ambientIllumination: 'BRIGHT' as const,
+    daylight: false,
     fogMode: 'PER_PLAYER' as const,
     visionRevealMode: 'ON_DRAG' as const,
     grid,

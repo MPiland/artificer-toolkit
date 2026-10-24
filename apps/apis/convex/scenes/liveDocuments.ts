@@ -113,6 +113,7 @@ export async function readLiveSceneForUser(
     ...save.settings,
     ambientIllumination:
       live?.settings.ambientIllumination.value ?? save.settings.ambientIllumination,
+    daylight: live?.settings.ambientIllumination.daylight ?? save.settings.daylight,
     visionRevealMode: live?.settings.visionRevealMode.value ?? save.settings.visionRevealMode,
     fogMode: live?.settings.fogMode.value ?? save.settings.fogMode,
     id: scene.id,

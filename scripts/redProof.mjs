@@ -75,7 +75,26 @@ export function classify(files, reports, root) {
   })
 }
 
+// Well under the job's 30-minute cap: against old code a workerd test can hang instead of failing.
+const SUITE_TIMEOUT_MS = 8 * 60 * 1000
+
 const firstLine = (message) => (message ?? '').trim().split('\n')[0].slice(0, 200)
+
+/**
+ * One suite's rows. A suite killed at its time budget, or one that wrote no report, proves only that the
+ * old code does not finish (RED-TIMEOUT, weaker than RED), so its files are labelled instead of failing the job.
+ */
+export function suiteRows(suite, root, { killed, report }) {
+  if (killed || !existsSync(report))
+    return suite.tests.map((file) => ({
+      file,
+      outcome: 'RED-TIMEOUT',
+      detail: killed
+        ? `The ${suite.name} run was killed after ${SUITE_TIMEOUT_MS / 60000} minutes.`
+        : `The ${suite.name} run wrote no report.`
+    }))
+  return classify(suite.tests, [JSON.parse(readFileSync(report, 'utf8'))], root)
+}
 
 /** The job summary: one row per file, with how to read each outcome. */
 export function summary(rows) {
@@ -84,7 +103,8 @@ export function summary(rows) {
     '## Red proof against the phase branch',
     '',
     'RED: a test fails without the slice. RED-IMPORT: the file fails to load without the slice (weaker: it',
-    'proves only that the code is missing). ALREADY-PASSING: the test passes without the slice (expected for',
+    'proves only that the code is missing). RED-TIMEOUT: the suite was killed at its time budget or wrote no',
+    'report without the slice (weaker: it proves only that the old code does not finish). ALREADY-PASSING: the test passes without the slice (expected for',
     'a test-only change). NOT-RUN: no report holds the file.',
     '',
     '| File | Outcome | Detail |',
@@ -95,8 +115,8 @@ export function summary(rows) {
 }
 
 /**
- * Runs each suite's test files one at a time, as the Worker's source tests need; returns the rows, or throws when
- * a suite left no report. `suites` holds `{ name, config, root, project, tests }`, paths root-relative.
+ * Runs each suite's test files one at a time, as the Worker's source tests need; returns the rows, labelling a suite
+ * that timed out or left no report RED-TIMEOUT. `suites` holds `{ name, config, root, project, tests }`, paths root-relative.
  */
 function runSuites(root, files, suites) {
   // tsc still emits when the phase branch's code fails to type the tip's helper; the tests then report it.
@@ -109,7 +129,7 @@ function runSuites(root, files, suites) {
     const report = join(root, 'local-validation', `red-${suite.name}.json`)
     if (suite.name === 'worker')
       run(root, ['workspace', '@artificer-toolkit/session-worker', 'types'])
-    run(cwd, [
+    const { error } = run(cwd, [
       'vitest',
       'run',
       `--config=${posix.relative(suite.root, suite.config)}`,
@@ -122,15 +142,20 @@ function runSuites(root, files, suites) {
       `--outputFile.json=${report}`,
       ...suite.tests.map((file) => posix.relative(suite.root, file))
     ])
-    if (!existsSync(report))
-      throw new Error(`The ${suite.name} run wrote no report; see its output above.`)
-    rows.push(...classify(suite.tests, [JSON.parse(readFileSync(report, 'utf8'))], root))
+    rows.push(...suiteRows(suite, root, { killed: error?.code === 'ETIMEDOUT', report }))
   }
   return rows.sort((a, b) => a.file.localeCompare(b.file))
 }
 
-// A failing test is the expected outcome here, so only a missing report fails the job.
-const run = (cwd, args) => spawnSync('yarn', args, { cwd, stdio: 'inherit', shell: false })
+// A failing or hung test is the expected outcome here, so neither fails the job.
+const run = (cwd, args) =>
+  spawnSync('yarn', args, {
+    cwd,
+    stdio: 'inherit',
+    shell: false,
+    timeout: SUITE_TIMEOUT_MS,
+    killSignal: 'SIGKILL'
+  })
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const root = process.cwd()

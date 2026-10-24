@@ -166,6 +166,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'ENEMY_NEAR_TARGET',
     'TARGET_HAS_NOT_TAKEN_TURN',
     'MOVED_TOWARD_TARGET',
+    'HOLDER_IN_BRIGHT_LIGHT',
     'ARMOR_CLASS',
     'DAMAGE_TYPE',
     'CONDITION_TYPE',

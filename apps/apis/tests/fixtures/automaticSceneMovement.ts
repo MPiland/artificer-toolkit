@@ -97,6 +97,7 @@ export async function setupReactionMovementScene<
     campaignId: base.campaign.id,
     name: 'Automatic reaction Scene',
     ambientIllumination: 'BRIGHT' as const,
+    daylight: false,
     fogMode: 'SHARED_PARTY' as const,
     visionRevealMode: 'ON_DRAG' as const,
     grid: {
