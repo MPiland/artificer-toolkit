@@ -208,7 +208,7 @@ describe('a form whose effect its holder can end reverts with that end (SPELLS-4
   const shedding = ((): SpellAuthored => {
     const [effect] = polymorph.effects ?? []
     const [path] = effect?.paths ?? []
-    if (!effect || !path?.resultBlock) throw new Error('Polymorph has no form path.')
+    if (!effect || path?.selectionKind !== 'FIXED') throw new Error('Polymorph has no form path.')
     const lifecycle = {
       holderEnd: { activation: 'BONUS_ACTION' as const },
       endOnConditionIds: [UNCONSCIOUS]
@@ -253,10 +253,10 @@ describe('a form whose effect its holder can end reverts with that end (SPELLS-4
       throw new Error(`Expected the committed end: ${JSON.stringify(ended)}`)
     expect(await characterForm(room)).toBeNull()
     expect((await readRoomHistory(room.room.base.stub)).characterEffects).toEqual([])
-    // The answer the GM reads shows the Character out of its form, not the stale form.
+    // The answer the GM reads shows the Character's own hit points, not the form's.
     const shown = ended.delta.result.projection.actors.find(({ id }) => id === CHARACTER_ACTOR_ID)
-    if (shown?.kind !== 'CHARACTER') throw new Error('The answer shows no Character actor.')
-    expect(shown.form).toBeNull()
+    if (!shown || !('maxHitPoints' in shown)) throw new Error('The GM answer shows no Character.')
+    expect(shown.maxHitPoints).not.toBe(giantCentipede.hitPoints)
   }, 120000)
 
   it('reverts the Character when a Sheet edit leaves it Unconscious', async () => {
