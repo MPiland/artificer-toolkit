@@ -1,5 +1,4 @@
 import type { ApplyGrantAuthored } from './applyGrant.js'
-import type { CommandManifestAuthored } from './commandManifest.js'
 import type { ConditionAuthored } from './condition.js'
 import type { DamageAuthored } from './damage.js'
 import type { HitPointMaximumReductionAuthored } from './hitPointMaximumReduction.js'
@@ -9,7 +8,6 @@ import type { FollowUpSaveAuthored } from './followUpSave.js'
 import type { FollowUpCheckAuthored } from './followUpCheck.js'
 import type { HealAuthored } from './heal.js'
 import type { ManifestAuthored } from './manifest.js'
-import type { MoveManifestAuthored } from './moveManifest.js'
 import type { ManualAdjudicationAuthored } from './manualAdjudication.js'
 import type { MovementRuleAuthored } from './movementRule.js'
 import type { ActionEconomyRuleAuthored } from './actionEconomyRule.js'
@@ -48,8 +46,6 @@ export type OutcomeAuthored =
   | ForcedMovementAuthored
   | TeleportAuthored
   | ManifestAuthored
-  | MoveManifestAuthored
-  | CommandManifestAuthored
   | FollowUpSaveAuthored
   | FollowUpCheckAuthored
   | MovementRuleAuthored

@@ -156,7 +156,7 @@ describe('validateInitiativeCursor', () => {
       validateInitiativeCursor({
         state: state(null),
         currentActorId: null,
-        actorIds: [actorA, actorB],
+        actors: [{ id: actorA }, { id: actorB }],
         allowedSideIds
       })
     ).not.toThrow()
@@ -164,7 +164,7 @@ describe('validateInitiativeCursor', () => {
       validateInitiativeCursor({
         state: state(actorB),
         currentActorId: actorB,
-        actorIds: [actorA, actorB],
+        actors: [{ id: actorA }, { id: actorB }],
         allowedSideIds
       })
     ).not.toThrow()
@@ -172,7 +172,7 @@ describe('validateInitiativeCursor', () => {
       validateInitiativeCursor({
         state: state(actorB),
         currentActorId: actorA,
-        actorIds: [actorA, actorB],
+        actors: [{ id: actorA }, { id: actorB }],
         allowedSideIds
       })
     ).toThrow('current Encounter actor')
@@ -185,7 +185,7 @@ describe('validateInitiativeCursor', () => {
       validateInitiativeCursor({
         state: reversed,
         currentActorId: actorB,
-        actorIds: [actorA, actorB],
+        actors: [{ id: actorA }, { id: actorB }],
         allowedSideIds
       })
     ).not.toThrow()

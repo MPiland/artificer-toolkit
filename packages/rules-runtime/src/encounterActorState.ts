@@ -8,6 +8,8 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 
+import { takesInitiativeTurns } from './encounterInitiativeCursor.js'
+
 export function requireSnapshotIdentity(actor: EncounterRunActorState) {
   if (
     typeof actor.snapshot !== 'object' ||
@@ -174,7 +176,33 @@ export function withEncounterAttackActionState(
   return state === null ? resources : { ...resources, attackAction: state }
 }
 
+/** The Run's actors in turn order; each owned actor follows its owner, on whose turn it acts (D190a). */
 export function stableActors<
+  TActor extends {
+    id: string
+    manualOrder: number | null
+    initiative: number | null
+    stableTieKey: string
+    owner?: { ownerActorId: string } | null
+  }
+>(encounter: {
+  actors: readonly TActor[]
+  round?: number
+  initiativeRoundState?: EncounterProjectionInitiativeRoundStateInput | null
+}): TActor[] {
+  const owned = encounter.actors.filter((actor) => !takesInitiativeTurns(actor))
+  const turnOrder = initiativeTurnOrder({
+    ...encounter,
+    actors: encounter.actors.filter(takesInitiativeTurns)
+  })
+  const ordered = turnOrder.flatMap((actor) => [
+    actor,
+    ...owned.filter((candidate) => candidate.owner!.ownerActorId === actor.id)
+  ])
+  return [...ordered, ...owned.filter((actor) => !ordered.includes(actor))]
+}
+
+function initiativeTurnOrder<
   TActor extends {
     id: string
     manualOrder: number | null

@@ -492,6 +492,11 @@ through `encounterActionRuleWarnings`:
   eligibility and passage blockers use it, and Run state stores no side relationships. Actor sides remain
   only for initiative grouping, reorder, reinforcement and removal.
 
+**Owned actors and initiative (D190a).** An actor with an `owner` is out of the initiative cohort and acts on its
+owner's turn. `takesInitiativeTurns` (`encounterInitiativeCursor.ts`) is the one rule: `validateInitiativeCursor`,
+`createStagedInitiativeRoundState` and reinforcement read it, and the projection's `stableActors` orders the
+unowned actors by initiative, then puts each owned actor right after its owner, with no extra read.
+
 **Targeting yourself (D99).** A user may target itself unless the action says otherwise: the policy raises
 `TARGET_DISPOSITION` for a self target only when the target disposition is hostile, the action makes an
 attack roll (`makesAttackRoll`, a required policy input) or the authored single-target `self` field is `WARN`

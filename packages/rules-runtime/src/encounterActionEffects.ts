@@ -18,7 +18,11 @@ import {
   type EncounterPassiveWeaponHit
 } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { encounterActionReachFeet } from './encounterActionTargetPolicy.js'
-import { preparedSpellAttackBonus, preparedSpellCastLevel } from './encounterPreparedSpellCast.js'
+import {
+  preparedSpellAttackBonus,
+  preparedSpellCastLevel,
+  preparedSpellDamageExpressions
+} from './encounterPreparedSpellCast.js'
 import { readEncounterChosenItem } from './encounterChosenItem.js'
 import { planEncounterEquipmentDegradation } from './encounterEquipmentDegradation.js'
 import { planSpatialHeldCondition } from './encounterSpatialHeldCondition.js'
@@ -92,6 +96,7 @@ export function prepareNativeSourceEffect<
     activeEffectPlan: input.plan,
     spellCastLevel: preparedSpellCastLevel(prepared) ?? undefined,
     attackBonus: preparedSpellAttackBonus(prepared),
+    damageExpressions: preparedSpellDamageExpressions(prepared),
     turnSequence: prepared.state.turnSequence,
     published: input.published,
     d20: null
@@ -317,6 +322,7 @@ export function prepareNativeActionEffectsPlan<
     ...(chosen ? { chosenItem: { item: chosen.item, released } } : {}),
     spellCastLevel: preparedSpellCastLevel(prepared) ?? undefined,
     attackBonus: preparedSpellAttackBonus(prepared),
+    damageExpressions: preparedSpellDamageExpressions(prepared),
     turnSequence: prepared.state.turnSequence,
     published: execution.published,
     execution: execution.execution,

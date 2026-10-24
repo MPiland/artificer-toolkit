@@ -825,6 +825,8 @@ export function discoverUncompiledEncounterFeatureActions(input: {
 export function featureActionMechanic(
   capability: EffectActionCapabilityDescriptor & {
     attackMechanic?: { attackBonus: number; rollMode: string } | null
+    /** The dice a damage outcome resolves to, by outcome id, when a cast froze it (D166). */
+    damageExpressions?: Readonly<Record<string, string>>
   }
 ): Readonly<Record<string, unknown>> {
   const invocation = capability.mechanicFacts.invocation
@@ -852,6 +854,12 @@ export function featureActionMechanic(
     attackRollMode: capability.attackMechanic?.rollMode ?? null,
     attackKind,
     save,
-    outcomes: capability.mechanicFacts.outcomes
+    outcomes: capability.mechanicFacts.outcomes.map((outcome) => {
+      const diceExpression =
+        outcome.kind === 'DAMAGE' && outcome.outcomeId !== undefined
+          ? capability.damageExpressions?.[outcome.outcomeId]
+          : undefined
+      return diceExpression === undefined ? outcome : { ...outcome, diceExpression }
+    })
   }
 }

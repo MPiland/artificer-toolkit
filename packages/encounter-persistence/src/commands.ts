@@ -303,7 +303,7 @@ async function recordEncounterToolCommand(
     validateInitiativeCursor({
       state: normalized,
       currentActorId: state.currentActorId,
-      actorIds: runActors.map((actor) => actor.id),
+      actors: runActors,
       allowedSideIds: state.sides.map((side) => side.id)
     })
     let targetRound = state.round

@@ -421,7 +421,10 @@ export async function persistEncounterAreaCommit(
   const source = actors.find((actor) => actor.id === command.actorId)
   if (!source || root.sourceCharacterId !== (source.kind === 'CHARACTER' ? source.sourceId : null))
     throw new Error('Live Session area actor scope mismatch.')
-  const ruleActors = actors.filter((actor) => actor.kind !== 'CHARACTER')
+  // The plan's rule output also covers the creatures this cast conjures, which are not stored yet.
+  const ruleActors = [...actors, ...input.summonedTokens.map(({ actor }) => actor)].filter(
+    (actor) => actor.kind !== 'CHARACTER'
+  )
   if (
     input.rules.actors.length !== ruleActors.length ||
     new Set(input.rules.actors.map((actor) => actor.actorId)).size !== ruleActors.length ||

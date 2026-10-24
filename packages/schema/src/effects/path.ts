@@ -4,7 +4,6 @@ import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { effectOffersDtoSchema } from './effectOffer.js'
 import { grantedActionsDtoSchema } from './grantedAction.js'
 import { applyGrantDtoSchema } from './applyGrant.js'
-import { commandManifestDtoSchema } from './commandManifest.js'
 import { conditionDtoSchema } from './condition.js'
 import { damageDtoSchema } from './damage.js'
 import { hitPointMaximumReductionDtoSchema } from './hitPointMaximumReduction.js'
@@ -15,7 +14,6 @@ import { resultBlockGateDtoSchema } from './resultBlockGate.js'
 import { createFollowUpCheckDtoSchema } from './followUpCheck.js'
 import { healDtoSchema } from './heal.js'
 import { manifestDtoSchema } from './manifest.js'
-import { moveManifestDtoSchema } from './moveManifest.js'
 import { manualAdjudicationDtoSchema } from './manualAdjudication.js'
 import { movementRuleDtoSchema } from './movementRule.js'
 import { actionEconomyRuleDtoSchema } from './actionEconomyRule.js'
@@ -87,8 +85,6 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             forcedMovementDtoSchema,
             teleportDtoSchema,
             z.lazy(() => manifestDtoSchema),
-            moveManifestDtoSchema,
-            commandManifestDtoSchema,
             createFollowUpSaveDtoSchema(outcomePayloadDtoSchema),
             createFollowUpCheckDtoSchema(outcomePayloadDtoSchema),
             movementRuleDtoSchema,
@@ -122,8 +118,6 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
             applyGrantDtoSchema,
             forcedMovementDtoSchema,
             teleportDtoSchema,
-            moveManifestDtoSchema,
-            commandManifestDtoSchema,
             createFollowUpSaveDtoSchema(outcomePayloadDtoSchema),
             createFollowUpCheckDtoSchema(outcomePayloadDtoSchema),
             movementRuleDtoSchema,

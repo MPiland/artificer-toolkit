@@ -74,7 +74,9 @@ describe('the spells whose authored effects read their cast level', () => {
     ['scales its targets by it', srdSpell('Magic Missile')],
     ['scales a granted amount by its slot level', absorbElementsSpell(['FIRE'])],
     ['scales the damage of its follow-up save by it', srdSpell('Phantasmal Killer')],
-    ['scales the damage of its manifest behavior by it', srdSpell('Spiritual Weapon')],
+    ['scales the damage of the attack it repeats by it', srdSpell('Spiritual Weapon')],
+    // A regression (SPELLS-4.T2v2a3d): the sibling attack a repeat re-runs was never read.
+    ['scales the damage of its held attack by it', srdSpell('Flame Blade')],
     ['compares the slot with the cast spell’s level', srdSpell('Counterspell')]
   ])('%s', (_reason, spell) => {
     expect(readsCastLevel(spell)).toBe(true)

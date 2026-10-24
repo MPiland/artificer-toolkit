@@ -10,119 +10,25 @@ import {
   RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
+  SIZE_CODE,
   SPELLCASTING_ABILITY_REFERENCE,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
   TRIGGER,
   SPELL_COMPONENT,
-  type ManifestBehaviorAuthored,
-  type NonManifestOutcomeAuthored,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_SPEEDS } from '../vocabulary.js'
 
-const manifestId = spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x214, 1)
-const initialAttackBehaviorId = spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x220, 1)
+const flySpeedId = SRD_SPEEDS.find((speed) => speed.code === 'FLY')?.id
+if (!flySpeedId)
+  throw new Error('SRD FLY speed vocabulary entry is required for Spiritual Weapon source data.')
 
-function createDamageOutcome(scope: number): NonManifestOutcomeAuthored {
-  return {
-    id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope, 1),
-    effectKind: EFFECT_KIND.DAMAGE,
-    damageTypeId: damageTypeId('FORCE'),
-    valueKind: 'DICE',
-    scalingKind: SCALING.PER_LEVEL,
-    scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
-    levels: Array.from({ length: 8 }, (_, index) => {
-      const diceCount = 1 + Math.floor(index / 2)
-      return {
-        id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 1, index + 1),
-        level: index + 2,
-        order: index + 1,
-        diceConfig: `${diceCount}d8`
-      }
-    }),
-    bonuses: [
-      {
-        id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 2, 1),
-        bonusKind: 'ABILITY_BONUS',
-        ability: SPELLCASTING_ABILITY_REFERENCE,
-        order: 1
-      }
-    ]
-  }
-}
+const ATTACK_EFFECT_ID = spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x240, 1)
 
-function createAttackBehavior(
-  scope: number,
-  activation: 'FREE' | 'BONUS_ACTION',
-  canMove: boolean
-): ManifestBehaviorAuthored {
-  return {
-    id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope, 1),
-    order: activation === 'FREE' ? 1 : 2,
-    invocation: {
-      kind: 'ACTION',
-      triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
-      activation:
-        activation === 'FREE'
-          ? { code: ACTIVATION_CODE.FREE }
-          : { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
-      range: {
-        id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 1, 1),
-        rangeKind: RANGE_KIND.DISTANCE,
-        amount: 5,
-        unit: MEASUREMENT_UNIT_CODE.FEET
-      },
-      targeting: {
-        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-        dispositionKind: TARGET_DISPOSITION_KIND.ANY
-      }
-    },
-    paths: [
-      ...(canMove
-        ? [
-            {
-              id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 2, 1),
-              order: 1,
-              pathCode: PATH_CODE.ON_ATTACK,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE' as const,
-              selectionKind: 'FIXED' as const,
-              resultBlock: {
-                id: `${spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 2, 1)}__result`,
-                resultKind: 'SINGLE' as const,
-                outcomes: [
-                  {
-                    id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 3, 1),
-                    effectKind: EFFECT_KIND.MOVE_MANIFEST,
-                    manifestId,
-                    amount: 20,
-                    unit: MEASUREMENT_UNIT_CODE.FEET,
-                    upTo: true
-                  }
-                ]
-              }
-            }
-          ]
-        : []),
-      {
-        id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 4, 1),
-        order: canMove ? 2 : 1,
-        pathCode: PATH_CODE.ON_HIT,
-        groupType: PATH_GROUP_TYPE.SINGLE,
-        originKind: 'SOURCE',
-        selectionKind: 'FIXED',
-        resultBlock: {
-          id: `${spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, scope + 4, 1)}__result`,
-          resultKind: 'SINGLE',
-          outcomes: [createDamageOutcome(scope + 5)]
-        }
-      }
-    ]
-  }
-}
 export const spiritualWeapon: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.SPIRITUAL_WEAPON,
@@ -142,7 +48,7 @@ export const spiritualWeapon: SpellAuthored = {
         kind: 'ACTION' as const,
         triggerCode: TRIGGER.ACTIVATED,
         activation: {
-          code: ACTIVATION_CODE.ACTION,
+          code: ACTIVATION_CODE.BONUS_ACTION,
           amount: 1
         },
         range: {
@@ -166,29 +72,113 @@ export const spiritualWeapon: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x212, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
+            resultKind: 'SINGLE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x213, 1),
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
+            // The caster attacks through the weapon, measured from it: free once on the cast turn,
+            // then as a bonus action. Moving it with that bonus action, and ending it by casting the
+            // spell again, are GM rulings (D190a).
+            lifecycle: {
+              effectOffers: [
+                {
+                  kind: 'REPEAT_SOURCE_PATH' as const,
+                  offeredTo: 'SOURCE' as const,
+                  activation: ACTIVATION_CODE.BONUS_ACTION,
+                  effectId: ATTACK_EFFECT_ID,
+                  target: 'INVOCATION' as const,
+                  origin: 'CONJURED' as const,
+                  castTurnUse: 'FREE_ONCE' as const
+                }
+              ]
+            },
             outcomes: [
               {
-                id: manifestId,
+                id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x214, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.WEAPON,
+                manifestKind: MANIFEST_KIND.SUMMON,
                 label: 'Spiritual Weapon',
-                attachmentKind: 'PLACED_SPACE',
-                behaviors: [
-                  createAttackBehavior(0x220, 'FREE', false),
-                  createAttackBehavior(0x240, 'BONUS_ACTION', true)
-                ]
+                statBlock: {
+                  // The SRD names no size; the weapon is drawn in one 5-foot square.
+                  size: SIZE_CODE.MEDIUM,
+                  speeds: [
+                    {
+                      speedId: flySpeedId,
+                      amount: 20,
+                      unit: MEASUREMENT_UNIT_CODE.FEET
+                    }
+                  ],
+                  damageabilityKind: 'INVULNERABLE',
+                  occupiesSpace: false
+                }
               },
               {
                 id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x215, 1),
-                effectKind: EFFECT_KIND.COMMAND_MANIFEST,
-                manifestId,
-                behaviorId: initialAttackBehaviorId
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {}
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      id: ATTACK_EFFECT_ID,
+      order: 2,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
+        activation: {
+          code: ACTIVATION_CODE.BONUS_ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x241, 1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 5,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
+      },
+      paths: [
+        {
+          id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x244, 1),
+          order: 1,
+          pathCode: PATH_CODE.ON_HIT,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x244, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x245, 1),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('FORCE'),
+                valueKind: 'DICE' as const,
+                scalingKind: SCALING.PER_LEVEL,
+                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+                // 1d8, and 1d8 more for every two slot levels above 2nd.
+                levels: Array.from({ length: 8 }, (_, index) => ({
+                  id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x246, index + 1),
+                  level: index + 2,
+                  order: index + 1,
+                  diceConfig: `${1 + Math.floor(index / 2)}d8`
+                })),
+                bonuses: [
+                  {
+                    id: spellChildId(SPELL_IDS.SPIRITUAL_WEAPON, 0x247, 1),
+                    bonusKind: 'ABILITY_BONUS' as const,
+                    ability: SPELLCASTING_ABILITY_REFERENCE,
+                    order: 1
+                  }
+                ]
               }
             ]
           }

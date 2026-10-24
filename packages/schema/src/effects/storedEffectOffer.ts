@@ -1,6 +1,7 @@
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import { z, lazySchema } from '../zod.js'
 import { activationCodeSchema } from '../shared/enums.js'
+import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
 import { effectDtoSchema } from './effect.js'
 import {
   checkEffectOfferActivations,
@@ -30,6 +31,11 @@ export interface CompiledRepeatSourcePathOffer {
   castLevel?: number
   /** The holder's attack bonus the cast froze for an attack repeat; its roll mode is read live. */
   attackBonus?: number
+  /**
+   * The dice expression each damage outcome of `effect` resolved to at the cast, by outcome id, so a
+   * repeat's ability bonus is the one its caster had; absent when the cast resolved none.
+   */
+  damageExpressions?: Readonly<Record<string, string>>
   /** Absent means `HOLDER`. */
   target?: RepeatOfferTarget
   /** Absent means `ACTOR`. */
@@ -54,6 +60,14 @@ const compiledRepeatSourcePathOfferSchema = lazySchema(() =>
     effect: embeddedEffectSchema,
     castLevel: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(9))),
     attackBonus: z.optional(z.number().check(z.int())),
+    damageExpressions: z.optional(
+      z
+        .record(
+          authoredIdentifierSchema,
+          z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500))
+        )
+        .check(z.refine((value) => Object.keys(value).length <= 10, 'Too many damage outcomes.'))
+    ),
     target: z.optional(repeatOfferTargetSchema),
     origin: z.optional(repeatOfferOriginSchema),
     castTurnUse: z.optional(repeatOfferCastTurnUseSchema),

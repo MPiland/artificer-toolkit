@@ -26,6 +26,8 @@ export interface EncounterRepeatPathCapabilityDescriptor extends EffectActionCap
   target: 'HOLDER' | 'INVOCATION'
   /** The attack bonus an attack repeat rolls with, frozen by the cast; its roll mode starts normal. */
   attackMechanic: { attackBonus: number; rollMode: 'NORMAL' } | null
+  /** The damage each outcome resolves to, by outcome id, frozen by the cast (D166). */
+  damageExpressions?: Readonly<Record<string, string>>
   label: string
 }
 
@@ -192,7 +194,8 @@ export function discoverEncounterRepeatPath(input: {
     attackMechanic:
       offer.attackBonus === undefined
         ? null
-        : { attackBonus: offer.attackBonus, rollMode: 'NORMAL' }
+        : { attackBonus: offer.attackBonus, rollMode: 'NORMAL' },
+    ...(offer.damageExpressions && { damageExpressions: offer.damageExpressions })
   }
   return {
     capability,

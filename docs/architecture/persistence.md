@@ -457,6 +457,13 @@ player projection (`playerControlsActor`, `playerSeesActor`) and the room's auth
 carries `owner`. A departed owner's player stops controlling the owned actor because they stop controlling the
 owner; nothing is rewritten. A summoning cast sets `owner` on the actor it creates (SPELLS-4.T2v2a2c1).
 
+An owned actor takes no initiative turn: it acts on its owner's turn (D190a). The initiative cohort is the Run's
+unowned actors, with one home, `takesInitiativeTurns` in `validateInitiativeCursor`
+(`packages/rules-runtime/src/encounterInitiativeCursor.ts`). Initiative staging, reinforcement, removal,
+reorder, correction and turn settlement pass the actors they already read in the same transaction, owners
+included, and the cursor leaves the owned ones out; no caller adds a read for it. `stableActors` lists each owned
+actor right after its owner (SPELLS-4.T2v2a3d).
+
 ## Scene storage
 
 `sceneDefinitions` holds the current settings and save ID of a Scene definition. An owner save uploads typed

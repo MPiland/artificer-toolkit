@@ -4,6 +4,7 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import type { EffectAuthored } from '@artificer-toolkit/shared/authored'
 import { ACTIVATION_CODE } from '@artificer-toolkit/shared/core'
 import { shortsword } from '@artificer-toolkit/source-data/srd/equipment/shortsword.js'
+import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
 
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
@@ -41,5 +42,19 @@ describe('a weapon attack authored as a bonus action (two-weapon fighting)', () 
 
   it('still refuses a weapon attack authored with a Reaction activation and no movement trigger', () => {
     expect(() => compile(shortswordAttack(ACTIVATION_CODE.REACTION))).toThrow()
+  })
+})
+
+describe('a spell attack authored as a bonus action (SPELLS-4.T2v2a3d)', () => {
+  it('compiles, as Spiritual Weapon’s attack is a bonus action', () => {
+    const attack = spiritualWeapon.effects?.find(
+      (effect) =>
+        effect.invocation.kind === 'ACTION' &&
+        effect.invocation.triggerCode === 'MELEE_SPELL_ATTACK'
+    )
+    if (!attack || attack.invocation.kind !== 'ACTION')
+      throw new Error('Spiritual Weapon has no attack.')
+    expect(attack.invocation.activation.code).toBe(ACTIVATION_CODE.BONUS_ACTION)
+    expect(() => compile({ ...attack, id: ACTION_EFFECT_ID } as EffectAuthored)).not.toThrow()
   })
 })
