@@ -1,4 +1,9 @@
-import { evaluateNumericExpr, type NumericExpr } from '@artificer-toolkit/shared/core'
+import {
+  CREATURE_ORIGIN_KIND_REGISTRY,
+  evaluateNumericExpr,
+  type NumericExpr
+} from '@artificer-toolkit/shared/core'
+import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { CharacterSpellSummonStateDto } from '@artificer-toolkit/schema/subjects/characterState'
@@ -87,4 +92,49 @@ export function withoutConcentrationSummons(
   summons: readonly CharacterSpellSummonStateDto[] | undefined
 ): CharacterSpellSummonStateDto[] | undefined {
   return summons?.filter((summon) => !summon.concentration)
+}
+
+/** The Extras entry a Sheet summon reads as. */
+export function sheetSpellSummonExtra(
+  summon: CharacterSpellSummonStateDto,
+  speedLabel: string | undefined
+): Extract<CharacterSheetResponseDto['extras']['items'][number], { kind: 'SPELL_SUMMON' }> {
+  return {
+    kind: 'SPELL_SUMMON',
+    kindLabel: 'Spell Summon',
+    id: summon.id,
+    spellId: summon.spellId,
+    originKind: 'SUMMONED',
+    originLabel: CREATURE_ORIGIN_KIND_REGISTRY.SUMMONED.label,
+    authoredName: summon.label,
+    displayName: summon.customName ?? summon.label,
+    ...(summon.customName ? { customName: summon.customName } : {}),
+    ...(summon.notes ? { notes: summon.notes } : {}),
+    isActive: true,
+    concentration: summon.concentration,
+    armorClass: summon.armorClass,
+    ...(speedLabel ? { speedLabel } : {}),
+    hitPoints: {
+      current: summon.currentHitPoints,
+      maximum: summon.maximumHitPoints,
+      temp: summon.tempHitPoints ?? 0
+    },
+    ...(summon.size ? { size: summon.size } : {}),
+    ...(summon.abilityScores ? { abilityScores: summon.abilityScores } : {}),
+    ...(summon.passivePerception === undefined
+      ? {}
+      : { passivePerception: summon.passivePerception }),
+    // A summon's attacks are actions its spell authors (SPELLS-34.T2).
+    actions: [],
+    features: [],
+    equipmentItemIds: []
+  }
+}
+
+/** The Concentration a Sheet summon holds, shown when no Run carried one. */
+export function sheetSpellSummonConcentration(
+  summons: readonly CharacterSpellSummonStateDto[] | undefined
+): { label: string; sourceHidden: false } | null {
+  const summon = summons?.find((entry) => entry.concentration)
+  return summon ? { label: summon.label, sourceHidden: false } : null
 }

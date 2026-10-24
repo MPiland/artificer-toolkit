@@ -9,7 +9,7 @@ import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.
 import { CharacterSheetDetailPanel } from '../shared/CharacterSheetDetailPanel'
 import { CharacterSheetExtraList } from './CharacterSheetExtraList'
 import { CharacterSheetSpellSummons } from './CharacterSheetSpellSummons'
-import { getExtraTarget } from './CharacterSheetExtraList.model'
+import { getExtraTarget, type PanelExtra } from './CharacterSheetExtraList.model'
 import * as extrasStyles from './extras.css'
 import * as panelStyles from '../shared/panel.css'
 
@@ -94,7 +94,8 @@ export function CharacterSheetExtras({
   }
 
   const creatureExtras = sheet.extras.items.filter(
-    (extra) => extra.kind === 'COMPANION' || extra.kind === 'MOUNT' || extra.kind === 'OWNED'
+    (extra): extra is PanelExtra =>
+      extra.kind === 'COMPANION' || extra.kind === 'MOUNT' || extra.kind === 'OWNED'
   )
   const vehicles = sheet.extras.items.filter((extra) => extra.kind === 'VEHICLE')
   const summons = sheet.extras.items.filter((extra) => extra.kind === 'SPELL_SUMMON')

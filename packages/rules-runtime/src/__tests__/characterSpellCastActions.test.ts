@@ -2897,6 +2897,8 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       id: testUuid(7),
       castAt: NOW
     })
+    if (!('maxHitPoints' in actor))
+      throw new Error('Expected the summon to hold its own hit points.')
 
     expect(sheetSummon).toMatchObject({
       label: actor.label,

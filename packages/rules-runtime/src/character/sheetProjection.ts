@@ -30,6 +30,7 @@ import {
 } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
+import { sheetSpellSummonConcentration, sheetSpellSummonExtra } from './sheetSpellSummon.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
@@ -1004,42 +1005,9 @@ export function projectCharacterSheetBundle(
       }
     ]
   })
-  const summonExtras: CharacterSheetResponseDto['extras']['items'] = (
-    character.state.spellSummons ?? []
-  ).map((summon) => {
-    const speedLabel = formatExtraSpeedLabel(summon.speeds, resolution.registry.system)
-    return {
-      kind: 'SPELL_SUMMON' as const,
-      kindLabel: 'Spell Summon',
-      id: summon.id,
-      spellId: summon.spellId,
-      originKind: 'SUMMONED' as const,
-      originLabel: CREATURE_ORIGIN_KIND_REGISTRY.SUMMONED.label,
-      authoredName: summon.label,
-      displayName: summon.customName ?? summon.label,
-      ...(summon.customName ? { customName: summon.customName } : {}),
-      ...(summon.notes ? { notes: summon.notes } : {}),
-      isActive: true,
-      concentration: summon.concentration,
-      armorClass: summon.armorClass,
-      ...(speedLabel ? { speedLabel } : {}),
-      hitPoints: {
-        current: summon.currentHitPoints,
-        maximum: summon.maximumHitPoints,
-        temp: summon.tempHitPoints ?? 0
-      },
-      ...(summon.size ? { size: summon.size } : {}),
-      ...(summon.abilityScores ? { abilityScores: summon.abilityScores } : {}),
-      ...(summon.passivePerception === undefined
-        ? {}
-        : { passivePerception: summon.passivePerception }),
-      // A summon's attacks are actions its spell authors (SPELLS-34.T2).
-      actions: [],
-      features: [],
-      equipmentItemIds: []
-    }
-  })
-  const concentrationSummon = character.state.spellSummons?.find((entry) => entry.concentration)
+  const summonExtras = (character.state.spellSummons ?? []).map((summon) =>
+    sheetSpellSummonExtra(summon, formatExtraSpeedLabel(summon.speeds, resolution.registry.system))
+  )
   const sheetExtras = {
     kindOptions: [...CHARACTER_EXTRA_KIND_OPTIONS],
     originOptions: [...CREATURE_ORIGIN_KIND_OPTIONS],
@@ -1487,8 +1455,7 @@ export function projectCharacterSheetBundle(
       activeGrants: listActiveGrantListings(params.activeEffects),
       // A Concentration summon the Sheet holds is the Sheet's Concentration when no Run carried one (D190).
       concentration:
-        params.concentration ??
-        (concentrationSummon ? { label: concentrationSummon.label, sourceHidden: false } : null),
+        params.concentration ?? sheetSpellSummonConcentration(character.state.spellSummons),
       exhaustion: {
         label: DND5E_2014_EXHAUSTION_PRESENTATION.label,
         description: DND5E_2014_EXHAUSTION_PRESENTATION.description,
