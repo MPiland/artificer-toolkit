@@ -105,12 +105,10 @@ export type AuthoredFormSession = {
 export type AuthoredFormFactory<
   TValues extends object,
   TSubmit extends object,
-  TAuthored extends object = TSubmit,
-  TContext = undefined
+  TAuthored extends object = TSubmit
 > = AuthoredFormFactoryBase & {
   createEmptyValues: (input: { systemId: string }) => TValues
-  createSession?: (input: AuthoredFormSessionInput) => AuthoredFormSession | undefined
-  normalizeForSubmit: (values: TValues, context?: TContext) => TSubmit
-  resolveCreateSystemId: (systems: readonly { id: string }[], context?: TContext) => string | null
-  toFormValues: (record: TValues | TSubmit | TAuthored, context?: TContext) => TValues
+  createSession: (input: AuthoredFormSessionInput) => AuthoredFormSession
+  normalizeForSubmit: (values: TValues) => TSubmit
+  toFormValues: (record: TValues | TSubmit | TAuthored) => TValues
 }

@@ -20,10 +20,6 @@ export function createEmptyFeat({ systemId }: CreateEmptyFeatInput): FeatAuthori
   }
 }
 
-export function resolveCreateFeatSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
-}
-
 export function normalizeFeatForSubmit(
   feat: FeatAuthoringInputDto | FeatAuthoredDto
 ): FeatAuthoringInputDto {

@@ -68,10 +68,6 @@ export function normalizeVehicleForSubmit(vehicle: VehicleFormValues): VehicleAu
   }
 }
 
-export function resolveCreateVehicleSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
-}
-
 function toPropertyFormValues(
   properties: VehicleAuthoringInputDto['properties'] | VehiclePropertyFormValue[] | undefined
 ): VehiclePropertyFormValue[] {

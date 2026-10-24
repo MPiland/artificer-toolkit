@@ -1,5 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { readField, toFeatures } from './guidedValues'
+import { readField, readString, toFeatures, toSelectOption } from './guidedValues'
+
+describe('readString', () => {
+  it('reads a string field and falls back to empty for anything else', () => {
+    expect(readString({ label: 'Fireball' }, 'label')).toBe('Fireball')
+    expect(readString({ label: 3 }, 'label')).toBe('')
+    expect(readString({}, 'label')).toBe('')
+  })
+})
+
+describe('toSelectOption', () => {
+  it('maps an id/label item onto a select option', () => {
+    expect(toSelectOption({ id: 'gp', label: 'Gold' })).toEqual({ label: 'Gold', value: 'gp' })
+  })
+})
 
 describe('readField', () => {
   it('reads a field off in-progress values', () => {

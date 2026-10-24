@@ -5,17 +5,17 @@ import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type { EffectDto } from '@artificer-toolkit/schema/effects'
 import type { ChargeDto, DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import { GuidedSimpleEffectComposer } from '#forms/guided/GuidedSimpleEffectComposer'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
-import { readField } from '#forms/guided/guidedValues'
+import { EMPTY_GUIDED_FORM_VALUES, readField, readString } from '#forms/guided/guidedValues'
 import { findOption, isRecord } from '#forms/utils/valueGuards'
 
 const STEPS = ['Basics', 'Core outcome', 'Features', 'Review'] as const
@@ -32,16 +32,10 @@ const DESCRIPTIONS = [
   'Check the essentials before saving.'
 ] as const
 
-type Props = {
-  session: AuthoredFormSession
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-}
-
 export const GuidedFeatAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as Props,
-  render: function RenderGuidedFeatAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedFeatAuthoring({ form, onAdvanced, onStateChange, session, system }) {
     const [screen, setScreen] = useState(0)
     const values = useSelector(form.store, (state) => state.values)
     const label = readString(values, 'label')
@@ -115,37 +109,27 @@ export const GuidedFeatAuthoring = withForm({
             charges={charges}
             details={details}
             effects={effects}
-            system={session.system!}
+            system={system}
             onChargesChange={setCharges}
             onDetailsChange={setDetails}
             onEffectsChange={setEffects}
           />
         ) : null}
         {screen === 2 ? (
-          <GuidedFeatureAccordion
-            features={features}
-            system={session.system!}
-            onChange={setFeatures}
-          />
+          <GuidedFeatureAccordion features={features} system={system} onChange={setFeatures} />
         ) : null}
         {screen === 3 ? (
           <Stack gap='md'>
             <Text fw={600}>{label || 'Untitled Feat'}</Text>
             <dl className={styles.summary}>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Core outcome</dt>
-                <dd className={styles.summaryValue}>
-                  {effects.length ? 'Configured' : details[0]?.description || 'Not yet described'}
-                </dd>
-              </div>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Limited uses</dt>
-                <dd className={styles.summaryValue}>{formatCharge(charges)}</dd>
-              </div>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Features</dt>
-                <dd className={styles.summaryValue}>{features.length || 'None yet'}</dd>
-              </div>
+              <GuidedSummaryRow
+                label='Core outcome'
+                value={
+                  effects.length ? 'Configured' : details[0]?.description || 'Not yet described'
+                }
+              />
+              <GuidedSummaryRow label='Limited uses' value={formatCharge(charges)} />
+              <GuidedSummaryRow label='Features' value={String(features.length || 'None yet')} />
             </dl>
           </Stack>
         ) : null}
@@ -274,11 +258,6 @@ function isSimpleCharge(
   charge: ChargeDto
 ): charge is Extract<ChargeDto, { limitKind: 'FIXED_AMOUNT'; scalingKind: 'NONE' }> {
   return charge.limitKind === 'FIXED_AMOUNT' && charge.scalingKind === 'NONE'
-}
-
-function readString(values: object, key: string): string {
-  const value = readField(values, key)
-  return typeof value === 'string' ? value : ''
 }
 
 function readDetails(values: object): DetailDto[] {

@@ -125,10 +125,6 @@ export function normalizeRaceForSubmit(race: RaceFormValues): RaceAuthoringInput
   }
 }
 
-export function resolveCreateRaceSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
-}
-
 function normalizeAncestry(ancestry: RaceFormValues['ancestry']): BaseRaceDto['ancestry'] {
   if (!ancestry) return undefined
 

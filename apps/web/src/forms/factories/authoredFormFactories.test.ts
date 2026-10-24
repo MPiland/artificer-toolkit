@@ -105,17 +105,21 @@ describe('authoredFormFactories', () => {
     ])
   })
 
-  it('resolves create system ids from available systems', () => {
-    const systems = [{ id: 'system-1' }]
+  it('resolves the create session system from the available systems', () => {
+    const data = { systems: [{ id: 'system-1' }] }
 
-    expect(backgroundFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(classFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(creatureFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(equipmentFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(featFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(raceFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(spellFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(vehicleFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
+    for (const factory of Object.values(authoredFormFactories)) {
+      expect(factory.createSession({ data, mode: 'create' }).systemId).toBe('system-1')
+    }
+  })
+
+  it('reports a missing system when the create route has no systems', () => {
+    for (const factory of Object.values(authoredFormFactories)) {
+      const session = factory.createSession({ data: { systems: [] }, mode: 'create' })
+
+      expect(session.systemRequired).toBe(true)
+      expect(session.canSaveDraft).toBe(false)
+    }
   })
 
   it('caches saved draft JSON for the first navigation to its edit route', async () => {

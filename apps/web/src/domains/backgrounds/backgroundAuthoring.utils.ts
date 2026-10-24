@@ -46,10 +46,6 @@ export function normalizeBackgroundForSubmit(
   }
 }
 
-export function resolveCreateBackgroundSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
-}
-
 export function createEmptyDetail(order: number): DetailDto {
   return {
     id: crypto.randomUUID(),

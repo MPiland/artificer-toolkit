@@ -94,10 +94,6 @@ export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuth
   }
 }
 
-export function resolveCreateClassSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
-}
-
 function createEmptyStartingGold(): ClassStartingGoldDto {
   return {
     multiplier: 1,

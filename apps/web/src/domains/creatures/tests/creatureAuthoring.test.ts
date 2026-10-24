@@ -4,7 +4,6 @@ import {
   createDefaultAbilityScores,
   createEmptyCreature,
   normalizeCreatureForSubmit,
-  resolveCreateCreatureSystemId,
   toCreatureFormValues
 } from '../creatureAuthoring.utils'
 
@@ -32,11 +31,6 @@ describe('creature authoring helpers', () => {
       equipmentLoadout: [],
       abilityScores: createDefaultAbilityScores()
     })
-  })
-
-  it('uses only real system list data when creating creatures', () => {
-    expect(resolveCreateCreatureSystemId([])).toBeNull()
-    expect(resolveCreateCreatureSystemId([{ id: 'dnd-5e-srd' }])).toBe('dnd-5e-srd')
   })
 
   it('normalizes creature payloads before submit', () => {

@@ -158,7 +158,3 @@ export function normalizeEquipmentForSubmit(
     properties: equipment.properties ?? []
   } satisfies BaseEquipmentDto
 }
-
-export function resolveCreateEquipmentSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
-}

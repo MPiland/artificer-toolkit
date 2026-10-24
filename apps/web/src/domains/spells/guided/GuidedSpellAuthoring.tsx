@@ -19,6 +19,7 @@ import {
 } from '#forms/guided/guidedSimpleEffect.types'
 import { rehydrateGuidedSpell } from '#forms/guided/guidedSimpleEffect.rehydrate'
 import * as styles from '#forms/guided/guidedAuthoring.css'
+import { EMPTY_GUIDED_FORM_VALUES } from '#forms/guided/guidedValues'
 import { GuidedSpellIntentScreen } from './GuidedSpellIntentScreen'
 import { GuidedSpellMechanicsScreen } from './GuidedSpellMechanicsScreen'
 import { GuidedSpellReviewScreen } from './GuidedSpellReviewScreen'
@@ -31,7 +32,7 @@ type GuidedSpellAuthoringProps = {
 }
 
 export const GuidedSpellAuthoring = withForm({
-  defaultValues: {} as object,
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
   props: {} as GuidedSpellAuthoringProps,
   render: function RenderGuidedSpellAuthoring({
     form,

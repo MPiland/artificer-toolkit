@@ -127,7 +127,3 @@ function toStringFormValues(
     typeof value === 'string' ? { value } : { value: value.value }
   )
 }
-
-export function resolveCreateCreatureSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
-}

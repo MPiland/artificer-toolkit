@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  createEmptyFeat,
-  normalizeFeatForSubmit,
-  resolveCreateFeatSystemId
-} from '../featAuthoring.utils'
+import { createEmptyFeat, normalizeFeatForSubmit } from '../featAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
 
@@ -27,11 +23,6 @@ describe('feat authoring helpers', () => {
       features: [],
       systemId: 'dnd-5e-srd'
     })
-  })
-
-  it('uses only real system list data when creating feats', () => {
-    expect(resolveCreateFeatSystemId([])).toBeNull()
-    expect(resolveCreateFeatSystemId([{ id: 'dnd-5e-srd' }])).toBe('dnd-5e-srd')
   })
 
   it('normalizes missing optional collections before save', () => {
