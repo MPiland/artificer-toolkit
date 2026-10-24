@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   ENCOUNTER_ID,
-  creatureActor
+  creatureActor,
+  srdEncounterState
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { insertRunActor } from '../documents.js'
@@ -16,6 +17,11 @@ const COMMAND_ID = '00000000-0000-4000-8000-0000000b5005'
 
 const conjured = (id: string) =>
   creatureActor({ id, kind: 'CUSTOM', snapshot: { label: 'Spectral Hand' } })
+
+const runState = srdEncounterState({
+  actors: [conjured(ACTOR_ID), conjured(OTHER_ID)],
+  currentActorId: null
+})
 
 describe('removing a conjured creature (D187b)', () => {
   it('takes the Scene token off through the room, then removes the binding and the actor', async () => {
@@ -36,11 +42,12 @@ describe('removing a conjured creature (D187b)', () => {
       })
     )
 
-    await removeConjuredActors(ctx, {
-      encounterId: ENCOUNTER_ID,
+    const next = await removeConjuredActors(ctx, {
+      state: { ...runState, actorIds: [ACTOR_ID, OTHER_ID] },
       commandId: COMMAND_ID,
       actorIds: [ACTOR_ID]
     })
+    expect(next.actorIds).toEqual([OTHER_ID])
 
     expect(removed).toEqual([
       {
@@ -58,7 +65,7 @@ describe('removing a conjured creature (D187b)', () => {
     await expect(
       removeConjuredActors(
         { db: memory.store, ports: {} },
-        { encounterId: ENCOUNTER_ID, commandId: COMMAND_ID, actorIds: [ACTOR_ID] }
+        { state: runState, commandId: COMMAND_ID, actorIds: [ACTOR_ID] }
       )
     ).rejects.toThrow('Only the Session room')
   })
@@ -69,7 +76,7 @@ describe('removing a conjured creature (D187b)', () => {
     await insertRunActor(ctx, conjured(ACTOR_ID))
     await expect(
       removeConjuredActors(ctx, {
-        encounterId: ENCOUNTER_ID,
+        state: runState,
         commandId: COMMAND_ID,
         actorIds: [ACTOR_ID]
       })

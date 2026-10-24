@@ -1,21 +1,24 @@
+import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { deleteRunActor } from './documents.js'
 import type { EncounterWritePorts } from './ports.js'
 import type { EncounterWriteContext } from './store.js'
 
 /**
  * Removes the creatures a cast conjured (D187b): each one's Scene token through the room, then the
- * token binding and the actor. The caller drops the ids from the Run's actors, so one removal serves
- * a reverted cast and an effect that ends alike. `commandId` is the command that ends them.
+ * token binding and the actor. It returns the Run state without them in `actorIds`, which the caller
+ * writes with its own version bump, so one removal serves a reverted cast and an effect that ends
+ * alike. `commandId` is the command that ends them.
  */
 export async function removeConjuredActors(
   ctx: EncounterWriteContext & {
     readonly ports: Pick<EncounterWritePorts<never>, 'removeSummonTokens'>
   },
-  input: { encounterId: string; commandId: string; actorIds: readonly string[] }
-): Promise<void> {
+  input: { state: EncounterRunState; commandId: string; actorIds: readonly string[] }
+): Promise<EncounterRunState> {
   if (!ctx.ports.removeSummonTokens)
     throw new Error('Only the Session room can remove a conjured creature from its Scene.')
-  const { encounterId, actorIds } = input
+  const { actorIds } = input
+  const encounterId = input.state.id
   const bindings = []
   for (const actorId of actorIds) {
     const binding = await ctx.db
@@ -41,4 +44,5 @@ export async function removeConjuredActors(
     if (!row) throw new Error('A conjured creature was not found.')
     await deleteRunActor(ctx, row)
   }
+  return { ...input.state, actorIds: input.state.actorIds.filter((id) => !actorIds.includes(id)) }
 }

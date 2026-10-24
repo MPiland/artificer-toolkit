@@ -175,7 +175,7 @@ receipt carries the actor id. Current (SPELLS-4.T2v2a2c2): `removeConjuredActors
 removal: it asks the room's `removeSummonTokens` port to take each Scene token off (`persistRoomSceneTokenRemove`, a
 direct tombstone write that names the ending command as its `actionOrigin`), then deletes the binding and the actor
 row. `REVERT_LAST_ACTION` of a summoning cast calls it for the receipt's `summonedTokens` and drops the ids from the
-Run's `actorIds`, replacing the old refusal. Target (a2c2b): the same call at expiry, Concentration end, recast and
+Run's `actorIds` through the state it returns, replacing the old refusal. Target (a2c2b): the same call at expiry, Concentration end, recast and
 dispel, once the cast leaves a carrier effect for them to hang on (`owner.sourceEffectId`).
 A drag (D105) writes the mover's and each dragged token's live row at the move's version; publication refuses it
 unless every dragged token still stands at its recorded `from` and moves by the mover's displacement.

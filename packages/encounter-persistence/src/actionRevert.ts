@@ -385,6 +385,7 @@ export async function revertLastEncounterAction(
     return next
   }
   const conjuredActorIds: string[] = []
+  let revertedState = state
   /** Inverts one root's outcomes onto the shared actors and Character inverses. */
   const invertRoot = async ({
     root,
@@ -784,8 +785,8 @@ export async function revertLastEncounterAction(
     // The creatures the action conjured leave the Scene and the Run with it (D187b).
     if (root.summonedTokens.length) {
       const actorIds = root.summonedTokens.map(({ actorId }) => actorId)
-      await removeConjuredActors(ctx, {
-        encounterId: state.id,
+      revertedState = await removeConjuredActors(ctx, {
+        state: revertedState,
         commandId: input.commandId,
         actorIds
       })
@@ -839,9 +840,7 @@ export async function revertLastEncounterAction(
   const kept = actors.filter(({ id }) => !conjuredActorIds.includes(id))
   return commitRevert(ctx, {
     run,
-    state: conjuredActorIds.length
-      ? { ...state, actorIds: state.actorIds.filter((id) => !conjuredActorIds.includes(id)) }
-      : state,
+    state: revertedState,
     campaign,
     input,
     fingerprint,
