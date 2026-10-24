@@ -1237,6 +1237,11 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - RULES-2.T12 follows T9f1 and T9f2. T9f3 may run beside T12.
 - **Codemod exception (this task only):** the session may run a one-off ts-morph AST codemod from its scratchpad for the mechanical rewrite. The diff is reviewed before commit. The Edit/Write-only rule still applies to all other work.
 
+### D193: bright light and slot pools (orchestrator ruling, 2026-10-24, RULES-2.T9d and T9g)
+
+- **Bright light is rank 0.** Bright-light and daylight checks (Sunlight Sensitivity, `measureHolderLight`, `resolveSceneDaylightAt`) read the illumination level's rank: the first, brightest level is bright. Render class stays a drawing property only. The illumination adapter guide states the invariant that levels are ordered brightest first. There is no contract change; a System needing more than one bright level is a future enhancement, not a flag now.
+- **Slot pools are a list.** `characterRulePolicyOutputSchema.spellSlots.pactMagic` becomes `slotPools`, one entry per System slot pool with its pool code and source class. Neutral readers work per pool; dnd5e yields zero or one entry, and D&D behavior is unchanged. The output is computed, so nothing is migrated. A second-System test proves two pools. This is T9g's own scope ("Pact Magic leaves the neutral character pipeline"), and T9p already moved the literals, so it stays at size 2; if it measures larger, the session reports before building.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
