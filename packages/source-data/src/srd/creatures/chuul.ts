@@ -181,7 +181,10 @@ export const chuul: CreatureAuthored = {
             },
             range: {
               id: S.actionId(63, 9),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              // The held creature is within the Pincer's reach.
+              rangeKind: S.RANGE_KIND.DISTANCE,
+              amount: 10,
+              unit: S.MEASUREMENT_UNIT_CODE.FEET
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
@@ -198,7 +201,7 @@ export const chuul: CreatureAuthored = {
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
               resultBlock: {
-                id: S.actionId(63, 10) + '__result',
+                id: S.actionId(63, 17),
                 resultKind: 'SEQUENCE' as const,
                 duration: {
                   id: S.actionId(63, 12),
