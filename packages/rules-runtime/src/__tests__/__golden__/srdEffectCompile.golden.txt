@@ -61,7 +61,6 @@
 00000000-0000-0000-c003-600e00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c004-140100000000 CHARACTER:classes Natural Recovery | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-c004-140200000000 CHARACTER:classes Land's Stride | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c004-140300000000 CHARACTER:classes Nature's Ward | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c004-600300000000 CHARACTER:classes Wild Shape | SINGLE_GRAPH 7c9dc869b39aae7659407ad9099a70a8be15224a27bd3d67b16aa82b93c4c50b nodes=3 outputs=1
 00000000-0000-0000-c004-600500000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c004-600700000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
