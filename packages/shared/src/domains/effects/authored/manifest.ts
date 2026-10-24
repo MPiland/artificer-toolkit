@@ -277,6 +277,8 @@ type CreatureManifestAuthored = ManifestAuthoredBase & {
   /** A rule-filtered choice beside the fixed `forms`; the cast names the Creature on the command. */
   formFilter?: ManifestCreatureFormFilterAuthored
   excessDamageCarriesOver?: boolean
+  /** The holder's own ability scores the form keeps (Wild Shape: Intelligence, Wisdom, Charisma). */
+  retainedAbilityDefinitionIds?: string[]
   statBlock?: never
   behaviors?: never
 }
@@ -286,6 +288,7 @@ type SummonManifestAuthored = ManifestAuthoredBase & {
   forms?: never
   formFilter?: never
   excessDamageCarriesOver?: never
+  retainedAbilityDefinitionIds?: never
   statBlock?: SummonStatBlockAuthored
   behaviors?: ManifestBehaviorAuthored[]
 }
@@ -295,6 +298,7 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
   forms?: never
   formFilter?: never
   excessDamageCarriesOver?: never
+  retainedAbilityDefinitionIds?: never
   statBlock?: never
   behaviors?: ManifestBehaviorAuthored[]
   components?: ManifestComponentAuthored[]

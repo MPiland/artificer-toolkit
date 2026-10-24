@@ -7,6 +7,9 @@ import { contagion } from '@artificer-toolkit/source-data/srd/spells/contagion.j
 import { feeblemind } from '@artificer-toolkit/source-data/srd/spells/feeblemind.js'
 import { jump } from '@artificer-toolkit/source-data/srd/spells/jump.js'
 import { levitate } from '@artificer-toolkit/source-data/srd/spells/levitate.js'
+import { magicJar } from '@artificer-toolkit/source-data/srd/spells/magic-jar.js'
+import { planarBinding } from '@artificer-toolkit/source-data/srd/spells/planar-binding.js'
+import { projectImage } from '@artificer-toolkit/source-data/srd/spells/project-image.js'
 import { reverseGravity } from '@artificer-toolkit/source-data/srd/spells/reverse-gravity.js'
 import { timeStop } from '@artificer-toolkit/source-data/srd/spells/time-stop.js'
 import { silentImage } from '@artificer-toolkit/source-data/srd/spells/silent-image.js'
@@ -19,7 +22,7 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
-describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-4.T2a5, SPELLS-4.T2u, SPELLS-4.T2l3, SPELLS-4.T2m3, D156)', () => {
+describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-4.T2a5, SPELLS-4.T2u, SPELLS-4.T2l3, SPELLS-4.T2m3, SPELLS-4.T2s, D156)', () => {
   it.each([
     ['Feeblemind', feeblemind],
     ['Silent Image', silentImage],
@@ -30,7 +33,11 @@ describe('a spell whose core-option outcome keeps a GM ruling beside it (SPELLS-
     ['Reverse Gravity', reverseGravity],
     ['Time Stop', timeStop],
     // SPELLS-4.T2m3 (D187a): the 7-day disease outlasts the active-effect turn cap, so it is a GM ruling.
-    ['Contagion', contagion]
+    ['Contagion', contagion],
+    // SPELLS-4.T2s (D187a): possession, the bound service and the illusory double are GM rulings.
+    ['Magic Jar', magicJar],
+    ['Planar Binding', planarBinding],
+    ['Project Image', projectImage]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     // Equipment authoring the spell's effects: the effect list every owner shares.
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }

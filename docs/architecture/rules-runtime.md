@@ -2539,6 +2539,17 @@ points). `writeRunActor` deletes the form effect of an actor that has left its f
 checksum (`formOriginSnapshotChecksum`); `form` is required and nullable, and `actorFormMigration` migrates dev rows.
 A Concentration that deletes the effect directly must route through the same delete (T4).
 
+**Form retention and form lifecycles (D191, SPELLS-4.T2s).** The ability scores a form keeps are authored on the form
+effect (`retainedAbilityDefinitionIds`, the selectMulti "Retained Ability Scores"), compiled into the contribution's
+required `retainedAbilityIds`, and applied by `enterActorForm` (`withRetainedAbilities`) from the wearer's own scores;
+nothing System-wide decides retention. Polymorph, True Polymorph and Giant Insect keep none; Animal Shapes and
+Shapechange keep Intelligence, Wisdom and Charisma. A form effect also admits the lifecycle's `holderEnd` and
+`endOnConditionIds`: `stateBoundGrants` includes every creature-form effect, so an Unconscious edit ends a form that
+names it (`grantsEndedByHolderState`), and an `END_HELD_GRANT` of a form's own effect reverts its wearer in both the
+Worker's next rule facts and the committed projection (`revertActorForm`). Size caps, per-target forms and re-forming
+stay GM rulings authored beside the outcome. `encounters/formRetentionMigration:run` gives each stored creature form `retainedAbilityIds: []` and
+re-checksums its definition (idempotent).
+
 **Grappled outcomes (D105).** An `ACTOR_RELATIONSHIP` outcome carries a required `heldAtOnce` and optional
 `ESCAPE_CHECK` (allowed skill or ability checks; a `FIXED` or `CONTEST` DC) and `TARGET_SIZE_MAXIMUM`
 modules. Holds are counted per `relationshipOutcomeId`: planning refuses a new hold when the source already

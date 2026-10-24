@@ -2,6 +2,7 @@ import type { EndHeldGrantInputDto } from '@artificer-toolkit/schema/api/encount
 import { liveSessionEncounterEndHeldGrantCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
+import { revertActorForm } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
@@ -59,9 +60,11 @@ export async function planNativeLiveEndHeldGrant(
     acknowledgedWarnings: root.acknowledgedWarnings,
     capture
   })
+  // Ending a form's own effect reverts its wearer (D130).
+  const ended = spent.form?.effectId === effect.id ? revertActorForm(spent) : spent
   const facts = buildEncounterActorRuleFacts({ actors })
   const nextFacts = buildEncounterActorRuleFacts({
-    actors: actors.map((entry) => (entry.id === spent.id ? spent : entry))
+    actors: actors.map((entry) => (entry.id === ended.id ? ended : entry))
   })
   return {
     kind: 'PLANNED' as const,

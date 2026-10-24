@@ -309,7 +309,11 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
         manifestKind: z.literal('CREATURE'),
         forms: z.optional(authoredNestedCollectionSchema(manifestCreatureFormDtoSchema)),
         formFilter: z.optional(manifestCreatureFormFilterDtoSchema),
-        excessDamageCarriesOver: z.optional(z.boolean())
+        excessDamageCarriesOver: z.optional(z.boolean()),
+        /** The holder's own ability scores the form keeps (Wild Shape: Intelligence, Wisdom, Charisma). */
+        retainedAbilityDefinitionIds: z.optional(
+          authoredReferenceCollectionSchema(authoredIdentifierSchema)
+        )
       }),
       z.extend(baseSchema, {
         manifestKind: z.literal('SUMMON'),

@@ -1465,11 +1465,15 @@ function creatureFormPlan(
   const initialRemaining = conditionDurationTurns(entry.duration)
   const forms = outcome.forms ?? []
   const { formFilter } = outcome
+  const retainedAbilityIds = [...new Set(outcome.retainedAbilityDefinitionIds ?? [])].sort()
   const resultGate = entryResultGate(action, entry.pathCode)
+  // A form takes only the two lifecycle pieces that end it early (Wild Shape).
+  const { holderEnd = null, endOnConditionIds = [], ...otherLifecycle } = entry.lifecycle ?? {}
   if (
     initialRemaining === null ||
     resultGate === undefined ||
-    Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
+    Object.values(otherLifecycle).some((value) => value !== undefined) ||
+    retainedAbilityIds.some((abilityId) => !UUID.test(abilityId)) ||
     !UUID.test(entry.entryId) ||
     !UUID.test(outcome.id) ||
     forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId)) ||
@@ -1492,6 +1496,9 @@ function creatureFormPlan(
     creatureFormContribution: {
       formOutcomeId: outcome.id,
       excessDamageCarriesOver: outcome.excessDamageCarriesOver ?? false,
+      retainedAbilityIds,
+      holderEnd,
+      endOnConditionIds: [...new Set(endOnConditionIds)].sort(),
       forms: [...forms]
         .sort((a, b) => a.order - b.order)
         .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets })),

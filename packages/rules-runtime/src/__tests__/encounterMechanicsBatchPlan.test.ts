@@ -582,6 +582,7 @@ describe('Creature forms (D130)', () => {
   const FORM_EFFECT_ID = '00000000-0000-4000-8000-00000000e1f0'
   const FORM_SOURCE_ID = '00000000-0000-4000-8000-00000000e1f1'
   const formCreature = {
+    systemId: SRD_SYSTEM_ID,
     sourceId: FORM_SOURCE_ID,
     sourceRevision: 7,
     snapshot: { label: 'Giant Centipede' },
@@ -594,6 +595,7 @@ describe('Creature forms (D130)', () => {
     return enterActorForm(actor, {
       effectId: FORM_EFFECT_ID,
       excessDamageCarriesOver,
+      retainedAbilityIds: [],
       creature: formCreature
     })
   }
@@ -625,6 +627,7 @@ describe('Creature forms (D130)', () => {
         enterForm: {
           effectId: FORM_EFFECT_ID,
           excessDamageCarriesOver: false,
+          retainedAbilityIds: [],
           creature: formCreature
         }
       }),
@@ -647,6 +650,44 @@ describe('Creature forms (D130)', () => {
     expect(plan.stateChanged).toBe(true)
   })
 
+  it('keeps the Creature’s own retained scores from its stat block (Animal Shapes on an NPC)', () => {
+    const abilityId = (code: string) => DND5E_ABILITY_DEFINITION_ID_BY_CODE[code]!
+    const ally = creatureActor({
+      id: ACTOR_ID,
+      currentHitPoints: 11,
+      tempHitPoints: 0,
+      maxHitPoints: 11,
+      conditions: [],
+      snapshot: { ruleFacts: { abilityScores: { [abilityId('WISDOM')]: 16 } } }
+    })
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([], {
+        enterForm: {
+          effectId: FORM_EFFECT_ID,
+          excessDamageCarriesOver: true,
+          retainedAbilityIds: [abilityId('WISDOM')],
+          creature: {
+            ...formCreature,
+            snapshot: {
+              payload: { abilityScores: { STRENGTH: 18, WISDOM: 12 } },
+              ruleFacts: {
+                abilityScores: { [abilityId('STRENGTH')]: 18, [abilityId('WISDOM')]: 12 }
+              }
+            }
+          }
+        }
+      }),
+      actor: ally,
+      userId: USER_ID
+    })
+    expect(plan.updatedActor).toMatchObject({
+      snapshot: {
+        payload: { abilityScores: { STRENGTH: 18, WISDOM: 16 } },
+        ruleFacts: { abilityScores: { [abilityId('STRENGTH')]: 18, [abilityId('WISDOM')]: 16 } }
+      }
+    })
+  })
+
   it('refuses to enter a form while in one', () => {
     expect(() =>
       planEncounterMechanicsBatch({
@@ -654,6 +695,7 @@ describe('Creature forms (D130)', () => {
           enterForm: {
             effectId: FORM_EFFECT_ID,
             excessDamageCarriesOver: false,
+            retainedAbilityIds: [],
             creature: formCreature
           }
         }),
@@ -842,10 +884,16 @@ describe('Character mechanics batch plan', () => {
         }
       }
     }
-    const enterForm = (excessDamageCarriesOver: boolean) => ({
+    const MENTAL_ABILITY_IDS = ['INTELLIGENCE', 'WISDOM', 'CHARISMA'].map(abilityId)
+    const enterForm = (
+      excessDamageCarriesOver: boolean,
+      retainedAbilityIds: readonly string[] = MENTAL_ABILITY_IDS
+    ) => ({
       effectId: FORM_EFFECT_ID,
       excessDamageCarriesOver,
+      retainedAbilityIds,
       creature: {
+        systemId: SRD_SYSTEM_ID,
         sourceId: '00000000-0000-4000-8000-00000000e1f3',
         sourceRevision: 7,
         snapshot: formSnapshot,
@@ -919,6 +967,38 @@ describe('Character mechanics batch plan', () => {
       expect(plan.stateChanged).toBe(true)
       expect(plan.characterUpdate).toBeNull()
       expect(plan.characterStreamVersion).toBeNull()
+    })
+
+    it('keeps none of the Character’s scores when the form retains none (Polymorph)', () => {
+      const plan = planEncounterMechanicsBatch({
+        batch: batch([], {
+          expectedCharacterStreamVersion: STREAM_VERSION,
+          effectiveMaximumHitPoints: SHEET_MAXIMUM,
+          effectiveScalarValues: {
+            [abilityId('INTELLIGENCE')]: 14,
+            [abilityId('WISDOM')]: 12,
+            [abilityId('CHARISMA')]: 9
+          },
+          enterForm: enterForm(true, [])
+        }),
+        actor,
+        userId: USER_ID,
+        characterFacts
+      })
+      expect(plan.updatedActor).toMatchObject({
+        form: {
+          snapshot: {
+            payload: { abilityScores: { STRENGTH: 5, INTELLIGENCE: 1, WISDOM: 7, CHARISMA: 3 } },
+            ruleFacts: {
+              abilityScores: {
+                [abilityId('INTELLIGENCE')]: 1,
+                [abilityId('WISDOM')]: 7,
+                [abilityId('CHARISMA')]: 3
+              }
+            }
+          }
+        }
+      })
     })
 
     it('refuses to enter a form while in one', () => {

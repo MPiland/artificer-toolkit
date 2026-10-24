@@ -2243,6 +2243,25 @@ function registerOutcomeFields(
       })
     )
     .set(
+      'retainedAbilityDefinitionIds',
+      selectMulti(
+        ['retainedAbilityDefinitionIds'],
+        'Retained Ability Scores',
+        {
+          kind: 'DATA',
+          relationship: table('ability_definitions', {
+            selectColumns: ['id', 'label', 'description']
+          })
+        },
+        {
+          showIf: and([
+            local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+            local.field(['manifestKind']).eq(MANIFEST_KIND.CREATURE)
+          ])
+        }
+      )
+    )
+    .set(
       'shape',
       groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, {
         presentation: 'inline',

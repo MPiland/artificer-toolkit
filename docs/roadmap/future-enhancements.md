@@ -559,6 +559,10 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Holy Aura blinding attackers who hit the holder:** retaliation for multi-target holders.
 - **Jumping and elevation (3D movement):** the engine has no vertical position, so Jump, Levitate and Reverse Gravity ship as GM rulings (SPELLS-4.T2o, D187a), and Second-Story Work and Step of the Wind wait on it. The speed-equal-to-another-speed value source shipped in SPELLS-4.T2o.
 - **Damage MULTIPLY:** Ray of Enfeeblement.
+- **Form filters beyond type and challenge rating (SPELLS-4.T2s, D191):** an excluded creature type (Shapechange's undead and constructs) and a maximum size (Animal Shapes' Large); both ship as GM rulings.
+- **Per-target forms and re-forming (SPELLS-4.T2s, D191):** Animal Shapes' different form per target and its action to re-form, as a per-target form map and a re-form offer.
+- **Project Image illusory double:** a summoned token the caster sees and speaks through (SPELLS-4.T2s ships it as a GM ruling).
+- **Form proficiencies:** Polymorph and Shapechange forms keeping or taking proficiencies (SPELLS-4.T2s follow-up, about size 5, awaiting a ruling).
 - **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
 - **Indefinite non-Concentration lifetimes:** Feeblemind.
 - **SUMMON manifests:** Faithful Hound, plus creature-summoned allies.

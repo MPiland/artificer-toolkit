@@ -16,27 +16,28 @@ function jsonRecord(value: unknown): Record<string, JsonValue> {
 }
 
 /**
- * The Creature's snapshot with the Character's retained ability scores in place of its own, in both
- * the stat block (by code) and the rule facts (by definition id).
+ * The Creature's snapshot with the origin's retained ability scores (`scores` by ability definition
+ * id) in place of its own, in both the stat block (by code) and the rule facts (by definition id).
+ * What a form keeps is authored on the form effect (Wild Shape keeps the mental scores, Polymorph
+ * none).
  */
 function withRetainedAbilities(
-  snapshot: EncounterRunActorState['snapshot'],
-  systemId: string | null,
-  scores: Readonly<Record<string, number>>
+  input: FormInput,
+  originScores: () => Readonly<Record<string, JsonValue>>
 ): EncounterRunActorState['snapshot'] {
-  const retained = Object.entries(
-    systemId === null ? {} : abilityScoreCapabilityRegistry.require(systemId).formRetainedAbilityIds
-  )
-  if (retained.length === 0) return snapshot
-  const root = jsonRecord(snapshot)
+  const { creature, retainedAbilityIds } = input
+  if (retainedAbilityIds.length === 0) return creature.snapshot
+  const abilities = abilityScoreCapabilityRegistry.require(creature.systemId)
+  const scores = originScores()
+  const root = jsonRecord(creature.snapshot)
   const payload = jsonRecord(root.payload)
   const ruleFacts = jsonRecord(root.ruleFacts)
   const byCode = { ...jsonRecord(payload.abilityScores) }
   const byId = { ...jsonRecord(ruleFacts.abilityScores) }
-  for (const [code, id] of retained) {
+  for (const id of retainedAbilityIds) {
     const score = scores[id]
-    if (score === undefined) throw new Error('A retained ability score is unavailable.')
-    byCode[code] = score
+    if (typeof score !== 'number') throw new Error('A retained ability score is unavailable.')
+    byCode[abilities.abilityCode(id)] = score
     byId[id] = score
   }
   return {
@@ -49,10 +50,13 @@ function withRetainedAbilities(
 type FormableActor = Extract<EncounterRunActorState, { kind: 'CREATURE' | 'CUSTOM' }>
 type FormInput = Pick<EncounterActorForm, 'effectId' | 'excessDamageCarriesOver'> & {
   creature: EncounterActorFormCreature
+  /** The origin's ability scores the form keeps, by ability definition id. */
+  retainedAbilityIds: readonly string[]
 }
 
-/** The Creature a form swaps in: its snapshot, source and full hit points. */
+/** The Creature a form swaps in: its Game System, snapshot, source and full hit points. */
 export type EncounterActorFormCreature = {
+  systemId: string
   sourceId: string
   sourceRevision: number
   snapshot: EncounterRunActorState['snapshot']
@@ -61,8 +65,9 @@ export type EncounterActorFormCreature = {
 
 /**
  * Swaps a Creature in for the actor (D130): the form's snapshot, source and hit points replace the
- * actor's, and the actor's own state becomes the form's origin. Conditions, concealment, absence and
- * the rest of the play state stay with the actor.
+ * actor's, and the actor's own state becomes the form's origin. The form keeps the actor's retained
+ * ability scores from its own stat block. Conditions, concealment, absence and the rest of the play
+ * state stay with the actor.
  */
 export function enterActorForm(actor: FormableActor, input: FormInput): FormableActor {
   if (actor.form !== null) throw new Error('The actor already has a form.')
@@ -72,7 +77,9 @@ export function enterActorForm(actor: FormableActor, input: FormInput): Formable
     ...own,
     sourceId: input.creature.sourceId,
     sourceRevision: input.creature.sourceRevision,
-    snapshot: input.creature.snapshot,
+    snapshot: withRetainedAbilities(input, () =>
+      jsonRecord(jsonRecord(jsonRecord(actor.snapshot).ruleFacts).abilityScores)
+    ),
     currentHitPoints: input.creature.maxHitPoints,
     maxHitPoints: input.creature.maxHitPoints,
     tempHitPoints: 0,
@@ -95,7 +102,7 @@ export function enterActorForm(actor: FormableActor, input: FormInput): Formable
 /**
  * Gives a Character actor the Creature's form (D130 amendment): the form's snapshot and full hit
  * points become the actor's own while the Character's Sheet state stays untouched. The Character
- * keeps its retained ability scores (`scalarValues` by ability definition id), baked into the
+ * keeps the form's retained ability scores (`scalarValues` by ability definition id), baked into the
  * snapshot so the form presents and rolls with them; its proficiencies are kept by the Character's
  * own evaluation.
  */
@@ -113,7 +120,7 @@ export function enterCharacterForm(
       excessDamageCarriesOver: input.excessDamageCarriesOver,
       sourceId: creature.sourceId,
       sourceRevision: creature.sourceRevision,
-      snapshot: withRetainedAbilities(creature.snapshot, actor.systemId, scalarValues),
+      snapshot: withRetainedAbilities(input, () => scalarValues),
       currentHitPoints: creature.maxHitPoints,
       maxHitPoints: creature.maxHitPoints,
       tempHitPoints: 0
