@@ -26,6 +26,10 @@ import type {
   CharacterRuleActionApplication,
   CharacterRuleActionConditionOutcomeRules
 } from './characterRuleActionSystemAdapter.js'
+import {
+  conditionImmunityIdsAgainstSource,
+  type EncounterSourceConditionImmunity
+} from './encounterActiveGrants.js'
 import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
@@ -85,6 +89,8 @@ export interface TargetBoundActiveRuleEffectExecutionInput {
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: readonly ActiveRuleEffectTargetDefense[]
   conditionImmunityIds?: readonly string[]
+  /** The target's immunities that hold only against some sources; the effect's origin admits them. */
+  sourceConditionImmunities?: readonly EncounterSourceConditionImmunity[]
   /** Outcome rules the target's condition mechanics apply to its saves (D94). */
   conditionOutcomeRules?: CharacterRuleActionConditionOutcomeRules | null
   /**
@@ -359,7 +365,16 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
       'The frozen active-effect Game System has no recurring-effect adapter.'
     )
   }
-  const target = normalizedTargetState(input)
+  // An effect knows its source only as its origin: from a spell cast (a level) or not.
+  const target = normalizedTargetState({
+    ...input,
+    conditionImmunityIds: conditionImmunityIdsAgainstSource(
+      input.conditionImmunityIds ?? [],
+      input.sourceConditionImmunities ?? [],
+      { creatureTypeIds: [] },
+      definition.originLevel === null ? null : definition.frozenGraph.source.gameSystemId
+    )
+  })
   adapter.preflightActiveEffectTargetProtection?.({
     definition,
     targetDerivedFacts: target.targetDerivedFacts

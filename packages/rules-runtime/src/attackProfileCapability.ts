@@ -50,6 +50,8 @@ export interface AttackProfileCapabilityAdapter {
   grantedAttackTraits(
     modifiers: CharacterGrantFoldOutput['modifiers']
   ): readonly DamageDefenseBypassCode[]
+  /** The source traits every effect of a spell cast carries, whether or not it is an attack. */
+  readonly spellCastSourceTraits: readonly DamageDefenseBypassCode[]
   /** The traits a non-Character-action attack has: its kind's own and its holder's granted ones. */
   featureAttackTraits(kind: AttackKind, granted: readonly DamageDefenseBypassCode[]): AttackTraits
   /** The traits a Character attack has from its item and the grants that apply to it. */

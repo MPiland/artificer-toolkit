@@ -123,6 +123,8 @@ type PlacedZoneInput = {
   sourceToken: { tokenId: string; width: number } | null
   /** The user's spell save DC as the cast resolved it. */
   saveDc: number | null
+  /** The level of the spell cast that placed the zone; absent when no spell placed it (an aura). */
+  originLevel?: number | null
   /** The zone's per-distance-moved step in Scene distance units; absent when it acts on entry. */
   distanceStep?: number
   /**
@@ -150,7 +152,7 @@ function placedZoneRecord(
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
     linkedEffectId: null,
-    originLevel: null,
+    originLevel: input.originLevel ?? null,
     origin: {
       kind: 'ENCOUNTER',
       sourceAggregateId: input.encounterId,

@@ -159,6 +159,8 @@ export const dnd5eAttackProfileCapabilityAdapter = {
   attackKind: dnd5eAttackKind,
   attackDomain: dnd5eAttackModifierDomain,
   grantedAttackTraits: dnd5eHolderAttackTraits,
+  // Whatever a spell does, it does by magic: its conditions and zones come from a magical source.
+  spellCastSourceTraits: ['MAGICAL'],
   // A spell attack is magical; any other non-Character-action attack is only what its grants make it.
   featureAttackTraits: (kind, granted) => ({
     magical: isDnd5eSpellAttackKind(kind) || granted.includes('MAGICAL'),

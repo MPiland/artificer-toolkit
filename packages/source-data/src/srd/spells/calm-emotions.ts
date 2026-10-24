@@ -64,8 +64,11 @@ export const calmEmotions: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.CALM_EMOTIONS, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'CALM_EMOTIONS' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Calm Emotions',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'Each humanoid in a 20-foot-radius sphere centered on a point you choose within range makes a Charisma saving throw; a creature can choose to fail it. On a failure, choose one effect: suppress any effect causing the target to be charmed or frightened, which resumes when the spell ends if its duration has not expired; or make the target indifferent about creatures of your choice that it is hostile toward. The indifference ends if the target is attacked or harmed by a spell or witnesses any of its friends being harmed. When the spell ends, the creature becomes hostile again, unless the GM rules otherwise.'
               }
             ]
           }
