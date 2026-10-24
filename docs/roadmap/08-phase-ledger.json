@@ -15302,7 +15302,7 @@
             },
             {
               "id": "SPELLS-33.T5n2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15312,7 +15312,9 @@
                 "after": ["SPELLS-33.T5n1"]
               },
               "text": "straight-line Charge gates (4 kinds): an ON_HIT rider scoped to a named Feature's attack, rider damage and follow-up save merged into that attack's result block, and the conversions. Each has an authoring-parity proof and deletes its kind (D156, D164 split; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-24T04:46:55Z",
+              "proof": "Tests and Live green on tip b9d74ec96; straight-line Charge is a passive ON_HIT rider scoped by invocation.ridesFeatureId (node map LOCAL_COLLECTION over features), its damage and follow-up save merged into the attack result block, gated on D164 MOVED_TOWARD_TARGET; Giant Elk, Minotaur Skeleton, Unicorn and Wereboar converted and their kinds deleted; parity proof chargeAuthoringParity.test.ts, runtime proofs srdCreatureHitRiders.test.ts; Wereboar Tusks stays refused at FOLLOW_UP_SAVE pending T6b2; compiler size cap lowered to 4496.",
+              "note": " Merged in m402."
             },
             {
               "id": "SPELLS-33.T6a1",

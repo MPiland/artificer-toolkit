@@ -375,6 +375,24 @@ export const INVOCATION_NODE_MAP: InvocationNodeMap = invocation.define(
         })
       )
       .set(
+        'ridesFeatureId',
+        selectSingle(
+          ['ridesFeatureId'],
+          'Rides only the attacks of',
+          {
+            kind: 'LOCAL_COLLECTION',
+            rootCollectionPath: ['features'],
+            valuePath: ['id'],
+            labelPath: ['label']
+          },
+          {
+            order: 7,
+            showIf: local.field(['kind']).eq('PASSIVE'),
+            hiddenBehavior: 'CLEAR'
+          }
+        )
+      )
+      .set(
         'range',
         groupObject(['range'], 'Range', () => RANGE_NODE_MAP, {
           presentation: 'inline',

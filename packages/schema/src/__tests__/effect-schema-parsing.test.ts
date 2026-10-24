@@ -685,6 +685,40 @@ describe('effect schema parsing', () => {
     expect(effect(passive, rider.choice)).toBe(false)
   })
 
+  it('lets only a passive attack rider name the Feature whose attack it rides (SPELLS-33.T5n2)', () => {
+    const path = fixedPath(
+      'rider-path',
+      1,
+      'ON_HIT',
+      singleResultBlock('rider-result', {
+        id: 'rider-damage',
+        effectKind: 'DAMAGE',
+        damageTypeId: 'fire',
+        valueKind: 'DICE',
+        scalingKind: 'NONE',
+        diceConfig: '1d6'
+      })
+    )
+    const effect = (invocation: Record<string, unknown>) =>
+      effectDtoSchema.safeParse({
+        id: '00000000-0000-4000-8000-0000000000f2',
+        order: 1,
+        invocation: { range: { id: 'rider-range', rangeKind: 'SPECIAL' }, ...invocation },
+        paths: [path]
+      }).success
+
+    expect(
+      effect({ kind: 'PASSIVE', triggerCode: 'MELEE_WEAPON_ATTACK', ridesFeatureId: 'ram' })
+    ).toBe(true)
+    expect(
+      effect({
+        triggerCode: 'MELEE_WEAPON_ATTACK',
+        activation: { code: 'ACTION', amount: 1 },
+        ridesFeatureId: 'ram'
+      })
+    ).toBe(false)
+  })
+
   it('accepts a path gated on the attack roll mode, and rejects an unknown mode', () => {
     const gate = (condition: Record<string, unknown>) => ({
       id: 'gate',
