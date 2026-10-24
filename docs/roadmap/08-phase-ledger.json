@@ -15336,7 +15336,7 @@
             },
             {
               "id": "SPELLS-33.T6a2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15346,8 +15346,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6a1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Also converts FINGER_OF_DEATH_ZOMBIE (humanoid killed rises as a caster-commanded zombie; moved from SPELLS-4.T2i, 2026-10-20).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m405.",
+              "mergedAt": "2026-10-24T05:32:16Z",
+              "proof": "Tests and Live green on tip afb431de7; Gelatinous Cube Ooze Cube and Engulf and Water Elemental Whelm ship as MANUAL_ADJUDICATION beside the authored save and damage (compile stays REFUSED on the bounded shape; the contained-creature save is under Containment in future-enhancements); FINGER_OF_DEATH_ZOMBIE is a GM ruling after the damage (REFUSED to TEST_OUTCOME); 4 kinds deleted; proof creatureEngulfRulingAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-33.T6a3",
