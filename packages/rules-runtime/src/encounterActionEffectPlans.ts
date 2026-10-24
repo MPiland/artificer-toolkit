@@ -12,6 +12,7 @@ import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolki
 import { normalizeObserverActorIds } from './encounterConcealment.js'
 import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
 import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAttackSlots.js'
+import { resolveCreatureFormDuration } from './encounterFormChoice.js'
 import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
 import {
   installedGameSystemRuleOperations,
@@ -126,6 +127,8 @@ export function prepareEncounterActionEffectPlans(input: {
   link?: { memberActorIds: readonly string[] }
   /** The Creature the caster chose for a form-giving action (D130); omitted for every other action. */
   form?: { creatureId: string }
+  /** The source Character's level in each class, by class id, which a level-scaled form duration reads. */
+  sourceClassLevels?: Readonly<Record<string, number>>
   /**
    * The target's item the action was used on and whether the target dropped it; omitted for every
    * action that chooses none.
@@ -499,14 +502,22 @@ export function prepareRecurringActiveEffect(
   // An effect made on its anchor actor's own turn would otherwise lose a counted turn to the very
   // end of turn it was made in, so "until the end of the next turn" counts one more. A duration
   // "for the turn" already is that end of turn.
+  const baseRemaining =
+    plan.initialRemaining !== null && formContribution
+      ? resolveCreatureFormDuration(
+          plan.initialRemaining,
+          formContribution.initialRemainingScaling,
+          input.sourceClassLevels ?? {}
+        )
+      : plan.initialRemaining
   const initialRemaining =
-    plan.initialRemaining !== null &&
+    baseRemaining !== null &&
     countedByGrantTicks &&
     !grantContribution?.includesCurrentTurn &&
     plan.recurrenceStage === 'END_OF_TURN' &&
     input.currentActorId === (tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)
-      ? plan.initialRemaining + 1
-      : plan.initialRemaining
+      ? baseRemaining + 1
+      : baseRemaining
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
     linkedEffectId: null,

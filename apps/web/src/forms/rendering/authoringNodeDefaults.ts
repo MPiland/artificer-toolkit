@@ -425,6 +425,15 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         challengeRatingCapKind: 'TARGET',
         excludedSpeedIds: []
       }
+    case 'creatureFormFilterScaledCap':
+      return { maxChallengeRatingId: '' }
+    case 'creatureFormFilterScalingBreakpoint':
+      return {
+        id: crypto.randomUUID(),
+        level: order,
+        order,
+        value: { maxChallengeRatingId: '' }
+      }
     case 'manifestDestructionCriterion':
       return {
         id: crypto.randomUUID(),

@@ -1,8 +1,57 @@
 import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
+import { selectScalingRow } from './scalingRowSelection.js'
 
-type CreatureFormFilter = NonNullable<
-  NonNullable<CharacterRuleActionActiveEffectPlan['creatureFormContribution']>['filter']
->
+type FormContribution = NonNullable<CharacterRuleActionActiveEffectPlan['creatureFormContribution']>
+type PlanCreatureFormFilter = NonNullable<FormContribution['filter']>
+
+/** A form filter at cast: a `SCALED` cap is already the row the caster's level reached. */
+export type CreatureFormFilter = Omit<
+  PlanCreatureFormFilter,
+  'challengeRatingCapKind' | 'scaling'
+> & { challengeRatingCapKind: 'TARGET' | 'FIXED' }
+
+/**
+ * The row of a class-level scaling the caster's level in that class reaches, or null below every
+ * row (a class the caster lacks is level 0). The one place form scaling is read at cast.
+ */
+function reachedRow<Row extends { level: number; order: number }>(
+  scaling: { classId: string; rows: readonly Row[] } | null,
+  classLevels: Readonly<Record<string, number>>
+): Row | null {
+  return scaling ? selectScalingRow(scaling.rows, classLevels[scaling.classId] ?? 0) : null
+}
+
+/**
+ * A plan's form filter as the cast checks it: a `SCALED` cap becomes the `FIXED` cap and excluded
+ * speeds of the row the caster's class level reaches (the authored cap below every row), so
+ * `creatureFormFilterRefusal` only ever sees `TARGET` and `FIXED` (Wild Shape).
+ */
+export function resolveCreatureFormFilter(
+  filter: PlanCreatureFormFilter,
+  classLevels: Readonly<Record<string, number>>
+): CreatureFormFilter {
+  const { scaling, challengeRatingCapKind, ...rest } = filter
+  if (challengeRatingCapKind !== 'SCALED') return { ...rest, challengeRatingCapKind }
+  const row = reachedRow(scaling, classLevels)
+  return {
+    ...rest,
+    challengeRatingCapKind: 'FIXED',
+    maxChallengeRatingId: row?.maxChallengeRatingId ?? filter.maxChallengeRatingId,
+    excludedSpeedIds: row?.excludedSpeedIds ?? filter.excludedSpeedIds
+  }
+}
+
+/**
+ * The turns a form lasts at cast: the plan's `initialRemaining`, or the row of its class-level
+ * scaling the caster reaches (Wild Shape: half the druid level in hours).
+ */
+export function resolveCreatureFormDuration(
+  initialRemaining: number,
+  scaling: FormContribution['initialRemainingScaling'],
+  classLevels: Readonly<Record<string, number>>
+): number {
+  return reachedRow(scaling, classLevels)?.turns ?? initialRemaining
+}
 
 function payloadOf(snapshot: unknown): Record<string, unknown> {
   const record = typeof snapshot === 'object' && snapshot !== null ? snapshot : {}

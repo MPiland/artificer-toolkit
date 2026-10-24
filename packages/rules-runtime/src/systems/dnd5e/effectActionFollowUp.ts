@@ -32,16 +32,17 @@ const TURNS_PER_DURATION_UNIT: Partial<Record<CompiledDuration['durationKind'], 
  * for a duration the active-effect lifecycle cannot count (scaled, too long, or not timed).
  */
 export function conditionDurationTurns(duration: CompiledDuration): number | null {
-  const perUnit = TURNS_PER_DURATION_UNIT[duration.durationKind]
-  if (
-    perUnit === undefined ||
-    !('amount' in duration) ||
-    duration.scaling ||
-    !Number.isSafeInteger(duration.amount) ||
-    duration.amount < 1
-  )
-    return null
-  const turns = duration.amount * perUnit
+  if (!('amount' in duration) || duration.scaling) return null
+  return amountTurns(duration.durationKind, duration.amount)
+}
+
+export function amountTurns(
+  durationKind: CompiledDuration['durationKind'],
+  amount: number
+): number | null {
+  const perUnit = TURNS_PER_DURATION_UNIT[durationKind]
+  if (perUnit === undefined || !Number.isSafeInteger(amount) || amount < 1) return null
+  const turns = amount * perUnit
   return turns <= MAX_ACTIVE_EFFECT_TURNS ? turns : null
 }
 
