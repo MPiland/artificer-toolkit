@@ -1223,6 +1223,13 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - **SPELLS-34.T1 shape (orchestrator ruling, 2026-10-24):** sheet summons persist as an optional `state.spellSummons[]` (statBlock snapshot plus the values resolved at cast), read as a `SPELL_SUMMON` Extras member. A Concentration summon is the sheet's Concentration: `END_CONCENTRATION`, a new Concentration cast or the caster at 0 HP remove it. Summon attacks are spell-authored actions (T2v2a3, T2v2b), so listing them moves to SPELLS-34.T2.
 - **T2v2a2b summon point (orchestrator ruling, 2026-10-23):** the caster picks the point. The cast reuses its existing point contract if one fits, otherwise gains one optional `summonPlacement: { position }` in `packages/schema`, validated for range, free square and sight.
 
+### D191: forms and possession (orchestrator ruling, 2026-10-24, SPELLS-4.T2s)
+
+- What a form keeps is authored on the effect. MANIFEST CREATURE gains optional `retainedAbilityDefinitionIds`, frozen onto the stored CREATURE_FORM contribution as required `retainedAbilityIds`; the System-wide `formRetainedAbilityIds` is deleted and dev form effects migrate in the same change. Polymorph and True Polymorph keeping a Character's Int/Wis/Cha is a bug fixed under the D187 bug exception, with a regression test that fails first.
+- `creatureFormPlan` accepts the existing lifecycle fields `holderEnd` and `endOnConditionIds`; ending still goes through the D130 revert.
+- Animal Shapes and Shapechange automate the form, cap, duration, carry-over damage and retained scores. Their size cap, excluded types, per-target forms, re-forming, proficiency bonus, Hit Dice, legendary actions, senses and equipment are GM rulings. Magic Jar and Project Image are GM rulings only. Planar Binding automates the Charisma save; the service is a GM ruling. Rejected pieces go to future-enhancements under Deferred rules pieces (D187a).
+- Proficiencies in a form are authored the same way, not set by the System: Polymorph replaces them, while Shapechange and Wild Shape keep the creature's own. Polymorph is common, so it is not a GM ruling. T2s fixes it if it fits size 8; otherwise it reports the size and the fix is registered as a bug follow-up.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
