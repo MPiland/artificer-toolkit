@@ -2588,6 +2588,7 @@ conditions from its frozen `relationship-state` graph, which is not part of the 
 Character target's `CHARACTER_MECHANICS_BATCH` binds each of those `CONDITION_APPLY` applications to the
 batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's result path rather than to a
 kernel trace.
+A hold ends on its own when its source can no longer act or its held creature stands beyond the reach it sealed (`encounterEndedRelationships`, D152), unless it carries a `SOURCE_INDEPENDENT_HOLD` module: that lifetime fact, authored on the relationship (a net, SPELLS-4.T2m2b), skips those two ends and nothing else, so only an escape or a rescue (or a separately authored end) releases it.
 
 **Gated holds and held-only actions (D93, ATTACK-7.T8).** An `ACTOR_RELATIONSHIP` outcome's optional `appliesWhen`
 (an attack-slot condition) gates the hold on the open Attack action: the planner evaluates it with
