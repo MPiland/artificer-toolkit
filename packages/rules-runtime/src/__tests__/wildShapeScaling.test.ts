@@ -97,7 +97,7 @@ describe('the Wild Shape plan from the SRD druid', () => {
 
   it('lasts half the druid level in hours, rounded down', () => {
     const hours = (level: number) =>
-      resolveCreatureFormDuration(plan.initialRemaining, contribution.initialRemainingScaling, {
+      resolveCreatureFormDuration(plan.initialRemaining ?? 0, contribution.initialRemainingScaling, {
         [druidId]: level
       }) / 600
     expect([2, 3, 4, 8, 20].map(hours)).toEqual([1, 1, 2, 4, 10])

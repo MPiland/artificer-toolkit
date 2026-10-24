@@ -192,12 +192,8 @@ import {
   marginRiderPlan,
   timedBandConditions
 } from './effectActionBandConditions.js'
-import {
-  classLevelScaledDurationTurns,
-  conditionDurationTurns,
-  dnd5eRepeatSave
-} from './effectActionFollowUp.js'
-import { compiledCreatureFormFilter } from './effectActionCreatureFormFilter.js'
+import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import { compiledCreatureFormFilter, formDuration } from './effectActionCreatureFormFilter.js'
 import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
 import { turnEndGateEvidenceBinding, turnEndGatePlan } from './effectActionTurnEndGate.js'
 import {
@@ -1463,13 +1459,10 @@ function creatureFormPlan(
   if (
     outcome.effectKind !== 'MANIFEST' ||
     outcome.manifestKind !== 'CREATURE' ||
-    (!outcome.forms?.length && !outcome.formFilter) ||
-    !entry.duration
+    (!outcome.forms?.length && !outcome.formFilter)
   )
     return null
-  const scaledDuration = classLevelScaledDurationTurns(entry.duration)
-  const initialRemaining =
-    scaledDuration?.initialRemaining ?? conditionDurationTurns(entry.duration)
+  const duration = entry.duration ? formDuration(entry.duration) : null
   const forms = outcome.forms ?? []
   const filter = compiledCreatureFormFilter(outcome.formFilter)
   const retainedAbilityIds = [...new Set(outcome.retainedAbilityDefinitionIds ?? [])].sort()
@@ -1477,14 +1470,13 @@ function creatureFormPlan(
   // A form takes only the two lifecycle pieces that end it early (Wild Shape).
   const { holderEnd = null, endOnConditionIds = [], ...otherLifecycle } = entry.lifecycle ?? {}
   if (
-    initialRemaining === null ||
+    duration === null ||
     resultGate === undefined ||
     Object.values(otherLifecycle).some((value) => value !== undefined) ||
     retainedAbilityIds.some((abilityId) => !UUID.test(abilityId)) ||
     !UUID.test(entry.entryId) ||
     !UUID.test(outcome.id) ||
     forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId)) ||
-    (scaledDuration && !UUID.test(scaledDuration.scaling.classId)) ||
     filter === undefined
   )
     return null
@@ -1494,7 +1486,7 @@ function creatureFormPlan(
     frozenGraphNodeId: 'creature-form',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN',
-    initialRemaining,
+    initialRemaining: duration.initialRemaining,
     creatureFormContribution: {
       formOutcomeId: outcome.id,
       excessDamageCarriesOver: outcome.excessDamageCarriesOver ?? false,
@@ -1505,7 +1497,7 @@ function creatureFormPlan(
         .sort((a, b) => a.order - b.order)
         .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets })),
       filter,
-      initialRemainingScaling: scaledDuration?.scaling ?? null
+      initialRemainingScaling: duration.scaling
     },
     ...(resultGate && { resultGate }),
     adapterFacts: {},

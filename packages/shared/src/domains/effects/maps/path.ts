@@ -10,8 +10,6 @@ import type {
   ForcedMovementCollisionAuthored,
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
-  ManifestCreatureFormAuthored,
-  ManifestCreatureFormFilterAuthored,
   ManifestDestructionCriterionAuthored,
   ManifestLightAuthored,
   ManifestOccupantSaveBonusAuthored,
@@ -91,12 +89,15 @@ import {
   SAVING_THROW_NODE_MAP,
   SHAPE_NODE_MAP,
   SPEED_NODE_MAP,
-  MEASUREMENT_NODE_MAP,
-  createBreakpointScalingNodeMap
+  MEASUREMENT_NODE_MAP
 } from '../../shared/maps/index.js'
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
+import {
+  MANIFEST_CREATURE_FORM_FILTER_NODE_MAP,
+  MANIFEST_CREATURE_FORM_NODE_MAP
+} from './creatureForm.js'
 import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
@@ -238,8 +239,6 @@ const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
 const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
 const manifestComponentRegion = buildNodeMap<ManifestComponentRegionNode>()
-const manifestCreatureForm = buildNodeMap<ManifestCreatureFormAuthored>()
-const manifestCreatureFormFilter = buildNodeMap<ManifestCreatureFormFilterAuthored>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
 const manifestLight = buildNodeMap<ManifestLightAuthored>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
@@ -727,155 +726,6 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
       )
   }
 )
-
-const MANIFEST_CREATURE_FORM_NODE_MAP: NodeMap<ManifestCreatureFormAuthored> =
-  manifestCreatureForm.define('manifestCreatureForm', ({ map, nodes, data }) => {
-    const { text, number, selectSingle } = nodes
-    const { table } = data
-
-    map
-      .set('id', text(['id'], 'ID'))
-      .set('order', number(['order'], 'Order', { requiredIf: true }))
-      .set('label', text(['label'], 'Label', { requiredIf: true }))
-      .set(
-        'creatureId',
-        selectSingle(
-          ['creatureId'],
-          'Creature',
-          {
-            kind: 'DATA',
-            relationship: table('creatures', { selectColumns: ['id', 'label'] })
-          },
-          { requiredIf: true }
-        )
-      )
-      .set(
-        'maxTargets',
-        number(['maxTargets'], 'Maximum Creatures', {
-          constraints: { minimum: 1 },
-          requiredIf: true
-        })
-      )
-  })
-
-type CreatureFormFilterScaledCapAuthored = {
-  maxChallengeRatingId: string
-  excludedSpeedIds?: string[]
-}
-
-const creatureFormFilterScaledCap = buildNodeMap<CreatureFormFilterScaledCapAuthored>()
-
-const CREATURE_FORM_FILTER_SCALED_CAP_NODE_MAP = creatureFormFilterScaledCap.define(
-  'creatureFormFilterScaledCap',
-  ({ map, nodes, data }) => {
-    const { selectSingle, selectMulti } = nodes
-    const { table } = data
-
-    map
-      .set(
-        'maxChallengeRatingId',
-        selectSingle(
-          ['maxChallengeRatingId'],
-          'Maximum Challenge Rating',
-          {
-            kind: 'DATA',
-            relationship: table('challenge_ratings', {
-              selectColumns: ['id', 'label', 'description']
-            })
-          },
-          { requiredIf: true }
-        )
-      )
-      .set(
-        'excludedSpeedIds',
-        selectMulti(['excludedSpeedIds'], 'Excluded Speeds', {
-          kind: 'DATA',
-          relationship: table('speeds', { selectColumns: ['id', 'label', 'description'] })
-        })
-      )
-  }
-)
-
-const CREATURE_FORM_FILTER_SCALING_NODE_MAP = createBreakpointScalingNodeMap(
-  'creatureFormFilterScaling',
-  'Challenge Rating Cap',
-  CREATURE_FORM_FILTER_SCALED_CAP_NODE_MAP
-)
-
-const MANIFEST_CREATURE_FORM_FILTER_NODE_MAP: NodeMap<ManifestCreatureFormFilterAuthored> =
-  manifestCreatureFormFilter.define(
-    'manifestCreatureFormFilter',
-    ({ map, nodes, cond, data, logic }) => {
-      const { text, selectSingle, selectMulti, groupObject } = nodes
-      const local = cond.local()
-      const { table } = data
-      const { or } = logic
-
-      map
-        .set('id', text(['id'], 'ID'))
-        .set(
-          'creatureTypeId',
-          selectSingle(['creatureTypeId'], 'Creature Type', {
-            kind: 'DATA',
-            relationship: table('creature_types', { selectColumns: ['id', 'label', 'description'] })
-          })
-        )
-        .set(
-          'challengeRatingCapKind',
-          selectSingle(
-            ['challengeRatingCapKind'],
-            'Challenge Rating Cap',
-            {
-              kind: 'INLINE_OPTIONS',
-              options: [
-                { code: 'TARGET', label: "Target's Challenge Rating or Level" },
-                { code: 'FIXED', label: 'Fixed Challenge Rating' },
-                { code: 'SCALED', label: 'Challenge Rating By Class Level' }
-              ]
-            },
-            { requiredIf: true }
-          )
-        )
-        .set(
-          'maxChallengeRatingId',
-          selectSingle(
-            ['maxChallengeRatingId'],
-            'Maximum Challenge Rating',
-            {
-              kind: 'DATA',
-              relationship: table('challenge_ratings', {
-                selectColumns: ['id', 'label', 'description']
-              })
-            },
-            {
-              requiredIf: or([
-                local.field(['challengeRatingCapKind']).eq('FIXED'),
-                local.field(['challengeRatingCapKind']).eq('SCALED')
-              ]),
-              showIf: or([
-                local.field(['challengeRatingCapKind']).eq('FIXED'),
-                local.field(['challengeRatingCapKind']).eq('SCALED')
-              ])
-            }
-          )
-        )
-        .set(
-          'excludedSpeedIds',
-          selectMulti(['excludedSpeedIds'], 'Excluded Speeds', {
-            kind: 'DATA',
-            relationship: table('speeds', { selectColumns: ['id', 'label', 'description'] })
-          })
-        )
-        .set(
-          'scaling',
-          groupObject(['scaling'], 'Scaling', () => CREATURE_FORM_FILTER_SCALING_NODE_MAP, {
-            presentation: 'inline',
-            requiredIf: local.field(['challengeRatingCapKind']).eq('SCALED'),
-            showIf: local.field(['challengeRatingCapKind']).eq('SCALED')
-          })
-        )
-    }
-  )
 
 const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriterionNode> =
   manifestDestructionCriterion.define(

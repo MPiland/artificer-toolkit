@@ -36,7 +36,7 @@ export function conditionDurationTurns(duration: CompiledDuration): number | nul
   return amountTurns(duration.durationKind, duration.amount)
 }
 
-function amountTurns(
+export function amountTurns(
   durationKind: CompiledDuration['durationKind'],
   amount: number
 ): number | null {
@@ -45,39 +45,6 @@ function amountTurns(
   const turns = amount * perUnit
   return turns <= MAX_ACTIVE_EFFECT_TURNS ? turns : null
 }
-
-/**
- * A duration that grows with the caster's class level, in turns: the base amount plus the rows the
- * class level selects between (Wild Shape: half the druid level in hours). Null for a duration that
- * is not scaled by class level or whose amounts the lifecycle cannot count; the plan keeps the base
- * turns and the cast picks the row (`resolveCreatureFormDuration`).
- */
-export function classLevelScaledDurationTurns(
-  duration: CompiledDuration
-): { initialRemaining: number; scaling: ScaledDurationTurns } | null {
-  if (
-    !('amount' in duration) ||
-    duration.scaling?.scalingSource !== 'CLASS_LEVEL' ||
-    duration.scaling.breakpoints.length === 0
-  )
-    return null
-  const { classId, breakpoints } = duration.scaling
-  const initialRemaining = amountTurns(duration.durationKind, duration.amount)
-  if (initialRemaining === null) return null
-  const rows: { level: number; order: number; turns: number }[] = []
-  for (const { level, order, value } of breakpoints) {
-    const turns = amountTurns(duration.durationKind, value.amount)
-    if (turns === null) return null
-    rows.push({ level, order, turns })
-  }
-  return { initialRemaining, scaling: { classId, rows } }
-}
-
-type ScaledDurationTurns = NonNullable<
-  NonNullable<
-    CharacterRuleActionActiveEffectPlan['creatureFormContribution']
-  >['initialRemainingScaling']
->
 
 /**
  * The D&D facts an active effect's repeated save reads, wherever the authored save sits (the
