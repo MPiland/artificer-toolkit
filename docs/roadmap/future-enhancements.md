@@ -559,7 +559,11 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Maze escape as a spell-held effect.**
 - **Holy Aura blinding attackers who hit the holder:** retaliation for multi-target holders.
 - **Jumping and elevation (3D movement):** the engine has no vertical position, so Jump, Levitate and Reverse Gravity ship as GM rulings (SPELLS-4.T2o, D187a), and Second-Story Work and Step of the Wind wait on it. The speed-equal-to-another-speed value source shipped in SPELLS-4.T2o.
-- **Damage MULTIPLY:** Ray of Enfeeblement.
+- **Damage MULTIPLY:** Ray of Enfeeblement (SPELLS-4.T2p ships it as a GM ruling with the end-of-turn Constitution save).
+- **Forced push along a line and doubled movement cost:** Gust of Wind and Telekinesis ship as GM rulings (SPELLS-4.T2p).
+- **Re-aimable line and creature-type save disadvantage:** Sunbeam's fresh line each turn and the undead and ooze disadvantage (SPELLS-4.T2p).
+- **Save-for-half damage beside a timed save condition on the Character compile:** `timedConditionPlan` refuses a fail path that pairs damage with a timed condition when the success path also deals damage, so Sunbeam and Sunburst stay refused at Character compile (SPELLS-4.T2p).
+- **Nonmagical non-attack damage resistance:** qualified defenses apply only to attack damage, so Gaseous Form's resistance does not cover falls or traps; the GM applies it (SPELLS-4.T2p).
 - **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
 - **Indefinite non-Concentration lifetimes:** Feeblemind.
 - **SUMMON manifests:** Faithful Hound, plus creature-summoned allies.

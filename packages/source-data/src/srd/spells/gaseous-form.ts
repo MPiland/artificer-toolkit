@@ -1,5 +1,10 @@
 import {
+  ABILITY_CODE,
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
@@ -11,11 +16,18 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   SPELL_COMPONENT,
+  VALUE_DOMAIN_CODE,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import {
+  SRD_DAMAGE_TYPES,
+  SRD_MAGIC_SCHOOLS,
+  SRD_SPEEDS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
+import { nonmagicalResistanceGrants, spellChildId } from './shared.js'
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
   if (!entry) {
@@ -65,7 +77,7 @@ export const gaseousForm: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.GASEOUS_FORM, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.GASEOUS_FORM, 0x213, 1),
               durationKind: DURATION_KIND.HOUR,
@@ -74,8 +86,53 @@ export const gaseousForm: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GASEOUS_FORM, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'GASEOUS_FORM' as const
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {
+                  modifiers: [
+                    // The only method of movement is a flying speed of 10 feet.
+                    ...SRD_SPEEDS.map((speed, index) => ({
+                      id: spellChildId(SPELL_IDS.GASEOUS_FORM, 0x214, index + 1),
+                      order: index + 1,
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+                      domain: { speedId: speed.id },
+                      modifierKind: MODIFIER_KIND.SET_VALUE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { amount: speed.code === 'FLY' ? 10 : 0, unit: 'FEET' as const }
+                    })),
+                    ...[
+                      ABILITY_CODE.STRENGTH,
+                      ABILITY_CODE.DEXTERITY,
+                      ABILITY_CODE.CONSTITUTION
+                    ].map((ability, index) => ({
+                      id: spellChildId(SPELL_IDS.GASEOUS_FORM, 0x215, index + 1),
+                      order: SRD_SPEEDS.length + index + 1,
+                      grantKind: GRANT_KIND.MODIFIER_GRANT,
+                      valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+                      domain: { ability },
+                      modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+                      scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                      selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                      payload: { influence: 'ADVANTAGE' as const }
+                    })),
+                    ...nonmagicalResistanceGrants(
+                      SRD_DAMAGE_TYPES.map((damageType) => damageType.code),
+                      (entry) => spellChildId(SPELL_IDS.GASEOUS_FORM, 0x216, entry)
+                    ).map((resistance) => ({
+                      ...resistance,
+                      order: SRD_SPEEDS.length + 3 + resistance.order
+                    }))
+                  ]
+                }
+              },
+              {
+                id: spellChildId(SPELL_IDS.GASEOUS_FORM, 0x217, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Resolve the Misty Form',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  "The spell ends if the target drops to 0 hit points. The target can enter and occupy another creature's space, pass through small holes, narrow openings and cracks, and treats liquids as solid surfaces. It can't fall and hovers even when stunned or incapacitated. It can't talk, manipulate objects, attack or cast spells, and its carried objects can't be dropped or used. Its resistance covers damage from nonmagical attacks only: apply it yourself to other nonmagical damage, such as a fall or a trap."
               }
             ]
           }
