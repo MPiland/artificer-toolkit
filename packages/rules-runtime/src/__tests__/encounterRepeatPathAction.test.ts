@@ -251,11 +251,7 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
             [
               HOLDER_ID,
               [
-                heldCarrier({
-                  ...offer,
-                  attackBonus: 7,
-                  ...(damageExpressions && { damageExpressions })
-                })
+                heldCarrier({ ...offer, ...(damageExpressions && { damageExpressions }) })
               ]
             ]
           ])
