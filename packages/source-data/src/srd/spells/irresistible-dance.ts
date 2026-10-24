@@ -39,8 +39,8 @@ const danceModifiers = [
     ...grant,
     valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
     domain: {},
-    modifierKind: MODIFIER_KIND.SET_VALUE,
-    payload: { amount: 0 }
+    modifierKind: MODIFIER_KIND.MULTIPLY,
+    payload: { numerator: 0, denominator: 1 }
   },
   ...attackDomains.map((attackDomain) => ({
     ...grant,

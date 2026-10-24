@@ -647,5 +647,5 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 
 ## T2m1d (D187a): Irresistible Dance as grants plus a GM ruling
 
-- Replan row DESC: the disadvantage and advantage grants fit (speed `SET_VALUE` 0, `ATTACK_ROLL` and Dexterity `SAVING_THROW_MODIFIER` disadvantage, `ATTACKS_AGAINST` advantage with `requiresHolderSeesAttacker: false`), so the spell is data and the `IRRESISTIBLE_DANCE` closed kind is deleted. The holder-action Wisdom save and the charm immunity are a `MANUAL_ADJUDICATION` GM ruling; the engine piece (steps 1, 3 and 4 of the old resume plan) is in `future-enhancements.md` under Deferred rules pieces (D187a).
+- Replan row DESC: the disadvantage and advantage grants fit (speed `MULTIPLY` 0, `ATTACK_ROLL` and Dexterity `SAVING_THROW_MODIFIER` disadvantage, `ATTACKS_AGAINST` advantage with `requiresHolderSeesAttacker: false`), so the spell is data and the `IRRESISTIBLE_DANCE` closed kind is deleted. The holder-action Wisdom save and the charm immunity are a `MANUAL_ADJUDICATION` GM ruling; the engine piece (steps 1, 3 and 4 of the old resume plan) is in `future-enhancements.md` under Deferred rules pieces (D187a).
 - Proof: `irresistibleDanceRulingAuthoringParity.test.ts` (effects pass the equipment node map exactly as authored; kind gone); the compile golden `srdEffectCompile.golden.txt` is regenerated.
