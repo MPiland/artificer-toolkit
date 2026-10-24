@@ -51,6 +51,17 @@ describe.each([
     ruleKind: 'VAMPIRIC_TOUCH',
     effectKinds: ['DAMAGE', 'HEAL', 'APPLY_GRANT', 'APPLY_GRANT']
   },
+  {
+    label: 'Flame Blade',
+    ruleKind: 'FLAME_BLADE',
+    // The cast's carrier, then the attack it offers each turn.
+    effectKinds: ['APPLY_GRANT', 'DAMAGE']
+  },
+  {
+    label: 'Produce Flame',
+    ruleKind: 'PRODUCE_FLAME',
+    effectKinds: ['APPLY_GRANT', 'DAMAGE']
+  },
   { label: 'Lesser Restoration', ruleKind: 'LESSER_RESTORATION', effectKinds: ['END_EFFECTS'] },
   {
     label: 'Greater Restoration',

@@ -1,6 +1,7 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 
 export const deathDog: CreatureAuthored = {
@@ -141,8 +142,11 @@ export const deathDog: CreatureAuthored = {
                         },
                         {
                           id: S.actionId(77, 223),
-                          effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEATH_DOG_DISEASE
+                          effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                          label: 'Death Dog disease',
+                          instructions:
+                            'The poisoned target is also infected with a disease. Until the disease is cured the target is poisoned, and every 24 hours that elapse it repeats the Constitution saving throw; on a failure its hit point maximum is reduced by 1d10, and the target dies if that reduces its hit point maximum to 0. The reduction lasts until the disease is cured.',
+                          reasonCode: MANUAL_ADJUDICATION_REASON.NARRATIVE_JUDGMENT
                         }
                       ]
                     }

@@ -7,7 +7,9 @@ import {
   EFFECT_OFFER_ACTIVATION_MESSAGE,
   MAX_EFFECT_OFFERS,
   moveHeldEffectOfferSchema,
-  type MoveHeldEffectOffer
+  repeatOfferTargetSchema,
+  type MoveHeldEffectOffer,
+  type RepeatOfferTarget
 } from './effectOffer.js'
 
 /**
@@ -22,6 +24,10 @@ export interface CompiledRepeatSourcePathOffer {
   activation: z.infer<typeof activationCodeSchema>
   effect: EffectAuthored
   castLevel?: number
+  /** The holder's attack bonus the cast froze for an attack repeat; its roll mode is read live. */
+  attackBonus?: number
+  /** Absent means `HOLDER`. */
+  target?: RepeatOfferTarget
 }
 
 /** The offers a compiled effect action plans, before the cast freezes them onto a held effect. */
@@ -36,7 +42,9 @@ const compiledRepeatSourcePathOfferSchema = lazySchema(() =>
     offeredTo: z.literal('SOURCE'),
     activation: activationCodeSchema,
     effect: embeddedEffectSchema,
-    castLevel: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(9)))
+    castLevel: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(9))),
+    attackBonus: z.optional(z.number().check(z.int())),
+    target: z.optional(repeatOfferTargetSchema)
   })
 )
 

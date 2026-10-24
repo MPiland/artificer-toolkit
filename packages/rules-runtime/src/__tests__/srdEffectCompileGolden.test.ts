@@ -49,18 +49,27 @@ function parseEffect(node: Record<string, unknown>) {
   return equipment.success ? equipment.data : null
 }
 
-type Found = { effect: AuthoredEffect; label: string; spellLevel: number | undefined }
+type Found = {
+  effect: AuthoredEffect
+  /** The Effects listed beside it, which a repeat offer can name. */
+  siblings: AuthoredEffect[]
+  label: string
+  spellLevel: number | undefined
+}
 
 /** Every authored Effect under a subject, with the label and spell level of its owner. */
-function collectEffects(node: unknown, owner: Omit<Found, 'effect'>, found: Found[]) {
+function collectEffects(node: unknown, owner: Omit<Found, 'effect' | 'siblings'>, found: Found[]) {
   if (Array.isArray(node)) {
+    const start = found.length
     for (const entry of node) collectEffects(entry, owner, found)
+    const siblings = found.slice(start).map(({ effect }) => effect)
+    for (const entry of found.slice(start)) entry.siblings = siblings
     return
   }
   if (!isRecord(node)) return
   const effect = parseEffect(node)
   if (effect) {
-    found.push({ effect, ...owner })
+    found.push({ effect, siblings: [effect], ...owner })
     return
   }
   const next = {
@@ -105,14 +114,14 @@ function outcomeOf(compile: () => CharacterRuleActionExecutionPlan) {
  * checksum does not depend on the Effect's own id.
  */
 function characterOutcome(
-  effect: AuthoredEffect,
+  { effect, siblings }: Pick<Found, 'effect' | 'siblings'>,
   spellCastLevel: number | undefined,
   characterLevel: number
 ) {
   return outcomeOf(() => {
     const action = {
       ...characterActionDescriptor(
-        compileEffect({ ...effect, id: ACTION_EFFECT_ID }),
+        compileEffect({ ...effect, id: ACTION_EFFECT_ID }, siblings),
         spellCastLevel,
         characterLevel
       ),
@@ -136,21 +145,22 @@ const line = (id: string, rank: number, key: string, outcome: string): Line => (
 
 const ownerKey = (kind: string, label: string) => `${kind} ${label.replaceAll('\n', ' ')}`
 
-function characterLines({ effect, label, spellLevel }: Found, kind: string): Line[] {
-  const base = characterOutcome(effect, spellLevel, BASE_CHARACTER_LEVEL)
+function characterLines(found: Found, kind: string): Line[] {
+  const { effect, label, spellLevel } = found
+  const base = characterOutcome(found, spellLevel, BASE_CHARACTER_LEVEL)
   const upcast =
     spellLevel !== undefined && spellLevel >= 1 && spellLevel < UPCAST_LEVEL
       ? [
           {
             tag: `@U${UPCAST_LEVEL}`,
-            outcome: characterOutcome(effect, UPCAST_LEVEL, BASE_CHARACTER_LEVEL)
+            outcome: characterOutcome(found, UPCAST_LEVEL, BASE_CHARACTER_LEVEL)
           }
         ]
       : []
   const variants = [
     ...CHARACTER_LEVEL_VARIANTS.map(({ tag, characterLevel }) => ({
       tag,
-      outcome: characterOutcome(effect, spellLevel, characterLevel)
+      outcome: characterOutcome(found, spellLevel, characterLevel)
     })),
     ...upcast
   ].filter(({ outcome }) => outcome !== base)

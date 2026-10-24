@@ -568,6 +568,15 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - The planned `levelCheck` field (D174) is deliberately not added here: it has no consumer until T2f1b, and an unconsumed authored field would be dead. T2f1b adds it with the check flow.
 - Proofs: `encounterEndedEffectRelease.test.ts` (selector matching, boundary, null level), `endEffectsAuthoringParity.test.ts` (homebrew slot/fixed selectors through the node map DTO and real compiler), `nativeRoomEndEffectsSpell.test.ts` (Dispel-style spell ends levels 1 and 2, leaves 4, via a real cast).
 
+## SPELLS-4.T2v: Flame Blade and Produce Flame
+
+- Both are authored on the carrier pattern (D166): the cast leaves a duration carrier on the caster whose `REPEAT_SOURCE_PATH` offer re-runs a sibling attack Effect as the caster's Action each later turn, against any creature the attack picks.
+- New generic option (ruling A): the offer takes `effectId` (a sibling Effect) in place of `pathIds`, and `target: 'HOLDER' | 'INVOCATION'` (default HOLDER). Documented in `rules-runtime.md` under Repeat offers; SPELLS-4.T2v2 reuses it.
+- Attack repeats (ruling, size 8): the cast freezes the caster's spell attack bonus on the offer (`attackBonus`), the capability carries it as `attackMechanic`, and advantage and disadvantage come live from the attacker at repeat time. SPELLS-4.T2v2a3 reuses it for the summon's attack.
+- The closed kinds `FLAME_BLADE` and `PRODUCE_FLAME` are deleted. Flame Blade's 3d6 fire scales by cast level (1d6 per two slot levels above 2nd); Produce Flame's 1d8 fire scales with character level.
+- GM rulings kept in the descriptions (D187a): the bonus-action re-evoke after letting go of Flame Blade, and the hurl that ends Produce Flame (also its first hurl on the cast turn, and ending it by recasting).
+- Proofs: authoring parity (both spells), source-data outcome kinds, unit tests of the HOLDER default (Vampiric Touch) and the INVOCATION target (Flame Blade), and a room journey per spell.
+
 ## T2o (D187a): speed equal to another speed
 
 - A `SPEED` `SET_VALUE` payload may be `{ equalsSpeedId }` instead of a length (see [rules-runtime](../architecture/rules-runtime.md), "Speed equal to another speed"). Spider Climb (climbing speed equal to walking speed) and Alter Self (Aquatic Adaptation's swimming speed) author it; Alter Self's other two options and its appearance choice stay with the description and a `MANUAL_ADJUDICATION`.

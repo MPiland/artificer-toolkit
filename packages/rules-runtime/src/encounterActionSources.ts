@@ -121,7 +121,12 @@ export function resolveEncounterActionSource(
       conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: systemAbilityDefinitions(system)
     })
-    return { kind: 'REPEAT_PATH', actor, capability, boundItemInstanceId }
+    return {
+      kind: 'REPEAT_PATH',
+      actor,
+      capability,
+      ...(boundItemInstanceId === undefined ? {} : { boundItemInstanceId })
+    }
   }
   if (isEncounterBasicActionId(actor.id, input.actionId)) {
     const { system } = input

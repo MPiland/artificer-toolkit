@@ -555,7 +555,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
 - **Indefinite non-Concentration lifetimes:** Feeblemind.
 - **SUMMON manifests:** Faithful Hound, plus creature-summoned allies.
-- **Containment:** swallow and engulf (Purple Worm, Tarrasque, Gelatinous Cube).
+- **Containment:** swallow (Purple Worm, Kraken, Remorhaz, Tarrasque, Giant Frog and Toad; ships as a GM ruling beside the attack damage, no containment, acid or regurgitation piece) and engulf (Gelatinous Cube).
 - **Auto-hit and reel tails:** Marilith, Roper.
 - **Creature forms beyond Wild Shape:** Change Shape, lycanthrope and vampire shapes, Misty Escape.
 - **Extra reactions and reaction denial; terrain and underwater predicates; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts (Hydra heads, Roper tendrils) and damage-triggered splitting (Black Pudding, Ochre Jelly).**

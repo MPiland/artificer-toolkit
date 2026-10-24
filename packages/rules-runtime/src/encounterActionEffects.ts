@@ -307,6 +307,10 @@ export function prepareNativeActionEffectsPlan<
     form: input.form,
     ...(chosen ? { chosenItem: { item: chosen.item, released } } : {}),
     spellCastLevel: preparedSpellCastLevel(prepared) ?? undefined,
+    attackBonus:
+      prepared.source.kind === 'CHARACTER_ACTION'
+        ? prepared.source.effectivePolicyOutput.derivedStats.spellcasting?.attackBonus.effective
+        : undefined,
     published: execution.published,
     execution: execution.execution,
     d20: execution.d20,

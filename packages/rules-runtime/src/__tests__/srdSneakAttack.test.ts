@@ -15,7 +15,7 @@ import type { Dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.
 
 const feature = rogue.features?.find((candidate) => candidate.label === 'Sneak Attack')
 if (!feature?.effects) throw new Error('The SRD Rogue has no Sneak Attack Feature.')
-const [melee, ranged] = feature.effects.map(compileEffect)
+const [melee, ranged] = feature.effects.map((effect) => compileEffect(effect))
 if (!melee || !ranged) throw new Error('Sneak Attack must author a melee and a ranged Effect.')
 
 const weapon = (properties: Dnd5eAttackingItem['properties']): Dnd5eAttackingItem => ({
