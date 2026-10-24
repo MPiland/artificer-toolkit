@@ -3,9 +3,12 @@ import {
   PATH_CODE,
   PATH_GROUP_TYPE,
   CASTING_TIME_UNIT_CODE,
+  DAMAGE_VALUE_KIND,
+  DURATION_KIND,
   EFFECT_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SCALING,
   SHAPE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
@@ -16,7 +19,15 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import {
+  conditionTypeId,
+  damageTypeId,
+  schoolId,
+  spellChildId,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from './shared.js'
 export const sunbeam: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.SUNBEAM,
@@ -36,7 +47,12 @@ export const sunbeam: SpellAuthored = {
       order: 1,
       invocation: {
         kind: 'ACTION' as const,
-        triggerCode: TRIGGER.ACTIVATED,
+        triggerCode: TRIGGER.SAVING_THROW,
+        savingThrow: {
+          id: spellChildId(SPELL_IDS.SUNBEAM, 0x218, 1),
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION
+        },
         activation: {
           code: ACTIVATION_CODE.ACTION,
           amount: 1
@@ -58,27 +74,62 @@ export const sunbeam: SpellAuthored = {
           }
         }
       },
+      // The fresh line each turn as an action, undead and oozes' disadvantage and the sunlight mote
+      // stay with the description (D187a).
       paths: [
         {
           id: spellChildId(SPELL_IDS.SUNBEAM, 0x213, 1),
           order: 1,
-          pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          pathCode: PATH_CODE.ON_SAVE_FAIL,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.SUNBEAM, 0x213, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
+            // Blinded until the caster's next turn.
             duration: {
               id: spellChildId(SPELL_IDS.SUNBEAM, 0x214, 1),
-              durationKind: 'MINUTE',
+              durationKind: DURATION_KIND.ROUND,
               amount: 1
             },
+            lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SUNBEAM, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SUNBEAM' as const
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('RADIANT'),
+                valueKind: DAMAGE_VALUE_KIND.DICE,
+                scalingKind: SCALING.NONE,
+                diceConfig: '6d8'
+              },
+              {
+                id: spellChildId(SPELL_IDS.SUNBEAM, 0x216, 1),
+                effectKind: EFFECT_KIND.CONDITION,
+                conditionId: conditionTypeId('BLINDED')
+              }
+            ]
+          }
+        },
+        {
+          id: spellChildId(SPELL_IDS.SUNBEAM, 0x217, 1),
+          order: 2,
+          pathCode: PATH_CODE.ON_SAVE_SUCCESS,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.SUNBEAM, 0x217, 1) + '__result',
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.SUNBEAM, 0x217, 1),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('RADIANT'),
+                valueKind: DAMAGE_VALUE_KIND.DICE,
+                scalingKind: SCALING.NONE,
+                diceConfig: '6d8',
+                multiplier: 0.5
               }
             ]
           }
