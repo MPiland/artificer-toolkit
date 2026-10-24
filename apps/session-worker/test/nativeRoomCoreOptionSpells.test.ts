@@ -13,6 +13,7 @@ import { MAX_ACTIVE_EFFECT_STORED_TICKS } from '@artificer-toolkit/schema/shared
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
+import { faithfulHound } from '@artificer-toolkit/source-data/srd/spells/faithful-hound.js'
 import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
@@ -861,6 +862,43 @@ describe('room Spiritual Weapon (SPELLS-4.T2v2a3d)', () => {
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect(await conjured(room)).toEqual([])
     expect((await room.actionChoices()).effectOffers).toEqual([])
+  }, 120000)
+})
+
+/**
+ * SPELLS-4.T2w (D187a): Faithful Hound conjures an owned, invulnerable watchdog; its barking and
+ * its bite at the start of the caster's turns are a GM ruling beside the summon.
+ */
+describe('room Faithful Hound (SPELLS-4.T2w)', () => {
+  const houndRoom = () =>
+    actionRoom({
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel: 9 },
+      characterSpellcasting: { spells: [faithfulHound], prepared: [faithfulHound.id] },
+      characterAction: (action) => action.label.startsWith(faithfulHound.label)
+    })
+
+  async function conjured(room: ActionRoom) {
+    return (await readRoomHistory(room.room.base.stub)).actors
+      .map((row) => readStoredRunActor(row))
+      .filter((actor) => actor.owner?.ownerActorId === CHARACTER_ACTOR_ID)
+  }
+
+  it('conjures the hound as an actor the caster owns, and takes it away when the cast is reverted', async () => {
+    const room = await houndRoom()
+    const cast = await room.startAreaAction({ x: 350, y: 150 })
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await conjured(room)).toMatchObject([{ label: 'Faithful Hound', kind: 'CUSTOM' }])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await conjured(room)).toEqual([])
   }, 120000)
 })
 

@@ -3742,18 +3742,46 @@
               "activeWorkbook": "docs/handoffs/slice-rules-2-t9.md"
             },
             {
-              "id": "RULES-2.T9f",
+              "id": "RULES-2.T9f1",
               "status": "IN_PROGRESS",
               "closes": ["RULES-2.7"],
+              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": ["RULES-2.T9b"]
+              },
+              "text": "System vocabulary (D192 split of T9f): sizes become System core codes; rank and spaceFeet on the dnd5e adapter; no reseed."
+            },
+            {
+              "id": "RULES-2.T9f2",
+              "status": "IN_PROGRESS",
+              "closes": ["RULES-2.7"],
+              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
                 "size": 5,
-                "after": ["RULES-2.T9b"]
+                "after": ["RULES-2.T9f1"]
               },
-              "text": "System vocabulary (split 2026-10-21): ability codes become ability definition ids in authored data and the System supplies its sizes list (needed for the T12 tracer System); reseed, golden flips enumerated.",
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md"
+              "text": "System vocabulary (D192 split of T9f): ability-score records keyed by ability definition id; labels and abbreviations from the System record; shared core/ability.ts deleted; reseed, golden flips enumerated."
+            },
+            {
+              "id": "RULES-2.T9f3",
+              "status": "IN_PROGRESS",
+              "closes": ["RULES-2.7"],
+              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["RULES-2.T9f2"]
+              },
+              "text": "System vocabulary (D192 split of T9f): authored ability references (grants, effects, facets, charge, numericExpr, class) become abilityDefinitionId; reseed; one-off ts-morph codemod allowed (D192)."
             },
             {
               "id": "RULES-2.T10",
@@ -3919,7 +3947,9 @@
                   "RULES-2.T11g3",
                   "RULES-2.T5b",
                   "RULES-2.T5c",
-                  "RULES-2.T5d"
+                  "RULES-2.T5d",
+                  "RULES-2.T9f1",
+                  "RULES-2.T9f2"
                 ]
               },
               "text": "Second neutral tracer System (Fate-like fixture) driving the Encounter pipeline through the adapters.",
@@ -11222,7 +11252,7 @@
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2w",
               "wsjf": {
@@ -11233,8 +11263,9 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2v", "SPELLS-4.T2v2a3d"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted.",
-              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b: Faithful Hound builds on the T2v2 summon token.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b: Faithful Hound builds on the T2v2 summon token. Merged in m420.",
+              "mergedAt": "2026-10-24T21:20:29Z",
+              "proof": "Tests and Live green on tip 1629eae04; Faithful Hound is a SUMMON (invulnerable, one square) plus a MANUAL_ADJUDICATION ruling for its turn-start bite, bark and dismissal; FAITHFUL_HOUND closed kind deleted; proofs nativeRoomCoreOptionSpells.test.ts and coreOptionSpellAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-4.T1k",
