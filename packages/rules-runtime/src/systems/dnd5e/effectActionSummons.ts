@@ -37,7 +37,7 @@ export function compileDnd5eSummonPlacement(
     !entry ||
     !('outcome' in entry) ||
     entry.pathCode !== 'ON_USE' ||
-    (carrierEntry && carrierEntry.pathCode !== 'ON_USE')
+    (carrierEntry && (!('outcome' in carrierEntry) || carrierEntry.pathCode !== 'ON_USE'))
   )
     unsupported('A summon is the only outcome of its action’s use.')
   const { outcome } = entry
