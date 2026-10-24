@@ -340,6 +340,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
           excessDamageCarriesOver: z.boolean(),
           /** The holder's own ability scores the form keeps, by ability definition id. */
           retainedAbilityIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(16)),
+          /** The holder keeps its own proficiencies; false, it rolls with the form's stat block. */
+          retainsProficiencies: z.boolean(),
           /** The holder may end the form on its own turn (Wild Shape: a Bonus Action). */
           holderEnd: z.nullable(activeGrantHolderEndSchema),
           /** The form ends when its holder gains one of these Conditions (Wild Shape: Unconscious). */

@@ -103,8 +103,8 @@ export function enterActorForm(actor: FormableActor, input: FormInput): Formable
  * Gives a Character actor the Creature's form (D130 amendment): the form's snapshot and full hit
  * points become the actor's own while the Character's Sheet state stays untouched. The Character
  * keeps the form's retained ability scores (`scalarValues` by ability definition id), baked into the
- * snapshot so the form presents and rolls with them; its proficiencies are kept by the Character's
- * own evaluation.
+ * snapshot so the form presents and rolls with them; whether it keeps its own proficiencies is
+ * authored on the effect (`formRetainsProficiencies`).
  */
 export function enterCharacterForm(
   actor: EncounterRunCharacterActorState,
@@ -136,6 +136,20 @@ export function creatureFormContribution(effect: Pick<ActiveRuleEffectRecord, 'd
   for (const contribution of definition.stateContributions)
     if (contribution.kind === 'CREATURE_FORM') return contribution
   return null
+}
+
+/**
+ * Whether a Character keeps its own proficiencies in its form, as the effect holding the form
+ * authored (D191): Wild Shape and Shapechange do, Polymorph rolls with the form's stat block.
+ */
+export function formRetainsProficiencies(
+  form: Pick<CharacterActorForm, 'effectId'>,
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+): boolean {
+  const effect = effects.find(({ id }) => id === form.effectId)
+  const contribution = effect ? creatureFormContribution(effect) : null
+  if (!contribution) throw new Error('The effect holding the creature form is unavailable.')
+  return contribution.retainsProficiencies
 }
 
 /**

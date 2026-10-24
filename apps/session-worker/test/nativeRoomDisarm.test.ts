@@ -6,6 +6,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { encounterRunStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { encounterOptionalCombatSnapshotDtoSchema } from '@artificer-toolkit/schema/shared/optionalCombat'
+import { giantApe } from '@artificer-toolkit/source-data/srd/creatures/giant-ape.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
@@ -17,6 +18,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, type ActionRoomConfig } from './actionRoomFixture.js'
+import { characterInForm } from './characterFormFixture.js'
 import { seedModifierGrant } from './grantSeed.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import {
@@ -97,7 +99,8 @@ async function disarmRoom(options: {
   return { room, heldEntryId }
 }
 
-type Disarming = Awaited<ReturnType<typeof disarmRoom>>
+/** A Disarm room and the item its defender holds; null takes the first item the defender holds. */
+type Disarming = { room: Awaited<ReturnType<typeof actionRoom>>; heldEntryId: string | null }
 
 /** The public Disarm choice for the source's action at the target: its held item and Athletics. */
 async function disarmIntent({ room, heldEntryId }: Disarming) {
@@ -117,9 +120,9 @@ async function disarmIntent({ room, heldEntryId }: Disarming) {
     optionId: descriptor.optionId,
     selectionContract: descriptor.selectionContract,
     selections: descriptor.fields.map((field) => {
-      const selected = field.options.find(
-        (option) => option.id === heldEntryId || option.id === SRD_ATHLETICS_SKILL_ID
-      )
+      const selected =
+        field.options.find((option) => option.id === SRD_ATHLETICS_SKILL_ID) ??
+        field.options.find((option) => heldEntryId === null || option.id === heldEntryId)
       if (!selected) throw new Error('Disarm did not offer the expected selection.')
       return { fieldId: field.fieldId, value: { kind: 'ENTITY' as const, entityId: selected.id } }
     })
@@ -440,5 +443,35 @@ describe('room Disarm against a target that cannot see (ATTACK-10.4, D100)', () 
       sourceRoll: { rawFaces: [9, 15], selectedNatural: 15 },
       targetRoll: { rawFaces: [1] }
     })
+  })
+})
+
+// SPELLS-4.T2s2 (D191): Polymorph replaces the Character's proficiencies with the form's stat block.
+describe('room Disarm of a Character in a form that replaces its proficiencies', () => {
+  it("rolls the Character defender's contest with the form's Athletics", async () => {
+    const ogre = seededSrdCreature('Ogre')
+    const { actor, seed } = characterInForm({
+      actorId: TARGET_ID,
+      characterId: FIGHTER_ID,
+      effectId: testUuid(0xa03),
+      creature: giantApe,
+      retainsProficiencies: false
+    })
+    const room = await actionRoom({
+      autoRoll: 'BOTH',
+      rolls: [9, 9, 9, 9],
+      actors: [srdCreatureActor({ id: SOURCE_ID, creature: ogre }), actor],
+      ownerFeatureId: creatureFeature(ogre, 'Greatclub').id,
+      characterEquipment: [longsword],
+      optionalCombatKinds: ['DISARM'],
+      seed
+    })
+    const disarming = { room, heldEntryId: null }
+    await startDisarm(disarming)
+
+    const { targetRoll } = await contestedOutput(disarming)
+    expect(targetRoll.actorId).toBe(TARGET_ID)
+    // The Giant Ape's Athletics is +9 (Strength 23 and its CR 7 proficiency); the Fighter's is lower.
+    expect(targetRoll.total - targetRoll.selectedNatural).toBe(9)
   })
 })

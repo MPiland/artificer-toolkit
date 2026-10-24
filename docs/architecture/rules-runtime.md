@@ -2557,8 +2557,18 @@ Shapechange keep Intelligence, Wisdom and Charisma. A form effect also admits th
 `endOnConditionIds`: `stateBoundGrants` includes every creature-form effect, so an Unconscious edit ends a form that
 names it (`grantsEndedByHolderState`), and an `END_HELD_GRANT` of a form's own effect reverts its wearer in both the
 Worker's next rule facts and the committed projection (`revertActorForm`). Size caps, per-target forms and re-forming
-stay GM rulings authored beside the outcome. `encounters/formRetentionMigration:run` gives each stored creature form `retainedAbilityIds: []` and
-re-checksums its definition (idempotent).
+stay GM rulings authored beside the outcome. `encounters/formRetentionMigration:run` gives each stored creature form `retainedAbilityIds: []`
+and `retainsProficiencies: false`, and re-checksums its definition (idempotent).
+
+**Form proficiencies (D191, SPELLS-4.T2s2).** Whether a Character keeps its own proficiencies in a form is authored on
+the form effect (`retainsProficiencies`, the toggle "Retains Proficiencies"; absent compiles to `false`) and frozen on
+the `CREATURE_FORM` contribution. Shapechange (and Wild Shape) keep them; Polymorph, True Polymorph, Animal Shapes and
+Giant Insect do not. `buildMovementTarget` reads it through `formRetainsProficiencies`, which refuses a form whose holding
+effect is missing. A form that does not keep them builds the Character's target from the Creature path on
+`characterFormCreatureView`: its save rows replace the policy's `savingThrowDefinitions` (effect saves and held saves such
+as Concentration), its damage defenses and immunities replace the Character's, and `MovementTarget.formCreature` makes
+checks and contests (`actorContestFacts`, the Disarm defender's totals and size) read the stat block. The Sheet's
+conditions, Concentration and hit points, and excess damage, stay the Character's.
 
 **Grappled outcomes (D105).** An `ACTOR_RELATIONSHIP` outcome carries a required `heldAtOnce` and optional
 `ESCAPE_CHECK` (allowed skill or ability checks; a `FIXED` or `CONTEST` DC) and `TARGET_SIZE_MAXIMUM`

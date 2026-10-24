@@ -1182,6 +1182,23 @@ const emptyCharacterRollContributors = () => ({
   attacks: { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
 })
 
+/** A Character's saving-throw rows; a form that replaces its proficiencies supplies the form's (D191). */
+export const characterSavingThrowDefinitionsSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        abilityDefinitionId: serverUuidIdentityDtoSchema,
+        ruleDefinitionId: z.optional(serverUuidIdentityDtoSchema),
+        /** Set on a save against a condition, which includes that condition's scoped grants. */
+        conditionTypeId: z.optional(serverUuidIdentityDtoSchema),
+        modifier: integerSchema,
+        rollMode: systemCoreCodeSchema,
+        contributors: canonicalCharacterRollContributorsSchema
+      })
+    )
+    .check(z.maxLength(64))
+)
+
 export const characterRulePolicyOutputSchema = lazySchema(() =>
   z.strictObject({
     grantFold: characterGrantFoldOutputSchema,
@@ -1226,22 +1243,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
       emptyCharacterRollContributors
     ),
     /** UUID-backed System-policy records for authored rules that select saves. */
-    savingThrowDefinitions: z._default(
-      z
-        .array(
-          z.strictObject({
-            abilityDefinitionId: serverUuidIdentityDtoSchema,
-            ruleDefinitionId: z.optional(serverUuidIdentityDtoSchema),
-            /** Set on a save against a condition, which includes that condition's scoped grants. */
-            conditionTypeId: z.optional(serverUuidIdentityDtoSchema),
-            modifier: integerSchema,
-            rollMode: systemCoreCodeSchema,
-            contributors: canonicalCharacterRollContributorsSchema
-          })
-        )
-        .check(z.maxLength(64)),
-      []
-    ),
+    savingThrowDefinitions: z._default(characterSavingThrowDefinitionsSchema, []),
     defenses: canonicalCharacterTargetDefensesSchema,
     qualifiedDefenses: z._default(canonicalCharacterQualifiedDefensesSchema, []),
     conditionImmunityIds: z._default(canonicalConditionImmunityIdsSchema, []),

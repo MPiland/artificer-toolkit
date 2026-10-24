@@ -6,12 +6,14 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { blackDragonWyrmling } from '@artificer-toolkit/source-data/srd/creatures/black-dragon-wyrmling.js'
+import { giantApe } from '@artificer-toolkit/source-data/srd/creatures/giant-ape.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
+import { characterInForm } from './characterFormFixture.js'
 import { closeTrackedSockets, connectPlayer } from './liveRoomFixture.js'
 import { dependentEffectDefinition } from './movementRoomFixture.js'
 import {
@@ -38,27 +40,31 @@ afterEach(() => {
 /**
  * A Wolf hits the Character, who maintains Concentration (the maintained state, with one dependent
  * effect on another Wolf and one independent effect that outlives it). `autoRoll` BOTH makes the
- * Character's player roll its Constitution save on the server; GAME_MASTER leaves it a prompt.
+ * Character's player roll its Constitution save on the server; GAME_MASTER leaves it a prompt. With
+ * `form`, the Character wears that form, its holding effect seeded with the rest.
  */
 function concentratingRoom(
   options: Pick<
     Parameters<typeof actionRoom>[0],
     'autoRoll' | 'automationMode' | 'rolls' | 'characterPlay'
-  >
+  >,
+  form?: ReturnType<typeof characterInForm>
 ) {
   const attacker = biteWolf('ATTACK')
   return actionRoom({
     ...options,
     actors: [
       srdCreatureActor({ id: ATTACKER_ID, creature: attacker }),
-      characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+      form?.actor ?? characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
       srdCreatureActor({ id: DEPENDENT_HOLDER_ID, creature: plainWolf })
     ],
     ownerFeatureId: creatureFeature(attacker, 'Bite').id,
     concentration: true,
     concentrationOwnerActorId: CHARACTER_ACTOR_ID,
     concentrationDependentActorIds: [DEPENDENT_HOLDER_ID],
-    seed: async ({ effects, encounterId, occurredAt }) => {
+    seed: async (input) => {
+      const { effects, encounterId, occurredAt } = input
+      await form?.seed(input)
       await effects.create({
         id: INDEPENDENT_EFFECT_ID,
         owner: {
@@ -565,6 +571,41 @@ describe('room Concentration check of a hidden Creature a player controls (ATTAC
     )
     expect(holders).toHaveLength(2)
     expect(concentrationChecks(await readRoomHistory(base.stub))).toHaveLength(1)
+  })
+})
+
+// SPELLS-4.T2s2 (D191): Polymorph replaces the Character's saves with the form's stat block.
+describe('a Concentrating Character in a form that replaces its proficiencies', () => {
+  it("rolls its Concentration save with the form's Constitution, keeping the Concentration on the Sheet", async () => {
+    // The Giant Ape's Constitution 18 is +4 with no save proficiency; the Fighter's own save differs.
+    const room = await concentratingRoom(
+      { autoRoll: 'GAME_MASTER', rolls: [18] },
+      characterInForm({
+        actorId: CHARACTER_ACTOR_ID,
+        characterId: CHARACTER_ID,
+        effectId: testUuid(0x5301),
+        creature: giantApe,
+        retainsProficiencies: false
+      })
+    )
+    await startedBite(room)
+
+    const decision = await room.pendingDecision()
+    if (decision.pending.kind !== 'D20_EVIDENCE') throw new Error('Expected a concentration save.')
+    expect(decision.pending.rollerActorId).toBe(CHARACTER_ACTOR_ID)
+    const { request } = decision.pending
+    const answer = await room.resolve(decision, {
+      kind: 'ENTER_DICE',
+      requestId: request.requestId,
+      rawFaces: [6],
+      rollMode: request.rollMode
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const after = await readRoomHistory(room.room.base.stub)
+    expect(concentrationChecks(after)).toMatchObject([
+      { outcome: 'SAVE_SUCCESS', d20: { selectedNatural: 6, modifier: 4, total: 10, dc: 10 } }
+    ])
+    expect(after.maintainedStates).toHaveLength(1)
   })
 })
 

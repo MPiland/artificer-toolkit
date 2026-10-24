@@ -764,7 +764,8 @@ describe('a creature form that ends on Unconscious (Wild Shape, SPELLS-4.T2s)', 
           formOutcomeId: 'form',
           creatureId: testUuid(0xc377),
           excessDamageCarriesOver: true,
-          retainedAbilityIds: []
+          retainedAbilityIds: [],
+          retainsProficiencies: false
         }
       ]
     }
@@ -1680,7 +1681,8 @@ describe('planCarriedOverEffects', () => {
             formOutcomeId: 'form',
             creatureId: testUuid(0xc370),
             excessDamageCarriesOver: true,
-            retainedAbilityIds: []
+            retainedAbilityIds: [],
+            retainsProficiencies: false
           }
         ]
       }

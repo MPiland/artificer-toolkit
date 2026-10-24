@@ -206,6 +206,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     excessDamageCarriesOver: boolean
     /** The holder's own ability scores the form keeps, by ability definition id. */
     retainedAbilityIds: readonly string[]
+    /** The holder keeps its own proficiencies; false, it rolls with the form's stat block. */
+    retainsProficiencies: boolean
     /** The holder may end the form on its own turn (Wild Shape: a Bonus Action). */
     holderEnd: ActiveGrantHolderEnd | null
     /** The form ends when its holder gains one of these Conditions (Wild Shape: Unconscious). */

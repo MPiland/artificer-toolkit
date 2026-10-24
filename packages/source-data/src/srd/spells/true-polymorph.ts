@@ -82,6 +82,7 @@ export const truePolymorph: SpellAuthored = {
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.CREATURE,
                 excessDamageCarriesOver: true,
+                retainsProficiencies: false,
                 formFilter: {
                   id: spellChildId(SPELL_IDS.TRUE_POLYMORPH, 0x215, 1),
                   challengeRatingCapKind: 'TARGET'

@@ -82,6 +82,7 @@ export const polymorph: SpellAuthored = {
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.CREATURE,
                 excessDamageCarriesOver: true,
+                retainsProficiencies: false,
                 formFilter: {
                   id: spellChildId(SPELL_IDS.POLYMORPH, 0x215, 1),
                   creatureTypeId: creatureTypeId('BEAST'),

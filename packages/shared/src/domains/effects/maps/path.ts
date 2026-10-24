@@ -2256,6 +2256,12 @@ function registerOutcomeFields(
       )
     )
     .set(
+      'retainsProficiencies',
+      toggle(['retainsProficiencies'], 'Retains Proficiencies', {
+        showIf: manifestsCreature
+      })
+    )
+    .set(
       'shape',
       groupObject(['shape'], 'Shape', () => SHAPE_NODE_MAP, {
         presentation: 'inline',

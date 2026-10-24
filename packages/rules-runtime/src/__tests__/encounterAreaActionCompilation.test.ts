@@ -364,6 +364,8 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
           excessDamageCarriesOver: true,
           // Polymorph replaces every score, the mental ones included.
           retainedAbilityIds: [],
+          // Polymorph replaces the holder's proficiencies with the form's (D191).
+          retainsProficiencies: false,
           holderEnd: null,
           endOnConditionIds: [],
           forms: [],

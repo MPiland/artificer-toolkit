@@ -1492,6 +1492,7 @@ function creatureFormPlan(
       formOutcomeId: outcome.id,
       excessDamageCarriesOver: outcome.excessDamageCarriesOver ?? false,
       retainedAbilityIds,
+      retainsProficiencies: outcome.retainsProficiencies ?? false,
       holderEnd,
       endOnConditionIds: [...new Set(endOnConditionIds)].sort(),
       forms: [...forms]

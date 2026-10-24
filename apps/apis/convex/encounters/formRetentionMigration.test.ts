@@ -25,7 +25,8 @@ const formContribution = {
   formOutcomeId: 'polymorph',
   creatureId: uuid(5),
   excessDamageCarriesOver: true,
-  retainedAbilityIds: []
+  retainedAbilityIds: [],
+  retainsProficiencies: false
 }
 
 function definition(
@@ -89,9 +90,13 @@ const encounterDefinition = definition({
   sourceActorId: null
 })
 
-/** The pre-T2s stored form: the contribution names no retained scores. */
+/** The pre-T2s stored form: the contribution names no retained scores and no proficiency rule. */
 function legacyDefinitionJson(current: ActiveRuleEffectDefinitionDto) {
-  const { retainedAbilityIds: _retained, ...legacyForm } = formContribution
+  const {
+    retainedAbilityIds: _retained,
+    retainsProficiencies: _proficiencies,
+    ...legacyForm
+  } = formContribution
   const legacy = { ...current, stateContributions: [legacyForm] }
   return {
     definitionJson: JSON.stringify(legacy),
@@ -99,7 +104,7 @@ function legacyDefinitionJson(current: ActiveRuleEffectDefinitionDto) {
   }
 }
 
-it('gives each stored creature form no retained scores and re-checksums the effect', async ({
+it("gives each stored creature form no retained scores, the form's proficiencies, and re-checksums the effect", async ({
   onTestFinished
 }) => {
   const t = convexTest(schema, import.meta.glob('/apps/apis/convex/**/*.*s'))

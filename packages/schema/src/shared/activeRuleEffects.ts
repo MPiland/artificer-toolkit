@@ -526,7 +526,9 @@ const activeRuleEffectCreatureFormContributionDtoSchema = lazySchema(() =>
     creatureId: uuidSchema,
     excessDamageCarriesOver: z.boolean(),
     /** The holder's own ability scores the form keeps, by ability definition id. */
-    retainedAbilityIds: z.array(uuidSchema).check(z.maxLength(16))
+    retainedAbilityIds: z.array(uuidSchema).check(z.maxLength(16)),
+    /** The holder keeps its own proficiencies (Wild Shape); false, it rolls with the form's stat block (Polymorph). */
+    retainsProficiencies: z.boolean()
   })
 )
 

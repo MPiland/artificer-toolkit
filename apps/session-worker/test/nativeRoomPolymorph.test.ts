@@ -1,6 +1,5 @@
 import {
   characterActor,
-  installedSrdCreature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
@@ -19,6 +18,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
+import { characterInForm } from './characterFormFixture.js'
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readRoomHistory, type RoomHistory } from './roomHistoryReads.js'
@@ -287,40 +287,21 @@ describe('a form whose effect its holder can end reverts with that end (SPELLS-4
 })
 
 describe("a Character in a form attacks with the form's stat block (SPELLS-28.T4d)", () => {
-  const FORM_EFFECT_ID = testUuid(0x8d4)
-  const FORM_ACTOR_ID = testUuid(0x8d5)
-
   /** The Character already wearing the Jackal's form; every attack d20 shows 15 (a hit) and d4 shows 2. */
   const formRoom = () => {
-    const creature = srdCreatureActor({
-      id: FORM_ACTOR_ID,
-      creature: installedSrdCreature(jackal)
+    const { actor, seed } = characterInForm({
+      actorId: CHARACTER_ACTOR_ID,
+      characterId: CHARACTER_ID,
+      effectId: testUuid(0x8d4),
+      creature: jackal,
+      retainsProficiencies: false
     })
-    if (creature.kind !== 'CREATURE' || !creature.sourceId || !creature.sourceRevision)
-      throw new Error('Expected a Creature actor.')
-    const character = characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
-    if (character.kind !== 'CHARACTER') throw new Error('Expected a Character actor.')
     return actionRoom({
       autoRoll: 'BOTH',
       rolls: Array.from({ length: 12 }, (_, index) => (index % 2 === 0 ? 14 : 1)),
-      actors: [
-        {
-          ...character,
-          snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id },
-          form: {
-            effectId: FORM_EFFECT_ID,
-            excessDamageCarriesOver: true,
-            sourceId: creature.sourceId,
-            sourceRevision: creature.sourceRevision,
-            snapshot: creature.snapshot,
-            currentHitPoints: creature.currentHitPoints,
-            maxHitPoints: creature.maxHitPoints,
-            tempHitPoints: 0
-          }
-        },
-        srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
-      ],
-      characterAction: (action) => action.label.startsWith('Bite')
+      actors: [actor, srdCreatureActor({ id: WOLF_ID, creature: plainWolf })],
+      characterAction: (action) => action.label.startsWith('Bite'),
+      seed
     })
   }
 
