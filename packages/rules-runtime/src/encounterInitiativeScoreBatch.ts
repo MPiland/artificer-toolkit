@@ -2,6 +2,7 @@ import type { InitiativePolicyGraphPinDto } from '@artificer-toolkit/schema/shar
 import type { EncounterInitiativePolicySnapshotDto } from '@artificer-toolkit/schema/shared/initiativePolicySnapshot'
 import { AUTHORED_LIMITS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
+import { requiredRuleGraphFacts } from '@artificer-toolkit/shared/rules'
 import type { ServerRuleExecutionContinuationDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import type { InitiativeFactBinding } from './initiativeFactAdapter.js'
@@ -164,7 +165,15 @@ async function executeEntity(input: {
   | { kind: 'COMPLETE'; result: InitiativeScoreBatchEntityResult }
   | { kind: 'PENDING'; continuation: ServerRuleExecutionContinuationDto }
 > {
-  if (!input.entity.binding.automatic) {
+  const binding = input.entity.binding
+  // An actor whose facts lack one the graph reads (a tie rule's Dexterity score for a creature
+  // without one) cannot be scored by it, so it falls to the policy's manual path.
+  if (
+    !binding.automatic ||
+    [...requiredRuleGraphFacts(input.context.graph.document)].some(
+      (key) => binding.facts[key] === undefined
+    )
+  ) {
     return { kind: 'COMPLETE', result: unavailable(input.entity, 'FACTS_UNAVAILABLE') }
   }
   const started = await startInitiativeScoreGraph({
@@ -173,7 +182,7 @@ async function executeEntity(input: {
     gameSystemId: input.context.gameSystemId,
     graph: input.context.graph,
     pin: input.context.pin,
-    facts: input.entity.binding.facts
+    facts: binding.facts
   })
   if (started.kind === 'COMPLETE') {
     return { kind: 'COMPLETE', result: completed(input.entity, started.result) }

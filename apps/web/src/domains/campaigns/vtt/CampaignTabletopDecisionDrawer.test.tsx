@@ -84,11 +84,11 @@ const adjudicatedPending = validated(pendingEncounterRuleOccurrenceSummaryDtoSch
     },
     {
       kind: 'MULTI_SELECT' as const,
-      key: 'actionFactors' as const,
+      key: 'factorIds' as const,
       label: 'Action factors',
       minimumSelections: 0,
       maximumSelections: 4,
-      options: [{ value: 'MELEE_HEAVY', label: 'Melee heavy' }]
+      options: [{ value: '00000000-0000-4000-8000-0000000004e4', label: 'Melee heavy' }]
     },
     {
       kind: 'NULLABLE_INTEGER' as const,
@@ -273,7 +273,7 @@ describe('CampaignTabletopDecisionDrawer initiative declaration', () => {
             kind: 'GM_ADJUDICATED',
             optionId: 'GM_ADJUDICATED',
             actorSize: 'MEDIUM',
-            actionFactors: ['MELEE_HEAVY'],
+            factorIds: ['00000000-0000-4000-8000-0000000004e4'],
             spellLevel: 3
           },
           bonus: null

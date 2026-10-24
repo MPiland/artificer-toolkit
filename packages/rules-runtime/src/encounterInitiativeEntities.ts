@@ -1,11 +1,15 @@
 import type { InitiativeFactSources } from '@artificer-toolkit/schema/shared/initiativeFactSources'
+import type { InitiativePolicyReusableDefinitionDocumentDto } from '@artificer-toolkit/schema/shared/initiativePolicy'
 import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/initiativeState'
 
 import type { InitiativeFactAdapter } from './initiativeFactAdapter.js'
 import type { InitiativeScoreBatchEntity } from './encounterInitiativeScoreBatch.js'
+import { initiativeDeclarationModifier } from './encounterInitiativeDeclarationModifier.js'
 
 export function createEncounterInitiativeScoreEntities(input: {
   state: EncounterInitiativeRoundStateDto
+  /** The round's frozen policy. */
+  policy: InitiativePolicyReusableDefinitionDocumentDto
   sources: InitiativeFactSources
   adapter: InitiativeFactAdapter
 }): readonly InitiativeScoreBatchEntity[] {
@@ -20,20 +24,26 @@ export function createEncounterInitiativeScoreEntities(input: {
     throw new Error('Locked initiative sources do not match the normalized round participants.')
   }
   if (input.state.round.procedure !== 'SIDE_ROLL') {
-    return input.state.participants.map((participant) => ({
-      kind: 'ACTOR',
-      id: participant.actorId,
-      binding:
-        input.state.round.procedure === 'DECLARED_ACTION_ROLL'
-          ? (() => {
-              const source = sourceByActorId.get(participant.actorId)!
-              if (!participant.declaration) {
-                return { automatic: false as const }
-              }
-              return input.adapter.bindDeclaredActor(source, participant.declaration)
-            })()
-          : input.adapter.bindActor(sourceByActorId.get(participant.actorId)!)
-    }))
+    // The round's procedure is the frozen policy's, checked by the lifecycle against its snapshot.
+    const declarationModifiers =
+      input.policy.procedure === 'DECLARED_ACTION_ROLL' ? input.policy.declarationModifiers : null
+    return input.state.participants.map((participant) => {
+      const source = sourceByActorId.get(participant.actorId)
+      if (!source) throw new Error('Locked initiative source is unavailable.')
+      if (!declarationModifiers)
+        return { kind: 'ACTOR', id: participant.actorId, binding: input.adapter.bindActor(source) }
+      const declaredModifier = participant.declaration
+        ? initiativeDeclarationModifier(declarationModifiers, participant.declaration)
+        : null
+      return {
+        kind: 'ACTOR',
+        id: participant.actorId,
+        binding:
+          participant.declaration && declaredModifier !== null
+            ? input.adapter.bindDeclaredActor(source, participant.declaration, declaredModifier)
+            : { automatic: false }
+      }
+    })
   }
   return input.state.sides.map((side) => {
     const sideSource = {

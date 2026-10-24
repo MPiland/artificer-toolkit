@@ -7,6 +7,8 @@ import {
   evaluateEncounterAttackAction
 } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import type { ActionEconomyInput } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import { encounterActionUndeclared } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclaredAction'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
@@ -101,6 +103,26 @@ export async function evaluateNativeLiveActionEconomy(input: {
       ? input.weaponAttackOffer
       : null
   const { economy, suppressed } = offered ? { economy: null, suppressed: false } : evaluated
+  // A declared-action round holds the current actor to the actions it declared; a later attack of an
+  // open Attack action, or a granted attack, spends no allowance of its own. Only character and
+  // creature actions are declarable, so basic actions and cast-turn repeats stay open.
+  if (
+    economy &&
+    (prepared.source.kind === 'CHARACTER_ACTION' || prepared.source.kind === 'CREATURE') &&
+    input.state.currentActorId === prepared.actor.id &&
+    input.state.initiativePolicySnapshot?.policy.document.procedure === 'DECLARED_ACTION_ROLL'
+  ) {
+    const captured = await input.capture({ kind: 'INITIATIVE_ROUND' })
+    if (captured.kind !== 'INITIATIVE_ROUND') throw new Error('Turn initiative is unavailable.')
+    if (
+      encounterActionUndeclared({
+        round: captured.state,
+        actorId: prepared.actor.id,
+        actionId: input.actionId
+      })
+    )
+      rejectDomain('UNDECLARED_ACTION')
+  }
   const openedAttackAction = offered
     ? evaluated.attackAction && { ...evaluated.attackAction, total: 1 }
     : evaluated.attackAction

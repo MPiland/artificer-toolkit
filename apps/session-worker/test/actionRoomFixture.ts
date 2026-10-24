@@ -452,6 +452,7 @@ export interface ActionRoomConfig extends Pick<
   | 'seed'
   | 'pinSpells'
   | 'status'
+  | 'initiativePolicy'
   | 'campaignClockMinute'
 > {
   /** The Run's actors, side by side 100 px apart from the first, which is the acting (current) actor. */

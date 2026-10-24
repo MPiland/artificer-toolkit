@@ -25,10 +25,14 @@ export type LockedEncounterInitiativeSideFactSource = {
 export interface InitiativeFactAdapter {
   gameSystemId: string
   bindActor(source: InitiativeActorFactSource): InitiativeFactBinding
-  /** Binds already-persisted declaration facts; the application never derives System arithmetic. */
+  /**
+   * Binds already-persisted declaration facts and the modifier the frozen policy's authored
+   * declaration modifiers give them.
+   */
   bindDeclaredActor(
     source: InitiativeActorFactSource,
-    declaration: InitiativeDeclarationFactsDto
+    declaration: InitiativeDeclarationFactsDto,
+    declaredModifier: number
   ): InitiativeFactBinding
   bindSide(source: LockedEncounterInitiativeSideFactSource): InitiativeFactBinding
   /** The roll mode a two-die declared initiative settled under, read from its graph facts; null when they record none. */

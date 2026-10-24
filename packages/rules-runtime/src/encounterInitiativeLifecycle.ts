@@ -344,6 +344,7 @@ export async function startEncounterInitiativeLifecycle(input: {
   })
   const entities = createEncounterInitiativeScoreEntities({
     state: input.state,
+    policy: input.snapshot.policy.document,
     sources: input.sources,
     adapter: input.adapter
   })
@@ -404,6 +405,7 @@ export async function resumeEncounterInitiativeLifecycle(input: {
   const procedure = requirePolicyContext(input)
   const entities = createEncounterInitiativeScoreEntities({
     state: input.state,
+    policy: input.snapshot.policy.document,
     sources: input.sources,
     adapter: input.adapter
   })

@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 
 import { ruleCapabilityKeyDtoSchema, ruleGraphPortNameDtoSchema } from '../api/rulesRuntime.js'
+import { equipmentPropertyCodeSchema, sizeCodeSchema } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
 const serverUuidIdentityDtoSchema = lazySchema(() =>
@@ -84,38 +85,85 @@ export const initiativePolicyOrderChoiceGraphPinDtoSchema = lazySchema(() =>
     )
 )
 
+const declarationModifierSchema = lazySchema(() =>
+  z.number().check(z.int()).check(z.gte(-100)).check(z.lte(100))
+)
+
+function uniqueBy<T>(key: (value: T) => string, message: string) {
+  return z.superRefine<T[]>((values, context) => {
+    const seen = new Set<string>()
+    for (const [index, value] of values.entries()) {
+      if (seen.has(key(value))) context.addIssue({ code: 'custom', path: [index], message })
+      seen.add(key(value))
+    }
+  })
+}
+
+/**
+ * The authored numbers a declared-action initiative policy adds to each actor's
+ * roll: one modifier for the actor's size, each factor at most once when the
+ * declared action's equipment carries every property of one of its sets (or a
+ * GM picks it), and the highest declared spell level times `modifierPerLevel`.
+ */
+export const initiativeDeclarationModifiersDtoSchema = lazySchema(() =>
+  z.strictObject({
+    sizes: z
+      .array(z.strictObject({ size: sizeCodeSchema, modifier: declarationModifierSchema }))
+      .check(z.minLength(1))
+      .check(z.maxLength(16))
+      .check(uniqueBy(({ size }) => size, 'Declared initiative sizes must be unique.')),
+    factors: z
+      .array(
+        z.strictObject({
+          id: serverUuidIdentityDtoSchema,
+          label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+          equipmentPropertySets: z
+            .array(z.array(equipmentPropertyCodeSchema).check(z.minLength(1)).check(z.maxLength(8)))
+            .check(z.minLength(1))
+            .check(z.maxLength(8)),
+          modifier: declarationModifierSchema
+        })
+      )
+      .check(z.maxLength(32))
+      .check(uniqueBy(({ id }) => id, 'Declared initiative factor IDs must be unique.')),
+    spellLevel: z.strictObject({ modifierPerLevel: declarationModifierSchema })
+  })
+)
+
+const initiativePolicyDocumentBaseDtoSchema = lazySchema(() =>
+  z.strictObject({
+    schemaVersion: z.literal(1),
+    kind: z.literal('INITIATIVE_POLICY'),
+    id: serverUuidIdentityDtoSchema,
+    gameSystemId: serverUuidIdentityDtoSchema,
+    cadence: initiativeCadenceDtoSchema,
+    evaluationGraph: initiativePolicyGraphPinDtoSchema,
+    orderChoiceGraph: initiativePolicyOrderChoiceGraphPinDtoSchema,
+    tieResolvers: z
+      .array(initiativePolicyTieResolverPinDtoSchema)
+      .check(z.minLength(1))
+      .check(z.maxLength(8))
+      .check(
+        uniqueBy(
+          ({ definitionId }) => definitionId,
+          'Initiative tie resolver definition IDs must be unique.'
+        )
+      ),
+    defaultTieResolverDefinitionId: serverUuidIdentityDtoSchema
+  })
+)
+
 export const initiativePolicyReusableDefinitionDocumentDtoSchema = lazySchema(() =>
   z
-    .strictObject({
-      schemaVersion: z.literal(1),
-      kind: z.literal('INITIATIVE_POLICY'),
-      id: serverUuidIdentityDtoSchema,
-      gameSystemId: serverUuidIdentityDtoSchema,
-      procedure: initiativeProcedureDtoSchema,
-      cadence: initiativeCadenceDtoSchema,
-      evaluationGraph: initiativePolicyGraphPinDtoSchema,
-      orderChoiceGraph: initiativePolicyOrderChoiceGraphPinDtoSchema,
-      tieResolvers: z
-        .array(initiativePolicyTieResolverPinDtoSchema)
-        .check(z.minLength(1))
-        .check(z.maxLength(8))
-        .check(
-          z.superRefine((pins, context) => {
-            const ids = new Set<string>()
-            for (const [index, pin] of pins.entries()) {
-              if (ids.has(pin.definitionId)) {
-                context.addIssue({
-                  code: 'custom',
-                  path: [index, 'definitionId'],
-                  message: 'Initiative tie resolver definition IDs must be unique.'
-                })
-              }
-              ids.add(pin.definitionId)
-            }
-          })
-        ),
-      defaultTieResolverDefinitionId: serverUuidIdentityDtoSchema
-    })
+    .discriminatedUnion('procedure', [
+      z.extend(initiativePolicyDocumentBaseDtoSchema, {
+        procedure: z.enum(['ACTOR_ROLL', 'ACTOR_SCORE', 'SIDE_ROLL'])
+      }),
+      z.extend(initiativePolicyDocumentBaseDtoSchema, {
+        procedure: z.literal('DECLARED_ACTION_ROLL'),
+        declarationModifiers: initiativeDeclarationModifiersDtoSchema
+      })
+    ])
     .check(
       z.superRefine((document, context) => {
         if (
@@ -157,6 +205,9 @@ export type InitiativePolicyTieResolverPinDto = z.infer<
 >
 export type InitiativePolicyOrderChoiceGraphPinDto = z.infer<
   typeof initiativePolicyOrderChoiceGraphPinDtoSchema
+>
+export type InitiativeDeclarationModifiersDto = z.infer<
+  typeof initiativeDeclarationModifiersDtoSchema
 >
 export type InitiativePolicyReusableDefinitionDocumentDto = z.infer<
   typeof initiativePolicyReusableDefinitionDocumentDtoSchema
