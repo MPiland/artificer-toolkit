@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { characterSavingThrowDefinitionsSchema } from '@artificer-toolkit/schema/api/characterRules'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type { EncounterRunCharacterActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
 import { halfRedDragonVeteran } from '@artificer-toolkit/source-data/srd/creatures/half-red-dragon-veteran.js'
 import {
@@ -77,9 +79,14 @@ async function fighterInForm(retainsProficiencies: boolean, formEffect = true) {
   }
   const sheetActor = characterActor({ id: ACTOR_ID, characterId: fixture.character.id })
   const creature = srdCreatureActor({ id: testUuid(0x2d5), creature: VETERAN })
-  if (sheetActor.kind !== 'CHARACTER' || !creature.sourceId || !creature.sourceRevision)
+  if (
+    sheetActor.kind !== 'CHARACTER' ||
+    creature.kind !== 'CREATURE' ||
+    !creature.sourceId ||
+    !creature.sourceRevision
+  )
     throw new Error('Expected a Character and an installed Creature.')
-  const actor = {
+  const actor: EncounterRunCharacterActorState = {
     ...sheetActor,
     form: {
       effectId: FORM_EFFECT_ID,
@@ -107,7 +114,10 @@ async function fighterInForm(retainsProficiencies: boolean, formEffect = true) {
       }
     ]
   })
-  const target = (effects: ActiveRuleEffectRecord[], wearer = actor) =>
+  const target = (
+    effects: ActiveRuleEffectRecord[],
+    wearer: EncounterRunCharacterActorState = actor
+  ) =>
     buildMovementTarget({
       actor: wearer,
       activeEffects: effects,
@@ -143,7 +153,13 @@ describe('a Character in a form that replaces its proficiencies uses the stat bl
   it("rolls an effect's save with the form's save rows", async () => {
     const { build, statBlock } = await fighterInForm(false)
     const target = build()
-    expect(strengthSave(target.targetDerivedFacts.savingThrowDefinitions ?? [])).toBe(3)
+    expect(
+      strengthSave(
+        characterSavingThrowDefinitionsSchema.parse(
+          target.targetDerivedFacts.savingThrowDefinitions
+        )
+      )
+    ).toBe(3)
     expect(target.targetDerivedFacts.savingThrowDefinitions).toEqual(
       statBlock.targetDerivedFacts.savingThrowDefinitions
     )
