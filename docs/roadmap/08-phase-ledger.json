@@ -10744,7 +10744,7 @@
             },
             {
               "id": "SPELLS-4.T2m2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 3,
@@ -10754,7 +10754,8 @@
                 "after": ["SPELLS-4.T2m2"]
               },
               "text": "Bug: the SRD Net attack does not compile (both actions REFUSED in srdEffectCompile.golden.txt, \"D&D test action outcome is not supported\"), so no room offers a Net. Make it compile from core options (attack, Restrained on a hit, the DC 10 Strength check or 5 slashing to free); proofs: a regression row, a parity proof, and a room proof that Freedom of Movement does not block a net (non-MAGICAL source).",
-              "note": "Registered 2026-10-24 under the D187 bug exception, found by SPELLS-4.T2m2."
+              "note": "Registered 2026-10-24 under the D187 bug exception, found by SPELLS-4.T2m2.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2m3",
@@ -11142,7 +11143,7 @@
               "proof": "Tests and Live green on tip 4ffe12d71; Spiritual Weapon conjures an owned actor whose bonus-action spell attack repeats through the stored REPEAT_SOURCE_PATH offer with damage frozen at cast (D166); repeated Effects resolve through resolveDnd5eActionMechanic and never yield a cast action; the initiative cohort is the Run's unowned actors with one home in validateInitiativeCursor (D190a); fixes for area output scope over conjured creatures, sibling-effect cast level and stableActors order; proofs encounterInitiativeCursor.test.ts, initiativeCorrection.test.ts, encounterRepeatPathAction.test.ts, bonusActionWeaponAttackCompile.test.ts, characterSpellCastActions.test.ts, spellCastLevels.test.ts, coreOptionSpellAuthoringParity.test.ts, nativeRoomCoreOptionSpells.test.ts and authored-length-amount-bounds.test.ts."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2v2b",
               "wsjf": {
@@ -11153,10 +11154,11 @@
                 "after": ["SPELLS-4.T2v2a3d"]
               },
               "text": "D187b: convert Arcane Hand and Mage Hand to SUMMON actors on the T2v2a summon piece (stat block on the spell, owner control, removed when the spell ends), each with a parity proof and a room test. Riders with no automated equivalent stay GM rulings (D187a).",
-              "note": "Registered 2026-10-23 at the user's yes (D187b split)."
+              "note": "Registered 2026-10-23 at the user's yes (D187b split).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2w",
               "wsjf": {
@@ -11167,7 +11169,8 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2v", "SPELLS-4.T2v2a3d"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted.",
-              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b: Faithful Hound builds on the T2v2 summon token."
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b: Faithful Hound builds on the T2v2 summon token.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T1k",
@@ -11733,7 +11736,7 @@
             {
               "id": "SPELLS-8.T7",
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Multi-Effect spells (Arcane Sword, Faithful Hound, Grease, Spiritual Weapon) cast in an Encounter.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 5,
@@ -11742,7 +11745,8 @@
                 "size": 2,
                 "after": ["SPELLS-8.T1"]
               },
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-8.T8",
@@ -15280,7 +15284,7 @@
             },
             {
               "id": "SPELLS-33.T4s2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15290,7 +15294,8 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: lycanthrope and vampire shapechanging, Misty Escape (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4s3",
