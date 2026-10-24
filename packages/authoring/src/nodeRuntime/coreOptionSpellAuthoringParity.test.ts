@@ -20,6 +20,7 @@ import { sequester } from '@artificer-toolkit/source-data/srd/spells/sequester.j
 import { reincarnate } from '@artificer-toolkit/source-data/srd/spells/reincarnate.js'
 import { revivify } from '@artificer-toolkit/source-data/srd/spells/revivify.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
+import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
 import { trueResurrection } from '@artificer-toolkit/source-data/srd/spells/true-resurrection.js'
 import { trueStrike } from '@artificer-toolkit/source-data/srd/spells/true-strike.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -30,8 +31,8 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
-/** D156 T2a3, T2a4, T2e, T2g1, T2k1 and T2n1: spells converted from closed rules to core options (ADR 0038 parity). */
-describe('spells authored from core options through the effect node map (SPELLS-4.T2a3, T2a4, T2e, T2g1, T2k1, T2n1)', () => {
+/** D156 T2a3, T2a4, T2e, T2g1, T2k1, T2n1 and T2v2a3d: spells converted from closed rules to core options (ADR 0038 parity). */
+describe('spells authored from core options through the effect node map (SPELLS-4.T2a3, T2a4, T2e, T2g1, T2k1, T2n1, T2v2a3d)', () => {
   it.each([
     ['Beacon of Hope', beaconOfHope],
     ['Blur', blur],
@@ -52,7 +53,8 @@ describe('spells authored from core options through the effect node map (SPELLS-
     ['True Strike', trueStrike],
     ['Revivify', revivify],
     ['Reincarnate', reincarnate],
-    ['True Resurrection', trueResurrection]
+    ['True Resurrection', trueResurrection],
+    ['Spiritual Weapon', spiritualWeapon]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }
     const result = await normalizeNodeRuntimeValues(reader, {

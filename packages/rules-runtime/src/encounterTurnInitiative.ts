@@ -210,7 +210,7 @@ export async function prepareEncounterTurnInitiative(input: {
         : createStagedInitiativeRoundState({
             encounter: {
               ...state,
-              actors: actors.map((actor) => ({ id: actor.id, sideId: actor.sideId }))
+              actors: actors.map(({ id, sideId, owner }) => ({ id, sideId, owner }))
             },
             round
           })

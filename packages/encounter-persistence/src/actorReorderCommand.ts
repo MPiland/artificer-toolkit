@@ -22,7 +22,10 @@ import {
 } from './replayReceipts.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
-import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
+import {
+  takesInitiativeTurns,
+  validateInitiativeCursor
+} from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 import { rejectDomain } from './domainRejections.js'
@@ -98,7 +101,10 @@ export async function reorderEncounterActors(
   const state = readRunState(row)
   const actors = await readRunActors(ctx, state)
   const requested = [...input.actorIds].sort()
-  const expected = [...state.actorIds].sort()
+  const expected = actors
+    .filter(takesInitiativeTurns)
+    .map((actor) => actor.id)
+    .sort()
   if (
     requested.length !== expected.length ||
     new Set(requested).size !== expected.length ||
@@ -127,7 +133,7 @@ export async function reorderEncounterActors(
     validateInitiativeCursor({
       state: current,
       currentActorId: state.currentActorId,
-      actorIds: state.actorIds,
+      actors,
       allowedSideIds: state.sides.map((side) => side.id)
     })
     const ordered = [...current.participants].sort(
@@ -166,7 +172,7 @@ export async function reorderEncounterActors(
     validateInitiativeCursor({
       state: initiative,
       currentActorId: state.currentActorId,
-      actorIds: input.actorIds,
+      actors,
       allowedSideIds: state.sides.map((side) => side.id)
     })
     const round = await ctx.db

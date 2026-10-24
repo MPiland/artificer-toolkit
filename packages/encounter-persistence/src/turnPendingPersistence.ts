@@ -129,7 +129,7 @@ export async function persistEncounterTurnPending(
     validateInitiativeCursor({
       state: normalized,
       currentActorId: state.currentActorId,
-      actorIds: state.actorIds,
+      actors,
       allowedSideIds: state.sides.map((side) => side.id)
     })
     const advance = root.initiativeAdvance

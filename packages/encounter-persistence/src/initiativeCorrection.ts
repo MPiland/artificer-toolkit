@@ -50,7 +50,7 @@ export async function correctInitiativeCursor(input: {
   validateInitiativeCursor({
     state: source,
     currentActorId: input.sourceCurrentActorId,
-    actorIds: actors.map((actor) => actor.id),
+    actors,
     allowedSideIds: runState.sides.map((side) => side.id)
   })
   if (currentActorId !== null && !actorSides.has(currentActorId))
@@ -166,7 +166,7 @@ export async function correctInitiativeCursor(input: {
   validateInitiativeCursor({
     state: corrected,
     currentActorId,
-    actorIds: actors.map((actor) => actor.id),
+    actors,
     allowedSideIds: runState.sides.map((side) => side.id)
   })
   if (target) {

@@ -159,12 +159,6 @@ export function isSupportedTestTargetPolicy(action: Dnd5eCompiledEffectActionSou
   )
 }
 
-/** An attack with a weapon or without one (an off-hand attack, a Martial Arts strike), not a spell attack. */
-function isWeaponOrUnarmedAttack(triggerCode: string): boolean {
-  const kind = dnd5eAttackKind(triggerCode)
-  return kind === 'MELEE' || kind === 'RANGED' || kind === 'UNARMED'
-}
-
 export function isSupportedTestActivation(
   invocation: Dnd5eCompiledEffectActionSource['compiledEffect']['invocation']
 ): boolean {
@@ -172,10 +166,11 @@ export function isSupportedTestActivation(
   if (invocation.activation.code === 'FREE') return isChargedFreeActivation(invocation)
   if (invocation.activation.amount !== 1) return false
   if (invocation.activation.code === 'ACTION') return true
-  // A save is a bonus action only as a repeat offer's charge (Heat Metal's repeated damage, D166).
+  // A save or spell attack is a bonus action as a repeat offer's charge (Heat Metal's repeated
+  // damage, D166; Spiritual Weapon's attack, D190a).
   if (invocation.activation.code === 'BONUS_ACTION')
     return (
-      isWeaponOrUnarmedAttack(invocation.triggerCode) || invocation.triggerCode === 'SAVING_THROW'
+      dnd5eAttackKind(invocation.triggerCode) !== null || invocation.triggerCode === 'SAVING_THROW'
     )
   return (
     invocation.activation.code === 'REACTION' &&

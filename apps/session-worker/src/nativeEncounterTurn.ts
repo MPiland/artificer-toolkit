@@ -221,7 +221,7 @@ export async function planNativeLiveEncounterTurn(
     validateInitiativeCursor({
       state: normalized,
       currentActorId: state.currentActorId,
-      actorIds: state.actorIds,
+      actors,
       allowedSideIds: state.sides.map((side) => side.id)
     })
     root = {

@@ -1,4 +1,5 @@
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
+import { castMechanicsOf } from './character/characterNativeActionResources.js'
 import { isInstalledSpellAttackTrigger } from './platformRulesRuntime.js'
 
 /**
@@ -30,6 +31,27 @@ export function preparedSpellAttackBonus(
   return prepared.source.kind === 'CHARACTER_ACTION'
     ? prepared.source.effectivePolicyOutput.derivedStats.spellcasting?.attackBonus.effective
     : undefined
+}
+
+/**
+ * The damage each outcome of the Effects a Character's cast offers to repeat resolves to, by outcome
+ * id: the cast freezes them into those offers, so a repeat's ability bonus is the one the caster had
+ * (D166).
+ */
+export function preparedSpellDamageExpressions(
+  prepared: Pick<Awaited<ReturnType<typeof prepareEncounterActionMechanics>>, 'source'>
+): Readonly<Record<string, string>> {
+  if (prepared.source.kind !== 'CHARACTER_ACTION') return {}
+  const cast = castMechanicsOf(prepared.source.effectivePolicyOutput, prepared.source.candidate)
+  return Object.fromEntries(
+    (cast?.repeatMechanics ?? []).flatMap(({ outcomes }) =>
+      outcomes.flatMap((outcome) =>
+        outcome.kind === 'DAMAGE' && outcome.outcomeId !== undefined
+          ? [[outcome.outcomeId, outcome.diceExpression]]
+          : []
+      )
+    )
+  )
 }
 
 /**

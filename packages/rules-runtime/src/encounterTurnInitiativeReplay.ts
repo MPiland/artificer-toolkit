@@ -94,13 +94,13 @@ export async function restoreEncounterInitiativeTurnActors<
   const normalized = await input.readInitiativeRound()
   if (!normalized || !state.currentActorId)
     throw new Error('The normalized initiative round is unavailable.')
+  const actors = await input.readActors()
   validateInitiativeCursor({
     state: normalized,
     currentActorId: state.currentActorId,
-    actorIds: state.actorIds,
+    actors,
     allowedSideIds: state.sides.map((side) => side.id)
   })
-  const actors = await input.readActors()
   const turnRoot: TurnCoordinatorRootDto = {
     rootCommandId: root.rootCommandId,
     commandFingerprint: root.commandFingerprint,

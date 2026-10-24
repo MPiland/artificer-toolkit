@@ -67,11 +67,10 @@ export async function insertReinforcementInitiative(input: {
   validateInitiativeCursor({
     state: current,
     currentActorId: input.state.currentActorId,
-    actorIds: input.state.actorIds,
+    actors: input.actors,
     allowedSideIds: input.state.sides.map((side) => side.id)
   })
 
-  const actorIds = [...input.state.actorIds, input.actor.id]
   const allActors = [...input.actors, input.actor]
   const actorById = new Map(allActors.map((actor) => [actor.id, actor]))
   const isSideRoll = current.round.procedure === 'SIDE_ROLL'
@@ -303,7 +302,7 @@ export async function insertReinforcementInitiative(input: {
   validateInitiativeCursor({
     state: result,
     currentActorId: input.state.currentActorId,
-    actorIds,
+    actors: allActors,
     allowedSideIds: input.state.sides.map((side) => side.id)
   })
   const roundRow = await input.ctx.db

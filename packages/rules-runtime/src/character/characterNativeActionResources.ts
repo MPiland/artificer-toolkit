@@ -33,6 +33,24 @@ type NativeCharacterActionMechanic = Omit<
   selectedOptionalRiderIds?: readonly string[]
 }
 
+/** The resolved mechanics of the spell cast a Character action makes; undefined for any other action. */
+export function castMechanicsOf(
+  policyOutput: Pick<CharacterRulePolicyOutput, 'spellCastMechanics'>,
+  candidate: Pick<CharacterActionCandidate, 'actionId' | 'effectId' | 'mechanicsOwner'>
+) {
+  return candidate.mechanicsOwner.kind === 'SPELL'
+    ? policyOutput.spellCastMechanics.find(castActionNames(candidate))
+    : undefined
+}
+
+/** A spell cast's action id is a digest of its cast candidate's id, so the id names the candidate. */
+function castActionNames(candidate: Pick<CharacterActionCandidate, 'actionId' | 'effectId'>) {
+  return (value: { candidateId: string }) =>
+    [undefined, candidate.effectId].some(
+      (laterEffectId) => spellCastActionId(value.candidateId, laterEffectId) === candidate.actionId
+    )
+}
+
 type ActionIdentity = Pick<
   CharacterActionCandidate,
   'actionId' | 'effectId' | 'sourceId' | 'source'
@@ -294,16 +312,9 @@ export function prepareNativeCharacterActionState(input: {
       )?.mechanic ?? stale())
     : decision.mechanic
   const savingThrow = input.candidate.mechanicFacts.invocation.savingThrow
-  // A spell cast's action id is a digest of its cast candidate's id, so the id names the candidate.
   const isSpellCast = input.candidate.mechanicsOwner.kind === 'SPELL'
-  const namesCast = (value: { candidateId: string }) =>
-    [undefined, input.candidate.effectId].some(
-      (laterEffectId) =>
-        spellCastActionId(value.candidateId, laterEffectId) === input.candidate.actionId
-    )
-  const spellCastLevel = isSpellCast
-    ? input.policyOutput.spellCastMechanics.find(namesCast)?.castLevel
-    : undefined
+  const namesCast = castActionNames(input.candidate)
+  const spellCastLevel = castMechanicsOf(input.policyOutput, input.candidate)?.castLevel
   const actionMechanic: NativeCharacterActionMechanic = {
     ...baseMechanic,
     ...(spellCastLevel === undefined ? {} : { spellCastLevel }),

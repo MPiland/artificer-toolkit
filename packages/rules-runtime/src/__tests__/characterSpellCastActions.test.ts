@@ -31,6 +31,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
+import { buildCharacterSpellActionRuleFacts } from '../character/characterSpellActionRuleFacts.js'
 import { activeEffectEndsOnRest } from '../character/sheetRest.js'
 import {
   buildCharacterSpellCastActions,
@@ -3010,6 +3011,76 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
     })
     // The spell is not Concentration: it lasts its minute.
     expect(cast?.summonPlacement?.entry.maintenance).toBeNull()
+  })
+
+  describe('the Effect Spiritual Weapon’s offer repeats (SPELLS-4.T2v2a3d)', () => {
+    const attack = SPIRITUAL_WEAPON.effects?.[1]
+    const casts = [2, 4].map((level, sequence) => candidate(SPIRITUAL_WEAPON, level, { sequence }))
+    const { spellActionFacts } = buildCharacterSpellActionRuleFacts({
+      spellIds: [SPIRITUAL_WEAPON.id],
+      spells: [compileSpell(SPIRITUAL_WEAPON)]
+    })
+    // A +5 spell attack bonus at proficiency +2 is a +3 spellcasting modifier.
+    const evaluated = evaluateDnd5e2014CharacterActions({
+      candidates: [],
+      abilityDefinitions: [],
+      spellCandidates: casts,
+      spellSlots: [],
+      spellEffects: spellActionFacts,
+      spellMechanics: [{ source: casts[0]!.source, attackBonus: 5, saveDc: 13, damageBonus: 0 }],
+      spellcastingLocked: false,
+      proficiencies: [],
+      itemAdjustments: [],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: [],
+      resources: [],
+      modifierGroups: [],
+      totalLevel: 3,
+      classLevels: [],
+      proficiencyBonus: 2,
+      abilities: [],
+      skills: [],
+      spellcasting: null
+    })
+
+    it('is kept apart from the castable Effects, and only the Effect an offer names is kept', () => {
+      expect(spellActionFacts).toEqual([
+        expect.objectContaining({
+          effects: [expect.objectContaining({ effectId: SPIRITUAL_WEAPON.effects?.[0]?.id })],
+          repeatedEffects: [expect.objectContaining({ effectId: attack?.id })]
+        })
+      ])
+      const {
+        spellActionFacts: [fireball]
+      } = buildCharacterSpellActionRuleFacts({
+        spellIds: [FIREBALL.id],
+        spells: [compileSpell(FIREBALL)]
+      })
+      expect(fireball).not.toHaveProperty('repeatedEffects')
+    })
+
+    it('is resolved with each cast, at its level and with the caster’s spellcasting modifier', () => {
+      expect(
+        evaluated.spellCastMechanics.map(({ repeatMechanics }) =>
+          repeatMechanics?.flatMap(({ outcomes }) =>
+            outcomes.map((outcome) => outcome.kind === 'DAMAGE' && outcome.diceExpression)
+          )
+        )
+      ).toEqual([['1d8 + 3'], ['2d8 + 3']])
+    })
+
+    it('makes no cast action of its own', () => {
+      const built = build(casts, {
+        policyOutput: {
+          ...policyFor(casts, authoredById),
+          spellCastMechanics: evaluated.spellCastMechanics
+        }
+      })
+      expect(built.candidates.map((entry) => entry.actionId)).toEqual(
+        casts.map((cast) => spellCastActionId(cast.candidateId))
+      )
+      expect(built.candidates.map((entry) => entry.effectId)).not.toContain(attack?.id)
+    })
   })
 
   it('leaves Mage Hand to the GM until its stat block is modelled', () => {

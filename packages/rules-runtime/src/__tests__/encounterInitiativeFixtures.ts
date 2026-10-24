@@ -26,7 +26,7 @@ export const SIDE_FOES = '00000000-0000-4000-8000-0000000005a2'
 
 /** The staged PREPARING round Encounter start or a new round creates for these actors. */
 export function preparingRound(input: {
-  actors: readonly { id: string; sideId: string }[]
+  actors: readonly { id: string; sideId: string; owner?: { ownerActorId: string } }[]
   round?: number
   policy?: { snapshot: EncounterInitiativePolicySnapshotDto; checksum: string }
 }): EncounterInitiativeRoundStateDto {

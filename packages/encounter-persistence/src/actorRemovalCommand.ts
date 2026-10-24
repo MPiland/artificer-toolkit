@@ -421,6 +421,7 @@ async function removeEncounterActorCore(
   const initiative = await removeActorInitiative(
     ctx,
     state,
+    actors,
     input.actorId,
     now,
     absentCharacter !== null

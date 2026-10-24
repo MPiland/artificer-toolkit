@@ -78,7 +78,7 @@ export async function readNativeTurnSettlement(input: {
     validateInitiativeCursor({
       state: original,
       currentActorId: state.currentActorId,
-      actorIds: state.actorIds,
+      actors: durableActors,
       allowedSideIds: state.sides.map((side) => side.id)
     })
     // The room may also skip actors its turn transition defeats; the commit checks them (D63).
@@ -124,7 +124,7 @@ export async function readNativeTurnSettlement(input: {
     validateInitiativeCursor({
       state: hydrateStagedState(staged.stagedRoundState),
       currentActorId: root.proposedTerminalTransition.currentActorId,
-      actorIds: state.actorIds,
+      actors: durableActors,
       allowedSideIds: state.sides.map((side) => side.id)
     })
     // The room opens the round past actors defeated by then (D63), so it may skip the first ones.

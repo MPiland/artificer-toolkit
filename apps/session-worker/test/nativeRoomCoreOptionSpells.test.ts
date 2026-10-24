@@ -770,7 +770,8 @@ describe('room Spiritual Weapon (SPELLS-4.T2v2a3d)', () => {
   /** The Character, who prepares the spell, then a Wolf. Each attack hits; every damage die shows 1. */
   const weaponRoom = () =>
     actionRoom({
-      rolls: [18, 18],
+      // Each attack's d20, then its d8.
+      rolls: [18, 0, 18],
       fallbackRoll: 0,
       actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
       characterPlay: { classLevel: 5 },
@@ -820,7 +821,8 @@ describe('room Spiritual Weapon (SPELLS-4.T2v2a3d)', () => {
     const [offer] = (await room.actionChoices()).effectOffers
     expect(offer).toMatchObject({ originActorId: weapon.actor.id })
 
-    expect(await attackThrough(room, 'FREE')).toEqual([[4, damageTypeId('FORCE')]])
+    // 1 on the d8 plus the caster's +1 spellcasting modifier.
+    expect(await attackThrough(room, 'FREE')).toEqual([[2, damageTypeId('FORCE')]])
     // The Bonus Action the cast spent pays for any second attack this turn.
     const [charged] = (await room.actionChoices()).effectOffers
     expect(charged).toMatchObject({ activation: 'BONUS_ACTION' })
@@ -836,7 +838,7 @@ describe('room Spiritual Weapon (SPELLS-4.T2v2a3d)', () => {
       weapon.tokenId
     )
     expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
-    expect(await attackThrough(room, 'BONUS_ACTION')).toEqual([[4, damageTypeId('FORCE')]])
+    expect(await attackThrough(room, 'BONUS_ACTION')).toEqual([[2, damageTypeId('FORCE')]])
 
     // One minute is 10 rounds of the caster and the Wolf; the second turn above is round 2.
     for (let turn = 0; turn < 18; turn++) await room.advanceTurn()

@@ -4,6 +4,7 @@ import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
 import { huntersMark } from '@artificer-toolkit/source-data/srd/spells/hunters-mark.js'
+import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
 import { vampiricTouch } from '@artificer-toolkit/source-data/srd/spells/vampiric-touch.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
@@ -231,6 +232,44 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
     expect(resolve(7).attackMechanic).toEqual({ attackBonus: 7, rollMode: 'NORMAL' })
     expect(featureActionMechanic(resolve(7))).toMatchObject({ attackBonus: 7 })
     expect(resolve().attackMechanic).toBeNull()
+  })
+
+  it('resolves its damage with the ability bonus its cast froze, whatever the caster has now (SPELLS-4.T2v2a3d)', () => {
+    const input = { actor: caster, gameSystemId: DND5E_SYSTEM_ID, system, spells: new Map() }
+    const offer = compiledOffer(spiritualWeapon)
+    const [damage] = compileEffect(offer.effect).entries.flatMap((entry) =>
+      'outcome' in entry && entry.outcome.effectKind === 'DAMAGE' ? [entry.outcome.id] : []
+    )
+    if (!damage) throw new Error('Spiritual Weapon must repeat a damage outcome.')
+    const outcomes = (damageExpressions?: Record<string, string>) => {
+      const source = resolveEncounterActionSource({
+        ...input,
+        actionId,
+        repeat: {
+          ...LATER_TURN,
+          effectsByHolder: new Map([
+            [
+              HOLDER_ID,
+              [
+                heldCarrier({
+                  ...offer,
+                  attackBonus: 7,
+                  ...(damageExpressions && { damageExpressions })
+                })
+              ]
+            ]
+          ])
+        }
+      })
+      if (source.kind !== 'REPEAT_PATH') throw new Error('The id must resolve to a repeat.')
+      return featureActionMechanic(source.capability).outcomes
+    }
+
+    // The Ogre making the repeat has no spellcasting modifier; the +3 is the one its cast had.
+    expect(outcomes({ [damage]: '1d8 + 3' })).toEqual([
+      expect.objectContaining({ kind: 'DAMAGE', outcomeId: damage, diceExpression: '1d8 + 3' })
+    ])
+    expect(outcomes()).toEqual([expect.not.objectContaining({ diceExpression: expect.anything() })])
   })
 
   describe('the creature its range is measured from (SPELLS-4.T2v2a3a)', () => {
