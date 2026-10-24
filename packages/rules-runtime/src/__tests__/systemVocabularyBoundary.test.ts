@@ -5,6 +5,9 @@ import { describe, expect, it } from 'vitest'
 import { combatPerceptionIlluminationDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
+
 /**
  * RULES-2.T9o (ADR 0038): a System's vocabulary is authored data. No production file outside
  * `source-data` holds a list of vocabulary codes or compares a code from the System record to a
@@ -73,11 +76,16 @@ const SYSTEM_MODULE = /packages[\\/]rules-runtime[\\/]src[\\/]systems[\\/]/
 
 /**
  * RULES-2.T9e: which ability a derived statistic adds, and which speed is a creature's walk, are
- * System data (`derivedStatisticAbilityCodes`, `defaults`). Outside a System module, no value is
- * compared to an ability or speed code, whatever the compared variable is named.
+ * System data (`derivedStatisticAbilityCodes`, `defaults`). RULES-2.T9g: a spell slot pool's code,
+ * label and rest recovery are System core codes (`spellSlotPool`). Outside a System module, no value
+ * is compared to an ability, speed or spell slot pool code, whatever the compared variable is named.
  */
-const statisticCodes = new Set(
-  [...srdSystemRecord.abilities, ...srdSystemRecord.speeds].map(({ code }) => code)
+const systemOwnedCodes = new Set(
+  [
+    ...srdSystemRecord.abilities,
+    ...srdSystemRecord.speeds,
+    ...systemCoreCodeRegistry.entries(DND5E_SYSTEM_ID, 'spellSlotPool')
+  ].map(({ code }) => code)
 )
 const comparedBeforeLiteral = /[!=]==?\s*(['"`])([A-Z][A-Z0-9_]*)\1/g
 const literalBeforeCompared = /(['"`])([A-Z][A-Z0-9_]*)\1\s*[!=]==?/g
@@ -100,7 +108,7 @@ function violations(source: string, path = ''): string[] {
       ...source.matchAll(comparedBeforeLiteral),
       ...source.matchAll(literalBeforeCompared)
     ])
-      if (statisticCodes.has(match[2]!) && !found.includes(`compares code ${match[2]}`))
+      if (systemOwnedCodes.has(match[2]!) && !found.includes(`compares code ${match[2]}`))
         found.push(`compares ${match[2]}`)
   for (const [list] of source.matchAll(quotedList)) {
     const members = [...list.matchAll(/['"]([A-Z][A-Z0-9_]*)['"]/g)].map((member) => member[1]!)
@@ -143,6 +151,14 @@ describe('System vocabulary boundary (RULES-2.T9o)', () => {
       violations(comparison, 'packages/rules-runtime/src/systems/dnd5e/armorClass.ts')
     ).toEqual([])
     expect(violations("kind === 'ARMOR'")).toEqual([])
+  })
+
+  it('detects a spell slot pool comparison outside a System module (RULES-2.T9g)', () => {
+    const comparison = "if (slotKey === 'PACT') resetOnShortRest()"
+    expect(violations(comparison)).toEqual(['compares PACT'])
+    expect(
+      violations(comparison, 'packages/rules-runtime/src/systems/dnd5e/characterSpellSlots.ts')
+    ).toEqual([])
   })
 
   it('keeps production files free of vocabulary lists and code comparisons', () => {
