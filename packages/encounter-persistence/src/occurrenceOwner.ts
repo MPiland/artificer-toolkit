@@ -81,9 +81,9 @@ export type NativeEncounterOccurrenceFacts = {
     | (Pick<PendingContext, 'kind'> & {
         contest?: { origin: { kind: string; actionKind?: string } } | null
         origin?: { kind: string; movementContinuation?: unknown }
-        /** A d20 window's check, the one whose d20 opened it. */
-        source?: { context: { kind: string } }
       })
+    /** A d20 window, with the check whose d20 opened it. */
+    | { kind: 'ENCOUNTER_D20_WINDOW'; source: { context: { kind: string } } }
     | null
   rootCommandType: string | null
   completedContest: boolean
@@ -112,7 +112,10 @@ export function classifyNativeEncounterOccurrence({
   )
     return 'CLEAVING'
   // A d20 window belongs to the check whose d20 opened it.
-  const check = context?.kind === 'ENCOUNTER_D20_WINDOW' ? context.source.context : context
+  const check =
+    context?.kind === 'ENCOUNTER_D20_WINDOW' && 'source' in context
+      ? context.source.context
+      : context
   if (check?.kind === 'ENCOUNTER_CONCEALMENT_CHECK' || check?.kind === 'ENCOUNTER_CHECK_ACTION')
     return 'BASIC_ACTION'
   if (check?.kind === 'ENCOUNTER_ESCAPE_CHECK' || rootCommandType === 'ESCAPE') return 'ESCAPE'
