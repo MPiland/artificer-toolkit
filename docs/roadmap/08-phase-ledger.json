@@ -10919,12 +10919,12 @@
               "closes": ["SPELLS-4.1"],
               "status": "IN_PROGRESS",
               "id": "SPELLS-4.T2s2",
-              "note": "Bug found in SPELLS-4.T2s (D187 freeze exception, D191), registered 2026-10-24. Resized 5 -> 7 on 2026-10-24 under the D187 bug exception: damage to a Character in any form (Wild Shape, Polymorph) was rejected in the room because the CHARACTER_MECHANICS_BATCH receipt refine demanded a Sheet stream version; foldCharacterBatch now marks form-only hit point changes and the refine reads it.",
+              "note": "Bug found in SPELLS-4.T2s (D187 freeze exception, D191), registered 2026-10-24. Resized 5 -> 8 on 2026-10-24 under the D187 bug exception: damage to a Character in any form (Wild Shape, Polymorph) was rejected in the room because the CHARACTER_MECHANICS_BATCH receipt refine demanded a Sheet stream version; foldCharacterBatch now marks form-only hit point changes and the refine reads it.",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 7,
+                "size": 8,
                 "after": ["SPELLS-4.T2s"]
               },
               "text": "Bug: a Character in a creature form rolls saves, checks and contested checks with its own proficiencies and keeps its own damage defenses; RAW Polymorph and True Polymorph use the creature stat block. Authored retainsProficiencies beside retainedAbilityDefinitionIds, frozen on the CREATURE_FORM contribution; false builds the target from the Creature path (stat-block saves, skills, defenses) while Sheet conditions, Concentration and excess damage stay on the Character. Polymorph and True Polymorph set false; Wild Shape and Shapechange keep proficiencies. Regression tests fail first, one proof per site.",
