@@ -1258,7 +1258,7 @@
 00000020-0000-0210-0084-000000000001 CHARACTER:spells Forbiddance | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0085-000000000001 CHARACTER:spells Forcecage | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0086-000000000001 CHARACTER:spells Foresight | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
-00000020-0000-0210-0087-000000000001 CHARACTER:spells Freedom of Movement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000020-0000-0210-0087-000000000001 CHARACTER:spells Freedom of Movement | SINGLE_GRAPH d028d02e7369f098c70bd34b543519cabe5afe7a1600d84724cf26e2268b3195 nodes=2 outputs=1
 00000020-0000-0210-0088-000000000001 CHARACTER:spells Freezing Sphere | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=0f2f16d69b37a4b7f4a12b6aafacfe92eb65362bf24e92c77c265eee0aab7196,ON_SAVE_SUCCESS=b81c00a9fd245cd78d1d0ef07e965bf88af654f0a3be3c9d68d3031468494e3c]
 00000020-0000-0210-0089-000000000001 CHARACTER:spells Gaseous Form | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-008a-000000000001 CHARACTER:spells Gate | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

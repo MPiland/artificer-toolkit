@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { freedomOfMovement } from '@artificer-toolkit/source-data/srd/spells/freedom-of-movement.js'
 import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   conditionTypeId,
@@ -21,7 +22,11 @@ import {
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
-import { protectionFromEvilAndGoodEffect, stoneskinEffect } from './antitoxinEffectFixture.js'
+import {
+  plannedGrantEffect,
+  protectionFromEvilAndGoodEffect,
+  stoneskinEffect
+} from './antitoxinEffectFixture.js'
 
 const HOLDER_ID = testUuid(0xd6a1)
 const WARD_ID = testUuid(0xd6a2)
@@ -79,7 +84,8 @@ describe('Protection from Evil and Good as source-qualified grants', () => {
       conditionImmunityIdsAgainstSource(
         target.conditionImmunityIds,
         target.sourceConditionImmunities,
-        { creatureTypeIds: [creatureTypeId(code)] }
+        { creatureTypeIds: [creatureTypeId(code)] },
+        null
       )
     expect([...against('FIEND')].sort()).toEqual([charmed, frightened].sort())
     expect(against('HUMANOID')).toEqual([])
@@ -88,6 +94,55 @@ describe('Protection from Evil and Good as source-qualified grants', () => {
   it('applies nothing for a holder without the spell', async () => {
     const bare = holder([])
     expect(await defend(bare)).toBe(bare)
+  })
+})
+
+describe('Freedom of Movement as a magical-source condition immunity (SPELLS-4.T2m2)', () => {
+  const paralyzed = conditionTypeId('PARALYZED')
+  const restrained = conditionTypeId('RESTRAINED')
+  const freed = () =>
+    defend(
+      holder([
+        plannedGrantEffect({
+          id: WARD_ID,
+          holderActorId: HOLDER_ID,
+          effect: freedomOfMovement.effects?.[0],
+          sourceLabel: freedomOfMovement.label
+        })
+      ])
+    )
+
+  it('holds immunity to paralyzed and restrained only against a magical source', async () => {
+    const target = await freed()
+    expect(target.conditionImmunityIds).toEqual([])
+    expect(target.sourceConditionImmunities.map(({ conditionTypeId: id }) => id).sort()).toEqual(
+      [paralyzed, restrained].sort()
+    )
+    const against = (traits: readonly 'MAGICAL'[], spellCastSystemId: string | null) =>
+      [
+        ...conditionImmunityIdsAgainstSource(
+          target.conditionImmunityIds,
+          target.sourceConditionImmunities,
+          { creatureTypeIds: [], traits },
+          spellCastSystemId
+        )
+      ].sort()
+    expect(against(['MAGICAL'], null)).toEqual([paralyzed, restrained].sort())
+    expect(against([], null)).toEqual([])
+  })
+
+  it("makes every spell cast's condition magical through the System's spell-cast traits", async () => {
+    const target = await freed()
+    expect(
+      [
+        ...conditionImmunityIdsAgainstSource(
+          target.conditionImmunityIds,
+          target.sourceConditionImmunities,
+          { creatureTypeIds: [] },
+          SRD_SYSTEM_ID
+        )
+      ].sort()
+    ).toEqual([paralyzed, restrained].sort())
   })
 })
 
