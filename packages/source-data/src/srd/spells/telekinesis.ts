@@ -70,8 +70,11 @@ export const telekinesis: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.TELEKINESIS, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'TELEKINESIS' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Resolve the Telekinetic Grip',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  'When you cast the spell, and as your action each round for the duration, choose one creature or object you can see within range. A Huge or smaller creature: make an ability check with your spellcasting ability contested by its Strength check; if you win, move it up to 30 feet in any direction, including upward, within range, and it is restrained until the end of your next turn (suspended in mid-air if lifted). An object up to 1,000 pounds: move an unattended one up to 30 feet automatically, or win the same contest to pull a worn or carried one away; you can exert fine control on it. Switching targets frees the prior target.'
               }
             ]
           }

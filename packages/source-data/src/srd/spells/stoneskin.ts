@@ -16,7 +16,8 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import {
-  nonmagicalWeaponResistanceGrants,
+  nonmagicalResistanceGrants,
+  WEAPON_DAMAGE_TYPE_CODES,
   schoolId,
   spellChildId,
   SRD_SYSTEM_ID,
@@ -76,7 +77,7 @@ export const stoneskin: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.STONESKIN, 0x212, 1),
                 effectKind: EFFECT_KIND.APPLY_GRANT,
                 grants: {
-                  modifiers: nonmagicalWeaponResistanceGrants((entry) =>
+                  modifiers: nonmagicalResistanceGrants(WEAPON_DAMAGE_TYPE_CODES, (entry) =>
                     spellChildId(SPELL_IDS.STONESKIN, 0x214, entry)
                   )
                 }
