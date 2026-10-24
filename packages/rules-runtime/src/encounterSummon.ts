@@ -7,11 +7,31 @@ import {
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 
+/** The caster's hit point maximum when the Run holds it; a Character's lives on the Sheet. */
+export function casterHitPointMaximum(caster: EncounterRunActorState): number | null {
+  return caster.kind === 'CHARACTER' ? null : caster.maxHitPoints
+}
+
+/**
+ * The hit points a summon's stat block gives it: 0 when it authors none, null when it reads a caster
+ * maximum the Run does not hold (a Character's lives on the Sheet), which the cast refuses.
+ */
+export function summonHitPoints(
+  statBlock: Pick<CompiledActionSummonPlacement['statBlock'], 'hitPoints'>,
+  casterHitPointMaximum: number | null
+): number | null {
+  const { hitPoints } = statBlock
+  return hitPoints
+    ? evaluateNumericExpr(hitPoints as NumericExpr, {
+        hitPointMaximum: casterHitPointMaximum ?? undefined
+      })
+    : 0
+}
+
 /**
  * The creature a cast summons: a Run actor owned by the caster, built from the spell's stat block,
  * and the Scene token that stands at `point`. The summon fights on the caster's side and is
- * controlled through its owner, so its own controller list is empty. Hit points the stat block
- * leaves out, or ties to a caster maximum the cast does not carry, are 0.
+ * controlled through its owner, so its own controller list is empty.
  */
 export function buildEncounterSummon(input: {
   summon: Pick<CompiledActionSummonPlacement, 'statBlock'>
@@ -26,13 +46,8 @@ export function buildEncounterSummon(input: {
   occurredAt: string
 }): LiveSessionSummonedToken {
   const { summon, caster, casterHitPointMaximum, label, point, edgeLength, occurredAt } = input
-  const { hitPoints } = summon.statBlock
-  const maxHitPoints =
-    (hitPoints &&
-      evaluateNumericExpr(hitPoints as NumericExpr, {
-        hitPointMaximum: casterHitPointMaximum ?? undefined
-      })) ||
-    0
+  const maxHitPoints = summonHitPoints(summon.statBlock, casterHitPointMaximum)
+  if (maxHitPoints === null) throw new Error("The summon's hit points need the caster's maximum.")
   const actor = encounterRunActorStateSchema.parse({
     id: crypto.randomUUID(),
     encounterId: caster.encounterId,

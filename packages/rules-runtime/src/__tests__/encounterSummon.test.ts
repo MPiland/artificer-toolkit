@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { buildEncounterSummon } from '../encounterSummon.js'
+import { buildEncounterSummon, casterHitPointMaximum, summonHitPoints } from '../encounterSummon.js'
 
 const USER = crypto.randomUUID()
 const NOW = '2026-10-23T00:00:00.000Z'
@@ -79,5 +79,17 @@ describe('buildEncounterSummon', () => {
       maxHitPoints: 12
     })
     expect(build({}).actor).toMatchObject({ maxHitPoints: 0 })
+  })
+})
+
+describe('summon hit points', () => {
+  it('is unknown for a Character caster, whose maximum lives on the Sheet', () => {
+    expect(casterHitPointMaximum(caster)).toBeNull()
+    expect(summonHitPoints({ hitPoints: { kind: 'HIT_POINT_MAXIMUM' } }, null)).toBeNull()
+  })
+
+  it('is 0 when the stat block authors none, and the evaluated value otherwise', () => {
+    expect(summonHitPoints({}, null)).toBe(0)
+    expect(summonHitPoints({ hitPoints: { kind: 'HIT_POINT_MAXIMUM' } }, 40)).toBe(40)
   })
 })

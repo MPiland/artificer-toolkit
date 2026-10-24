@@ -23,7 +23,10 @@ import {
   planNativeEncounterActionMechanics,
   planNativeEncounterAreaSourceSpend
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
-import { buildEncounterSummon } from '@artificer-toolkit/rules-runtime/encounterSummon'
+import {
+  buildEncounterSummon,
+  casterHitPointMaximum
+} from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { buildEncounterAreaStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -355,7 +358,7 @@ export async function settleAreaCommit(args: {
         buildEncounterSummon({
           summon: summon.placement,
           caster,
-          casterHitPointMaximum: caster.kind === 'CHARACTER' ? null : caster.maxHitPoints,
+          casterHitPointMaximum: casterHitPointMaximum(caster),
           label: summon.placement.label ?? sourceLabel,
           point: summon.point,
           edgeLength: summon.edgeLength,

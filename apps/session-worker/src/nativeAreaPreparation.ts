@@ -46,6 +46,7 @@ import {
   evaluateEncounterSummonTarget,
   evaluateEncounterZoneTarget
 } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { casterHitPointMaximum } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { chosenZonePlacement } from '@artificer-toolkit/rules-runtime/encounterZonePlacement'
@@ -166,7 +167,9 @@ const AREA_REFUSALS = {
   SIDE_REQUIRED: 'Pick the side of the wall this zone also reaches.',
   SIDE_NOT_OFFERED: 'This zone has no side to pick.',
   UNSUPPORTED_SUMMON: "This summon's size or range is not supported.",
-  SPACE_OCCUPIED: 'Another creature already fills that space.'
+  SPACE_OCCUPIED: 'Another creature already fills that space.',
+  HIT_POINTS_UNKNOWN:
+    "This summon's hit points depend on a maximum this caster does not carry here."
 } as const
 
 /** What a command that names the wrong kind of target is told, by the target the action takes. */
@@ -326,6 +329,7 @@ export async function prepareAreaScene(
     summonPlacement && target.kind === 'POINT'
       ? evaluateEncounterSummonTarget({
           statBlock: summonPlacement.statBlock,
+          casterHitPointMaximum: casterHitPointMaximum(caster),
           range: targetPolicy.range,
           point: target.point,
           grid,

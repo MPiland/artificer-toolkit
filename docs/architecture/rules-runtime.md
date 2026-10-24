@@ -1971,7 +1971,7 @@ are overridable warnings like an area origin; a free square is a hard refusal (`
 `occupiesSpace`; a stat block with no modelled size is refused (`UNSUPPORTED_SUMMON`). The planner treats the cast as
 a zone placed at the point with nobody caught, and `buildEncounterSummon` makes the CUSTOM actor (`owner` = caster,
 no controllers of its own, hit points from `evaluateNumericExpr` against the caster's maximum when the Run holds it;
-a Character caster's maximum lives on the Sheet, so a `HIT_POINT_MAXIMUM` stat block yields 0 until T2v2b feeds it).
+a Character caster's maximum lives on the Sheet, so a `HIT_POINT_MAXIMUM` stat block is refused with `HIT_POINTS_UNKNOWN` until T2v2b feeds it).
 Target (a2c2): the lasting carrier effect with Concentration, and removal at every end.
 
 ### Effect offers: moving a held effect (current, SPELLS-4.T2d2, D160)
