@@ -73,6 +73,7 @@ import { executeEncounterActorTokenBinding } from '@artificer-toolkit/encounter-
 import { parseSceneLiveEntity } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { roomSceneTokenReaders } from './roomActionSceneInputs.js'
+import { removeRoomSummonTokens } from './roomActionSummonTokens.js'
 import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'
 import { publishRoomSceneUndo } from './roomSceneUndo.js'
 
@@ -136,6 +137,8 @@ export async function executeRoomEncounterCommand(input: {
           })
         }
       },
+      removeSummonTokens: ({ encounterId, commandId, tokens }) =>
+        removeRoomSummonTokens({ transaction, userId, encounterId, commandId, tokens }),
       // A GM's Sheet command on an Encounter Character commits on the Run's held play (R06.3); a
       // Run that is not ACTIVE holds no play, so that edit belongs to the Sheet itself.
       executeCharacterCommand: async (

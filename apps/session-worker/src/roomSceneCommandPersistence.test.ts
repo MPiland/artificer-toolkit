@@ -41,14 +41,16 @@ import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persist
 import { encounterSceneBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { buildEncounterSummon } from '@artificer-toolkit/rules-runtime/encounterSummon'
-import { applyRoomSummonTokens } from './roomActionSummonTokens.js'
+import { applyRoomSummonTokens, removeRoomSummonTokens } from './roomActionSummonTokens.js'
 import { buildRoomCheckpointRecords } from './roomCheckpointRecords.js'
 import { RoomEncounterStore, SCENE_EVIDENCE_ROW, type RoomRecord } from './roomEncounterStore.js'
 import {
   persistRoomSceneCommand,
-  persistRoomSceneTokenCreate
+  persistRoomSceneTokenCreate,
+  persistRoomSceneTokenRemove
 } from './roomSceneCommandPersistence.js'
 import { ROOM_SCENE_DEFINITION_HEADER } from './roomSceneDefinition.js'
+import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'
 import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
 import { publishRoomSceneUndo } from './roomSceneUndo.js'
 import { createNodeSqliteRoomStorage } from './testing/nodeSqliteRoomStorage.js'
@@ -787,6 +789,73 @@ describe('room Scene command persistence', () => {
           )
           .unique()
       ).toMatchObject({ sceneId, tokenId: summonId })
+    })
+
+    it('is taken off the Scene by a command that names the ending command as its origin', async () => {
+      const base = fixture()
+      await create(base)
+      const ending = { encounterId: origin.encounterId, commandId: uuid(56) }
+      const removed = await base.room.transact(async (transaction) => {
+        const { scene } = await readRoomSceneState(transaction, sceneId)
+        const { header } = readRoomScene(transaction, sceneId)
+        return persistRoomSceneTokenRemove({
+          transaction,
+          header,
+          scene,
+          tokenId: summonId,
+          commandId: uuid(58),
+          actorUserId: base.input.actorUserId,
+          presentationVersion: 4,
+          saveId: uuid(59),
+          now: base.input.now,
+          actionOrigin: ending
+        })
+      })
+      expect(removed).toMatchObject({ version: 3, counts: { tokens: 1 } })
+      expect(base.read('sceneLiveEntities', [sceneId, 'tokens', summonId])).toMatchObject({
+        value: null,
+        ordinal: null,
+        version: 3
+      })
+      expect(
+        parseGeometryCommand(base.read('sceneLiveCommands', [sceneId, uuid(58)]), 3)
+      ).toMatchObject({
+        actionOrigin: ending,
+        input: { type: 'REMOVE_SCENE_TOKEN', tokenId: summonId }
+      })
+    })
+
+    it('is removed through the room from the Scene state it reads', async () => {
+      const base = fixture()
+      await create(base)
+      await base.room.transact(async (transaction) =>
+        removeRoomSummonTokens({
+          transaction,
+          userId: base.input.actorUserId,
+          encounterId: origin.encounterId,
+          commandId: uuid(56),
+          tokens: [{ sceneId, tokenId: summonId }]
+        })
+      )
+      const { scene } = await base.room.transact(async (transaction) =>
+        readRoomSceneState(transaction, sceneId)
+      )
+      expect(scene.tokens.map(({ id }) => id)).not.toContain(summonId)
+    })
+
+    it('refuses to remove a token the Scene does not hold', async () => {
+      const base = fixture()
+      await expect(
+        base.room.transact(async (transaction) =>
+          removeRoomSummonTokens({
+            transaction,
+            userId: base.input.actorUserId,
+            encounterId: origin.encounterId,
+            commandId: uuid(56),
+            tokens: [{ sceneId, tokenId: summonId }]
+          })
+        )
+      ).rejects.toThrow('Scene token is unavailable')
     })
 
     it('refuses an ID already on the Scene and a token that carries vision', async () => {

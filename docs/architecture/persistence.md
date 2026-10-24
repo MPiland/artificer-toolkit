@@ -171,9 +171,12 @@ The cast's `RESOLVE_ACTION` receipt keeps `summonedTokens` (`{sceneId, sceneComm
 default `[]`) and the Encounter binds the token to the actor in `encounterActorTokenBindings`. Current
 (SPELLS-4.T2v2a2c1): the area planner builds the owned actor with the token (`buildEncounterSummon`), the persister
 inserts the actor (`insertRunActor`) and appends its id to the Run's `actorIds` before the Scene write, and the
-receipt carries the actor id. `REVERT_LAST_ACTION` of a summoning cast refuses (`summonedTokens` non-empty) until
-the removal exists. Target (a2c2): the actor, binding and Scene token leave at expiry, Concentration end, recast,
-dispel and revert.
+receipt carries the actor id. Current (SPELLS-4.T2v2a2c2): `removeConjuredActors` (encounter-persistence) is the one
+removal: it asks the room's `removeSummonTokens` port to take each Scene token off (`persistRoomSceneTokenRemove`, a
+direct tombstone write that names the ending command as its `actionOrigin`), then deletes the binding and the actor
+row. `REVERT_LAST_ACTION` of a summoning cast calls it for the receipt's `summonedTokens` and drops the ids from the
+Run's `actorIds` through the state it returns, replacing the old refusal. Target (a2c2b): the same call at expiry, Concentration end, recast and
+dispel, once the cast leaves a carrier effect for them to hang on (`owner.sourceEffectId`).
 A drag (D105) writes the mover's and each dragged token's live row at the move's version; publication refuses it
 unless every dragged token still stands at its recorded `from` and moves by the mover's displacement.
 `publishSceneUndo` restores the mover and every token in the preparation's `draggedTokens`, refusing when any of
