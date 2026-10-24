@@ -97,7 +97,8 @@ function escapeRoom(
       characterActor({ id: FIGHTER_ACTOR_ID, characterId: FIGHTER_ID })
     ],
     ownerFeatureId: creatureFeature(plainWolf, 'Bite').id,
-    seed: async ({ effects, encounterId, occurredAt }) => {
+    seed: async (seeding) => {
+      const { effects, encounterId, occurredAt } = seeding
       await effects.create({
         id: EFFECT_ID,
         owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: HOLDER_ID },
@@ -117,7 +118,7 @@ function escapeRoom(
           lifecycle: {},
           effect: options.heldDie,
           sourceLabel: guidance.label
-        })({ effects, encounterId, occurredAt })
+        })(seeding)
     }
   })
 }
