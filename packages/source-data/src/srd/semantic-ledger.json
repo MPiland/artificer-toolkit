@@ -14268,8 +14268,8 @@
       ],
       "authoredSha256": "4a6258ff8cd678aa27ad8264b9ee72d460e8fe271706b3cf4df26c0d91b87e7c",
       "proseStatus": "COMPLETE",
-      "mechanicsStatus": "COMPLETE",
-      "manualExceptionIds": []
+      "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
+      "manualExceptionIds": ["00000020-0000-0212-0023-000000000001"]
     },
     {
       "domain": "spells",
@@ -18076,8 +18076,8 @@
       ],
       "authoredSha256": "1cb3c3af5b53e1198be335a38f7b9f3470f0d25f800b79fece33323279211eca",
       "proseStatus": "COMPLETE",
-      "mechanicsStatus": "COMPLETE",
-      "manualExceptionIds": []
+      "mechanicsStatus": "COMPLETE_WITH_MANUAL_EXCEPTIONS",
+      "manualExceptionIds": ["00000020-0000-0215-0087-000000000001"]
     },
     {
       "domain": "spells",

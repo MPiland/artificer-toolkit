@@ -36,7 +36,10 @@ import { normalizeCharacterGrantRestrictions } from './character/characterGrantF
 import { effectEventScope, type EffectEventScope } from './events/encounterEventHooks.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
-import { modifierScopeCapabilityRegistry } from './platformEncounterPolicy.js'
+import {
+  attackProfileCapabilityRegistry,
+  modifierScopeCapabilityRegistry
+} from './platformEncounterPolicy.js'
 import {
   abilityScoreCapabilityRegistry,
   actionEconomyCapabilityRegistry,
@@ -658,14 +661,31 @@ export function encounterSourceConditionImmunities(input: {
   })
 }
 
-/** The condition immunities that hold against a source of these creature types. */
+/**
+ * The condition immunities that hold against a condition's source: its creature types and traits,
+ * plus the traits its System gives every effect of a spell cast (Freedom of Movement against a
+ * magical restraint) when `spellCastSystemId` names the System of the spell it comes from. Every
+ * path that applies a condition resolves its immunities here, so a source trait has one home.
+ */
 export function conditionImmunityIdsAgainstSource(
   conditionImmunityIds: readonly string[],
   sourceConditionImmunities: readonly EncounterSourceConditionImmunity[],
-  source: GrantSource
+  source: GrantSource,
+  spellCastSystemId: string | null
 ): readonly string[] {
+  if (sourceConditionImmunities.length === 0) return conditionImmunityIds
+  const conditionSource =
+    spellCastSystemId === null
+      ? source
+      : {
+          ...source,
+          traits: [
+            ...(source.traits ?? []),
+            ...attackProfileCapabilityRegistry.require(spellCastSystemId).spellCastSourceTraits
+          ]
+        }
   const admitted = sourceConditionImmunities.filter(({ sourceQualifier }) =>
-    sourceQualifierAdmits(sourceQualifier, source)
+    sourceQualifierAdmits(sourceQualifier, conditionSource)
   )
   return admitted.length === 0
     ? conditionImmunityIds

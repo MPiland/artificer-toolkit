@@ -5,6 +5,7 @@ import {
   planEncounterPlacedZone,
   planEncounterZoneBands
 } from '@artificer-toolkit/rules-runtime/encounterPlacedZone'
+import { preparedSpellCastLevel } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import {
   prepareNativeLiveActionMaintenance,
   prepareNativeLiveMaintainedState
@@ -61,6 +62,7 @@ export async function prepareAreaCommitMaintenance(args: {
       sourceToken: placement.sourceToken,
       distanceStep: placement.distanceStep,
       saveDc: lead.characterActionState?.actionMechanic.save?.dc ?? null,
+      originLevel: preparedSpellCastLevel(lead),
       unaffectedActorIds: placement.unaffectedActorIds
     }
     return [
