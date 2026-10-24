@@ -11559,9 +11559,9 @@
         {
           "id": "SPELLS-6",
           "title": "Pre-beta rules audit",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -15312,6 +15312,19 @@
               "text": "Warhorse Trampling Charge and Weretiger Pounce on the T5n2 Feature-scoped ON_HIT rider (gated save and prone merged into the attack result); the bonus-action follow-up attack is a GM ruling (D187a). Parity proofs; deletes the kinds.",
               "mergedAt": "2026-10-24T13:18:26Z",
               "proof": "Tests and Live green on tip b10ca68c8; Warhorse Trampling Charge and Weretiger Pounce on the T5n2 Feature-scoped ON_HIT rider through chargeEffect (damage optional, gated save and prone merged into the attack result); the bonus-action follow-up attack is a GM ruling (D187a); kinds deleted; proof chargeAuthoringParity.test.ts."
+            },
+            {
+              "id": "SPELLS-33.T4l3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T4l2"]
+              },
+              "text": "Legendary area saves compile (user-approved growth 2026-10-24): a legendary option with an area save, such as dragon Wing Attack (creatures within range save, take damage and fall prone, then the dragon flies), compiles and resolves through the generic save-area path instead of REFUSED. Authoring-parity proof; golden flips enumerated."
             },
             {
               "id": "SPELLS-33.T4m",
