@@ -550,7 +550,8 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Active-effect end condition on holder illumination:** the Cloaker Phantasms duplicates vanishing in bright light (SPELLS-33.T6d1, D189).
 - **Holder-action save escape:** Irresistible Dance.
 - **Condition suppression:** Calm Emotions.
-- **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits.
+- **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits. Contagion (SPELLS-4.T2m3) ships its whole disease as a GM ruling on hit: the 7-day duration is over `MAX_ACTIVE_EFFECT_TURNS`, so neither its threshold saves nor its disease rows can ride an active effect.
+- **Damage-taken lifecycle condition:** a held effect's `onTriggers` `DAMAGE_TAKEN` applying a timed condition, such as Contagion's Slimy Doom stun until the end of the holder's next turn (SPELLS-4.T2m3).
 - **Curse tag ending:** Remove Curse.
 - **Dispel acting on a placed zone.**
 - **Maze escape as a spell-held effect.**

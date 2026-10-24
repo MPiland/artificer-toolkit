@@ -121,7 +121,7 @@ describe('effect schema parsing', () => {
       {
         id: 'closed-rule-outcome',
         effectKind: 'CLOSED_RULE',
-        ruleKind: CLOSED_RULE_KIND.CONTAGION
+        ruleKind: CLOSED_RULE_KIND.CLASS_ABILITY_SCORE_IMPROVEMENT_MAXIMUM_20
       },
       {
         id: 'manual-adjudication-outcome',
