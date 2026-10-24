@@ -18,6 +18,7 @@ import { movementRuleResolutionCommandDtoSchema } from '@artificer-toolkit/schem
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { encounterGrantsEnabledDomain } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
+import { encounterTokenOccupiesSpace } from '@artificer-toolkit/rules-runtime/encounterActorBody'
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import { discoverEncounterMovementReactionChoices } from '@artificer-toolkit/rules-runtime/encounterMovementReactionDiscovery'
@@ -66,6 +67,7 @@ async function teleportAllowanceToSpend(input: {
   viewerUserId: string
   destination: ScenePoint
   gated: boolean
+  occupiesSpace: (tokenId: string) => boolean
 }) {
   const captured = await input.capture({ kind: 'TELEPORT_ALLOWANCES', actorId: input.actorId })
   if (captured.kind !== 'TELEPORT_ALLOWANCES')
@@ -80,7 +82,8 @@ async function teleportAllowanceToSpend(input: {
     moverTokenId: input.token.id,
     viewerUserId: input.viewerUserId,
     destination: input.destination,
-    allowances: captured.allowances
+    allowances: captured.allowances,
+    occupiesSpace: input.occupiesSpace
   })
   if (selection.allowed) return selection.castCommandId
   if (selection.reason === 'NO_ALLOWANCE') rejectDomain('TELEPORT_UNAVAILABLE')
@@ -281,6 +284,11 @@ export async function readNativeLiveMovementInputs(input: {
     checksumCanonicalJson(command.path[0]) !== checksumCanonicalJson(token.position)
   )
     throw new Error('Movement path does not begin at the current token position.')
+  const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
+    state,
+    capture
+  })
+  const occupiesSpace = encounterTokenOccupiesSpace(actors, actorIdByTokenId)
   const teleportCastCommandId =
     !save.movementResolution && command.movementKind === 'TELEPORT'
       ? await teleportAllowanceToSpend({
@@ -290,7 +298,8 @@ export async function readNativeLiveMovementInputs(input: {
           actorId: actorIdByTokenId.get(token.id)!,
           viewerUserId: scope.expectedUserId,
           destination: command.path.at(-1)!,
-          gated: scope.expectedUserId !== movement.campaignOwnerUserId
+          gated: scope.expectedUserId !== movement.campaignOwnerUserId,
+          occupiesSpace
         })
       : null
   const response = save.movementResolution
@@ -339,10 +348,6 @@ export async function readNativeLiveMovementInputs(input: {
         return { command, answer, snapshot, context, root, responseCommand }
       })()
     : null
-  const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
-    state,
-    capture
-  })
   // Manual automation runs no rules but the mover's own passage, which walls still answer to.
   const moverActorId = actorIdByTokenId.get(token.id)!
   const prepared = await Promise.all(
@@ -401,6 +406,7 @@ export async function readNativeLiveMovementInputs(input: {
             const target = targets.get(actorId)
             return target ? encounterActorEffectiveSize(target) : null
           },
+          occupiesSpace,
           path: save.movementResolution ? null : command.path
         })
   if (planned?.kind === 'REFUSED') rejectDomain('MOVEMENT_BLOCKED', 'Release the grapple first.')

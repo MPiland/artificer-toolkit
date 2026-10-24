@@ -11,6 +11,7 @@ import {
   evaluateEncounterDirectedAreaTarget,
   evaluateEncounterSummonTarget
 } from '../encounterAreaAction.js'
+import { summonBody } from '../encounterActorBody.js'
 
 /** 100px cells of 5 feet; a Medium token fills one cell and is anchored at its center. */
 const FEET_GRID: SceneGrid = {
@@ -580,6 +581,7 @@ describe('summon target', () => {
       sourceToken: SOURCE_TOKEN,
       pointSeen: true,
       tokens: [],
+      actors: [],
       ...input
     })
 
@@ -599,14 +601,36 @@ describe('summon target', () => {
     })
   })
 
+  const occupant = { id: crypto.randomUUID(), snapshot: { kind: 'CREATURE' } }
+  const tokenOf = (actorId: string) => ({ actorId, position: at(10), width: 100, height: 100 })
+
   it('refuses a space another token holds only when the summon occupies space', () => {
-    const tokens = [{ position: at(10), width: 100, height: 100 }]
-    expect(evaluate({ statBlock: { size: 'MEDIUM', occupiesSpace: true }, tokens })).toEqual({
+    const tokens = [tokenOf(occupant.id)]
+    const actors = [occupant]
+    expect(
+      evaluate({ statBlock: { size: 'MEDIUM', occupiesSpace: true }, tokens, actors })
+    ).toEqual({
       refusal: 'SPACE_OCCUPIED'
     })
     expect(
-      evaluate({ statBlock: { size: 'MEDIUM', occupiesSpace: false }, tokens })
+      evaluate({ statBlock: { size: 'MEDIUM', occupiesSpace: false }, tokens, actors })
     ).toHaveProperty('shape')
+  })
+
+  it('places a summon that occupies space onto a token whose body does not', () => {
+    const statBlock = { size: 'MEDIUM', occupiesSpace: true } as const
+    const conjured = (occupiesSpace: boolean) => ({
+      id: crypto.randomUUID(),
+      snapshot: { kind: 'CUSTOM', body: summonBody({ occupiesSpace }) }
+    })
+    const passable = conjured(false)
+    expect(
+      evaluate({ statBlock, tokens: [tokenOf(passable.id)], actors: [passable] })
+    ).toHaveProperty('shape')
+    const solid = conjured(true)
+    expect(evaluate({ statBlock, tokens: [tokenOf(solid.id)], actors: [solid] })).toEqual({
+      refusal: 'SPACE_OCCUPIED'
+    })
   })
 
   it('refuses a stat block whose hit points need a caster maximum the Run does not hold', () => {

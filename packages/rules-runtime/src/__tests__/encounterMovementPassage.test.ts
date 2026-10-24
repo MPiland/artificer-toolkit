@@ -22,6 +22,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { EncounterActionEconomyConsumption } from '../encounterActionEconomyConsumption.js'
 import { discoverEncounterMovementPassage } from '../encounterMovementPassageBoundary.js'
+import { buildEncounterSummon } from '../encounterSummon.js'
 import { discoverEncounterMovementPassageContact } from '../encounterMovementPassageContacts.js'
 import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
@@ -465,6 +466,53 @@ describe('discoverEncounterMovementPassage', () => {
     expect(() =>
       discoverEncounterMovementPassage({ ...input, passage: moverPassage('ANY', 'NONE') })
     ).toThrow('Voluntary movement cannot end inside a hostile occupied footprint.')
+  })
+})
+
+describe('discoverEncounterMovementPassage with a body that does not occupy its space', () => {
+  /** A creature conjured by `caster` at its token, on its side, with the stat block's space rule. */
+  const conjured = (caster: EncounterRunActorState, occupiesSpace: boolean) =>
+    buildEncounterSummon({
+      summon: { statBlock: { occupiesSpace } },
+      caster,
+      casterHitPointMaximum: 10,
+      label: 'Conjured',
+      sourceEffectId: ids.command,
+      point: { x: 0, y: 0 },
+      edgeLength: 10,
+      occurredAt: timestamp
+    }).actor
+  /** Binds `tokenId` to the summon, then moves the source token along the path to `endpoint`. */
+  const passageThrough = (summon: EncounterRunActorState, tokenId: string, endpoint: ScenePoint) =>
+    discoverEncounterMovementPassage({
+      state: runState(),
+      actors: [...actors, summon],
+      root: root([path[0]!, endpoint]),
+      sceneTokens: [tokens.source, tokens.first],
+      actorIdByTokenId: new Map([...actorIdByTokenId, [tokenId, summon.id]]),
+      passage: noPassage
+    })
+
+  it('lets the mover pass through and end inside a hostile summon that does not occupy space', () => {
+    const summon = conjured(first, false)
+    expect(passageThrough(summon, ids.firstToken, { x: 100, y: 0 })).toBeNull()
+    expect(passageThrough(summon, ids.firstToken, { x: 52, y: 0 })).toBeNull()
+  })
+
+  it('still blocks at a hostile summon whose stat block occupies its space', () => {
+    const summon = conjured(first, true)
+    expect(passageThrough(summon, ids.firstToken, { x: 100, y: 0 })).toMatchObject({
+      contact: { blockerActorId: summon.id, blockerTokenId: ids.firstToken }
+    })
+    expect(() => passageThrough(summon, ids.firstToken, { x: 52, y: 0 })).toThrow(
+      'Voluntary movement cannot end inside a hostile occupied footprint.'
+    )
+  })
+
+  it('lets a moving summon that does not occupy space through and into hostile creatures', () => {
+    const summon = conjured(source, false)
+    expect(passageThrough(summon, ids.sourceToken, { x: 100, y: 0 })).toBeNull()
+    expect(passageThrough(summon, ids.sourceToken, { x: 52, y: 0 })).toBeNull()
   })
 })
 
