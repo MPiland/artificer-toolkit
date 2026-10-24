@@ -1,4 +1,5 @@
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
+import { encounterActorBody } from './encounterActorBody.js'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -32,11 +33,12 @@ type Boundary = Extract<SpatialMovementRuleEvaluation, { kind: 'REACTION_BOUNDAR
 /**
  * The complete original path determines hostile footprint contacts, including its endpoint. A
  * hostile creature the mover's passage admits is no contact; one it may not end inside still
- * refuses the endpoint.
+ * refuses the endpoint. A body that does not occupy its space (`encounterActorBody`) neither
+ * blocks nor is blocked.
  */
 export function discoverEncounterMovementPassage(input: {
   state: EncounterRunState
-  actors: readonly Pick<EncounterRunActorState, 'id' | 'disposition'>[]
+  actors: readonly Pick<EncounterRunActorState, 'id' | 'disposition' | 'snapshot'>[]
   root: SpatialMovementRuleRoot
   sceneTokens: readonly SceneToken[]
   actorIdByTokenId: ReadonlyMap<string, string>
@@ -61,6 +63,8 @@ export function discoverEncounterMovementPassage(input: {
       // Disposition is the one source of hostility (ADR 0034, D13).
       return (
         !!blocker &&
+        encounterActorBody(source).occupiesSpace &&
+        encounterActorBody(blocker).occupiesSpace &&
         encounterActorRelationship(source.disposition, blocker.disposition) === 'HOSTILE' &&
         !movementPassageAdmits(
           endsInside ? mover.endInCreatures : mover.throughCreatures,

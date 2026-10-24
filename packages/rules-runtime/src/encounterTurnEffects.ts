@@ -11,6 +11,7 @@ import {
   foldCharacterMechanicsApplications,
   targetTransitionChecksum
 } from './encounterCharacterMechanicsBatch.js'
+import { encounterActorBody } from './encounterActorBody.js'
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import {
   type EncounterRunActorState,
@@ -279,6 +280,7 @@ function completeExecution(input: {
     scalarValues: input.state.scalarValues,
     conditionIds: input.state.conditions,
     retainedConditionIds: input.retainedConditionIds,
+    invulnerable: encounterActorBody(target.actor).invulnerable,
     layers: {
       ownConditionIds: input.state.ownConditions,
       campaignConditionIds: (target.characterFacts?.campaignContext.conditions ?? []).map(
