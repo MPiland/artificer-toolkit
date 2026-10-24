@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
-import type { CreatureAuthored, EquipmentAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import type {
+  CreatureAuthored,
+  EquipmentAuthored
+} from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { gelatinousCube } from '@artificer-toolkit/source-data/srd/creatures/gelatinous-cube.js'
 import { waterElemental } from '@artificer-toolkit/source-data/srd/creatures/water-elemental.js'
@@ -54,10 +57,7 @@ describe('engulf riders as GM rulings (D187a)', () => {
   ])(
     'authors the $creature.label $label $pathCode outcomes beside the ruling',
     ({ creature, label, pathCode, kinds }) => {
-      expect(pathOutcomeKinds(creature, label, pathCode)).toEqual([
-        ...kinds,
-        'MANUAL_ADJUDICATION'
-      ])
+      expect(pathOutcomeKinds(creature, label, pathCode)).toEqual([...kinds, 'MANUAL_ADJUDICATION'])
     }
   )
 
