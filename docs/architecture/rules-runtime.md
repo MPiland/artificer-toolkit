@@ -1995,7 +1995,8 @@ one reader; an actor without a body (Character, Creature) is damageable and fill
 no damage in the one settlement fold (`foldCharacterMechanicsApplications`, `invulnerable`): each damage settles as
 IMMUNE at 0 and later hit point changes are rebased, so the batch plan, the spatial evidence and turn effects agree. A
 body that does not occupy its space neither blocks voluntary movement through or into it
-(`discoverEncounterMovementPassage`) nor counts in the placement overlap check (`evaluateEncounterSummonTarget`).
+(`discoverEncounterMovementPassage`) nor counts in the placement overlap check (`evaluateEncounterSummonTarget`). Drag
+arrival, teleport and return to play ask the same through `encounterTokenOccupiesSpace` (a token bound to no actor occupies).
 SPECIAL damageability is the GM's to adjudicate.
 
 **Sheet summons (current, SPELLS-34.T1, D190).** A summon cast from the Sheet outside an Encounter reads the same plan.

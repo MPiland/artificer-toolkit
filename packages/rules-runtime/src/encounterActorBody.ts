@@ -2,6 +2,7 @@ import {
   summonBodyDtoSchema,
   type summonStatBlockDtoSchema
 } from '@artificer-toolkit/schema/effects/manifest'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { z } from 'zod'
 
 type SummonBody = z.infer<typeof summonBodyDtoSchema>
@@ -40,5 +41,19 @@ export function encounterActorBody(actor: { snapshot: unknown }): {
   return {
     invulnerable: stored.damageabilityKind === 'INVULNERABLE',
     occupiesSpace: stored.occupiesSpace
+  }
+}
+
+/**
+ * Whether a Scene token fills its space, by the body of the Run actor it binds; a token bound to
+ * no actor does. Every check of an end position against other tokens asks this.
+ */
+export function encounterTokenOccupiesSpace(
+  actors: readonly Pick<EncounterRunActorState, 'id' | 'snapshot'>[],
+  actorIdByTokenId: ReadonlyMap<string, string>
+): (tokenId: string) => boolean {
+  return (tokenId) => {
+    const actor = actors.find((entry) => entry.id === actorIdByTokenId.get(tokenId))
+    return !actor || encounterActorBody(actor).occupiesSpace
   }
 }
