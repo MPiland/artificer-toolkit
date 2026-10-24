@@ -95,6 +95,7 @@ function sceneDefinition(): SceneDefinitionDto {
   return validated(sceneDefinitionDtoSchema)({
     annotations: scene.annotations,
     ambientIllumination: scene.ambientIllumination,
+    daylight: scene.daylight,
     barriers: scene.barriers,
     campaignId: scene.campaignId,
     darknessZones: scene.darknessZones,

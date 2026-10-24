@@ -787,6 +787,13 @@ describe('effect schema parsing', () => {
       expect(parse(gate({ predicateCode: 'MOVED_TOWARD_TARGET', minFeet })).success).toBe(false)
     }
     expect(parse(gate({ predicateCode: 'TARGET_HAS_NOT_TAKEN_TURN' })).success).toBe(true)
+
+    for (const requiresDaylight of [true, false]) {
+      expect(
+        parse(gate({ predicateCode: 'HOLDER_IN_BRIGHT_LIGHT', requiresDaylight })).success
+      ).toBe(true)
+    }
+    expect(parse(gate({ predicateCode: 'HOLDER_IN_BRIGHT_LIGHT' })).success).toBe(false)
   })
 
   it('lets only an ON_HIT or ON_CRIT path carry restrictions', () => {

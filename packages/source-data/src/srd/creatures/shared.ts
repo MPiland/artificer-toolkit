@@ -333,71 +333,6 @@ export function advantageGrants(
   }
 }
 
-/** An enemy of the target that can act stands within 5 feet of it (Pack Tactics). */
-export const ENEMY_WITHIN_5_FEET_OF_TARGET = {
-  predicateCode: 'ENEMY_NEAR_TARGET' as const,
-  feet: 5
-}
-
-/** The target has yet to take a turn in the Encounter (Assassinate). */
-export const TARGET_HAS_NOT_TAKEN_TURN = {
-  predicateCode: 'TARGET_HAS_NOT_TAKEN_TURN' as const
-}
-
-/**
- * A feature's advantage on attack rolls of every attack domain while the Encounter state `predicate`
- * holds (Pack Tactics, Assassinate). One grant per attack domain, each with its own restriction,
- * takes the IDs `grantId(creatureIndex, firstLocalIndex)` onward (five per domain).
- */
-export function conditionalAttackAdvantageGrants(
-  creatureIndex: number,
-  firstLocalIndex: number,
-  predicate: typeof ENEMY_WITHIN_5_FEET_OF_TARGET | typeof TARGET_HAS_NOT_TAKEN_TURN
-): NonNullable<FeatureAuthored['grants']> {
-  return {
-    modifiers: Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, order) => {
-      const id = (offset: number) => grantId(creatureIndex, firstLocalIndex + order * 5 + offset)
-      return {
-        id: id(0),
-        grantKind: GRANT_KIND.MODIFIER_GRANT,
-        valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
-        domain: { attackDomain },
-        modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
-        payload: { influence: 'ADVANTAGE' },
-        scope: MODIFIER_SCOPE_KIND.GLOBAL,
-        selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-        order,
-        restrictions: {
-          id: id(1),
-          groups: [
-            {
-              id: id(2),
-              order: 0,
-              contexts: [
-                {
-                  id: id(3),
-                  order: 0,
-                  subject: 'EQUIPMENT' as const,
-                  authoringModeKind: 'ALL' as const,
-                  conditions: [
-                    {
-                      id: id(4),
-                      order: 0,
-                      kind: 'PREDICATE' as const,
-                      constraint: 'INCLUDE' as const,
-                      ...predicate
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
-      }
-    })
-  }
-}
-
 /**
  * A sphinx's Inscrutable: immunity to divination spells, and disadvantage on Wisdom (Insight) checks
  * made to read it. The grants take the IDs `grantId(creatureIndex, firstLocalIndex)` onward.
@@ -738,7 +673,7 @@ export function equipmentLoadoutId(creatureIndex: number, localIndex: number) {
   return localId(8, creatureIndex, localIndex)
 }
 
-function grantId(creatureIndex: number, localIndex: number) {
+export function grantId(creatureIndex: number, localIndex: number) {
   return localId(6, creatureIndex, localIndex)
 }
 

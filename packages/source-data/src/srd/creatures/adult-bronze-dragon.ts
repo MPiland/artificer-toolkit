@@ -487,7 +487,13 @@ export const adultBronzeDragon: CreatureAuthored = {
               order: 3,
               invocation: {
                 kind: 'ACTION',
-                triggerCode: 'ACTIVATED',
+                triggerCode: 'SAVING_THROW',
+                savingThrow: {
+                  id: '00000000-0005-001f-0070-000600000000',
+                  dcMethod: 'FIXED_DC',
+                  abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+                  baseDc: 20
+                },
                 activation: { code: 'FREE' },
                 range: { id: '00000000-0005-001d-0070-000600000000', rangeKind: 'SPECIAL' },
                 resourceUse: { chargeId: '00000000-0005-0015-0070-000600000000', cost: 2 }
@@ -496,7 +502,7 @@ export const adultBronzeDragon: CreatureAuthored = {
                 {
                   id: '00000000-0005-001e-0070-000600000000',
                   order: 1,
-                  pathCode: 'ON_USE',
+                  pathCode: 'ON_SAVE_FAIL',
                   groupType: 'SINGLE',
                   originKind: 'SOURCE',
                   selectionKind: 'FIXED',
@@ -506,8 +512,23 @@ export const adultBronzeDragon: CreatureAuthored = {
                     outcomes: [
                       {
                         id: '00000000-0005-001e-0070-000600000000',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'DRAGON_LEGENDARY_WING_ATTACK'
+                        effectKind: 'DAMAGE',
+                        damageTypeId: '00000000-0000-0000-0004-000200000000',
+                        valueKind: 'DICE',
+                        scalingKind: 'NONE',
+                        diceConfig: '2d6+7'
+                      },
+                      {
+                        id: '00000000-0005-0067-0070-000600000000',
+                        effectKind: 'CONDITION',
+                        conditionId: '00000000-0000-0000-0002-000c00000000'
+                      },
+                      {
+                        id: '00000000-0005-0068-0070-000600000000',
+                        effectKind: 'MANUAL_ADJUDICATION',
+                        label: 'Fly after the Wing Attack',
+                        reasonCode: 'GM_CHOICE',
+                        instructions: 'The dragon can then fly up to half its flying speed.'
                       }
                     ]
                   }

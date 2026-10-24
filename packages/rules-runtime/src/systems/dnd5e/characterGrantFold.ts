@@ -64,6 +64,7 @@ const DEFERRED_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new 
   'ATTACK_ACTION_OTHER_WEAPON',
   'ENEMY_NEAR_TARGET',
   'TARGET_HAS_NOT_TAKEN_TURN',
+  'HOLDER_IN_BRIGHT_LIGHT',
   'SOURCE_CREATURE_TYPE',
   'SOURCE_TRAIT'
 ])
@@ -251,6 +252,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'ATTACK_ACTION_OTHER_WEAPON':
       case 'ENEMY_NEAR_TARGET':
       case 'TARGET_HAS_NOT_TAKEN_TURN':
+      case 'HOLDER_IN_BRIGHT_LIGHT':
       case 'CREATURE_TYPE':
       case 'SOURCE_CREATURE_TYPE':
       case 'SOURCE_TRAIT':

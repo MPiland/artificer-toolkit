@@ -266,6 +266,10 @@ const predicatePayloadSchemas = lazySchemaParts(
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.MOVED_TOWARD_TARGET),
         minFeet: z.number().check(z.positive())
       }),
+      HOLDER_IN_BRIGHT_LIGHT: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HOLDER_IN_BRIGHT_LIGHT),
+        requiresDaylight: z.boolean()
+      }),
       EQUIPMENT_PROFICIENCY: z.intersection(
         z.object({
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.EQUIPMENT_PROFICIENCY)

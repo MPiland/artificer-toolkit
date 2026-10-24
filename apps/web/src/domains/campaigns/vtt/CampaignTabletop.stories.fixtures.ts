@@ -99,6 +99,7 @@ export const tabletopSceneDefinition = {
     }
   ],
   ambientIllumination: 'BRIGHT',
+  daylight: false,
   campaignId: tabletopCampaignId,
   darknessZones: [
     {

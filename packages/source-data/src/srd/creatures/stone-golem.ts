@@ -100,8 +100,9 @@ export const stoneGolem: CreatureAuthored = {
       description:
         "Slow (Recharge 5-6). The golem targets one or more creatures it can see within 10 feet of it. Each target must make a DC 17 Wisdom saving throw against this magic. On a failed save, a target can't use reactions, its speed is halved, and it can't make more than one attack on its turn. In addition, the target can take either an action or a bonus action on its turn, not both. These effects last for 1 minute. A target can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success.",
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(265, 206),
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -123,9 +124,92 @@ export const stoneGolem: CreatureAuthored = {
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
-          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_STONE_GOLEM_SLOW
-        })
+          paths: [
+            {
+              id: S.actionId(265, 209),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                // A repeat-save result block is an Encounter active effect, so it carries its own UUID.
+                id: S.actionId(265, 210),
+                resultKind: 'SEQUENCE',
+                duration: { id: S.actionId(265, 211), durationKind: 'MINUTE', amount: 1 },
+                outcomes: [
+                  {
+                    // The same action-economy limits as the Slow spell, without its AC and
+                    // Dexterity save penalties.
+                    id: S.actionId(265, 212),
+                    effectKind: S.EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: S.actionId(265, 213),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: S.VALUE_DOMAIN_CODE.SPEED,
+                          domain: {},
+                          modifierKind: S.MODIFIER_KIND.MULTIPLY,
+                          scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { numerator: 1, denominator: 2 },
+                          order: 1
+                        },
+                        {
+                          id: S.actionId(265, 214),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: S.VALUE_DOMAIN_CODE.REACTION_COUNT,
+                          domain: {},
+                          modifierKind: S.MODIFIER_KIND.SET_VALUE,
+                          scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { amount: 0 },
+                          order: 2
+                        },
+                        {
+                          id: S.actionId(265, 215),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: S.VALUE_DOMAIN_CODE.ACTION_BONUS_ACTION_EXCLUSIVITY,
+                          domain: {},
+                          modifierKind: S.MODIFIER_KIND.ENABLE,
+                          scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          order: 3
+                        },
+                        {
+                          id: S.actionId(265, 216),
+                          grantKind: S.GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: S.VALUE_DOMAIN_CODE.ATTACKS_PER_ATTACK_ACTION,
+                          domain: {},
+                          modifierKind: S.MODIFIER_KIND.CAP_VALUE,
+                          scope: S.MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: S.AUTHORING_SELECTION_KIND.GRANTED,
+                          payload: { amount: 1 },
+                          order: 4
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    id: S.actionId(265, 217),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: 'TARGET_TURN_END',
+                    savingThrow: {
+                      id: S.actionId(265, 218),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+                      baseDc: 17
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 4
     },

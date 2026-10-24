@@ -818,7 +818,6 @@
 00000000-0002-0069-0070-003400000000 CREATURE Sting | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0002-0069-0070-003d00000000 CREATURE Chain | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-0069-0070-004000000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
-00000000-0002-0069-0070-004100000000 CREATURE Light Sensitivity | NOT_A_DISCOVERED_ACTION
 00000000-0002-0069-0070-004200000000 CREATURE Morningstar | TEST_OUTCOME test=a2898dc425a65c618a7bcb6a3fed4a412632f1772c84bb1f14f10b8258f90bfe nodes=3 outputs=5 outcomes=[ON_CRIT=3973521dc756b85ee6890f8b370d50387cd408a7742ad1fb612c8a6b985e963d,ON_HIT=3973521dc756b85ee6890f8b370d50387cd408a7742ad1fb612c8a6b985e963d]
 00000000-0002-006a-0070-000100000000 CREATURE Probing Telepathy | NOT_A_DISCOVERED_ACTION
 00000000-0002-006a-0070-002700000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
@@ -860,7 +859,6 @@
 00000000-0002-00c8-0070-012100000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00c8-0070-012200000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00c8-0070-012300000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0002-00c8-0070-012500000000 CREATURE Sunlight Sensitivity | NOT_A_DISCOVERED_ACTION
 00000000-0002-00c8-0070-012600000000 CREATURE Consume Life | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-00c8-0070-013100000000 CREATURE Breath Weapons (Recharge 5-6) | TEST_OUTCOME test=884c7ae14dc737f29d9202e631cc620c135c1e9776eeb765459593cae77276d5 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=20682023ca2a723f604966bc6b5a7348bc476e4fd08b8db0dbbd814fd1f59c63,ON_SAVE_SUCCESS=f743fa547ed750287cbc54a8cc658b5d2c1679294d599bce85089ba2a041939e]
 00000000-0002-00c8-0070-013600000000 CREATURE Ice Walk | NOT_A_DISCOVERED_ACTION
@@ -875,7 +873,6 @@
 00000000-0002-00c9-0070-00ad00000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00ca-0070-004e00000000 CREATURE Gnome Cunning | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-005a00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
-00000000-0002-00ca-0070-005b00000000 CREATURE Sunlight Sensitivity | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-006200000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-006700000000 CREATURE Aversion of Fire | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-006d00000000 CREATURE Ooze Cube | NOT_A_DISCOVERED_ACTION
@@ -888,24 +885,20 @@
 00000000-0002-00ca-0070-00a700000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-00fc00000000 CREATURE Regeneration | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-010000000000 CREATURE Divine Awareness | NOT_A_DISCOVERED_ACTION
-00000000-0002-00ca-0070-010100000000 CREATURE Sunlight Sensitivity | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-010900000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-010f00000000 CREATURE Siege Monster | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-011d00000000 CREATURE Freeze | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-012200000000 CREATURE Pounce (Tiger or Hybrid Form Only) | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-012500000000 CREATURE Life Drain | TEST_OUTCOME test=54eabfe04ab3035823d82e128dae361a11493b2bd810fc648efcd1a20553be63 nodes=3 outputs=5 outcomes=[ON_CRIT=e560426ab9b74f8a836051a8f11d9db3a504134a0104cafa6413c1549e74e26d,ON_HIT=e560426ab9b74f8a836051a8f11d9db3a504134a0104cafa6413c1549e74e26d]
-00000000-0002-00ca-0070-012a00000000 CREATURE Sunlight Sensitivity | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-013200000000 CREATURE Breath Weapons (Recharge 5-6) | TEST_OUTCOME test=e62ed1f8b0fdcdc86b2fa923645d82ecd373cc7fb2ac105587b1e8149ff79f74 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=c89ecdf81e146195145cb5df62cf888487ce21836582af7b37e826d33f7245b2,ON_SAVE_SUCCESS=4da66a14aa2a4140937dfa0119a39f267a00c8ed328508d9c65c34331cfd6a16]
 00000000-0002-00cb-0070-004d00000000 CREATURE Bite | TEST_OUTCOME test=26a8c6ec2c209b1dc6c56ab9b495adcd70d3c2ec6fffb7f6c236b199a32711e5 nodes=3 outputs=5 outcomes=[ON_CRIT=2995f3c4622ebec35ed5148fbef4716dcd8dcec6fd5d1202b55eb3fd516beaf3,ON_HIT=2995f3c4622ebec35ed5148fbef4716dcd8dcec6fd5d1202b55eb3fd516beaf3]
 00000000-0002-00cb-0070-005000000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-00cb-0070-005700000000 CREATURE Spider Climb | NOT_A_DISCOVERED_ACTION
-00000000-0002-00cb-0070-005800000000 CREATURE Sunlight Sensitivity | NOT_A_DISCOVERED_ACTION
 00000000-0002-00cb-0070-006700000000 CREATURE Immutable Form | NOT_A_DISCOVERED_ACTION
 00000000-0002-00cb-0070-008000000000 CREATURE Tentacles | TEST_OUTCOME test=4baafb886156aeca2429f0fed153b4789963d2561236450f1c8122f3a957faae nodes=3 outputs=5 outcomes=[ON_CRIT=5943f68088755f6b071ea6363bca4f0221daf263a9c9a7ff566f49ad01b211c5,ON_HIT=5943f68088755f6b071ea6363bca4f0221daf263a9c9a7ff566f49ad01b211c5]
 00000000-0002-00cb-0070-00a900000000 CREATURE Reactive Heads | NOT_A_DISCOVERED_ACTION
 00000000-0002-00cb-0070-00ab00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-00cb-0070-00ad00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
-00000000-0002-00cc-0070-005700000000 CREATURE Sunlight Sensitivity | NOT_A_DISCOVERED_ACTION
 00000000-0002-00cc-0070-005900000000 CREATURE Quarterstaff | TEST_OUTCOME test=19430a93f36c742f3d322c79d9c9abb9c52c38db5587093c4a735f80b250925a nodes=3 outputs=5 outcomes=[ON_CRIT=1677dd8e029c92541c07edb2bdf165c7498ba3a2ea49ddbac623de6c2fdaec10,ON_HIT=1677dd8e029c92541c07edb2bdf165c7498ba3a2ea49ddbac623de6c2fdaec10]
 00000000-0002-00cc-0070-005a00000000 CREATURE Tree Stride | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0002-00cc-0070-005f00000000 CREATURE Scimitar | TEST_OUTCOME test=370625996eb4a33b50381941042bf0d007ac3dcbc24fd5368d98482e1a88db06 nodes=3 outputs=5 outcomes=[ON_CRIT=14918bf09c8d73445f829b21e4188cbe86cfe184fca18d9b1cbbfbdd5fb8b576,ON_HIT=14918bf09c8d73445f829b21e4188cbe86cfe184fca18d9b1cbbfbdd5fb8b576]
@@ -934,7 +927,7 @@
 00000000-0002-00ce-0070-009200000000 CREATURE Shortbow | TEST_OUTCOME test=3714f7e91de4942910b7772621cb30cb2425e8b184f765e08b7d2aeafa46736e nodes=3 outputs=5 outcomes=[ON_CRIT=8884eb1c7b9aab2f31272642efeeb30eb0590847896e26f1f08ec78ea66ceb9d,ON_HIT=8884eb1c7b9aab2f31272642efeeb30eb0590847896e26f1f08ec78ea66ceb9d]
 00000000-0002-00ce-0070-00a900000000 CREATURE Bite | TEST_OUTCOME test=c15b4378c28210f32cbcc018f67cee686781ea1ec0dfc29749d73a9ec086d456 nodes=3 outputs=5 outcomes=[ON_CRIT=2bd01ab29d0b0cbc014cb848e641db8d0f0b3e9dab401710e2e692ebc07fbbae,ON_HIT=2bd01ab29d0b0cbc014cb848e641db8d0f0b3e9dab401710e2e692ebc07fbbae]
 00000000-0002-00ce-0070-010500000000 CREATURE Shortsword | TEST_OUTCOME test=21cb328340ccfbacad92a6688594a55a963d2f8c2e8c1769d34e87d685e3fd92 nodes=3 outputs=5 outcomes=[ON_CRIT=33a9528bd82b6c4de95fa0f75c7dc95a143f400fe4da8b6ed5ade85354765ab7,ON_HIT=33a9528bd82b6c4de95fa0f75c7dc95a143f400fe4da8b6ed5ade85354765ab7]
-00000000-0002-00ce-0070-010900000000 CREATURE Slow (Recharge 5-6) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
+00000000-0002-00ce-0070-010900000000 CREATURE Slow (Recharge 5-6) | TEST_OUTCOME test=cae0f3bb4a88a6efbc87cfd39606ee4062c2bf38e41693319806233c5cfeb4c9 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=4ad766e491b9f0b12a09be2f66ebee9ebf85f4ac144bc7840985224fa206591e]
 00000000-0002-00ce-0070-011500000000 CREATURE Regeneration | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ce-0070-011600000000 CREATURE Spider Climb | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ce-0070-012000000000 CREATURE Maul (Humanoid or Hybrid Form Only) | TEST_OUTCOME test=ed71731df454501ff3c591ac07b735762673808119458cfc90b2ca8d466d0488 nodes=3 outputs=5 outcomes=[ON_CRIT=505d3f5d061bda2940abf4da7bd093e565066daafc61fd410ae17c8bafe1c4e3,ON_HIT=505d3f5d061bda2940abf4da7bd093e565066daafc61fd410ae17c8bafe1c4e3]
@@ -1116,19 +1109,19 @@
 00000000-0005-001c-0070-000300000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000400000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000500000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000600000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0005-001c-0070-000700000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0005-001c-0070-000800000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0005-001c-0070-000600000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0005-001c-0070-000700000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0005-001c-0070-000800000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000900000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000a00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-000b00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0005-001c-0070-000b00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000c00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000e00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-000f00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-001300000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0005-001c-0070-001300000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-001400000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-001500000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0005-001c-0070-001600000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0005-001c-0070-001600000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001c-0070-001700000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001d-0070-001000000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0005-001d-0070-151f00000000 CREATURE Wing Attack (Costs 2 Actions) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.

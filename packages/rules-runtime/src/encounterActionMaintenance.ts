@@ -62,11 +62,16 @@ export async function prepareEncounterActionMaintenance<TOwners extends object>(
       : null
   // The zones a cast picks between open one Concentration (D140).
   const zoneMaintenance = zone ? sharedZonePlacement(zone).maintenance : null
-  // The creature effects and the zone of one cast name one Concentration, not two.
+  // A summon keeps its Concentration on its carrier effect, not on any creature outcome.
+  const summonMaintenance =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? (prepared.source.entry.compilation.summonPlacement?.entry.maintenance ?? null)
+      : null
+  // The creature effects, the zone and the summon of one cast name one Concentration, not several.
   const policies = [
     ...new Map(
-      [...plans.map((plan) => plan?.maintenance), zoneMaintenance].flatMap((policy) =>
-        policy ? [[checksumCanonicalJson(policy), policy] as const] : []
+      [...plans.map((plan) => plan?.maintenance), zoneMaintenance, summonMaintenance].flatMap(
+        (policy) => (policy ? [[checksumCanonicalJson(policy), policy] as const] : [])
       )
     ).values()
   ]

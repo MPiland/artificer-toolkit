@@ -11,7 +11,7 @@ import {
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
-import { prepareNativeZoneSourceGrantEffect } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { prepareNativeSourceEffect } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { buildEncounterMaintenanceTransition } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
 import {
@@ -181,31 +181,36 @@ export async function settleAreaCommit(args: {
   }))
   const damage = nativeConcentrationDamageApplications(damageSources, false)
   const placedZones = planZones(maintainedState?.id ?? null)
-  // The placed zone's timed grant lands on the creature that placed it (D153).
-  const zoneSourceGrant =
+  // The effect the cast leaves on its caster from a plan of its own: the placed zone's timed grant
+  // (D153), or the carrier that holds a summon for its duration and Concentration.
+  const sourcePlan =
     placedZones.length && placement?.zone.sourceGrant
-      ? createNativeActiveEffect(
-          prepareNativeZoneSourceGrantEffect({
-            prepared: lead,
-            plan: placement.zone.sourceGrant,
-            published:
-              lead.plan.kind === 'SINGLE_GRAPH' ? lead.plan.published : lead.plan.test.published,
-            occurrenceId: areaOccurrenceId,
-            commandId: command.commandId,
-            activeEffectsByActorId: input.activeEffectsByActorId
-          }),
-          {
-            owner: nativeEffectOwner(caster, state.id),
-            currentEffects: [
-              ...(input.activeEffectsByActorId.get(caster.id) ?? []).filter(
-                (effect) => !maintainedState || !removedIds.has(effect.id)
-              ),
-              ...(createdEffects.get(caster.id) ?? [])
-            ],
-            occurredAt
-          }
-        )
-      : null
+      ? placement.zone.sourceGrant
+      : (summon?.placement.entry ?? null)
+  const zoneSourceGrant = sourcePlan
+    ? createNativeActiveEffect(
+        prepareNativeSourceEffect({
+          prepared: lead,
+          plan: sourcePlan,
+          published:
+            lead.plan.kind === 'SINGLE_GRAPH' ? lead.plan.published : lead.plan.test.published,
+          occurrenceId: areaOccurrenceId,
+          commandId: command.commandId,
+          activeEffectsByActorId: input.activeEffectsByActorId
+        }),
+        {
+          owner: nativeEffectOwner(caster, state.id),
+          currentEffects: [
+            ...(input.activeEffectsByActorId.get(caster.id) ?? []).filter(
+              (effect) => !maintainedState || !removedIds.has(effect.id)
+            ),
+            ...(createdEffects.get(caster.id) ?? [])
+          ],
+          occurredAt,
+          ...(summon && maintainedState ? { maintainedEffectStateId: maintainedState.id } : {})
+        }
+      )
+    : null
   if (zoneSourceGrant)
     createdEffects.set(caster.id, [...(createdEffects.get(caster.id) ?? []), zoneSourceGrant])
   const execution = buildEncounterAreaStoredExecution({
@@ -362,6 +367,7 @@ export async function settleAreaCommit(args: {
           label: summon.placement.label ?? sourceLabel,
           point: summon.point,
           edgeLength: summon.edgeLength,
+          sourceEffectId: zoneSourceGrant!.id,
           occurredAt
         })
       ]

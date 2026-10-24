@@ -82,6 +82,8 @@ const restrictionConditionSchema = lazySchema(() =>
       'ENEMY_NEAR_TARGET',
       /** The attack's target has not taken a turn in the Encounter yet (Encounter state). */
       'TARGET_HAS_NOT_TAKEN_TURN',
+      /** The holder stands in bright light on its Scene, in daylight when `requiresDaylight` (Encounter state). */
+      'HOLDER_IN_BRIGHT_LIGHT',
       /**
        * The holder is of a kind in `requiredIds` (CHARACTER or CREATURE): each facet context gates on
        * its subject. The Character fold decides it as a constant; an Encounter reads the holder (D152).
@@ -126,7 +128,9 @@ const restrictionConditionSchema = lazySchema(() =>
     minimumRank: z.nullable(z.enum(['HALF', 'FULL', 'DOUBLE'])),
     category: z.nullable(codeSchema),
     requiredProperties: z.array(codeSchema).check(z.maxLength(100)),
-    sourceState: z.nullable(z.enum(['CARRIED', 'EQUIPPED', 'ATTUNED']))
+    sourceState: z.nullable(z.enum(['CARRIED', 'EQUIPPED', 'ATTUNED'])),
+    /** Narrows `HOLDER_IN_BRIGHT_LIGHT` to a Scene lit by the sun; false for every other kind. */
+    requiresDaylight: z.boolean()
   })
 )
 

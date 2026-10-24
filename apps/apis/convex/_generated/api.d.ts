@@ -132968,6 +132968,7 @@ export declare const api: {
             tokens: number;
           };
           createdAt: string;
+          daylight?: boolean;
           fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
           grid:
             | {
@@ -133032,6 +133033,7 @@ export declare const api: {
               tokens: number;
             };
             createdAt: string;
+            daylight?: boolean;
             fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
             grid:
               | {
@@ -133286,6 +133288,7 @@ export declare const api: {
             ambientIllumination:
               "BRIGHT" | "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS";
             campaignId: string;
+            daylight?: boolean;
             fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
             grid:
               | {
@@ -133612,6 +133615,7 @@ export declare const api: {
             measurements: number;
             tokens: number;
           };
+          daylight?: boolean;
           definitionId: string;
           definitionSaveId: string;
           definitionVersion: number;
@@ -133907,6 +133911,7 @@ export declare const api: {
           ambientIllumination:
             "BRIGHT" | "DIM" | "ORDINARY_DARKNESS" | "MAGICAL_DARKNESS";
           campaignId: string;
+          daylight?: boolean;
           definitionId: string;
           definitionVersion: number;
           fogMode: "OFF" | "SHARED_PARTY" | "PER_PLAYER";
@@ -134003,6 +134008,7 @@ export declare const api: {
               opacity: number;
               polygon: { points: Array<{ x: number; y: number }> };
             }>;
+            daylight?: boolean;
             definitionId: string;
             definitionVersion: number;
             doorStates: Record<string, "OPEN" | "CLOSED" | "LOCKED">;
@@ -140718,6 +140724,7 @@ export declare const internal: {
               measurements: number;
               tokens: number;
             };
+            daylight?: boolean;
             definitionId: string;
             definitionSaveId: string;
             definitionVersion: number;
@@ -140800,6 +140807,7 @@ export declare const internal: {
               measurements: number;
               tokens: number;
             };
+            daylight?: boolean;
             definitionId: string;
             definitionSaveId: string;
             definitionVersion: number;
@@ -142475,6 +142483,7 @@ export declare const internal: {
               measurements: number;
               tokens: number;
             };
+            daylight?: boolean;
             definitionId: string;
             definitionSaveId: string;
             definitionVersion: number;

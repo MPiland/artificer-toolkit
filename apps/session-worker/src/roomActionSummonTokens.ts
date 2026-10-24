@@ -1,4 +1,5 @@
 import type { ApplyEncounterSummonTokens } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
+import { endOrphanedConjuredActors } from '@artificer-toolkit/encounter-persistence/summonRemoval'
 import type { EncounterWriteContext } from '@artificer-toolkit/encounter-persistence/store'
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
@@ -100,3 +101,30 @@ export async function removeRoomSummonTokens(input: {
     })
   }
 }
+
+/**
+ * Ends the conjured creatures whose carrier effect the command just ended (D187b), after all its
+ * other writes. The check is stateless, so a creature a path could not reap here goes with the next
+ * command's sweep. Returns whether any creature was removed.
+ */
+export const endRoomOrphanedSummons = (input: {
+  ctx: EncounterWriteContext
+  transaction: RoomTransaction
+  userId: string
+  encounterId: string
+  occurredAt: string
+}) =>
+  endOrphanedConjuredActors(
+    {
+      db: input.ctx.db,
+      ports: {
+        removeSummonTokens: (removal) =>
+          removeRoomSummonTokens({
+            transaction: input.transaction,
+            userId: input.userId,
+            ...removal
+          })
+      }
+    },
+    input
+  )

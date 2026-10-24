@@ -463,8 +463,10 @@ export const adultBrassDragon: CreatureAuthored = {
                       },
                       {
                         id: '00000000-0005-0068-0070-000500000000',
-                        effectKind: 'CLOSED_RULE',
-                        ruleKind: 'DRAGON_LEGENDARY_WING_ATTACK'
+                        effectKind: 'MANUAL_ADJUDICATION',
+                        label: 'Fly after the Wing Attack',
+                        reasonCode: 'GM_CHOICE',
+                        instructions: 'The dragon can then fly up to half its flying speed.'
                       }
                     ]
                   }

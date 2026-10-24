@@ -57,7 +57,7 @@ export const hydra: CreatureAuthored = {
       description:
         'Reactive Heads. For each head the hydra has beyond one, it gets an extra reaction that can be used only for opportunity attacks.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(169, 203),
           invocation: {
             kind: 'PASSIVE',
@@ -65,7 +65,10 @@ export const hydra: CreatureAuthored = {
             range: { id: S.actionId(169, 1203), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HYDRA_REACTIVE_HEADS
+          label: 'Extra reactions for opportunity attacks',
+          reasonCode: 'GM_CHOICE',
+          instructions:
+            'For each head the hydra has beyond one, it gets an extra reaction that can be used only for opportunity attacks.'
         })
       ],
       order: 3

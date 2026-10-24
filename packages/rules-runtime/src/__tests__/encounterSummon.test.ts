@@ -34,12 +34,15 @@ const caster = encounterRunActorStateSchema.parse({
   }
 })
 
+const CARRIER_ID = crypto.randomUUID()
+
 const build = (statBlock: Parameters<typeof buildEncounterSummon>[0]['summon']['statBlock']) =>
   buildEncounterSummon({
     summon: { statBlock },
     caster,
     casterHitPointMaximum: 40,
     label: 'Spiritual Weapon',
+    sourceEffectId: CARRIER_ID,
     point: { x: 250, y: 150 },
     edgeLength: 100,
     occurredAt: NOW
@@ -55,7 +58,7 @@ describe('buildEncounterSummon', () => {
       sideId: caster.sideId,
       disposition: 'FRIENDLY',
       controllerUserIds: [],
-      owner: { ownerActorId: caster.id },
+      owner: { ownerActorId: caster.id, sourceEffectId: CARRIER_ID },
       initiative: null
     })
   })

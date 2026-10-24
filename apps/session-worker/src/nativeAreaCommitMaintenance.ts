@@ -79,27 +79,30 @@ export async function prepareAreaCommitMaintenance(args: {
 }
 
 /**
- * A zone-only cast has no creature outcome to hold its Concentration: the area root carries it and
- * the zone depends on the state (D135).
+ * A zone-only or summon-only cast has no creature outcome to hold its Concentration: the area root
+ * carries it and the zone or the summon's carrier effect depends on the state (D135).
  */
 export function openZoneOnlyMaintenance(args: {
   input: AreaPlanBase
   command: ResolveEncounterActionInputDto
   caster: EncounterRunActorState
   placement: AreaReach['placement']
+  summon?: AreaReach['summon']
   areaOccurrenceId: string
   occurredAt: string
   maintenance: Awaited<ReturnType<typeof prepareAreaCommitMaintenance>>['maintenance']
   maintainedState: ReturnType<typeof prepareNativeLiveMaintainedState> | null
 }) {
-  const { input, command, caster, placement, areaOccurrenceId, occurredAt, maintenance } = args
+  const { input, command, caster, placement, summon, areaOccurrenceId, occurredAt, maintenance } =
+    args
   const { state } = input
   let { maintainedState } = args
   let zoneMaintenanceTransition: ReturnType<typeof buildEncounterMaintenanceTransition> | null =
     null
-  if (placement?.zone.maintenance && maintenance && !maintainedState) {
+  const completedPolicy = placement?.zone.maintenance ?? summon?.placement.entry.maintenance
+  if (completedPolicy && maintenance && !maintainedState) {
     maintainedState = prepareNativeLiveMaintainedState({
-      completedPolicy: placement.zone.maintenance,
+      completedPolicy,
       maintenance,
       encounterId: state.id,
       ownerActorId: caster.id,

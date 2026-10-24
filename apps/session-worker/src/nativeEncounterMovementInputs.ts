@@ -247,7 +247,14 @@ export async function readNativeLiveMovementInputs(input: {
       new Set(scene[collection].map((entity) => entity.id)).size !== scene[collection].length
     )
       throw new Error('Movement Scene geometry is incomplete.')
-  for (const key of ['grid', 'map', 'ambientIllumination', 'fogMode', 'visionRevealMode'] as const)
+  for (const key of [
+    'grid',
+    'map',
+    'ambientIllumination',
+    'daylight',
+    'fogMode',
+    'visionRevealMode'
+  ] as const)
     if (checksumCanonicalJson(scene[key]) !== checksumCanonicalJson(header[key]))
       throw new Error('Movement Scene settings changed.')
   const command = save.input

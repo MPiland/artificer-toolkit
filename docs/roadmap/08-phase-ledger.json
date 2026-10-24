@@ -11006,9 +11006,9 @@
             },
             {
               "closes": ["SPELLS-4.1"],
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-4.T2v2a2c3",
-              "note": "Split from T2v2a2c2 2026-10-24 (option B, same scope).",
+              "note": "Split from T2v2a2c2 2026-10-24 (option B, same scope). Merged in m401.",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -11017,7 +11017,8 @@
                 "after": ["SPELLS-4.T2v2a2c2"]
               },
               "text": "D187b summon piece, part 2c3: the summoning cast creates the carrier effect from the compiled summon entry (duration and Concentration maintenance) and sets owner.sourceEffectId; expiry, Concentration end, recast and dispel call the a2c2 removal port.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-24T04:02:27Z",
+              "proof": "Tests and Live green on tip 83e6f644; the summoning cast creates the carrier effect with owner.sourceEffectId; the settle-time sweep (endOrphanedConjuredActors) removes conjured actors whose carrier ended on Encounter and Sheet commit paths in the same transaction, recorded on a SUMMONS_ENDED Run command; alarm and GM paths cannot end effects; movement and departure lag recorded under Deferred edge cases."
             },
             {
               "closes": ["SPELLS-4.1"],
@@ -15062,7 +15063,7 @@
             },
             {
               "id": "SPELLS-33.T4l2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15072,7 +15073,23 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4l1", "SPELLS-31.T5n"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: extra reactions, reaction denial, charge-and-knock-prone follow-ups, Wing Attack (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. 2026-10-24 split: Warhorse Trampling Charge and Weretiger Pounce moved to T4l2b (they need the T5n2 Feature-scoped ON_HIT rider); dragon Wing Attack save, damage and prone are authored but still compile REFUSED (legendary area saves unsupported). Merged in m400.",
+              "mergedAt": "2026-10-24T03:47:57Z",
+              "proof": "Tests and Live green on tip 027748723; Hydra Reactive Heads and Marilith Reactive as MANUAL_ADJUDICATION (D187a), Stone Golem Slow on the Slow spell options with its repeat save, Dragon Wing Attack fly authored (save, damage and prone stay compile REFUSED); 4 kinds deleted; parity proof creatureReactionRulesAuthoringParity.test.ts."
+            },
+            {
+              "closes": ["SPELLS-33.1"],
+              "status": "TODO",
+              "id": "SPELLS-33.T4l2b",
+              "note": "Split from T4l2 2026-10-24.",
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": ["SPELLS-33.T4l2", "SPELLS-33.T5n2"]
+              },
+              "text": "Warhorse Trampling Charge and Weretiger Pounce on the T5n2 Feature-scoped ON_HIT rider (gated save and prone merged into the attack result); the bonus-action follow-up attack is a GM ruling (D187a). Parity proofs; deletes the kinds."
             },
             {
               "id": "SPELLS-33.T4m",
@@ -15241,7 +15258,7 @@
             },
             {
               "id": "SPELLS-33.T5n2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15250,7 +15267,8 @@
                 "size": 5,
                 "after": ["SPELLS-33.T5n1"]
               },
-              "text": "straight-line Charge gates (4 kinds): an ON_HIT rider scoped to a named Feature's attack, rider damage and follow-up save merged into that attack's result block, and the conversions. Each has an authoring-parity proof and deletes its kind (D156, D164 split; workbook slice-spells-33.md)."
+              "text": "straight-line Charge gates (4 kinds): an ON_HIT rider scoped to a named Feature's attack, rider damage and follow-up save merged into that attack's result block, and the conversions. Each has an authoring-parity proof and deletes its kind (D156, D164 split; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6a1",
@@ -15359,7 +15377,7 @@
             },
             {
               "id": "SPELLS-33.T6d1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15369,8 +15387,9 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "new: illumination and sunlight predicates on standing modifiers and turn events (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md",
-              "note": " D189: Scene daylight flag; 4 live kinds incl. CLOAKER_PHANTASMS."
+              "note": " D189: Scene daylight flag; 4 live kinds incl. CLOAKER_PHANTASMS. Merged in m399.",
+              "mergedAt": "2026-10-24T03:29:12Z",
+              "proof": "Tests and Live green on tip ebf626c2; Scene daylight (D189: command, persistence, GM Daylight switch), HOLDER_IN_BRIGHT_LIGHT { requiresDaylight } predicate, light sensitivity authored for Drider, Drow, Duergar, Specter, Wight, Wraith, Vampire and Cloaker; Vampire 20 radiant and Cloaker Phantasms dismissal are MANUAL_ADJUDICATION (D187a); 4 kinds deleted with parity proofs and room proofs; red proof gains a per-suite 8-minute budget with a RED-TIMEOUT label."
             },
             {
               "id": "SPELLS-33.T6d2",
@@ -15944,21 +15963,22 @@
             {
               "id": "SPELLS-34.T1",
               "text": "Sheet-cast summon extra: CAST_SPELL outside an Encounter adds a SUMMONED extra from the compiled summon plan (stat block, HP tracking), removed on Concentration end, dismiss, 0 HP or long rest; journey test on the sheet.",
-              "closes": ["SPELLS-34.1", "SPELLS-34.3", "SPELLS-34.4"],
-              "status": "TODO",
-              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "closes": ["SPELLS-34.3", "SPELLS-34.4"],
+              "status": "IN_PROGRESS",
+              "note": "User decision 2026-10-23 (D190, approved scope growth). 2026-10-24 ruling (D190): state.spellSummons[] with a SPELL_SUMMON extra; a Concentration summon is the sheet Concentration; the attack part of SPELLS-34.1 moves to T2.",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 3,
                 "size": 8,
                 "after": ["SPELLS-4.T2v2a2b"]
-              }
+              },
+              "activeWorkbook": "docs/handoffs/slice-spells-34.md"
             },
             {
               "id": "SPELLS-34.T2",
-              "text": "Encounter summons in Extras: the owner's Extras show owned Run actors created by a summon cast, with live HP, as a read view; they leave with the actor.",
-              "closes": ["SPELLS-34.2", "SPELLS-34.3"],
+              "text": "Encounter summons in Extras, and summon attacks on both paths: the owner's Extras show owned Run actors created by a summon cast, with live HP, as a read view that leaves with the actor; sheet and Encounter entries list the summon's spell-authored actions from the compiled plan.",
+              "closes": ["SPELLS-34.1", "SPELLS-34.2", "SPELLS-34.3"],
               "status": "TODO",
               "note": "User decision 2026-10-23 (D190, approved scope growth).",
               "wsjf": {
@@ -15966,7 +15986,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T2v2a2c3", "SPELLS-34.T1"]
+                "after": ["SPELLS-4.T2v2a2c3", "SPELLS-34.T1", "SPELLS-4.T2v2a3", "SPELLS-4.T2v2b"]
               }
             }
           ]

@@ -171,6 +171,7 @@ async function seedReadyMapScene(base: Awaited<ReturnType<typeof setup>>) {
         campaignId: base.campaign.id,
         name: 'Ready map',
         ambientIllumination: 'BRIGHT',
+        daylight: false,
         fogMode: 'PER_PLAYER',
         visionRevealMode: 'ON_DRAG',
         grid: { kind: 'GRIDLESS', pixelsPerUnit: 50, unit: 'FEET' },

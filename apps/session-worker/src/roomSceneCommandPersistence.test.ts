@@ -95,6 +95,7 @@ function fixture(overrides = true) {
     definitionVersion: 2,
     name: 'Room Scene',
     ambientIllumination: 'BRIGHT',
+    daylight: false,
     fogMode: 'OFF',
     visionRevealMode: 'ON_DRAG',
     grid: { kind: 'GRIDLESS', pixelsPerUnit: 50, unit: 'FEET' },
@@ -154,7 +155,7 @@ function fixture(overrides = true) {
     counts: { ...counts, measurements: 0 },
     nextOrdinals: { ...counts, measurements: 0, tokens: 7, barriers: 9 },
     settings: {
-      ambientIllumination: { value: 'BRIGHT', version: 1 },
+      ambientIllumination: { value: 'BRIGHT', daylight: false, version: 1 },
       fogMode: { value: 'OFF', version: 1 },
       visionRevealMode: { value: 'ON_DRAG', version: 0 }
     }
@@ -755,6 +756,7 @@ describe('room Scene command persistence', () => {
         caster,
         casterHitPointMaximum: null,
         label: 'Summon',
+        sourceEffectId: uuid(70),
         point: base.input.scene.tokens[0]!.position,
         edgeLength: 5,
         occurredAt: '2026-10-23T00:00:00.000Z'

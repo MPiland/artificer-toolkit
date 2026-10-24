@@ -168,6 +168,7 @@ export async function readNativeLivePerceptionScene(input: {
     CampaignSceneState,
     | 'ambientIllumination'
     | 'barriers'
+    | 'daylight'
     | 'darknessZones'
     | 'doorStates'
     | 'grid'
@@ -175,6 +176,7 @@ export async function readNativeLivePerceptionScene(input: {
     | 'tokens'
   > = {
     ambientIllumination: header.ambientIllumination,
+    daylight: header.daylight,
     barriers: [],
     darknessZones: [],
     doorStates: {},

@@ -64,6 +64,7 @@ function sceneSettings(campaignId: string) {
     campaignId,
     name: 'Fixture Scene',
     ambientIllumination: 'BRIGHT' as const,
+    daylight: false,
     fogMode: 'PER_PLAYER' as const,
     visionRevealMode: 'ON_DRAG' as const,
     grid: {
