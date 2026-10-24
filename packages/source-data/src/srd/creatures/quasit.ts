@@ -1,4 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -55,7 +56,7 @@ export const quasit: CreatureAuthored = {
       description:
         "Shapechanger. The quasit can use its action to polymorph into a beast form that resembles a bat (speed 10 ft. fly 40 ft.), a centipede (40 ft., climb 40 ft.), or a toad (40 ft., swim 40 ft.), or back into its true form. Its statistics are the same in each form, except for the speed changes noted. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(228, 501),
           invocation: {
             kind: 'ACTION',
@@ -64,7 +65,7 @@ export const quasit: CreatureAuthored = {
             range: { id: S.actionId(228, 601), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_QUASIT_SHAPECHANGER
+          ...CHANGE_SHAPE_RULING.BEAST_SPEED_FORM
         })
       ],
       order: 1

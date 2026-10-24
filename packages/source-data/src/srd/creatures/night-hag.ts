@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 export const nightHag: CreatureAuthored = {
@@ -218,8 +219,8 @@ export const nightHag: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(4849, 7),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.NIGHT_HAG_CHANGE_SHAPE
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    ...CHANGE_SHAPE_RULING.SIZED_FORM
                   }
                 ]
               }
