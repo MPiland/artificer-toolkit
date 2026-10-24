@@ -10974,9 +10974,10 @@
             },
             {
               "closes": ["SPELLS-4.1"],
-              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A).",
+              "note": "Split from T2v2a2c 2026-10-24 (re-estimate, same scope; D187b option A).",
               "status": "IN_PROGRESS",
-              "id": "SPELLS-4.T2v2a2c",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "id": "SPELLS-4.T2v2a2c1",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -10984,8 +10985,21 @@
                 "size": 8,
                 "after": ["SPELLS-4.T2v2a2b"]
               },
-              "text": "D187b summon piece, part 2c: create the owned actor and its token on cast and remove both at the effect-end chokepoints (expiry, Concentration end, recast, dispel, undo); replay receipts carry the created actor id.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "text": "D187b summon piece, part 2c1: the summon action is offered with a POINT target validated for range, free square and sight; the cast commit creates the owned CUSTOM actor (stat block, HP from the caster) and its sized token; the receipt carries the actor id; undo, revert and replay remove or reuse them."
+            },
+            {
+              "closes": ["SPELLS-4.1"],
+              "note": "Split from T2v2a2c 2026-10-24 (re-estimate, same scope; D187b option A).",
+              "status": "TODO",
+              "id": "SPELLS-4.T2v2a2c2",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-4.T2v2a2c1"]
+              },
+              "text": "D187b summon piece, part 2c2: the actor, binding and Scene token are removed when the effect ends on its own (expiry, Concentration end, recast, dispel) through a room port the effect store calls."
             },
             {
               "closes": ["SPELLS-4.1"],
@@ -10996,7 +11010,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 13,
-                "after": ["SPELLS-4.T2v2a2c", "SPELLS-4.T2v"]
+                "after": ["SPELLS-4.T2v2a2c1", "SPELLS-4.T2v"]
               },
               "text": "D187b summon piece, part 3: drive it. Granted move and attack actions on the summon spend the owner's economy (System-neutral; D&D bonus action only in data), spell attack bonus frozen at cast, reach from the token, damageabilityKind and occupiesSpace honoured; reuses the T2v REPEAT_SOURCE_PATH effectId/target extension. Converts SPIRITUAL_WEAPON (WEAPON, MOVE_MANIFEST and COMMAND_MANIFEST) with a parity proof; room journey: cast, attack, later-turn move and attack on the owner's bonus action, removed at spell end.",
               "note": "Split from T2v2a 2026-10-23 (D187b)."
@@ -15934,7 +15948,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T2v2a2c", "SPELLS-34.T1"]
+                "after": ["SPELLS-4.T2v2a2c2", "SPELLS-34.T1"]
               }
             }
           ]
