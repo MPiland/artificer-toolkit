@@ -51,6 +51,28 @@ describe('classifyNativeEncounterOccurrence', () => {
       [facts({ kind: 'ENCOUNTER_OPTIONAL_COMBAT_CLEAVING' }), 'CLEAVING'],
       [facts({ kind: 'ENCOUNTER_CONCEALMENT_CHECK' }), 'BASIC_ACTION'],
       [facts({ kind: 'ENCOUNTER_ESCAPE_CHECK' }), 'ESCAPE'],
+      // A d20 window belongs to the check whose d20 opened it.
+      [
+        facts({
+          kind: 'ENCOUNTER_D20_WINDOW',
+          source: { context: { kind: 'ENCOUNTER_CONCEALMENT_CHECK' } }
+        }),
+        'BASIC_ACTION'
+      ],
+      [
+        facts({
+          kind: 'ENCOUNTER_D20_WINDOW',
+          source: { context: { kind: 'ENCOUNTER_CHECK_ACTION' } }
+        }),
+        'BASIC_ACTION'
+      ],
+      [
+        facts({
+          kind: 'ENCOUNTER_D20_WINDOW',
+          source: { context: { kind: 'ENCOUNTER_ESCAPE_CHECK' } }
+        }),
+        'ESCAPE'
+      ],
       [facts(null, { rootCommandType: 'ESCAPE' }), 'ESCAPE'],
       [facts({ kind: 'ENCOUNTER_TURN_RECHARGE' }), 'TURN'],
       [facts({ kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS' }), 'TURN'],

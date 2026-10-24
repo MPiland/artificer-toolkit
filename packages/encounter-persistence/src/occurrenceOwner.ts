@@ -81,6 +81,8 @@ export type NativeEncounterOccurrenceFacts = {
     | (Pick<PendingContext, 'kind'> & {
         contest?: { origin: { kind: string; actionKind?: string } } | null
         origin?: { kind: string; movementContinuation?: unknown }
+        /** A d20 window's check, the one whose d20 opened it. */
+        source?: { context: { kind: string } }
       })
     | null
   rootCommandType: string | null
