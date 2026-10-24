@@ -1211,10 +1211,9 @@ const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP = followUpSaveFailureMarginRi
 
 const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
   'actorRelationshipModule',
-  ({ map, nodes, cond, logic, data }) => {
+  ({ map, nodes, cond, logic: { or }, data }) => {
     const { text, number, selectSingle, selectMulti, groupObject, groupArray } = nodes
     const local = cond.local()
-    const { or } = logic
     const { table } = data
     const releaseCost = local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST')
     const isActionEffectModule = or([

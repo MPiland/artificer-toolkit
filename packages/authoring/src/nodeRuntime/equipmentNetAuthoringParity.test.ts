@@ -29,7 +29,8 @@ async function expectKept(authored: EquipmentAuthored) {
 
 /** The net's hold, for a variant to change. */
 function hold(equipment: EquipmentAuthored) {
-  const outcome = equipment.effects?.[0]?.paths[0]?.resultBlock.outcomes[0]
+  const path = equipment.effects?.[0]?.paths[0]
+  const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
   if (outcome?.effectKind !== 'ACTOR_RELATIONSHIP')
     throw new Error('The Net must author its hold as a relationship.')
   return outcome
