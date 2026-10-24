@@ -3453,7 +3453,11 @@ export declare const api: {
                     id: string;
                     label: string;
                   }>;
-                  hitPoints: { current: number; maximum: number; temp: number };
+                  hitPoints?: {
+                    current: number;
+                    maximum: number;
+                    temp: number;
+                  };
                   id: string;
                   isActive: boolean;
                   kind: "SPELL_SUMMON";
@@ -11958,11 +11962,11 @@ export declare const api: {
               armorClass: number | null;
               castAt: string;
               concentration: boolean;
-              currentHitPoints: number;
+              currentHitPoints?: number;
               customName?: string;
               id: string;
               label: string;
-              maximumHitPoints: number;
+              maximumHitPoints?: number;
               notes?: string;
               passivePerception?: number;
               size?:
@@ -12379,11 +12383,11 @@ export declare const api: {
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
-                currentHitPoints: number;
+                currentHitPoints?: number;
                 customName?: string;
                 id: string;
                 label: string;
-                maximumHitPoints: number;
+                maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
                 size?:
@@ -12799,11 +12803,11 @@ export declare const api: {
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
-                currentHitPoints: number;
+                currentHitPoints?: number;
                 customName?: string;
                 id: string;
                 label: string;
-                maximumHitPoints: number;
+                maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
                 size?:
@@ -13545,11 +13549,11 @@ export declare const api: {
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
-                  currentHitPoints: number;
+                  currentHitPoints?: number;
                   customName?: string;
                   id: string;
                   label: string;
-                  maximumHitPoints: number;
+                  maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
                   size?:
@@ -14299,11 +14303,11 @@ export declare const api: {
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
-                  currentHitPoints: number;
+                  currentHitPoints?: number;
                   customName?: string;
                   id: string;
                   label: string;
-                  maximumHitPoints: number;
+                  maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
                   size?:
@@ -15065,11 +15069,11 @@ export declare const api: {
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
-                currentHitPoints: number;
+                currentHitPoints?: number;
                 customName?: string;
                 id: string;
                 label: string;
-                maximumHitPoints: number;
+                maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
                 size?:
@@ -15805,11 +15809,11 @@ export declare const api: {
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
-                  currentHitPoints: number;
+                  currentHitPoints?: number;
                   customName?: string;
                   id: string;
                   label: string;
-                  maximumHitPoints: number;
+                  maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
                   size?:
@@ -19027,7 +19031,11 @@ export declare const api: {
                     id: string;
                     label: string;
                   }>;
-                  hitPoints: { current: number; maximum: number; temp: number };
+                  hitPoints?: {
+                    current: number;
+                    maximum: number;
+                    temp: number;
+                  };
                   id: string;
                   isActive: boolean;
                   kind: "SPELL_SUMMON";
@@ -23079,7 +23087,7 @@ export declare const api: {
                         id: string;
                         label: string;
                       }>;
-                      hitPoints: {
+                      hitPoints?: {
                         current: number;
                         maximum: number;
                         temp: number;
