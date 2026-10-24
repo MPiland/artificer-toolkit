@@ -5,6 +5,7 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
@@ -16,8 +17,14 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { spellChildId } from './shared.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_CHALLENGE_RATINGS,
+  SRD_MAGIC_SCHOOLS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID
+} from '../vocabulary.js'
+import { creatureTypeId, spellChildId } from './shared.js'
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)
   if (!entry)
@@ -68,7 +75,7 @@ export const animalShapes: SpellAuthored = {
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.ANIMAL_SHAPES, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.ANIMAL_SHAPES, 0x213, 1),
               durationKind: DURATION_KIND.HOUR,
@@ -77,8 +84,29 @@ export const animalShapes: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.ANIMAL_SHAPES, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'ANIMAL_SHAPES' as const
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.CREATURE,
+                excessDamageCarriesOver: true,
+                retainedAbilityDefinitionIds: [
+                  SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE,
+                  SRD_ABILITY_DEFINITION_IDS.WISDOM,
+                  SRD_ABILITY_DEFINITION_IDS.CHARISMA
+                ],
+                formFilter: {
+                  id: spellChildId(SPELL_IDS.ANIMAL_SHAPES, 0x214, 1),
+                  creatureTypeId: creatureTypeId('BEAST'),
+                  challengeRatingCapKind: 'FIXED',
+                  maxChallengeRatingId: SRD_CHALLENGE_RATINGS.find(({ code }) => code === 'CR_4')!
+                    .id
+                }
+              },
+              {
+                id: spellChildId(SPELL_IDS.ANIMAL_SHAPES, 0x2f0, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Animal Shapes Limits',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'The GM checks that each form is Large or smaller, lets each target take a different form, and lets the caster use an action on a later turn to give a target a new form.'
               }
             ]
           }

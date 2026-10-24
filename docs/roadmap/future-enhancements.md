@@ -564,6 +564,9 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Re-aimable line and creature-type save disadvantage:** Sunbeam's fresh line each turn and the undead and ooze disadvantage (SPELLS-4.T2p).
 - **Save-for-half damage beside a timed save condition on the Character compile:** `timedConditionPlan` refuses a fail path that pairs damage with a timed condition when the success path also deals damage, so Sunbeam and Sunburst stay refused at Character compile (SPELLS-4.T2p).
 - **Nonmagical non-attack damage resistance:** qualified defenses apply only to attack damage, so Gaseous Form's resistance does not cover falls or traps; the GM applies it (SPELLS-4.T2p).
+- **Form filters beyond type and challenge rating (SPELLS-4.T2s, D191):** an excluded creature type (Shapechange's undead and constructs) and a maximum size (Animal Shapes' Large); both ship as GM rulings.
+- **Per-target forms and re-forming (SPELLS-4.T2s, D191):** Animal Shapes' different form per target and its action to re-form, as a per-target form map and a re-form offer.
+- **Project Image illusory double:** a summoned token the caster sees and speaks through (SPELLS-4.T2s ships it as a GM ruling).
 - **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
 - **Indefinite non-Concentration lifetimes:** Feeblemind.
 - **SUMMON manifests:** Faithful Hound, plus creature-summoned allies.

@@ -338,6 +338,12 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
         z.strictObject({
           formOutcomeId: serverUuidIdentityDtoSchema,
           excessDamageCarriesOver: z.boolean(),
+          /** The holder's own ability scores the form keeps, by ability definition id. */
+          retainedAbilityIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(16)),
+          /** The holder may end the form on its own turn (Wild Shape: a Bonus Action). */
+          holderEnd: z.nullable(activeGrantHolderEndSchema),
+          /** The form ends when its holder gains one of these Conditions (Wild Shape: Unconscious). */
+          endOnConditionIds: activeGrantEndConditionIdsSchema,
           /** The Creature each chosen form becomes, by the form option's id. */
           forms: z
             .array(

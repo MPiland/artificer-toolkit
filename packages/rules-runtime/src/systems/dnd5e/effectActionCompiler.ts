@@ -193,6 +193,7 @@ import {
   timedBandConditions
 } from './effectActionBandConditions.js'
 import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import { compiledCreatureFormFilter } from './effectActionCreatureFormFilter.js'
 import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
 import { turnEndGateEvidenceBinding, turnEndGatePlan } from './effectActionTurnEndGate.js'
 import {
@@ -1464,22 +1465,20 @@ function creatureFormPlan(
     return null
   const initialRemaining = conditionDurationTurns(entry.duration)
   const forms = outcome.forms ?? []
-  const { formFilter } = outcome
+  const filter = compiledCreatureFormFilter(outcome.formFilter)
+  const retainedAbilityIds = [...new Set(outcome.retainedAbilityDefinitionIds ?? [])].sort()
   const resultGate = entryResultGate(action, entry.pathCode)
+  // A form takes only the two lifecycle pieces that end it early (Wild Shape).
+  const { holderEnd = null, endOnConditionIds = [], ...otherLifecycle } = entry.lifecycle ?? {}
   if (
     initialRemaining === null ||
     resultGate === undefined ||
-    Object.values(entry.lifecycle ?? {}).some((value) => value !== undefined) ||
+    Object.values(otherLifecycle).some((value) => value !== undefined) ||
+    retainedAbilityIds.some((abilityId) => !UUID.test(abilityId)) ||
     !UUID.test(entry.entryId) ||
     !UUID.test(outcome.id) ||
     forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId)) ||
-    (formFilter !== undefined &&
-      ((formFilter.creatureTypeId !== undefined && !UUID.test(formFilter.creatureTypeId)) ||
-        (formFilter.challengeRatingCapKind === 'FIXED') !==
-          (formFilter.maxChallengeRatingId !== undefined) ||
-        (formFilter.maxChallengeRatingId !== undefined &&
-          !UUID.test(formFilter.maxChallengeRatingId)) ||
-        (formFilter.excludedSpeedIds ?? []).some((speedId) => !UUID.test(speedId))))
+    filter === undefined
   )
     return null
   return {
@@ -1492,17 +1491,13 @@ function creatureFormPlan(
     creatureFormContribution: {
       formOutcomeId: outcome.id,
       excessDamageCarriesOver: outcome.excessDamageCarriesOver ?? false,
+      retainedAbilityIds,
+      holderEnd,
+      endOnConditionIds: [...new Set(endOnConditionIds)].sort(),
       forms: [...forms]
         .sort((a, b) => a.order - b.order)
         .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets })),
-      filter: formFilter
-        ? {
-            creatureTypeId: formFilter.creatureTypeId ?? null,
-            challengeRatingCapKind: formFilter.challengeRatingCapKind,
-            maxChallengeRatingId: formFilter.maxChallengeRatingId ?? null,
-            excludedSpeedIds: [...new Set(formFilter.excludedSpeedIds ?? [])].sort()
-          }
-        : null
+      filter
     },
     ...(resultGate && { resultGate }),
     adapterFacts: {},

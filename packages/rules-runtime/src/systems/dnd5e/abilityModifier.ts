@@ -28,11 +28,5 @@ export const dnd5eAbilityScoreCapabilityAdapter: AbilityScoreCapabilityAdapter =
   gameSystemId: DND5E_SYSTEM_ID,
   abilityModifier,
   abilityDefinitionIdByCode: DND5E_ABILITY_DEFINITION_ID_BY_CODE,
-  abilityCode: dnd5eAbilityCode,
-  // Intelligence, Wisdom and Charisma; the form brings the physical ones.
-  formRetainedAbilityIds: {
-    INTELLIGENCE: DND5E_ABILITY_DEFINITION_ID_BY_CODE.INTELLIGENCE!,
-    WISDOM: DND5E_ABILITY_DEFINITION_ID_BY_CODE.WISDOM!,
-    CHARISMA: DND5E_ABILITY_DEFINITION_ID_BY_CODE.CHARISMA!
-  }
+  abilityCode: dnd5eAbilityCode
 }

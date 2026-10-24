@@ -69,8 +69,11 @@ export const projectImage: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PROJECT_IMAGE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PROJECT_IMAGE' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Run the Illusory Double',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "The GM places and moves the caster's illusory copy, switches the caster's senses to it, lets the caster cast spells as if from it, and resolves the Investigation check against the spell save DC that reveals it."
               }
             ]
           }

@@ -12,6 +12,7 @@ import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/proje
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { consumeEncounterActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encounterActionRuleWarnings'
+import { revertActorForm } from '@artificer-toolkit/rules-runtime/encounterActorForm'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deleteGrants } from './consumedGrantPersistence.js'
 import { readEndHeldGrantAdmission } from './basicActionAdmission.js'
@@ -75,15 +76,17 @@ export async function persistEncounterEndHeldGrant(
     )
   )
     throw new Error(END_HELD_GRANT_MISMATCH)
-  const spent = input.actionEconomy
+  const paid = input.actionEconomy
     ? consumeEncounterActionEconomy({
         actor,
         consumption: input.actionEconomy,
         overridden: overridesActionEconomy(input.ruleOverrides)
       })
     : actor
-  await replaceRunActor(ctx, actor, spent)
+  await replaceRunActor(ctx, actor, paid)
+  // Deleting a form's own effect reverts its wearer (D130); the answer shows that reverted actor.
   await deleteGrants(ctx, [grant])
+  const spent = paid.form?.effectId === grant.id ? revertActorForm(paid) : paid
   const nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
   const nextState = encounterRunStateSchema.parse({
     ...state,

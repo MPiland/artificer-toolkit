@@ -133,6 +133,7 @@ export type EncounterMechanicsBatchInput = {
   enterForm?: {
     effectId: string
     excessDamageCarriesOver: boolean
+    retainedAbilityIds: readonly string[]
     creature: EncounterActorFormCreature
   }
 }
