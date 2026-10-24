@@ -49,14 +49,17 @@ export const adultWhiteDragon: CreatureAuthored = {
       description:
         "Ice Walk. The dragon can move across and climb icy surfaces without needing to make an ability check. Additionally, difficult terrain composed of ice or snow doesn't cost it extra moment.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(12, 101),
           invocation: {
             kind: 'PASSIVE',
             triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(12, 102), rangeKind: S.RANGE_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ICE_WALK
+          label: 'Ice Walk',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            "The dragon can move across and climb icy surfaces without needing to make an ability check, and difficult terrain composed of ice or snow doesn't cost it extra movement."
         })
       ],
       order: 1

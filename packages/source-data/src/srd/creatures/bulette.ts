@@ -75,14 +75,17 @@ export const bulette: CreatureAuthored = {
       description:
         "Standing Leap. The bulette's long jump is up to 30 feet and its high jump is up to 15 feet, with or without a running start.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(57, 101),
           invocation: {
             kind: 'PASSIVE',
             triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(57, 102), rangeKind: S.RANGE_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_STANDING_LEAP
+          label: 'Standing Leap',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            "The bulette's long jump is up to 30 feet and its high jump is up to 15 feet, with or without a running start."
         })
       ],
       order: 1

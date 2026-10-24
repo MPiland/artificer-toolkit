@@ -51,7 +51,7 @@ export const giantFrog: CreatureAuthored = {
       description:
         "Standing Leap. The frog's long jump is up to 20 feet and its high jump is up to 10 feet, with or without a running start.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(124, 202),
           invocation: {
             kind: 'PASSIVE',
@@ -59,7 +59,10 @@ export const giantFrog: CreatureAuthored = {
             range: { id: S.actionId(124, 1202), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GIANT_FROG_STANDING_LEAP
+          label: 'Standing Leap',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            "The frog's long jump is up to 20 feet and its high jump is up to 10 feet, with or without a running start."
         })
       ],
       order: 2

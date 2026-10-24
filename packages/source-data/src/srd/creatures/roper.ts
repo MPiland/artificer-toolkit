@@ -60,7 +60,7 @@ export const roper: CreatureAuthored = {
       description:
         'Spider Climb. The roper can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(239, 503),
           invocation: {
             kind: 'PASSIVE',
@@ -68,7 +68,10 @@ export const roper: CreatureAuthored = {
             range: { id: S.actionId(239, 603), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+          label: 'Spider Climb',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            'The roper can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.'
         })
       ],
       order: 3

@@ -242,8 +242,11 @@ export const merrow: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(196, 958),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MERROW_HARPOON
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Harpoon Pull',
+                    instructions:
+                      'If the target is Huge or smaller, it must succeed on a Strength contest against the merrow or be pulled up to 20 feet toward the merrow.',
+                    reasonCode: 'GM_CHOICE'
                   }
                 ]
               }
@@ -299,8 +302,11 @@ export const merrow: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(196, 1058),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MERROW_HARPOON
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Harpoon Pull',
+                    instructions:
+                      'If the target is Huge or smaller, it must succeed on a Strength contest against the merrow or be pulled up to 20 feet toward the merrow.',
+                    reasonCode: 'GM_CHOICE'
                   }
                 ]
               }

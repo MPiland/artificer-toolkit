@@ -48,7 +48,7 @@ export const drider: CreatureAuthored = {
       description:
         "Fey Ancestry. The drider has advantage on saving throws against being charmed, and magic can't put the drider to sleep.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(87, 201),
           invocation: {
             kind: 'PASSIVE',
@@ -115,7 +115,10 @@ export const drider: CreatureAuthored = {
             range: { id: S.actionId(87, 1203), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+          label: 'Spider Climb',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            'The drider can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.'
         })
       ],
       order: 3

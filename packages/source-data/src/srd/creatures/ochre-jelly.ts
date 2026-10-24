@@ -50,7 +50,7 @@ export const ochreJelly: CreatureAuthored = {
       description:
         'Spider Climb. The jelly can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(207, 502),
           invocation: {
             kind: 'PASSIVE',
@@ -58,7 +58,10 @@ export const ochreJelly: CreatureAuthored = {
             range: { id: S.actionId(207, 602), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+          label: 'Spider Climb',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            'The jelly can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.'
         })
       ],
       order: 2
