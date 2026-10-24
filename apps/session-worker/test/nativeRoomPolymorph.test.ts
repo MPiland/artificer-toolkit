@@ -12,11 +12,14 @@ import { giantSpider } from '@artificer-toolkit/source-data/srd/creatures/giant-
 import { jackal } from '@artificer-toolkit/source-data/srd/creatures/jackal.js'
 import { skeleton } from '@artificer-toolkit/source-data/srd/creatures/skeleton.js'
 import { polymorph } from '@artificer-toolkit/source-data/srd/spells/polymorph.js'
+import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { readRoomHistory, type RoomHistory } from './roomHistoryReads.js'
 
@@ -33,7 +36,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-const polymorphRoom = () =>
+const polymorphRoom = (spell: SpellAuthored = polymorph) =>
   actionRoom({
     actors: [
       {
@@ -43,9 +46,9 @@ const polymorphRoom = () =>
       },
       ...WOLF_IDS.map((id) => srdCreatureActor({ id, creature: plainWolf }))
     ],
-    characterSpellcasting: { spells: [polymorph], prepared: [polymorph.id] },
+    characterSpellcasting: { spells: [spell], prepared: [spell.id] },
     formCreatures: [giantCentipede, giantSpider, skeleton].map(applyCreatureAttackRolls),
-    characterAction: (action) => action.label.startsWith(polymorph.label),
+    characterAction: (action) => action.label.startsWith(spell.label),
     rolls: [],
     fallbackRoll: 5
   })
@@ -196,6 +199,90 @@ describe("Polymorph turns a Character into a beast and keeps what is the Charact
     // Reverting restores the Sheet's actions.
     const restored = (await room.actionChoices()).actions.map((action) => action.label)
     expect(restored.some((label) => label.startsWith(polymorph.label))).toBe(true)
+  }, 120000)
+})
+
+describe('a form whose effect its holder can end reverts with that end (SPELLS-4.T2s)', () => {
+  const UNCONSCIOUS = srdSystemRecord.conditionTypes.find(({ code }) => code === 'UNCONSCIOUS')!.id
+  /** Polymorph authored as Wild Shape ends: no Concentration, a bonus action or falling Unconscious. */
+  const shedding = ((): SpellAuthored => {
+    const [effect] = polymorph.effects ?? []
+    const [path] = effect?.paths ?? []
+    if (!effect || path?.selectionKind !== 'FIXED') throw new Error('Polymorph has no form path.')
+    const lifecycle = {
+      holderEnd: { activation: 'BONUS_ACTION' as const },
+      endOnConditionIds: [UNCONSCIOUS]
+    }
+    return {
+      ...polymorph,
+      attributes: [],
+      effects: [
+        { ...effect, paths: [{ ...path, resultBlock: { ...path.resultBlock, lifecycle } }] }
+      ]
+    }
+  })()
+  const characterForm = async (room: PolymorphRoom) =>
+    JSON.parse(
+      (await readRoomHistory(room.room.base.stub)).actors.find(
+        (actor) => actor.id === CHARACTER_ACTOR_ID
+      )!.stateJson
+    ).form as { effectId: string } | null
+
+  async function inForm() {
+    const room = await polymorphRoom(shedding)
+    const { answer } = await castAt(room, [CHARACTER_ACTOR_ID], CREATURE_IDS.GIANT_CENTIPEDE)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    await answerSave(room, FAIL)
+    const form = await characterForm(room)
+    if (!form) throw new Error('The Character took no form.')
+    return { room, effectId: form.effectId }
+  }
+
+  it('reverts the Character when it ends the form as a bonus action', async () => {
+    const { room, effectId } = await inForm()
+    const ended = await room.send({
+      type: 'END_HELD_GRANT',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version(),
+      actorId: CHARACTER_ACTOR_ID,
+      activeEffectId: effectId,
+      acknowledgedWarnings: []
+    })
+    if (ended.type !== 'COMMAND_COMMITTED' || ended.delta?.scope !== 'ENCOUNTER')
+      throw new Error(`Expected the committed end: ${JSON.stringify(ended)}`)
+    expect(await characterForm(room)).toBeNull()
+    expect((await readRoomHistory(room.room.base.stub)).characterEffects).toEqual([])
+    // The answer the GM reads shows the Character's own hit points, not the form's.
+    const shown = ended.delta.result.projection.actors.find(({ id }) => id === CHARACTER_ACTOR_ID)
+    if (!shown || !('maxHitPoints' in shown)) throw new Error('The GM answer shows no Character.')
+    expect(shown.maxHitPoints).not.toBe(giantCentipede.hitPoints)
+  }, 120000)
+
+  it('reverts the Character when a Sheet edit leaves it Unconscious', async () => {
+    const { room } = await inForm()
+    const streamVersion = await runInDurableObject(
+      room.room.base.stub,
+      (_instance, context) =>
+        new RoomEncounterStore(context.storage)
+          .documents('characterPlayStates')
+          .find((row) => row.characterId === CHARACTER_ID)!.streamVersion
+    )
+    const commandId = crypto.randomUUID()
+    const edited = await room.room.send(commandId, {
+      scope: 'CHARACTER_SHEET',
+      characterId: CHARACTER_ID,
+      encounterId: room.room.encounterId,
+      command: {
+        type: 'ADD_CONDITION',
+        conditionTypeId: UNCONSCIOUS,
+        commandId,
+        expectedVersion: streamVersion
+      }
+    })
+    expect(edited.type, JSON.stringify(edited)).toBe('COMMAND_COMMITTED')
+    expect(await characterForm(room)).toBeNull()
+    expect((await readRoomHistory(room.room.base.stub)).characterEffects).toEqual([])
   }, 120000)
 })
 

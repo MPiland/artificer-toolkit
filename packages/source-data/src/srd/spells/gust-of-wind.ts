@@ -83,8 +83,11 @@ export const gustOfWind: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.GUST_OF_WIND, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'GUST_OF_WIND' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Resolve the Gust',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  'Each creature that starts its turn in the line must succeed on a Strength saving throw or be pushed 15 feet away from you in a direction following the line. Any creature in the line must spend 2 feet of movement for every 1 foot it moves when moving closer to you. As a bonus action on each of your turns before the spell ends, you can change the direction in which the line blasts from you.'
               },
               {
                 id: spellChildId(SPELL_IDS.GUST_OF_WIND, 0x213, 1),

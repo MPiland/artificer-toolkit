@@ -362,6 +362,10 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
         resultGate: { paths: ['ON_SAVE_FAIL'] },
         creatureFormContribution: {
           excessDamageCarriesOver: true,
+          // Polymorph replaces every score, the mental ones included.
+          retainedAbilityIds: [],
+          holderEnd: null,
+          endOnConditionIds: [],
           forms: [],
           filter: { challengeRatingCapKind: 'TARGET', maxChallengeRatingId: null }
         }

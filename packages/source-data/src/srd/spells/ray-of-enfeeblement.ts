@@ -64,8 +64,11 @@ export const rayOfEnfeeblement: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.RAY_OF_ENFEEBLEMENT, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'RAY_OF_ENFEEBLEMENT' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Resolve the Enfeeblement',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  "Until the spell ends, the target deals only half damage with weapon attacks that use Strength. At the end of each of the target's turns, it can make a Constitution saving throw against the spell. On a success, the spell ends."
               }
             ]
           }
