@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 export const fleshGolem: CreatureAuthored = {
   id: S.CREATURE_IDS.FLESH_GOLEM,
@@ -86,7 +87,7 @@ export const fleshGolem: CreatureAuthored = {
       description:
         'Immutable Form. The golem is immune to any spell or effect that would alter its form.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(103, 203),
           invocation: {
             kind: 'PASSIVE',
@@ -94,7 +95,7 @@ export const fleshGolem: CreatureAuthored = {
             range: { id: S.actionId(103, 1203), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_IMMUTABLE_FORM
+          ...CHANGE_SHAPE_RULING.IMMUTABLE_FORM
         })
       ],
       order: 3

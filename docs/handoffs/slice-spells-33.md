@@ -692,3 +692,11 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - Status: implemented; CI is the gate. Werebear, Wereboar, Wererat, Weretiger, Werewolf and Vampire Shapechanger stay ACTION/SELF effects whose single outcome is a `MANUAL_ADJUDICATION` / `GM_CHOICE` ruling from `creatures/changeShapeRuling.ts` (new wordings `LYCANTHROPE_FORM` and `VAMPIRE_FORM`). Vampire Misty Escape stays a PASSIVE effect with the `MISTY_ESCAPE` ruling. Same reason as T4s1: a form swap would replace hit points, and the 0-hit-point replacement, 2-hour deadline and resting-place recovery have no engine piece (rare, D187a). No engine piece built.
 - The seven closed-rule kinds (`CREATURE_{WEREBEAR,WEREBOAR,WERERAT,WERETIGER,WEREWOLF,VAMPIRE}_SHAPECHANGER`, `CREATURE_VAMPIRE_MISTY_ESCAPE`) are deleted from `closedRuleKind.ts`.
 - Proof: `creatureChangeShapeRulingAuthoringParity.test.ts` extended (action shape, Misty Escape passive ruling, creature node map round trip, kinds gone).
+
+## T4s3: Immutable Form, Duergar Enlarge, Mimic Pseudopod Adhesive as GM rulings (D187a; `ci/spells-33-t4s3`)
+
+- Status: implemented; CI is the gate. Clay, Flesh, Iron and Stone Golem Immutable Form use `CHANGE_SHAPE_RULING.IMMUTABLE_FORM` on their PASSIVE effects. Duergar Enlarge keeps its short-rest charge and bonus-action invocation; its outcome is a `MANUAL_ADJUDICATION` ruling (Large size and Strength advantage; the doubled dice are already in the attacks). The Mimic Pseudopod's object-form Adhesive rider is an ON_HIT ruling (grapple, escape DC 13, disadvantage on the escape checks). No engine piece built.
+- Five closed-rule kinds deleted (`CREATURE_IMMUTABLE_FORM`, `CREATURE_IRON_GOLEM_IMMUTABLE_FORM`, `CREATURE_STONE_GOLEM_IMMUTABLE_FORM`, `DUERGAR_ENLARGE`, `CREATURE_MIMIC_PSEUDOPOD_ADHESIVE`). Mimic Grappler stays with T3a and Mimic Adhesive with T6a3 (not in this ledger row).
+- `manualAdjudicationEffect` gained an optional `order`, used by the Pseudopod effect.
+- Proof: `creatureFormRulingAuthoringParity.test.ts` (ruling shape per creature, creature node map round trip, kinds gone); SRD effect compile golden regenerated.
+
