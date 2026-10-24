@@ -82,6 +82,8 @@ export type NativeEncounterOccurrenceFacts = {
         contest?: { origin: { kind: string; actionKind?: string } } | null
         origin?: { kind: string; movementContinuation?: unknown }
       })
+    /** A d20 window, with the check whose d20 opened it. */
+    | { kind: 'ENCOUNTER_D20_WINDOW'; source: { context: { kind: string } } }
     | null
   rootCommandType: string | null
   completedContest: boolean
@@ -109,13 +111,14 @@ export function classifyNativeEncounterOccurrence({
     occurrence.rootCommandId === cleavingChildCommandIdentity(occurrence.id)
   )
     return 'CLEAVING'
-  if (
-    context?.kind === 'ENCOUNTER_CONCEALMENT_CHECK' ||
-    context?.kind === 'ENCOUNTER_CHECK_ACTION' ||
-    context?.kind === 'ENCOUNTER_D20_WINDOW'
-  )
+  // A d20 window belongs to the check whose d20 opened it.
+  const check =
+    context?.kind === 'ENCOUNTER_D20_WINDOW' && 'source' in context
+      ? context.source.context
+      : context
+  if (check?.kind === 'ENCOUNTER_CONCEALMENT_CHECK' || check?.kind === 'ENCOUNTER_CHECK_ACTION')
     return 'BASIC_ACTION'
-  if (context?.kind === 'ENCOUNTER_ESCAPE_CHECK' || rootCommandType === 'ESCAPE') return 'ESCAPE'
+  if (check?.kind === 'ENCOUNTER_ESCAPE_CHECK' || rootCommandType === 'ESCAPE') return 'ESCAPE'
   if (isNativeActionOccurrence({ context, rootCommandType })) return 'ACTION'
   if (
     context?.kind === 'ENCOUNTER_TURN_RECHARGE' ||

@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
+import type { EncounterD20WindowPendingContextDto } from '@artificer-toolkit/schema/shared/ruleExecutionD20Window'
 import type {
   ServerKernelRuleExecutionPendingSnapshotDto,
   ServerRuleExecutionPendingSnapshotDto
@@ -41,9 +42,7 @@ function readKernelCheckSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto
 }
 
 /** The frozen check and the paused graph a pending concealment check (Hide, Search) waits on. */
-export function readBasicActionCheckSnapshot(
-  snapshot: ServerRuleExecutionPendingSnapshotDto | null
-) {
+function readConcealmentCheckD20(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
   const pending = readKernelCheckSnapshot(snapshot)
   if (pending?.context.kind !== 'ENCOUNTER_CONCEALMENT_CHECK')
     throw new Error('The basic action check occurrence is unavailable.')
@@ -55,7 +54,7 @@ export function readBasicActionCheckSnapshot(
 }
 
 /** The frozen check and the paused graph a pending Escape check waits on. */
-export function readEscapeCheckSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
+function readEscapeCheckD20(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
   const pending = readKernelCheckSnapshot(snapshot)
   if (pending?.context.kind !== 'ENCOUNTER_ESCAPE_CHECK')
     throw new Error('The escape check occurrence is unavailable.')
@@ -64,6 +63,60 @@ export function readEscapeCheckSnapshot(snapshot: ServerRuleExecutionPendingSnap
     continuation: pending.continuation,
     context: pending.context
   }
+}
+
+type D20WindowCheck = EncounterD20WindowPendingContextDto['source']['context']
+
+/**
+ * The check a pending snapshot waits on, with the d20 window its d20 opened when it waits on that
+ * instead (D168): the window's frozen check stands in for the check's own pending read. Null when
+ * the snapshot waits on neither.
+ */
+function readCheckOrD20Window<TKind extends D20WindowCheck['kind']>(
+  snapshot: ServerRuleExecutionPendingSnapshotDto | null,
+  kind: TKind,
+  readCheck: (snapshot: ServerRuleExecutionPendingSnapshotDto | null) =>
+    | (Omit<NonNullable<ReturnType<typeof splitKernelSnapshot>>, 'context'> & {
+        context: Extract<D20WindowCheck, { kind: TKind }>
+      })
+    | null
+) {
+  const pending = readD20WindowSnapshot(snapshot)
+  if (!pending) {
+    const check = readCheck(snapshot)
+    return check && { ...check, window: null }
+  }
+  const check = pending.context.source.context
+  const isKind = (context: D20WindowCheck): context is Extract<D20WindowCheck, { kind: TKind }> =>
+    context.kind === kind
+  return isKind(check)
+    ? {
+        snapshot: pending.snapshot,
+        continuation: pending.continuation,
+        context: check,
+        window: pending.context
+      }
+    : null
+}
+
+/** The concealment check (Hide, Search) a pending snapshot waits on, or the d20 window its d20 opened. */
+export function readBasicActionCheckSnapshot(
+  snapshot: ServerRuleExecutionPendingSnapshotDto | null
+) {
+  const pending = readCheckOrD20Window(
+    snapshot,
+    'ENCOUNTER_CONCEALMENT_CHECK',
+    readConcealmentCheckD20
+  )
+  if (!pending) throw new Error('The basic action check occurrence is unavailable.')
+  return pending
+}
+
+/** The Escape check a pending snapshot waits on, or the d20 window its d20 opened. */
+export function readEscapeCheckSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
+  const pending = readCheckOrD20Window(snapshot, 'ENCOUNTER_ESCAPE_CHECK', readEscapeCheckD20)
+  if (!pending) throw new Error('The escape check occurrence is unavailable.')
+  return pending
 }
 
 function requirePendingRoot(
@@ -83,7 +136,7 @@ export function readNativeBasicActionCheckPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
   snapshot: ServerRuleExecutionPendingSnapshotDto | null
 ) {
-  const pending = readBasicActionCheckSnapshot(snapshot)
+  const pending = readConcealmentCheckD20(snapshot)
   requirePendingRoot(occurrence, pending)
   return pending
 }
@@ -93,7 +146,7 @@ export function readNativeEscapeCheckPending(
   occurrence: EncounterDocument<'encounterRuleOccurrences'>,
   snapshot: ServerRuleExecutionPendingSnapshotDto | null
 ) {
-  const pending = readEscapeCheckSnapshot(snapshot)
+  const pending = readEscapeCheckD20(snapshot)
   requirePendingRoot(occurrence, pending)
   return pending
 }
@@ -126,20 +179,7 @@ function readCheckActionPhaseSnapshot(snapshot: ServerRuleExecutionPendingSnapsh
  * waits on one; null when the snapshot waits on anything else.
  */
 export function readCheckActionSnapshot(snapshot: ServerRuleExecutionPendingSnapshotDto | null) {
-  const pending = readD20WindowSnapshot(snapshot)
-  if (!pending) {
-    const phase = readCheckActionPhaseSnapshot(snapshot)
-    return phase && { ...phase, window: null }
-  }
-  const { source } = pending.context
-  return source.kind === 'CHECK_ACTION'
-    ? {
-        snapshot: pending.snapshot,
-        continuation: pending.continuation,
-        context: source.context,
-        window: pending.context
-      }
-    : null
+  return readCheckOrD20Window(snapshot, 'ENCOUNTER_CHECK_ACTION', readCheckActionPhaseSnapshot)
 }
 
 /** The check action's roller sees its d20, or the outcome's dice; its controllers and the GM answer. */

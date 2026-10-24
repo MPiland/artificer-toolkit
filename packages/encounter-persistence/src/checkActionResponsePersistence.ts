@@ -17,7 +17,10 @@ import {
 import type { ApplyEncounterForcedMovements } from './actionCommitRecords.js'
 import { readCheckActionResponseAdmission } from './basicActionCheckAdmission.js'
 import {
+  openedD20Window,
+  pausedOnAnsweredD20,
   readCheckScope,
+  readD20Answer,
   recordCheckResponse,
   requireD20WindowAnswer
 } from './basicActionCheckResponsePersistence.js'
@@ -110,23 +113,13 @@ export async function persistEncounterCheckActionPause(
     // The d20's answer opens its window, or reached the DC and the outcome's dice follow.
     const rolled =
       next.kind === 'ENCOUNTER_D20_WINDOW'
-        ? next.source.kind === 'CHECK_ACTION' &&
-          checksumCanonicalJson(next.source.context) === checksumCanonicalJson(paused.context)
-          ? next.pause.payload
-          : null
+        ? openedD20Window(next, paused.context)
         : nextCheckAction &&
             outcome?.windowDice.length === 0 &&
             sameCheckAction(nextCheckAction, paused.context)
           ? outcome
           : null
-    if (
-      !rolled ||
-      input.window ||
-      rolled.rolled.initialFactsChecksum !== checksumRuleDocument(pending.continuation.facts) ||
-      rolled.rolled.execution.evidence.source.gameSystemId !== state.gameSystemId ||
-      rolled.appRollId !== (admission.appRoll?.rollId ?? null)
-    )
-      throw mismatch()
+    if (!rolled || input.window || !pausedOnAnsweredD20(admission, rolled)) throw mismatch()
   } else if (
     // The outcome waits on more of its dice, under the same rolled check.
     input.window ||
@@ -322,9 +315,9 @@ export function readCandidateStep<
 }
 
 /**
- * What the settling answer adds to the check its phase froze: the d20 itself (the occurrence's next
- * version), a window's held die, or the outcome's dice on the d20 it already rolled (both keep the
- * version the d20 was evidenced at). It returns the window's dice and the receipt's value.
+ * What the settling answer adds to the check its phase froze: the d20 or a window's held die
+ * (`readD20Answer`), or the outcome's dice on the d20 it already rolled (the version the d20 was
+ * evidenced at). It returns the window's dice and the receipt's value.
  */
 function readCheckActionAnswer(input: {
   admission: CheckActionAdmission
@@ -335,39 +328,16 @@ function readCheckActionAnswer(input: {
 }) {
   const { admission, paused, settlement, execution } = input
   const { occurrence, pending, response } = admission
-  if (paused.window) {
-    if (!settlement.window) throw mismatch()
-    const answer = requireD20WindowAnswer({
-      offered: paused.window,
-      resolution: response.resolution,
-      spentEffect: settlement.window.spentEffect,
-      settled: {
-        execution,
-        initialFactsChecksum: execution.initialFactsChecksum,
-        d20: input.d20,
-        appRollId: settlement.appRollId
-      }
-    })
-    return {
-      windowDice: answer.windowDice,
-      occurrenceVersion: occurrence.version,
-      value: answer.selectedIndex
-    }
-  }
   const { phase } = paused.context
+  if (paused.window || phase.kind === 'CHECK')
+    return readD20Answer({
+      admission,
+      window: paused.window,
+      settlement,
+      execution,
+      d20: input.d20
+    })
   if (settlement.window) throw mismatch()
-  if (phase.kind === 'CHECK') {
-    if (
-      execution.initialFactsChecksum !== checksumRuleDocument(pending.continuation.facts) ||
-      settlement.appRollId !== (admission.appRoll?.rollId ?? null)
-    )
-      throw mismatch()
-    return {
-      windowDice: [],
-      occurrenceVersion: occurrence.version + 1,
-      value: input.d20.selectedNatural
-    }
-  }
   const { request } = pending.snapshot
   if (
     request.kind !== 'INTEGER_RANGE' ||

@@ -73,6 +73,8 @@ export async function persistEncounterEscape(
     context.heldActorId !== command.heldActorId ||
     context.activeEffectId !== command.activeEffectId ||
     context.check.checkDefinitionId !== command.checkDefinitionId ||
+    // A d20 the attempt rolls itself never answered a window, so it spends no held die.
+    (check.kind === 'SETTLED' && check.settlement.window) ||
     input.rules.actors.length !== ruleActors.length ||
     input.rules.actors.some((entry) => !ruleActors.some((rule) => rule.id === entry.actorId))
   )

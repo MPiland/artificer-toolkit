@@ -40,6 +40,8 @@ export async function settleEncounterConcealmentCheck(
     initiatorUserId: string
     occurredAt: string
     occurrenceVersion: number
+    /** The held dice a d20 window added to the frozen check's d20. */
+    windowDice?: Parameters<typeof settledCheckD20MatchesFrozen>[2]
   }
 ): Promise<{
   actors: EncounterRunActorState[]
@@ -65,7 +67,7 @@ export async function settleEncounterConcealmentCheck(
     output.actorId !== context.actorId ||
     checksumCanonicalJson(output.definition) !== checksumCanonicalJson(context.definition) ||
     output.check.checkDefinitionId !== context.check.checkDefinitionId ||
-    !settledCheckD20MatchesFrozen(output.d20, context.d20)
+    !settledCheckD20MatchesFrozen(output.d20, context.d20, input.windowDice)
   )
     throw new Error('Live Session concealment check scope mismatch.')
   const store = createActiveRuleEffectStore(ctx)
