@@ -653,6 +653,7 @@ export function applyCharacterSheetCommand(
         return uniqueItemIds.map((equipmentItemId) => ({ equipmentItemId }))
       }
       if (command.extra.kind === 'VEHICLE') {
+        const { isActive } = command.extra
         const instance = next.state.vehicles?.find(
           (vehicle) => vehicle.id === command.extra.extraId
         )
@@ -676,7 +677,7 @@ export function applyCharacterSheetCommand(
                     : (command.extra.customName ?? vehicle.customName),
                 notes:
                   command.extra.notes === null ? undefined : (command.extra.notes ?? vehicle.notes),
-                isActive: command.extra.isActive ?? vehicle.isActive,
+                isActive: isActive ?? vehicle.isActive,
                 currentHitPoints:
                   command.extra.currentHitPoints === undefined
                     ? vehicle.currentHitPoints

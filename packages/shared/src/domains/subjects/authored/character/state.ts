@@ -115,6 +115,23 @@ export interface CharacterExhaustionState {
   notes?: string
 }
 
+type SummonAbilityScores = NonNullable<SummonStatBlockAuthored['abilityScores']>
+
+/**
+ * The summon plan's stat block as play state snapshots it. The schema parses numeric expressions as
+ * `unknown` and size as an identifier, so the snapshot keeps those fields as loose as the parse.
+ */
+export type CharacterSpellSummonStatBlockState = Omit<
+  SummonStatBlockAuthored,
+  'size' | 'armorClass' | 'hitPoints' | 'passivePerception' | 'abilityScores'
+> & {
+  size?: string
+  armorClass?: unknown
+  hitPoints?: unknown
+  passivePerception?: unknown
+  abilityScores?: { [Ability in keyof SummonAbilityScores]?: unknown }
+}
+
 /** A creature a Sheet spell cast conjured outside an Encounter (D190). */
 export interface CharacterSpellSummonState {
   id: string
@@ -122,7 +139,7 @@ export interface CharacterSpellSummonState {
   summonOutcomeId: string
   label: string
   concentration: boolean
-  statBlock: SummonStatBlockAuthored
+  statBlock: CharacterSpellSummonStatBlockState
   armorClass: number | null
   maximumHitPoints: number
   currentHitPoints: number
