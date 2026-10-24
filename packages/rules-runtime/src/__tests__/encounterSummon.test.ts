@@ -75,7 +75,9 @@ describe('buildEncounterSummon', () => {
       maxHitPoints: 40,
       currentHitPoints: 40
     })
-    expect(build({ hitPoints: { kind: 'FIXED', value: 12 } }).actor.maxHitPoints).toBe(12)
-    expect(build({}).actor.maxHitPoints).toBe(0)
+    expect(build({ hitPoints: { kind: 'FIXED', value: 12 } }).actor).toMatchObject({
+      maxHitPoints: 12
+    })
+    expect(build({}).actor).toMatchObject({ maxHitPoints: 0 })
   })
 })
