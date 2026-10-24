@@ -1,5 +1,37 @@
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { conditionTypeId } from '../equipment/shared.js'
+import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import * as S from './shared.js'
+
+/** Deadly Leap's 3d6 + 4 of one damage type; `multiplier` halves it on a successful save. */
+const leapDamage = (id: number, damageType: 'BLUDGEONING' | 'SLASHING', multiplier: number) => ({
+  id: S.actionId(9521, id),
+  effectKind: S.EFFECT_KIND.DAMAGE,
+  damageTypeId: S.damageTypeId(damageType),
+  valueKind: S.DAMAGE_VALUE_KIND.DICE,
+  scalingKind: S.SCALING.NONE,
+  diceConfig: '3d6',
+  ...(multiplier === 1 ? {} : { multiplier }),
+  bonuses: [
+    {
+      id: S.actionId(9521, id + 1),
+      bonusKind: S.DAMAGE_BONUS_KIND.ABILITY_BONUS,
+      ability: S.ABILITY_CODE.STRENGTH,
+      order: 1
+    }
+  ]
+})
+
+/** The parts of Deadly Leap no authored option carries (D187a), shown beside the save. */
+const leapRuling = (id: number) => ({
+  id: S.actionId(9521, id),
+  effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+  label: 'Deadly Leap rulings',
+  instructions:
+    "The bulette must have jumped at least 15 feet this move. Each creature in its space chooses Strength or Dexterity for the DC 16 save; the save is authored as Strength, so the GM substitutes a Dexterity save for a creature that chooses it. On a success the creature is pushed 5 feet out of the bulette's space into an unoccupied space of its choice, or falls prone in the bulette's space if none is in range; the GM moves it.",
+  reasonCode: MANUAL_ADJUDICATION_REASON.NARRATIVE_JUDGMENT
+})
 export const bulette: CreatureAuthored = {
   id: S.CREATURE_IDS.BULETTE,
   label: 'Bulette',
@@ -66,21 +98,31 @@ export const bulette: CreatureAuthored = {
           order: 1,
           invocation: {
             kind: 'ACTION' as const,
-            triggerCode: S.TRIGGER.ACTIVATED,
+            triggerCode: S.TRIGGER.SAVING_THROW,
+            savingThrow: {
+              id: S.actionId(9521, 8),
+              dcMethod: 'FIXED_DC',
+              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
+              baseDc: 16
+            },
             activation: {
               code: S.ACTIVATION_CODE.ACTION,
               amount: 1
             },
             range: {
               id: S.actionId(9521, 2),
-              rangeKind: S.RANGE_KIND.SPECIAL
+              rangeKind: S.RANGE_KIND.SELF
+            },
+            targeting: {
+              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
           paths: [
             {
               id: S.actionId(9521, 3),
               order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
               groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE' as const,
               selectionKind: 'FIXED' as const,
@@ -88,11 +130,31 @@ export const bulette: CreatureAuthored = {
                 id: S.actionId(9521, 3) + '__result',
                 resultKind: 'SINGLE' as const,
                 outcomes: [
+                  leapDamage(9, 'BLUDGEONING', 1),
+                  leapDamage(12, 'SLASHING', 1),
                   {
-                    id: S.actionId(9521, 3),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.BULETTE_DEADLY_LEAP
-                  }
+                    id: S.actionId(9521, 15),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('PRONE')
+                  },
+                  leapRuling(16)
+                ]
+              }
+            },
+            {
+              id: S.actionId(9521, 17),
+              order: 2,
+              pathCode: S.PATH_CODE.ON_SAVE_SUCCESS,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE' as const,
+              selectionKind: 'FIXED' as const,
+              resultBlock: {
+                id: S.actionId(9521, 17) + '__result',
+                resultKind: 'SINGLE' as const,
+                outcomes: [
+                  leapDamage(18, 'BLUDGEONING', 0.5),
+                  leapDamage(21, 'SLASHING', 0.5),
+                  leapRuling(24)
                 ]
               }
             }
