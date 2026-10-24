@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import * as S from './shared.js'
 
 export const octopus: CreatureAuthored = {
@@ -51,7 +52,7 @@ export const octopus: CreatureAuthored = {
       description:
         'Underwater Camouflage. The octopus has advantage on Dexterity (Stealth) checks made while underwater.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(208, 502),
           invocation: {
             kind: 'PASSIVE',
@@ -59,7 +60,10 @@ export const octopus: CreatureAuthored = {
             range: { id: S.actionId(208, 602), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_OCTOPUS_UNDERWATER_CAMOUFLAGE
+          label: 'Underwater Camouflage',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            'The octopus has advantage on Dexterity (Stealth) checks made while underwater.'
         })
       ],
       order: 2
@@ -131,26 +135,55 @@ export const octopus: CreatureAuthored = {
         amount: 1
       },
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(208, 504),
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.ACTIVATED,
             activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-            range: {
-              id: S.actionId(208, 604),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 5,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.AREA_CONTENTS,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            },
+            range: { id: S.actionId(208, 604), rangeKind: S.RANGE_KIND.SELF },
+            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF },
             resourceUse: { chargeId: S.actionId(208, 505), cost: 1 }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_OCTOPUS_INK_CLOUD
-        })
+          paths: [
+            {
+              id: S.actionId(208, 506),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_USE,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(208, 506) + '__result',
+                resultKind: 'SEQUENCE',
+                // "After releasing the ink, the octopus can use the Dash action as a bonus action":
+                // the offer lasts to the end of the turn the ink is released on.
+                duration: { id: S.actionId(208, 509), durationKind: 'TURN', amount: 1 },
+                lifecycle: {
+                  turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' },
+                  grantedActions: [
+                    {
+                      activation: S.ACTIVATION_CODE.BONUS_ACTION,
+                      actionDefinitionIds: [SRD_BASIC_ACTION_IDS.DASH]
+                    }
+                  ]
+                },
+                outcomes: [
+                  { id: S.actionId(208, 507), effectKind: S.EFFECT_KIND.APPLY_GRANT, grants: {} },
+                  {
+                    id: S.actionId(208, 508),
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Place the ink cloud',
+                    reasonCode: 'EXTERNAL_WORLD_STATE',
+                    instructions:
+                      'A 5-foot-radius cloud of ink extends all around the octopus if it is underwater. The area is heavily obscured for 1 minute, although a significant current can disperse the ink.'
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 4
     },

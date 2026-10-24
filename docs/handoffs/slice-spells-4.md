@@ -397,7 +397,7 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 #### T2l2 (D187a: description-only)
 
 - Status: implemented; CI on `ci/spells-4-t2l2`. Confusion (d10 behavior) and Compulsion (compelled direction) are one `MANUAL_ADJUDICATION` (`GM_CHOICE`) outcome each; the save, Concentration and 1-minute duration stay automated. The `CONFUSION` and `COMPULSION` closed-rule kinds are deleted (`EYEBITE` went in T2lb2b1).
-- `CONTAGION` stays: T2m3 deletes it with the 7-day duration work. Mindfire's confusion behavior is already in Contagion's description text; compelled turns stay in future-enhancements "Deferred rules pieces (D187a)".
+- `CONTAGION` stayed for T2m3, which deleted it (Contagion ships as a GM ruling). Mindfire's confusion behavior is already in Contagion's description text; compelled turns stay in future-enhancements "Deferred rules pieces (D187a)".
 
 #### T2lb2b1 (D187a: description-only)
 
@@ -517,9 +517,16 @@ Original T2m1b design (now b2):
 
 `attempts.kind === 'THRESHOLDS'` (`successesToEnd`, `failuresToResolve`, `consecutive`) crosses four layers: the lifecycle schema `packages/schema/src/shared/activeRuleEffectLifecycle.ts`, the staged validators `ruleExecutionTurnResults.ts`, `packages/encounter-persistence/src/turnEffectsPersistence.ts` (checksum and CAS) and `packages/rules-runtime/src/encounterTurnEffects.ts`. Adds a `saveTally {successes, failures}` advanced in the same CAS as `remaining`; ends at `successesToEnd`, runs `onFailure` once at `failuresToResolve`. Includes Contagion's save part; the `CONTAGION` kind stays until T2l2.
 
-#### Resume: T2m2 (size 5) and T2m3 (size 5)
+#### Resume: T2m2 (size 5)
 
-T2m2: `CONDITION_SUPPRESSION { conditionIds, effectOrigin: ANY | MAGICAL, mode: SUPPRESS | PREVENT }` on an APPLY_GRANT holder; SUPPRESS suppresses held conditions without deleting them (they resume if their duration remains), PREVENT refuses a magical apply with a receipt line. Converts CALM_EMOTIONS (indifference stays manual) and FREEDOM_OF_MOVEMENT. T2m3: lifecycle `onTriggers` `DAMAGE_TAKEN` applying a condition (Slimy Doom's stun) and the Contagion disease rows.
+T2m2: `CONDITION_SUPPRESSION { conditionIds, effectOrigin: ANY | MAGICAL, mode: SUPPRESS | PREVENT }` on an APPLY_GRANT holder; SUPPRESS suppresses held conditions without deleting them (they resume if their duration remains), PREVENT refuses a magical apply with a receipt line. Converts CALM_EMOTIONS (indifference stays manual) and FREEDOM_OF_MOVEMENT.
+
+#### T2m3 (D187a: description-only; `ci/spells-4-t2m3`)
+
+- Contagion's melee spell attack stays automated; on a hit, the whole disease is one `MANUAL_ADJUDICATION` (`GM_CHOICE`) outcome: the caster's choice of disease, the end-of-turn Constitution saves to three successes or three failures, every disease row and Slimy Doom's stun when the target takes damage. The description is unchanged. Contagion compiles for the first time (it was refused); the golden line moved from REFUSED to TEST_OUTCOME.
+- No existing core option fits, so no row is authored: the 7-day duration is over `MAX_ACTIVE_EFFECT_TURNS`, so neither the shipped THRESHOLDS save tally nor any disease row can ride an active effect, and the result block's 7-day duration is dropped. The DAMAGE_TAKEN lifecycle condition and the long-clock path are not built; both are in future-enhancements "Deferred rules pieces (D187a)".
+- The `CONTAGION` closed-rule kind is deleted; the schema parsing test's closed-rule example now uses a surviving kind.
+- Proof: Contagion in `packages/authoring/src/nodeRuntime/manualBesideSpellAuthoringParity.test.ts` (authoring parity), plus `srdEffectCompile.golden.txt`.
 
 ### T2n4 (Warding Bond damage mirror, D181/D184; `ci/spells-4-t2n4`)
 
