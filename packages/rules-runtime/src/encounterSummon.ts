@@ -5,6 +5,7 @@ import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { summonBody } from './encounterActorBody.js'
 import { summonHitPoints } from './summonHitPoints.js'
 
 /** The caster's hit point maximum when the Run holds it; a Character's lives on the Sheet. */
@@ -15,7 +16,8 @@ export function casterHitPointMaximum(caster: EncounterRunActorState): number | 
 /**
  * The creature a cast summons: a Run actor owned by the caster, built from the spell's stat block,
  * and the Scene token that stands at `point`. The summon fights on the caster's side and is
- * controlled through its owner, so its own controller list is empty.
+ * controlled through its owner, so its own controller list is empty. Its snapshot keeps the stat
+ * block's body rules (`encounterActorBody`).
  */
 export function buildEncounterSummon(input: {
   summon: Pick<CompiledActionSummonPlacement, 'statBlock'>
@@ -69,7 +71,13 @@ export function buildEncounterSummon(input: {
     initiative: null,
     manualOrder: null,
     owner: { ownerActorId: caster.id, sourceEffectId },
-    snapshot: { kind: 'CUSTOM', label, maxHitPoints, systemId: caster.systemId },
+    snapshot: {
+      kind: 'CUSTOM',
+      label,
+      maxHitPoints,
+      systemId: caster.systemId,
+      body: summonBody(summon.statBlock)
+    },
     createdAt: occurredAt,
     updatedAt: occurredAt
   })

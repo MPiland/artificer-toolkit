@@ -335,7 +335,8 @@ export async function prepareAreaScene(
           grid,
           sourceToken: scene.sourceToken,
           pointSeen: await seen(target.point),
-          tokens: scene.tokens
+          tokens: scene.tokens,
+          actors: input.actors
         })
       : null
   const area =
