@@ -10885,7 +10885,7 @@
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Zone and aura miscellany. Converts GUARDIAN_OF_FAITH, ANTIPATHY_SYMPATHY, CONTINGENCY, with parity proofs; each kind deleted."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2s",
               "wsjf": {
@@ -10896,7 +10896,9 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Forms and possession. Converts ANIMAL_SHAPES, SHAPECHANGE, MAGIC_JAR, PLANAR_BINDING, PROJECT_IMAGE, with parity proofs; each kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-24T14:31:49Z",
+              "proof": "Tests and Live green on tip afff13a2c; D191: a form effect authors retainedAbilityDefinitionIds, frozen onto the contribution as required retainedAbilityIds (System formRetainedAbilityIds deleted; Polymorph keeps none), holderEnd and endOnConditionIds end Wild Shape forms, Animal Shapes and Shapechange author their forms, Magic Jar, Planar Binding and Project Image are GM rulings; proofs creatureFormAuthoringParity.test.ts, manualBesideSpellAuthoringParity.test.ts, nativeRoomPolymorph.test.ts, grantLifetimes.test.ts, formRetentionMigration.test.ts and encounterMechanicsBatchPlan.test.ts.",
+              "note": " Merged in m411."
             },
             {
               "closes": ["SPELLS-4.1"],
