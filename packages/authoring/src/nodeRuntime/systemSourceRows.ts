@@ -13,7 +13,8 @@ export type NodeRuntimePolicyVocabulary = Readonly<
     | 'spellSlotPool'
     | 'effectConsumeEvent'
     | 'effectEndEvent'
-    | 'actionTrait',
+    | 'actionTrait'
+    | 'size',
     readonly { code: string; label: string; description?: string }[]
   >
 >
@@ -37,6 +38,7 @@ export function systemCoreCodeRows(
     effect_consume_events: policyRows(coreCodes.effectConsumeEvent),
     effect_end_events: policyRows(coreCodes.effectEndEvent),
     action_traits: policyRows(coreCodes.actionTrait),
+    sizes: policyRows(coreCodes.size),
     ability_definitions: 'abilities' in system ? system.abilities : [],
     alignments: system.alignments,
     challenge_ratings: system.challengeRatings,

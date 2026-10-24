@@ -15,12 +15,12 @@ import {
   RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
-  SIZE_CODE,
   SPELL_GRANT_ATTRIBUTE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, RACE_IDS, SUBRACE_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import {
   SRD_LANGUAGES,
   SRD_SPEEDS,

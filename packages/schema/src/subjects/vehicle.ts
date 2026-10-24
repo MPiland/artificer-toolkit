@@ -10,11 +10,8 @@ import {
 import { detailDtoSchema } from '../shared/detail.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { costDtoSchema, weightDtoSchema } from './shared.js'
-import {
-  authoredRecordStatusSchema,
-  sizeCodeSchema,
-  vehicleCategoryCodeSchema
-} from '../shared/enums.js'
+import { authoredRecordStatusSchema, vehicleCategoryCodeSchema } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 export const vehicleAuthoredDtoSchema = lazySchema(() =>
   z.object({
@@ -26,7 +23,7 @@ export const vehicleAuthoredDtoSchema = lazySchema(() =>
     userId: authoredIdentifierSchema,
     systemId: authoredIdentifierSchema,
     category: vehicleCategoryCodeSchema,
-    size: z.optional(sizeCodeSchema),
+    size: z.optional(systemCoreCodeSchema),
     armorClass: z.optional(z.number().check(z.int()).check(z.nonnegative())),
     hitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
     speed: z.optional(z.number().check(z.nonnegative())),

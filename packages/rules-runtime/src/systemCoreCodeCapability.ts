@@ -6,7 +6,8 @@ const VOCABULARY_NOUNS = {
   spellSlotPool: 'spell slot pool',
   effectConsumeEvent: 'effect consume event',
   effectEndEvent: 'effect end event',
-  actionTrait: 'action trait'
+  actionTrait: 'action trait',
+  size: 'size'
 } as const
 
 /** A list a System supplies in place of a fixed wire enum (ADR 0039 decision 5). */
@@ -22,9 +23,14 @@ export interface SystemCoreCodeEntry {
   grantable?: boolean
   /** The fact an Encounter raises with an action that the trait describes. */
   actionFact?: 'attackRoll' | 'spellCast'
+  /** The edge in feet of the square a creature of this size fills; a size without it fills none a Scene models. */
+  spaceFeet?: number
 }
 
-/** A System's vocabulary lists: each code unique within its list, labels for display only. */
+/**
+ * A System's vocabulary lists: each code unique within its list, labels for display only. The size
+ * list runs smallest first, so a size's index is its step.
+ */
 export interface SystemCoreCodeAdapter {
   gameSystemId: string
   lists: Readonly<Record<SystemCoreCodeKind, readonly SystemCoreCodeEntry[]>>

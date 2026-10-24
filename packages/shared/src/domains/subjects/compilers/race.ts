@@ -10,7 +10,7 @@ import type {
   SpeedAuthored,
   SubraceAuthored
 } from '#authored'
-import { RACE_CATEGORY_CODE, type RaceSelectionMode, type SizeCode } from '#core'
+import { RACE_CATEGORY_CODE, type RaceSelectionMode } from '#core'
 import { compileFeature, type CompiledFeature } from '#compilers'
 
 export interface CompiledRaceCharacteristics {
@@ -33,7 +33,7 @@ export interface CompiledRaceAncestryOption {
 
 export interface ResolvedSubraceInherited {
   ancestry?: RaceAncestryAuthored
-  size: SizeCode
+  size: string
   speeds: SpeedAuthored[]
   heritageIds?: string[]
   details?: DetailAuthored[]
@@ -53,7 +53,7 @@ export type ResolvedSubrace = Omit<SubraceAuthored, 'details' | 'features'> & {
   details?: DetailAuthored[]
   features?: FeatureAuthored[]
   ancestry?: RaceAncestryAuthored
-  size: SizeCode
+  size: string
   speeds: SpeedAuthored[]
   subrace: ResolvedSubraceMeta
 }
@@ -72,7 +72,7 @@ export type CompiledRace = (
       category: typeof RACE_CATEGORY_CODE.BASE
       selectionMode: RaceSelectionMode
       ancestry?: CompiledRaceAncestry
-      size: SizeCode
+      size: string
       speeds: SpeedAuthored[]
     }
   | {
@@ -81,7 +81,7 @@ export type CompiledRace = (
       /** Features inherited from the parent race; they keep RACE provenance. */
       inheritedFeatureIds?: string[]
       ancestry?: CompiledRaceAncestry
-      size: SizeCode
+      size: string
       speeds: SpeedAuthored[]
     }
 ) &

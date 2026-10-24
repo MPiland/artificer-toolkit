@@ -4,7 +4,6 @@ import type {
   EquipmentCategoryCode,
   LengthUnitCode,
   MeasurementUnitCode,
-  SizeCode,
   SpellGrantAttribute
 } from '@artificer-toolkit/shared/core'
 import type {
@@ -179,13 +178,13 @@ export interface CharacterRuleCompanionStats {
   abilityScores: Record<string, number>
   armorClass: number
   maxHitPoints: number
-  size?: SizeCode
+  size?: string
   alignmentId?: string
   creatureTypeId?: string
   calculations: {
     armorClass: CharacterCalculation<number>
     maxHitPoints: CharacterCalculation<number>
-    size?: CharacterCalculation<SizeCode>
+    size?: CharacterCalculation<string>
     alignmentId?: CharacterCalculation<string>
     creatureTypeId?: CharacterCalculation<string>
   }

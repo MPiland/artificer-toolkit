@@ -11,7 +11,6 @@ import {
   activationCodeSchema,
   authoredRecordStatusSchema,
   equipmentPropertyCodeSchema,
-  sizeCodeSchema,
   spellAttributeSchema,
   spellComponentSchema
 } from '../shared/enums.js'
@@ -388,7 +387,7 @@ const characterSheetCreatureExtraDtoSchema = lazySchema(() =>
     creatureId: z.guid(),
     relationshipKind: z.enum(['COMPANION', 'MOUNT', 'OWNED']),
     relationshipLabel: stringSchema.check(z.minLength(1)),
-    size: z.optional(sizeCodeSchema),
+    size: z.optional(systemCoreCodeSchema),
     alignmentId: z.optional(z.guid()),
     creatureTypeId: z.optional(z.guid()),
     originKind: z.enum(['WORLD', 'SUMMONED']),
@@ -430,7 +429,7 @@ const characterSheetSpellSummonExtraDtoSchema = lazySchema(() =>
     armorClass: z.nullable(integerSchema.check(z.nonnegative())),
     speedLabel: z.optional(stringSchema.check(z.minLength(1))),
     hitPoints: characterSheetExtraCreatureHitPointsDtoSchema,
-    size: z.optional(sizeCodeSchema),
+    size: z.optional(systemCoreCodeSchema),
     abilityScores: z.optional(z.partialRecord(abilityCodeSchema, integerSchema)),
     passivePerception: z.optional(integerSchema)
   })

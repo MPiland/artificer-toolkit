@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { encounterMovementDrag } from '../encounterMovementDrag.js'
 import { encounterTokenOccupiesSpace, summonBody } from '../encounterActorBody.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { ENCOUNTER_ID, testUuid } from '../testing/dnd5eSrdEncounter.js'
 import { activeEffect } from './encounterActiveEffectFixtures.js'
 import { zoneToken } from './spatialZoneFixture.js'
@@ -80,6 +81,7 @@ function drag(
 ) {
   const sizes = input.sizes ?? { [MOVER.actorId]: 'MEDIUM', [HELD.actorId]: 'MEDIUM' }
   return encounterMovementDrag({
+    gameSystemId: DND5E_SYSTEM_ID,
     scene,
     mover: MOVER,
     actorIdByTokenId,

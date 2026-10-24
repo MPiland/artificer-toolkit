@@ -11,6 +11,7 @@ import {
   type AttackSlotAlternatives,
   type AttackSlotAttack
 } from '../encounterAttackSlots.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 const TARGET = '00000000-0000-4000-8000-0000000c0001'
 const OTHER = '00000000-0000-4000-8000-0000000c0002'
@@ -40,18 +41,22 @@ describe('a Brown Bear Multiattack', () => {
   const slots = multiattack(brownBear)
 
   it('takes one bite and one claws attack', () => {
-    expect(evaluateAttackSlots(slots, attacksOf(brownBear, 'Bite'))).toEqual({
+    expect(evaluateAttackSlots(DND5E_SYSTEM_ID, slots, attacksOf(brownBear, 'Bite'))).toEqual({
       fits: true,
       incomplete: true
     })
-    expect(evaluateAttackSlots(slots, attacksOf(brownBear, 'Claws', 'Bite'))).toEqual({
+    expect(
+      evaluateAttackSlots(DND5E_SYSTEM_ID, slots, attacksOf(brownBear, 'Claws', 'Bite'))
+    ).toEqual({
       fits: true,
       incomplete: false
     })
   })
 
   it("can't bite twice", () => {
-    expect(evaluateAttackSlots(slots, attacksOf(brownBear, 'Bite', 'Bite')).fits).toBe(false)
+    expect(
+      evaluateAttackSlots(DND5E_SYSTEM_ID, slots, attacksOf(brownBear, 'Bite', 'Bite')).fits
+    ).toBe(false)
   })
 })
 
@@ -60,25 +65,45 @@ describe('a Drider Multiattack', () => {
 
   it('makes three weapon attacks with one weapon', () => {
     expect(
-      evaluateAttackSlots(slots, attacksOf(drider, 'Longsword', 'Longsword', 'Longsword'))
+      evaluateAttackSlots(
+        DND5E_SYSTEM_ID,
+        slots,
+        attacksOf(drider, 'Longsword', 'Longsword', 'Longsword')
+      )
     ).toEqual({ fits: true, incomplete: false })
     expect(
-      evaluateAttackSlots(slots, attacksOf(drider, 'Longbow', 'Longbow', 'Longbow')).fits
+      evaluateAttackSlots(
+        DND5E_SYSTEM_ID,
+        slots,
+        attacksOf(drider, 'Longbow', 'Longbow', 'Longbow')
+      ).fits
     ).toBe(true)
-    expect(evaluateAttackSlots(slots, attacksOf(drider, 'Longsword', 'Longbow')).fits).toBe(false)
+    expect(
+      evaluateAttackSlots(DND5E_SYSTEM_ID, slots, attacksOf(drider, 'Longsword', 'Longbow')).fits
+    ).toBe(false)
   })
 
   it('offers the Bite swap once, in place of one weapon attack', () => {
-    expect(evaluateAttackSlots(slots, attacksOf(drider, 'Longsword', 'Bite', 'Longsword'))).toEqual(
-      { fits: true, incomplete: false }
-    )
-    expect(evaluateAttackSlots(slots, attacksOf(drider, 'Longbow', 'Bite')).fits).toBe(true)
-    expect(evaluateAttackSlots(slots, attacksOf(drider, 'Longsword', 'Bite', 'Bite')).fits).toBe(
-      false
-    )
     expect(
-      evaluateAttackSlots(slots, attacksOf(drider, 'Longsword', 'Longsword', 'Bite', 'Longsword'))
+      evaluateAttackSlots(
+        DND5E_SYSTEM_ID,
+        slots,
+        attacksOf(drider, 'Longsword', 'Bite', 'Longsword')
+      )
+    ).toEqual({ fits: true, incomplete: false })
+    expect(
+      evaluateAttackSlots(DND5E_SYSTEM_ID, slots, attacksOf(drider, 'Longbow', 'Bite')).fits
+    ).toBe(true)
+    expect(
+      evaluateAttackSlots(DND5E_SYSTEM_ID, slots, attacksOf(drider, 'Longsword', 'Bite', 'Bite'))
         .fits
+    ).toBe(false)
+    expect(
+      evaluateAttackSlots(
+        DND5E_SYSTEM_ID,
+        slots,
+        attacksOf(drider, 'Longsword', 'Longsword', 'Bite', 'Longsword')
+      ).fits
     ).toBe(false)
   })
 })
@@ -87,14 +112,20 @@ describe('an adult dragon Multiattack with Frightful Presence', () => {
   const slots = multiattack(adultRedDragon)
 
   it('uses Frightful Presence only first', () => {
-    expect(evaluateAttackSlots(slots, attacksOf(adultRedDragon, 'Frightful Presence')).fits).toBe(
-      true
-    )
     expect(
-      evaluateAttackSlots(slots, attacksOf(adultRedDragon, 'Bite', 'Frightful Presence')).fits
+      evaluateAttackSlots(DND5E_SYSTEM_ID, slots, attacksOf(adultRedDragon, 'Frightful Presence'))
+        .fits
+    ).toBe(true)
+    expect(
+      evaluateAttackSlots(
+        DND5E_SYSTEM_ID,
+        slots,
+        attacksOf(adultRedDragon, 'Bite', 'Frightful Presence')
+      ).fits
     ).toBe(false)
     expect(
       evaluateAttackSlots(
+        DND5E_SYSTEM_ID,
         slots,
         attacksOf(adultRedDragon, 'Frightful Presence', 'Frightful Presence')
       ).fits
@@ -102,12 +133,15 @@ describe('an adult dragon Multiattack with Frightful Presence', () => {
   })
 
   it('needs no Frightful Presence to finish', () => {
-    expect(evaluateAttackSlots(slots, attacksOf(adultRedDragon, 'Bite', 'Claw', 'Claw'))).toEqual({
+    expect(
+      evaluateAttackSlots(DND5E_SYSTEM_ID, slots, attacksOf(adultRedDragon, 'Bite', 'Claw', 'Claw'))
+    ).toEqual({
       fits: true,
       incomplete: false
     })
     expect(
       evaluateAttackSlots(
+        DND5E_SYSTEM_ID,
         slots,
         attacksOf(adultRedDragon, 'Frightful Presence', 'Claw', 'Claw', 'Bite')
       )
@@ -120,15 +154,25 @@ describe('a Chimera Multiattack with a Recharge breath', () => {
 
   it('breathes in place of the bite or the horns, never both', () => {
     expect(
-      evaluateAttackSlots(slots, attacksOf(chimera, 'Fire Breath (Recharge 5-6)', 'Horns', 'Claws'))
-        .fits
+      evaluateAttackSlots(
+        DND5E_SYSTEM_ID,
+        slots,
+        attacksOf(chimera, 'Fire Breath (Recharge 5-6)', 'Horns', 'Claws')
+      ).fits
     ).toBe(true)
     expect(
-      evaluateAttackSlots(slots, attacksOf(chimera, 'Bite', 'Fire Breath (Recharge 5-6)')).fits
+      evaluateAttackSlots(
+        DND5E_SYSTEM_ID,
+        slots,
+        attacksOf(chimera, 'Bite', 'Fire Breath (Recharge 5-6)')
+      ).fits
     ).toBe(true)
     expect(
-      evaluateAttackSlots(slots, attacksOf(chimera, 'Bite', 'Horns', 'Fire Breath (Recharge 5-6)'))
-        .fits
+      evaluateAttackSlots(
+        DND5E_SYSTEM_ID,
+        slots,
+        attacksOf(chimera, 'Bite', 'Horns', 'Fire Breath (Recharge 5-6)')
+      ).fits
     ).toBe(false)
   })
 
@@ -163,14 +207,21 @@ describe('a conditional slot', () => {
 
   it('is offered only while every earlier attack hit the same target', () => {
     const crush = attack({ featureId: 'crush' })
-    expect(evaluateAttackSlots(afterHits, [attack({}), attack({}), crush]).fits).toBe(true)
-    expect(evaluateAttackSlots(afterHits, [attack({}), attack({ hit: false }), crush]).fits).toBe(
-      false
-    )
     expect(
-      evaluateAttackSlots(afterHits, [attack({}), attack({ targetIds: [OTHER] }), crush]).fits
+      evaluateAttackSlots(DND5E_SYSTEM_ID, afterHits, [attack({}), attack({}), crush]).fits
+    ).toBe(true)
+    expect(
+      evaluateAttackSlots(DND5E_SYSTEM_ID, afterHits, [attack({}), attack({ hit: false }), crush])
+        .fits
     ).toBe(false)
-    expect(evaluateAttackSlots(afterHits, [crush]).fits).toBe(false)
+    expect(
+      evaluateAttackSlots(DND5E_SYSTEM_ID, afterHits, [
+        attack({}),
+        attack({ targetIds: [OTHER] }),
+        crush
+      ]).fits
+    ).toBe(false)
+    expect(evaluateAttackSlots(DND5E_SYSTEM_ID, afterHits, [crush]).fits).toBe(false)
   })
 
   it('checks the target size of the attack that takes the slot', () => {
@@ -186,8 +237,8 @@ describe('a conditional slot', () => {
       }
     ]
     const swallow = (targetSize: string | null) => attack({ featureId: 'swallow', targetSize })
-    expect(evaluateAttackSlots(small, [swallow('MEDIUM')]).fits).toBe(true)
-    expect(evaluateAttackSlots(small, [swallow('LARGE')]).fits).toBe(false)
+    expect(evaluateAttackSlots(DND5E_SYSTEM_ID, small, [swallow('MEDIUM')]).fits).toBe(true)
+    expect(evaluateAttackSlots(DND5E_SYSTEM_ID, small, [swallow('LARGE')]).fits).toBe(false)
   })
 })
 
@@ -203,21 +254,29 @@ describe('a hold gate (appliesWhen)', () => {
   const bothHit = { kind: 'EARLIER_SLOTS_HIT_SAME_TARGET' } as const
 
   it('never holds for a lone attack, so a Slam outside a Multiattack grapples nothing', () => {
-    expect(attackSlotConditionHolds(bothHit, made({}), [])).toBe(false)
+    expect(attackSlotConditionHolds(DND5E_SYSTEM_ID, bothHit, made({}), [])).toBe(false)
   })
 
   it('holds when every earlier attack hit the same target', () => {
-    expect(attackSlotConditionHolds(bothHit, made({}), [made({})])).toBe(true)
+    expect(attackSlotConditionHolds(DND5E_SYSTEM_ID, bothHit, made({}), [made({})])).toBe(true)
   })
 
   it('does not hold after a miss or against another target', () => {
-    expect(attackSlotConditionHolds(bothHit, made({}), [made({ hit: false })])).toBe(false)
-    expect(attackSlotConditionHolds(bothHit, made({}), [made({ targetIds: [OTHER] })])).toBe(false)
+    expect(
+      attackSlotConditionHolds(DND5E_SYSTEM_ID, bothHit, made({}), [made({ hit: false })])
+    ).toBe(false)
+    expect(
+      attackSlotConditionHolds(DND5E_SYSTEM_ID, bothHit, made({}), [made({ targetIds: [OTHER] })])
+    ).toBe(false)
   })
 
   it('reads the size of the attack it gates', () => {
     const small = { kind: 'TARGET_SIZE_AT_MOST', size: 'MEDIUM' } as const
-    expect(attackSlotConditionHolds(small, made({ targetSize: 'MEDIUM' }), [])).toBe(true)
-    expect(attackSlotConditionHolds(small, made({ targetSize: 'LARGE' }), [])).toBe(false)
+    expect(
+      attackSlotConditionHolds(DND5E_SYSTEM_ID, small, made({ targetSize: 'MEDIUM' }), [])
+    ).toBe(true)
+    expect(
+      attackSlotConditionHolds(DND5E_SYSTEM_ID, small, made({ targetSize: 'LARGE' }), [])
+    ).toBe(false)
   })
 })

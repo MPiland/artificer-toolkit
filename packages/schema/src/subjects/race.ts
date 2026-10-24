@@ -12,7 +12,8 @@ import {
 import { detailDtoSchema } from '../shared/detail.js'
 import { speedDtoSchema } from '../shared/speed.js'
 import { featureDtoSchema } from '../features/feature.js'
-import { authoredRecordStatusSchema, sizeCodeSchema } from '../shared/enums.js'
+import { authoredRecordStatusSchema } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const raceBaseDtoSchema = lazySchema(() =>
   z.object({
@@ -37,7 +38,7 @@ const baseRaceAuthoredDtoSchemaInternal = lazySchema(() =>
     heritageIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
     details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
     features: z.optional(authoredNestedCollectionSchema(featureDtoSchema)),
-    size: sizeCodeSchema,
+    size: systemCoreCodeSchema,
     speeds: authoredNestedCollectionSchema(speedDtoSchema)
   })
 )

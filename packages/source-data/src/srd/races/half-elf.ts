@@ -15,12 +15,12 @@ import {
   RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
-  SIZE_CODE,
   VALUE_DOMAIN_CODE,
   type OptionAuthored,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import {
   SRD_ELVEN_HERITAGE_ID,
   SRD_HUMAN_HERITAGE_ID,

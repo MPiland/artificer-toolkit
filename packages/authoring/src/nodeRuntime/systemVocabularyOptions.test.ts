@@ -1,13 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import { SIZE_OPTIONS } from '@artificer-toolkit/shared/core'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { getRuntimeNodeMap, listRuntimeNodeMapIds } from './mapRegistry.js'
 import { resolveNodeRuntime } from './nodeRuntimeService.js'
 import { nodeRuntimeSourceManifest } from './nodeRuntimeSourceManifest.js'
 import { createNodeRuntimeSourceReader, systemCoreCodeRows } from './systemSourceRows.js'
-import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
+import {
+  DND5E_SIZES,
+  dnd5eCoreCodeAdapter
+} from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 
 const reader = createNodeRuntimeSourceReader({
   coreCodes: dnd5eCoreCodeAdapter.lists,
@@ -82,14 +84,13 @@ describe('System vocabulary option descriptions', () => {
     expectDescriptions(options, srdSystemRecord.skills)
   })
 
-  it('serves the code-list description for an inline option', async () => {
+  it('serves the System size list, smallest first, with its descriptions', async () => {
     const options = await optionsOf('vehicle', 'size')
-    expect(SIZE_OPTIONS.some((size) => size.description)).toBe(true)
-    for (const size of SIZE_OPTIONS) {
-      expect(options.find((option) => option.value === size.code)?.description).toBe(
-        size.description ?? undefined
-      )
-    }
+    expect(options.map((option) => option.value)).toEqual(DND5E_SIZES.map(({ code }) => code))
+    expectDescriptions(
+      options,
+      DND5E_SIZES.map(({ code, description }) => ({ id: code, description }))
+    )
   })
 
   it('exposes the description column, and no tooltip column, on every System vocabulary source', () => {

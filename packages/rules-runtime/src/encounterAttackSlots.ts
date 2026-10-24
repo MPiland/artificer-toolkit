@@ -3,7 +3,7 @@ import type {
   AttackSlotDto,
   AttackSlotSetDto
 } from '@artificer-toolkit/schema/features/attackSlots'
-import { sizeRank } from '@artificer-toolkit/shared/core'
+import { sizeRank } from './systemSizes.js'
 
 export type AttackSlotAlternatives = AttackSlotSetDto['alternatives']
 
@@ -33,13 +33,14 @@ function fills(slot: AttackSlotDto, attack: AttackSlotAttack) {
  * Attack action: a slot's condition (D93), and the gate on a hold an attack applies (D105).
  */
 export function attackSlotConditionHolds(
+  gameSystemId: string,
   condition: AttackSlotConditionDto,
   attack: Pick<AttackSlotAttack, 'targetIds' | 'targetSize'>,
   earlier: readonly AttackSlotAttack[]
 ) {
   if (condition.kind === 'TARGET_SIZE_AT_MOST') {
-    const rank = sizeRank(attack.targetSize)
-    return rank === null || rank <= (sizeRank(condition.size) ?? -1)
+    const rank = sizeRank(gameSystemId, attack.targetSize)
+    return rank === null || rank <= (sizeRank(gameSystemId, condition.size) ?? -1)
   }
   if (earlier.length === 0 || !earlier.every((made) => made.hit === true)) return false
   const shared = [...earlier, ...(attack.targetIds.length ? [attack] : [])].reduce<
@@ -52,16 +53,9 @@ export function attackSlotConditionHolds(
   return shared !== undefined && shared.size > 0
 }
 
-function conditionHolds(
-  slot: AttackSlotDto,
-  attack: AttackSlotAttack,
-  earlier: AttackSlotAttack[]
-) {
-  return !slot.condition || attackSlotConditionHolds(slot.condition, attack, earlier)
-}
-
 /** Every way the attacks fill the alternative's slots, as what each slot has left. */
 function assignments(
+  gameSystemId: string,
   slots: readonly AttackSlotDto[],
   attacks: readonly AttackSlotAttack[],
   index: number,
@@ -72,7 +66,8 @@ function assignments(
   const earlier = attacks.slice(0, index)
   return slots.flatMap((slot, slotIndex) => {
     if (state.remaining[slotIndex] === 0 || !fills(slot, attack)) return []
-    if (!conditionHolds(slot, attack, earlier)) return []
+    if (slot.condition && !attackSlotConditionHolds(gameSystemId, slot.condition, attack, earlier))
+      return []
     if (slot.comesFirst) {
       if (state.startedOther) return []
     } else if (
@@ -84,7 +79,7 @@ function assignments(
       return []
     const remaining = [...state.remaining]
     remaining[slotIndex] -= 1
-    return assignments(slots, attacks, index + 1, {
+    return assignments(gameSystemId, slots, attacks, index + 1, {
       remaining,
       startedOther: state.startedOther || !slot.comesFirst
     })
@@ -96,13 +91,14 @@ function assignments(
  * still has a required slot to fill (the action is then incomplete).
  */
 export function evaluateAttackSlots(
+  gameSystemId: string,
   alternatives: AttackSlotAlternatives,
   attacks: readonly AttackSlotAttack[]
 ): { fits: boolean; incomplete: boolean } {
   let fits = false
   let incomplete = false
   for (const { slots } of alternatives) {
-    const found = assignments(slots, attacks, 0, {
+    const found = assignments(gameSystemId, slots, attacks, 0, {
       remaining: slots.map((slot) => slot.count),
       startedOther: false
     })

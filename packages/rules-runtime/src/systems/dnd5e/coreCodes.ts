@@ -24,6 +24,20 @@ export const DND5E_SPELL_SLOT_POOLS = [
 /** The pool a Pact caster's slots draw from. */
 export const DND5E_PACT_POOL_CODE = DND5E_SPELL_SLOT_POOLS[0].code
 
+/** Smallest first; Fine, Diminutive, Giant and Colossal fill no space a Scene models. */
+export const DND5E_SIZES = [
+  { code: 'FINE', label: 'Fine', description: 'Extremely small.' },
+  { code: 'DIMUNITIVE', label: 'Diminutive', description: 'Very tiny.' },
+  { code: 'TINY', label: 'Tiny', description: 'Very small size.', spaceFeet: 2.5 },
+  { code: 'SMALL', label: 'Small', description: 'Below average size.', spaceFeet: 5 },
+  { code: 'MEDIUM', label: 'Medium', description: 'Average humanoid size.', spaceFeet: 5 },
+  { code: 'LARGE', label: 'Large', description: 'Larger than humanoid.', spaceFeet: 10 },
+  { code: 'HUGE', label: 'Huge', description: 'Massive size.', spaceFeet: 15 },
+  { code: 'GARGANTUAN', label: 'Gargantuan', description: 'Enormous size.', spaceFeet: 20 },
+  { code: 'GIANT', label: 'Giant', description: 'Exceptionally large.' },
+  { code: 'COLOSSAL', label: 'Colossal', description: 'Legendary size.' }
+] as const
+
 export type Dnd5eRollInfluence = (typeof DND5E_ROLL_INFLUENCES)[number]['code']
 export type Dnd5eRollMode = (typeof DND5E_ROLL_MODES)[number]['code']
 
@@ -35,6 +49,7 @@ export const dnd5eCoreCodeAdapter: SystemCoreCodeAdapter = {
     spellSlotPool: DND5E_SPELL_SLOT_POOLS,
     effectConsumeEvent: DND5E_EFFECT_CONSUME_EVENTS,
     effectEndEvent: DND5E_EFFECT_END_EVENTS,
-    actionTrait: DND5E_ACTION_TRAITS
+    actionTrait: DND5E_ACTION_TRAITS,
+    size: DND5E_SIZES
   }
 }
