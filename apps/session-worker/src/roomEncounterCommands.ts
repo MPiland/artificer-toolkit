@@ -73,7 +73,7 @@ import { executeEncounterActorTokenBinding } from '@artificer-toolkit/encounter-
 import { parseSceneLiveEntity } from '@artificer-toolkit/encounter-persistence/sceneLiveState'
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { roomSceneTokenReaders } from './roomActionSceneInputs.js'
-import { removeRoomSummonTokens } from './roomActionSummonTokens.js'
+import { endRoomOrphanedSummons, removeRoomSummonTokens } from './roomActionSummonTokens.js'
 import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'
 import { publishRoomSceneUndo } from './roomSceneUndo.js'
 
@@ -403,12 +403,23 @@ export async function executeRoomEncounterCommand(input: {
     }))
   // What the raised roots dealt to a mirror's holder reaches its source too.
   const mirroredRaisedDamage = await settleMirrors()
+  // After every effect the command and its raised roots ended, so a carrier that ended takes its creature.
+  const endedSummons =
+    currentRun.status === 'ACTIVE' &&
+    (await endRoomOrphanedSummons({
+      ctx: context,
+      transaction,
+      userId,
+      encounterId: currentRun.id,
+      occurredAt: new Date().toISOString()
+    }))
   const changedRun =
     mirroredDamage ||
     mirroredRaisedDamage ||
     raisedHpZeroEffects ||
     raisedStartOfTurnEffects ||
-    flaggedReturn
+    flaggedReturn ||
+    endedSummons
   const raisedRun = changedRun
     ? await context.db
         .query('encounterRuns')

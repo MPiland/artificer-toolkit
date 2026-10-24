@@ -756,6 +756,7 @@ describe('room Scene command persistence', () => {
         caster,
         casterHitPointMaximum: null,
         label: 'Summon',
+        sourceEffectId: uuid(70),
         point: base.input.scene.tokens[0]!.position,
         edgeLength: 5,
         occurredAt: '2026-10-23T00:00:00.000Z'

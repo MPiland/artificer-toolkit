@@ -1988,7 +1988,7 @@ are overridable warnings like an area origin; a free square is a hard refusal (`
 a zone placed at the point with nobody caught, and `buildEncounterSummon` makes the CUSTOM actor (`owner` = caster,
 no controllers of its own, hit points from `evaluateNumericExpr` against the caster's maximum when the Run holds it;
 a Character caster's maximum lives on the Sheet, so a `HIT_POINT_MAXIMUM` stat block is refused with `HIT_POINTS_UNKNOWN` until T2v2b feeds it).
-Current (a2c2): a revert of the cast removes the conjured creature (see persistence). Target (a2c2b): the lasting carrier effect with Concentration, and removal at every end.
+Current (a2c2): a revert of the cast removes the conjured creature (see persistence). Current (a2c3): the cast creates the carrier effect on the caster from the compiled summon entry (`prepareNativeSourceEffect`), with the summon's duration and Concentration (`prepareEncounterActionMaintenance` names the summon's policy), and `buildEncounterSummon` sets `owner.sourceEffectId` to it. Removal at every end is the persistence sweep.
 
 **Sheet summons (current, SPELLS-34.T1, D190).** A summon cast from the Sheet outside an Encounter reads the same plan.
 `compileCharacterSpellCasts` (`character/characterSpellCastActions.ts`) is the one compile of a Character's casts: build,
@@ -2314,6 +2314,13 @@ predicate, `effectReadsMoveToward`) binds the TEXT fact `dnd5e.attack-move-towar
 without it (no Scene, or a reaction or opportunity attack, which have no turn record) the group fails whichever
 the constraint. The Session Worker reads the record through the `TURN_LAST_MOVE` capture. A move published in
 segments records only its last segment.
+
+A Charge is a passive attack rider that names the Feature whose attack it rides (`ridesFeatureId`, T5n2), so it
+never rides the creature's other attacks of the same trigger. `mergeOnHitRiders(effect, riders, attackFeatureId)`
+moves a scoped rider's entries, and the weapon's own, into the weapon's result block as SEQUENTIAL, so the
+rider's damage and follow-up save compile into the hit's immediate save band. That band deals each damage
+entry, and calls the save, only when its path is owed: without the closing move the attack is the plain weapon
+hit. The SRD Giant Elk, Minotaur Skeleton, Unicorn and Wereboar author it through `chargeEffect`.
 
 **Once per turn (D119 f).** `usage: ONCE_PER_TURN` on a path limits it to one hit per turn of any creature
 (Sneak Attack can land on a reaction). The usage key is the compiled effect id for a path in the attack's own

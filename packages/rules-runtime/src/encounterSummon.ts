@@ -24,12 +24,23 @@ export function buildEncounterSummon(input: {
   casterHitPointMaximum: number | null
   /** The creature's name: the stat block's own, else the spell's. */
   label: string
+  /** The carrier effect on the caster whose end removes the summon. */
+  sourceEffectId: string
   point: ScenePoint
   /** The edge of the square the creature fills, in Scene coordinates. */
   edgeLength: number
   occurredAt: string
 }): LiveSessionSummonedToken {
-  const { summon, caster, casterHitPointMaximum, label, point, edgeLength, occurredAt } = input
+  const {
+    summon,
+    caster,
+    casterHitPointMaximum,
+    label,
+    sourceEffectId,
+    point,
+    edgeLength,
+    occurredAt
+  } = input
   const maxHitPoints = summonHitPoints(summon.statBlock, casterHitPointMaximum)
   if (maxHitPoints === null) throw new Error("The summon's hit points need the caster's maximum.")
   const actor = encounterRunActorStateSchema.parse({
@@ -57,7 +68,7 @@ export function buildEncounterSummon(input: {
     gmNotes: null,
     initiative: null,
     manualOrder: null,
-    owner: { ownerActorId: caster.id },
+    owner: { ownerActorId: caster.id, sourceEffectId },
     snapshot: { kind: 'CUSTOM', label, maxHitPoints, systemId: caster.systemId },
     createdAt: occurredAt,
     updatedAt: occurredAt

@@ -398,6 +398,8 @@ export async function prepareCreatureAction(input: {
   turnUses?: readonly string[]
   /** The occasion the attack is made on, as a movement reaction sets it. */
   attackOccasion?: AttackOccasionCode
+  /** How far the attacker closed on the target in a straight line this turn, as the room's Scene reads it. */
+  closedFeet?: number
 }) {
   const actors = input.actor.id === input.target.id ? [input.actor] : [input.actor, input.target]
   const encounter = creatureEncounter(
@@ -409,6 +411,7 @@ export async function prepareCreatureAction(input: {
     ])
   )
   const { state } = encounter
+  const { closedFeet } = input
   const movementTargets = new Map(
     await Promise.all(
       [...encounter.movementTargets].map(
@@ -440,6 +443,7 @@ export async function prepareCreatureAction(input: {
     movementTargets,
     loadTurnUses: async () => input.turnUses ?? [],
     ...(input.attackOccasion ? { attackOccasion: input.attackOccasion } : {}),
+    ...(closedFeet === undefined ? {} : { loadMoveToward: async () => ({ closedFeet }) }),
     ...(input.attackPerception
       ? {
           loadAttackPerception: async ({ sourceFacts, targetFacts }) => ({

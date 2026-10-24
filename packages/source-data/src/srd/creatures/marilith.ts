@@ -78,7 +78,7 @@ export const marilith: CreatureAuthored = {
       label: 'Reactive',
       description: 'Reactive. The marilith can take one reaction on every turn in a combat.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(192, 503),
           invocation: {
             kind: 'PASSIVE',
@@ -86,7 +86,9 @@ export const marilith: CreatureAuthored = {
             range: { id: S.actionId(192, 603), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MARILITH_REACTIVE
+          label: 'One reaction on every turn',
+          reasonCode: 'GM_CHOICE',
+          instructions: 'The marilith can take one reaction on every turn in a combat.'
         })
       ],
       order: 3

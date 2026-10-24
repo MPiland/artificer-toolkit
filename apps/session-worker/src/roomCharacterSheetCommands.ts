@@ -38,6 +38,7 @@ import type { RoomEncounterStore, RoomTransaction } from './roomEncounterStore.j
 import type { RoomInputs } from './roomInputs.js'
 import { prepareRoomLiveCharacterSheet } from './roomCharacterRules.js'
 import { projectRoomCharacterSheet } from './roomCharacterSheetProjection.js'
+import { endRoomOrphanedSummons } from './roomActionSummonTokens.js'
 import {
   actorIdsOutOfPlayByEffect,
   flagRoomReturnsOntoOccupiedSpace
@@ -345,8 +346,9 @@ export async function executeRoomCharacterSheetCommand(input: {
       roll
     })
   }
-  // An Encounter command that carries this edit flags the return once, after all its effects.
-  if (!input.ctx)
+  // An Encounter command that carries this edit flags the return and ends the carriers once, after
+  // all its effects.
+  if (!input.ctx) {
     await flagRoomReturnsOntoOccupiedSpace({
       ctx,
       transaction,
@@ -355,6 +357,8 @@ export async function executeRoomCharacterSheetCommand(input: {
       occurredAt,
       outOfPlayBefore: actorIdsOutOfPlayByEffect(runActors)
     })
+    await endRoomOrphanedSummons({ ctx, transaction, userId, encounterId, occurredAt })
+  }
   const facts = await prepareRoomLiveCharacterSheet(store, inputs, scope, observed, transaction)
   const acknowledgement = await writeCharacterCommandReceipt(
     {

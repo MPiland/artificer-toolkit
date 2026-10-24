@@ -175,8 +175,15 @@ receipt carries the actor id. Current (SPELLS-4.T2v2a2c2): `removeConjuredActors
 removal: it asks the room's `removeSummonTokens` port to take each Scene token off (`persistRoomSceneTokenRemove`, a
 direct tombstone write that names the ending command as its `actionOrigin`), then deletes the binding and the actor
 row. `REVERT_LAST_ACTION` of a summoning cast calls it for the receipt's `summonedTokens` and drops the ids from the
-Run's `actorIds` through the state it returns, replacing the old refusal. Target (a2c2b): the same call at expiry, Concentration end, recast and
-dispel, once the cast leaves a carrier effect for them to hang on (`owner.sourceEffectId`).
+Run's `actorIds` through the state it returns, replacing the old refusal. Current (SPELLS-4.T2v2a2c3): the cast leaves a carrier effect on the caster (the
+summon's duration, and its Concentration through the cast's maintained state), named by the actor's `owner.sourceEffectId`;
+the area root's `sourceGrantTransition` receipts it, as it does a zone's placer grant, and a revert deletes it with the
+actor. Every other end (expiry, Concentration, recast, dispel) reaches `endOrphanedConjuredActors`, one stateless sweep
+the room runs after a command's other writes: it reads only actors that name a `sourceEffectId`, looks each carrier
+up directly on its caster, and removes the actors whose carrier is gone through `removeConjuredActors`, in the same
+transaction, recording the removed ids as one system `SUMMONS_ENDED` Run command. The sweep runs after Encounter
+commands and standalone Sheet commands; a path it does not reach (voluntary movement, an actor departure) leaves the
+creature for the next command's sweep.
 A drag (D105) writes the mover's and each dragged token's live row at the move's version; publication refuses it
 unless every dragged token still stands at its recorded `from` and moves by the mover's displacement.
 `publishSceneUndo` restores the mover and every token in the preparation's `draggedTokens`, refusing when any of

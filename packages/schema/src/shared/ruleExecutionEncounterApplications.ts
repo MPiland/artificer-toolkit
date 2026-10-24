@@ -1545,7 +1545,10 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
        * when a creature outcome carries it or the cast maintains nothing.
        */
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),
-      /** The timed grant the placed zone gives its placer (D153), which GM undo deletes with it. */
+      /**
+       * The effect the cast leaves on its source: the timed grant a placed zone gives its placer
+       * (D153) or the carrier effect that holds a summon. GM undo deletes it with the cast.
+       */
       sourceGrantTransition: z.optional(encounterActorActiveEffectCreateReceiptDtoSchema)
     })
     .check(
@@ -1553,13 +1556,12 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
         validateSourceSpendReceipts(value, context)
         if (
           value.sourceGrantTransition &&
-          (value.placedSpatialEffectIds.length === 0 ||
-            value.sourceGrantTransition.targetActorId !== value.sourceActorId)
+          value.sourceGrantTransition.targetActorId !== value.sourceActorId
         )
           context.addIssue({
             code: 'custom',
             path: ['sourceGrantTransition'],
-            message: 'An area root grants only its source, for the zone it placed.'
+            message: 'An area root grants only its source.'
           })
         if (new Set(value.targetOccurrenceIds).size !== value.targetOccurrenceIds.length)
           context.addIssue({

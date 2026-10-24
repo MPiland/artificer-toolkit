@@ -447,7 +447,7 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
     throw new Error('Encounter feature action capability Effect is stale.')
   const { effect } = entry
   const profile = attackProfileCapabilityRegistry.require(capability.gameSystemId)
-  const compiledEffect = creatureActionEffect(profile, effect, features)
+  const compiledEffect = creatureActionEffect(profile, entry, features)
   if (
     capability.entryPointDefinitionId !== effect.id ||
     capability.actionId !==
@@ -487,10 +487,11 @@ export function assertEncounterFeatureActionCapabilityCurrent(input: {
  * A Creature action's effective mechanics, as a Character's are: its compiled Effect with the
  * `ON_HIT` riders of the Creature's passive Features merged in, then its path restrictions
  * settled. A Creature attack has no Equipment facts here, so a rider's weapon checks never hold.
+ * The attack's Feature is its action Feature when an option binds one, else the Feature itself.
  */
 function creatureActionEffect(
   profile: AttackProfileCapabilityAdapter,
-  effect: EncounterFeatureEffect,
+  { effect, actionFeature, ownerFeature }: FeatureEffectEntry,
   features: readonly FeatureDto[]
 ): CompiledEffectGroup {
   const riders = features.flatMap((feature) =>
@@ -502,7 +503,7 @@ function creatureActionEffect(
     )
   )
   const compiled = profile.reduceItemlessAttackRestrictions(
-    mergeOnHitRiders(compileEffect(effect), riders)
+    mergeOnHitRiders(compileEffect(effect), riders, (actionFeature ?? ownerFeature).id)
   )
   const { invocation } = compiled
   // A passive "when reduced to 0 hit points" save effect runs as the save action the System fires
@@ -682,7 +683,7 @@ export function discoverUncompiledEncounterFeatureActions(input: {
       const label = entry.featureOption?.label ?? entry.ownerFeature.label
       // One action's invalid authored mechanics make only that action unavailable (D54).
       try {
-        const compiledEffect = creatureActionEffect(profile, effect, features)
+        const compiledEffect = creatureActionEffect(profile, entry, features)
         const damageGrant = passive && compiledEffect.invocation.triggerCode === 'INCOMING_DAMAGE'
         const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
         const weaponHit = passive && effect.invocation.triggerCode === 'INCOMING_WEAPON_HIT'

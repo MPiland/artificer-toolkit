@@ -531,7 +531,7 @@ function appendActions(params: {
     }
   ) => {
     const effect = reduceEffectRestrictions(
-      mergeOnHitRiders(action.effect, action.onHitRiders),
+      mergeOnHitRiders(action.effect, action.onHitRiders, params.source.sourceId),
       dnd5eAttackingItem(action.equipment)
     )
     const resourceUse =
