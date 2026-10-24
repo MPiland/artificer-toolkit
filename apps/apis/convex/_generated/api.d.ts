@@ -127907,6 +127907,7 @@ export declare const api: {
                 kind: "REPEAT_SOURCE_PATH";
                 label: string;
                 offerIndex: number;
+                originActorId?: string;
                 target?: "HOLDER" | "INVOCATION";
                 warnings: Array<{
                   code:
