@@ -59,6 +59,7 @@ import {
   maintenancePlan
 } from './effectActionLifetime.js'
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
+import { entryOwed } from './effectActionEntryOwed.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import {
   relationshipRecurrenceGraph,
@@ -96,7 +97,6 @@ import { selectScalingRow } from '../../scalingRowSelection.js'
 import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
 import type { EnemyProximity } from '../../encounterEnemyProximity.js'
 import type { MoveToward } from '../../encounterMoveToward.js'
-import { attackRestrictionsMet, oncePerTurnUsageKey } from './attackRestrictions.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_KEEP_BY_ROLL_MODE, resolveDnd5eRollMode } from './rollModePolicy.js'
 import {
@@ -2744,15 +2744,6 @@ function selectedOutcomeGroups(
   return [...authoredOutcomeGroups(action, 'ON_HIT'), ...authoredOutcomeGroups(action, 'ON_CRIT')]
 }
 
-/** An optional rider's entry resolves only when the player chose its rider; every other entry always does. */
-function isChosenEntry(
-  entry: CompiledEffectGroup['entries'][number] | undefined,
-  facts: Dnd5eEffectScalingFacts
-): boolean {
-  const optionalRider = entry && 'optionalRider' in entry ? entry.optionalRider : undefined
-  return !optionalRider || facts.selectedOptionalRiderIds.includes(optionalRider.riderId)
-}
-
 function assertKnownTestResultPath(
   action: Dnd5eCompiledEffectActionSource,
   selectedPath: SpecializedPath
@@ -2799,30 +2790,6 @@ function mergedOutcomeGraphDefinition(input: {
     ),
     ...(sourceEntryBindings.length > 0 ? { sourceEntryBindings } : {})
   }
-}
-
-/**
- * An entry is owed to an attack that has not spent its once-per-turn use this turn and, when it was
- * reduced to circumstance checks, whose circumstances meet them.
- */
-function pathOwed(
-  entry: CompiledEffectGroup['entries'][number],
-  effectId: string,
-  facts: Dnd5eEffectScalingFacts
-): boolean {
-  const usageKey = oncePerTurnUsageKey(entry, effectId)
-  if (usageKey !== null) {
-    if (facts.attackTurnUses === undefined)
-      unsupported('D&D once-per-turn paths need the turn record of an attack.')
-    if (facts.attackTurnUses.includes(usageKey)) return false
-  }
-  if (!('restrictions' in entry) || !entry.restrictions) return true
-  return attackRestrictionsMet(entry.restrictions, {
-    rollMode: facts.attackRollMode,
-    enemyProximity: facts.attackEnemyProximity ?? null,
-    moveToward: facts.attackMoveToward ?? null,
-    targetCreatureTypeId: facts.targetCreatureTypeId ?? null
-  })
 }
 
 /** One added die's own damage (D156): its dice, the multiplier of the damage it joins, its proposal. */
@@ -2992,8 +2959,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     const immediate = immediateFollowUpSaveEntries(input.action.compiledEffect.entries)
     if (!immediate) unsupported('D&D immediate follow-up save primary damage is unavailable.')
     const owed = (entry: CompiledEffectGroup['entries'][number]) =>
-      isChosenEntry(entry, input.facts) &&
-      pathOwed(entry, input.action.compiledEffect.id, input.facts)
+      entryOwed(entry, input.action.compiledEffect.id, input.facts)
     // A rider merged into the hit (D164 Charge) deals its damage and calls its save only when owed.
     const owedPrimaryEntries = immediate.primaryDamageEntries.filter(owed)
     const saveOwed = owed(immediate.saveEntry)
@@ -3087,8 +3053,7 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
   const ownedGroups = authoredGroups.filter((entries) =>
     entries.every(
       (entry) =>
-        isChosenEntry(entry, input.facts) &&
-        pathOwed(entry, input.action.compiledEffect.id, input.facts) &&
+        entryOwed(entry, input.action.compiledEffect.id, input.facts) &&
         (!('hitPointTier' in entry) ||
           !entry.hitPointTier ||
           entry.hitPointTier.atMost === selectedTier)

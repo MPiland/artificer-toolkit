@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { chargeEffect } from './chargeEffect.js'
 import * as S from './shared.js'
 export const minotaurSkeleton: CreatureAuthored = {
   id: S.CREATURE_IDS.MINOTAUR_SKELETON,
@@ -43,7 +44,7 @@ export const minotaurSkeleton: CreatureAuthored = {
       description:
         'Charge. If the skeleton moves at least 10 feet straight toward a target and then hits it with a gore attack on the same turn, the target takes an extra 9 (2d8) piercing damage. If the target is a creature, it must succeed on a DC 14 Strength saving throw or be pushed up to 10 feet away and knocked prone.',
       effects: [
-        S.chargeEffect({
+        chargeEffect({
           creatureIndex: 199,
           localIndex: 300,
           ridesFeatureId: S.featureId(199, 4),

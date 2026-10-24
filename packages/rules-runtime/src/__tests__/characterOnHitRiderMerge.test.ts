@@ -142,7 +142,11 @@ describe('collecting and merging ON_HIT riders (D119)', () => {
 
   it('merges a Feature-scoped rider only into that Feature’s attack, in its result block (D164)', () => {
     const [effect] = unconditionalSneakAttack(testUuid(0xb50)).effects ?? []
-    if (effect?.invocation.kind !== 'PASSIVE') throw new Error('Expected a passive rider.')
+    if (
+      effect?.invocation.kind !== 'PASSIVE' ||
+      effect.invocation.triggerCode !== 'MELEE_WEAPON_ATTACK'
+    )
+      throw new Error('Expected a passive melee rider.')
     const scoped = collectOnHitRiders(
       [
         compileEffect({
@@ -157,9 +161,10 @@ describe('collecting and merging ON_HIT riders (D119)', () => {
 
     const merged = mergeOnHitRiders(weapon, scoped, ATTACK_FEATURE)
     const [own, ...ridden] = merged.entries
+    if (!own || !('outcome' in own)) throw new Error('Expected the weapon’s damage first.')
     expect(ridden).toHaveLength(3)
     for (const entry of merged.entries)
-      expect(entry).toMatchObject({ resultBlockId: own?.resultBlockId, groupKind: 'SEQUENTIAL' })
+      expect(entry).toMatchObject({ resultBlockId: own.resultBlockId, groupKind: 'SEQUENTIAL' })
   })
   it('leaves an attack alone when no rider names its trigger', () => {
     const weapon = attack('RANGED_WEAPON_ATTACK', [{ damageTypeId: PIERCING }])

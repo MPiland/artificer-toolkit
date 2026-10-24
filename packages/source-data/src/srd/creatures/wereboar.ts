@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { damageInterceptionGrants } from './damageInterceptionGrants.js'
+import { chargeEffect } from './chargeEffect.js'
 import * as S from './shared.js'
 export const wereboar: CreatureAuthored = {
   id: S.CREATURE_IDS.WEREBOAR,
@@ -70,7 +71,7 @@ export const wereboar: CreatureAuthored = {
       description:
         'Charge (Boar or Hybrid Form Only). If the wereboar moves at least 15 feet straight toward a target and then hits it with its tusks on the same turn, the target takes an extra 7 (2d6) slashing damage. If the target is a creature, it must succeed on a DC 13 Strength saving throw or be knocked prone.',
       effects: [
-        S.chargeEffect({
+        chargeEffect({
           creatureIndex: 288,
           localIndex: 300,
           ridesFeatureId: S.featureId(288, 4),

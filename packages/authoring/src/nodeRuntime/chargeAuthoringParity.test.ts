@@ -33,7 +33,11 @@ function normalize(creature: CreatureAuthored) {
 function elkChargeRiding(ridesFeatureId: string): CreatureAuthored {
   const authored = structuredClone(giantElk)
   const charge = authored.features?.find(({ label }) => label === 'Charge')?.effects?.[0]
-  if (charge?.invocation.kind !== 'PASSIVE') throw new Error('The elk’s Charge must be passive.')
+  if (
+    charge?.invocation.kind !== 'PASSIVE' ||
+    charge.invocation.triggerCode !== 'MELEE_WEAPON_ATTACK'
+  )
+    throw new Error('The elk’s Charge must be a passive melee rider.')
   charge.invocation.ridesFeatureId = ridesFeatureId
   return authored
 }

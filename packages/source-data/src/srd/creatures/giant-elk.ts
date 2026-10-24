@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { chargeEffect } from './chargeEffect.js'
 import * as S from './shared.js'
 export const giantElk: CreatureAuthored = {
   id: S.CREATURE_IDS.GIANT_ELK,
@@ -46,7 +47,7 @@ export const giantElk: CreatureAuthored = {
       description:
         'Charge. If the elk moves at least 20 feet straight toward a target and then hits it with a ram attack on the same turn, the target takes an extra 7 (2d6) damage. If the target is a creature, it must succeed on a DC 14 Strength saving throw or be knocked prone.',
       effects: [
-        S.chargeEffect({
+        chargeEffect({
           creatureIndex: 122,
           localIndex: 300,
           ridesFeatureId: S.featureId(122, 3),
