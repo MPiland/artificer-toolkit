@@ -66,6 +66,7 @@ import {
 import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { readRunActors, readRunActorWithRow, readRunState, replaceRunActor } from './documents.js'
+import { removeConjuredActors } from './summonRemoval.js'
 import {
   removeTurnSpeedBonus,
   removeTurnTeleportAllowance,
@@ -383,6 +384,7 @@ export async function revertLastEncounterAction(
     characterInverses.set(characterId, next)
     return next
   }
+  const conjuredActorIds: string[] = []
   /** Inverts one root's outcomes onto the shared actors and Character inverses. */
   const invertRoot = async ({
     root,
@@ -779,9 +781,16 @@ export async function revertLastEncounterAction(
         movements: root.forcedMovements
       })
     }
-    // The creatures the action conjured leave with it once removal exists (SPELLS-4.T2v2a2c2); until then a revert refuses rather than strand them.
-    if (root.summonedTokens.length)
-      revertUnavailable('This action conjured a creature; adjust manually.')
+    // The creatures the action conjured leave the Scene and the Run with it (D187b).
+    if (root.summonedTokens.length) {
+      const actorIds = root.summonedTokens.map(({ actorId }) => actorId)
+      await removeConjuredActors(ctx, {
+        encounterId: state.id,
+        commandId: input.commandId,
+        actorIds
+      })
+      conjuredActorIds.push(...actorIds)
+    }
     // The once-per-turn uses the attack spent return to the attacker's turn record.
     if (root.turnUses)
       await restoreTurnUses(ctx, {
@@ -827,16 +836,19 @@ export async function revertLastEncounterAction(
     )
   }
 
+  const kept = actors.filter(({ id }) => !conjuredActorIds.includes(id))
   return commitRevert(ctx, {
     run,
-    state,
+    state: conjuredActorIds.length
+      ? { ...state, actorIds: state.actorIds.filter((id) => !conjuredActorIds.includes(id)) }
+      : state,
     campaign,
     input,
     fingerprint,
     userId,
     root,
-    actors,
-    nextActors: actors.map((actor) => actorsById.get(actor.id)!),
+    actors: kept,
+    nextActors: kept.map((actor) => actorsById.get(actor.id)!),
     updatedAt
   })
 }

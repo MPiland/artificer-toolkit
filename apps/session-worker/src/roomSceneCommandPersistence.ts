@@ -206,6 +206,57 @@ export function persistRoomSceneTokenCreate(args: {
   return writeDirectSceneCommand({ ...args, input, change, result, state })
 }
 
+/**
+ * Stages the Scene rows that take a token off the map for an Encounter action (a summon that ends
+ * or is reverted): the entity becomes a tombstone and the token count falls. Like the create it
+ * derives no fog, and its command names the ending Encounter command as its origin.
+ */
+export function persistRoomSceneTokenRemove(args: {
+  transaction: RoomTransaction
+  header: SceneLiveStateHeader
+  scene: CampaignSceneStateDto
+  tokenId: string
+  commandId: string
+  actorUserId: string
+  presentationVersion: number
+  saveId: string
+  now: number
+  actionOrigin: { encounterId: string; commandId: string }
+}) {
+  const { header, scene } = args
+  const supplied = {
+    type: 'REMOVE_SCENE_TOKEN' as const,
+    commandId: args.commandId,
+    sceneId: header.id,
+    expectedSceneVersion: header.version,
+    tokenId: args.tokenId
+  }
+  const input = normalizeGeometryInput(supplied)
+  const target = geometryTarget(input)
+  const result = sceneCommandResultDtoSchema.parse({
+    commandId: input.commandId,
+    delta: target.delta,
+    occurrence: null,
+    replayed: false,
+    sceneId: header.id,
+    version: header.version + 1
+  })
+  const { state } = beginDirectSceneCommand({ ...args, supplied, result })
+  if (!scene.tokens.some(({ id }) => id.toLowerCase() === target.entityId))
+    throw new Error('Scene token is unavailable.')
+  state.counts.tokens -= 1
+  const change = liveEntityChange({
+    sceneId: header.id,
+    collection: 'tokens',
+    entityId: target.entityId,
+    value: null,
+    doorState: null,
+    ordinal: null,
+    version: state.version
+  })
+  return writeDirectSceneCommand({ ...args, input, change, result, state })
+}
+
 type LiveEntity = ReturnType<typeof sceneStoredLiveEntitySchema.parse>
 
 function liveEntityChange(row: Omit<LiveEntity, 'checksum'>): LiveEntity {

@@ -231,6 +231,16 @@ export interface EncounterWritePorts<CharacterSources = never> extends Encounter
     commandId: string
     movements: readonly { sceneId: string; sceneCommandId: string }[]
   }): Promise<void>
+  /**
+   * Takes the Scene tokens of conjured creatures off their Scene (D187b) when their effect ends or
+   * their cast is reverted. `commandId` names the Encounter command that ends them. Only the room
+   * owns the Scene, so only the room provides it.
+   */
+  removeSummonTokens?(input: {
+    encounterId: string
+    commandId: string
+    tokens: readonly { sceneId: string; tokenId: string }[]
+  }): Promise<void>
 }
 
 /** A read transaction over the Encounter store and the ports it reads beside it. */
@@ -262,7 +272,7 @@ export interface EncounterCharacterWriteTransaction<
   readonly ports: EncounterReadPorts &
     Pick<
       EncounterWritePorts<CharacterSources>,
-      'writeCharacterRecord' | 'restoreActionForcedMovements'
+      'writeCharacterRecord' | 'restoreActionForcedMovements' | 'removeSummonTokens'
     >
 }
 

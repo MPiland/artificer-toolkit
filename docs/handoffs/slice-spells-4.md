@@ -610,3 +610,9 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - A revert of a summoning cast refuses until a2c2 adds removal.
 - Not yet (a2c2): carrier effect with Concentration; removal of actor, binding and Scene token at expiry, Concentration end, recast, dispel and revert (a Scene token-remove direct write and a revert port); a Character caster's hit point maximum (T2v2b): until then a `HIT_POINT_MAXIMUM` stat block on a Character caster is refused (`HIT_POINTS_UNKNOWN`) instead of creating a 0 HP actor. Arcane Hand is the only SRD spell that reads it, and it is not yet a summon.
 - Proof: `encounterAreaAction.test.ts` "summon target", `encounterSummon.test.ts`, `numericExprEvaluate.test.ts`, `sizeRank.test.ts`, `roomSceneCommandPersistence.test.ts` "a token an action conjures".
+
+## T2v2a2c2 (D187b): removal of a conjured creature, and revert
+
+- `removeConjuredActors` (encounter-persistence `summonRemoval.ts`) is the one removal: the room port `removeSummonTokens` takes the Scene tokens off (`persistRoomSceneTokenRemove`, `removeRoomSummonTokens`), then the binding and the actor row go. `REVERT_LAST_ACTION` calls it for the receipt's `summonedTokens`, removes the ids from `state.actorIds` and drops the actors from the projection; the refusal is gone.
+- Split (ruled B): the cast still leaves no carrier effect, so expiry, Concentration end, recast and dispel have nothing to hang on. a2c2b creates the carrier effect from the compiled `entry`, sets `owner.sourceEffectId` and calls the same removal from `removeEffectRow` / `deleteMaintainedStateCas`.
+- Proof: `summonRemoval.test.ts`, `roomSceneCommandPersistence.test.ts` "a token an action conjures". The cast-then-revert room journey needs a converted summon spell and lands with T2v2a3 (Spiritual Weapon).
