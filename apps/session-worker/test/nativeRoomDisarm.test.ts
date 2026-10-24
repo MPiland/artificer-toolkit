@@ -462,7 +462,8 @@ describe('room Disarm of a Character in a form that replaces its proficiencies',
       rolls: [9, 9, 9, 9],
       actors: [srdCreatureActor({ id: SOURCE_ID, creature: ogre }), actor],
       ownerFeatureId: creatureFeature(ogre, 'Greatclub').id,
-      characterEquipment: [longsword],
+      // A one-handed Club: a Versatile weapon's grip would need the GM's judgment.
+      characterEquipment: [club],
       optionalCombatKinds: ['DISARM'],
       seed
     })
