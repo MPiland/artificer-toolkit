@@ -1210,6 +1210,16 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - D187a keeps Sunlight Sensitivity automated, and the Scene has no notion of sunlight, only illumination. Scene state gains a generic `daylight: boolean` (default false), set by the GM through the existing ambient-illumination command. Dev data is migrated in the same change.
 - HOLDER_IN_DAYLIGHT is true when the Scene is daylit and the holder's square resolves BRIGHT through `resolveSceneIlluminationAt`; darkness zones already make a square non-BRIGHT. Bright-light sensitivity (Cloaker) uses the same predicate home without the daylight requirement.
 - Roofs and interiors are not modelled; a torch-lit interior on a daylit Scene is a GM call, listed as a deferred edge case. SPELLS-33.T6d1 converts SUNLIGHT_SENSITIVITY, VAMPIRE_SUNLIGHT_HYPERSENSITIVITY, CLOAKER_LIGHT_SENSITIVITY and CLOAKER_PHANTASMS (through the shipped ATTACK_DECOYS).
+- Vampire Sunlight Hypersensitivity's 20 radiant damage and the Phantasms dismissal ship as GM-ruling riders (D187a), not follow-up tasks; their automation is listed in future-enhancements.
+
+### D190: summons on the sheet Extras tab (user decision, 2026-10-23, approved scope growth)
+
+- Groups that play without the VTT see their summons on the sheet. Today a sheet `CAST_SPELL` only spends the slot, and Extras list only catalog creatures.
+- Casting a summon spell from the sheet outside an Encounter adds a SUMMONED Extras entry built from the spell's `summonStatBlockDtoSchema` (AC, speed, attacks, current and maximum HP, tracked on the sheet).
+- A summon cast in an Encounter appears in Extras as a read view of the owned Run actor (live HP); the actor stays the only record.
+- An entry leaves Extras when Concentration ends, when it is dismissed, or at 0 HP. Outside the VTT nothing tracks time, so a timed summon stays until dismissed or a long rest.
+- Both paths build the summon through one rules-runtime summon plan (T2v2a2a), so sheet and map cannot drift. Registered as SPELLS-34 (T1 sheet cast, size 8, after SPELLS-4.T2v2a2b; T2 Encounter view, size 5, after SPELLS-4.T2v2a2c).
+- **T2v2a2b summon point (orchestrator ruling, 2026-10-23):** the caster picks the point. The cast reuses its existing point contract if one fits, otherwise gains one optional `summonPlacement: { position }` in `packages/schema`, validated for range, free square and sight.
 
 ## Approved implementation decisions
 

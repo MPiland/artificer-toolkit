@@ -15857,6 +15857,84 @@
               "note": "Merged m329 (5c07ac9fb)."
             }
           ]
+        },
+        {
+          "id": "SPELLS-34",
+          "title": "Summons appear on the sheet Extras tab",
+          "status": "TODO",
+          "journeyTests": [],
+          "journeyStatus": "none",
+          "origin": [],
+          "acs": [
+            {
+              "text": "Casting a summon spell from the sheet outside an Encounter adds a SUMMONED Extras entry built from the spell's summon stat block, showing AC, speed, attacks and current and maximum HP, with HP tracked on the sheet.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "id": "SPELLS-34.1"
+            },
+            {
+              "text": "A summon cast in an Encounter appears in the owner's Extras with its live HP from the owned Run actor; the actor remains the only record.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "id": "SPELLS-34.2"
+            },
+            {
+              "text": "A summon leaves Extras when Concentration ends, when it is dismissed, or at 0 HP; outside the VTT a timed summon stays until dismissed or a long rest.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "id": "SPELLS-34.3"
+            },
+            {
+              "text": "Sheet and Encounter summons are built through the same rules-runtime summon plan, proved by a test that runs both paths from one spell.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "id": "SPELLS-34.4"
+            }
+          ],
+          "wsjf": {
+            "bv": 8,
+            "tc": 3,
+            "rr": 3,
+            "size": 13
+          },
+          "tasks": [
+            {
+              "id": "SPELLS-34.T1",
+              "text": "Sheet-cast summon extra: CAST_SPELL outside an Encounter adds a SUMMONED extra from the compiled summon plan (stat block, HP tracking), removed on Concentration end, dismiss, 0 HP or long rest; journey test on the sheet.",
+              "closes": ["SPELLS-34.1", "SPELLS-34.3", "SPELLS-34.4"],
+              "status": "TODO",
+              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-4.T2v2a2b"]
+              }
+            },
+            {
+              "id": "SPELLS-34.T2",
+              "text": "Encounter summons in Extras: the owner's Extras show owned Run actors created by a summon cast, with live HP, as a read view; they leave with the actor.",
+              "closes": ["SPELLS-34.2", "SPELLS-34.3"],
+              "status": "TODO",
+              "note": "User decision 2026-10-23 (D190, approved scope growth).",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-4.T2v2a2c", "SPELLS-34.T1"]
+              }
+            }
+          ]
         }
       ]
     },
