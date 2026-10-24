@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NodeRuntimeCompactResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import type { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
+import { authoredRouteStorySystem } from '#domains/authoredRouteStory.fixtures'
 import { useAppForm } from '#forms/app-form/AppForm'
 import { createInitialSession } from '#forms/layout/authoringSessionState'
 import { createEmptyClass } from '../classAuthoring.utils'
@@ -119,6 +120,7 @@ function Harness({
         onAdvanced={undefined}
         onStateChange={onStateChange}
         session={session}
+        system={authoredRouteStorySystem}
       />
       <output data-testid='values'>{JSON.stringify(values)}</output>
     </form.AppForm>

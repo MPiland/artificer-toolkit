@@ -22,7 +22,6 @@ export type AuthoredFormDomain =
   | 'vehicle'
 
 export type AuthoredFormFactoryBase = {
-  createSession?: (input: AuthoredFormSessionInput) => AuthoredFormSession | undefined
   domain: AuthoredFormDomain
   fallbackLabel: string
   mapId: AuthoredFormDomain
