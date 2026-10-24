@@ -20,7 +20,7 @@ export type RepeatSaveAttempts = {
   consecutive: boolean
 }
 
-/** A Power Word Stun whose repeated save counts to thresholds, the shape Contagion needs. */
+/** A Power Word Stun whose repeated save counts to thresholds, the shape Flesh to Stone uses. */
 function thresholdSpell(attempts: RepeatSaveAttempts): SpellAuthored {
   const [effect] = powerWordStun.effects ?? []
   const [path] = effect!.paths

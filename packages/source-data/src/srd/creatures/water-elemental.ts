@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 export const waterElemental: CreatureAuthored = {
   id: S.CREATURE_IDS.WATER_ELEMENTAL,
@@ -126,8 +127,11 @@ export const waterElemental: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(285, 210),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WATER_ELEMENTAL_WHELM
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Resolve the whelm',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      "If the target is Large or smaller, it is also grappled (escape DC 14). Until this grapple ends, the target is restrained and unable to breathe unless it can breathe water. The elemental can grapple one Large creature or up to two Medium or smaller creatures at one time. At the start of each of the elemental's turns, each target grappled by it takes 13 (2d8 + 4) bludgeoning damage. A creature within 5 feet of the elemental can pull a creature or object out of it by taking an action to make a DC 14 Strength check and succeeding."
                   }
                 ]
               }
@@ -145,8 +149,10 @@ export const waterElemental: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(285, 213),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WATER_ELEMENTAL_WHELM
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Push the target out',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions: "The target is pushed out of the elemental's space."
                   }
                 ]
               }

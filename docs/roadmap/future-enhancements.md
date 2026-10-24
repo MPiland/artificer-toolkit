@@ -550,7 +550,8 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Active-effect end condition on holder illumination:** the Cloaker Phantasms duplicates vanishing in bright light (SPELLS-33.T6d1, D189).
 - **Holder-action save escape:** Irresistible Dance.
 - **Condition suppression:** Calm Emotions.
-- **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits.
+- **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits. Contagion (SPELLS-4.T2m3) ships its whole disease as a GM ruling on hit: the 7-day duration is over `MAX_ACTIVE_EFFECT_TURNS`, so neither its threshold saves nor its disease rows can ride an active effect.
+- **Damage-taken lifecycle condition:** a held effect's `onTriggers` `DAMAGE_TAKEN` applying a timed condition, such as Contagion's Slimy Doom stun until the end of the holder's next turn (SPELLS-4.T2m3).
 - **Curse tag ending:** Remove Curse.
 - **Dispel acting on a placed zone.**
 - **Maze escape as a spell-held effect.**
@@ -560,7 +561,8 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
 - **Indefinite non-Concentration lifetimes:** Feeblemind.
 - **SUMMON manifests:** Faithful Hound, plus creature-summoned allies.
-- **Containment:** swallow (Purple Worm, Kraken, Remorhaz, Tarrasque, Giant Frog and Toad; ships as a GM ruling beside the attack damage, no containment, acid or regurgitation piece) and engulf (Gelatinous Cube).
+- **Containment:** swallow (Purple Worm, Kraken, Remorhaz, Tarrasque, Giant Frog and Toad; ships as a GM ruling beside the attack damage, no containment, acid or regurgitation piece) and engulf (Gelatinous Cube Engulf and Ooze Cube, Water Elemental Whelm; ships as GM rulings beside the authored save and damage).
+  - **Save over contained or passed-through creatures (N4 CONTAINED_CREATURES/PASSAGE, SPELLS-33.T6a2):** a save aimed at the creatures in the source's own space (Water Elemental Whelm) or the creatures it moves through (Gelatinous Cube Engulf). Chosen-creature saves need an Unlimited, Touch or 1 ft+ range, so both actions stay refused at compile on the bounded shape and the GM runs them from the ruling.
 - **Auto-hit and reel tails:** Marilith, Roper.
 - **Creature forms beyond Wild Shape:** Change Shape, lycanthrope and vampire shapes, Misty Escape.
 - **Extra reactions and reaction denial; terrain and underwater predicates; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts (Hydra heads, Roper tendrils) and damage-triggered splitting (Black Pudding, Ochre Jelly).**

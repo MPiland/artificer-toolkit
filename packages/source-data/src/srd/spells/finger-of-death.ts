@@ -92,8 +92,11 @@ export const fingerOfDeath: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.FINGER_OF_DEATH, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'FINGER_OF_DEATH_ZOMBIE' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Raise the zombie',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'If this damage kills a humanoid, it rises at the start of your next turn as a zombie that is permanently under your command, following your verbal orders to the best of its ability.'
               }
             ]
           }
