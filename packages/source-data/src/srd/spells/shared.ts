@@ -68,14 +68,19 @@ export function spellChildId(spellId: string, bucket: number, index: number): st
 
 export { SRD_SYSTEM_ID, SRD_USER_ID }
 
+/** The physical damage types a "nonmagical weapons" resistance covers (Stoneskin, Wind Walk). */
+export const WEAPON_DAMAGE_TYPE_CODES = ['BLUDGEONING', 'PIERCING', 'SLASHING'] as const
+
 /**
- * Resistance to bludgeoning, piercing and slashing damage from nonmagical attacks (Stoneskin, Wind
- * Walk's "nonmagical weapons"); a magical attack's damage is not resisted.
+ * Resistance to the given damage types from nonmagical attacks (Stoneskin and Wind Walk's
+ * "nonmagical weapons", Gaseous Form's "nonmagical damage"); a magical attack's damage is not
+ * resisted.
  */
-export function nonmagicalWeaponResistanceGrants(
+export function nonmagicalResistanceGrants(
+  damageTypeCodes: readonly string[],
   idFor: (entry: number) => string
 ): ModifierGrantAuthored[] {
-  return (['BLUDGEONING', 'PIERCING', 'SLASHING'] as const).map((code, index) => ({
+  return damageTypeCodes.map((code, index) => ({
     id: idFor(index + 1),
     order: index + 1,
     grantKind: GRANT_KIND.MODIFIER_GRANT,
