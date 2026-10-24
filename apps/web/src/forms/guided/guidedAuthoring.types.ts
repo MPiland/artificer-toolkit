@@ -13,5 +13,5 @@ export type GuidedDomainAuthoringProps = {
   onAdvanced: (() => void) | undefined
   onStateChange: GuidedAuthoringStateHandler
   session: AuthoredFormSession
-  system: SystemResponseDto
+  system: NonNullable<SystemResponseDto>
 }

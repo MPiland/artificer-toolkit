@@ -130,7 +130,7 @@ export type AuthoredFormDomainRegistration =
       }
     }[AuthoredFormDomain]
 
-function getSpellFormContext(data: AuthoredFormCreateData): SpellFormContext {
+function getSpellFormContext(data: Pick<AuthoredFormCreateData, 'system'>): SpellFormContext {
   return {
     magicSchoolId: data.system?.magicSchools[0]?.id ?? ''
   }

@@ -134,12 +134,8 @@ export const WEB_NARROWING_ALLOWED = {
     count: 2,
     reason: 'validated Character DTOs use literal starting-equipment sources for the authored enum'
   },
-  'apps/web/src/forms/factories/authoredFormFactories.ts': {
-    count: 2,
-    reason: 'the generic factory narrows loader data it constrains by domain'
-  },
   'apps/web/src/forms/factories/authoredFormSessionFactory.ts': {
-    count: 6,
+    count: 4,
     reason: 'TanStack Form values and payloads are generic over the domain the factory serves'
   },
   'apps/web/src/forms/node-map/nodeFormUtils.ts': {
