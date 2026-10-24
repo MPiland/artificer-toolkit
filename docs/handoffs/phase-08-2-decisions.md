@@ -1230,6 +1230,18 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - Animal Shapes and Shapechange automate the form, cap, duration, carry-over damage and retained scores. Their size cap, excluded types, per-target forms, re-forming, proficiency bonus, Hit Dice, legendary actions, senses and equipment are GM rulings. Magic Jar and Project Image are GM rulings only. Planar Binding automates the Charisma save; the service is a GM ruling. Rejected pieces go to future-enhancements under Deferred rules pieces (D187a).
 - Proficiencies in a form are authored the same way, not set by the System: Polymorph replaces them, while Shapechange and Wild Shape keep the creature's own. Polymorph is common, so it is not a GM ruling. T2s fixes it if it fits size 8; otherwise it reports the size and the fix is registered as a bug follow-up.
 
+### D192: ability definition ids and the T9f split (user decision, 2026-10-24, approved scope growth)
+
+- RULES-2.T9f measured about 13 points, not 5: 5,229 ability-code uses in 492 files. The user approved the +8 split. **T9f1** (size 3) makes sizes System core codes, with rank and spaceFeet on the dnd5e adapter and no reseed. **T9f2** (size 5) keys ability-score records by ability definition id, takes labels and abbreviations from the System record, deletes the shared `core/ability.ts` and reseeds. **T9f3** (size 5) changes authored ability references (grants, effects, facets, charge, numericExpr, class) to `abilityDefinitionId` and reseeds.
+- **Why:** the tracer System (T12, AUTHORING-1.T2) cannot exist without its own abilities, and rekeying before launch avoids a persisted-data migration later.
+- RULES-2.T12 follows T9f1 and T9f2. T9f3 may run beside T12.
+- **Codemod exception (this task only):** the session may run a one-off ts-morph AST codemod from its scratchpad for the mechanical rewrite. The diff is reviewed before commit. The Edit/Write-only rule still applies to all other work.
+
+### D193: bright light and slot pools (orchestrator ruling, 2026-10-24, RULES-2.T9d and T9g)
+
+- **Bright light is rank 0.** Bright-light and daylight checks (Sunlight Sensitivity, `measureHolderLight`, `resolveSceneDaylightAt`) read the illumination level's rank: the first, brightest level is bright. Render class stays a drawing property only. The illumination adapter guide states the invariant that levels are ordered brightest first. There is no contract change; a System needing more than one bright level is a future enhancement, not a flag now.
+- **Slot pools are a list.** `characterRulePolicyOutputSchema.spellSlots.pactMagic` becomes `slotPools`, one entry per System slot pool with its pool code and source class. Neutral readers work per pool; dnd5e yields zero or one entry, and D&D behavior is unchanged. The output is computed, so nothing is migrated. A second-System test proves two pools. This is T9g's own scope ("Pact Magic leaves the neutral character pipeline"), and T9p already moved the literals, so it stays at size 2; if it measures larger, the session reports before building.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
