@@ -10741,6 +10741,20 @@
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
+              "id": "SPELLS-4.T2m2b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2m2"]
+              },
+              "text": "Bug: the SRD Net attack does not compile (both actions REFUSED in srdEffectCompile.golden.txt, \"D&D test action outcome is not supported\"), so no room offers a Net. Make it compile from core options (attack, Restrained on a hit, the DC 10 Strength check or 5 slashing to free); proofs: a regression row, a parity proof, and a room proof that Freedom of Movement does not block a net (non-MAGICAL source).",
+              "note": "Registered 2026-10-24 under the D187 bug exception, found by SPELLS-4.T2m2."
+            },
+            {
               "id": "SPELLS-4.T2m3",
               "status": "DONE",
               "closes": ["SPELLS-4.1"],
@@ -10842,7 +10856,7 @@
               "proof": "Tests and Live green on tip 36ebeae4; SPEED SET_VALUE accepts { equalsSpeedId } resolved by widestLengthByKey (speedEqualsPayloadSchema); Spider Climb and Alter Self authored with it; Jump, Levitate and Reverse Gravity ship as GM rulings with 3D movement deferred; nativeRoomGrantModifiers.test.ts room proof; compile golden updated."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2p",
               "wsjf": {
@@ -10853,8 +10867,9 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B), ruled before coding: Directional and vertical movement and damage multiplication. Converts GUST_OF_WIND, TELEKINESIS, RAY_OF_ENFEEBLEMENT, SUNBEAM, GASEOUS_FORM, with parity proofs; each kind deleted.",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m412.",
+              "mergedAt": "2026-10-24T15:23:35Z",
+              "proof": "Tests and Live green on tip 20fa71c38; five closed-rule kinds deleted: Gaseous Form authored from core options (fly 10 with other speeds 0, advantage on Str/Dex/Con saves, resistance to all damage bypassed by MAGICAL via the generalized nonmagicalResistanceGrants; falls and traps not resisted, stated in the GM ruling), Sunbeam first blast (Con save, 6d8 radiant and Blinded on a fail, half on a success), Gust of Wind, Telekinesis and Ray of Enfeeblement MANUAL_ADJUDICATION; proofs grantAuthoringParity.test.ts, encounterSourceQualifiedGrants.test.ts and saveForHalfDamage.test.ts."
             },
             {
               "status": "IN_PROGRESS",
@@ -11110,12 +11125,12 @@
               "closes": ["SPELLS-4.1"],
               "status": "IN_PROGRESS",
               "id": "SPELLS-4.T2v2a3d",
-              "note": "Split from T2v2a3 2026-10-24 (13 → 3+3+2+5, same scope; D190a).",
+              "note": "Split from T2v2a3 2026-10-24 (13 → 3+3+2+5, same scope; D190a). Resized 5 -> 8 on 2026-10-24 under the D187 bug exception: a summon in an ACTIVE Encounter failed validateInitiativeCursor (cohort mismatch), so the initiative cohort becomes the Run's unowned actors (D190a ruling 1); also fixes the area output scope check and the sibling-effect cast-level read.",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["SPELLS-4.T2v2a3b", "SPELLS-4.T2v2a3c"]
               },
               "text": "D187b summon piece, part 3d: Spiritual Weapon becomes a SUMMON with a stat block (fly 20, hover, invulnerable, not occupying space) on the 3a/3b offer; casting time fixed to 1 bonus action (SRD; regression test); MOVE_MANIFEST and COMMAND_MANIFEST kinds and node-map branches deleted (WEAPON stays for Arcane Sword); parity proof; room journey: cast and free attack, later-turn move and bonus-action attack, removal at expiry, revert. The move tied to the bonus action and the recast ending the weapon are GM rulings (D187a).",
