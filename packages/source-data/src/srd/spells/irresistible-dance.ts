@@ -34,14 +34,16 @@ const attackDomains = Object.values(ATTACK_DOMAIN_CODE)
 // The dance uses all the target's movement, gives it disadvantage on attack rolls and Dexterity
 // saves, and gives other creatures advantage on attack rolls against it. The holder-action Wisdom
 // save and the charm immunity are the GM ruling below (D187a).
-const danceModifiers = [
-  {
-    ...grant,
-    valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
-    domain: {},
-    modifierKind: MODIFIER_KIND.MULTIPLY,
-    payload: { numerator: 0, denominator: 1 }
-  },
+const speedGrant = {
+  ...grant,
+  id: grantId(0),
+  order: 1,
+  valueDomainCode: VALUE_DOMAIN_CODE.SPEED,
+  domain: {},
+  modifierKind: MODIFIER_KIND.MULTIPLY,
+  payload: { numerator: 0, denominator: 1 }
+} as const
+const rollModifiers = [
   ...attackDomains.map((attackDomain) => ({
     ...grant,
     valueDomainCode: VALUE_DOMAIN_CODE.ATTACK_ROLL,
@@ -63,7 +65,8 @@ const danceModifiers = [
     modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
     payload: { influence: 'ADVANTAGE' }
   }))
-].map((modifier, index) => ({ id: grantId(index), ...modifier, order: index + 1 }))
+].map((modifier, index) => ({ id: grantId(index + 1), ...modifier, order: index + 2 }))
+const danceModifiers = [speedGrant, ...rollModifiers]
 export const irresistibleDance: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.IRRESISTIBLE_DANCE,
