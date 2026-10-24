@@ -1,4 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const adultGoldDragon: CreatureAuthored = {
@@ -521,8 +522,8 @@ export const adultGoldDragon: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(8, 39),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.DRAGON_CHANGE_SHAPE
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    ...CHANGE_SHAPE_RULING.CR_CAPPED_FORM
                   }
                 ]
               }
