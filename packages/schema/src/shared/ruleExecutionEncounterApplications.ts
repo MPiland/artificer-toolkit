@@ -1541,7 +1541,7 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
        */
       placedSpatialEffectIds: z.array(uuidSchema).check(z.maxLength(5)),
       /**
-       * The Concentration a zone-only cast opens, which no creature outcome carries (D135). Absent
+       * The Concentration a zone-only or summoning cast opens, which no creature outcome carries (D135). Absent
        * when a creature outcome carries it or the cast maintains nothing.
        */
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),
@@ -1575,11 +1575,16 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
             path: ['placedSpatialEffectIds'],
             message: 'Placed spatial effects must be unique.'
           })
-        if (value.maintenanceTransition && value.placedSpatialEffectIds.length === 0)
+        if (
+          value.maintenanceTransition &&
+          value.placedSpatialEffectIds.length === 0 &&
+          !value.sourceGrantTransition
+        )
           context.addIssue({
             code: 'custom',
             path: ['maintenanceTransition'],
-            message: 'An area root carries a maintained effect only for the zone it placed.'
+            message:
+              'An area root carries a maintained effect only for the zone it placed or the effect it leaves on its source.'
           })
       })
     )

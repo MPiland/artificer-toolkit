@@ -10,6 +10,8 @@ import {
   NUMERIC_EXPR_CODE,
   RANGE_KIND,
   SIZE_CODE,
+  SCALING,
+  SCALING_SOURCE,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -19,11 +21,14 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 import { SRD_SPEEDS } from '../vocabulary.js'
 const flySpeedId = SRD_SPEEDS.find((speed) => speed.code === 'FLY')?.id
 if (!flySpeedId)
   throw new Error('SRD FLY speed vocabulary entry is required for Arcane Hand source data.')
+
+const CLENCHED_FIST_EFFECT_ID = spellChildId(SPELL_IDS.ARCANE_HAND, 0x240, 1)
+
 export const arcaneHand: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.ARCANE_HAND,
@@ -75,6 +80,23 @@ export const arcaneHand: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
+            // The caster strikes with the hand's Clenched Fist, measured from it: free once on the
+            // cast turn, then as a bonus action. Moving the hand, and the Forceful, Grasping and
+            // Interposing hands (contested or cover from the hand's own Strength), are GM rulings
+            // (D187a, D190a).
+            lifecycle: {
+              effectOffers: [
+                {
+                  kind: 'REPEAT_SOURCE_PATH' as const,
+                  offeredTo: 'SOURCE' as const,
+                  activation: ACTIVATION_CODE.BONUS_ACTION,
+                  effectId: CLENCHED_FIST_EFFECT_ID,
+                  target: 'INVOCATION' as const,
+                  origin: 'CONJURED' as const,
+                  castTurnUse: 'FREE_ONCE' as const
+                }
+              ]
+            },
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.ARCANE_HAND, 0x212, 1),
@@ -100,11 +122,74 @@ export const arcaneHand: SpellAuthored = {
                     STRENGTH: {
                       kind: NUMERIC_EXPR_CODE.FIXED,
                       value: 26
+                    },
+                    DEXTERITY: {
+                      kind: NUMERIC_EXPR_CODE.FIXED,
+                      value: 10
                     }
                   },
                   damageabilityKind: 'NORMAL',
-                  occupiesSpace: true
+                  // The hand doesn't fill its space.
+                  occupiesSpace: false
                 }
+              },
+              {
+                id: spellChildId(SPELL_IDS.ARCANE_HAND, 0x215, 1),
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {}
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      id: CLENCHED_FIST_EFFECT_ID,
+      order: 2,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
+        activation: {
+          code: ACTIVATION_CODE.BONUS_ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.ARCANE_HAND, 0x241, 1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 5,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
+      },
+      paths: [
+        {
+          id: spellChildId(SPELL_IDS.ARCANE_HAND, 0x244, 1),
+          order: 1,
+          pathCode: PATH_CODE.ON_HIT,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: `${spellChildId(SPELL_IDS.ARCANE_HAND, 0x244, 1)}__result`,
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.ARCANE_HAND, 0x245, 1),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('FORCE'),
+                valueKind: 'DICE' as const,
+                scalingKind: SCALING.PER_LEVEL,
+                scalingSource: SCALING_SOURCE.SPELL_CAST_LEVEL,
+                // 4d8, and 2d8 more for each slot level above 5th.
+                levels: Array.from({ length: 5 }, (_, index) => ({
+                  id: spellChildId(SPELL_IDS.ARCANE_HAND, 0x246, index + 1),
+                  level: index + 5,
+                  order: index + 1,
+                  diceConfig: `${4 + 2 * index}d8`
+                }))
               }
             ]
           }

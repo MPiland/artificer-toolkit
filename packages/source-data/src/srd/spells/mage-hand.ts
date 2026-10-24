@@ -8,6 +8,7 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SIZE_CODE,
   SUBJECT,
   TRIGGER,
   SPELL_COMPONENT,
@@ -15,6 +16,12 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { SRD_SPEEDS } from '../vocabulary.js'
+
+const flySpeedId = SRD_SPEEDS.find((speed) => speed.code === 'FLY')?.id
+if (!flySpeedId)
+  throw new Error('SRD FLY speed vocabulary entry is required for Mage Hand source data.')
+
 export const mageHand: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.MAGE_HAND,
@@ -64,11 +71,26 @@ export const mageHand: SpellAuthored = {
               durationKind: 'MINUTE',
               amount: 1
             },
+            // Using the hand, its 30-foot leash, dismissing it and ending it by casting the spell
+            // again are GM rulings (D187a); moving it is an ordinary token move.
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MAGE_HAND, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.SUMMON
+                manifestKind: MANIFEST_KIND.SUMMON,
+                statBlock: {
+                  // The SRD names no size; the hand is drawn in one 5-foot square.
+                  size: SIZE_CODE.MEDIUM,
+                  speeds: [
+                    {
+                      speedId: flySpeedId,
+                      amount: 30,
+                      unit: MEASUREMENT_UNIT_CODE.FEET
+                    }
+                  ],
+                  damageabilityKind: 'INVULNERABLE',
+                  occupiesSpace: false
+                }
               }
             ]
           }

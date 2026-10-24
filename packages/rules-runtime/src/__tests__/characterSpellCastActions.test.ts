@@ -2878,7 +2878,9 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
       const attack = structuredClone(spell('Flame Blade').effects?.[1])
       const path = authored.effects?.[0]?.paths[0]
       if (!attack || path?.selectionKind !== 'FIXED') throw new Error('The spells must author.')
-      authored.effects?.push({ ...attack, order: 2 })
+      // Only the hand itself: its own fist and carrier give way to the homebrew attack.
+      authored.effects = [authored.effects![0]!, { ...attack, order: 2 }]
+      path.resultBlock.outcomes = path.resultBlock.outcomes.slice(0, 1)
       path.resultBlock.lifecycle = {
         effectOffers: [
           {
@@ -3098,7 +3100,88 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
     })
   })
 
-  it('leaves Mage Hand to the GM until its stat block is modelled', () => {
-    expect(compiledCastEntry(spell('Mage Hand'))).toBeNull()
+  it('conjures Arcane Hand: a Large hand that takes no space, struck through as a bonus action that is free on the cast turn (SPELLS-4.T2v2b)', () => {
+    const authored = spell('Arcane Hand')
+    const fist = authored.effects?.[1]
+    const cast = compiledCast(authored)
+
+    expect(cast?.summonPlacement).toMatchObject({
+      statBlock: {
+        size: 'LARGE',
+        hitPoints: { kind: 'HIT_POINT_MAXIMUM' },
+        speeds: [{ amount: 60, unit: 'FEET' }],
+        abilityScores: { STRENGTH: { value: 26 }, DEXTERITY: { value: 10 } },
+        damageabilityKind: 'NORMAL',
+        occupiesSpace: false
+      },
+      entry: {
+        initialRemaining: 10,
+        modifierGrantContribution: {
+          effectOffers: [
+            {
+              kind: 'REPEAT_SOURCE_PATH',
+              activation: 'BONUS_ACTION',
+              target: 'INVOCATION',
+              origin: 'CONJURED',
+              castTurnUse: 'FREE_ONCE',
+              effect: { id: fist?.id, invocation: { activation: { code: 'BONUS_ACTION' } } }
+            }
+          ]
+        }
+      }
+    })
+    expect(cast?.summonPlacement?.entry.maintenance).not.toBeNull()
+  })
+
+  it('resolves the Clenched Fist at each cast’s level: 4d8 force, and 2d8 more per slot above 5th (SPELLS-4.T2v2b)', () => {
+    const authored = spell('Arcane Hand')
+    const casts = [5, 7].map((level, sequence) => candidate(authored, level, { sequence }))
+    const { spellActionFacts } = buildCharacterSpellActionRuleFacts({
+      spellIds: [authored.id],
+      spells: [compileSpell(authored)]
+    })
+    const evaluated = evaluateDnd5e2014CharacterActions({
+      candidates: [],
+      abilityDefinitions: [],
+      spellCandidates: casts,
+      spellSlots: [],
+      spellEffects: spellActionFacts,
+      spellMechanics: [{ source: casts[0]!.source, attackBonus: 7, saveDc: 15, damageBonus: 0 }],
+      spellcastingLocked: false,
+      proficiencies: [],
+      itemAdjustments: [],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: [],
+      resources: [],
+      modifierGroups: [],
+      totalLevel: 9,
+      classLevels: [],
+      proficiencyBonus: 4,
+      abilities: [],
+      skills: [],
+      spellcasting: null
+    })
+
+    expect(
+      evaluated.spellCastMechanics.map(({ repeatMechanics }) =>
+        repeatMechanics?.flatMap(({ outcomes }) =>
+          outcomes.map((outcome) => outcome.kind === 'DAMAGE' && outcome.diceExpression)
+        )
+      )
+    ).toEqual([['4d8'], ['8d8']])
+  })
+
+  it('conjures Mage Hand: an invulnerable hand that takes no space, flies 30 feet and lasts its minute (SPELLS-4.T2v2b)', () => {
+    const cast = compiledCast(spell('Mage Hand'))
+
+    expect(cast?.summonPlacement).toMatchObject({
+      statBlock: {
+        speeds: [{ amount: 30, unit: 'FEET' }],
+        damageabilityKind: 'INVULNERABLE',
+        occupiesSpace: false
+      },
+      entry: { initialRemaining: 10, maintenance: null }
+    })
+    expect(cast?.summonPlacement?.statBlock).not.toHaveProperty('hitPoints')
   })
 })
