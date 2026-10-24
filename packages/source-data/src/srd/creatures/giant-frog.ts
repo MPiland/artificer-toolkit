@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const giantFrog: CreatureAuthored = {
@@ -174,8 +175,11 @@ export const giantFrog: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(124, 7),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.GIANT_FROG_SWALLOW
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Resolve the swallow',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      "The frog makes one bite attack against a Small or smaller target it is grappling. If it hits, the target is swallowed and the grapple ends. The swallowed target has total cover against attacks and other effects outside the frog and takes 5 (2d4) acid damage at the start of each of the frog's turns. The frog can have only one target swallowed at a time. If the frog dies, the swallowed creature is no longer restrained by it and can escape from the corpse using 5 feet of movement, exiting prone."
                   },
                   {
                     id: S.actionId(124, 207),

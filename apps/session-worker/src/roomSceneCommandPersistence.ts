@@ -2,10 +2,12 @@ import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schem
 import type { SceneLiveStateHeader } from '@artificer-toolkit/schema/api/sceneLiveState'
 import {
   sceneGeometryCommandResultSchema,
-  type SceneBaseOrdinals
+  type SceneBaseOrdinals,
+  type SceneNativeGeometryCommandInput
 } from '@artificer-toolkit/schema/api/sceneGeometry'
 import {
   sceneCommandResultDtoSchema,
+  sceneStoredTokenDtoSchema,
   type CampaignSceneStateDto,
   type SceneCommandResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
@@ -25,7 +27,7 @@ import {
   parseGeometryCommand,
   parseGeometrySave
 } from '@artificer-toolkit/encounter-persistence/sceneGeometryDocuments'
-import { applySceneGeometryDelta } from '@artificer-toolkit/shared/vtt'
+import { applySceneGeometryDelta, type SceneToken } from '@artificer-toolkit/shared/vtt'
 import { canonicalizeJson, checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { RoomTransaction } from './roomEncounterStore.js'
 import { liveSessionSceneGeometryCommandInputSchema } from './nativeRoomSceneCommand.js'
@@ -53,39 +55,7 @@ export function persistRoomSceneCommand(args: {
 }) {
   const { transaction, header, scene } = args
   const supplied = liveSessionSceneGeometryCommandInputSchema.parse(args.command)
-  const result = sceneCommandResultDtoSchema.parse(args.result)
-  const sourceRecord = transaction.record('SCENE_CHECKPOINT_SOURCE', header.id)
-  if (!sourceRecord) throw new Error('Room Scene source is unavailable.')
-  const source = liveSessionCheckpointSceneSourceSchema.parse(JSON.parse(sourceRecord.json))
-  if (
-    source.sceneId !== header.id ||
-    source.definitionSaveId !== header.definitionSaveId ||
-    source.definitionVersion !== header.definitionVersion ||
-    source.presentationVersion !== args.presentationVersion ||
-    scene.id !== header.id ||
-    scene.campaignId !== header.campaignId ||
-    scene.definitionId !== header.definitionId ||
-    scene.definitionVersion !== header.definitionVersion ||
-    scene.version !== header.version
-  )
-    throw new Error('Room Scene source pins are stale.')
-  const rawHead = readRoomSceneRow(transaction, 'sceneLiveStates', [header.id])
-  const live = rawHead ? sceneStoredLiveStateSchema.parse(rawHead) : null
-  if ((live?.version ?? 0) !== header.version || (live && live.sceneId !== header.id))
-    throw new Error('Room Scene version is stale.')
-  if (
-    supplied.sceneId.toLowerCase() !== header.id ||
-    supplied.expectedSceneVersion !== header.version ||
-    result.sceneId !== header.id ||
-    result.commandId !== supplied.commandId.toLowerCase() ||
-    result.version !== header.version + 1 ||
-    result.replayed ||
-    result.occurrence !== null
-  )
-    throw new Error('Room Scene command result is inconsistent.')
-  if (readRoomSceneRow(transaction, 'sceneLiveCommands', [header.id, result.commandId]))
-    throw new Error('Scene command ID was already used.')
-  const state = advanceLiveState(header, live)
+  const { state, result } = beginDirectSceneCommand({ ...args, supplied })
   const input = normalizeGeometryInput(supplied)
   if (input.type !== 'MOVE_SCENE_TOKEN' && input.type !== 'SET_SCENE_DOOR_STATE')
     throw new Error('Room Scene command is unsupported.')
@@ -94,8 +64,6 @@ export function persistRoomSceneCommand(args: {
   const target = geometryTarget(input)
   if (canonicalizeJson(result.delta) !== canonicalizeJson(target.delta))
     throw new Error('Room Scene command result is inconsistent.')
-  if (readRoomSceneRow(transaction, 'sceneGeometrySaves', [args.saveId]))
-    throw new Error('Scene geometry save ID was already used.')
   const overrideRow = readRoomSceneRow(transaction, 'sceneLiveEntities', [
     header.id,
     target.collection,
@@ -155,7 +123,7 @@ export function persistRoomSceneCommand(args: {
     rawValue.collection === 'tokens'
       ? normalizeSceneGeometryEntity({ collection: 'tokens', entity: reduced.tokens[0]! })
       : normalizeSceneGeometryEntity({ collection: 'barriers', entity: reduced.barriers[0]! })
-  const fields = {
+  const change = liveEntityChange({
     sceneId: header.id,
     collection: target.collection,
     entityId: target.entityId,
@@ -164,11 +132,151 @@ export function persistRoomSceneCommand(args: {
       value.collection === 'barriers' ? (reduced.doorStates[value.entity.id] ?? null) : null,
     ordinal,
     version: state.version
-  }
-  const change = sceneStoredLiveEntitySchema.parse({
-    ...fields,
-    checksum: checksumCanonicalJson(fields)
   })
+  return writeDirectSceneCommand({
+    transaction,
+    header,
+    state,
+    input,
+    change,
+    result,
+    saveId: args.saveId,
+    actorUserId: args.actorUserId,
+    now: args.now,
+    actionOrigin: args.actionOrigin
+  })
+}
+
+/**
+ * Stages the Scene rows that put a new token on the map for an Encounter action (a summon): the
+ * token is a fresh live entity, so it takes the next token ordinal. Like a forced move it derives no
+ * fog, which a token without vision needs none of; the caller owns the outer commit and recomposes
+ * vision afterwards. The command names the action as its origin, so only the action's undo reaches it.
+ */
+export function persistRoomSceneTokenCreate(args: {
+  transaction: RoomTransaction
+  header: SceneLiveStateHeader
+  scene: CampaignSceneStateDto
+  token: SceneToken
+  commandId: string
+  actorUserId: string
+  presentationVersion: number
+  saveId: string
+  now: number
+  actionOrigin: { encounterId: string; commandId: string }
+}) {
+  const { transaction, header, scene } = args
+  const token = sceneStoredTokenDtoSchema.parse(args.token)
+  if (token.vision !== null)
+    throw new Error('A token a direct Scene command creates cannot carry vision.')
+  const supplied = {
+    type: 'UPSERT_SCENE_TOKEN' as const,
+    commandId: args.commandId,
+    sceneId: header.id,
+    expectedSceneVersion: header.version,
+    token
+  }
+  const input = normalizeGeometryInput(supplied)
+  const target = geometryTarget(input)
+  const result = sceneCommandResultDtoSchema.parse({
+    commandId: input.commandId,
+    delta: target.delta,
+    occurrence: null,
+    replayed: false,
+    sceneId: header.id,
+    version: header.version + 1
+  })
+  const { state } = beginDirectSceneCommand({ ...args, supplied, result })
+  if (
+    scene.tokens.some(({ id }) => id.toLowerCase() === target.entityId) ||
+    readRoomSceneRow(transaction, 'sceneLiveEntities', [header.id, 'tokens', target.entityId])
+  )
+    throw new Error('Scene token ID is already in use.')
+  const ordinal = state.nextOrdinals.tokens++
+  state.counts.tokens += 1
+  const change = liveEntityChange({
+    sceneId: header.id,
+    collection: 'tokens',
+    entityId: target.entityId,
+    value: normalizeSceneGeometryEntity({ collection: 'tokens', entity: token }),
+    doorState: null,
+    ordinal,
+    version: state.version
+  })
+  return writeDirectSceneCommand({ ...args, input, change, result, state })
+}
+
+type LiveEntity = ReturnType<typeof sceneStoredLiveEntitySchema.parse>
+
+function liveEntityChange(row: Omit<LiveEntity, 'checksum'>): LiveEntity {
+  return sceneStoredLiveEntitySchema.parse({ ...row, checksum: checksumCanonicalJson(row) })
+}
+
+/**
+ * The Scene source pins, versions and unused IDs every direct Scene command needs before it writes;
+ * returns the live state it advances.
+ */
+function beginDirectSceneCommand(args: {
+  transaction: RoomTransaction
+  header: SceneLiveStateHeader
+  scene: CampaignSceneStateDto
+  presentationVersion: number
+  saveId: string
+  supplied: { sceneId: string; commandId: string; expectedSceneVersion: number }
+  result: SceneCommandResultDto
+}) {
+  const { transaction, header, scene, supplied } = args
+  const result = sceneCommandResultDtoSchema.parse(args.result)
+  const sourceRecord = transaction.record('SCENE_CHECKPOINT_SOURCE', header.id)
+  if (!sourceRecord) throw new Error('Room Scene source is unavailable.')
+  const source = liveSessionCheckpointSceneSourceSchema.parse(JSON.parse(sourceRecord.json))
+  if (
+    source.sceneId !== header.id ||
+    source.definitionSaveId !== header.definitionSaveId ||
+    source.definitionVersion !== header.definitionVersion ||
+    source.presentationVersion !== args.presentationVersion ||
+    scene.id !== header.id ||
+    scene.campaignId !== header.campaignId ||
+    scene.definitionId !== header.definitionId ||
+    scene.definitionVersion !== header.definitionVersion ||
+    scene.version !== header.version
+  )
+    throw new Error('Room Scene source pins are stale.')
+  const rawHead = readRoomSceneRow(transaction, 'sceneLiveStates', [header.id])
+  const live = rawHead ? sceneStoredLiveStateSchema.parse(rawHead) : null
+  if ((live?.version ?? 0) !== header.version || (live && live.sceneId !== header.id))
+    throw new Error('Room Scene version is stale.')
+  if (
+    supplied.sceneId.toLowerCase() !== header.id ||
+    supplied.expectedSceneVersion !== header.version ||
+    result.sceneId !== header.id ||
+    result.commandId !== supplied.commandId.toLowerCase() ||
+    result.version !== header.version + 1 ||
+    result.replayed ||
+    result.occurrence !== null
+  )
+    throw new Error('Room Scene command result is inconsistent.')
+  if (readRoomSceneRow(transaction, 'sceneLiveCommands', [header.id, result.commandId]))
+    throw new Error('Scene command ID was already used.')
+  if (readRoomSceneRow(transaction, 'sceneGeometrySaves', [args.saveId]))
+    throw new Error('Scene geometry save ID was already used.')
+  return { state: advanceLiveState(header, live), result }
+}
+
+/** Writes a direct command's save, changed entity, live head and receipt together. */
+function writeDirectSceneCommand(args: {
+  transaction: RoomTransaction
+  header: SceneLiveStateHeader
+  state: ReturnType<typeof advanceLiveState>
+  input: SceneNativeGeometryCommandInput
+  change: LiveEntity
+  result: SceneCommandResultDto
+  saveId: string
+  actorUserId: string
+  now: number
+  actionOrigin: { encounterId: string; commandId: string } | undefined
+}) {
+  const { transaction, header, state, input, change, result } = args
   // Direct commands never derive fog (`isStagedSceneCommand`); fog-deriving ones stage and publish
   // through `publishSceneGeometry`, which stores the real patches that undo reads.
   const retainedResult = sceneGeometryCommandResultSchema.parse({ ...result, fogPatches: [] })

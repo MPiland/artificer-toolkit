@@ -389,6 +389,7 @@ export async function settleAreaCommit(args: {
     concentration,
     placedZones,
     zoneSourceGrant,
-    forcedMovements
+    forcedMovements,
+    summonedTokens: []
   }
 }

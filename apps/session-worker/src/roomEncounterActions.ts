@@ -41,6 +41,7 @@ import {
 } from './roomActionSceneInputs.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { applyRoomForcedMovements, readRoomForcedMovementPick } from './roomActionForcedMovement.js'
+import { applyRoomSummonTokens } from './roomActionSummonTokens.js'
 import { persistRoomConcentrationChildren } from './roomConcentrationPersistence.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
@@ -192,6 +193,8 @@ export async function executeRoomEncounterAction(input: {
       { ...buildNativeLiveEncounterAreaCommitInput(scope, plan), revisions },
       {
         ...callbacks,
+        applySummonTokens: (summon) =>
+          applyRoomSummonTokens({ ctx, transaction, userId: scope.expectedUserId, summon }),
         bindConcentrationApplications: (state, applications) =>
           bindEncounterConcentrationApplications(ctx, state, applications),
         persistConcentrationChildren: (children) => persistRoomConcentrationChildren(ctx, children)

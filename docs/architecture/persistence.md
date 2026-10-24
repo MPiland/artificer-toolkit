@@ -163,6 +163,14 @@ record of the move: the action's `RESOLVE_ACTION` receipt keeps only references 
 `{sceneId, sceneCommandId}[]`, default `[]`), the GM's `UNDO_LAST_SCENE_MOVE` refuses a latest move whose
 origin is an action, and the action's `REVERT_LAST_ACTION` undoes each referenced move through
 `publishSceneUndo`, refused (`REVERT_UNAVAILABLE`) once the token has moved since.
+A creature an action conjures (D187b, SUMMON) is a Scene token created in the cast's own room transaction, so the
+Scene rows and the Encounter commit or roll back together (Option A). `persistRoomSceneTokenCreate` writes it
+directly, the sibling of the forced-movement write and not the staged geometry publication: a token without
+vision derives no fog, so the direct write needs no staged preparation, and it carries the same `actionOrigin`.
+The cast's `RESOLVE_ACTION` receipt keeps `summonedTokens` (`{sceneId, sceneCommandId, tokenId, actorId}[]`,
+default `[]`) and the Encounter binds the token to the actor in `encounterActorTokenBindings`. Current: the
+callback (`applyRoomSummonTokens`) and the receipt field exist and the planner supplies none; the actor creation,
+the call and the removal on end and revert are SPELLS-4.T2v2a2c.
 A drag (D105) writes the mover's and each dragged token's live row at the move's version; publication refuses it
 unless every dragged token still stands at its recorded `from` and moves by the mover's displacement.
 `publishSceneUndo` restores the mover and every token in the preparation's `draggedTokens`, refusing when any of

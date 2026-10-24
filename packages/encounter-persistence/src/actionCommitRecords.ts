@@ -1,7 +1,10 @@
 import type { z } from 'zod'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounterData'
 import type { ResolveEncounterActionInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import type { LiveSessionForcedMovement } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
+import type {
+  LiveSessionForcedMovement,
+  LiveSessionSummonedToken
+} from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { EncounterActorRuleOutput } from '@artificer-toolkit/schema/api/encounterActorRules'
 import type {
   EncounterRunActorState,
@@ -91,6 +94,17 @@ export type ApplyEncounterForcedMovements = (input: {
 }>
 
 /**
+ * Puts the creatures an action conjures on its Encounter's Scene in the commit's transaction, each
+ * bound to its actor, and returns the Scene command that created each so the action's undo and
+ * replay find it. The cast's own actor and effect rows are the caller's.
+ */
+export type ApplyEncounterSummonTokens = (input: {
+  state: EncounterRunState
+  commandId: string
+  summons: readonly LiveSessionSummonedToken[]
+}) => Promise<{ sceneId: string; sceneCommandId: string; tokenId: string; actorId: string }[]>
+
+/**
  * Records a committed action: advances the Run, stores the root's one receipt and inserts the one
  * RESOLVE_ACTION command a replay and an undo find it by.
  */
@@ -133,6 +147,7 @@ export async function recordActionRoot(
           | 'idleTurnMarkChanges'
           | 'clearedDamageTypes'
           | 'forcedMovements'
+          | 'summonedTokens'
           | 'forcedMovementLandings'
         >
       >

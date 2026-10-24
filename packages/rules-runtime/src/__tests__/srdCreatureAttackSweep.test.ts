@@ -178,6 +178,27 @@ describe('SRD Creature attack sweep', () => {
     expect(mismatches).toEqual({})
   })
 
+  it('sweeps the swallowing attacks as automated damage beside a GM ruling (D187a)', () => {
+    const damageParts = {
+      'Purple Worm: Bite': 1,
+      'Kraken: Bite': 1,
+      'Remorhaz: Swallow': 2,
+      'Tarrasque: Swallow': 1
+    }
+    for (const [label, parts] of Object.entries(damageParts)) {
+      const units = creatures.flatMap(attackUnits).filter((unit) => unit.label === label)
+      expect(units).toHaveLength(1)
+      const [unit] = units
+      const hitKinds = unit.effect.paths.flatMap((path) =>
+        path.pathCode === 'ON_HIT' && path.selectionKind === 'FIXED'
+          ? path.resultBlock.outcomes.map(({ effectKind }) => effectKind)
+          : []
+      )
+      expect(hitKinds).toEqual([...Array(parts).fill('DAMAGE'), 'MANUAL_ADJUDICATION'])
+      expect(SRD_CREATURE_ATTACK_UNSUPPORTED).not.toHaveProperty(unit.effectId)
+    }
+  })
+
   it('prepares, executes and plans every SRD Creature attack, except the shrinking allowlist, and doubles its dice on a critical hit', async () => {
     const runtime = createSrdRulesRuntime()
     const ogre = creatures.find((creature) => creature.label === 'Ogre')
@@ -286,7 +307,7 @@ describe('SRD Creature attack sweep', () => {
       }
     }
 
-    expect(effectIds.size).toBe(551)
+    expect(effectIds.size).toBe(550)
     expect(failures).toEqual(SRD_CREATURE_ATTACK_UNSUPPORTED)
     expect(hits).toEqual(expectedHits)
     expect(criticalDice).toEqual(expectedCriticalDice)

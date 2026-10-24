@@ -594,3 +594,11 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - A timed SUMMON with a stat block compiles to `compilation.summonPlacement` (see [rules-runtime](../architecture/rules-runtime.md) "Summon placement"). Mage Hand (no stat block yet) and Spiritual Weapon (behaviors) stay manual.
 - Nothing reads it at cast yet: a2b adds the staged-Scene cast write, a2c creates and removes the actor.
 - Proof: `characterSpellCastActions.test.ts` "the creature a summon spell conjures".
+
+## T2v2a2b (D187b): the summon's Scene write in the cast transaction
+
+- `ApplyEncounterSummonTokens` (encounter-persistence) is injected beside `applyForcedMovements`; the area persister calls it with the plan's `summonedTokens` and stores the returned `{sceneId, sceneCommandId, tokenId, actorId}[]` on the `RESOLVE_ACTION` receipt. The room callback `applyRoomSummonTokens` writes the token through `persistRoomSceneTokenCreate` and inserts the actor-token binding. Boundary recorded in [persistence](../architecture/persistence.md).
+- Deviation from "staged UPSERT": the write is direct, not the staged geometry publication. A vision-less token derives no fog, forced movement is the precedent, and the receipt names the cast as `actionOrigin`; a token with vision is refused.
+- The caster's chosen square reuses the POINT cast target (`{point, sceneId, expectedSceneVersion}`); no new request field. a2c validates it (range, free square for an occupying summon, sight if required).
+- Not yet: the planner supplies `summonedTokens: []`. a2c: actor id and creation, the call, removal at effect end, maintained-state delete and revert.
+- Proof: `roomSceneCommandPersistence.test.ts` "a token an action conjures".

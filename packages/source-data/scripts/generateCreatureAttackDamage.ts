@@ -172,7 +172,7 @@ for (const creature of srdCreatureRecords) {
         entries.push({ entry: `['${effect.id}', []]`, comment: `${label} (prints no hit damage)` })
         continue
       }
-      // A closed-rule companion (Kraken Bite's swallow) leaves the hit damage to its sibling Effect.
+      // A closed-rule companion (the Mimic Pseudopod's adhesion) leaves the hit damage to its sibling Effect.
       const siblingDealsDamage = (source.effects ?? []).some(
         (sibling) => sibling !== effect && hitDamageDice(sibling).length > 0
       )
