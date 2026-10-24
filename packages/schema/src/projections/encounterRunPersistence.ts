@@ -123,6 +123,19 @@ export const encounterRelationshipsEndedInputSchema = lazySchema(() =>
 )
 
 /**
+ * The stored input of a Run command the room writes when the effect holding a conjured creature
+ * ended (D187b): the creature leaves the Run and its Scene. Never sent by a client, so it stays
+ * outside the Encounter command union.
+ */
+export const encounterSummonsEndedInputSchema = lazySchema(() =>
+  z.strictObject({
+    type: z.literal('SUMMONS_ENDED'),
+    commandId: postgresUuidSchema,
+    encounterId: postgresUuidSchema
+  })
+)
+
+/**
  * One actor's stored state (`encounterStoredRunActorStateSchema` JSON) with the checksum of its
  * play state: the actor without its source snapshot and without the facts derived from it (ADR 0035
  * Amendment 29). `snapshotChecksum`, `formOriginSnapshotChecksum` and `sourceFactsChecksum` repeat
@@ -639,6 +652,15 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
       /** The holds that broke. An ended relationship is not restored by an undo. */
       receipt: z.strictObject({ relationshipEnds: encounterRelationshipEndsSchema })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('SUMMONS_ENDED'),
+      /** The timeline label: plain "Summon ended", which never names a creature a player cannot see. */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      /** The conjured creatures removed, so a replay removes the same ones. An undo does not restore them. */
+      receipt: z.strictObject({
+        removedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('CONCENTRATION_DROPPED_OUTSIDE'),

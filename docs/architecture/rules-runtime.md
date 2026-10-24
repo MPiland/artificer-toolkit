@@ -1972,7 +1972,7 @@ are overridable warnings like an area origin; a free square is a hard refusal (`
 a zone placed at the point with nobody caught, and `buildEncounterSummon` makes the CUSTOM actor (`owner` = caster,
 no controllers of its own, hit points from `evaluateNumericExpr` against the caster's maximum when the Run holds it;
 a Character caster's maximum lives on the Sheet, so a `HIT_POINT_MAXIMUM` stat block is refused with `HIT_POINTS_UNKNOWN` until T2v2b feeds it).
-Current (a2c2): a revert of the cast removes the conjured creature (see persistence). Target (a2c2b): the lasting carrier effect with Concentration, and removal at every end.
+Current (a2c2): a revert of the cast removes the conjured creature (see persistence). Current (a2c3): the cast creates the carrier effect on the caster from the compiled summon entry (`prepareNativeSourceEffect`), with the summon's duration and Concentration (`prepareEncounterActionMaintenance` names the summon's policy), and `buildEncounterSummon` sets `owner.sourceEffectId` to it. Removal at every end is the persistence sweep.
 
 ### Effect offers: moving a held effect (current, SPELLS-4.T2d2, D160)
 
