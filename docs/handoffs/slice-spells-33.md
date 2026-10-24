@@ -686,3 +686,11 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - Status: implemented; CI is the gate. The T2s form swap replaces the whole Creature, hit points included, while these nine keep the creature's own statistics (Dragon keeps its HP; Couatl and Deva replace only AC, speeds, Strength, Dexterity and senses; Imp, Quasit, Mimic, Oni, Succubus/Incubus and Night Hag keep every statistic but speed or size). A form also needs a finite duration (at most one day) and has no humanoid-or-beast filter. A faithful conversion needs the stat-overlay form, already in future-enhancements ("Creature forms beyond Wild Shape"); none is built.
 - Each of the nine (Couatl, Deva, Imp, Mimic, Oni, Quasit, Succubus/Incubus, Night Hag, and the eight Adult/Ancient dragons) stays an ACTION/SELF effect whose single outcome is a `MANUAL_ADJUDICATION` / `GM_CHOICE` ruling from `creatures/changeShapeRuling.ts` (four wordings: CR-capped form, beast speed form, sized form, object form). The nine closed-rule kinds are deleted.
 - Proof: `creatureChangeShapeRulingAuthoringParity.test.ts` (action shape, creature node map round trip, kinds gone). T4s2 (lycanthropes, vampire, Misty Escape) reuses `changeShapeRuling.ts`.
+
+## T4m: Horrifying Visage, Petrifying Gaze, Vrock Spores, Kraken Freedom of Movement (`ci/spells-33-t4m`)
+
+Four closed kinds deleted (D156), authored from generic options (D187a). Proof: `creatureTraitConversionAuthoringParity.test.ts` (authoring) and `creatureMagicalConditionImmunity.test.ts` (runtime).
+
+- Ghost, Vrock, Medusa: CONDITION plus a repeating FOLLOW_UP_SAVE at the target's turn end. Ghost's Aging, Vrock's spore damage and Medusa's fail-by-5 instant petrification are MANUAL_ADJUDICATION rulings (no recurring-damage engine; the failure-margin rider needs a non-PASSIVE saving-throw action, which a trait is not).
+- Ghost also gets `saveImmunityPath`.
+- Kraken: feature-level CONDITION_IMMUNITY (restrained) restricted to MAGICAL sources, reusing the SPELLS-4.T2m2 suppression, plus a ruling for the terrain, speed and escape text.
