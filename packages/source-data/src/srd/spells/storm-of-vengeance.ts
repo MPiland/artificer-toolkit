@@ -67,8 +67,11 @@ export const stormOfVengeance: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.STORM_OF_VENGEANCE, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'STORM_OF_VENGEANCE' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Run the Storm',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'Each creature under the cloud when it appears makes a Constitution saving throw, taking 2d6 thunder damage and becoming deafened for 5 minutes on a failure. On each of your later turns while you concentrate: round 2, acid rain deals 1d6 acid damage to each creature and object under the cloud; round 3, six bolts of your choice force a Dexterity saving throw, 10d6 lightning damage on a failure or half on a success; round 4, hail deals 2d6 bludgeoning damage to each creature under the cloud; rounds 5 to 10, the area is difficult terrain and heavily obscured, each creature there takes 1d6 cold damage, and ranged weapon attacks in it are impossible.'
               }
             ]
           }

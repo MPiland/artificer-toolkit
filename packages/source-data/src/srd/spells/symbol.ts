@@ -63,16 +63,19 @@ export const symbol: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.SYMBOL, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SYMBOL' as const
-              },
-              {
                 id: spellChildId(SPELL_IDS.SYMBOL, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
                 label: 'Define the Trigger',
                 reasonCode: 'PLAYER_DECLARATION' as const,
                 instructions: 'You decide what triggers the glyph when you cast the spell.'
+              },
+              {
+                id: spellChildId(SPELL_IDS.SYMBOL, 0x2f0, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Trigger the Glyph',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'Once triggered, the glyph fills a 60-foot-radius sphere with dim light for 10 minutes, then the spell ends. Each creature in the sphere when it activates, and each creature that enters it for the first time on a turn or ends its turn there, is targeted by the chosen effect.'
               }
             ]
           }

@@ -567,7 +567,10 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Form filters beyond type and challenge rating (SPELLS-4.T2s, D191):** an excluded creature type (Shapechange's undead and constructs) and a maximum size (Animal Shapes' Large); both ship as GM rulings.
 - **Per-target forms and re-forming (SPELLS-4.T2s, D191):** Animal Shapes' different form per target and its action to re-form, as a per-target form map and a re-form offer.
 - **Project Image illusory double:** a summoned token the caster sees and speaks through (SPELLS-4.T2s ships it as a GM ruling).
-- **Armed or staged zones:** Glyph of Warding, Symbol, Delayed Blast Fireball, Storm of Vengeance, Earthquake.
+- **Armed or staged zones:** a glyph armed by an authored trigger (Glyph of Warding, Symbol), a bead that grows each turn and detonates when the spell ends (Delayed Blast Fireball), and a storm that runs a different effect each round (Storm of Vengeance). All four ship as GM rulings (SPELLS-4.T2q).
+- **END_OF_SOURCE_TURN zone interaction:** zones trigger only at the start of the source's turn, so Earthquake's prone save at the end of each turn the caster concentrates is description-only beside its automated difficult-terrain zone (SPELLS-4.T2q).
+- **Sight-range point areas:** an area save must have a fixed distance, Self or Unlimited range, so Storm of Vengeance's cloud centered on a point the caster can see cannot be aimed (SPELLS-4.T2q).
+- **Concentration-maintenance opt-out:** every held effect of a Concentration spell ends with its Concentration, so an effect that should outlast it cannot be automated. This blocks Earthquake's prone on its cast save, which lasts until the creature stands and is description-only, and Storm of Vengeance's 5-minute deafness (SPELLS-4.T2q). A GM ruling on a placed zone's appear-save failure is not supported either.
 - **Indefinite non-Concentration lifetimes:** Feeblemind.
 - **SUMMON manifests:** Faithful Hound, plus creature-summoned allies.
 - **Containment:** swallow (Purple Worm, Kraken, Remorhaz, Tarrasque, Giant Frog and Toad; ships as a GM ruling beside the attack damage, no containment, acid or regurgitation piece) and engulf (Gelatinous Cube Engulf and Ooze Cube, Water Elemental Whelm; ships as GM rulings beside the authored save and damage).
