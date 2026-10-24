@@ -70,7 +70,7 @@ describe('the SRD Assassin’s and Spy’s Sneak Attack, authored from core opti
     'rides the %s’s melee and ranged weapon attacks once per turn, keyed by its Feature',
     (creature, label) => {
       const feature = creatureFeature(srdByLabel(SRD.creatures, creature), label)
-      const effects = (feature.effects ?? []).map(compileEffect)
+      const effects = (feature.effects ?? []).map((effect) => compileEffect(effect))
       for (const effect of effects) expect(effectReadsEnemyProximity(effect)).toBe(true)
       const riders = collectOnHitRiders(effects, feature.id)
       expect(riders.map((rider) => rider.triggerCode)).toEqual([
@@ -117,7 +117,12 @@ describe('the SRD Assassin’s and Spy’s Sneak Attack, authored from core opti
 
   it('folds no rider from the Bugbear’s description-only Surprise Attack', async () => {
     const feature = creatureFeature(srdByLabel(SRD.creatures, 'Bugbear'), 'Surprise Attack')
-    expect(collectOnHitRiders((feature.effects ?? []).map(compileEffect), feature.id)).toEqual([])
+    expect(
+      collectOnHitRiders(
+        (feature.effects ?? []).map((effect) => compileEffect(effect)),
+        feature.id
+      )
+    ).toEqual([])
     // Morningstar, +4: 2d8 + 2 piercing, with no 2d6 surprise damage. d20 15; dice 3 and 1.
     const damage = await attackOgre({
       attacker: 'Bugbear',

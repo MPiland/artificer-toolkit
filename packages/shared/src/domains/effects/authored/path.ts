@@ -126,8 +126,9 @@ export type PathLifecycleAuthored = {
    * duration and Concentration, to another creature within `range`, charged to `activation`, once
    * `when` holds for the holder. `REPEAT_SOURCE_PATH` (D166) lets the effect's source re-run the
    * named paths of the Effect that made it against the holder, charged to `activation`. Only an
-   * `APPLY_GRANT` effect carries one. `when` and `range` belong to a move offer, `pathIds` to a
-   * repeat offer.
+   * `APPLY_GRANT` effect carries one. `when` and `range` belong to a move offer; a repeat offer names
+   * `pathIds` of this Effect or an `effectId` of a sibling Effect (all its paths, with its
+   * invocation), and a `target`: `HOLDER` (default) or the re-run invocation's own targets.
    */
   effectOffers?: {
     kind: 'MOVE_HELD_EFFECT' | 'REPEAT_SOURCE_PATH'
@@ -136,6 +137,8 @@ export type PathLifecycleAuthored = {
     activation: ActivationCode
     range?: { amount: number; unit: LengthUnitCode }
     pathIds?: string[]
+    effectId?: string
+    target?: 'HOLDER' | 'INVOCATION'
   }[]
 }
 

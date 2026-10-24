@@ -33,7 +33,9 @@ export type CompiledFeat = {
 }
 
 export function compileFeat(authored: FeatAuthored): CompiledFeat {
-  const effects = authored.effects?.length ? authored.effects.map(compileEffect) : undefined
+  const effects = authored.effects?.length
+    ? authored.effects.map((effect) => compileEffect(effect))
+    : undefined
 
   const modifiers =
     authored.grants?.modifiers && authored.grants.modifiers.length
