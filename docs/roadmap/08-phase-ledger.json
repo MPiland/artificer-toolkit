@@ -18023,7 +18023,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Found 2026-10-14 by RELIABILITY-11 (workbook status log): same Convex intersection-to-any defect, spread across many intersections plus recursion."
+              "note": "Found 2026-10-14 by RELIABILITY-11 (workbook status log): same Convex intersection-to-any defect, spread across many intersections plus recursion. D194 (user ruling 2026-10-24): wire stays nested; staticApi stays on; only follow-up save/check outcomes keep a named v.any leaf; handlers and web adapter share the packages/schema type with a pairing contract test."
             },
             {
               "id": "RELIABILITY-12.2",
