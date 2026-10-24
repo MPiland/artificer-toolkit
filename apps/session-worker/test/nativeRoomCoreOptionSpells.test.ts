@@ -705,6 +705,61 @@ describe('room Flame Blade reach (SPELLS-4.T2v2a3a)', () => {
   }, 120000)
 })
 
+/**
+ * SPELLS-4.T2v2a3b (D190a): a repeat offer authored FREE_ONCE costs nothing once, in the turn of the
+ * cast; a second use that turn is charged as authored. Flame Blade authors no free use, so its offer
+ * is given one here.
+ */
+describe('room free cast-turn repeat (SPELLS-4.T2v2a3b)', () => {
+  function freeOnceFlameBlade() {
+    const spell = structuredClone(flameBlade)
+    const path = spell.effects?.[0]?.paths?.[0]
+    const offer =
+      path?.selectionKind === 'FIXED' ? path.resultBlock.lifecycle?.effectOffers?.[0] : undefined
+    if (!offer) throw new Error('Flame Blade must offer a repeat.')
+    offer.castTurnUse = 'FREE_ONCE'
+    return spell
+  }
+
+  it('attacks once free on the cast turn, then charges the Action the cast spent, and never again later', async () => {
+    const spell = freeOnceFlameBlade()
+    const room = await actionRoom({
+      rolls: [18],
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel: 5 },
+      characterSpellcasting: { spells: [spell], prepared: [spell.id] },
+      characterAction: (action) => action.label.startsWith(spell.label)
+    })
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+
+    // The cast spent the Action, yet the first attack this turn is free.
+    const [free] = (await room.actionChoices()).effectOffers
+    expect(free).toMatchObject({ kind: 'REPEAT_SOURCE_PATH', activation: 'FREE' })
+    if (free?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+    const attack = await room.startAction(WOLF_ID, RANGE, null, null, free.actionId)
+    expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+    expect(await appliedDamage(room, attack.command.commandId)).toEqual([[3, damageTypeId('FIRE')]])
+
+    // The second attack this turn costs the Action, which the cast already spent.
+    const [charged] = (await room.actionChoices()).effectOffers
+    expect(charged).toMatchObject({ activation: 'ACTION' })
+    expect(JSON.stringify(charged?.warnings)).toContain('ACTION_ECONOMY_UNAVAILABLE')
+    const second = await room.startAction(WOLF_ID, RANGE, null, null, free.actionId)
+    expect(second.answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'RULE_WARNINGS' })
+    expect(JSON.stringify(second.answer)).toContain('ACTION_ECONOMY_UNAVAILABLE')
+
+    // On the caster's next turn the attack costs its Action like any other.
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect((await room.actionChoices()).effectOffers).toEqual([
+      expect.objectContaining({ activation: 'ACTION' })
+    ])
+  }, 120000)
+})
+
 describe('room True Strike (SPELLS-4.T2k1)', () => {
   /**
    * The Character (first in the order) with True Strike prepared and a Club equipped, then an ally

@@ -376,6 +376,7 @@ export const encounterEffectOfferChoiceDtoSchema = lazySchema(() => {
     effectId: postgresUuidSchema,
     offerIndex: z.number().check(z.int()).check(z.nonnegative()),
     holderActorId: postgresUuidSchema,
+    /** What taking the offer costs now: FREE for a repeat's unspent free cast-turn use (D190a). */
     activation: activationCodeSchema,
     /** Soft-rule warnings that already apply, as for `actions`. */
     warnings: encounterRuleWarningsDtoSchema

@@ -190,13 +190,16 @@ async function loadActionSource(
           spentKeys: await readTurnUses(tx, { state, actorId: input.actor.id })
         }
       : undefined
-  // A repeat offer resolves against every holder's effects: its carrier is on the creature it repeats on.
+  // A repeat offer resolves against every holder's effects: its carrier is on the creature it repeats
+  // on. A free cast-turn use resolves against the turn and its spent uses (D190a).
   const repeat = parseRepeatPathActionId(input.actor.id, input.actionId)
     ? {
         effectsByHolder: await loadRunActiveEffects(tx, {
           state,
           actors: await readRunActors(tx, state)
-        })
+        }),
+        turn: state,
+        spentKeys: await readTurnUses(tx, { state, actorId: input.actor.id })
       }
     : undefined
   // Only a Creature, or a Character in a Creature form, casts from the Run's pinned Spells (D163).

@@ -543,9 +543,14 @@ export async function planNativeLiveEncounterAction(
               spentKeys: await readNativeLiveTurnUses(capture, input.actor.id)
             }
           : undefined,
-        // A repeat offer resolves against the effects every holder keeps now (D166).
+        // A repeat offer resolves against the effects every holder keeps now (D166), and a free
+        // cast-turn use against the turn and its spent uses (D190a).
         repeat: parseRepeatPathActionId(input.actor.id, input.actionId)
-          ? { effectsByHolder: activeEffectsByActorId }
+          ? {
+              effectsByHolder: activeEffectsByActorId,
+              turn: state,
+              spentKeys: await readNativeLiveTurnUses(capture, input.actor.id)
+            }
           : undefined,
         system,
         spells: await readNativeLiveSpellPins(capture),
