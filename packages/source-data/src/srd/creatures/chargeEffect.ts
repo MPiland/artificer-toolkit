@@ -14,8 +14,9 @@ export function chargeEffect(input: {
   localIndex: number
   ridesFeatureId: string
   minFeet: number
-  damageType: string
-  diceConfig: string
+  /** Omitted when the Charge only knocks prone (Warhorse, Weretiger). */
+  damageType?: string
+  diceConfig?: string
   dc: number
   pushFeet?: number
 }): EffectAuthored {
@@ -77,14 +78,18 @@ export function chargeEffect(input: {
           id: `${id(2)}__result`,
           resultKind: 'SEQUENCE' as const,
           outcomes: [
-            {
-              id: id(7),
-              effectKind: S.EFFECT_KIND.DAMAGE,
-              damageTypeId: S.damageTypeId(input.damageType),
-              valueKind: S.DAMAGE_VALUE_KIND.DICE,
-              scalingKind: S.SCALING.NONE,
-              diceConfig: input.diceConfig
-            },
+            ...(input.damageType === undefined || input.diceConfig === undefined
+              ? []
+              : [
+                  {
+                    id: id(7),
+                    effectKind: S.EFFECT_KIND.DAMAGE,
+                    damageTypeId: S.damageTypeId(input.damageType),
+                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                    scalingKind: S.SCALING.NONE,
+                    diceConfig: input.diceConfig
+                  }
+                ]),
             {
               id: id(8),
               effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
