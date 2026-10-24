@@ -2288,6 +2288,21 @@ describe('a zone that only prices movement, placed with no save (SPELLS-4.T2a4, 
 
     expect(placement).toMatchObject({ maintenance: null, entry: { maintenance: null } })
   })
+
+  it('places Earthquake’s shaking ground as difficult terrain held by its Concentration (SPELLS-4.T2q)', () => {
+    const placement = compiledCast(spell('Earthquake'))?.zonePlacement
+    if (!placement || 'options' in placement) throw new Error('Earthquake places one zone.')
+
+    expect(placement).toMatchObject({
+      attachment: 'PLACED_SPACE',
+      label: 'Earthquake',
+      triggerModes: [],
+      movementCostMultiplier: 2,
+      maintenance: { definitionId: SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID }
+    })
+    expect(placement).not.toHaveProperty('turnTriggers')
+    expect(placement).not.toHaveProperty('heldCondition')
+  })
 })
 
 describe('a condition until dispelled that damage ends, beside a GM ruling (SPELLS-4.T2a4, D156)', () => {

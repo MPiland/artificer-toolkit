@@ -72,8 +72,11 @@ export const delayedBlastFireball: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.DELAYED_BLAST_FIREBALL, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'DELAYED_BLAST_FIREBALL' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Detonate the Bead',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'When the spell ends, the bead explodes: each creature in a 20-foot-radius sphere centered on it makes a Dexterity saving throw, taking the accumulated fire damage on a failure, or half as much on a success. The damage starts at 12d6 (plus 1d6 for each slot level above 7th) and grows by 1d6 at the end of each of your turns before it detonates.'
               }
             ]
           }
