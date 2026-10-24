@@ -81,8 +81,11 @@ export const planarBinding: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.PLANAR_BINDING, 0x213, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'PLANAR_BINDING' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Bind to Service',
+                reasonCode: 'NARRATIVE_JUDGMENT' as const,
+                instructions:
+                  'The bound creature serves the caster for the duration, following the instructions it is given as the GM determines.'
               }
             ]
           }

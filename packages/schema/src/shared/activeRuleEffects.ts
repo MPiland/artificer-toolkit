@@ -524,7 +524,9 @@ const activeRuleEffectCreatureFormContributionDtoSchema = lazySchema(() =>
     kind: z.literal('CREATURE_FORM'),
     formOutcomeId: identifierSchema,
     creatureId: uuidSchema,
-    excessDamageCarriesOver: z.boolean()
+    excessDamageCarriesOver: z.boolean(),
+    /** The holder's own ability scores the form keeps, by ability definition id. */
+    retainedAbilityIds: z.array(uuidSchema).check(z.maxLength(16))
   })
 )
 

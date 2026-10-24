@@ -5,6 +5,7 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   RANGE_KIND,
   SPELL_ATTRIBUTE,
   SUBJECT,
@@ -14,6 +15,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 export const shapechange: SpellAuthored = {
   kind: SUBJECT.SPELL,
@@ -67,8 +69,26 @@ export const shapechange: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.SHAPECHANGE, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'SHAPECHANGE' as const
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.CREATURE,
+                excessDamageCarriesOver: true,
+                retainedAbilityDefinitionIds: [
+                  SRD_ABILITY_DEFINITION_IDS.INTELLIGENCE,
+                  SRD_ABILITY_DEFINITION_IDS.WISDOM,
+                  SRD_ABILITY_DEFINITION_IDS.CHARISMA
+                ],
+                formFilter: {
+                  id: spellChildId(SPELL_IDS.SHAPECHANGE, 0x214, 1),
+                  challengeRatingCapKind: 'TARGET'
+                }
+              },
+              {
+                id: spellChildId(SPELL_IDS.SHAPECHANGE, 0x2f1, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Shapechange Limits',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'The GM refuses a construct or undead form and lets the caster take a new form as an action on a later turn. The caster keeps its proficiencies, using the higher bonus, its class features, legendary actions and lair actions only where the form allows, and its senses where the form has none.'
               },
               {
                 id: spellChildId(SPELL_IDS.SHAPECHANGE, 0x212, 1),

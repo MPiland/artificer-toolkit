@@ -19,7 +19,6 @@ const DAMAGE_NOT_AUTHORED: Readonly<Record<string, string>> = {
   'Glyph of Warding': 'CLOSED_RULE',
   'Guardian of Faith': 'CLOSED_RULE',
   'Storm of Vengeance': 'CLOSED_RULE',
-  Sunbeam: 'CLOSED_RULE',
   Symbol: 'CLOSED_RULE',
   'Wall of Ice': 'ZONE manifest without interactions'
 }
