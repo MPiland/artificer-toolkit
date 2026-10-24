@@ -1052,7 +1052,7 @@
 00000000-0002-01f8-0070-00c400000000 CREATURE Claws | TEST_OUTCOME test=24ff0bd2cfc90a8a127b055c3c6a8146af86933b46efc0fcc717040635be737a nodes=3 outputs=5 outcomes=[ON_CRIT=8b3b4327e3cf2779115351ad51f25c9e3b972f13da4463d8f17f2fdb7364a53e,ON_HIT=8b3b4327e3cf2779115351ad51f25c9e3b972f13da4463d8f17f2fdb7364a53e]
 00000000-0002-01f8-0070-00c500000000 CREATURE Grappler | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f8-0070-00ca00000000 CREATURE Rotting Fist | TEST_OUTCOME test=a16f537170c995b78cf47faac60b95cbc90eb675efb58e77622f42214b083bbb nodes=3 outputs=5 outcomes=[ON_CRIT=f56b308f2ddbbe9a163e215d53f7b1d80a099c1903828230fadc91a3def8585b,ON_HIT=f56b308f2ddbbe9a163e215d53f7b1d80a099c1903828230fadc91a3def8585b]
-00000000-0002-01f8-0070-00d000000000 CREATURE Ink Cloud (Recharges after a Short or Long Rest) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0002-01f8-0070-00d000000000 CREATURE Ink Cloud (Recharges after a Short or Long Rest) | SINGLE_GRAPH cfadb6a6f3962c80ae606d242670865178ef49a2945958369d5e54f98b05172e nodes=2 outputs=1
 00000000-0002-01f8-0070-00e400000000 CREATURE Scare (1/Day) | TEST_OUTCOME test=21eb5283ebde6edd98e1df254cbb4e0d122209bbcb9ffdd23a81a89ef9f93455 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=eff939aa99b7ef4e21ca4e56747bccc3b32db2c288feb38237bdeb56cd2839ac]
 00000000-0002-01f8-0070-00f800000000 CREATURE Death Glare | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0002-01f9-0070-00b200000000 CREATURE Leadership (Recharges after a Short or Long Rest) | SINGLE_GRAPH 3e6a13f750662ae80083616eca7452a495e773c87c68e1ead6bfa666fa040b71 nodes=1 outputs=1

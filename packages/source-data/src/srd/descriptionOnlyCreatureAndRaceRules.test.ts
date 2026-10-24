@@ -32,6 +32,7 @@ const CREATURE_KINDS = [
   'CREATURE_DEATH_DOG_DISEASE',
   'CREATURE_DARKMANTLE_FALSE_APPEARANCE',
   'CREATURE_DEEP_GNOME_INNATE_SPELLCASTING',
+  'CREATURE_DEEP_GNOME_STONE_CAMOUFLAGE',
   'CREATURE_DEVA_INNATE_SPELLCASTING',
   'CREATURE_DJINNI_ELEMENTAL_DEMISE',
   'CREATURE_DJINNI_INNATE_SPELLCASTING',
@@ -71,6 +72,7 @@ const CREATURE_KINDS = [
   'CREATURE_OCHRE_JELLY_AMORPHOUS',
   'CREATURE_OCTOPUS_HOLD_BREATH',
   'CREATURE_OCTOPUS_TENTACLES',
+  'CREATURE_OCTOPUS_UNDERWATER_CAMOUFLAGE',
   'CREATURE_ONI_INNATE_SPELLCASTING',
   'CREATURE_ON_HIT_FORCED_MOVEMENT_SAVE',
   'CREATURE_ON_HIT_POISON_SAVE',
@@ -103,10 +105,13 @@ const CREATURE_KINDS = [
   'CREATURE_STORM_GIANT_INNATE_SPELLCASTING',
   'CREATURE_SUCCUBUS_INCUBUS_TELEPATHIC_BOND',
   'CREATURE_TREANT_FALSE_APPEARANCE',
+  'CREATURE_UNDERWATER_CAMOUFLAGE',
   'CREATURE_UNICORN_INNATE_SPELLCASTING',
   'CREATURE_VAMPIRE_FORBIDDANCE',
+  'CREATURE_VAMPIRE_HARMED_BY_RUNNING_WATER',
   'CREATURE_VAMPIRE_STAKE_TO_THE_HEART',
   'CREATURE_WILL_O_WISP_EPHEMERAL',
+  'CREATURE_YOUNG_WHITE_DRAGON_ICE_WALK',
   'DRAGON_LEGENDARY_DETECT',
   'GIANT_RAT_DISEASED_BITE',
   'NIGHT_HAG_NIGHTMARE_HAUNTING'
@@ -181,5 +186,21 @@ describe('disease as a GM ruling (D187a, SPELLS-33.T6b3)', () => {
     const rulings = nodesWhere(owner, (node) => node.effectKind === 'MANUAL_ADJUDICATION')
     expect(rulings).toHaveLength(1)
     expect(String(rulings[0]?.instructions)).toMatch(/disease/i)
+  })
+})
+
+describe('terrain and underwater riders as GM rulings (D187a, SPELLS-33.T6d2)', () => {
+  it.each([
+    ['Deep Gnome (Svirfneblin)', 'Stone Camouflage', /rocky terrain/i],
+    ['Octopus', 'Underwater Camouflage', /underwater/i],
+    ['Giant Octopus', 'Underwater Camouflage', /underwater/i],
+    ['Vampire', 'Harmed by Running Water', /20 acid damage.*running water/i],
+    ['Young White Dragon', 'Ice Walk', /ice or snow/i]
+  ])('%s: %s is one manual adjudication and nothing automated', (creature, feature, rider) => {
+    const authored = srdCreatures.find((entry) => entry.label === creature)
+    const owner = authored?.features?.find((entry) => entry.label === feature)
+    const outcomes = nodesWhere(owner, (node) => typeof node.effectKind === 'string')
+    expect(outcomes.map((node) => node.effectKind)).toEqual(['MANUAL_ADJUDICATION'])
+    expect(String(outcomes[0]?.instructions)).toMatch(rider)
   })
 })
