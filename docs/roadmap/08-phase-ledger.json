@@ -11089,9 +11089,9 @@
             },
             {
               "closes": ["SPELLS-4.1"],
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "id": "SPELLS-4.T2v2a3c",
-              "note": "Split from T2v2a3 2026-10-24 (13 → 3+3+2+5, same scope; D190a).",
+              "note": "Split from T2v2a3 2026-10-24 (13 → 3+3+2+5, same scope; D190a). Merged in m410.",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -11100,7 +11100,8 @@
                 "after": ["SPELLS-4.T2v2a2c1", "SPELLS-4.T2v"]
               },
               "text": "D187b summon piece, part 3c: summon body rules. damageabilityKind INVULNERABLE takes no damage through the one shared damage-settlement fold; occupiesSpace false neither blocks movement nor fails the overlap check.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-24T14:04:27Z",
+              "proof": "Tests and Live green on tip b641bb672; summon bodies follow the body rules: encounterActorBody.ts owns the occupancy rule (a non-occupying token never blocks an end position at any occupancy check; sceneRange measures range only), invulnerable bodies take no damage through the damage fold; proofs encounterSummon.test.ts, encounterMovementPassage.test.ts, encounterMovementDrag.test.ts, encounterAreaAction.test.ts, vtt-teleport-destination.test.ts and nativeRoomRemoveFromPlay.test.ts."
             },
             {
               "closes": ["SPELLS-4.1"],
