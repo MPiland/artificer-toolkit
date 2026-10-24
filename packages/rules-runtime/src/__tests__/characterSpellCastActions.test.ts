@@ -91,6 +91,7 @@ const WALL_OF_THORNS = spell('Wall of Thorns')
 const HEROISM = spell('Heroism')
 const REGENERATE = spell('Regenerate')
 const ENHANCE_ABILITY = spell('Enhance Ability')
+const SPIRITUAL_WEAPON = spell('Spiritual Weapon')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -437,6 +438,7 @@ const authoredById = new Map(
     HEALING_WORD,
     SHIELD,
     SHIELD_OF_FAITH,
+    SPIRITUAL_WEAPON,
     INVISIBILITY,
     CHARM_PERSON,
     ANIMAL_FRIENDSHIP,
@@ -1001,6 +1003,8 @@ describe('the activation a cast carries', () => {
     { authored: CURE_WOUNDS, activation: 'ACTION' },
     { authored: HEALING_WORD, activation: 'BONUS_ACTION' },
     { authored: SHIELD_OF_FAITH, activation: 'BONUS_ACTION' },
+    // SPELLS-4.T2v2a3d: the SRD casts it as a bonus action, not an action.
+    { authored: SPIRITUAL_WEAPON, activation: 'BONUS_ACTION' },
     { authored: SHIELD, activation: 'REACTION' }
   ])(
     'offers $authored.label with the $activation its Effect authors, ready to run',
@@ -2977,10 +2981,38 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
     expect(actor.maxHitPoints).toBe(40)
   })
 
-  it.each(['Mage Hand', 'Spiritual Weapon'])(
-    'leaves %s to the GM until its stat block and behaviors are modelled',
-    (label) => {
-      expect(compiledCastEntry(spell(label))).toBeNull()
-    }
-  )
+  it('conjures Spiritual Weapon: invulnerable, taking no space, attacked through as a bonus action that is free on the cast turn (SPELLS-4.T2v2a3d)', () => {
+    const attack = SPIRITUAL_WEAPON.effects?.[1]
+    const cast = compiledCast(SPIRITUAL_WEAPON)
+
+    expect(cast?.summonPlacement).toMatchObject({
+      label: 'Spiritual Weapon',
+      statBlock: {
+        speeds: [{ amount: 20, unit: 'FEET' }],
+        damageabilityKind: 'INVULNERABLE',
+        occupiesSpace: false
+      },
+      entry: {
+        initialRemaining: 10,
+        modifierGrantContribution: {
+          effectOffers: [
+            {
+              kind: 'REPEAT_SOURCE_PATH',
+              activation: 'BONUS_ACTION',
+              target: 'INVOCATION',
+              origin: 'CONJURED',
+              castTurnUse: 'FREE_ONCE',
+              effect: { id: attack?.id, invocation: { activation: { code: 'BONUS_ACTION' } } }
+            }
+          ]
+        }
+      }
+    })
+    // The spell is not Concentration: it lasts its minute.
+    expect(cast?.summonPlacement?.entry.maintenance).toBeNull()
+  })
+
+  it('leaves Mage Hand to the GM until its stat block is modelled', () => {
+    expect(compiledCastEntry(spell('Mage Hand'))).toBeNull()
+  })
 })

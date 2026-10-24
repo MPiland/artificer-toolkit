@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { forcedMovementDtoSchema } from '../effects/forcedMovement.js'
 import { manifestDtoSchema } from '../effects/manifest.js'
-import { moveManifestDtoSchema } from '../effects/moveManifest.js'
 import { movementRuleDtoSchema } from '../effects/movementRule.js'
 import { plantPortalDtoSchema } from '../effects/plantPortal.js'
 import { treeStrideDtoSchema } from '../effects/treeStride.js'
@@ -156,13 +155,6 @@ const parsers: Record<string, (amount: number) => boolean> = {
       direction: 'AWAY_FROM_SOURCE',
       actionEconomy: 'NONE',
       distanceMode: 'EXACT',
-      ...measurement(amount)
-    }).success,
-  'move manifest amount': (amount) =>
-    moveManifestDtoSchema.safeParse({
-      id: 'move-1',
-      effectKind: 'MOVE_MANIFEST',
-      manifestId: 'manifest-1',
       ...measurement(amount)
     }).success,
   'manifest light bright': (amount) =>

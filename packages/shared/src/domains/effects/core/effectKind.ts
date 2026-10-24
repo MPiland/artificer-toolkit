@@ -11,8 +11,6 @@ export const EFFECT_KIND = {
   FORCED_MOVEMENT: 'FORCED_MOVEMENT',
   TELEPORT: 'TELEPORT',
   MANIFEST: 'MANIFEST',
-  MOVE_MANIFEST: 'MOVE_MANIFEST',
-  COMMAND_MANIFEST: 'COMMAND_MANIFEST',
   FOLLOW_UP_SAVE: 'FOLLOW_UP_SAVE',
   FOLLOW_UP_CHECK: 'FOLLOW_UP_CHECK',
   MOVEMENT_RULE: 'MOVEMENT_RULE',
@@ -89,17 +87,6 @@ export const EFFECT_KIND_REGISTRY: Record<EffectKind, EffectKindOption> = {
     label: 'Manifest',
     description:
       'This effect creates a persistent manifested thing such as a summon, wall, cloud, or sensor.'
-  },
-  [EFFECT_KIND.MOVE_MANIFEST]: {
-    code: EFFECT_KIND.MOVE_MANIFEST,
-    label: 'Move Manifest',
-    description: 'This effect repositions a previously created manifestation.'
-  },
-  [EFFECT_KIND.COMMAND_MANIFEST]: {
-    code: EFFECT_KIND.COMMAND_MANIFEST,
-    label: 'Command Manifest',
-    description:
-      'This effect commands a previously created manifestation to use one of its behaviors.'
   },
   [EFFECT_KIND.FOLLOW_UP_SAVE]: {
     code: EFFECT_KIND.FOLLOW_UP_SAVE,

@@ -26,6 +26,7 @@ import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass
 import { produceFlame } from '@artificer-toolkit/source-data/srd/spells/produce-flame.js'
 import { damageTypeId } from '@artificer-toolkit/source-data/srd/spells/shared.js'
 import { shillelagh } from '@artificer-toolkit/source-data/srd/spells/shillelagh.js'
+import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
 import { trueStrike } from '@artificer-toolkit/source-data/srd/spells/true-strike.js'
 import { vampiricTouch } from '@artificer-toolkit/source-data/srd/spells/vampiric-touch.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -757,6 +758,107 @@ describe('room free cast-turn repeat (SPELLS-4.T2v2a3b)', () => {
     expect((await room.actionChoices()).effectOffers).toEqual([
       expect.objectContaining({ activation: 'ACTION' })
     ])
+  }, 120000)
+})
+
+/**
+ * SPELLS-4.T2v2a3d (D187b, D190a): Spiritual Weapon conjures an owned weapon beside the Wolf; its
+ * caster attacks through it once free on the cast turn and as a Bonus Action on later turns, and the
+ * weapon goes when the spell ends or the cast is reverted. Moving it is an ordinary token move.
+ */
+describe('room Spiritual Weapon (SPELLS-4.T2v2a3d)', () => {
+  /** The Character, who prepares the spell, then a Wolf. Each attack hits; every damage die shows 1. */
+  const weaponRoom = () =>
+    actionRoom({
+      rolls: [18, 18],
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel: 5 },
+      characterSpellcasting: { spells: [spiritualWeapon], prepared: [spiritualWeapon.id] },
+      characterAction: (action) => action.label.startsWith(spiritualWeapon.label)
+    })
+  /** Beside the Wolf, two squares from the caster. */
+  const WEAPON_POINT = { x: 350, y: 150 }
+
+  /** The Run actors the caster owns, with the Scene token bound to each. */
+  async function conjured(room: ActionRoom) {
+    const { stub } = room.room.base
+    const actors = (await readRoomHistory(stub)).actors
+      .map((row) => readStoredRunActor(row))
+      .filter((actor) => actor.owner?.ownerActorId === CHARACTER_ACTOR_ID)
+    const bindings = await runInDurableObject(stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage).documents('encounterActorTokenBindings')
+    )
+    return actors.map((actor) => ({
+      actor,
+      tokenId: bindings.find(({ actorId }) => actorId === actor.id)?.tokenId
+    }))
+  }
+
+  async function castWeapon(room: ActionRoom) {
+    const cast = await room.startAreaAction(WEAPON_POINT)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    const [weapon] = await conjured(room)
+    if (!weapon?.tokenId) throw new Error('The cast conjured no weapon.')
+    return weapon
+  }
+
+  async function attackThrough(room: ActionRoom, activation: 'FREE' | 'BONUS_ACTION') {
+    const [offer] = (await room.actionChoices()).effectOffers
+    expect(offer).toMatchObject({ kind: 'REPEAT_SOURCE_PATH', activation })
+    if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+    const attack = await room.startAction(WOLF_ID, RANGE, null, null, offer.actionId)
+    expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+    return appliedDamage(room, attack.command.commandId)
+  }
+
+  it('conjures the weapon, attacks free on the cast turn, moves and attacks as a Bonus Action later, and goes at expiry', async () => {
+    const room = await weaponRoom()
+    const weapon = await castWeapon(room)
+    expect(weapon.actor).toMatchObject({ label: 'Spiritual Weapon', kind: 'CUSTOM' })
+    const [offer] = (await room.actionChoices()).effectOffers
+    expect(offer).toMatchObject({ originActorId: weapon.actor.id })
+
+    expect(await attackThrough(room, 'FREE')).toEqual([[4, damageTypeId('FORCE')]])
+    // The Bonus Action the cast spent pays for any second attack this turn.
+    const [charged] = (await room.actionChoices()).effectOffers
+    expect(charged).toMatchObject({ activation: 'BONUS_ACTION' })
+    expect(JSON.stringify(charged?.warnings)).toContain('ACTION_ECONOMY_UNAVAILABLE')
+
+    await room.advanceTurn()
+    await room.advanceTurn()
+    // The GM rules the move part of the Bonus Action: the weapon's token moves as any token does.
+    const moved = await room.room.move(
+      [WEAPON_POINT, { x: 350, y: 250 }],
+      await room.version(),
+      room.room.scene.version + 1,
+      weapon.tokenId
+    )
+    expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+    expect(await attackThrough(room, 'BONUS_ACTION')).toEqual([[4, damageTypeId('FORCE')]])
+
+    // One minute is 10 rounds of the caster and the Wolf; the second turn above is round 2.
+    for (let turn = 0; turn < 18; turn++) await room.advanceTurn()
+    expect(await conjured(room)).toHaveLength(1)
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect(await conjured(room)).toEqual([])
+    expect((await room.actionChoices()).effectOffers).toEqual([])
+  }, 120000)
+
+  it('takes the weapon away again when the cast is reverted', async () => {
+    const room = await weaponRoom()
+    await castWeapon(room)
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+    expect(await conjured(room)).toEqual([])
+    expect((await room.actionChoices()).effectOffers).toEqual([])
   }, 120000)
 })
 

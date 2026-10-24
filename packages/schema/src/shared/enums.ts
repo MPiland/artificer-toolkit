@@ -336,8 +336,6 @@ export const effectKindSchema = lazySchema(() =>
     'FORCED_MOVEMENT',
     'TELEPORT',
     'MANIFEST',
-    'MOVE_MANIFEST',
-    'COMMAND_MANIFEST',
     'FOLLOW_UP_SAVE',
     'FOLLOW_UP_CHECK',
     'MOVEMENT_RULE',

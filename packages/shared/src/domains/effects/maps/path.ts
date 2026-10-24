@@ -1813,7 +1813,6 @@ function registerOutcomeFields(
           and([local.field(['valueKind']).eq('POOL'), local.field(['scalingKind']).eq('PER_LEVEL')])
         ),
         showIf: or([
-          local.field(['effectKind']).eq(EFFECT_KIND.MOVE_MANIFEST),
           and([
             local.field(['effectKind']).eq(EFFECT_KIND.HEAL),
             or([
@@ -2089,8 +2088,7 @@ function registerOutcomeFields(
                 local.field(['distanceMode']).eq('EXACT'),
                 local.field(['distanceMode']).eq('UP_TO')
               ])
-            ]),
-            local.field(['effectKind']).eq(EFFECT_KIND.MOVE_MANIFEST)
+            ])
           ])
         }
       )
@@ -2935,28 +2933,6 @@ function registerOutcomeFields(
         },
         { showIf: manifestsOther }
       )
-    )
-    .set(
-      'manifestId',
-      text(['manifestId'], 'Manifest', {
-        requiredIf: true,
-        showIf: or([
-          local.field(['effectKind']).eq(EFFECT_KIND.MOVE_MANIFEST),
-          local.field(['effectKind']).eq(EFFECT_KIND.COMMAND_MANIFEST)
-        ])
-      })
-    )
-    .set(
-      'behaviorId',
-      text(['behaviorId'], 'Behavior', {
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.COMMAND_MANIFEST)
-      })
-    )
-    .set(
-      'upTo',
-      toggle(['upTo'], 'Up To This Distance', {
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MOVE_MANIFEST)
-      })
     )
 }
 
