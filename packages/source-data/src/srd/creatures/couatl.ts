@@ -1,4 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -273,7 +274,7 @@ export const couatl: CreatureAuthored = {
       description:
         "Change Shape. The couatl magically polymorphs into a humanoid or beast that has a challenge rating equal to or less than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the couatl's choice). In a new form, the couatl retains its game statistics and ability to speak, but its AC, movement modes, Strength, Dexterity, and other actions are replaced by those of the new form, and it gains any statistics and capabilities (except class features, legendary actions, and lair actions) that the new form has but that it lacks.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(71, 209),
           invocation: {
             kind: 'ACTION',
@@ -282,7 +283,7 @@ export const couatl: CreatureAuthored = {
             range: { id: S.actionId(71, 1206), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_COUATL_CHANGE_SHAPE
+          ...CHANGE_SHAPE_RULING.CR_CAPPED_FORM
         })
       ],
       order: 6
