@@ -402,7 +402,12 @@ export const characterMechanicsTargetTransitionDtoSchema = lazySchema(() =>
   z.strictObject({
     checksum: checksumSchema,
     before: characterMechanicsTargetStateDtoSchema,
-    after: characterMechanicsTargetStateDtoSchema
+    after: characterMechanicsTargetStateDtoSchema,
+    /**
+     * The Character settled in a form (D130): its hit points and death saves are the form's until
+     * the form ends, so a change to them alone leaves the Sheet's version as it was.
+     */
+    inForm: z.optional(z.literal(true))
   })
 )
 

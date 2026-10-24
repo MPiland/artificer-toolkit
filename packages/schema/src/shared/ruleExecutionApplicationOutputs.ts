@@ -486,20 +486,19 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             })
           contributorKeys.add(key)
         }
+        const { before, after, inForm } = value.targetTransition
+        const hitPointsChanged =
+          before.currentHitPoints !== after.currentHitPoints ||
+          before.temporaryHitPoints !== after.temporaryHitPoints ||
+          before.maximumHitPoints !== after.maximumHitPoints ||
+          JSON.stringify(before.deathSaves) !== JSON.stringify(after.deathSaves)
+        // A form's hit points are not the Sheet's: they write it only when the form ends onto it.
         const transitionChanged =
-          value.targetTransition.before.currentHitPoints !==
-            value.targetTransition.after.currentHitPoints ||
-          value.targetTransition.before.temporaryHitPoints !==
-            value.targetTransition.after.temporaryHitPoints ||
-          value.targetTransition.before.maximumHitPoints !==
-            value.targetTransition.after.maximumHitPoints ||
-          JSON.stringify(value.targetTransition.before.deathSaves) !==
-            JSON.stringify(value.targetTransition.after.deathSaves) ||
-          value.targetTransition.before.conditionIds.some(
-            (conditionId, index) => value.targetTransition.after.conditionIds[index] !== conditionId
+          (hitPointsChanged && !inForm) ||
+          before.conditionIds.some(
+            (conditionId, index) => after.conditionIds[index] !== conditionId
           ) ||
-          value.targetTransition.before.conditionIds.length !==
-            value.targetTransition.after.conditionIds.length
+          before.conditionIds.length !== after.conditionIds.length
         const stow = value.sourceItemUseStateTransition
         const draw = value.sourceItemDraw
         const sourceDegradation = value.sourceItemDegradation
@@ -610,27 +609,15 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             path: ['sourceItemDraw'],
             message: 'Source item draw must match the source and its version.'
           })
-        if (
-          value.targetCharacterStreamVersion !==
-          (transitionChanged ||
+        const targetVersionRequired =
+          transitionChanged ||
           (value.sourceActorId === value.targetActorId && hasSourceMutation) ||
           hasActiveEffectCreation ||
           hasReactionMutation
-            ? value.targetCharacterStreamVersion
-            : null)
-        )
-          context.addIssue({
-            code: 'custom',
-            message: 'Target stream version presence is invalid.'
-          })
         if (
-          (value.targetCharacterStreamVersion === null) !==
-          !(
-            transitionChanged ||
-            (value.sourceActorId === value.targetActorId && hasSourceMutation) ||
-            hasActiveEffectCreation ||
-            hasReactionMutation
-          )
+          value.targetCharacterStreamVersion === null
+            ? targetVersionRequired
+            : !targetVersionRequired && !(inForm && hitPointsChanged)
         )
           context.addIssue({
             code: 'custom',

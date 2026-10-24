@@ -1086,6 +1086,8 @@ describe('Character mechanics batch plan', () => {
       expect(plan.characterUpdate).toBeNull()
       expect(plan.characterStreamVersion).toBeNull()
       expect(plan.targetTransition.after).toMatchObject({ currentHitPoints: 1 })
+      // The receipt reads that the hit points were the form's (SPELLS-4.T2s2).
+      expect(plan.targetTransition.inForm).toBe(true)
     })
 
     it('ends the form at 0 and spends the excess on the Sheet in the same batch when it carries over', () => {

@@ -2570,6 +2570,11 @@ as Concentration), its damage defenses and immunities replace the Character's, a
 checks and contests (`actorContestFacts`, the Disarm defender's totals and size) read the stat block. The Sheet's
 conditions, Concentration and hit points, and excess damage, stay the Character's.
 
+A hit on any Character in a form changes the form's hit points and leaves the Sheet's version as it was, so
+`foldCharacterBatch` marks the receipt's target transition `inForm`. The `CHARACTER_MECHANICS_BATCH` refine then lets a
+hit point or death save change stand with or without a Sheet version (a form that ends carries its excess onto the
+Sheet); a condition or any other change still needs one (SPELLS-4.T2s2).
+
 **Grappled outcomes (D105).** An `ACTOR_RELATIONSHIP` outcome carries a required `heldAtOnce` and optional
 `ESCAPE_CHECK` (allowed skill or ability checks; a `FIXED` or `CONTEST` DC) and `TARGET_SIZE_MAXIMUM`
 modules. Holds are counted per `relationshipOutcomeId`: planning refuses a new hold when the source already

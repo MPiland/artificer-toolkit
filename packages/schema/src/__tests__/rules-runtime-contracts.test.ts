@@ -2209,6 +2209,83 @@ describe('rules runtime contracts', () => {
     ).toThrow()
   })
 
+  // SPELLS-4.T2s2: a hit on a Character's form changes the form's hit points, not the Sheet's (D130).
+  it('takes a Character form hit without a Sheet version and keeps every other change versioned', () => {
+    const before = {
+      currentHitPoints: 8,
+      temporaryHitPoints: 0,
+      maximumHitPoints: 10,
+      scalarValues: {},
+      conditionIds: [] as string[],
+      deathSaves: NO_DEATH_SAVES
+    }
+    const hit = { ...before, currentHitPoints: 4 }
+    const envelope = (input: {
+      inForm: boolean
+      after: typeof before
+      targetCharacterStreamVersion: number | null
+    }) => ({
+      kind: 'CHARACTER_MECHANICS_BATCH' as const,
+      sourceApplications: [],
+      actionEconomyTransition: null,
+      schemaVersion: 1 as const,
+      occurrenceId: turnBatchIds.occurrence,
+      sourceActorId: turnBatchIds.actor,
+      sourceCharacterId: turnBatchIds.character,
+      targetActorId: turnBatchIds.actor,
+      sourceCharacterStreamVersion: null,
+      targetCharacterStreamVersion: input.targetCharacterStreamVersion,
+      resourceConsumption: null,
+      activeEffectTransitions: [],
+      d20: null,
+      targetTransition: {
+        checksum: 'a'.repeat(64),
+        before,
+        after: input.after,
+        ...(input.inForm && { inForm: true as const })
+      },
+      applications: [
+        {
+          ordinal: 0,
+          kind: 'DAMAGE' as const,
+          requestedAmount: 4,
+          resolvedAmount: 4,
+          appliedAmount: 4,
+          beforeCurrentHitPoints: 8,
+          afterCurrentHitPoints: 4,
+          beforeTemporaryHitPoints: 0,
+          afterTemporaryHitPoints: 0,
+          maximumHitPoints: 10,
+          damageTypeId: turnBatchIds.condition,
+          damageDisposition: 'NORMAL' as const,
+          critical: false,
+          sourceNodeId: 'effect-node',
+          sourceOperationKey: 'effect.apply',
+          authoredPath: null,
+          resolvedPath: null
+        }
+      ]
+    })
+    const parse = (input: Parameters<typeof envelope>[0]) => () =>
+      serverRuleExecutionApplicationOutputsDtoSchema.parse(envelope(input))
+    const PRESENCE_ISSUE = 'Target stream version presence is invalid.'
+    expect(parse({ inForm: true, after: hit, targetCharacterStreamVersion: null })).not.toThrow()
+    // A form that ends onto the Sheet writes it.
+    expect(parse({ inForm: true, after: hit, targetCharacterStreamVersion: 3 })).not.toThrow()
+    // The Sheet's own hit points still need its version.
+    expect(parse({ inForm: false, after: hit, targetCharacterStreamVersion: null })).toThrow(
+      PRESENCE_ISSUE
+    )
+    // Conditions stay the Character's own in a form.
+    expect(
+      parse({
+        inForm: true,
+        after: { ...hit, conditionIds: [turnBatchIds.condition] },
+        targetCharacterStreamVersion: null
+      })
+    ).toThrow(PRESENCE_ISSUE)
+  })
+
   it('rejects malformed maintained Character receipt replacement invariants', () => {
     expect(
       serverRuleExecutionApplicationOutputsDtoSchema.parse(maintainedCharacterReceipt())
