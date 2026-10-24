@@ -195,6 +195,17 @@ export function characterConditionIds(characterFacts: CharacterMovementFacts): s
   ]
 }
 
+/** A Character's level in each of its classes, by class id; empty for a Creature. */
+export function characterClassLevels(
+  characterFacts: Pick<CharacterMovementFacts, 'ruleEvaluation'> | null | undefined
+): Record<string, number> {
+  return Object.fromEntries(
+    (characterFacts?.ruleEvaluation.facts.grantFoldFacts.base.classes ?? []).map(
+      ({ classId, level }) => [classId, level]
+    )
+  )
+}
+
 /** The sum of a Character's class levels. */
 export function characterTotalLevel(
   characterFacts: Pick<CharacterMovementFacts, 'ruleEvaluation'>

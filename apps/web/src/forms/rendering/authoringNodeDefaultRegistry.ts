@@ -85,6 +85,8 @@ type AuthoringDefaultKind =
   | 'manifestComponentRegion'
   | 'manifestCreatureForm'
   | 'manifestCreatureFormFilter'
+  | 'creatureFormFilterScaledCap'
+  | 'creatureFormFilterScalingBreakpoint'
   | 'manifestDestructionCriterion'
   | 'manifestLight'
   | 'manifestOccupantSaveBonus'
@@ -264,6 +266,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestComponentRegion: ['manifestComponentRegion'],
   manifestCreatureForm: ['manifestCreatureForm'],
   manifestCreatureFormFilter: ['manifestCreatureFormFilter'],
+  creatureFormFilterScaledCap: ['creatureFormFilterScaledCap'],
+  creatureFormFilterScalingBreakpoint: ['creatureFormFilterScalingBreakpoint'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
   manifestLight: ['manifestLight'],
   manifestOccupantSaveBonus: ['manifestOccupantSaveBonus'],
@@ -314,7 +318,8 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
     'rangeScaling',
     'shapeMeasurementScaling',
     'targetCountScaling',
-    'hitPointPoolScaling'
+    'hitPointPoolScaling',
+    'creatureFormFilterScaling'
   ],
   resultBlock: ['nonManifestResultBlock', 'resultBlock'],
   rollTableRepeat: ['rollTableRepeat'],

@@ -8,6 +8,7 @@ import {
   EFFECT_KIND,
   MANIFEST_KIND,
   type AbilityCode,
+  type BreakpointScalingAuthored,
   type ManifestKind,
   type LengthUnitCode,
   type NumericExpr,
@@ -263,12 +264,17 @@ export type ManifestCreatureFormFilterAuthored = {
   id: string
   /** The Creature Type the form must have; omitted allows any. */
   creatureTypeId?: string
-  /** The cap on the form's challenge rating: the target's own (its level when it has none) or a fixed one. */
-  challengeRatingCapKind: 'TARGET' | 'FIXED'
-  /** The fixed cap, for `FIXED`. */
+  /**
+   * The cap on the form's challenge rating: the target's own (its level when it has none), a fixed
+   * one, or one that grows with the caster's level (`SCALED`).
+   */
+  challengeRatingCapKind: 'TARGET' | 'FIXED' | 'SCALED'
+  /** The fixed cap, for `FIXED`; the cap below every row of `scaling`, for `SCALED`. */
   maxChallengeRatingId?: string
-  /** Speeds the form may not have. */
+  /** Speeds the form may not have; for `SCALED`, those excluded below every row of `scaling`. */
   excludedSpeedIds?: string[]
+  /** The cap and excluded speeds the caster's level reaches, for `SCALED`; each row replaces both. */
+  scaling?: BreakpointScalingAuthored<{ maxChallengeRatingId: string; excludedSpeedIds?: string[] }>
 }
 
 type CreatureManifestAuthored = ManifestAuthoredBase & {
