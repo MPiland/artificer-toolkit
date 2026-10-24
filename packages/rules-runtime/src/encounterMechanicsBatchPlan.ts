@@ -1,3 +1,4 @@
+import { encounterActorBody } from './encounterActorBody.js'
 import { withDamageTypesTaken } from './encounterDamageTypesSinceTurnStart.js'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
@@ -132,6 +133,7 @@ export type EncounterMechanicsBatchInput = {
   enterForm?: {
     effectId: string
     excessDamageCarriesOver: boolean
+    retainedAbilityIds: readonly string[]
     creature: EncounterActorFormCreature
   }
 }
@@ -216,6 +218,7 @@ export function planEncounterMechanicsBatch(input: {
         interceptions: batch.damageInterceptions ?? []
       }),
       ...(batch.damageInterceptions && { damageInterceptions: batch.damageInterceptions }),
+      invulnerable: encounterActorBody(actor).invulnerable,
       absence: actor.absence
     })
     const nextConditions = [

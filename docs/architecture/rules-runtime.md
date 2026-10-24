@@ -1989,6 +1989,15 @@ a zone placed at the point with nobody caught, and `buildEncounterSummon` makes 
 no controllers of its own, hit points from `evaluateNumericExpr` against the caster's maximum when the Run holds it;
 a Character caster's maximum lives on the Sheet, so a `HIT_POINT_MAXIMUM` stat block is refused with `HIT_POINTS_UNKNOWN` until T2v2b feeds it).
 Current (a2c2): a revert of the cast removes the conjured creature (see persistence). Current (a2c3): the cast creates the carrier effect on the caster from the compiled summon entry (`prepareNativeSourceEffect`), with the summon's duration and Concentration (`prepareEncounterActionMaintenance` names the summon's policy), and `buildEncounterSummon` sets `owner.sourceEffectId` to it. Removal at every end is the persistence sweep.
+Current (a3c, D190a): `buildEncounterSummon` keeps the stat block's body in the actor snapshot (`body`:
+`damageabilityKind`, `occupiesSpace`; `summonBody` fills the defaults: damageable, no space). `encounterActorBody` is its
+one reader; an actor without a body (Character, Creature) is damageable and fills its space. An INVULNERABLE body takes
+no damage in the one settlement fold (`foldCharacterMechanicsApplications`, `invulnerable`): each damage settles as
+IMMUNE at 0 and later hit point changes are rebased, so the batch plan, the spatial evidence and turn effects agree. A
+body that does not occupy its space neither blocks voluntary movement through or into it
+(`discoverEncounterMovementPassage`) nor counts in the placement overlap check (`evaluateEncounterSummonTarget`). Drag
+arrival, teleport and return to play ask the same through `encounterTokenOccupiesSpace` (a token bound to no actor occupies).
+SPECIAL damageability is the GM's to adjudicate.
 
 **Sheet summons (current, SPELLS-34.T1, D190).** A summon cast from the Sheet outside an Encounter reads the same plan.
 `compileCharacterSpellCasts` (`character/characterSpellCastActions.ts`) is the one compile of a Character's casts: build,
@@ -2539,6 +2548,17 @@ actor: duration end, dismissal), and on cast undo (`actionRevert` deletes the fo
 points). `writeRunActor` deletes the form effect of an actor that has left its form. The origin snapshot is kept by
 checksum (`formOriginSnapshotChecksum`); `form` is required and nullable, and `actorFormMigration` migrates dev rows.
 A Concentration that deletes the effect directly must route through the same delete (T4).
+
+**Form retention and form lifecycles (D191, SPELLS-4.T2s).** The ability scores a form keeps are authored on the form
+effect (`retainedAbilityDefinitionIds`, the selectMulti "Retained Ability Scores"), compiled into the contribution's
+required `retainedAbilityIds`, and applied by `enterActorForm` (`withRetainedAbilities`) from the wearer's own scores;
+nothing System-wide decides retention. Polymorph, True Polymorph and Giant Insect keep none; Animal Shapes and
+Shapechange keep Intelligence, Wisdom and Charisma. A form effect also admits the lifecycle's `holderEnd` and
+`endOnConditionIds`: `stateBoundGrants` includes every creature-form effect, so an Unconscious edit ends a form that
+names it (`grantsEndedByHolderState`), and an `END_HELD_GRANT` of a form's own effect reverts its wearer in both the
+Worker's next rule facts and the committed projection (`revertActorForm`). Size caps, per-target forms and re-forming
+stay GM rulings authored beside the outcome. `encounters/formRetentionMigration:run` gives each stored creature form `retainedAbilityIds: []` and
+re-checksums its definition (idempotent).
 
 **Grappled outcomes (D105).** An `ACTOR_RELATIONSHIP` outcome carries a required `heldAtOnce` and optional
 `ESCAPE_CHECK` (allowed skill or ability checks; a `FIXED` or `CONTEST` DC) and `TARGET_SIZE_MAXIMUM`

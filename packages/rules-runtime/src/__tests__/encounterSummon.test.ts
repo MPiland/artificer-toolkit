@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { encounterActorBody } from '../encounterActorBody.js'
 import { buildEncounterSummon, casterHitPointMaximum } from '../encounterSummon.js'
 import { summonHitPoints } from '../summonHitPoints.js'
 
@@ -72,6 +73,16 @@ describe('buildEncounterSummon', () => {
       height: 100,
       controlledByUserIds: [USER]
     })
+  })
+
+  it('keeps the stat block body in the actor snapshot, which is damageable and takes no space by default', () => {
+    expect(
+      encounterActorBody(build({ damageabilityKind: 'INVULNERABLE', occupiesSpace: true }).actor)
+    ).toEqual({ invulnerable: true, occupiesSpace: true })
+    expect(build({}).actor.snapshot).toMatchObject({
+      body: { damageabilityKind: 'NORMAL', occupiesSpace: false }
+    })
+    expect(encounterActorBody(caster)).toEqual({ invulnerable: false, occupiesSpace: true })
   })
 
   it('reads hit points from the stat block against the caster, and is 0 when it names none', () => {

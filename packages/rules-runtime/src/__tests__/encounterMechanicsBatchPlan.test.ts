@@ -14,8 +14,10 @@ import {
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterRuleActionApplication } from '../characterRuleActionSystemAdapter.js'
 import { enterActorForm, revertActorForm } from '../encounterActorForm.js'
+import { buildEncounterSummon } from '../encounterSummon.js'
 import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from '../systems/dnd5e/identity.js'
 import {
   planEncounterMechanicsBatch,
@@ -254,6 +256,67 @@ describe('Creature mechanics batch plan', () => {
     expect(plan.receiptApplications).toMatchObject([
       { kind: 'DAMAGE', afterCurrentHitPoints: 1, appliedAmount: 4, interceptedBy: ward.effectId }
     ])
+  })
+
+  it('settles an area that damages a creature and an invulnerable summon beside it: the summon takes none (SPELLS-4.T2v2a3c)', () => {
+    const summon = (damageabilityKind: 'NORMAL' | 'INVULNERABLE') => ({
+      ...buildEncounterSummon({
+        summon: { statBlock: { damageabilityKind, hitPoints: { kind: 'FIXED', value: 10 } } },
+        caster: creatureActor({ id: CHARACTER_ID, snapshot: {} }),
+        casterHitPointMaximum: null,
+        label: 'Conjured',
+        sourceEffectId: ACTIVE_EFFECT_ID,
+        point: { x: 0, y: 0 },
+        edgeLength: 100,
+        occurredAt: TIMESTAMP
+      }).actor,
+      id: ACTOR_ID
+    })
+    // The area's two hits, planned against each target's pools as they stood.
+    const area = (current: number, maximum: number) => [
+      damage({
+        requested: 8,
+        before: { current, temporary: 0 },
+        after: { current: Math.max(current - 8, 0), temporary: 0 },
+        maximum
+      }),
+      damage({
+        requested: 5,
+        before: { current: Math.max(current - 8, 0), temporary: 0 },
+        after: { current: Math.max(current - 13, 0), temporary: 0 },
+        maximum
+      })
+    ]
+    const plan = (actor: EncounterRunActorState, current: number, maximum: number) =>
+      planEncounterMechanicsBatch({
+        batch: batch(area(current, maximum), {
+          effectiveMaximumHitPoints: maximum
+        }),
+        actor,
+        userId: USER_ID
+      })
+
+    const creaturePlan = plan(creature({ current: 11, temporary: 0, max: 11 }), 11, 11)
+    expect(creaturePlan.updatedActor).toMatchObject({ currentHitPoints: 0, defeated: true })
+
+    const invulnerablePlan = plan(summon('INVULNERABLE'), 10, 10)
+    expect(invulnerablePlan.updatedActor).toMatchObject({ currentHitPoints: 10, defeated: false })
+    const untouched = {
+      kind: 'DAMAGE',
+      damageDisposition: 'IMMUNE',
+      resolvedAmount: 0,
+      appliedAmount: 0,
+      beforeCurrentHitPoints: 10,
+      afterCurrentHitPoints: 10
+    }
+    expect(invulnerablePlan.receiptApplications).toMatchObject([
+      { ...untouched, requestedAmount: 8 },
+      { ...untouched, requestedAmount: 5 }
+    ])
+    expect(invulnerablePlan.stateChanged).toBe(false)
+
+    // A summon whose stat block is damageable takes the area like any creature.
+    expect(plan(summon('NORMAL'), 10, 10).updatedActor).toMatchObject({ currentHitPoints: 0 })
   })
 
   it('refuses a damage application whose resolved amount ignores its disposition', () => {
@@ -582,6 +645,7 @@ describe('Creature forms (D130)', () => {
   const FORM_EFFECT_ID = '00000000-0000-4000-8000-00000000e1f0'
   const FORM_SOURCE_ID = '00000000-0000-4000-8000-00000000e1f1'
   const formCreature = {
+    systemId: SRD_SYSTEM_ID,
     sourceId: FORM_SOURCE_ID,
     sourceRevision: 7,
     snapshot: { label: 'Giant Centipede' },
@@ -594,6 +658,7 @@ describe('Creature forms (D130)', () => {
     return enterActorForm(actor, {
       effectId: FORM_EFFECT_ID,
       excessDamageCarriesOver,
+      retainedAbilityIds: [],
       creature: formCreature
     })
   }
@@ -625,6 +690,7 @@ describe('Creature forms (D130)', () => {
         enterForm: {
           effectId: FORM_EFFECT_ID,
           excessDamageCarriesOver: false,
+          retainedAbilityIds: [],
           creature: formCreature
         }
       }),
@@ -647,6 +713,44 @@ describe('Creature forms (D130)', () => {
     expect(plan.stateChanged).toBe(true)
   })
 
+  it('keeps the Creature’s own retained scores from its stat block (Animal Shapes on an NPC)', () => {
+    const abilityId = (code: string) => DND5E_ABILITY_DEFINITION_ID_BY_CODE[code]!
+    const ally = creatureActor({
+      id: ACTOR_ID,
+      currentHitPoints: 11,
+      tempHitPoints: 0,
+      maxHitPoints: 11,
+      conditions: [],
+      snapshot: { ruleFacts: { abilityScores: { [abilityId('WISDOM')]: 16 } } }
+    })
+    const plan = planEncounterMechanicsBatch({
+      batch: batch([], {
+        enterForm: {
+          effectId: FORM_EFFECT_ID,
+          excessDamageCarriesOver: true,
+          retainedAbilityIds: [abilityId('WISDOM')],
+          creature: {
+            ...formCreature,
+            snapshot: {
+              payload: { abilityScores: { STRENGTH: 18, WISDOM: 12 } },
+              ruleFacts: {
+                abilityScores: { [abilityId('STRENGTH')]: 18, [abilityId('WISDOM')]: 12 }
+              }
+            }
+          }
+        }
+      }),
+      actor: ally,
+      userId: USER_ID
+    })
+    expect(plan.updatedActor).toMatchObject({
+      snapshot: {
+        payload: { abilityScores: { STRENGTH: 18, WISDOM: 16 } },
+        ruleFacts: { abilityScores: { [abilityId('STRENGTH')]: 18, [abilityId('WISDOM')]: 16 } }
+      }
+    })
+  })
+
   it('refuses to enter a form while in one', () => {
     expect(() =>
       planEncounterMechanicsBatch({
@@ -654,6 +758,7 @@ describe('Creature forms (D130)', () => {
           enterForm: {
             effectId: FORM_EFFECT_ID,
             excessDamageCarriesOver: false,
+            retainedAbilityIds: [],
             creature: formCreature
           }
         }),
@@ -842,10 +947,16 @@ describe('Character mechanics batch plan', () => {
         }
       }
     }
-    const enterForm = (excessDamageCarriesOver: boolean) => ({
+    const MENTAL_ABILITY_IDS = ['INTELLIGENCE', 'WISDOM', 'CHARISMA'].map(abilityId)
+    const enterForm = (
+      excessDamageCarriesOver: boolean,
+      retainedAbilityIds: readonly string[] = MENTAL_ABILITY_IDS
+    ) => ({
       effectId: FORM_EFFECT_ID,
       excessDamageCarriesOver,
+      retainedAbilityIds,
       creature: {
+        systemId: SRD_SYSTEM_ID,
         sourceId: '00000000-0000-4000-8000-00000000e1f3',
         sourceRevision: 7,
         snapshot: formSnapshot,
@@ -919,6 +1030,38 @@ describe('Character mechanics batch plan', () => {
       expect(plan.stateChanged).toBe(true)
       expect(plan.characterUpdate).toBeNull()
       expect(plan.characterStreamVersion).toBeNull()
+    })
+
+    it('keeps none of the Character’s scores when the form retains none (Polymorph)', () => {
+      const plan = planEncounterMechanicsBatch({
+        batch: batch([], {
+          expectedCharacterStreamVersion: STREAM_VERSION,
+          effectiveMaximumHitPoints: SHEET_MAXIMUM,
+          effectiveScalarValues: {
+            [abilityId('INTELLIGENCE')]: 14,
+            [abilityId('WISDOM')]: 12,
+            [abilityId('CHARISMA')]: 9
+          },
+          enterForm: enterForm(true, [])
+        }),
+        actor,
+        userId: USER_ID,
+        characterFacts
+      })
+      expect(plan.updatedActor).toMatchObject({
+        form: {
+          snapshot: {
+            payload: { abilityScores: { STRENGTH: 5, INTELLIGENCE: 1, WISDOM: 7, CHARISMA: 3 } },
+            ruleFacts: {
+              abilityScores: {
+                [abilityId('INTELLIGENCE')]: 1,
+                [abilityId('WISDOM')]: 7,
+                [abilityId('CHARISMA')]: 3
+              }
+            }
+          }
+        }
+      })
     })
 
     it('refuses to enter a form while in one', () => {

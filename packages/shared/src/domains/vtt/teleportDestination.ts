@@ -20,7 +20,8 @@ export type TeleportAllowanceSelection =
 /**
  * Picks the unspent allowance a teleport to `destination` spends: the smallest range that covers
  * the measured distance, skipping a visible-destination one when the viewer has not seen the
- * point. The destination must be free of every other token, hidden ones included.
+ * point. The destination must be free of every other token that occupies its space, hidden ones
+ * included; a mover that does not occupy its space may arrive on any.
  */
 export function selectTeleportAllowance(input: {
   scene: SceneExplorationState
@@ -28,6 +29,8 @@ export function selectTeleportAllowance(input: {
   viewerUserId: string
   destination: ScenePoint
   allowances: readonly TeleportAllowanceChoice[]
+  /** Whether a token fills its space; the Encounter decides it from the token's actor. */
+  occupiesSpace: (tokenId: string) => boolean
 }): TeleportAllowanceSelection {
   const { scene, destination } = input
   const mover = scene.tokens.find((token) => token.id === input.moverTokenId)
@@ -37,8 +40,12 @@ export function selectTeleportAllowance(input: {
   if (!mover || !unspent.length) return { allowed: false, reason: 'NO_ALLOWANCE' }
   const arrived = { ...mover, position: destination }
   if (
+    input.occupiesSpace(mover.id) &&
     scene.tokens.some(
-      (token) => token.id !== mover.id && sceneTokenFootprintsOverlap(arrived, token)
+      (token) =>
+        token.id !== mover.id &&
+        input.occupiesSpace(token.id) &&
+        sceneTokenFootprintsOverlap(arrived, token)
     )
   )
     return { allowed: false, reason: 'OCCUPIED' }

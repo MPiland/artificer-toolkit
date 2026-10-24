@@ -7,6 +7,7 @@ import type { D20RolledAddedDieDto } from '@artificer-toolkit/schema/shared/d20A
 import type { RollModeKeep } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
+import { encounterActorBody } from './encounterActorBody.js'
 import { foldCharacterMechanicsApplications } from './encounterCharacterMechanicsBatch.js'
 import { settleEncounterD20Answer } from './encounterD20Settlement.js'
 import { EncounterConflictError, EncounterValidationError } from './encounterErrors.js'
@@ -37,7 +38,7 @@ export type SpatialTargetState = {
 }
 
 export type SpatialMovementTarget = {
-  actor: Pick<EncounterRunActorState, 'id' | 'kind' | 'systemId'>
+  actor: Pick<EncounterRunActorState, 'id' | 'kind' | 'systemId' | 'snapshot'>
   character: {
     id: string
     streamVersion: number
@@ -221,6 +222,7 @@ export function spatialExecutionOutcome(input: {
     deathSaves: input.state.deathSaves,
     conditionIds: input.state.conditions,
     scalarValues: input.target.scalarValues,
+    invulnerable: encounterActorBody(input.target.actor).invulnerable,
     applications: input.result.applications
   })
   return {
