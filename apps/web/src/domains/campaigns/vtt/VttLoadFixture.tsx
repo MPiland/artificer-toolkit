@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   applySceneDelta,
   createSceneFogAreaPatch,
@@ -262,49 +263,53 @@ export function VttLoadFixture() {
     if (!host) return
     let disposed = false
     let readyFrame = 0
-    void createVttSceneRenderer(host, {
-      onCreateBarrier: () => undefined,
-      onCreateDarkness: () => undefined,
-      onCreateLight: () => undefined,
-      onCreateToken: () => undefined,
-      onDoorState: () => undefined,
-      onMeasurementCommit: (path) => {
-        const renderer = rendererRef.current
-        if (!renderer) return
-        sceneRef.current = {
-          ...sceneRef.current,
-          measurements: [
-            ...sceneRef.current.measurements,
-            {
-              createdByUserId: vttLoadFixtureUserId,
-              id: crypto.randomUUID(),
-              label: 'Committed load-gate measurement',
-              path
-            }
-          ],
-          version: sceneRef.current.version + 1
-        }
-        renderer.update(ownerUpdate(sceneRef.current, 'MEASURE'))
-        setJourney((current) => ({ ...current, measurementCommit: true }))
+    void createVttSceneRenderer(
+      host,
+      {
+        onCreateBarrier: () => undefined,
+        onCreateDarkness: () => undefined,
+        onCreateLight: () => undefined,
+        onCreateToken: () => undefined,
+        onDoorState: () => undefined,
+        onMeasurementCommit: (path) => {
+          const renderer = rendererRef.current
+          if (!renderer) return
+          sceneRef.current = {
+            ...sceneRef.current,
+            measurements: [
+              ...sceneRef.current.measurements,
+              {
+                createdByUserId: vttLoadFixtureUserId,
+                id: crypto.randomUUID(),
+                label: 'Committed load-gate measurement',
+                path
+              }
+            ],
+            version: sceneRef.current.version + 1
+          }
+          renderer.update(ownerUpdate(sceneRef.current, 'MEASURE'))
+          setJourney((current) => ({ ...current, measurementCommit: true }))
+        },
+        onMeasurementPreview: () => undefined,
+        onPing: () => false,
+        onTokenCommit: (tokenId, path) => {
+          const renderer = rendererRef.current
+          const position = path.at(-1)
+          if (!renderer || !position) return
+          sceneRef.current = {
+            ...sceneRef.current,
+            tokens: sceneRef.current.tokens.map((token) =>
+              token.id === tokenId ? { ...token, position } : token
+            ),
+            version: sceneRef.current.version + 1
+          }
+          renderer.update(ownerUpdate(sceneRef.current, 'SELECT'))
+          setJourney((current) => ({ ...current, tokenDragCommit: true }))
+        },
+        onTokenPreview: () => undefined
       },
-      onMeasurementPreview: () => undefined,
-      onPing: () => false,
-      onTokenCommit: (tokenId, path) => {
-        const renderer = rendererRef.current
-        const position = path.at(-1)
-        if (!renderer || !position) return
-        sceneRef.current = {
-          ...sceneRef.current,
-          tokens: sceneRef.current.tokens.map((token) =>
-            token.id === tokenId ? { ...token, position } : token
-          ),
-          version: sceneRef.current.version + 1
-        }
-        renderer.update(ownerUpdate(sceneRef.current, 'SELECT'))
-        setJourney((current) => ({ ...current, tokenDragCommit: true }))
-      },
-      onTokenPreview: () => undefined
-    }).then((renderer) => {
+      SRD_SYSTEM_ID
+    ).then((renderer) => {
       if (disposed) {
         renderer.destroy()
         return

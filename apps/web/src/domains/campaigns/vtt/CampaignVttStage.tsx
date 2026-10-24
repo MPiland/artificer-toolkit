@@ -894,119 +894,123 @@ export function CampaignVttStage({
     const host = rendererHost.current
     if (!host || !scene) return
     let disposed = false
-    void createVttSceneRenderer(host, {
-      onAreaAimCancel: () => {
-        setAimingArea(false)
-        setActionsOpened(true)
+    void createVttSceneRenderer(
+      host,
+      {
+        onAreaAimCancel: () => {
+          setAimingArea(false)
+          setActionsOpened(true)
+        },
+        onAreaPoint: (point) => {
+          setAreaAim({ origin: point, toward: null })
+          setAimingArea(false)
+          setActionsOpened(true)
+        },
+        onAreaDirection: (aim) => {
+          setAreaAim(aim)
+          setAimingArea(false)
+          setActionsOpened(true)
+        },
+        onSquarePick: (center) => pickDestinationRef.current?.(center),
+        onZoomChange: (scale, origin) => {
+          setZoomScale(scale)
+          const sceneId = sceneRef.current?.id
+          if (origin === 'USER' && sceneId) {
+            writeStoredVttZoom(vttZoomStorageKey(campaign.id, sceneId), scale)
+          }
+        },
+        resolveSceneZoom: (sceneId) => readStoredVttZoom(vttZoomStorageKey(campaign.id, sceneId)),
+        onMapLoadStatus: (status) => {
+          setMapLoadStatus(status)
+          mapDelivery.onMapLoadStatus(status)
+        },
+        onCreateAnnotation: (position) => {
+          const current = sceneRef.current
+          if (!current || campaign.role !== 'OWNER') return
+          dispatchRef.current({
+            annotation: createSceneAnnotation(current.annotations.length, position),
+            commandId: crypto.randomUUID(),
+            expectedSceneVersion: current.version,
+            sceneId: current.id,
+            type: 'UPSERT_SCENE_ANNOTATION'
+          })
+        },
+        onCreateBarrier: (kind, a, b) => {
+          const current = sceneRef.current
+          if (!current || campaign.role !== 'OWNER' || (a.x === b.x && a.y === b.y)) return
+          dispatchRef.current({
+            barrier: createSceneBarrier(kind, a, b),
+            commandId: crypto.randomUUID(),
+            expectedSceneVersion: current.version,
+            sceneId: current.id,
+            type: 'UPSERT_SCENE_BARRIER'
+          })
+        },
+        onCreateDarkness: (a, b) => {
+          const current = sceneRef.current
+          const zone = createSceneDarknessZone(a, b)
+          if (!current || campaign.role !== 'OWNER' || !zone) return
+          dispatchRef.current({
+            commandId: crypto.randomUUID(),
+            expectedSceneVersion: current.version,
+            sceneId: current.id,
+            type: 'UPSERT_SCENE_DARKNESS',
+            zone
+          })
+        },
+        onCreateLight: (position) => {
+          const current = sceneRef.current
+          if (!current || campaign.role !== 'OWNER') return
+          dispatchRef.current({
+            commandId: crypto.randomUUID(),
+            expectedSceneVersion: current.version,
+            light: createSceneLight(position),
+            sceneId: current.id,
+            type: 'UPSERT_SCENE_LIGHT'
+          })
+        },
+        onCreateToken: (position) => {
+          const current = sceneRef.current
+          if (!current || campaign.role !== 'OWNER') return
+          dispatchRef.current({
+            commandId: crypto.randomUUID(),
+            expectedSceneVersion: current.version,
+            sceneId: current.id,
+            token: createSceneToken(current.grid, current.tokens.length, position),
+            type: 'UPSERT_SCENE_TOKEN'
+          })
+        },
+        onDoorState: (barrierId, state) => setDoorState(barrierId, state),
+        onFogArea: (explored, a, b) => patchFogArea(explored, a, b),
+        onFogAreaPreview: (explored, a, b) => {
+          const current = sceneRef.current
+          if (!current || campaign.role !== 'OWNER') return
+          const ownerUserId = current.fogMode === 'SHARED_PARTY' ? null : fogOwnerUserIdRef.current
+          if (sceneFogOwnerFailure(current.fogMode, ownerUserId)) return
+          transientRef.current({
+            explored,
+            kind: 'FOG_AREA_PREVIEW',
+            ownerUserId,
+            rectangle: { a, b }
+          })
+        },
+        onMeasurementCommit: (path) => commitMeasurement(path),
+        onMeasurementPreview: (path) => transientRef.current({ kind: 'MEASUREMENT_PREVIEW', path }),
+        onPing: (position) => {
+          const sent = transientRef.current({ kind: 'PING', position })
+          if (sent) announcePingRef.current(currentUserId)
+          return sent
+        },
+        onTokenCommit: (tokenId, position) => commitTokenMoveRef.current(tokenId, position),
+        onTargetingCancel: () => setTargetingRequest(null),
+        onTokenHover: setInspectedTokenId,
+        onTokenPick: (tokenId) => pickTargetTokenRef.current(tokenId),
+        onTokenSelect: setSelectedTokenId,
+        onTokenPreview: (tokenId, position) =>
+          transientRef.current({ kind: 'TOKEN_DRAG_PREVIEW', position, tokenId })
       },
-      onAreaPoint: (point) => {
-        setAreaAim({ origin: point, toward: null })
-        setAimingArea(false)
-        setActionsOpened(true)
-      },
-      onAreaDirection: (aim) => {
-        setAreaAim(aim)
-        setAimingArea(false)
-        setActionsOpened(true)
-      },
-      onSquarePick: (center) => pickDestinationRef.current?.(center),
-      onZoomChange: (scale, origin) => {
-        setZoomScale(scale)
-        const sceneId = sceneRef.current?.id
-        if (origin === 'USER' && sceneId) {
-          writeStoredVttZoom(vttZoomStorageKey(campaign.id, sceneId), scale)
-        }
-      },
-      resolveSceneZoom: (sceneId) => readStoredVttZoom(vttZoomStorageKey(campaign.id, sceneId)),
-      onMapLoadStatus: (status) => {
-        setMapLoadStatus(status)
-        mapDelivery.onMapLoadStatus(status)
-      },
-      onCreateAnnotation: (position) => {
-        const current = sceneRef.current
-        if (!current || campaign.role !== 'OWNER') return
-        dispatchRef.current({
-          annotation: createSceneAnnotation(current.annotations.length, position),
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: current.version,
-          sceneId: current.id,
-          type: 'UPSERT_SCENE_ANNOTATION'
-        })
-      },
-      onCreateBarrier: (kind, a, b) => {
-        const current = sceneRef.current
-        if (!current || campaign.role !== 'OWNER' || (a.x === b.x && a.y === b.y)) return
-        dispatchRef.current({
-          barrier: createSceneBarrier(kind, a, b),
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: current.version,
-          sceneId: current.id,
-          type: 'UPSERT_SCENE_BARRIER'
-        })
-      },
-      onCreateDarkness: (a, b) => {
-        const current = sceneRef.current
-        const zone = createSceneDarknessZone(a, b)
-        if (!current || campaign.role !== 'OWNER' || !zone) return
-        dispatchRef.current({
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: current.version,
-          sceneId: current.id,
-          type: 'UPSERT_SCENE_DARKNESS',
-          zone
-        })
-      },
-      onCreateLight: (position) => {
-        const current = sceneRef.current
-        if (!current || campaign.role !== 'OWNER') return
-        dispatchRef.current({
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: current.version,
-          light: createSceneLight(position),
-          sceneId: current.id,
-          type: 'UPSERT_SCENE_LIGHT'
-        })
-      },
-      onCreateToken: (position) => {
-        const current = sceneRef.current
-        if (!current || campaign.role !== 'OWNER') return
-        dispatchRef.current({
-          commandId: crypto.randomUUID(),
-          expectedSceneVersion: current.version,
-          sceneId: current.id,
-          token: createSceneToken(current.grid, current.tokens.length, position),
-          type: 'UPSERT_SCENE_TOKEN'
-        })
-      },
-      onDoorState: (barrierId, state) => setDoorState(barrierId, state),
-      onFogArea: (explored, a, b) => patchFogArea(explored, a, b),
-      onFogAreaPreview: (explored, a, b) => {
-        const current = sceneRef.current
-        if (!current || campaign.role !== 'OWNER') return
-        const ownerUserId = current.fogMode === 'SHARED_PARTY' ? null : fogOwnerUserIdRef.current
-        if (sceneFogOwnerFailure(current.fogMode, ownerUserId)) return
-        transientRef.current({
-          explored,
-          kind: 'FOG_AREA_PREVIEW',
-          ownerUserId,
-          rectangle: { a, b }
-        })
-      },
-      onMeasurementCommit: (path) => commitMeasurement(path),
-      onMeasurementPreview: (path) => transientRef.current({ kind: 'MEASUREMENT_PREVIEW', path }),
-      onPing: (position) => {
-        const sent = transientRef.current({ kind: 'PING', position })
-        if (sent) announcePingRef.current(currentUserId)
-        return sent
-      },
-      onTokenCommit: (tokenId, position) => commitTokenMoveRef.current(tokenId, position),
-      onTargetingCancel: () => setTargetingRequest(null),
-      onTokenHover: setInspectedTokenId,
-      onTokenPick: (tokenId) => pickTargetTokenRef.current(tokenId),
-      onTokenSelect: setSelectedTokenId,
-      onTokenPreview: (tokenId, position) =>
-        transientRef.current({ kind: 'TOKEN_DRAG_PREVIEW', position, tokenId })
-    }).then((nextRenderer) => {
+      campaign.gameSystemId
+    ).then((nextRenderer) => {
       if (disposed) {
         nextRenderer.destroy()
         return
@@ -1020,7 +1024,7 @@ export function CampaignVttStage({
       renderer.current?.destroy()
       renderer.current = null
     }
-  }, [campaign.role, currentUserId, scene?.id])
+  }, [campaign.gameSystemId, campaign.role, currentUserId, scene?.id])
 
   useEffect(() => {
     const latestUpdate = rendererUpdateRef.current

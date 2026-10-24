@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+import { combatPerceptionIlluminationDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 /**
@@ -26,7 +27,7 @@ const SKIPPED_DIRECTORIES = new Set([
   '.storybook'
 ])
 const NON_PRODUCTION_FILE =
-  /(\.d\.ts|\.test\.tsx?|\.stories\.tsx?|\.fixtures?\.tsx?|\.fixture\.tsx?)$/
+  /(\.d\.ts|\.test\.tsx?|\.testUtils\.tsx?|\.stories\.tsx?|\.fixtures?\.tsx?|\.fixture\.tsx?)$/
 
 function productionFiles(directory: string): string[] {
   return readdirSync(directory).flatMap((name) => {
@@ -60,8 +61,24 @@ const literalBeforeCode = /(['"`])([A-Z][A-Z0-9_]*)\1\s*[!=]==?\s*[\w.?]*[Cc]ode
 const quotedList = /\[\s*(?:(['"])[A-Z][A-Z0-9_]*\1\s*,\s*){2,}(['"])[A-Z][A-Z0-9_]*\2\s*,?\s*\]/g
 const codeTemplate = /`[A-Z]+_\$\{/g
 
-function violations(source: string): string[] {
+/**
+ * RULES-2.T9d: the illumination codes stay a shared enum, but their rank, light suppression, render
+ * class and label belong to the System's `illuminationLevels`. Only a System module under
+ * `rules-runtime/src/systems/` reads an illumination code directly.
+ */
+const illuminationCodes = new Set<string>(combatPerceptionIlluminationDtoSchema.options)
+const illuminationBeforeLiteral = /[iI]llumination\s*[!=]==?\s*(['"`])([A-Z][A-Z_]*)\1/g
+const literalBeforeIllumination = /(['"`])([A-Z][A-Z_]*)\1\s*[!=]==?\s*[\w.?]*[iI]llumination\b/g
+const SYSTEM_MODULE = /packages[\\/]rules-runtime[\\/]src[\\/]systems[\\/]/
+
+function violations(source: string, path = ''): string[] {
   const found: string[] = []
+  if (!SYSTEM_MODULE.test(path))
+    for (const match of [
+      ...source.matchAll(illuminationBeforeLiteral),
+      ...source.matchAll(literalBeforeIllumination)
+    ])
+      if (illuminationCodes.has(match[2]!)) found.push(`compares illumination ${match[2]}`)
   for (const match of [
     ...source.matchAll(codeBeforeLiteral),
     ...source.matchAll(literalBeforeCode)
@@ -90,10 +107,20 @@ describe('System vocabulary boundary (RULES-2.T9o)', () => {
     expect(violations("kind === 'SPELL_CAST'")).toEqual([])
   })
 
+  it('detects an illumination code comparison outside a System module (RULES-2.T9d)', () => {
+    const comparison = "if (zone.mechanicalIllumination === 'MAGICAL_DARKNESS') outline()"
+    expect(violations(comparison)).toEqual(['compares illumination MAGICAL_DARKNESS'])
+    expect(violations("'DIM' !== scene.ambientIllumination")).toEqual(['compares illumination DIM'])
+    expect(violations(comparison, 'packages/rules-runtime/src/systems/dnd5e/lighting.ts')).toEqual(
+      []
+    )
+    expect(violations("renderClass === 'DIM'")).toEqual([])
+  })
+
   it('keeps production files free of vocabulary lists and code comparisons', () => {
     const offenders = SCANNED_ROOTS.flatMap((root) => productionFiles(join(REPO, root)))
       .flatMap((path) =>
-        violations(readFileSync(path, 'utf8')).map(
+        violations(readFileSync(path, 'utf8'), path).map(
           (reason) => `${relative(REPO, path).split(sep).join('/')} ${reason}`
         )
       )

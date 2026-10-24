@@ -7,8 +7,17 @@ import {
   resolveSceneCombatPerceptionEnvironment,
   resolveSceneDaylightAt,
   resolveSceneIlluminationAt,
-  sceneTokenLights
+  sceneTokenLights,
+  type SceneIlluminationLevel
 } from '../domains/vtt/sceneCombatPerception.js'
+
+/** A test System's levels, brightest first: only its last level dispels light. */
+const levels: readonly SceneIlluminationLevel[] = [
+  { code: 'BRIGHT', label: 'Lit', renderClass: 'LIT', suppressesLight: false },
+  { code: 'DIM', label: 'Gloom', renderClass: 'DIM', suppressesLight: false },
+  { code: 'ORDINARY_DARKNESS', label: 'Dark', renderClass: 'DARK', suppressesLight: false },
+  { code: 'MAGICAL_DARKNESS', label: 'Void', renderClass: 'DARK', suppressesLight: true }
+]
 
 const grid = {
   kind: 'SQUARE',
@@ -54,14 +63,20 @@ function scene(overrides: Partial<PerceptionScene> = {}): PerceptionScene {
   }
 }
 
-function resolve(observer: SceneToken, subject: SceneToken, environment = scene()) {
+function resolve(
+  observer: SceneToken,
+  subject: SceneToken,
+  environment = scene(),
+  illuminationLevels = levels
+) {
   return resolveSceneCombatPerceptionEnvironment({
     scene: environment,
     observer,
     subject,
     sharedSurface: false,
     invisibleChannels: [],
-    suppressedChannels: []
+    suppressedChannels: [],
+    illuminationLevels
   })
 }
 
@@ -296,9 +311,61 @@ describe('Scene combat-perception environment', () => {
         resolveSceneIlluminationAt(
           environment,
           { x: 100, y: 50 },
-          new SceneBarrierIndex(environment.barriers)
+          new SceneBarrierIndex(environment.barriers),
+          levels
         )
       ).toEqual({ illumination: 'BRIGHT', obscurement: 'LIGHT' })
+    })
+  })
+
+  describe("the System's illumination levels (RULES-2.T9d)", () => {
+    const observer = token({ x: 50, y: 450 })
+    const torch = {
+      brightRadius: 100,
+      color: '#ffffff',
+      dimRadius: 300,
+      id: crypto.randomUUID(),
+      intensity: 1,
+      kind: 'POINT',
+      position: { x: 50, y: 50 }
+    } as const
+    // A System where every darkness dispels light, and where gloom still counts as lit.
+    const strictLevels: readonly SceneIlluminationLevel[] = [
+      { code: 'BRIGHT', label: 'Lit', renderClass: 'LIT', suppressesLight: false },
+      { code: 'DIM', label: 'Gloom', renderClass: 'LIT', suppressesLight: false },
+      { code: 'ORDINARY_DARKNESS', label: 'Dark', renderClass: 'DARK', suppressesLight: true },
+      { code: 'MAGICAL_DARKNESS', label: 'Void', renderClass: 'DARK', suppressesLight: true }
+    ]
+
+    it('keeps any level the System marks as dispelling light over a torch', () => {
+      const environment = scene({ ambientIllumination: 'ORDINARY_DARKNESS', lights: [torch] })
+
+      expect(resolve(observer, token({ x: 100, y: 50 }), environment).illumination).toBe('BRIGHT')
+      expect(
+        resolve(observer, token({ x: 100, y: 50 }), environment, strictLevels).illumination
+      ).toBe('ORDINARY_DARKNESS')
+    })
+
+    it("finds daylight by the level's render class, not its code", () => {
+      const environment = { ...scene({ ambientIllumination: 'DIM' }), daylight: true }
+      const daylight = (illuminationLevels: readonly SceneIlluminationLevel[]) =>
+        resolveSceneDaylightAt(
+          environment,
+          { x: 50, y: 50 },
+          new SceneBarrierIndex(environment.barriers),
+          illuminationLevels
+        )
+
+      expect(daylight(levels)).toBe(false)
+      expect(daylight(strictLevels)).toBe(true)
+    })
+
+    it('refuses a Scene code the System does not define', () => {
+      const environment = scene({ ambientIllumination: 'MAGICAL_DARKNESS' })
+
+      expect(() =>
+        resolve(observer, token({ x: 100, y: 50 }), environment, levels.slice(0, 3))
+      ).toThrow('The Game System does not define the illumination "MAGICAL_DARKNESS".')
     })
   })
 
@@ -310,7 +377,8 @@ describe('Scene combat-perception environment', () => {
       resolveSceneIlluminationAt(
         environment,
         { x, y: 50 },
-        new SceneBarrierIndex(environment.barriers)
+        new SceneBarrierIndex(environment.barriers),
+        levels
       ).illumination
 
     it('lights the dark around the token from its footprint edge', () => {
@@ -373,7 +441,8 @@ describe('Scene combat-perception environment', () => {
       subject: token({ x: 250, y: 50 }),
       sharedSurface: true,
       invisibleChannels: ['VISUAL', 'NONVISUAL', 'VISUAL'],
-      suppressedChannels: ['AUDITORY', 'AUDITORY']
+      suppressedChannels: ['AUDITORY', 'AUDITORY'],
+      illuminationLevels: levels
     })
 
     expect(result).toMatchObject({
@@ -410,7 +479,12 @@ describe('Scene combat-perception environment', () => {
     }
     const daylightAt = (overrides: Partial<PerceptionScene>, daylight: boolean) => {
       const environment = { ...scene(overrides), daylight }
-      return resolveSceneDaylightAt(environment, point, new SceneBarrierIndex(environment.barriers))
+      return resolveSceneDaylightAt(
+        environment,
+        point,
+        new SceneBarrierIndex(environment.barriers),
+        levels
+      )
     }
 
     it('is sunlight where a daylit Scene resolves BRIGHT', () => {

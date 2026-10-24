@@ -619,6 +619,7 @@ export async function planNativeLiveEncounterAction(
         }),
       ...nativeActionStateLoaders({
         campaignId: state.campaignId,
+        gameSystemId: state.gameSystemId,
         actorId: command.actorId,
         sceneContext,
         capture

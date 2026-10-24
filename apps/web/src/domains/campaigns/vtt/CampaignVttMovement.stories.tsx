@@ -6,6 +6,7 @@ import {
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { tabletopCurrentUserId, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRenderer'
 import { validated } from '../../../test/validatedFixture'
@@ -98,19 +99,23 @@ function MovementFixture({
   useEffect(() => {
     if (!host.current) return
     let disposed = false
-    void createVttSceneRenderer(host.current, {
-      onCreateBarrier: () => undefined,
-      onCreateDarkness: () => undefined,
-      onCreateLight: () => undefined,
-      onCreateToken: () => undefined,
-      onDoorState: () => undefined,
-      onMeasurementCommit: () => undefined,
-      onMeasurementPreview: () => undefined,
-      onPing: () => false,
-      onTokenCommit: (_tokenId, path) => setCommittedPath(path),
-      onTokenHover: setHoveredTokenId,
-      onTokenPreview: (_tokenId, position) => setPreview(position)
-    }).then((nextRenderer) => {
+    void createVttSceneRenderer(
+      host.current,
+      {
+        onCreateBarrier: () => undefined,
+        onCreateDarkness: () => undefined,
+        onCreateLight: () => undefined,
+        onCreateToken: () => undefined,
+        onDoorState: () => undefined,
+        onMeasurementCommit: () => undefined,
+        onMeasurementPreview: () => undefined,
+        onPing: () => false,
+        onTokenCommit: (_tokenId, path) => setCommittedPath(path),
+        onTokenHover: setHoveredTokenId,
+        onTokenPreview: (_tokenId, position) => setPreview(position)
+      },
+      SRD_SYSTEM_ID
+    ).then((nextRenderer) => {
       if (disposed) {
         nextRenderer.destroy()
         return

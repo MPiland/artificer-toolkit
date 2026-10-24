@@ -13,3 +13,15 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md). ADR 0039 gov
 Each task extends the RULES-2.T9o vocabulary boundary guard, so the moved literals cannot come back. The SPELLS sessions edit the same files (`characterSpellCastActions.ts`, `encounterFormChoice.ts`), so merge the phase tip before each push.
 
 ## Log
+
+- 2026-10-24, T9d implemented:
+  - **Levels:** the combat-perception adapter gained `illuminationLevels`, brightest first, each with code, label, render class (`LIT`/`DIM`/`DARK`) and `suppressesLight`. D&D 5e defines its four levels in `systems/dnd5e/combatPerception.ts`.
+  - **Shared resolvers:** `resolveSceneIlluminationAt`, `resolveSceneDaylightAt` and `resolveSceneCombatPerceptionEnvironment` take the levels. `requireSceneIlluminationLevel` fails closed on a code the System lacks.
+  - **Worker:** `measureHolderLight` reads the Campaign's System levels.
+  - **Web:** the renderer and model read the levels for overlays, outlines, concealment, sense effects and labels; renderer creators pass `gameSystemId`.
+  - **Guard:** the T9o guard rejects illumination code comparisons outside `rules-runtime/src/systems/`.
+  - **Docs:** `docs/architecture/rules-runtime.md` gained the "Illumination levels" section.
+  - **Proof:** `packages/shared/src/__tests__/vtt-scene-combat-perception.test.ts`, `apps/web/src/domains/campaigns/vtt/vttSceneRenderer.model.test.ts` and `packages/rules-runtime/src/__tests__/systemVocabularyBoundary.test.ts`, each using a non-D&D level set.
+  - **Left for later (not T9d scope):**
+    - `actorSenses.ts` `ILLUMINATION_ACCESS_RANK` and the `SenseDefinitionEditor` access options: illumination access, not levels.
+    - The Scene darkness-zone schema's DIM-or-darker enum: a contract, no reseed per the ruling.

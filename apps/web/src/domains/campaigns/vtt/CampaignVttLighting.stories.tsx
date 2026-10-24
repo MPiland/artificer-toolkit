@@ -5,7 +5,10 @@ import {
   campaignSceneStateDtoSchema,
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { combatPerceptionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
+  requireSceneIlluminationLevel,
   resolveSceneIlluminationAt,
   SceneBarrierIndex,
   type ScenePoint
@@ -21,6 +24,8 @@ import {
 } from './vttSceneRenderer.model'
 import { countDarknessZones } from './vttDarknessZoneCounts.testUtils'
 import { validated } from '../../../test/validatedFixture'
+
+const { illuminationLevels } = combatPerceptionCapabilityRegistry.require(SRD_SYSTEM_ID)
 
 type Diagnostics = ReturnType<VttSceneRenderer['getDiagnostics']>
 type Zone = CampaignSceneStateDto['darknessZones'][number]
@@ -105,18 +110,22 @@ function LightingFixture({
     if (!host.current) return
     let disposed = false
     let renderer: VttSceneRenderer | null = null
-    void createVttSceneRenderer(host.current, {
-      onCreateBarrier: () => undefined,
-      onCreateDarkness: () => undefined,
-      onCreateLight: () => undefined,
-      onCreateToken: () => undefined,
-      onDoorState: () => undefined,
-      onMeasurementCommit: () => undefined,
-      onMeasurementPreview: () => undefined,
-      onPing: () => false,
-      onTokenCommit: () => undefined,
-      onTokenPreview: () => undefined
-    }).then((nextRenderer) => {
+    void createVttSceneRenderer(
+      host.current,
+      {
+        onCreateBarrier: () => undefined,
+        onCreateDarkness: () => undefined,
+        onCreateLight: () => undefined,
+        onCreateToken: () => undefined,
+        onDoorState: () => undefined,
+        onMeasurementCommit: () => undefined,
+        onMeasurementPreview: () => undefined,
+        onPing: () => false,
+        onTokenCommit: () => undefined,
+        onTokenPreview: () => undefined
+      },
+      SRD_SYSTEM_ID
+    ).then((nextRenderer) => {
       if (disposed) {
         nextRenderer.destroy()
         return
@@ -203,9 +212,11 @@ function expectedAlpha(scene: CampaignSceneStateDto, point: ScenePoint, strength
   const { illumination } = resolveSceneIlluminationAt(
     scene,
     point,
-    new SceneBarrierIndex(scene.barriers)
+    new SceneBarrierIndex(scene.barriers),
+    illuminationLevels
   )
-  return illuminationOverlayAlpha(illumination) * strength
+  const { renderClass } = requireSceneIlluminationLevel(illuminationLevels, illumination)
+  return illuminationOverlayAlpha(renderClass) * strength
 }
 
 function expectSamplesMatchResolver(
@@ -538,7 +549,8 @@ export const DarknessZoneKinds: Story = {
       unspecified: 1
     })
     expect(description).toContain('Ambient: Dim light')
-    for (const zone of darknessKinds) expect(description).toContain(describeDarknessZone(zone))
+    for (const zone of darknessKinds)
+      expect(description).toContain(describeDarknessZone(zone, illuminationLevels))
     expect(description).toContain('Magical darkness')
     // The visual-only zone's drawn fill carries the zone's own opacity.
     expect(lighting.visualZoneAlphas).toEqual([darknessKinds[3]!.opacity])

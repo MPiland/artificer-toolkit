@@ -20,7 +20,8 @@ import {
   type CombatPerceptionContribution,
   type CombatPerceptionContributionSourceIdentity,
   type CombatPerceptionContributionSource,
-  type CombatPerceptionContributionResult
+  type CombatPerceptionContributionResult,
+  type SceneIlluminationLevel
 } from '@artificer-toolkit/shared/vtt'
 
 import { DND5E_SYSTEM_ID } from './identity.js'
@@ -35,7 +36,24 @@ const CHECKSUM_PATTERN = /^[a-f0-9]{64}$/
 const channelValues = ['VISUAL', 'AUDITORY', 'VIBRATION', 'NONVISUAL'] as const
 const accessGradeValues = ['DETECTED', 'LOCATED', 'PRECISE'] as const
 const requirementValues = ['DETECT', 'LOCATE', 'PRECISE', 'SEE'] as const
-const illuminationValues = ['BRIGHT', 'DIM', 'ORDINARY_DARKNESS', 'MAGICAL_DARKNESS'] as const
+/** SRD light: no light dispels magical darkness, and darkvision sees only ordinary darkness. */
+const DND5E_ILLUMINATION_LEVELS = [
+  { code: 'BRIGHT', label: 'Bright light', renderClass: 'LIT', suppressesLight: false },
+  { code: 'DIM', label: 'Dim light', renderClass: 'DIM', suppressesLight: false },
+  {
+    code: 'ORDINARY_DARKNESS',
+    label: 'Ordinary darkness',
+    renderClass: 'DARK',
+    suppressesLight: false
+  },
+  {
+    code: 'MAGICAL_DARKNESS',
+    label: 'Magical darkness',
+    renderClass: 'DARK',
+    suppressesLight: true
+  }
+] as const satisfies readonly SceneIlluminationLevel[]
+const illuminationValues = DND5E_ILLUMINATION_LEVELS.map(({ code }) => code)
 const illuminationAccessValues = [
   'BRIGHT_ONLY',
   'DIM',
@@ -47,12 +65,9 @@ const obscurementValues = ['NONE', 'LIGHT', 'HEAVY'] as const
 const obscurementAccessValues = ['NONE', 'LIGHT', 'HEAVY', 'IGNORE'] as const
 const physicalConstraintValues = ['LINE_OF_EFFECT', 'SHARED_SURFACE'] as const
 
-const illuminationRank: Readonly<Record<CombatPerceptionIllumination, number>> = {
-  BRIGHT: 0,
-  DIM: 1,
-  ORDINARY_DARKNESS: 2,
-  MAGICAL_DARKNESS: 3
-}
+const illuminationRank = Object.fromEntries(
+  DND5E_ILLUMINATION_LEVELS.map(({ code }, rank) => [code, rank])
+) as Readonly<Record<CombatPerceptionIllumination, number>>
 const illuminationAccessRank: Readonly<
   Record<Exclude<CombatPerceptionIlluminationAccess, 'IGNORE'>, number>
 > = {
@@ -1074,5 +1089,6 @@ export function resolveCombatPerceptionWithContributions(input: {
 
 export const dnd5eCombatPerceptionCapabilityAdapter: CombatPerceptionCapabilityAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
+  illuminationLevels: DND5E_ILLUMINATION_LEVELS,
   resolveCombatPerceptionWithContributions
 }

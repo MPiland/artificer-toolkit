@@ -745,8 +745,9 @@ preparation call the optional `loadHolderLight` supplier, and `deferredGroupMet`
 `readNativeLiveHolderLight` (the locked Scene read, refusing a Scene that moved) for a direct action, and with
 `measureHolderLight` on the captured Scene for a movement-reaction attack from the reactor's own square.
 `daylight` is Scene state (`settings.ambientIllumination.daylight`, default false) that the GM sets with the existing
-`SET_SCENE_AMBIENT_ILLUMINATION` command; `resolveSceneDaylightAt` is `scene.daylight && illumination === 'BRIGHT'`
-at the holder's square, so a torch-lit square on a non-daylit Scene is BRIGHT without being daylit. Deleted kinds:
+`SET_SCENE_AMBIENT_ILLUMINATION` command; `resolveSceneDaylightAt` is `scene.daylight` and a resolved level whose
+System render class is `LIT` at the holder's square, so a torch-lit square on a non-daylit Scene is bright without
+being daylit. Deleted kinds:
 `CREATURE_SUNLIGHT_SENSITIVITY`, `CREATURE_CLOAKER_LIGHT_SENSITIVITY`. Limitations: the Wisdom (Perception) check
 disadvantage is authored but has no live consumer (no Creature Perception roll exists; Creature ability checks roll
 only in contests); there is no roof or indoor daylight model (see future-enhancements). The Vampire's disadvantage covers every ability. Its 20 radiant start-of-turn damage and the Cloaker Phantasms' bright-light dismissal ship as MANUAL_ADJUDICATION GM rulings (D187a; pieces in future-enhancements). Deleted kinds also include `CREATURE_VAMPIRE_SUNLIGHT_HYPERSENSITIVITY` and `CREATURE_CLOAKER_PHANTASMS`.
@@ -2961,6 +2962,18 @@ runtime share them. The resolution rules are D&D policy in `systems/dnd5e/combat
 (adapter interface in `combatPerceptionCapabilityRegistry.ts`, installed in `platformPolicyModules.ts` on the
 generic System capability registry), which fails closed on a System
 that provides no perception policy. The Rules Kernel holds no perception rules (ADR 0039 decision 5, RULES-2.T10).
+
+Illumination levels (current, RULES-2.T9d): the illumination codes (`BRIGHT`, `DIM`, `ORDINARY_DARKNESS`,
+`MAGICAL_DARKNESS`) stay a shared enum that Scenes store, but what each means is System data. The adapter's
+`illuminationLevels` lists the System's levels brightest first, each with its `label`, `renderClass`
+(`LIT`, `DIM` or `DARK`) and `suppressesLight`. The shared resolvers take the levels as a parameter, since
+`shared` does not import `rules-runtime`: `resolveSceneIlluminationAt` darkens by list order, lets a light's bright
+radius shed the brightest `LIT` level and its dim radius the brightest `DIM` one, and lets a light-suppressing
+ambient or zone override lights;
+`requireSceneIlluminationLevel` fails closed on a code the System does not define. The Worker's holder light,
+the web renderer's overlays, darkness outlines, token concealment, sense effects and lighting labels read the
+levels from the Campaign's System (`combatPerceptionCapabilityRegistry.require(gameSystemId)`), never a code.
+`systemVocabularyBoundary.test.ts` rejects an illumination code comparison outside `rules-runtime/src/systems/`.
 
 Token light (current, SPELLS-33.T6j): a Creature's passive Feature that authors a MANIFEST OBJECT `light`
 (the same SOURCE light shape equipment torches and lanterns and the Light and Continual Flame spells author)
