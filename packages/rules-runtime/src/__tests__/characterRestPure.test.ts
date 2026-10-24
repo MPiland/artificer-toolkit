@@ -264,4 +264,48 @@ describe('Sheet rest cleanup', () => {
       kept
     ])
   })
+
+  it('keeps spell summons through a short rest and ends them all on a long rest (D190)', async () => {
+    const { params } = await playedFighter({ resourceUsed: true })
+    const summon = (id: string, concentration: boolean) => ({
+      id,
+      spellId: 'spell-summon',
+      summonOutcomeId: 'summon',
+      label: 'Hand',
+      concentration,
+      statBlock: {},
+      armorClass: 20,
+      maximumHitPoints: 11,
+      currentHitPoints: 11,
+      castAt: '2026-10-23T00:00:00.000Z'
+    })
+    const character = {
+      ...params.character,
+      state: {
+        ...params.character.state,
+        spellSummons: [
+          summon('00000000-0000-4000-8000-000000000a01', true),
+          summon('00000000-0000-4000-8000-000000000a02', false)
+        ]
+      }
+    }
+    const rest = async (input: typeof shortRest | typeof longRest) => {
+      const preview = await buildCharacterRestPreview({ ...params, character, input })
+      return applyCompletedCharacterRest({
+        character,
+        sheet: params.sheet,
+        restPolicy: params.restPolicy,
+        preview,
+        command: {
+          ...input,
+          type: 'COMPLETE_REST',
+          commandId: crypto.randomUUID(),
+          previewFingerprint: preview.previewFingerprint
+        }
+      }).character.state.spellSummons
+    }
+
+    expect(await rest(shortRest)).toEqual(character.state.spellSummons)
+    expect(await rest(longRest)).toBeUndefined()
+  })
 })

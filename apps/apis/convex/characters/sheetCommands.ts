@@ -53,6 +53,9 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import { compileCharacterSpellCasts } from '@artificer-toolkit/rules-runtime/character/characterSpellCastActions'
+import { sheetSpellCastSummonPlacement } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
+import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { projectCharacterSheetForViewer } from '@artificer-toolkit/rules-runtime/character/campaignCharacterSheet'
 import { type MutationCtx } from '../_generated/server'
 import { retainCharacterEquipmentRules } from './acquiredEquipment'
@@ -80,11 +83,7 @@ function applySupportedCommand(
   character: CharacterAuthored,
   sheet: CharacterSheetCommandExecutionDto['sheet'],
   command: CharacterSheetCommandInputDto,
-  now: string,
-  attunementSlotLimit: number,
-  preparationEligibleSpellIdsByClassId?: ReadonlyMap<string, ReadonlySet<string>>,
-  extraDefaults?: NonNullable<Parameters<typeof applyCharacterSheetCommand>[3]>['extraDefaults'],
-  deathSaveDie?: number
+  context: NonNullable<Parameters<typeof applyCharacterSheetCommand>[3]>
 ): CharacterAuthored {
   switch (command.type) {
     case 'ADD_SHEET_EXTRA':
@@ -134,13 +133,7 @@ function applySupportedCommand(
     case 'CREATE_NOTE_GROUP':
     case 'UPDATE_NOTE_GROUP':
     case 'DELETE_NOTE_GROUP':
-      return applyCharacterSheetCommand(character, command, sheet, {
-        now: () => now,
-        attunementSlotLimit,
-        extraDefaults,
-        deathSaveDie,
-        preparationEligibleSpellIdsByClassId
-      })
+      return applyCharacterSheetCommand(character, command, sheet, context)
     default:
       throw new Error(`Sheet command ${command.type} is not available yet.`)
   }
@@ -358,18 +351,33 @@ export async function executeCharacterSheetCommand(
   }
   const updated = characterAuthoredDtoSchema.parse(
     completedRest?.character ??
-      applySupportedCommand(
-        initial.character,
-        initial.sheet,
-        input.command,
-        occurredAt,
-        initial.ruleEvaluation.output.rest.attunementSlotLimit,
-        command.type === 'SET_PREPARED_SPELLS'
-          ? getCharacterSpellPreparationEligibleIdsByClass(spellEligibilityInput)
-          : undefined,
+      applySupportedCommand(initial.character, initial.sheet, input.command, {
+        now: () => occurredAt,
+        attunementSlotLimit: initial.ruleEvaluation.output.rest.attunementSlotLimit,
+        preparationEligibleSpellIdsByClassId:
+          command.type === 'SET_PREPARED_SPELLS'
+            ? getCharacterSpellPreparationEligibleIdsByClass(spellEligibilityInput)
+            : undefined,
+        spellSummonPlacement: (cast) =>
+          sheetSpellCastSummonPlacement({
+            casts: compileCharacterSpellCasts({
+              gameSystemId: initial.character.systemId,
+              character: initial.character,
+              ruleEvaluation: initial.ruleEvaluation,
+              policyOutput: initial.ruleEvaluation.output,
+              spellsById: initial.spellsById,
+              characterLevel: characterTotalLevel(initial),
+              conditionDefinitionIds: (
+                initial.resolution.registry.system?.conditionTypes ?? []
+              ).map((condition) => condition.id),
+              firstSequence: initial.ruleEvaluation.facts.actionCandidates.length
+            }),
+            spellCastCandidates: initial.ruleEvaluation.facts.spellCastCandidates,
+            ...cast
+          }),
         extraDefaults,
         deathSaveDie
-      )
+      })
   )
   if (command.type === 'ADD_INVENTORY_ITEM')
     updated.state = await retainCharacterEquipmentRules(ctx, updated as CharacterAuthored)
@@ -379,7 +387,9 @@ export async function executeCharacterSheetCommand(
       ? command.itemId
       : undefined
   const removedCompanionId =
-    command.type === 'REMOVE_SHEET_EXTRA' && command.extra.kind !== 'VEHICLE'
+    command.type === 'REMOVE_SHEET_EXTRA' &&
+    command.extra.kind !== 'VEHICLE' &&
+    command.extra.kind !== 'SPELL_SUMMON'
       ? command.extra.extraId
       : undefined
   let spellCustomizations = initial.sheetState.spellCustomizations
@@ -468,7 +478,10 @@ export async function executeCharacterSheetCommand(
     await endCarriedConcentration(ctx, {
       characterId: initial.active.id,
       campaignId: initial.campaignContext.campaignId,
-      occurredAt
+      occurredAt,
+      endsSpellSummon: (initial.character.state.spellSummons ?? []).some(
+        (summon) => summon.concentration
+      )
     })
 
   if (command.type === 'COMPLETE_REST' && completedRest) {

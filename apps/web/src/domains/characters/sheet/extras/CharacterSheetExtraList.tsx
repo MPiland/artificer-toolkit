@@ -1,10 +1,7 @@
-import type { CharacterSheetExtrasSliceDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
 import { Text } from '@mantine/core'
 import type { OpenSheetPanel } from '../core/CharacterSheet.types'
 import * as extrasStyles from './extras.css'
-import { getExtraTarget } from './CharacterSheetExtraList.model'
-
-type Extra = CharacterSheetExtrasSliceDto['extras']['items'][number]
+import { getExtraTarget, type PanelExtra } from './CharacterSheetExtraList.model'
 
 function ExtraMetric({
   hideOnMobile,
@@ -26,11 +23,11 @@ function ExtraMetric({
   )
 }
 
-function getExtraDisplayName(extra: Extra) {
+function getExtraDisplayName(extra: PanelExtra) {
   return extra.customName ? `${extra.displayName} (${extra.authoredName})` : extra.displayName
 }
 
-function ExtraRow({ extra, openPanel }: { extra: Extra; openPanel?: OpenSheetPanel }) {
+function ExtraRow({ extra, openPanel }: { extra: PanelExtra; openPanel?: OpenSheetPanel }) {
   const isVehicle = extra.kind === 'VEHICLE'
   const hp = `${extra.hitPoints.current} / ${extra.hitPoints.maximum}`
   const creatureMetrics = isVehicle
@@ -82,7 +79,7 @@ export function CharacterSheetExtraList({
   label,
   openPanel
 }: {
-  extras: Extra[]
+  extras: PanelExtra[]
   label: string
   openPanel?: OpenSheetPanel
 }) {

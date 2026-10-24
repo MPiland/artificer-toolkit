@@ -121,3 +121,18 @@ export const extraDrawerBody = style({
 export const extraDrawerActions = style({
   '@layer': { [app]: { display: 'flex', gap: '8px', justifyContent: 'flex-end' } }
 })
+
+export const summonRow = style({
+  '@layer': {
+    [app]: {
+      alignItems: 'end',
+      borderBottom: `1px solid ${foundationVars.color.border.subtle}`,
+      display: 'grid',
+      gap: '6px',
+      minWidth: 0,
+      padding: '8px',
+      '@media': { '(max-width: 760px)': { padding: '7px 6px' } },
+      selectors: { '&:last-child': { borderBottom: 0 } }
+    }
+  }
+})

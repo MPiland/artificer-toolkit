@@ -1459,10 +1459,8 @@ function buildCompanionPanel(
   params: BuildCharacterSheetPanelParams,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'COMPANION' }>
 ): CharacterSheetPanelDto {
-  const companion = params.sheet.extras.items.find(
-    (item) => item.kind !== 'VEHICLE' && item.id === target.companionInstanceId
-  )
-  if (!companion || companion.kind === 'VEHICLE') {
+  const companion = params.sheet.extras.items.find((item) => item.id === target.companionInstanceId)
+  if (!companion || companion.kind === 'VEHICLE' || companion.kind === 'SPELL_SUMMON') {
     throw new Error(
       `Creature "${target.companionInstanceId}" is not available on this character sheet.`
     )

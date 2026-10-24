@@ -151,13 +151,24 @@ export const characterSheetCommandInputDtoSchema = lazySchema(() =>
             isActive: z.optional(booleanSchema),
             currentHitPoints: z.optional(integerSchema.check(z.nonnegative())),
             equipmentItemIds: z.optional(z.array(z.guid()))
+          }),
+          z.object({
+            kind: z.literal('SPELL_SUMMON'),
+            extraId: z.guid(),
+            customName: z.optional(
+              z.nullable(stringSchema.check(z.trim()).check(z.maxLength(120)))
+            ),
+            notes: z.optional(z.nullable(stringSchema.check(z.trim()).check(z.maxLength(2000)))),
+            /** 0 ends the summon (D190). */
+            currentHitPoints: z.optional(integerSchema.check(z.nonnegative())),
+            tempHitPoints: z.optional(integerSchema.check(z.nonnegative()))
           })
         ])
       }),
       z.extend(characterSheetCommandBaseDtoSchema, {
         type: z.literal('REMOVE_SHEET_EXTRA'),
         extra: z.object({
-          kind: z.enum(['COMPANION', 'MOUNT', 'OWNED', 'VEHICLE']),
+          kind: z.enum(['COMPANION', 'MOUNT', 'OWNED', 'VEHICLE', 'SPELL_SUMMON']),
           extraId: z.guid()
         })
       }),

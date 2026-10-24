@@ -651,7 +651,8 @@ it('skips a holder an ACTIVE Run holds instead of refusing, leaving it to the ro
     endCarriedConcentration(ctx, {
       characterId: casterId,
       campaignId: campaign.id,
-      occurredAt: new Date().toISOString()
+      occurredAt: new Date().toISOString(),
+      endsSpellSummon: false
     })
   )
   expect(await carried()).toHaveLength(1)

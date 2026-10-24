@@ -84,3 +84,72 @@ describe('CharacterSheetExtras native catalogue', () => {
     client.clear()
   })
 })
+
+describe('CharacterSheetExtras spell summons (D190)', () => {
+  it('tracks a summon’s hit points and dismisses it from the Extras list', async () => {
+    const user = userEvent.setup()
+    const submitCommand = vi.fn(async () => true)
+    const summonId = '00000000-0000-4000-8000-000000000a01'
+    render(
+      <MantineProvider>
+        <QueryClientProvider client={new QueryClient()}>
+          <CharacterSheetExtras
+            pending={false}
+            sheet={{
+              ...characterSheetFixture,
+              extras: {
+                ...characterSheetFixture.extras,
+                items: [
+                  {
+                    kind: 'SPELL_SUMMON',
+                    kindLabel: 'Spell Summon',
+                    id: summonId,
+                    spellId: 'arcane-hand',
+                    originKind: 'SUMMONED',
+                    originLabel: 'Summoned',
+                    authoredName: 'Arcane Hand',
+                    displayName: 'Arcane Hand',
+                    isActive: true,
+                    concentration: true,
+                    armorClass: 20,
+                    speedLabel: 'Fly 60 ft.',
+                    hitPoints: { current: 40, maximum: 40, temp: 0 },
+                    statBlock: {},
+                    actions: [],
+                    features: [],
+                    equipmentItemIds: []
+                  }
+                ]
+              }
+            }}
+            submitCommand={submitCommand}
+          />
+        </QueryClientProvider>
+      </MantineProvider>
+    )
+    const summons = screen.getByRole('region', { name: 'Summons' })
+    expect(within(summons).getByText('Concentration')).toBeInTheDocument()
+    expect(within(summons).getByText('20')).toBeInTheDocument()
+    expect(within(summons).getByText('Fly 60 ft.')).toBeInTheDocument()
+    expect(within(summons).queryByText(/attack/i)).not.toBeInTheDocument()
+
+    const hitPoints = within(summons).getByRole('textbox', {
+      name: 'Arcane Hand current hit points'
+    })
+    await user.clear(hitPoints)
+    await user.type(hitPoints, '12')
+    await user.tab()
+    expect(submitCommand).toHaveBeenCalledWith({
+      type: 'UPDATE_SHEET_EXTRA',
+      expectedVersion: characterSheetFixture.meta.streamVersion,
+      extra: { kind: 'SPELL_SUMMON', extraId: summonId, currentHitPoints: 12 }
+    })
+
+    await user.click(within(summons).getByRole('button', { name: 'Dismiss' }))
+    expect(submitCommand).toHaveBeenLastCalledWith({
+      type: 'REMOVE_SHEET_EXTRA',
+      expectedVersion: characterSheetFixture.meta.streamVersion,
+      extra: { kind: 'SPELL_SUMMON', extraId: summonId }
+    })
+  })
+})

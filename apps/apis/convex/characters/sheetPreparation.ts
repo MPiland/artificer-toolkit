@@ -68,6 +68,7 @@ export function projectCharacterSheetFacts(
     ruleEvaluation: facts.ruleEvaluation,
     ruleProjection,
     resolution: facts.prepared.resolution,
+    spellsById: facts.prepared.context.spellsById,
     presentation,
     contentMaturity: facts.prepared.context.sourceAccess.campaign?.contentMaturity ?? null,
     sheet: {

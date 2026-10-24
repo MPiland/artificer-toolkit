@@ -29,7 +29,7 @@ import {
   zoneMovementCostMultiplierSchema,
   zoneRequiredSightSchema
 } from '../shared/spatial.js'
-import { summonStatBlockDtoSchema } from '../effects/manifest.js'
+import { summonStatBlockDtoSchema } from '../effects/summonStatBlock.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
 import {

@@ -28,6 +28,7 @@ import { characterSheetReferenceFeatureDtoSchema } from './characterBuilder.js'
 import { characterActionReasonCodeSchema } from './characterActionRules.js'
 import { characterPartyVisibilityDtoSchema } from './healthDisplay.js'
 import { hitPointMaximumReductionRecoveryTagsSchema } from '../effects/hitPointMaximumReduction.js'
+import { summonStatBlockDtoSchema } from '../effects/summonStatBlock.js'
 import {
   activeGrantListingDtoSchema,
   concentrationListingDtoSchema
@@ -415,12 +416,36 @@ const characterSheetVehicleExtraDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A creature a spell cast from the Sheet conjured (D190). Only `CAST_SPELL` creates one, so its kind
+ * is never an add option. The stat block is the compiled summon plan's snapshot; armor class and
+ * maximum hit points are the values the cast resolved against the caster.
+ */
+const characterSheetSpellSummonExtraDtoSchema = lazySchema(() =>
+  z.extend(characterSheetExtraCommonDtoSchema, {
+    kind: z.literal('SPELL_SUMMON'),
+    spellId: stringSchema.check(z.minLength(1)),
+    originKind: z.literal('SUMMONED'),
+    originLabel: stringSchema.check(z.minLength(1)),
+    /** The summon is the Sheet's Concentration and ends with it. */
+    concentration: booleanSchema,
+    armorClass: z.nullable(integerSchema.check(z.nonnegative())),
+    speedLabel: z.optional(stringSchema.check(z.minLength(1))),
+    hitPoints: characterSheetExtraCreatureHitPointsDtoSchema,
+    statBlock: summonStatBlockDtoSchema
+  })
+)
+
 export const characterSheetExtrasDtoSchema = lazySchema(() =>
   z.object({
     kindOptions: z.array(characterSheetExtraKindOptionDtoSchema),
     originOptions: z.array(characterSheetCreatureOriginOptionDtoSchema),
     items: z.array(
-      z.union([characterSheetCreatureExtraDtoSchema, characterSheetVehicleExtraDtoSchema])
+      z.union([
+        characterSheetCreatureExtraDtoSchema,
+        characterSheetVehicleExtraDtoSchema,
+        characterSheetSpellSummonExtraDtoSchema
+      ])
     )
   })
 )

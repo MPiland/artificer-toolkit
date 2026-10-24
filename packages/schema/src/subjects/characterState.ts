@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { summonStatBlockDtoSchema } from '../effects/summonStatBlock.js'
 
 import {
   CREATURE_ORIGIN_KIND_CODE,
@@ -109,6 +110,29 @@ const characterOwnedCreatureStateDtoSchemaRaw = lazySchema(() =>
     currentHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
     tempHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
     hitDice: z.optional(characterHitDiceUsageStateDtoSchema)
+  })
+)
+/**
+ * A creature a spell cast from the Sheet conjured outside an Encounter (D190): play state the Sheet
+ * owns. The stat block is the compiled summon plan's snapshot; only the values the cast resolves
+ * against the caster (armor class, maximum hit points) are stored beside it.
+ */
+const characterSpellSummonStateDtoSchemaRaw = lazySchema(() =>
+  z.object({
+    id: postgresUuidSchema,
+    spellId: z.string(),
+    summonOutcomeId: z.string(),
+    label: z.string().check(z.minLength(1)),
+    /** The cast opened Concentration: this summon is the Sheet's Concentration and ends with it. */
+    concentration: z.boolean(),
+    statBlock: summonStatBlockDtoSchema,
+    armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+    maximumHitPoints: z.number().check(z.int()).check(z.positive()),
+    currentHitPoints: z.number().check(z.int()).check(z.positive()),
+    tempHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+    customName: z.optional(z.string()),
+    notes: z.optional(z.string()),
+    castAt: z.iso.datetime()
   })
 )
 const characterOwnedVehicleStateDtoSchemaRaw = lazySchema(() =>
@@ -223,6 +247,7 @@ const characterStateDtoSchemaRaw = lazySchema(() =>
     spellSlots: z.optional(z.array(characterSpellSlotUsageStateDtoSchemaRaw)),
     conditions: z.optional(z.array(characterConditionStateDtoSchemaRaw)),
     exhaustion: z.optional(characterExhaustionStateDtoSchemaRaw),
+    spellSummons: z.optional(z.array(characterSpellSummonStateDtoSchemaRaw)),
     noteGroups: z.optional(z.array(characterNoteGroupStateDtoSchemaRaw)),
     notes: z.optional(z.array(characterNoteStateDtoSchemaRaw)),
     creatures: z.optional(z.array(characterOwnedCreatureStateDtoSchemaRaw)),
@@ -244,5 +269,7 @@ export const characterCurrencyGroupStateDtoSchema = characterCurrencyGroupStateD
 export const characterClassStateDtoSchema = characterClassStateDtoSchemaRaw
 export const characterOwnedCreatureStateDtoSchema = characterOwnedCreatureStateDtoSchemaRaw
 export const characterOwnedVehicleStateDtoSchema = characterOwnedVehicleStateDtoSchemaRaw
+export const characterSpellSummonStateDtoSchema = characterSpellSummonStateDtoSchemaRaw
+export type CharacterSpellSummonStateDto = z.infer<typeof characterSpellSummonStateDtoSchemaRaw>
 export const characterNoteGroupStateDtoSchema = characterNoteGroupStateDtoSchemaRaw
 export const characterNoteStateDtoSchema = characterNoteStateDtoSchemaRaw

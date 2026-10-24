@@ -248,9 +248,9 @@ export async function buildCharacterRestPreview(params: {
     ])
   )
   const eligibleCompanions = sheet.extras.items
-    .filter((extra) => extra.kind !== 'VEHICLE' && extra.isActive)
+    .filter((extra) => extra.isActive)
     .flatMap((extra) => {
-      if (extra.kind === 'VEHICLE') return []
+      if (extra.kind === 'VEHICLE' || extra.kind === 'SPELL_SUMMON') return []
       const companionHitDiceRecovery = companionHitDiceRecoveryById.get(extra.id)
       if (input.restKind === 'LONG' && companionHitDiceRecovery === undefined)
         throw new CharacterSheetCommandError(
@@ -449,6 +449,8 @@ export function applyCompletedCharacterRest(params: {
     )
     next.state.hitpoints.hitDice = characterHitDice.hitDice
     next.state.spellSlots = undefined
+    // A long rest ends every creature a spell cast from the Sheet conjured (D190).
+    next.state.spellSummons = undefined
     recoveredHitDice = characterHitDice.recovered
     const exhaustionAfter = params.restPolicy.exhaustionAfterLongRest
     next.state.exhaustion =

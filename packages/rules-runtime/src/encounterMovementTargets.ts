@@ -1,7 +1,6 @@
 import type { DamageDefenseBypassCode } from '@artificer-toolkit/shared/core'
 import type { CharacterDeathSaves } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import type { EncounterMovementReactionCharacterSource } from './encounterMovementReactionSources.js'
-import { spellComponentsLabel } from './spellCastCandidates.js'
 import { discoverCharacterActionCapabilities } from './characterActionCapabilityDiscovery.js'
 import { compileCharacterActionEntryPoints } from './encounterActionEntryPointCompiler.js'
 import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
@@ -13,9 +12,8 @@ import {
   type HeldDamageInterception
 } from './encounterDamageInterception.js'
 import {
-  buildCharacterSpellCastActions,
-  type CharacterSpellCastActions,
-  listCastableSpellCandidateIds
+  compileCharacterSpellCasts,
+  type CharacterSpellCastActions
 } from './character/characterSpellCastActions.js'
 import {
   type EncounterAttackAgainstContributor,
@@ -189,7 +187,9 @@ export function characterConditionIds(characterFacts: CharacterMovementFacts): s
 }
 
 /** The sum of a Character's class levels. */
-export function characterTotalLevel(characterFacts: CharacterMovementFacts): number {
+export function characterTotalLevel(
+  characterFacts: Pick<CharacterMovementFacts, 'ruleEvaluation'>
+): number {
   return characterFacts.ruleEvaluation.facts.grantFoldFacts.base.classes.reduce(
     (sum, { level }) => sum + level,
     0
@@ -354,74 +354,28 @@ export function buildMovementTarget<
     const sheetMaximumHitPoints = sheetInputs.effectiveMaximumHitPoints
     const conditionDefinitionIds = [...systemConditions].sort()
     // A form that cannot cast offers no spells; Concentration on one already held stays (D130).
-    const spellCast =
+    const characterSpellCast: CharacterSpellCastActions | null =
       input.includeReactionSources && form === null
-        ? buildCharacterSpellCastActions({
-            spellCastCandidates: characterFacts.ruleEvaluation.facts.spellCastCandidates,
-            spellAccessCandidates: characterFacts.ruleEvaluation.facts.spellAccessCandidates,
-            castableCandidateIds: listCastableSpellCandidateIds({
-              character: characterFacts.character,
-              ruleEvaluation: {
-                ...characterFacts.ruleEvaluation,
-                output: effectiveRulePolicyOutput
-              }
-            }),
+        ? compileCharacterSpellCasts({
+            gameSystemId,
+            character: characterFacts.character,
+            ruleEvaluation: characterFacts.ruleEvaluation,
             policyOutput: effectiveRulePolicyOutput,
             spellsById: characterFacts.prepared.context.spellsById,
             characterLevel: characterTotalLevel(characterFacts),
+            conditionDefinitionIds,
             firstSequence: characterFacts.ruleEvaluation.facts.actionCandidates.length
           })
-        : null
-    // A cast the Encounter cannot compile is not offered: choosing it could only be refused as stale.
-    const spellEntryPoints = spellCast
-      ? compileCharacterActionEntryPoints({
-          gameSystemId,
-          candidates: spellCast.candidates,
-          descriptors: discoverCharacterActionCapabilities({
-            gameSystemId,
-            candidates: spellCast.candidates,
-            conditionDefinitionIds,
-            abilityDefinitions: characterFacts.ruleEvaluation.facts.abilityDefinitions,
-            entryPoints: spellCast.entryPoints
-          })
-        })
-      : []
-    const executableActionIds = new Set(
-      spellEntryPoints
-        .filter((entry) => entry.compilation.kind === 'COMPILED')
-        .map((entry) => entry.actionId)
-    )
-    const characterSpellCast: CharacterSpellCastActions | null = spellCast
-      ? {
-          candidates: spellCast.candidates.filter((c) => executableActionIds.has(c.actionId)),
-          decisions: spellCast.decisions.filter((d) => executableActionIds.has(d.actionId)),
-          compiledActionEntryPoints: spellEntryPoints.filter((entry) =>
-            executableActionIds.has(entry.actionId)
-          ),
-          magicSchoolIdBySpellId: new Map(
-            [...(characterFacts.prepared.context.spellsById ?? [])].map(([spellId, spell]) => [
-              spellId,
-              spell.magicSchoolId
-            ])
-          ),
-          componentsLabelBySpellId: new Map(
-            [...(characterFacts.prepared.context.spellsById ?? [])].flatMap(([spellId, spell]) => {
-              const label = spellComponentsLabel(spell)
-              return label ? [[spellId, label] as const] : []
-            })
-          ),
-          unavailable: spellCast.unavailable
-        }
-      : input.includeReactionSources
-        ? {
-            candidates: [],
-            decisions: [],
-            compiledActionEntryPoints: [],
-            magicSchoolIdBySpellId: new Map(),
-            componentsLabelBySpellId: new Map(),
-            unavailable: []
-          }
-        : null
+        : input.includeReactionSources
+          ? {
+              candidates: [],
+              decisions: [],
+              compiledActionEntryPoints: [],
+              magicSchoolIdBySpellId: new Map(),
+              componentsLabelBySpellId: new Map(),
+              unavailable: []
+            }
+          : null
     return {
       actor,
       activeEffects,

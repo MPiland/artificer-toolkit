@@ -11,6 +11,10 @@ import type { CharacterAuthored } from '@artificer-toolkit/shared/authored'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 
+import { discoverCharacterActionCapabilities } from '../characterActionCapabilityDiscovery.js'
+import { compileCharacterActionEntryPoints } from '../encounterActionEntryPointCompiler.js'
+import { spellComponentsLabel } from '../spellCastCandidates.js'
+import type { CharacterRuleEvaluationResult } from './characterRuleEvaluation.js'
 import { normalizeCharacterActionMechanicFacts } from './characterActionRuleFacts.js'
 import { projectCharacterSpellAccess } from './characterRulePolicyAdapter.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
@@ -282,4 +286,70 @@ export function buildCharacterSpellCastActions(input: {
     }
   }
   return { candidates, entryPoints, decisions, unavailable }
+}
+
+/**
+ * Compiles the spells a Character may cast now into the actions that run them: the one compile both
+ * the Encounter (which offers only these) and the Sheet (which reads a cast's summon plan from it,
+ * D190) use. A cast the compiler cannot run is left out. `policyOutput` is the output the casts are
+ * decided against (an Encounter's holds its active grants); `firstSequence` numbers the actions after
+ * the Character's other ones.
+ */
+export function compileCharacterSpellCasts(input: {
+  gameSystemId: string
+  character: CharacterAuthored
+  ruleEvaluation: CharacterRuleEvaluationResult
+  policyOutput: CharacterRulePolicyOutput
+  spellsById: ReadonlyMap<string, CompiledSpell> | undefined
+  /** The Character's level, the sum of its class levels. */
+  characterLevel: number
+  conditionDefinitionIds: readonly string[]
+  firstSequence: number
+}): CharacterSpellCastActions {
+  const { gameSystemId, ruleEvaluation, policyOutput, spellsById } = input
+  const spellCast = buildCharacterSpellCastActions({
+    spellCastCandidates: ruleEvaluation.facts.spellCastCandidates,
+    spellAccessCandidates: ruleEvaluation.facts.spellAccessCandidates,
+    castableCandidateIds: listCastableSpellCandidateIds({
+      character: input.character,
+      ruleEvaluation: { ...ruleEvaluation, output: policyOutput }
+    }),
+    policyOutput,
+    spellsById,
+    characterLevel: input.characterLevel,
+    firstSequence: input.firstSequence
+  })
+  const entryPoints = compileCharacterActionEntryPoints({
+    gameSystemId,
+    candidates: spellCast.candidates,
+    descriptors: discoverCharacterActionCapabilities({
+      gameSystemId,
+      candidates: spellCast.candidates,
+      conditionDefinitionIds: [...input.conditionDefinitionIds],
+      abilityDefinitions: ruleEvaluation.facts.abilityDefinitions,
+      entryPoints: spellCast.entryPoints
+    })
+  })
+  const executableActionIds = new Set(
+    entryPoints
+      .filter((entry) => entry.compilation.kind === 'COMPILED')
+      .map((entry) => entry.actionId)
+  )
+  return {
+    candidates: spellCast.candidates.filter((c) => executableActionIds.has(c.actionId)),
+    decisions: spellCast.decisions.filter((d) => executableActionIds.has(d.actionId)),
+    compiledActionEntryPoints: entryPoints.filter((entry) =>
+      executableActionIds.has(entry.actionId)
+    ),
+    magicSchoolIdBySpellId: new Map(
+      [...(spellsById ?? [])].map(([spellId, spell]) => [spellId, spell.magicSchoolId])
+    ),
+    componentsLabelBySpellId: new Map(
+      [...(spellsById ?? [])].flatMap(([spellId, spell]) => {
+        const label = spellComponentsLabel(spell)
+        return label ? [[spellId, label] as const] : []
+      })
+    ),
+    unavailable: spellCast.unavailable
+  }
 }

@@ -1,8 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { manifestNestedBehaviorDtoSchema } from './effect.js'
 import { shapeDtoSchema } from '../shared/shape.js'
-import { speedDtoSchema } from '../shared/speed.js'
-import { numericExprSchema } from '../shared/numericExpr.js'
+import { summonStatBlockDtoSchema } from './summonStatBlock.js'
 import {
   abilityCodeSchema,
   lengthUnitCodeSchema,
@@ -15,7 +14,6 @@ import {
   authoredLengthAmountSchema,
   authoredNestedCollectionSchema,
   authoredNonnegativeNumberSchema,
-  authoredPlainTextSchema,
   authoredPositiveLengthAmountSchema,
   authoredReferenceCollectionSchema,
   authoredShortTextSchema
@@ -142,37 +140,6 @@ const manifestProximityRuleDtoSchema = lazySchema(() =>
     }),
     requiresSight: z.boolean(),
     behavior: z.lazy(() => manifestNestedBehaviorDtoSchema)
-  })
-)
-
-const summonAbilityScoresDtoSchema = lazySchema(() =>
-  z.object({
-    STRENGTH: z.optional(numericExprSchema),
-    DEXTERITY: z.optional(numericExprSchema),
-    CONSTITUTION: z.optional(numericExprSchema),
-    INTELLIGENCE: z.optional(numericExprSchema),
-    WISDOM: z.optional(numericExprSchema),
-    CHARISMA: z.optional(numericExprSchema)
-  })
-)
-
-export const summonStatBlockDtoSchema = lazySchema(() =>
-  z.object({
-    size: z.optional(authoredIdentifierSchema),
-    armorClass: z.optional(numericExprSchema),
-    armorClassNote: z.optional(authoredPlainTextSchema),
-    hitPoints: z.optional(numericExprSchema),
-    speeds: z.optional(authoredNestedCollectionSchema(speedDtoSchema)),
-    abilityScores: z.optional(summonAbilityScoresDtoSchema),
-    senses: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-    passivePerception: z.optional(numericExprSchema),
-    damageVulnerabilities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-    damageResistances: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-    damageImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-    conditionImmunities: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
-    damageabilityKind: z.optional(z.enum(['NORMAL', 'INVULNERABLE', 'SPECIAL'])),
-    visibilityKind: z.optional(z.enum(['VISIBLE', 'INVISIBLE', 'SPECIAL'])),
-    occupiesSpace: z.optional(z.boolean())
   })
 )
 

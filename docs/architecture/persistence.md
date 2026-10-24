@@ -232,7 +232,7 @@ the death area refuses the undo like any pending decision; the GM voids it, then
 
 - **Character play state.** A Character is a `characters` row (structure, clocked by `updatedAt`) and a
   `characterPlayStates` row (hit points, resources, slots, conditions, exhaustion, inspiration, item-use state,
-  party visibility, `maximumHitPoints`, `speeds`, clocked by `streamVersion`). `writeCharacterRecord` is
+  party visibility, `maximumHitPoints`, `speeds`, Sheet spell summons (`spellSummons`, D190), clocked by `streamVersion`). `writeCharacterRecord` is
   the only writer and rewrites only the record whose checksum changed, so a play change never writes the
   document. See [Character play state](character.md#character-play-state-adr-0035-amendment-12--local-implementation).
 - **No stored projection.** `encounterRuns` holds Run state only. Projections are built on read
