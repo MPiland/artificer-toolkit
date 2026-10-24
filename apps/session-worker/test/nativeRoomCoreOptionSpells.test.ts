@@ -666,6 +666,45 @@ describe.each([
   }, 120000)
 })
 
+/**
+ * SPELLS-4.T2v2a3a: a repeat its offer does not mark CONJURED measures its reach from the caster's
+ * own token, so a held Flame Blade misses a Wolf beyond the caster's reach until the GM overrides.
+ */
+describe('room Flame Blade reach (SPELLS-4.T2v2a3a)', () => {
+  it('measures the repeat attack from the caster and refuses a Wolf beyond its reach', async () => {
+    const room = await actionRoom({
+      rolls: [18],
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      // Three cells from the caster: beyond the blade's 5-foot reach.
+      positions: { [WOLF_ID]: { x: 450, y: 150 } },
+      characterPlay: { classLevel: 5 },
+      characterSpellcasting: { spells: [flameBlade], prepared: [flameBlade.id] },
+      characterAction: (action) => action.label.startsWith(flameBlade.label)
+    })
+    const cast = await room.startAction(CHARACTER_ACTOR_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    await room.advanceTurn()
+    await room.advanceTurn()
+    const [offer] = (await room.actionChoices()).effectOffers
+    if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+    expect(offer.originActorId).toBeUndefined()
+
+    const refused = await room.startAction(WOLF_ID, [], room.sceneContext(), null, offer.actionId)
+    expect(refused.answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'RULE_WARNINGS' })
+    expect(JSON.stringify(refused.answer)).toContain('TARGET_OUT_OF_RANGE')
+
+    const overridden = await room.startAction(
+      WOLF_ID,
+      ['TARGET_OUT_OF_RANGE'],
+      room.sceneContext(),
+      null,
+      offer.actionId
+    )
+    expect(overridden.answer.type, JSON.stringify(overridden.answer)).toBe('COMMAND_COMMITTED')
+  }, 120000)
+})
+
 describe('room True Strike (SPELLS-4.T2k1)', () => {
   /**
    * The Character (first in the order) with True Strike prepared and a Club equipped, then an ally

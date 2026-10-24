@@ -23,6 +23,15 @@ export function preparedSpellCastLevel(
   return prepared.characterActionState?.actionMechanic.spellCastLevel ?? null
 }
 
+/** The spell attack bonus a Character's cast freezes into the attack repeats it offers (D166). */
+export function preparedSpellAttackBonus(
+  prepared: Pick<Awaited<ReturnType<typeof prepareEncounterActionMechanics>>, 'source'>
+): number | undefined {
+  return prepared.source.kind === 'CHARACTER_ACTION'
+    ? prepared.source.effectivePolicyOutput.derivedStats.spellcasting?.attackBonus.effective
+    : undefined
+}
+
 /**
  * Whether the prepared action is a spell cast, the fact `ON_CAST_SPELL` ends effects on. A Character
  * casts a spell; a Creature casts one when its action is triggered by a spell attack.

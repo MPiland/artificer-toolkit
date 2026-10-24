@@ -88,7 +88,8 @@ async function requireCurrentContestInputs(
       {
         actorId: root.actorId,
         targetActorId: actionTargetActorId(root.target),
-        sceneContext: root.sceneContext
+        sceneContext: root.sceneContext,
+        actionId: root.actionId
       },
       membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
     )

@@ -1,8 +1,10 @@
+import type { RepeatOfferOrigin } from '@artificer-toolkit/schema/effects/effectOffer'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
 import type { EffectActionCapabilityDescriptor } from './characterActionCapabilityDiscovery.js'
-import { resolveEffectOffer } from './encounterEffectOffers.js'
+import { resolveEffectOffer, type LiveEffectOffer } from './encounterEffectOffers.js'
 import { bindEncounterEffect } from './encounterFeatureActionCapabilityDiscovery.js'
 
 /**
@@ -40,6 +42,53 @@ export function parseRepeatPathActionId(actorId: string, actionId: string) {
   const offerIndex = Number(index)
   if (!effectId || rest.length > 0 || !Number.isInteger(offerIndex) || offerIndex < 0) return null
   return { effectId, offerIndex }
+}
+
+/**
+ * The actor a repeat offer is measured from, for its range and reach: the actor that takes it, or for
+ * a CONJURED offer the Run actor its carrier conjured (whose owner names the actor and the carrier).
+ * Null when that creature is gone, which makes the repeat stale.
+ */
+export function repeatOfferOriginActorId(input: {
+  actorId: string
+  offer: Pick<LiveEffectOffer, 'effectId'> & { origin?: RepeatOfferOrigin }
+  actors: readonly Pick<EncounterRunActorState, 'id' | 'owner'>[]
+}): string | null {
+  if (input.offer.origin !== 'CONJURED') return input.actorId
+  return (
+    input.actors.find(
+      ({ owner }) =>
+        owner?.ownerActorId === input.actorId && owner.sourceEffectId === input.offer.effectId
+    )?.id ?? null
+  )
+}
+
+/**
+ * The actor whose token an action's range is measured from: its own actor, unless the action is a
+ * CONJURED repeat (the creature its carrier conjured). A repeat that is stale throws.
+ */
+export function encounterActionOriginActorId(input: {
+  actorId: string
+  actionId: string
+  actors: readonly Pick<EncounterRunActorState, 'id' | 'owner'>[]
+  effectsByHolder: Parameters<typeof resolveEffectOffer>[0]['effectsByHolder']
+}): string {
+  const parsed = parseRepeatPathActionId(input.actorId, input.actionId)
+  if (!parsed) return input.actorId
+  const offer = resolveEffectOffer({
+    actorId: input.actorId,
+    effectsByHolder: input.effectsByHolder,
+    zeroHitPointActorIds: new Set(),
+    ...parsed,
+    kind: 'REPEAT_SOURCE_PATH'
+  })
+  const originActorId = repeatOfferOriginActorId({
+    actorId: input.actorId,
+    offer,
+    actors: input.actors
+  })
+  if (originActorId === null) throw new Error('The selected repeat action is stale.')
+  return originActorId
 }
 
 /**

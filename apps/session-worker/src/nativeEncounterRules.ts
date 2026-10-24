@@ -507,7 +507,8 @@ export async function planNativeLiveEncounterAction(
         command: {
           actorId: command.actorId,
           targetActorId,
-          sceneContext: command.sceneContext
+          sceneContext: command.sceneContext,
+          actionId: command.actionId
         }
       })
     : null
@@ -520,10 +521,7 @@ export async function planNativeLiveEncounterAction(
         sceneVersion: sceneInputs.sceneVersion,
         sourceToken: sceneInputs.sourceToken,
         targetToken: sceneInputs.targetToken,
-        grid: resolveEncounterSceneGrid({
-          encounter: state,
-          sceneGrid: sceneInputs.sceneGrid
-        })
+        grid: resolveEncounterSceneGrid({ encounter: state, sceneGrid: sceneInputs.sceneGrid })
       }
     : null
   const definitions = {

@@ -352,7 +352,9 @@ An effect another actor is offered to move (`effectOffers`, D160) is moved with 
 which spends the offer's activation, is a PLAYER command for the actor's controller, and is refused for a stale offer,
 a defeated or unchanged holder, or an unacknowledged range warning.
 A `REPEAT_SOURCE_PATH` effect offer (D166) is not a Run command of its own: the `effectOffers` entry carries an `actionId`
-(`<actorId>:REPEAT_PATH:<effectId>:<offerIndex>`), started as an ordinary action (`RESOLVE_ACTION`) against the holder.
+(`<actorId>:REPEAT_PATH:<effectId>:<offerIndex>`), started as an ordinary action (`RESOLVE_ACTION`) against the holder. A `CONJURED` offer (SPELLS-4.T2v2a3a) also carries
+`originActorId`, the conjured creature whose token the command's `sceneContext.sourceTokenId` must name; the room's Scene
+capture request carries the optional `actionId` so its read binds that token.
 The Sheet `END_ACTIVE_EFFECT` command ends a `holderEnd` effect for its own player only when the Run is not live: in an
 ACTIVE Encounter that holds the Character, a costed end is refused with "End this effect from the Encounter actions."
 

@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounterActionTargetModifiers'
 import { readActionChoicesRun, type ActionChoiceReadInput } from './actionChoiceReads.js'
 import { prepareActionMechanics, readActionSceneContext } from './actionPreparationReads.js'
+import { readEncounterActionOriginActorId } from './actionSceneInputs.js'
 import { readRunActors } from './documents.js'
 import { loadMovementTargets } from './movementTargetReads.js'
 import { readEncounterPlayerViewer } from './playerViewer.js'
@@ -54,7 +55,14 @@ export async function readEncounterActionTargetModifiers(
       .unique()
     return row && row.sceneId === request.scene?.sceneId ? row.tokenId : null
   }
-  const sourceTokenId = request.scene ? await tokenIdOf(actor.id) : null
+  const sourceTokenId = request.scene
+    ? await tokenIdOf(
+        await readEncounterActionOriginActorId(tx, state, {
+          actorId: actor.id,
+          actionId: request.actionId
+        })
+      )
+    : null
   const prepared = await Promise.all(
     listed.map(async (target) => {
       const targetTokenId = sourceTokenId ? await tokenIdOf(target.id) : null
@@ -63,6 +71,7 @@ export async function readEncounterActionTargetModifiers(
           ? await readActionSceneContext(tx, state, {
               actorId: actor.id,
               targetActorId: target.id,
+              actionId: request.actionId,
               sceneContext: {
                 sceneId: request.scene.sceneId,
                 expectedSceneVersion: request.scene.expectedSceneVersion,

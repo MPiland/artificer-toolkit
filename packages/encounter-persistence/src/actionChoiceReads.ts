@@ -49,7 +49,10 @@ import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encount
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterDragDoublesCost } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
 import { liveEffectOffers } from '@artificer-toolkit/rules-runtime/encounterEffectOffers'
-import { repeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
+import {
+  repeatOfferOriginActorId,
+  repeatPathActionId
+} from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { snapshotCreatureEquipmentSources } from '@artificer-toolkit/rules-runtime/encounterCreatureEquipmentSources'
 import { listEncounterChosenItems } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
@@ -666,11 +669,15 @@ export async function readEncounterActionChoices(
         ? carrier.stateContributions.find((contribution) => contribution.kind === 'MODIFIER_GRANT')
         : undefined
     const { invocation } = offer.effect
+    // A CONJURED repeat whose creature is gone is stale, so it is not offered.
+    const originActorId = repeatOfferOriginActorId({ actorId: actor.id, offer, actors: runActors })
+    if (originActorId === null) continue
     effectOffers.push({
       ...shared,
       kind: offer.kind,
       actionId: repeatPathActionId(actor.id, offer.effectId, offer.offerIndex),
       ...(offer.target === undefined ? {} : { target: offer.target }),
+      ...(originActorId === actor.id ? {} : { originActorId }),
       label:
         grant && !(grant.sourceHidden && membership.role !== 'OWNER')
           ? grant.sourceLabel

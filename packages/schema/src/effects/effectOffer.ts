@@ -32,6 +32,13 @@ export const repeatOfferTargetSchema = lazySchema(() => z.enum(['HOLDER', 'INVOC
 export type RepeatOfferTarget = 'HOLDER' | 'INVOCATION'
 
 /**
+ * Where a repeat's range and reach are measured from: the actor that takes it (`ACTOR`), or the
+ * creature the carrier conjured (`CONJURED`, a summoned weapon the caster attacks with).
+ */
+export const repeatOfferOriginSchema = lazySchema(() => z.enum(['ACTOR', 'CONJURED']))
+export type RepeatOfferOrigin = 'ACTOR' | 'CONJURED'
+
+/**
  * As authored: what the offer re-runs, named by id. `pathIds` re-run those paths of the Effect that
  * carries the offer; `effectId` re-runs every path of a sibling Effect of the same subject, with its
  * invocation (an attack the carrier's own invocation is not). Exactly one is set.
@@ -44,6 +51,8 @@ export interface RepeatSourcePathOffer {
   effectId?: string
   /** Absent means `HOLDER`. */
   target?: RepeatOfferTarget
+  /** Absent means `ACTOR`. */
+  origin?: RepeatOfferOrigin
 }
 
 export type EffectOffer = MoveHeldEffectOffer | RepeatSourcePathOffer
@@ -71,7 +80,8 @@ const repeatSourcePathOfferSchema = lazySchema(() =>
           .check(z.maxLength(MAX_REPEAT_OFFER_PATHS))
       ),
       effectId: z.optional(authoredIdentifierSchema),
-      target: z.optional(repeatOfferTargetSchema)
+      target: z.optional(repeatOfferTargetSchema),
+      origin: z.optional(repeatOfferOriginSchema)
     })
     .check(
       z.refine(

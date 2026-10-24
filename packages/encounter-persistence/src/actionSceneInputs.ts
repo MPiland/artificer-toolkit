@@ -18,6 +18,12 @@ import type {
 } from '@artificer-toolkit/schema/projections/sceneLivePersistence'
 import { MAX_ENCOUNTER_ACTORS } from '@artificer-toolkit/schema/shared/authoredLimits'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import {
+  encounterActionOriginActorId,
+  parseRepeatPathActionId
+} from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
+import { readRunActors } from './documents.js'
+import { readActiveEffectsByActorId } from './effectStore.js'
 import type { EncounterReadContext } from './store.js'
 import { parseSceneLiveEntity } from './sceneLiveState.js'
 import { normalizeSceneGeometryEntity } from './sceneGeometryValues.js'
@@ -131,6 +137,27 @@ async function openActionScene(
   return { header, readToken }
 }
 
+/**
+ * The actor whose token an action's range is measured from. Only a CONJURED repeat is measured
+ * from another creature's token: the one its stored carrier conjured. Every other action, and a
+ * request that names none, measures from its actor.
+ */
+export async function readEncounterActionOriginActorId(
+  ctx: EncounterReadContext,
+  state: EncounterRunState,
+  command: Pick<ActionSceneRequestDto, 'actorId' | 'actionId'>
+) {
+  if (!command.actionId || !parseRepeatPathActionId(command.actorId, command.actionId))
+    return command.actorId
+  const actors = await readRunActors(ctx, state)
+  return encounterActionOriginActorId({
+    actorId: command.actorId,
+    actionId: command.actionId,
+    actors,
+    effectsByHolder: await readActiveEffectsByActorId(ctx, state.id, actors)
+  })
+}
+
 /** Reads exact stored geometry without rules evaluation; the caller owns commit freshness. */
 export async function readEncounterActionSceneInputs(
   ctx: EncounterReadContext,
@@ -141,8 +168,9 @@ export async function readEncounterActionSceneInputs(
   const request = command.sceneContext
   if (!request) return null
   const { header, readToken } = await openActionScene(ctx, state, request, callbacks)
+  const sourceActorId = await readEncounterActionOriginActorId(ctx, state, command)
   const [sourceToken, targetToken] = await Promise.all([
-    readToken(request.sourceTokenId, command.actorId),
+    readToken(request.sourceTokenId, sourceActorId),
     readToken(request.targetTokenId, command.targetActorId)
   ])
   return {

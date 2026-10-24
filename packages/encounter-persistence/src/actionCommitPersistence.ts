@@ -185,7 +185,8 @@ export async function persistEncounterActionCommit(
     {
       actorId: command.actorId,
       targetActorId,
-      sceneContext: command.sceneContext
+      sceneContext: command.sceneContext,
+      actionId: command.actionId
     },
     membership.role === 'OWNER' ? 'OWNER' : 'MEMBER'
   )

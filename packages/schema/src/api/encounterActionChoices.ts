@@ -396,6 +396,11 @@ export const encounterEffectOfferChoiceDtoSchema = lazySchema(() => {
        */
       actionId: z.string().check(z.minLength(1)),
       target: z.optional(repeatOfferTargetSchema),
+      /**
+       * The creature the repeat is measured from, whose token the client sends as the source token:
+       * the one the cast conjured (a CONJURED offer). Absent means the actor.
+       */
+      originActorId: z.optional(postgresUuidSchema),
       /** The cast's name, e.g. the spell, or a generic name when the source is hidden from the reader. */
       label: labelSchema,
       /** The level the cast froze, when the repeat scales with it. */

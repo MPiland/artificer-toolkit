@@ -128,7 +128,8 @@ export type PathLifecycleAuthored = {
    * named paths of the Effect that made it against the holder, charged to `activation`. Only an
    * `APPLY_GRANT` effect carries one. `when` and `range` belong to a move offer; a repeat offer names
    * `pathIds` of this Effect or an `effectId` of a sibling Effect (all its paths, with its
-   * invocation), and a `target`: `HOLDER` (default) or the re-run invocation's own targets.
+   * invocation), a `target`: `HOLDER` (default) or the re-run invocation's own targets, and an
+   * `origin` its range is measured from: the actor (default) or the creature the effect conjured.
    */
   effectOffers?: {
     kind: 'MOVE_HELD_EFFECT' | 'REPEAT_SOURCE_PATH'
@@ -139,6 +140,7 @@ export type PathLifecycleAuthored = {
     pathIds?: string[]
     effectId?: string
     target?: 'HOLDER' | 'INVOCATION'
+    origin?: 'ACTOR' | 'CONJURED'
   }[]
 }
 
