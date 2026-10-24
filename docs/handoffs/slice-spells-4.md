@@ -721,3 +721,11 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - Now: one `ACTOR_RELATIONSHIP` on hit: `TARGET_SIZE_MAXIMUM` Large, `ESCAPE_CHECK` (action, Strength check, fixed DC 10, the target or a creature within reach, so rescues apply) and the new generic module `SOURCE_INDEPENDENT_HOLD`, holding the RESTRAINED condition. The module is a lifetime fact on the relationship (schema, shared authored type, node map): `encounterEndedRelationships` skips the source-can't-act and beyond-sealed-reach ends for it and nothing else (an escape or rescue still ends it).
 - Description-only (orchestrator OK; in future-enhancements "Destructible held objects"): the "destroyed by 5 slashing damage (AC 10)" clause and the formless exclusion.
 - Proof: `encounterRelationshipEnds.test.ts` "keeps a source-independent hold whose source is unable and far away" (red before the module); `equipmentNetAuthoringParity.test.ts` (the Net and a DC 15 variant pass the equipment node map as authored); room `nativeRoomFreedomOfMovement.test.ts` "a thrown Net" (a Character's Net hit restrains a Guard whether or not Freedom of Movement is on it).
+
+## T2w (D187a): Faithful Hound as a summon
+
+- Status: implemented on `spells-4-t2w`; CI is the gate.
+- Data: Faithful Hound's cast summons a `MANIFEST` / `SUMMON` (Medium, `INVULNERABLE`, no speeds) through the same offer-free summon path as Spiritual Weapon, then a `MANUAL_ADJUDICATION` (GM ruling) for invisibility, the barking at a Small or larger creature that comes within 30 feet without the password, the turn-start bite (spell attack bonus, 4d8 piercing), and ending by dismissal or by the caster moving more than 100 feet away.
+- Not built (D187a): an automatic attack a summon makes at the start of its source's turn. It stays in `future-enhancements.md` (SUMMON manifests).
+- Deleted: the `FAITHFUL_HOUND` closed rule kind (`closedRuleKind.ts`).
+- Proof: `coreOptionSpellAuthoringParity.test.ts` (Faithful Hound); room `nativeRoomCoreOptionSpells.test.ts` "Faithful Hound": the cast conjures an owned actor and revert removes it.

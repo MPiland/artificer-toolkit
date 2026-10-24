@@ -850,14 +850,14 @@
 00000000-0002-00c8-0070-010900000000 CREATURE Immutable Form | NOT_A_DISCOVERED_ACTION
 00000000-0002-00c8-0070-010b00000000 CREATURE Shapechanger | SINGLE_GRAPH 0c278df9fb1d2b11e31b8c3d372addb7c16c5074d04bd9a929150fd1ebc31445 nodes=1 outputs=1
 00000000-0002-00c8-0070-011200000000 CREATURE Regeneration | NOT_A_DISCOVERED_ACTION
-00000000-0002-00c8-0070-011500000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-00c8-0070-011500000000 CREATURE Shapechanger | SINGLE_GRAPH 72a571885dd59da4b19489624e17e94a245f4c2b648c2df7845dafe0ff6a8f76 nodes=1 outputs=1
 00000000-0002-00c8-0070-011600000000 CREATURE Regeneration | NOT_A_DISCOVERED_ACTION
 00000000-0002-00c8-0070-011900000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
-00000000-0002-00c8-0070-011f00000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0002-00c8-0070-012000000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0002-00c8-0070-012100000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0002-00c8-0070-012200000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0002-00c8-0070-012300000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-00c8-0070-011f00000000 CREATURE Shapechanger | SINGLE_GRAPH 61486e7bba48e6b9105f0152a11b55f46276994765aadd8d95c5f1a7bdca190f nodes=1 outputs=1
+00000000-0002-00c8-0070-012000000000 CREATURE Shapechanger | SINGLE_GRAPH 60f53c764b6bddbeccb6fec7b56c3ab1eefb1cfe73bb71ab56c7c5a51bc9ccd4 nodes=1 outputs=1
+00000000-0002-00c8-0070-012100000000 CREATURE Shapechanger | SINGLE_GRAPH a616cfe6aee050f9013a13eb29531bf226fc2ea9b15843a45da428c5867e15b4 nodes=1 outputs=1
+00000000-0002-00c8-0070-012200000000 CREATURE Shapechanger | SINGLE_GRAPH 3b4e88900ec058dbb957c4f7d2d5ec90d9098212b280605ed3e1aa6017cbb734 nodes=1 outputs=1
+00000000-0002-00c8-0070-012300000000 CREATURE Shapechanger | SINGLE_GRAPH f0a42e0124bdb15588d8ab026a07beab86cbfd3ab35cb9c3ab97e5a39fcbe02f nodes=1 outputs=1
 00000000-0002-00c8-0070-012600000000 CREATURE Consume Life | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-00c8-0070-013100000000 CREATURE Breath Weapons (Recharge 5-6) | TEST_OUTCOME test=884c7ae14dc737f29d9202e631cc620c135c1e9776eeb765459593cae77276d5 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=20682023ca2a723f604966bc6b5a7348bc476e4fd08b8db0dbbd814fd1f59c63,ON_SAVE_SUCCESS=f743fa547ed750287cbc54a8cc658b5d2c1679294d599bce85089ba2a041939e]
 00000000-0002-00c8-0070-013600000000 CREATURE Ice Walk | NOT_A_DISCOVERED_ACTION
