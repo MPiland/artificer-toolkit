@@ -379,6 +379,8 @@ Started 2026-10-18 from the phase tip. T1 classification and split accepted (D15
 
 ### One with Shadows resume (SPELLS-31.T5n2, size 3, after T5n)
 
+**Ruled (c), 2026-10-24: no-op.** The light gate stays description (D187, the replan's fallback; `future-enhancements.md` lists the gate). Evidence: `CLASS_WARLOCK_ONE_WITH_SHADOWS` was deleted in T5n, and `warlock.ts` One with Shadows (`classRowId(W,5,18)`) is the T5n self action. That action applies a CONDITION invisible outcome that ends on `ON_MOVE` or `ON_TAKE_ACTION`. Its description tells the GM to judge the dim light or darkness, which is the GM ruling. Replacing the action with a MANUAL_ADJUDICATION outcome would drop the automated invisibility, so the record is unchanged. The plan below is kept for the future enhancement.
+
 Gate One with Shadows (`warlock.ts`, `classRowId(W,5,18)`, effect `classRowId(W,0x60,18)`) on the acting creature standing in dim light or darkness, replacing the GM's judgement.
 
 - The action's path needs a restriction on `ON_USE` (a facet predicate on the scene light at the actor's position). The action scene context does not carry scene lights, zones or barriers yet; add them there first.
