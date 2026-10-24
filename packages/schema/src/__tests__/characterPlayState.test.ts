@@ -51,6 +51,20 @@ const state = fc.record(
     spellSlots: fc.array(fc.record({ slotKey: text, used: count }), { maxLength: 3 }),
     conditions: fc.array(fc.record({ conditionTypeId: text }), { maxLength: 3 }),
     exhaustion: fc.record({ level: fc.integer({ min: 0, max: 6 }) }),
+    spellSummons: fc.array(
+      fc.record({
+        id: uuid,
+        spellId: text,
+        summonOutcomeId: text,
+        label: fc.constant('Arcane Hand'),
+        concentration: fc.boolean(),
+        armorClass: fc.option(count, { nil: null }),
+        maximumHitPoints: fc.constant(40),
+        currentHitPoints: fc.integer({ min: 1, max: 40 }),
+        castAt: fc.constant('2026-10-23T00:00:00.000Z')
+      }),
+      { maxLength: 2 }
+    ),
     noteGroups: fc.array(
       fc.record({
         id: text,

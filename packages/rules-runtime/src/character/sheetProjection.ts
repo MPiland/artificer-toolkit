@@ -30,6 +30,7 @@ import {
 } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characters'
+import { sheetSpellSummonConcentration, sheetSpellSummonExtra } from './sheetSpellSummon.js'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
@@ -1004,10 +1005,13 @@ export function projectCharacterSheetBundle(
       }
     ]
   })
+  const summonExtras = (character.state.spellSummons ?? []).map((summon) =>
+    sheetSpellSummonExtra(summon, formatExtraSpeedLabel(summon.speeds, resolution.registry.system))
+  )
   const sheetExtras = {
     kindOptions: [...CHARACTER_EXTRA_KIND_OPTIONS],
     originOptions: [...CREATURE_ORIGIN_KIND_OPTIONS],
-    items: [...creatureExtras, ...vehicleExtras]
+    items: [...creatureExtras, ...vehicleExtras, ...summonExtras]
   } satisfies CharacterSheetResponseDto['extras']
   for (const access of ruleProjection.spellAccess) displayedSpellIds.add(access.spellId)
   const spellSourcesBySpellId = getSpellSourcesBySpellId(
@@ -1449,7 +1453,9 @@ export function projectCharacterSheetBundle(
         recoveryTags: reduction.recoveryTags
       })),
       activeGrants: listActiveGrantListings(params.activeEffects),
-      concentration: params.concentration,
+      // A Concentration summon the Sheet holds is the Sheet's Concentration when no Run carried one (D190).
+      concentration:
+        params.concentration ?? sheetSpellSummonConcentration(character.state.spellSummons),
       exhaustion: {
         label: DND5E_2014_EXHAUSTION_PRESENTATION.label,
         description: DND5E_2014_EXHAUSTION_PRESENTATION.description,

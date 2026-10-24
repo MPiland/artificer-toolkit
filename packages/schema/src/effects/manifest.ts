@@ -158,7 +158,7 @@ const summonAbilityScoresDtoSchema = lazySchema(() =>
 
 export const summonStatBlockDtoSchema = lazySchema(() =>
   z.object({
-    size: z.optional(authoredIdentifierSchema),
+    size: z.optional(sizeCodeSchema),
     armorClass: z.optional(numericExprSchema),
     armorClassNote: z.optional(authoredPlainTextSchema),
     hitPoints: z.optional(numericExprSchema),

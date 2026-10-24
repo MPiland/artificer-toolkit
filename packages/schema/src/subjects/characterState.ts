@@ -1,6 +1,9 @@
 import { z, lazySchema } from '../zod.js'
 import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { speedDtoSchema } from '../shared/speed.js'
+import { abilityCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import type { CharacterSpellSummonState } from '@artificer-toolkit/shared/authored'
 
 import {
   CREATURE_ORIGIN_KIND_CODE,
@@ -110,6 +113,32 @@ const characterOwnedCreatureStateDtoSchemaRaw = lazySchema(() =>
     tempHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
     hitDice: z.optional(characterHitDiceUsageStateDtoSchema)
   })
+)
+/**
+ * A creature a spell cast from the Sheet conjured outside an Encounter (D190): play state the Sheet
+ * owns, holding the stat block values the cast resolved against the caster.
+ */
+const characterSpellSummonStateDtoSchemaRaw: z.ZodMiniType<CharacterSpellSummonState> = lazySchema(
+  () =>
+    z.object({
+      id: postgresUuidSchema,
+      spellId: z.string(),
+      summonOutcomeId: z.string(),
+      label: z.string().check(z.minLength(1)),
+      /** The cast opened Concentration: this summon is the Sheet's Concentration and ends with it. */
+      concentration: z.boolean(),
+      size: z.optional(sizeCodeSchema),
+      armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+      abilityScores: z.optional(z.partialRecord(abilityCodeSchema, z.number().check(z.int()))),
+      speeds: z.optional(z.array(speedDtoSchema)),
+      passivePerception: z.optional(z.number().check(z.int())),
+      maximumHitPoints: z.number().check(z.int()).check(z.positive()),
+      currentHitPoints: z.number().check(z.int()).check(z.positive()),
+      tempHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+      customName: z.optional(z.string()),
+      notes: z.optional(z.string()),
+      castAt: z.iso.datetime()
+    })
 )
 const characterOwnedVehicleStateDtoSchemaRaw = lazySchema(() =>
   z.object({
@@ -223,6 +252,7 @@ const characterStateDtoSchemaRaw = lazySchema(() =>
     spellSlots: z.optional(z.array(characterSpellSlotUsageStateDtoSchemaRaw)),
     conditions: z.optional(z.array(characterConditionStateDtoSchemaRaw)),
     exhaustion: z.optional(characterExhaustionStateDtoSchemaRaw),
+    spellSummons: z.optional(z.array(characterSpellSummonStateDtoSchemaRaw)),
     noteGroups: z.optional(z.array(characterNoteGroupStateDtoSchemaRaw)),
     notes: z.optional(z.array(characterNoteStateDtoSchemaRaw)),
     creatures: z.optional(z.array(characterOwnedCreatureStateDtoSchemaRaw)),
@@ -244,5 +274,7 @@ export const characterCurrencyGroupStateDtoSchema = characterCurrencyGroupStateD
 export const characterClassStateDtoSchema = characterClassStateDtoSchemaRaw
 export const characterOwnedCreatureStateDtoSchema = characterOwnedCreatureStateDtoSchemaRaw
 export const characterOwnedVehicleStateDtoSchema = characterOwnedVehicleStateDtoSchemaRaw
+export const characterSpellSummonStateDtoSchema = characterSpellSummonStateDtoSchemaRaw
+export type CharacterSpellSummonStateDto = z.infer<typeof characterSpellSummonStateDtoSchemaRaw>
 export const characterNoteGroupStateDtoSchema = characterNoteGroupStateDtoSchemaRaw
 export const characterNoteStateDtoSchema = characterNoteStateDtoSchemaRaw

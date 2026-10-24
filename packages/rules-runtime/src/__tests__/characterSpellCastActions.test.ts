@@ -46,6 +46,9 @@ import { evaluateDnd5e2014CharacterActions } from '../systems/dnd5e/characterAct
 import { DND5E_SAVE_DC_FACT_KEY } from '../systems/dnd5e/effectActionContracts.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from '../targetBoundActiveRuleEffectExecutor.js'
 import { createSrdRulesRuntime, testUuid } from '../testing/dnd5eSrdEncounter.js'
+import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { buildEncounterSummon } from '../encounterSummon.js'
+import { buildSheetSpellSummon } from '../character/sheetSpellSummon.js'
 import { fixedHealSpell } from '../testing/fixedHealSpell.js'
 import { plannedTimedCondition } from '../testing/plannedTimedCondition.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
@@ -2906,6 +2909,72 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
         )
       )
     ).toBeNull()
+  })
+
+  it('builds the Sheet’s summon and the Encounter’s from the one compiled plan (D190, SPELLS-34.4)', () => {
+    const authored = spell('Arcane Hand')
+    const placement = compiledCast(authored)?.summonPlacement
+    if (!placement) throw new Error('Arcane Hand must compile a summon plan.')
+    const NOW = '2026-10-23T00:00:00.000Z'
+    const caster = encounterRunActorStateSchema.parse({
+      id: testUuid(1),
+      encounterId: testUuid(2),
+      sideId: testUuid(3),
+      kind: 'CHARACTER',
+      sourceId: testUuid(4),
+      frozenState: null,
+      absence: null,
+      form: null,
+      label: 'Aria',
+      systemId: SRD_SYSTEM_ID,
+      stableTieKey: testUuid(5),
+      public: true,
+      controllerUserIds: [testUuid(6)],
+      disposition: 'FRIENDLY',
+      healthDisplay: null,
+      resources: {},
+      gmNotes: null,
+      initiative: null,
+      manualOrder: null,
+      createdAt: NOW,
+      updatedAt: NOW,
+      snapshot: { kind: 'CHARACTER', id: testUuid(4), label: 'Aria', systemId: SRD_SYSTEM_ID }
+    })
+    const label = placement.label ?? authored.label
+    const { actor } = buildEncounterSummon({
+      summon: placement,
+      caster,
+      casterHitPointMaximum: 40,
+      sourceEffectId: testUuid(8),
+      label,
+      point: { x: 0, y: 0 },
+      edgeLength: 100,
+      occurredAt: NOW
+    })
+    const sheetSummon = buildSheetSpellSummon({
+      placement,
+      casterHitPointMaximum: 40,
+      spellId: authored.id,
+      label: authored.label,
+      id: testUuid(7),
+      castAt: NOW
+    })
+    if (!('maxHitPoints' in actor))
+      throw new Error('Expected the summon to hold its own hit points.')
+
+    expect(sheetSummon).toMatchObject({
+      label: actor.label,
+      maximumHitPoints: actor.maxHitPoints,
+      currentHitPoints: actor.currentHitPoints,
+      armorClass: 20,
+      concentration: true,
+      summonOutcomeId: placement.summonOutcomeId,
+      size: 'LARGE',
+      abilityScores: { STRENGTH: 26 },
+      speeds: placement.statBlock.speeds
+    })
+    expect(sheetSummon).not.toHaveProperty('passivePerception')
+    expect(actor.maxHitPoints).toBe(40)
   })
 
   it.each(['Mage Hand', 'Spiritual Weapon'])(

@@ -435,6 +435,8 @@ function projectExtras<Sheet extends Pick<CharacterSheetResponseDto, 'extras'>>(
       ...sheet.extras,
       items: sheet.extras.items.map((item) => {
         if (item.id !== command.extra.extraId) return item
+        // A summon's hit points can end it (D190); its row waits for the server.
+        if (item.kind === 'SPELL_SUMMON' || command.extra.kind === 'SPELL_SUMMON') return item
         const displayName =
           command.extra.customName === undefined
             ? item.displayName

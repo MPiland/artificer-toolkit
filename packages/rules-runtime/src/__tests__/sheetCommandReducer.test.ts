@@ -868,6 +868,73 @@ describe('Ending Concentration (SPELLS-5.11)', () => {
   })
 })
 
+describe('Character Sheet spell summons (D190)', () => {
+  const held = '50000000-0000-4000-8000-00000000000d'
+  const timed = '50000000-0000-4000-8000-00000000000e'
+  const summon = (id: string, concentration: boolean) => ({
+    id,
+    spellId: 'spell-summon',
+    summonOutcomeId: 'summon',
+    label: 'Hand',
+    concentration,
+    armorClass: 20,
+    maximumHitPoints: 20,
+    currentHitPoints: 20,
+    castAt: created
+  })
+  const caster = (current = 10) =>
+    character({
+      hitpoints: { ...character().state.hitpoints, current },
+      spellSummons: [summon(held, true), summon(timed, false)]
+    })
+  const remaining = (from: CharacterAuthored) =>
+    (from.state.spellSummons ?? []).map((entry) => entry.id)
+
+  it('ends the summon that holds Concentration when Concentration ends, and keeps a timed one', () => {
+    expect(remaining(apply(caster(), { ...base, type: 'END_CONCENTRATION' }))).toEqual([timed])
+  })
+
+  it('ends the Concentration summon when the caster drops to 0 hit points', () => {
+    expect(
+      remaining(apply(caster(), { ...base, type: 'ADJUST_HIT_POINTS', mode: 'DAMAGE', amount: 30 }))
+    ).toEqual([timed])
+    expect(remaining(apply(caster(), { ...base, type: 'SET_HIT_POINTS', current: 0 }))).toEqual([
+      timed
+    ])
+    expect(remaining(apply(caster(), { ...base, type: 'SET_HIT_POINTS', current: 1 }))).toEqual([
+      held,
+      timed
+    ])
+  })
+
+  it('tracks a summon’s hit points up to its maximum and ends it at 0', () => {
+    const edit = (currentHitPoints: number) =>
+      apply(caster(), {
+        ...base,
+        type: 'UPDATE_SHEET_EXTRA',
+        extra: { kind: 'SPELL_SUMMON', extraId: timed, currentHitPoints, tempHitPoints: 3 }
+      })
+    expect(edit(99).state.spellSummons?.find((entry) => entry.id === timed)).toMatchObject({
+      currentHitPoints: 20,
+      tempHitPoints: 3
+    })
+    expect(remaining(edit(0))).toEqual([held])
+  })
+
+  it('dismisses a summon, and refuses one that is not there', () => {
+    const dismiss = { ...base, type: 'REMOVE_SHEET_EXTRA' } as const
+    expect(
+      remaining(apply(caster(), { ...dismiss, extra: { kind: 'SPELL_SUMMON', extraId: held } }))
+    ).toEqual([timed])
+    expect(
+      summarizeCharacterSheetCommand({ ...dismiss, extra: { kind: 'SPELL_SUMMON', extraId: held } })
+    ).toBe('Summon dismissed')
+    expect(() =>
+      apply(character(), { ...dismiss, extra: { kind: 'SPELL_SUMMON', extraId: held } })
+    ).toThrow(CharacterSheetCommandError)
+  })
+})
+
 describe('Character Sheet held items (SHEET-8)', () => {
   const itemIds = {
     sword: '50000000-0000-4000-8000-0000000000a1',

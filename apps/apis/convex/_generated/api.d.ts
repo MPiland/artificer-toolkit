@@ -2483,6 +2483,14 @@ export declare const api: {
                       isActive?: boolean;
                       kind: "VEHICLE";
                       notes?: string | null;
+                    }
+                  | {
+                      currentHitPoints?: number;
+                      customName?: string | null;
+                      extraId: string;
+                      kind: "SPELL_SUMMON";
+                      notes?: string | null;
+                      tempHitPoints?: number;
                     };
                 type: "UPDATE_SHEET_EXTRA";
               }
@@ -2491,7 +2499,12 @@ export declare const api: {
                 expectedVersion: number;
                 extra: {
                   extraId: string;
-                  kind: "COMPANION" | "MOUNT" | "OWNED" | "VEHICLE";
+                  kind:
+                    | "COMPANION"
+                    | "MOUNT"
+                    | "OWNED"
+                    | "VEHICLE"
+                    | "SPELL_SUMMON";
                 };
                 type: "REMOVE_SHEET_EXTRA";
               }
@@ -3414,6 +3427,54 @@ export declare const api: {
                   passengerCapacity?: number;
                   speedLabel?: string;
                   vehicleId: string;
+                }
+              | {
+                  abilityScores?: {
+                    CHARISMA?: number;
+                    CONSTITUTION?: number;
+                    DEXTERITY?: number;
+                    INTELLIGENCE?: number;
+                    STRENGTH?: number;
+                    WISDOM?: number;
+                  };
+                  actions: Array<{
+                    description?: string;
+                    id: string;
+                    label: string;
+                  }>;
+                  armorClass: number | null;
+                  authoredName: string;
+                  concentration: boolean;
+                  customName?: string;
+                  displayName: string;
+                  equipmentItemIds: Array<string>;
+                  features: Array<{
+                    description?: string;
+                    id: string;
+                    label: string;
+                  }>;
+                  hitPoints: { current: number; maximum: number; temp: number };
+                  id: string;
+                  isActive: boolean;
+                  kind: "SPELL_SUMMON";
+                  kindLabel: string;
+                  notes?: string;
+                  originKind: "SUMMONED";
+                  originLabel: string;
+                  passivePerception?: number;
+                  size?:
+                    | "COLOSSAL"
+                    | "DIMUNITIVE"
+                    | "FINE"
+                    | "GARGANTUAN"
+                    | "GIANT"
+                    | "HUGE"
+                    | "LARGE"
+                    | "MEDIUM"
+                    | "SMALL"
+                    | "TINY";
+                  speedLabel?: string;
+                  spellId: string;
                 }
             >;
             kindOptions: Array<{
@@ -11885,6 +11946,45 @@ export declare const api: {
             }>;
             resources?: Array<{ resourceGrantId: string; used: number }>;
             spellSlots?: Array<{ slotKey: string; used: number }>;
+            spellSummons?: Array<{
+              abilityScores?: {
+                CHARISMA?: number;
+                CONSTITUTION?: number;
+                DEXTERITY?: number;
+                INTELLIGENCE?: number;
+                STRENGTH?: number;
+                WISDOM?: number;
+              };
+              armorClass: number | null;
+              castAt: string;
+              concentration: boolean;
+              currentHitPoints: number;
+              customName?: string;
+              id: string;
+              label: string;
+              maximumHitPoints: number;
+              notes?: string;
+              passivePerception?: number;
+              size?:
+                | "COLOSSAL"
+                | "DIMUNITIVE"
+                | "FINE"
+                | "GARGANTUAN"
+                | "GIANT"
+                | "HUGE"
+                | "LARGE"
+                | "MEDIUM"
+                | "SMALL"
+                | "TINY";
+              speeds?: Array<{
+                amount: number;
+                speedId: string;
+                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+              }>;
+              spellId: string;
+              summonOutcomeId: string;
+              tempHitPoints?: number;
+            }>;
             vehicleEquipment?: Record<
               string,
               Array<{ equipmentItemId: string }>
@@ -12267,6 +12367,45 @@ export declare const api: {
               }>;
               resources?: Array<{ resourceGrantId: string; used: number }>;
               spellSlots?: Array<{ slotKey: string; used: number }>;
+              spellSummons?: Array<{
+                abilityScores?: {
+                  CHARISMA?: number;
+                  CONSTITUTION?: number;
+                  DEXTERITY?: number;
+                  INTELLIGENCE?: number;
+                  STRENGTH?: number;
+                  WISDOM?: number;
+                };
+                armorClass: number | null;
+                castAt: string;
+                concentration: boolean;
+                currentHitPoints: number;
+                customName?: string;
+                id: string;
+                label: string;
+                maximumHitPoints: number;
+                notes?: string;
+                passivePerception?: number;
+                size?:
+                  | "COLOSSAL"
+                  | "DIMUNITIVE"
+                  | "FINE"
+                  | "GARGANTUAN"
+                  | "GIANT"
+                  | "HUGE"
+                  | "LARGE"
+                  | "MEDIUM"
+                  | "SMALL"
+                  | "TINY";
+                speeds?: Array<{
+                  amount: number;
+                  speedId: string;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                }>;
+                spellId: string;
+                summonOutcomeId: string;
+                tempHitPoints?: number;
+              }>;
               vehicleEquipment?: Record<
                 string,
                 Array<{ equipmentItemId: string }>
@@ -12648,6 +12787,45 @@ export declare const api: {
               }>;
               resources?: Array<{ resourceGrantId: string; used: number }>;
               spellSlots?: Array<{ slotKey: string; used: number }>;
+              spellSummons?: Array<{
+                abilityScores?: {
+                  CHARISMA?: number;
+                  CONSTITUTION?: number;
+                  DEXTERITY?: number;
+                  INTELLIGENCE?: number;
+                  STRENGTH?: number;
+                  WISDOM?: number;
+                };
+                armorClass: number | null;
+                castAt: string;
+                concentration: boolean;
+                currentHitPoints: number;
+                customName?: string;
+                id: string;
+                label: string;
+                maximumHitPoints: number;
+                notes?: string;
+                passivePerception?: number;
+                size?:
+                  | "COLOSSAL"
+                  | "DIMUNITIVE"
+                  | "FINE"
+                  | "GARGANTUAN"
+                  | "GIANT"
+                  | "HUGE"
+                  | "LARGE"
+                  | "MEDIUM"
+                  | "SMALL"
+                  | "TINY";
+                speeds?: Array<{
+                  amount: number;
+                  speedId: string;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                }>;
+                spellId: string;
+                summonOutcomeId: string;
+                tempHitPoints?: number;
+              }>;
               vehicleEquipment?: Record<
                 string,
                 Array<{ equipmentItemId: string }>
@@ -13355,6 +13533,45 @@ export declare const api: {
                 }>;
                 resources?: Array<{ resourceGrantId: string; used: number }>;
                 spellSlots?: Array<{ slotKey: string; used: number }>;
+                spellSummons?: Array<{
+                  abilityScores?: {
+                    CHARISMA?: number;
+                    CONSTITUTION?: number;
+                    DEXTERITY?: number;
+                    INTELLIGENCE?: number;
+                    STRENGTH?: number;
+                    WISDOM?: number;
+                  };
+                  armorClass: number | null;
+                  castAt: string;
+                  concentration: boolean;
+                  currentHitPoints: number;
+                  customName?: string;
+                  id: string;
+                  label: string;
+                  maximumHitPoints: number;
+                  notes?: string;
+                  passivePerception?: number;
+                  size?:
+                    | "COLOSSAL"
+                    | "DIMUNITIVE"
+                    | "FINE"
+                    | "GARGANTUAN"
+                    | "GIANT"
+                    | "HUGE"
+                    | "LARGE"
+                    | "MEDIUM"
+                    | "SMALL"
+                    | "TINY";
+                  speeds?: Array<{
+                    amount: number;
+                    speedId: string;
+                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                  }>;
+                  spellId: string;
+                  summonOutcomeId: string;
+                  tempHitPoints?: number;
+                }>;
                 vehicleEquipment?: Record<
                   string,
                   Array<{ equipmentItemId: string }>
@@ -14070,6 +14287,45 @@ export declare const api: {
                 }>;
                 resources?: Array<{ resourceGrantId: string; used: number }>;
                 spellSlots?: Array<{ slotKey: string; used: number }>;
+                spellSummons?: Array<{
+                  abilityScores?: {
+                    CHARISMA?: number;
+                    CONSTITUTION?: number;
+                    DEXTERITY?: number;
+                    INTELLIGENCE?: number;
+                    STRENGTH?: number;
+                    WISDOM?: number;
+                  };
+                  armorClass: number | null;
+                  castAt: string;
+                  concentration: boolean;
+                  currentHitPoints: number;
+                  customName?: string;
+                  id: string;
+                  label: string;
+                  maximumHitPoints: number;
+                  notes?: string;
+                  passivePerception?: number;
+                  size?:
+                    | "COLOSSAL"
+                    | "DIMUNITIVE"
+                    | "FINE"
+                    | "GARGANTUAN"
+                    | "GIANT"
+                    | "HUGE"
+                    | "LARGE"
+                    | "MEDIUM"
+                    | "SMALL"
+                    | "TINY";
+                  speeds?: Array<{
+                    amount: number;
+                    speedId: string;
+                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                  }>;
+                  spellId: string;
+                  summonOutcomeId: string;
+                  tempHitPoints?: number;
+                }>;
                 vehicleEquipment?: Record<
                   string,
                   Array<{ equipmentItemId: string }>
@@ -14797,6 +15053,45 @@ export declare const api: {
               }>;
               resources?: Array<{ resourceGrantId: string; used: number }>;
               spellSlots?: Array<{ slotKey: string; used: number }>;
+              spellSummons?: Array<{
+                abilityScores?: {
+                  CHARISMA?: number;
+                  CONSTITUTION?: number;
+                  DEXTERITY?: number;
+                  INTELLIGENCE?: number;
+                  STRENGTH?: number;
+                  WISDOM?: number;
+                };
+                armorClass: number | null;
+                castAt: string;
+                concentration: boolean;
+                currentHitPoints: number;
+                customName?: string;
+                id: string;
+                label: string;
+                maximumHitPoints: number;
+                notes?: string;
+                passivePerception?: number;
+                size?:
+                  | "COLOSSAL"
+                  | "DIMUNITIVE"
+                  | "FINE"
+                  | "GARGANTUAN"
+                  | "GIANT"
+                  | "HUGE"
+                  | "LARGE"
+                  | "MEDIUM"
+                  | "SMALL"
+                  | "TINY";
+                speeds?: Array<{
+                  amount: number;
+                  speedId: string;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                }>;
+                spellId: string;
+                summonOutcomeId: string;
+                tempHitPoints?: number;
+              }>;
               vehicleEquipment?: Record<
                 string,
                 Array<{ equipmentItemId: string }>
@@ -15498,6 +15793,45 @@ export declare const api: {
                 }>;
                 resources?: Array<{ resourceGrantId: string; used: number }>;
                 spellSlots?: Array<{ slotKey: string; used: number }>;
+                spellSummons?: Array<{
+                  abilityScores?: {
+                    CHARISMA?: number;
+                    CONSTITUTION?: number;
+                    DEXTERITY?: number;
+                    INTELLIGENCE?: number;
+                    STRENGTH?: number;
+                    WISDOM?: number;
+                  };
+                  armorClass: number | null;
+                  castAt: string;
+                  concentration: boolean;
+                  currentHitPoints: number;
+                  customName?: string;
+                  id: string;
+                  label: string;
+                  maximumHitPoints: number;
+                  notes?: string;
+                  passivePerception?: number;
+                  size?:
+                    | "COLOSSAL"
+                    | "DIMUNITIVE"
+                    | "FINE"
+                    | "GARGANTUAN"
+                    | "GIANT"
+                    | "HUGE"
+                    | "LARGE"
+                    | "MEDIUM"
+                    | "SMALL"
+                    | "TINY";
+                  speeds?: Array<{
+                    amount: number;
+                    speedId: string;
+                    unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                  }>;
+                  spellId: string;
+                  summonOutcomeId: string;
+                  tempHitPoints?: number;
+                }>;
                 vehicleEquipment?: Record<
                   string,
                   Array<{ equipmentItemId: string }>
@@ -18668,6 +19002,54 @@ export declare const api: {
                   speedLabel?: string;
                   vehicleId: string;
                 }
+              | {
+                  abilityScores?: {
+                    CHARISMA?: number;
+                    CONSTITUTION?: number;
+                    DEXTERITY?: number;
+                    INTELLIGENCE?: number;
+                    STRENGTH?: number;
+                    WISDOM?: number;
+                  };
+                  actions: Array<{
+                    description?: string;
+                    id: string;
+                    label: string;
+                  }>;
+                  armorClass: number | null;
+                  authoredName: string;
+                  concentration: boolean;
+                  customName?: string;
+                  displayName: string;
+                  equipmentItemIds: Array<string>;
+                  features: Array<{
+                    description?: string;
+                    id: string;
+                    label: string;
+                  }>;
+                  hitPoints: { current: number; maximum: number; temp: number };
+                  id: string;
+                  isActive: boolean;
+                  kind: "SPELL_SUMMON";
+                  kindLabel: string;
+                  notes?: string;
+                  originKind: "SUMMONED";
+                  originLabel: string;
+                  passivePerception?: number;
+                  size?:
+                    | "COLOSSAL"
+                    | "DIMUNITIVE"
+                    | "FINE"
+                    | "GARGANTUAN"
+                    | "GIANT"
+                    | "HUGE"
+                    | "LARGE"
+                    | "MEDIUM"
+                    | "SMALL"
+                    | "TINY";
+                  speedLabel?: string;
+                  spellId: string;
+                }
             >;
             kindOptions: Array<{
               code: "COMPANION" | "MOUNT" | "OWNED" | "VEHICLE";
@@ -20321,6 +20703,14 @@ export declare const api: {
                       isActive?: boolean;
                       kind: "VEHICLE";
                       notes?: string | null;
+                    }
+                  | {
+                      currentHitPoints?: number;
+                      customName?: string | null;
+                      extraId: string;
+                      kind: "SPELL_SUMMON";
+                      notes?: string | null;
+                      tempHitPoints?: number;
                     };
                 type: "UPDATE_SHEET_EXTRA";
               }
@@ -20329,7 +20719,12 @@ export declare const api: {
                 expectedVersion: number;
                 extra: {
                   extraId: string;
-                  kind: "COMPANION" | "MOUNT" | "OWNED" | "VEHICLE";
+                  kind:
+                    | "COMPANION"
+                    | "MOUNT"
+                    | "OWNED"
+                    | "VEHICLE"
+                    | "SPELL_SUMMON";
                 };
                 type: "REMOVE_SHEET_EXTRA";
               }
@@ -22658,6 +23053,58 @@ export declare const api: {
                       passengerCapacity?: number;
                       speedLabel?: string;
                       vehicleId: string;
+                    }
+                  | {
+                      abilityScores?: {
+                        CHARISMA?: number;
+                        CONSTITUTION?: number;
+                        DEXTERITY?: number;
+                        INTELLIGENCE?: number;
+                        STRENGTH?: number;
+                        WISDOM?: number;
+                      };
+                      actions: Array<{
+                        description?: string;
+                        id: string;
+                        label: string;
+                      }>;
+                      armorClass: number | null;
+                      authoredName: string;
+                      concentration: boolean;
+                      customName?: string;
+                      displayName: string;
+                      equipmentItemIds: Array<string>;
+                      features: Array<{
+                        description?: string;
+                        id: string;
+                        label: string;
+                      }>;
+                      hitPoints: {
+                        current: number;
+                        maximum: number;
+                        temp: number;
+                      };
+                      id: string;
+                      isActive: boolean;
+                      kind: "SPELL_SUMMON";
+                      kindLabel: string;
+                      notes?: string;
+                      originKind: "SUMMONED";
+                      originLabel: string;
+                      passivePerception?: number;
+                      size?:
+                        | "COLOSSAL"
+                        | "DIMUNITIVE"
+                        | "FINE"
+                        | "GARGANTUAN"
+                        | "GIANT"
+                        | "HUGE"
+                        | "LARGE"
+                        | "MEDIUM"
+                        | "SMALL"
+                        | "TINY";
+                      speedLabel?: string;
+                      spellId: string;
                     }
                 >;
                 kindOptions: Array<{

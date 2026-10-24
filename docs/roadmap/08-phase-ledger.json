@@ -15336,7 +15336,7 @@
             },
             {
               "id": "SPELLS-33.T6a2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15346,8 +15346,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6a1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: engulf (containment entered by moving into the creature's space) (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Also converts FINGER_OF_DEATH_ZOMBIE (humanoid killed rises as a caster-commanded zombie; moved from SPELLS-4.T2i, 2026-10-20).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m405.",
+              "mergedAt": "2026-10-24T05:32:16Z",
+              "proof": "Tests and Live green on tip afb431de7; Gelatinous Cube Ooze Cube and Engulf and Water Elemental Whelm ship as MANUAL_ADJUDICATION beside the authored save and damage (compile stays REFUSED on the bounded shape; the contained-creature save is under Containment in future-enhancements); FINGER_OF_DEATH_ZOMBIE is a GM ruling after the damage (REFUSED to TEST_OUTCOME); 4 kinds deleted; proof creatureEngulfRulingAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-33.T6a3",
@@ -16015,8 +16016,8 @@
               "id": "SPELLS-34.T1",
               "text": "Sheet-cast summon extra: CAST_SPELL outside an Encounter adds a SUMMONED extra from the compiled summon plan (stat block, HP tracking), removed on Concentration end, dismiss, 0 HP or long rest; journey test on the sheet.",
               "closes": ["SPELLS-34.3", "SPELLS-34.4"],
-              "status": "IN_PROGRESS",
-              "note": "User decision 2026-10-23 (D190, approved scope growth). 2026-10-24 ruling (D190): state.spellSummons[] with a SPELL_SUMMON extra; a Concentration summon is the sheet Concentration; the attack part of SPELLS-34.1 moves to T2.",
+              "status": "DONE",
+              "note": "User decision 2026-10-23 (D190, approved scope growth). 2026-10-24 ruling (D190): state.spellSummons[] with a SPELL_SUMMON extra; a Concentration summon is the sheet Concentration; the attack part of SPELLS-34.1 moves to T2. Merged in m406.",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -16024,7 +16025,8 @@
                 "size": 8,
                 "after": ["SPELLS-4.T2v2a2b"]
               },
-              "activeWorkbook": "docs/handoffs/slice-spells-34.md"
+              "mergedAt": "2026-10-24T05:49:04Z",
+              "proof": "Tests and Live green on tip 40aad30a8; a Sheet summon cast persists state.spellSummons[] with values resolved once at cast (buildSheetSpellSummon: size code, AC, ability scores, speeds, passive Perception, HP), shared CharacterSpellSummonState checked by the schema as z.ZodMiniType; read as a SPELL_SUMMON Extras member with live HP; a Concentration summon is the Sheet Concentration (END_CONCENTRATION, a new Concentration cast or 0 HP remove it); summonHitPoints moved to a neutral module (ADR 0036); two-Concentrations carry-over deferred as an edge case."
             },
             {
               "id": "SPELLS-34.T2",

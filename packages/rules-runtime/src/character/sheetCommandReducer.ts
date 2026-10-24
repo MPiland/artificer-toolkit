@@ -45,6 +45,8 @@ import {
 import { creatureConditionCapabilityRegistry } from '../platformPolicyModules.js'
 import { CharacterSheetCommandError } from './sheetCommandError.js'
 import { applyCharacterNoteCommand } from './sheetNotes.js'
+import { buildSheetSpellSummon, withoutConcentrationSummons } from './sheetSpellSummon.js'
+import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
 export type SheetSpell = ReducerSheetResponseDto['spells']['spells'][number]
 export type SheetSpellSource = NonNullable<SheetSpell['sources']>[number]
 export type SheetSpellSlot = ReducerSheetResponseDto['spells']['slots'][number]
@@ -129,7 +131,8 @@ export function clearEmptyStateArrays(character: CharacterAuthored): CharacterAu
       conditions: character.state.conditions?.length ? character.state.conditions : undefined,
       resources: character.state.resources?.length ? character.state.resources : undefined,
       spellSlots: character.state.spellSlots?.length ? character.state.spellSlots : undefined,
-      classes: character.state.classes?.length ? character.state.classes : undefined
+      classes: character.state.classes?.length ? character.state.classes : undefined,
+      spellSummons: character.state.spellSummons?.length ? character.state.spellSummons : undefined
     }
   }
 }
@@ -191,6 +194,7 @@ function resolveAvailableSpellCast(
   source: SheetSpellSource | undefined
   spell: SheetSpell
   slotKey: string | undefined
+  castLevel: number
 } {
   const { source, spell } = resolveSpellCastSource(sheet, command)
   const sourceId = source?.id ?? source?.source.sourceInstanceId
@@ -212,7 +216,7 @@ function resolveAvailableSpellCast(
       entry.unavailableReason ?? `Spell "${spell.label}" is not available to cast.`
     )
   }
-  return { source, spell, slotKey: entry.cast.slotKey }
+  return { source, spell, slotKey: entry.cast.slotKey, castLevel: entry.castLevel }
 }
 
 function ensureInventoryItem(character: CharacterAuthored, itemId: string) {
@@ -434,8 +438,13 @@ function requireAcquirableCurrencyIdentity(
   )
 }
 
-/** D63: dropping to 0 hit points adds the System's 0 hit point condition; regaining any removes it. */
-function applyZeroHitPointsCondition(character: CharacterAuthored, beforeCurrentHitPoints: number) {
+/**
+ * D63: dropping to 0 hit points adds the System's 0 hit point condition, and regaining any removes
+ * it. Dropping to 0 also ends the Sheet's Concentration and the summon that holds it (D190).
+ */
+function applyZeroHitPoints(character: CharacterAuthored, beforeCurrentHitPoints: number) {
+  if (character.state.hitpoints.current === 0)
+    character.state.spellSummons = withoutConcentrationSummons(character.state.spellSummons)
   const conditionTypeId = creatureConditionCapabilityRegistry.find(
     character.systemId
   )?.zeroHitPointsConditionDefinitionId
@@ -463,6 +472,11 @@ export function applyCharacterSheetCommand(
     /** The d20 the host rolled for ROLL_DEATH_SAVE; the reducer stays pure. */
     deathSaveDie?: number
     preparationEligibleSpellIdsByClassId?: ReadonlyMap<string, ReadonlySet<string>>
+    /** The summon plan of a CAST_SPELL's cast, from the compile an Encounter runs (D190). */
+    spellSummonPlacement?: (cast: {
+      spellId: string
+      castLevel: number
+    }) => CompiledActionSummonPlacement | null
     extraDefaults?: {
       creatures: ReadonlyMap<
         string,
@@ -531,7 +545,10 @@ export function applyCharacterSheetCommand(
       return clearEmptyStateArrays(next)
 
     case 'END_ACTIVE_EFFECT':
+      return clearEmptyStateArrays(next)
+
     case 'END_CONCENTRATION':
+      next.state.spellSummons = withoutConcentrationSummons(next.state.spellSummons)
       return clearEmptyStateArrays(next)
 
     case 'SET_INSPIRATION':
@@ -574,6 +591,37 @@ export function applyCharacterSheetCommand(
     }
 
     case 'UPDATE_SHEET_EXTRA': {
+      if (command.extra.kind === 'SPELL_SUMMON') {
+        const extra = command.extra
+        const summon = next.state.spellSummons?.find((entry) => entry.id === extra.extraId)
+        if (!summon)
+          throw new CharacterSheetCommandError(`Summon "${extra.extraId}" is not available.`)
+        const currentHitPoints =
+          extra.currentHitPoints === undefined
+            ? summon.currentHitPoints
+            : Math.min(extra.currentHitPoints, summon.maximumHitPoints)
+        const tempHitPoints = extra.tempHitPoints ?? summon.tempHitPoints
+        // A summon at 0 hit points is gone (D190).
+        next.state.spellSummons = next.state.spellSummons?.flatMap((entry) =>
+          entry.id !== extra.extraId
+            ? [entry]
+            : currentHitPoints === 0
+              ? []
+              : [
+                  {
+                    ...entry,
+                    customName:
+                      extra.customName === null
+                        ? undefined
+                        : (extra.customName ?? entry.customName),
+                    notes: extra.notes === null ? undefined : (extra.notes ?? entry.notes),
+                    currentHitPoints,
+                    ...(tempHitPoints ? { tempHitPoints } : { tempHitPoints: undefined })
+                  }
+                ]
+        )
+        return clearEmptyStateArrays(next)
+      }
       const inventoryIds = new Set(next.state.equipment.inventory.map((item) => item.id))
       const ensureEquipmentAssignments = (itemIds: readonly string[] | undefined) => {
         if (!itemIds) return undefined
@@ -605,6 +653,7 @@ export function applyCharacterSheetCommand(
         return uniqueItemIds.map((equipmentItemId) => ({ equipmentItemId }))
       }
       if (command.extra.kind === 'VEHICLE') {
+        const { isActive } = command.extra
         const instance = next.state.vehicles?.find(
           (vehicle) => vehicle.id === command.extra.extraId
         )
@@ -628,7 +677,7 @@ export function applyCharacterSheetCommand(
                     : (command.extra.customName ?? vehicle.customName),
                 notes:
                   command.extra.notes === null ? undefined : (command.extra.notes ?? vehicle.notes),
-                isActive: command.extra.isActive ?? vehicle.isActive,
+                isActive: isActive ?? vehicle.isActive,
                 currentHitPoints:
                   command.extra.currentHitPoints === undefined
                     ? vehicle.currentHitPoints
@@ -700,6 +749,13 @@ export function applyCharacterSheetCommand(
     }
 
     case 'REMOVE_SHEET_EXTRA':
+      if (command.extra.kind === 'SPELL_SUMMON') {
+        const { extraId } = command.extra
+        if (!next.state.spellSummons?.some((summon) => summon.id === extraId))
+          throw new CharacterSheetCommandError(`Summon "${extraId}" is not available.`)
+        next.state.spellSummons = next.state.spellSummons.filter((summon) => summon.id !== extraId)
+        return clearEmptyStateArrays(next)
+      }
       if (command.extra.kind === 'VEHICLE') {
         const existing = next.state.vehicles?.some(
           (vehicle) => vehicle.id === command.extra.extraId
@@ -759,7 +815,7 @@ export function applyCharacterSheetCommand(
         nextHitPoints: next.state.hitpoints.current,
         maximumHitPoints: maxHitPoints
       })
-      applyZeroHitPointsCondition(next, character.state.hitpoints.current)
+      applyZeroHitPoints(next, character.state.hitpoints.current)
       return clearEmptyStateArrays(next)
     }
 
@@ -802,7 +858,7 @@ export function applyCharacterSheetCommand(
           critical: false
         })
       }
-      applyZeroHitPointsCondition(next, character.state.hitpoints.current)
+      applyZeroHitPoints(next, character.state.hitpoints.current)
       return clearEmptyStateArrays(next)
     }
 
@@ -838,7 +894,7 @@ export function applyCharacterSheetCommand(
       // The same outcome as the Encounter turn-start save: a natural 20 regains 1 hit point.
       if (roll.regainsHitPoint)
         next.state.hitpoints.current = Math.min(1, sheet.overview.maxHitPoints)
-      applyZeroHitPointsCondition(next, current)
+      applyZeroHitPoints(next, current)
       return clearEmptyStateArrays(next)
     }
 
@@ -922,9 +978,27 @@ export function applyCharacterSheetCommand(
 
     case 'CAST_SPELL': {
       const cast = resolveAvailableSpellCast(sheet, command)
-      if (!cast.slotKey) return clearEmptyStateArrays(next)
-      ensureSpellSlot(sheet, cast.slotKey)
-      return applyApprovedSpellCastState({ character: next, slotKey: cast.slotKey })
+      if (cast.slotKey) ensureSpellSlot(sheet, cast.slotKey)
+      // A new Concentration replaces the one a summon holds.
+      if (cast.spell.attributes?.includes('CONCENTRATION'))
+        next.state.spellSummons = withoutConcentrationSummons(next.state.spellSummons)
+      const placement = context.spellSummonPlacement?.({
+        spellId: cast.spell.id,
+        castLevel: cast.castLevel
+      })
+      if (placement)
+        next.state.spellSummons = [
+          ...(next.state.spellSummons ?? []),
+          buildSheetSpellSummon({
+            placement,
+            casterHitPointMaximum: sheet.overview.maxHitPoints,
+            spellId: cast.spell.id,
+            label: cast.spell.label,
+            id: createId(),
+            castAt: (context.now ?? (() => new Date().toISOString()))()
+          })
+        ]
+      return applyApprovedSpellCastState({ character: next, slotKey: cast.slotKey ?? null })
     }
 
     case 'SET_PREPARED_SPELLS': {
@@ -1385,9 +1459,17 @@ export function summarizeCharacterSheetCommand(
     case 'ADD_SHEET_EXTRA':
       return command.extra.kind === 'VEHICLE' ? 'Vehicle added' : 'Creature added'
     case 'UPDATE_SHEET_EXTRA':
-      return command.extra.kind === 'VEHICLE' ? 'Vehicle updated' : 'Creature updated'
+      return command.extra.kind === 'VEHICLE'
+        ? 'Vehicle updated'
+        : command.extra.kind === 'SPELL_SUMMON'
+          ? 'Summon updated'
+          : 'Creature updated'
     case 'REMOVE_SHEET_EXTRA':
-      return command.extra.kind === 'VEHICLE' ? 'Vehicle removed' : 'Creature removed'
+      return command.extra.kind === 'VEHICLE'
+        ? 'Vehicle removed'
+        : command.extra.kind === 'SPELL_SUMMON'
+          ? 'Summon dismissed'
+          : 'Creature removed'
 
     case 'END_ACTIVE_EFFECT':
       return 'Active effect ended'

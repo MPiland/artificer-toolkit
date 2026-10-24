@@ -8,7 +8,8 @@ import { getCharacterSheetExtraOptions } from '#app/data/characters/queries'
 import type { OpenSheetPanel, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetDetailPanel } from '../shared/CharacterSheetDetailPanel'
 import { CharacterSheetExtraList } from './CharacterSheetExtraList'
-import { getExtraTarget } from './CharacterSheetExtraList.model'
+import { CharacterSheetSpellSummons } from './CharacterSheetSpellSummons'
+import { getExtraTarget, type PanelExtra } from './CharacterSheetExtraList.model'
 import * as extrasStyles from './extras.css'
 import * as panelStyles from '../shared/panel.css'
 
@@ -52,8 +53,10 @@ export function CharacterSheetExtras({
 
   useEffect(() => {
     if (!shouldOpenAdded || !openPanel) return
-    const addedExtra = sheet.extras.items.find((extra) => !priorExtraIds.current?.has(extra.id))
-    if (!addedExtra) return
+    const addedExtra = sheet.extras.items.find(
+      (extra) => extra.kind !== 'SPELL_SUMMON' && !priorExtraIds.current?.has(extra.id)
+    )
+    if (!addedExtra || addedExtra.kind === 'SPELL_SUMMON') return
     setShouldOpenAdded(false)
     openPanel(getExtraTarget(addedExtra))
   }, [openPanel, shouldOpenAdded, sheet.extras.items])
@@ -90,8 +93,12 @@ export function CharacterSheetExtras({
     }
   }
 
-  const creatureExtras = sheet.extras.items.filter((extra) => extra.kind !== 'VEHICLE')
+  const creatureExtras = sheet.extras.items.filter(
+    (extra): extra is PanelExtra =>
+      extra.kind === 'COMPANION' || extra.kind === 'MOUNT' || extra.kind === 'OWNED'
+  )
   const vehicles = sheet.extras.items.filter((extra) => extra.kind === 'VEHICLE')
+  const summons = sheet.extras.items.filter((extra) => extra.kind === 'SPELL_SUMMON')
 
   return (
     <CharacterSheetDetailPanel
@@ -114,6 +121,12 @@ export function CharacterSheetExtras({
               openPanel={openPanel}
             />
             <CharacterSheetExtraList extras={vehicles} label='Vehicles' openPanel={openPanel} />
+            <CharacterSheetSpellSummons
+              expectedVersion={sheet.meta.streamVersion}
+              pending={pending}
+              submitCommand={submitCommand}
+              summons={summons}
+            />
           </>
         ) : (
           <Text className={panelStyles.muted}>No extras have been added to this character.</Text>

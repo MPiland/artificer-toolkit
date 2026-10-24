@@ -1,4 +1,3 @@
-import { evaluateNumericExpr, type NumericExpr } from '@artificer-toolkit/shared/core'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import type { LiveSessionSummonedToken } from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import type { CompiledActionSummonPlacement } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -6,26 +5,11 @@ import {
   encounterRunActorStateSchema,
   type EncounterRunActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import { summonHitPoints } from './summonHitPoints.js'
 
 /** The caster's hit point maximum when the Run holds it; a Character's lives on the Sheet. */
 export function casterHitPointMaximum(caster: EncounterRunActorState): number | null {
   return caster.kind === 'CHARACTER' ? null : caster.maxHitPoints
-}
-
-/**
- * The hit points a summon's stat block gives it: 0 when it authors none, null when it reads a caster
- * maximum the Run does not hold (a Character's lives on the Sheet), which the cast refuses.
- */
-export function summonHitPoints(
-  statBlock: Pick<CompiledActionSummonPlacement['statBlock'], 'hitPoints'>,
-  casterHitPointMaximum: number | null
-): number | null {
-  const { hitPoints } = statBlock
-  return hitPoints
-    ? evaluateNumericExpr(hitPoints as NumericExpr, {
-        hitPointMaximum: casterHitPointMaximum ?? undefined
-      })
-    : 0
 }
 
 /**

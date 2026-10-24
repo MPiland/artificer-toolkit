@@ -9,7 +9,8 @@ import { readFightingCharacterIds } from '../encounters/runGrantCarryOver'
 /**
  * SPELLS-5.11: the caster ends the Concentration whose grants a finished Run carried onto the
  * Campaign clock. Every grant stamped with the caster ends; the caster's own is deleted here for the
- * Sheet write to settle, and each other holder's stream moves once. Throws when nothing is carried.
+ * Sheet write to settle, and each other holder's stream moves once. Throws when nothing is carried
+ * and the Sheet held no Concentration summon (D190) for the same command to end.
  * The caster's `concentrationCasterCharacterId` stamp lets a later checkpoint finish any holder this
  * call skipped.
  *
@@ -19,7 +20,13 @@ import { readFightingCharacterIds } from '../encounters/runGrantCarryOver'
  */
 export async function endCarriedConcentration(
   ctx: MutationCtx,
-  input: { characterId: string; campaignId: string | null; occurredAt: string }
+  input: {
+    characterId: string
+    campaignId: string | null
+    occurredAt: string
+    /** The command also ends a Concentration summon the Sheet holds. */
+    endsSpellSummon: boolean
+  }
 ): Promise<void> {
   const transaction = encounterWriteTransaction(ctx)
   const store = createActiveRuleEffectStore(transaction)
@@ -27,8 +34,10 @@ export async function endCarriedConcentration(
     casterCharacterId: input.characterId,
     effects: await store.listCarriedByCaster(input.characterId)
   })
-  if (carried.length === 0)
+  if (carried.length === 0) {
+    if (input.endsSpellSummon) return
     throw new CharacterSheetCommandError('This Character is not concentrating.')
+  }
   const fighting = input.campaignId
     ? await readFightingCharacterIds(ctx, input.campaignId)
     : new Set<string>()

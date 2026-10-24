@@ -146,7 +146,11 @@ export function getProspectiveSheetAdjustments(params: {
         )
     )
   }
-  if (command.type === 'REMOVE_SHEET_EXTRA' && command.extra.kind !== 'VEHICLE') {
+  if (
+    command.type === 'REMOVE_SHEET_EXTRA' &&
+    command.extra.kind !== 'VEHICLE' &&
+    command.extra.kind !== 'SPELL_SUMMON'
+  ) {
     return adjustments.filter(
       (adjustment) =>
         !characterSheetAdjustmentMatchesPanelTarget(adjustment, {

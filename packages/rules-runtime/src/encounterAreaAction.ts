@@ -1,5 +1,5 @@
 import { sizeSpaceFeet } from '@artificer-toolkit/shared/core'
-import { summonHitPoints } from './encounterSummon.js'
+import { summonHitPoints } from './summonHitPoints.js'
 import type { TargetingDto } from '@artificer-toolkit/schema/effects/targeting'
 import type {
   CompiledActionSummonPlacement,

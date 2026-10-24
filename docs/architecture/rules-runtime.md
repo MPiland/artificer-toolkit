@@ -1990,6 +1990,22 @@ no controllers of its own, hit points from `evaluateNumericExpr` against the cas
 a Character caster's maximum lives on the Sheet, so a `HIT_POINT_MAXIMUM` stat block is refused with `HIT_POINTS_UNKNOWN` until T2v2b feeds it).
 Current (a2c2): a revert of the cast removes the conjured creature (see persistence). Current (a2c3): the cast creates the carrier effect on the caster from the compiled summon entry (`prepareNativeSourceEffect`), with the summon's duration and Concentration (`prepareEncounterActionMaintenance` names the summon's policy), and `buildEncounterSummon` sets `owner.sourceEffectId` to it. Removal at every end is the persistence sweep.
 
+**Sheet summons (current, SPELLS-34.T1, D190).** A summon cast from the Sheet outside an Encounter reads the same plan.
+`compileCharacterSpellCasts` (`character/characterSpellCastActions.ts`) is the one compile of a Character's casts: build,
+capability discovery and entry-point compile. The Encounter's movement targets and the Convex Sheet command both call
+it. `sheetSpellCastSummonPlacement` picks the plan for the cast's spell and level. `buildSheetSpellSummon` and
+`buildEncounterSummon` share `summonHitPoints`. The Sheet entry is `state.spellSummons[]` (play state; see
+[persistence](persistence.md)). It stores only the stat block values the cast resolved against the caster at cast time:
+size, armor class, ability scores, speeds, passive Perception and maximum hit points, never the plan's expressions. The
+shared `CharacterSpellSummonState` owns the shape, and the schema is typed against it. The Sheet projects it as an Extras item of kind `SPELL_SUMMON`, and
+UPDATE/REMOVE_SHEET_EXTRA edit and dismiss it.
+
+- A summon whose plan maintains Concentration is the Sheet's Concentration. The overview shows it when no carried
+  effect does. END_CONCENTRATION, a new Concentration cast and the caster dropping to 0 hit points each end it.
+- Any summon ends at 0 hit points or on a long rest.
+- A timed summon stays until it is dismissed or the caster takes a long rest.
+- Attacks are SPELLS-34.T2.
+
 ### Effect offers: moving a held effect (current, SPELLS-4.T2d2, D160)
 
 `grantedActions` offer a basic action to the effect's holder; `lifecycle.effectOffers` is the second offer family, made to the effect's **source** (or holder) about the effect itself. Generic authored data, never a spell name: `{ kind: 'MOVE_HELD_EFFECT', offeredTo: 'SOURCE' | 'HOLDER', when: 'HOLDER_AT_ZERO_HP', activation (not REACTION or FREE), range { amount, unit } }`, at most 4, `APPLY_GRANT` only. The compiler stores it on the `MODIFIER_GRANT` contribution (`effectOffers`); the `onEnd` follow-on never inherits it. A later kind (T2lb2's `REPEAT_SOURCE_PATH`) is one more `kind` in `packages/schema/src/effects/effectOffer.ts`; discovery, the listing and the pick envelope do not change.

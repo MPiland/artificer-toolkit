@@ -1,4 +1,11 @@
-import type { CreatureOriginKindCode, CreatureRelationshipKindCode, EquippedSlotCode } from '#core'
+import type {
+  AbilityCode,
+  CreatureOriginKindCode,
+  CreatureRelationshipKindCode,
+  EquippedSlotCode,
+  SizeCode
+} from '#core'
+import type { SpeedAuthored } from '#authored'
 
 export interface CharacterEquipmentItemState {
   /** Character-owned item id */
@@ -114,6 +121,29 @@ export interface CharacterExhaustionState {
   notes?: string
 }
 
+/**
+ * A creature a Sheet spell cast conjured outside an Encounter (D190). It holds the stat block values
+ * the cast resolved against the caster, never the plan's expressions.
+ */
+export interface CharacterSpellSummonState {
+  id: string
+  spellId: string
+  summonOutcomeId: string
+  label: string
+  concentration: boolean
+  size?: SizeCode
+  armorClass: number | null
+  abilityScores?: Partial<Record<AbilityCode, number>>
+  speeds?: SpeedAuthored[]
+  passivePerception?: number
+  maximumHitPoints: number
+  currentHitPoints: number
+  tempHitPoints?: number
+  customName?: string
+  notes?: string
+  castAt: string
+}
+
 export type CharacterNoteGroupKind = 'SESSION' | 'LOOT' | 'CHARACTERS' | 'PLACES' | 'CUSTOM'
 
 export interface CharacterNoteGroupState {
@@ -167,6 +197,7 @@ export interface CharacterState {
   spellSlots?: CharacterSpellSlotUsageState[]
   conditions?: CharacterConditionState[]
   exhaustion?: CharacterExhaustionState
+  spellSummons?: CharacterSpellSummonState[]
   noteGroups?: CharacterNoteGroupState[]
   notes?: CharacterNoteState[]
   creatures?: CharacterOwnedCreatureState[]
