@@ -8,6 +8,7 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
+  SIZE_CODE,
   SUBJECT,
   TARGET_SELECTION_KIND,
   TARGET_DISPOSITION_KIND,
@@ -56,12 +57,12 @@ export const faithfulHound: SpellAuthored = {
           id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x212, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
             id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x212, 1) + '__result',
-            resultKind: 'SINGLE' as const,
+            resultKind: 'SEQUENCE' as const,
             duration: {
               id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x213, 1),
               durationKind: DURATION_KIND.HOUR,
@@ -69,51 +70,20 @@ export const faithfulHound: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x212, 1),
+                id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x214, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.SUMMON,
-                behaviors: [
-                  {
-                    id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x214, 1),
-                    order: 1,
-                    invocation: {
-                      kind: 'ACTION' as const,
-                      triggerCode: TRIGGER.ENTER_AREA,
-                      activation: {
-                        code: ACTIVATION_CODE.FREE
-                      },
-                      range: {
-                        id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x215, 1),
-                        rangeKind: RANGE_KIND.SPECIAL
-                      },
-                      targeting: {
-                        selectionKind: TARGET_SELECTION_KIND.AREA_CONTENTS,
-                        dispositionKind: TARGET_DISPOSITION_KIND.ANY
-                      }
-                    },
-                    paths: [
-                      {
-                        id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x216, 1),
-                        order: 1,
-                        pathCode: PATH_CODE.PASSIVE,
-                        groupType: PATH_GROUP_TYPE.SINGLE,
-                        originKind: 'SOURCE' as const,
-                        selectionKind: 'FIXED' as const,
-                        resultBlock: {
-                          id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x216, 1) + '__result',
-                          resultKind: 'SINGLE' as const,
-                          outcomes: [
-                            {
-                              id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x216, 1),
-                              effectKind: EFFECT_KIND.CLOSED_RULE,
-                              ruleKind: 'FAITHFUL_HOUND' as const
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  }
-                ]
+                label: 'Faithful Hound',
+                // The SRD names no size; the hound is drawn in one 5-foot square and never moves.
+                statBlock: { size: SIZE_CODE.MEDIUM, damageabilityKind: 'INVULNERABLE' }
+              },
+              {
+                id: spellChildId(SPELL_IDS.FAITHFUL_HOUND, 0x215, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Faithful Hound',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'The hound is invisible to all creatures except you, sees invisible creatures and into the Ethereal Plane, and ignores illusions. When a Small or larger creature comes within 30 feet of it without first speaking the password you specified, the hound barks loudly. At the start of each of your turns, it attempts to bite one creature within 5 feet of it that is hostile to you: its attack bonus is your spellcasting ability modifier + your proficiency bonus, and on a hit it deals 4d8 piercing damage. The spell ends early if you dismiss the hound as an action or move more than 100 feet away from it.'
               }
             ]
           }

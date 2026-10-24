@@ -11252,7 +11252,7 @@
               "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2w",
               "wsjf": {
@@ -11263,8 +11263,9 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2v", "SPELLS-4.T2v2a3d"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted.",
-              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b: Faithful Hound builds on the T2v2 summon token.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b: Faithful Hound builds on the T2v2 summon token. Merged in m420.",
+              "mergedAt": "2026-10-24T21:20:29Z",
+              "proof": "Tests and Live green on tip 1629eae04; Faithful Hound is a SUMMON (invulnerable, one square) plus a MANUAL_ADJUDICATION ruling for its turn-start bite, bark and dismissal; FAITHFUL_HOUND closed kind deleted; proofs nativeRoomCoreOptionSpells.test.ts and coreOptionSpellAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-4.T1k",
@@ -11558,9 +11559,9 @@
         {
           "id": "SPELLS-6",
           "title": "Pre-beta rules audit",
-          "status": "IN_PROGRESS",
+          "status": "DONE",
           "journeyTests": [],
-          "journeyStatus": "none",
+          "journeyStatus": "verified",
           "origin": [],
           "acs": [
             {
@@ -11678,15 +11679,12 @@
           "acs": [
             {
               "text": "Spell action choices, slot spend and undo, upcasting, rituals, concentration start, multi-effect spells and components work in an Encounter.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "apps/apis/convex/encounters/actionSpellCasting.test.ts (choices, slot spend and undo, upcast levels, ritual, Sheet and Encounter list the same cast levels)",
-                "packages/rules-runtime/src/__tests__/encounterSpellCastLevelFacts.test.ts (cast level selects the authored scaling row)",
-                "partial: T12 (CI 38841168163 at 9b39d86d4, merged 2026-10-15) Mass Cure Wounds, Mass Healing Word and Prayer of Healing in one RESOLVE_ACTION with the ACTORS target kind: apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, packages/rules-runtime/src/__tests__/scalingRowSelection.test.ts",
-                "SPELLS-8.T8 (pool-paid casts): apps/apis/convex/encounters/actionSpellCasting.test.ts journey \"a $attribute grant is cast from its use and not a slot, and GM undo restores the use\" (LIMITED_USE, CAST_AT_LEVEL) and exhaustion refusal; packages/rules-runtime characterSpellCastActions.test.ts pool binding, Assisted spend, Manual and cantrip no-spend; session-worker nativeRoomReaction.test.ts pool-paid reaction not offered (deferred edge case in future-enhancements.md); CI 38852613485/38852613448."
+                "Closed by SPELLS-8.T1undefined), SPELLS-8.T5undefined), SPELLS-8.T6undefined), SPELLS-8.T7 (m422), SPELLS-8.T8undefined), SPELLS-8.T9undefined), SPELLS-8.T10undefined), SPELLS-8.T11undefined), SPELLS-8.T12undefined), SPELLS-8.T14 (m352); see each task's proof."
               ],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain.",
+              "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain. Closed 2026-10-24 by SPELLS-8.T1, SPELLS-8.T5, SPELLS-8.T6, SPELLS-8.T7, SPELLS-8.T8, SPELLS-8.T9, SPELLS-8.T10, SPELLS-8.T11, SPELLS-8.T12, SPELLS-8.T14.",
               "id": "SPELLS-8.1"
             },
             {
@@ -11830,7 +11828,7 @@
             {
               "id": "SPELLS-8.T7",
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Multi-Effect spells (Arcane Sword, Faithful Hound, Grease, Spiritual Weapon) cast in an Encounter.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 5,
@@ -11839,8 +11837,9 @@
                 "size": 2,
                 "after": ["SPELLS-8.T1"]
               },
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m422.",
+              "mergedAt": "2026-10-24T22:01:51Z",
+              "proof": "Tests and Live green on tip 8e6381b71; Arcane Sword is a Concentration SUMMON with a CONJURED REPEAT_SOURCE_PATH bonus-action attack offer; area-cast receipt accepts a Concentration summon via sourceGrantTransition (room test red first); authoring-parity row and room test."
             },
             {
               "id": "SPELLS-8.T8",
@@ -15313,6 +15312,19 @@
               "proof": "Tests and Live green on tip b10ca68c8; Warhorse Trampling Charge and Weretiger Pounce on the T5n2 Feature-scoped ON_HIT rider through chargeEffect (damage optional, gated save and prone merged into the attack result); the bonus-action follow-up attack is a GM ruling (D187a); kinds deleted; proof chargeAuthoringParity.test.ts."
             },
             {
+              "id": "SPELLS-33.T4l3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-33.T4l2"]
+              },
+              "text": "Legendary area saves compile (user-approved growth 2026-10-24): a legendary option with an area save, such as dragon Wing Attack (creatures within range save, take damage and fall prone, then the dragon flies), compiles and resolves through the generic save-area path instead of REFUSED. Authoring-parity proof; golden flips enumerated."
+            },
+            {
               "id": "SPELLS-33.T4m",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
@@ -15387,7 +15399,7 @@
             },
             {
               "id": "SPELLS-33.T4s2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15397,8 +15409,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: lycanthrope and vampire shapechanging, Misty Escape (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m421.",
+              "mergedAt": "2026-10-24T21:53:24Z",
+              "proof": "Tests and Live green on tip 88df3fbc5; lycanthrope and vampire Shapechanger plus Misty Escape ship as MANUAL_ADJUDICATION GM rulings through changeShapeRuling.ts (D187a); 7 closed kinds deleted; authoring-parity proof."
             },
             {
               "id": "SPELLS-33.T4s3",
