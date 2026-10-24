@@ -170,6 +170,20 @@ export async function readRoomSceneState(
   return assembleCurrentScene(header, pages, readRoomSceneFogLayers(transaction, header))
 }
 
+/**
+ * The presented Scene as a command left it inside its transaction, re-read when the command moved
+ * its version past the cached header's (forced movement, a revert, a removed summon); null when it
+ * did not.
+ */
+export async function readRoomSceneMovedBy(
+  transaction: RoomTransaction,
+  cachedHeader: SceneLiveStateHeader | null | undefined
+) {
+  const header = cachedHeader && readRoomSceneHeader(transaction, cachedHeader.id)
+  if (!header || header.version === cachedHeader.version) return null
+  return { ...(await readRoomSceneState(transaction, header.id)), header }
+}
+
 /** The same BASE/APPENDED reader used by Convex, over the command's staged native records. */
 export function readRoomSceneEntities(
   transaction: RoomTransaction,

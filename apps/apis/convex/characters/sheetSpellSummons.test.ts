@@ -124,7 +124,7 @@ describe('a summon cast from the Sheet outside an Encounter (D190, SPELLS-34)', 
       type: 'UPDATE_SHEET_EXTRA',
       extra: { kind: 'SPELL_SUMMON', extraId: hand!.id, currentHitPoints: 3 }
     })
-    expect(summonsOf(damaged)[0]?.hitPoints.current).toBe(3)
+    expect(summonsOf(damaged)[0]?.hitPoints?.current).toBe(3)
 
     // A new Concentration cast replaces the summon that held it.
     const recast = await cast()

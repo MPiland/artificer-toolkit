@@ -917,7 +917,8 @@ ends beyond the field still triggers the save and, on a failure, stops at the fi
 `movementKinds` to voluntary, forced and teleport movement, `activation` to `REPEATABLE` and `visibility` to
 `PUBLIC`. The compiled zone stores only the grant contribution the planner reads: the zone row's own
 `recurrence.endOnEvents` stays empty, and the creature's grant takes its end events from the grant template. The
-action opens no area occurrence (`placesZone` on the pending root): it commits the spend and a
+action opens no area occurrence (`placesZone` on the pending root; a summoning cast's `placesSummon` likewise
+catches nobody): it commits the spend and a
 `liveSessionPlacedSpatialEffect` per zone component (see the bands below) in the same transaction as every other
 area commit. The zone is
 built by `planEncounterPlacedZone` (FIXED, `SCENE_ABSOLUTE`, a cube as a polygon via `pointCubeOutline`), stored

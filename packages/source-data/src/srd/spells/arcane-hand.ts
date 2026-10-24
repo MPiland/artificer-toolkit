@@ -102,6 +102,7 @@ export const arcaneHand: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.ARCANE_HAND, 0x212, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: MANIFEST_KIND.SUMMON,
+                label: 'Arcane Hand',
                 statBlock: {
                   size: SIZE_CODE.LARGE,
                   armorClass: {

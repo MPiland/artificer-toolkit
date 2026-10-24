@@ -1554,10 +1554,8 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
     .check(
       z.superRefine((value, context) => {
         validateSourceSpendReceipts(value, context)
-        if (
-          value.sourceGrantTransition &&
-          value.sourceGrantTransition.targetActorId !== value.sourceActorId
-        )
+        const { sourceGrantTransition: sourceGrant, placedSpatialEffectIds: zoneIds } = value
+        if (sourceGrant && sourceGrant.targetActorId !== value.sourceActorId)
           context.addIssue({
             code: 'custom',
             path: ['sourceGrantTransition'],
@@ -1569,22 +1567,17 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
             path: ['targetOccurrenceIds'],
             message: 'Area target occurrences must be unique.'
           })
-        if (new Set(value.placedSpatialEffectIds).size !== value.placedSpatialEffectIds.length)
+        if (new Set(zoneIds).size !== zoneIds.length)
           context.addIssue({
             code: 'custom',
             path: ['placedSpatialEffectIds'],
             message: 'Placed spatial effects must be unique.'
           })
-        if (
-          value.maintenanceTransition &&
-          value.placedSpatialEffectIds.length === 0 &&
-          !value.sourceGrantTransition
-        )
+        if (value.maintenanceTransition && zoneIds.length === 0 && !sourceGrant)
           context.addIssue({
             code: 'custom',
             path: ['maintenanceTransition'],
-            message:
-              'An area root carries a maintained effect only for the zone it placed or the effect it leaves on its source.'
+            message: 'An area root maintains only the zone it placed or the effect on its source.'
           })
       })
     )

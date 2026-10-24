@@ -907,7 +907,7 @@ describe('room Arcane Hand (SPELLS-4.T2v2b)', () => {
     await room.advanceTurn()
     expect(await attackThrough(room, 'BONUS_ACTION')).toEqual([[4, damageTypeId('FORCE')]])
 
-    const ended = await endConcentrationAtSheet(room.room, CHARACTER_ID)
+    const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
     expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
     expect(await conjured(room)).toEqual([])
     expect((await room.actionChoices()).effectOffers).toEqual([])
