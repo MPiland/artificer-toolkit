@@ -10974,9 +10974,8 @@
             },
             {
               "closes": ["SPELLS-4.1"],
-              "note": "Split from T2v2a2c 2026-10-24 (re-estimate, same scope; D187b option A).",
-              "status": "IN_PROGRESS",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md",
+              "note": "Split from T2v2a2c 2026-10-24 (re-estimate, same scope; D187b option A). Merged in m397.",
+              "status": "DONE",
               "id": "SPELLS-4.T2v2a2c1",
               "wsjf": {
                 "bv": 8,
@@ -10985,12 +10984,14 @@
                 "size": 8,
                 "after": ["SPELLS-4.T2v2a2b"]
               },
-              "text": "D187b summon piece, part 2c1: the summon action is offered with a POINT target validated for range, free square and sight; the cast commit creates the owned CUSTOM actor (stat block, HP from the caster) and its sized token; the receipt carries the actor id; undo, revert and replay remove or reuse them."
+              "text": "D187b summon piece, part 2c1: the summon action is offered with a POINT target validated for range, free square and sight; the cast commit creates the owned CUSTOM actor (stat block, HP from the caster) and its sized token; the receipt carries the actor id; undo, revert and replay remove or reuse them.",
+              "mergedAt": "2026-10-24T02:14:13Z",
+              "proof": "Tests and Live green on tip 2f7f0f1e; a summoning cast creates the caster-owned CUSTOM actor and its sized Scene token in one room transaction and the receipt carries the actor id; a Character caster with a HIT_POINT_MAXIMUM stat block is refused with HIT_POINTS_UNKNOWN until T2v2b supplies the Sheet maximum; revert of a summoning cast refuses until a2c2 (orchestrator ruling)."
             },
             {
               "closes": ["SPELLS-4.1"],
               "note": "Split from T2v2a2c 2026-10-24 (re-estimate, same scope; D187b option A).",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-4.T2v2a2c2",
               "wsjf": {
                 "bv": 8,
@@ -10999,7 +11000,8 @@
                 "size": 8,
                 "after": ["SPELLS-4.T2v2a2c1"]
               },
-              "text": "D187b summon piece, part 2c2: the actor, binding and Scene token are removed when the effect ends on its own (expiry, Concentration end, recast, dispel) through a room port the effect store calls."
+              "text": "D187b summon piece, part 2c2: the actor, binding and Scene token are removed through one room removal port when the effect ends (expiry, Concentration end, recast, dispel) and when a summoning cast is undone or reverted (revert refuses until then, orchestrator ruling 2026-10-24).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "closes": ["SPELLS-4.1"],
