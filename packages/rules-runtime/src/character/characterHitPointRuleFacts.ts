@@ -1,8 +1,8 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
-import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 
 import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+import { abilityRecordIndex, abilityRecordKey } from './characterDerivedRuleFacts.js'
 
 type HitPointFacts = NonNullable<CharacterRulePolicyInput['hitPointFacts']>
 type HitPointAdjustment = Extract<
@@ -21,10 +21,6 @@ export function buildCharacterHitPointRuleFacts(
   const { hitPoints } = abilityScoreCapabilityRegistry.require(
     snapshot.systemId
   ).derivedStatisticAbilityCodes
-  const abilityIds = Object.keys(snapshot.abilities)
-  const constitutionAbilityIndex = abilityIds.findIndex(
-    (abilityId) => (resolveAbilityAlias(abilityId) ?? abilityId) === hitPoints
-  )
   const adjustments = snapshot.adjustments ?? []
   const maximumModifier = adjustments.find(
     (adjustment): adjustment is HitPointAdjustment & { field: 'MAXIMUM_MODIFIER'; value: number } =>
@@ -48,8 +44,8 @@ export function buildCharacterHitPointRuleFacts(
   return {
     hitPointFacts: {
       rows: snapshot.hitpoints.map((row) => ({ ...row })),
-      constitutionAbilityId: abilityIds[constitutionAbilityIndex] ?? hitPoints,
-      constitutionAbilityIndex: constitutionAbilityIndex < 0 ? null : constitutionAbilityIndex,
+      constitutionAbilityId: abilityRecordKey(snapshot.abilities, hitPoints),
+      constitutionAbilityIndex: abilityRecordIndex(snapshot.abilities, hitPoints),
       progression,
       manualMaximumModifier: toManualFact(maximumModifier),
       manualMaximumOverride: toManualFact(maximumOverride)

@@ -73,6 +73,38 @@ describe('derived statistic abilities come from the System (RULES-2.T9e)', () =>
     expect(derived.hitPointsIndex).toBe(derived.indexOf('CONSTITUTION'))
   })
 
+  it("names only the System's own abilities", () => {
+    const { abilityDefinitionIdByCode, derivedStatisticAbilityCodes } =
+      abilityScoreCapabilityRegistry.require(SRD_SYSTEM_ID)
+
+    for (const code of Object.values(derivedStatisticAbilityCodes))
+      expect(abilityDefinitionIdByCode).toHaveProperty(code)
+  })
+
+  it('finds no index for an ability the Character lacks, and keeps the code as its hit point key', () => {
+    const character = { ...snapshot(SRD_SYSTEM_ID), abilities: { STR: 10, WIS: 12 } }
+
+    expect(
+      buildCharacterArmorClassRuleFacts(character).armorClassFacts!.dexterityAbilityIndex
+    ).toBe(null)
+    expect(buildCharacterHitPointRuleFacts(character).hitPointFacts).toMatchObject({
+      constitutionAbilityId: 'CONSTITUTION',
+      constitutionAbilityIndex: null
+    })
+  })
+
+  it('matches a short ability key to the code the System names', () => {
+    const character = { ...snapshot(SRD_SYSTEM_ID), abilities: { STR: 10, DEX: 14, CON: 12 } }
+
+    expect(
+      buildCharacterArmorClassRuleFacts(character).armorClassFacts!.dexterityAbilityIndex
+    ).toBe(1)
+    expect(buildCharacterHitPointRuleFacts(character).hitPointFacts).toMatchObject({
+      constitutionAbilityId: 'CON',
+      constitutionAbilityIndex: 2
+    })
+  })
+
   it("reads another System's abilities instead of D&D's", () => {
     installStrictSystem()
     const derived = derivedAbilities(STRICT_SYSTEM_ID)

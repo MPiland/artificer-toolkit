@@ -89,6 +89,13 @@ const systemOwnedCodes = new Set(
 )
 const comparedBeforeLiteral = /[!=]==?\s*(['"`])([A-Z][A-Z0-9_]*)\1/g
 const literalBeforeCompared = /(['"`])([A-Z][A-Z0-9_]*)\1\s*[!=]==?/g
+/**
+ * The neutral rules pipeline (rules-runtime outside a System module, and Convex) names none of these
+ * codes at all: not as an argument, a fallback or a case either. The web, maps and shared ability
+ * literals move with RULES-2.T9f.
+ */
+const NEUTRAL_RULES_PIPELINE = /(packages[\\/]rules-runtime[\\/]src|apps[\\/]apis[\\/]convex)[\\/]/
+const quotedCode = /(['"`])([A-Z][A-Z0-9_]*)\1/g
 
 function violations(source: string, path = ''): string[] {
   const found: string[] = []
@@ -103,13 +110,15 @@ function violations(source: string, path = ''): string[] {
     ...source.matchAll(literalBeforeCode)
   ])
     if (vocabularyCodes.has(match[2]!)) found.push(`compares code ${match[2]}`)
-  if (!SYSTEM_MODULE.test(path))
-    for (const match of [
-      ...source.matchAll(comparedBeforeLiteral),
-      ...source.matchAll(literalBeforeCompared)
-    ])
+  if (!SYSTEM_MODULE.test(path)) {
+    const pipeline = NEUTRAL_RULES_PIPELINE.test(path)
+    const matches = pipeline
+      ? source.matchAll(quotedCode)
+      : [...source.matchAll(comparedBeforeLiteral), ...source.matchAll(literalBeforeCompared)]
+    for (const match of matches)
       if (systemOwnedCodes.has(match[2]!) && !found.includes(`compares code ${match[2]}`))
-        found.push(`compares ${match[2]}`)
+        found.push(`${pipeline ? 'names' : 'compares'} ${match[2]}`)
+  }
   for (const [list] of source.matchAll(quotedList)) {
     const members = [...list.matchAll(/['"]([A-Z][A-Z0-9_]*)['"]/g)].map((member) => member[1]!)
     const domain = Object.entries(vocabularyDomains).some(([key, entries]) => {
@@ -151,6 +160,21 @@ describe('System vocabulary boundary (RULES-2.T9o)', () => {
       violations(comparison, 'packages/rules-runtime/src/systems/dnd5e/armorClass.ts')
     ).toEqual([])
     expect(violations("kind === 'ARMOR'")).toEqual([])
+    expect(violations("movement.mode !== 'FLY'")).toEqual(['compares FLY'])
+  })
+
+  it('detects any ability or speed code the neutral rules pipeline names (RULES-2.T9e)', () => {
+    const argument = "abilityRecordKey(snapshot.abilities, 'DEXTERITY')"
+    expect(violations(argument, 'packages/rules-runtime/src/character/initiative.ts')).toEqual([
+      'names DEXTERITY'
+    ])
+    expect(violations("id ?? 'CONSTITUTION'", 'apps/apis/convex/characters/sheet.ts')).toEqual([
+      'names CONSTITUTION'
+    ])
+    expect(violations(argument, 'packages/rules-runtime/src/systems/dnd5e/initiative.ts')).toEqual(
+      []
+    )
+    expect(violations(argument, 'apps/web/src/domains/characters/sheet.ts')).toEqual([])
   })
 
   it('detects a spell slot pool comparison outside a System module (RULES-2.T9g)', () => {

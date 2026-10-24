@@ -1,8 +1,8 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
-import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 
 import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+import { abilityRecordIndex } from './characterDerivedRuleFacts.js'
 
 type ArmorClassFacts = NonNullable<CharacterRulePolicyInput['armorClassFacts']>
 
@@ -12,9 +12,7 @@ export function buildCharacterArmorClassRuleFacts(
   const { armorClass } = abilityScoreCapabilityRegistry.require(
     snapshot.systemId
   ).derivedStatisticAbilityCodes
-  const dexterityAbilityIndex = Object.keys(snapshot.abilities).findIndex(
-    (abilityId) => (resolveAbilityAlias(abilityId) ?? abilityId) === armorClass
-  )
+  const dexterityAbilityIndex = abilityRecordIndex(snapshot.abilities, armorClass)
   const equipment: ArmorClassFacts['equipment'] = snapshot.equipmentItems.flatMap((item) => {
     if (!item.equippedState) return []
     if (item.compiledItem.category !== 'ARMOR' && item.compiledItem.category !== 'SHIELD') return []
@@ -37,7 +35,7 @@ export function buildCharacterArmorClassRuleFacts(
 
   return {
     armorClassFacts: {
-      dexterityAbilityIndex: dexterityAbilityIndex < 0 ? null : dexterityAbilityIndex,
+      dexterityAbilityIndex,
       equipment
     }
   }

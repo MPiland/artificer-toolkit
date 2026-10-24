@@ -69,7 +69,8 @@ function abilityMatches(left: string | undefined, right: string): boolean {
   return left !== undefined && canonicalAbility(left) === canonicalAbility(right)
 }
 
-function abilityRecordKey(
+/** The snapshot's key for an ability, matched through its aliases; the ability itself when absent. */
+export function abilityRecordKey(
   abilities: CharacterBuildSnapshot['abilities'],
   abilityId: string
 ): string {
@@ -78,7 +79,8 @@ function abilityRecordKey(
   )
 }
 
-function abilityRecordIndex(
+/** The snapshot's index of an ability, matched through its aliases; null when absent. */
+export function abilityRecordIndex(
   abilities: CharacterBuildSnapshot['abilities'],
   abilityId: string
 ): number | null {
