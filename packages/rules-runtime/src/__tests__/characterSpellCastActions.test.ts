@@ -2868,7 +2868,11 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
           }
         ]
       }
-      path.resultBlock.outcomes.push({ id: testUuid(0xa3a1), effectKind: 'APPLY_GRANT', grants: {} })
+      path.resultBlock.outcomes.push({
+        id: testUuid(0xa3a1),
+        effectKind: 'APPLY_GRANT',
+        grants: {}
+      })
       edit?.(path.resultBlock)
       return authored
     }
