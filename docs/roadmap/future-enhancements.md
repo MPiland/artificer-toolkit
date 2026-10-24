@@ -578,6 +578,9 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Auto-hit and reel tails:** Marilith, Roper.
 - **Creature forms beyond Wild Shape:** Change Shape, lycanthrope and vampire shapes, Misty Escape.
 - **Extra reactions and reaction denial; terrain and underwater predicates; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts (Hydra heads, Roper tendrils) and damage-triggered splitting (Black Pudding, Ochre Jelly).**
+- **Effect-tag save qualifiers (SPELLS-33.T4j):** Turn Resistance ("advantage on saves against effects that turn undead") is a GM ruling. Automating it needs a save scope keyed on an authored effect tag, with Turn Undead's save carrying the tag once it converts (SPELLS-31.T4m).
+- **Destructible held objects (SPELLS-4.T2m2b):** the Net automates as a source-independent restraining relationship, but its "destroyed by 5 slashing damage (AC 10)" clause and its formless-creature exclusion are description only. An object that can be targeted and damaged on the board would automate them.
+- **Drop to 0 hit points and self-heal on a kill (SPELLS-33.T4i4b):** a REDUCE_TO_ZERO_HIT_POINTS outcome with its own persisted application kind (untyped, so resistance does not halve it, and dying rather than dead for Characters), plus a source self-heal when its target dies. Death Glare ships as a GM ruling with its target requirements kept; Consume Life automates its save-gated KILL and the wisp's 3d6 regain is a GM ruling.
 - **Rare class senses and riders:** Blindsense, Feral Senses, Witch Sight, Retaliation, and the One with Shadows light gate.
 
 ## Other future enhancements (parked)
