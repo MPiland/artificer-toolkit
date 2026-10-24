@@ -11,6 +11,7 @@ export interface AdmissionPage<Row> {
 /**
  * Merges a PENDING and a HISTORY page with an optional directly-addressed row (a deep link),
  * which joins whichever group its own state belongs to so it shows even before its page loads.
+ * A row present in both groups keeps its pending copy.
  */
 export function mergeAdmissionRows<Row>({
   pending,
@@ -28,7 +29,9 @@ export function mergeAdmissionRows<Row>({
   const pendingRows = direct && isPending(direct) ? [direct, ...pending.results] : pending.results
   const historyRows = direct && !isPending(direct) ? [direct, ...history.results] : history.results
   const merged = new Map<string, Row>()
-  for (const row of [...pendingRows, ...historyRows]) merged.set(getKey(row), row)
+  for (const row of [...pendingRows, ...historyRows]) {
+    if (!merged.has(getKey(row))) merged.set(getKey(row), row)
+  }
   const rows = [...merged.values()]
   return {
     rows,

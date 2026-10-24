@@ -55,6 +55,20 @@ describe('mergeAdmissionRows', () => {
     expect(after.rows).toEqual([direct])
   })
 
+  it('keeps the pending copy of a row that both groups report', () => {
+    const live: Row = { id: 'a', state: 'PENDING' }
+    const stale: Row = { id: 'a', state: 'DONE' }
+
+    expect(
+      mergeAdmissionRows({
+        pending: page([live]),
+        history: page([stale]),
+        direct: undefined,
+        ...options
+      }).rows
+    ).toEqual([live])
+  })
+
   it('reports loading more while either page loads more', () => {
     expect(
       mergeAdmissionRows({
