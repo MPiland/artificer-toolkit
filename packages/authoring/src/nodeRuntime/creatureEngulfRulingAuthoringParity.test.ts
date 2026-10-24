@@ -63,9 +63,10 @@ describe('engulf riders as GM rulings (D187a)', () => {
 
   it('authors the Gelatinous Cube Engulf as a DC 12 Dexterity save', () => {
     const engulf = gelatinousCube.features?.find(({ label }) => label === 'Engulf')
-    const invocation = engulf?.effects?.[0]?.invocation
-    expect(invocation?.triggerCode).toBe('SAVING_THROW')
-    expect(invocation?.savingThrow).toMatchObject({ dcMethod: 'FIXED_DC', baseDc: 12 })
+    expect(engulf?.effects?.[0]?.invocation).toMatchObject({
+      triggerCode: 'SAVING_THROW',
+      savingThrow: { dcMethod: 'FIXED_DC', baseDc: 12 }
+    })
   })
 
   it.each([gelatinousCube, waterElemental])(
@@ -82,7 +83,7 @@ describe('engulf riders as GM rulings (D187a)', () => {
   )
 
   it('keeps the Finger of Death damage automated and the zombie as a ruling, exactly as authored', async () => {
-    const failKinds = fingerOfDeath.effects.flatMap((effect) =>
+    const failKinds = (fingerOfDeath.effects ?? []).flatMap((effect) =>
       effect.paths.flatMap((path) =>
         path.selectionKind === 'FIXED' && path.pathCode === 'ON_SAVE_FAIL'
           ? path.resultBlock.outcomes.map(({ effectKind }) => effectKind)
