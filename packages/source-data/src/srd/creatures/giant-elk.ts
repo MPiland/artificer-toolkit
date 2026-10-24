@@ -1,6 +1,5 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
-import { conditionTypeId } from '../equipment/shared.js'
+import { chargeEffect } from './chargeEffect.js'
 import * as S from './shared.js'
 export const giantElk: CreatureAuthored = {
   id: S.CREATURE_IDS.GIANT_ELK,
@@ -48,78 +47,15 @@ export const giantElk: CreatureAuthored = {
       description:
         'Charge. If the elk moves at least 20 feet straight toward a target and then hits it with a ram attack on the same turn, the target takes an extra 7 (2d6) damage. If the target is a creature, it must succeed on a DC 14 Strength saving throw or be knocked prone.',
       effects: [
-        {
-          id: S.actionId(122, 201),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: {
-              id: S.actionId(122, 1202),
-              rangeKind: S.RANGE_KIND.DISTANCE,
-              amount: 10,
-              unit: S.MEASUREMENT_UNIT_CODE.FEET
-            },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(122, 202),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_HIT,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: S.actionId(122, 203),
-                resultKind: 'SEQUENCE',
-                outcomes: [
-                  {
-                    id: S.actionId(122, 204),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('BLUDGEONING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '2d6'
-                  },
-                  {
-                    id: S.actionId(122, 205),
-                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
-                    timing: S.FOLLOW_UP_SAVE_TIMING.IMMEDIATE,
-                    savingThrow: {
-                      id: S.actionId(122, 206),
-                      dcMethod: 'FIXED_DC',
-                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.STRENGTH,
-                      baseDc: 14
-                    },
-                    attempts: { kind: 'ONCE' },
-                    onSuccess: { kind: 'END' },
-                    onFailure: {
-                      kind: 'OUTCOMES',
-                      endCurrent: false,
-                      resultKind: 'SINGLE',
-                      outcomes: [
-                        {
-                          id: S.actionId(122, 207),
-                          effectKind: S.EFFECT_KIND.CONDITION,
-                          conditionId: conditionTypeId('PRONE')
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    id: S.actionId(122, 208),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_GIANT_ELK_CHARGE_GATE
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        chargeEffect({
+          creatureIndex: 122,
+          localIndex: 300,
+          ridesFeatureId: S.featureId(122, 3),
+          minFeet: 20,
+          damageType: 'BLUDGEONING',
+          diceConfig: '2d6',
+          dc: 14
+        })
       ],
       order: 1
     },

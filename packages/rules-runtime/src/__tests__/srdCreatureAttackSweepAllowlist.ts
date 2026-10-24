@@ -30,7 +30,8 @@ export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   '00000000-0002-00d0-0070-011600000000': 'OUTCOME_KIND', // Vampire Spawn: Bite
   '00000000-0002-00e6-0070-011500000000': 'OUTCOME_KIND', // Vampire: Bite
   '00000000-0002-00cc-0070-011f00000000': 'OUTCOME_KIND', // Werebear: Bite
-  '00000000-0002-0001-0070-1b1100000000': 'OUTCOME_KIND', // Wereboar: Tusks (Boar or Hybrid Form Only)
+  // Wereboar: Tusks (Boar or Hybrid Form Only): its lycanthropy save (T6b2) beside the Charge's (T5n2).
+  '00000000-0002-0001-0070-1b1100000000': 'FOLLOW_UP_SAVE',
   '00000000-0002-00cc-0070-012100000000': 'OUTCOME_KIND', // Wererat: Bite (Rat or Hybrid Form Only)
   '00000000-0002-00d3-0070-012200000000': 'OUTCOME_KIND', // Weretiger: Bite (Tiger or Hybrid Form Only)
   '00000000-0002-00cc-0070-012300000000': 'OUTCOME_KIND' // Werewolf: Bite (Wolf or Hybrid Form Only)
