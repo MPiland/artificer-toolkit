@@ -3,6 +3,7 @@ import { manifestNestedBehaviorDtoSchema } from './effect.js'
 import { shapeDtoSchema } from '../shared/shape.js'
 import { speedDtoSchema } from '../shared/speed.js'
 import { numericExprSchema } from '../shared/numericExpr.js'
+import { createBreakpointScalingDtoSchema } from '../shared/scaling.js'
 import {
   abilityCodeSchema,
   lengthUnitCodeSchema,
@@ -37,15 +38,25 @@ const manifestCreatureFormDtoSchema = lazySchema(() =>
 
 /**
  * The rule a caster-chosen Creature must meet to be a form (Polymorph: a beast whose challenge rating
- * does not exceed the target's), checked at cast against the System creature corpus.
+ * does not exceed the target's), checked at cast against the System creature corpus. A `SCALED` cap
+ * (Wild Shape) is the authored cap below every breakpoint row, and the row the caster's level reaches
+ * above it; its rows replace the cap and the excluded speeds together.
  */
 const manifestCreatureFormFilterDtoSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
     creatureTypeId: z.optional(authoredIdentifierSchema),
-    challengeRatingCapKind: z.enum(['TARGET', 'FIXED']),
+    challengeRatingCapKind: z.enum(['TARGET', 'FIXED', 'SCALED']),
     maxChallengeRatingId: z.optional(authoredIdentifierSchema),
-    excludedSpeedIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema))
+    excludedSpeedIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
+    scaling: z.optional(
+      createBreakpointScalingDtoSchema(
+        z.object({
+          maxChallengeRatingId: authoredIdentifierSchema,
+          excludedSpeedIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema))
+        })
+      )
+    )
   })
 )
 

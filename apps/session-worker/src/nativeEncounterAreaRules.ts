@@ -45,8 +45,14 @@ import {
   removeEncounterAreaTargetFromSnapshot
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { buildEncounterActionPendingSnapshot } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
-import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
-import { creatureFormFilterRefusal } from '@artificer-toolkit/rules-runtime/encounterFormChoice'
+import {
+  characterClassLevels,
+  characterTotalLevel
+} from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
+import {
+  creatureFormFilterRefusal,
+  resolveCreatureFormFilter
+} from '@artificer-toolkit/rules-runtime/encounterFormChoice'
 import { executeEncounterActorsAction } from '@artificer-toolkit/rules-runtime/encounterActorsActionExecution'
 import { targetingExcludesCreatureType } from '@artificer-toolkit/rules-runtime/encounterActionTargetPolicy'
 import { nextRollInt } from '@artificer-toolkit/rules-runtime/random'
@@ -697,10 +703,15 @@ export async function readChosenFormCreature(
     throw formRefusal('A chosen creature cannot take a creature form.')
   if (!input.readFormCreature) throw new Error('The creature form cannot be read.')
   const creature = await input.readFormCreature(input.state.gameSystemId, sourceId)
-  if (contribution.filter && creatureId !== undefined)
+  if (contribution.filter && creatureId !== undefined) {
+    // A scaled cap reads the caster's level, not the target's.
+    const filter = resolveCreatureFormFilter(
+      contribution.filter,
+      characterClassLevels(lead.sourceFacts.characterFacts)
+    )
     for (const actor of targets) {
       const refused = creatureFormFilterRefusal({
-        filter: contribution.filter,
+        filter,
         form: creature,
         target: {
           snapshot: actor.kind === 'CHARACTER' ? null : actor.snapshot,
@@ -710,6 +721,7 @@ export async function readChosenFormCreature(
       })
       if (refused) throw formRefusal(refused)
     }
+  }
   return creature
 }
 

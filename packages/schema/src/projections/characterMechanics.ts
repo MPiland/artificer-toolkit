@@ -362,10 +362,49 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
           filter: z.nullable(
             z.strictObject({
               creatureTypeId: z.nullable(serverUuidIdentityDtoSchema),
-              challengeRatingCapKind: z.enum(['TARGET', 'FIXED']),
+              challengeRatingCapKind: z.enum(['TARGET', 'FIXED', 'SCALED']),
               maxChallengeRatingId: z.nullable(serverUuidIdentityDtoSchema),
-              excludedSpeedIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(16))
+              excludedSpeedIds: z.array(serverUuidIdentityDtoSchema).check(z.maxLength(16)),
+              /** For `SCALED`: the row the caster's class level reaches replaces the cap and speeds. */
+              scaling: z._default(
+                z.nullable(
+                  z.strictObject({
+                    classId: serverUuidIdentityDtoSchema,
+                    rows: z
+                      .array(
+                        z.strictObject({
+                          level: z.number().check(z.int()),
+                          order: z.number().check(z.int()),
+                          maxChallengeRatingId: serverUuidIdentityDtoSchema,
+                          excludedSpeedIds: z
+                            .array(serverUuidIdentityDtoSchema)
+                            .check(z.maxLength(16))
+                        })
+                      )
+                      .check(z.maxLength(32))
+                  })
+                ),
+                null
+              )
             })
+          ),
+          /** A duration that grows with the caster's class level: `initialRemaining` is the base turns. */
+          initialRemainingScaling: z._default(
+            z.nullable(
+              z.strictObject({
+                classId: serverUuidIdentityDtoSchema,
+                rows: z
+                  .array(
+                    z.strictObject({
+                      level: z.number().check(z.int()),
+                      order: z.number().check(z.int()),
+                      turns: z.number().check(z.int()).check(z.positive())
+                    })
+                  )
+                  .check(z.maxLength(32))
+              })
+            ),
+            null
           )
         })
       ),

@@ -192,7 +192,11 @@ import {
   marginRiderPlan,
   timedBandConditions
 } from './effectActionBandConditions.js'
-import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import {
+  classLevelScaledDurationTurns,
+  conditionDurationTurns,
+  dnd5eRepeatSave
+} from './effectActionFollowUp.js'
 import { compiledCreatureFormFilter } from './effectActionCreatureFormFilter.js'
 import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
 import { turnEndGateEvidenceBinding, turnEndGatePlan } from './effectActionTurnEndGate.js'
@@ -1463,7 +1467,9 @@ function creatureFormPlan(
     !entry.duration
   )
     return null
-  const initialRemaining = conditionDurationTurns(entry.duration)
+  const scaledDuration = classLevelScaledDurationTurns(entry.duration)
+  const initialRemaining =
+    scaledDuration?.initialRemaining ?? conditionDurationTurns(entry.duration)
   const forms = outcome.forms ?? []
   const filter = compiledCreatureFormFilter(outcome.formFilter)
   const retainedAbilityIds = [...new Set(outcome.retainedAbilityDefinitionIds ?? [])].sort()
@@ -1478,6 +1484,7 @@ function creatureFormPlan(
     !UUID.test(entry.entryId) ||
     !UUID.test(outcome.id) ||
     forms.some(({ id, creatureId }) => !UUID.test(id) || !UUID.test(creatureId)) ||
+    (scaledDuration && !UUID.test(scaledDuration.scaling.classId)) ||
     filter === undefined
   )
     return null
@@ -1497,7 +1504,8 @@ function creatureFormPlan(
       forms: [...forms]
         .sort((a, b) => a.order - b.order)
         .map(({ id, label, creatureId, maxTargets }) => ({ id, label, creatureId, maxTargets })),
-      filter
+      filter,
+      initialRemainingScaling: scaledDuration?.scaling ?? null
     },
     ...(resultGate && { resultGate }),
     adapterFacts: {},

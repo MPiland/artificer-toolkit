@@ -32,18 +32,52 @@ const TURNS_PER_DURATION_UNIT: Partial<Record<CompiledDuration['durationKind'], 
  * for a duration the active-effect lifecycle cannot count (scaled, too long, or not timed).
  */
 export function conditionDurationTurns(duration: CompiledDuration): number | null {
-  const perUnit = TURNS_PER_DURATION_UNIT[duration.durationKind]
-  if (
-    perUnit === undefined ||
-    !('amount' in duration) ||
-    duration.scaling ||
-    !Number.isSafeInteger(duration.amount) ||
-    duration.amount < 1
-  )
-    return null
-  const turns = duration.amount * perUnit
+  if (!('amount' in duration) || duration.scaling) return null
+  return amountTurns(duration.durationKind, duration.amount)
+}
+
+function amountTurns(
+  durationKind: CompiledDuration['durationKind'],
+  amount: number
+): number | null {
+  const perUnit = TURNS_PER_DURATION_UNIT[durationKind]
+  if (perUnit === undefined || !Number.isSafeInteger(amount) || amount < 1) return null
+  const turns = amount * perUnit
   return turns <= MAX_ACTIVE_EFFECT_TURNS ? turns : null
 }
+
+/**
+ * A duration that grows with the caster's class level, in turns: the base amount plus the rows the
+ * class level selects between (Wild Shape: half the druid level in hours). Null for a duration that
+ * is not scaled by class level or whose amounts the lifecycle cannot count; the plan keeps the base
+ * turns and the cast picks the row (`resolveCreatureFormDuration`).
+ */
+export function classLevelScaledDurationTurns(
+  duration: CompiledDuration
+): { initialRemaining: number; scaling: ScaledDurationTurns } | null {
+  if (
+    !('amount' in duration) ||
+    duration.scaling?.scalingSource !== 'CLASS_LEVEL' ||
+    duration.scaling.breakpoints.length === 0
+  )
+    return null
+  const { classId, breakpoints } = duration.scaling
+  const initialRemaining = amountTurns(duration.durationKind, duration.amount)
+  if (initialRemaining === null) return null
+  const rows: { level: number; order: number; turns: number }[] = []
+  for (const { level, order, value } of breakpoints) {
+    const turns = amountTurns(duration.durationKind, value.amount)
+    if (turns === null) return null
+    rows.push({ level, order, turns })
+  }
+  return { initialRemaining, scaling: { classId, rows } }
+}
+
+type ScaledDurationTurns = NonNullable<
+  NonNullable<
+    CharacterRuleActionActiveEffectPlan['creatureFormContribution']
+  >['initialRemainingScaling']
+>
 
 /**
  * The D&D facts an active effect's repeated save reads, wherever the authored save sits (the

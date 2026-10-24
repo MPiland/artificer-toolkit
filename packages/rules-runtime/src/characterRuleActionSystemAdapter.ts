@@ -217,9 +217,29 @@ export interface CharacterRuleActionActiveEffectPlan {
      */
     filter: null | {
       creatureTypeId: string | null
-      challengeRatingCapKind: 'TARGET' | 'FIXED'
+      challengeRatingCapKind: 'TARGET' | 'FIXED' | 'SCALED'
+      /** The cap below every `scaling` row for `SCALED`. */
       maxChallengeRatingId: string | null
       excludedSpeedIds: readonly string[]
+      /** For `SCALED`: the caster's level in a class picks the row whose cap and speeds replace the base ones (Wild Shape). */
+      scaling: null | {
+        classId: string
+        rows: readonly {
+          level: number
+          order: number
+          maxChallengeRatingId: string
+          excludedSpeedIds: readonly string[]
+        }[]
+      }
+    }
+    /**
+     * For a duration that grows with the caster's level in a class (Wild Shape: half the druid level
+     * in hours): `initialRemaining` is the turns below every row, and the row the caster's level
+     * reaches replaces it at cast.
+     */
+    initialRemainingScaling: null | {
+      classId: string
+      rows: readonly { level: number; order: number; turns: number }[]
     }
   }
   /** Target-owned relationship state selected by the System from the exact action outcome. */

@@ -86,7 +86,11 @@ import {
 import type { CharacterAttack } from './attackProfileCapability.js'
 import type { EnemyProximity } from './encounterEnemyProximity.js'
 import type { MoveToward } from './encounterMoveToward.js'
-import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
+import {
+  characterClassLevels,
+  type CharacterMovementFacts,
+  type MovementTarget
+} from './encounterMovementTargets.js'
 import type {
   EncounterActionSourceRequest,
   NativeEncounterActionSource
@@ -565,11 +569,7 @@ export async function prepareEncounterActionMechanics<
           ...featureActionMechanic(source.capability),
           // A repeat of a Character's spell scales by the levels it has when the repeat is made.
           ...(sourceFacts.characterFacts && {
-            classLevels: Object.fromEntries(
-              sourceFacts.characterFacts.ruleEvaluation.facts.grantFoldFacts.base.classes.map(
-                ({ classId, level }) => [classId, level]
-              )
-            )
+            classLevels: characterClassLevels(sourceFacts.characterFacts)
           })
         }
   const actionMechanic = repeatMechanic ?? characterActionState!.actionMechanic
