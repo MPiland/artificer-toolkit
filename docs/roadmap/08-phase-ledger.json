@@ -2477,7 +2477,36 @@
             "tc": 2,
             "rr": 5,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "AUTHORING-1.T1",
+              "status": "IN_PROGRESS",
+              "closes": ["AUTHORING-1.4"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Verify and finish the System-aware, capability-driven shell and navigation; real-code proof of each part (workbook slice-authoring-1.md).",
+              "activeWorkbook": "docs/handoffs/slice-authoring-1.md"
+            },
+            {
+              "id": "AUTHORING-1.T2",
+              "status": "IN_PROGRESS",
+              "closes": ["AUTHORING-1.5"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 5,
+                "size": 5,
+                "after": ["AUTHORING-1.T1"]
+              },
+              "text": "Neutral second-System portability tracer through real publication, capability, catalogue and shell reads (test fixture, not seeded content); docs and ERDs describe the System-neutral model (workbook slice-authoring-1.md).",
+              "activeWorkbook": "docs/handoffs/slice-authoring-1.md"
+            }
+          ]
         },
         {
           "id": "AUTHORING-2",
@@ -6907,7 +6936,7 @@
         {
           "id": "ENCOUNTER-4",
           "title": "Speed Factor initiative",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -6946,7 +6975,22 @@
             "tc": 1,
             "rr": 1,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "ENCOUNTER-4.T1",
+              "status": "IN_PROGRESS",
+              "closes": ["ENCOUNTER-4.1", "ENCOUNTER-4.2", "ENCOUNTER-4.3", "ENCOUNTER-4.4"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 5
+              },
+              "text": "Speed Factor initiative as a Campaign optional rule: per-round declaration, System-authored modifiers, authored tie rule, declared action enforced at resolution, built through the initiative cursor and staging owners (workbook slice-encounter-4.md).",
+              "activeWorkbook": "docs/handoffs/slice-encounter-4.md"
+            }
+          ]
         },
         {
           "id": "ENCOUNTER-5",
@@ -6976,7 +7020,7 @@
         {
           "id": "ENCOUNTER-6",
           "title": "Morale",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": ["G2-OPTIONAL-COMBAT"],
@@ -7009,7 +7053,22 @@
             "tc": 1,
             "rr": 1,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "ENCOUNTER-6.T1",
+              "status": "IN_PROGRESS",
+              "closes": ["ENCOUNTER-6.1", "ENCOUNTER-6.2", "ENCOUNTER-6.3"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 5
+              },
+              "text": "Morale variant: authored triggers offer the GM a morale save (creature, leader or fallback roller); failure proposes flee or surrender, GM confirms, recorded on the actor; Campaign setting offered once it resolves (workbook slice-encounter-6.md).",
+              "activeWorkbook": "docs/handoffs/slice-encounter-6.md"
+            }
+          ]
         },
         {
           "id": "ENCOUNTER-7",
@@ -10744,7 +10803,7 @@
             },
             {
               "id": "SPELLS-4.T2m2b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 3,
@@ -10754,7 +10813,8 @@
                 "after": ["SPELLS-4.T2m2"]
               },
               "text": "Bug: the SRD Net attack does not compile (both actions REFUSED in srdEffectCompile.golden.txt, \"D&D test action outcome is not supported\"), so no room offers a Net. Make it compile from core options (attack, Restrained on a hit, the DC 10 Strength check or 5 slashing to free); proofs: a regression row, a parity proof, and a room proof that Freedom of Movement does not block a net (non-MAGICAL source).",
-              "note": "Registered 2026-10-24 under the D187 bug exception, found by SPELLS-4.T2m2."
+              "note": "Registered 2026-10-24 under the D187 bug exception, found by SPELLS-4.T2m2.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2m3",
@@ -11142,7 +11202,7 @@
               "proof": "Tests and Live green on tip 4ffe12d71; Spiritual Weapon conjures an owned actor whose bonus-action spell attack repeats through the stored REPEAT_SOURCE_PATH offer with damage frozen at cast (D166); repeated Effects resolve through resolveDnd5eActionMechanic and never yield a cast action; the initiative cohort is the Run's unowned actors with one home in validateInitiativeCursor (D190a); fixes for area output scope over conjured creatures, sibling-effect cast level and stableActors order; proofs encounterInitiativeCursor.test.ts, initiativeCorrection.test.ts, encounterRepeatPathAction.test.ts, bonusActionWeaponAttackCompile.test.ts, characterSpellCastActions.test.ts, spellCastLevels.test.ts, coreOptionSpellAuthoringParity.test.ts, nativeRoomCoreOptionSpells.test.ts and authored-length-amount-bounds.test.ts."
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2v2b",
               "wsjf": {
@@ -11153,10 +11213,11 @@
                 "after": ["SPELLS-4.T2v2a3d"]
               },
               "text": "D187b: convert Arcane Hand and Mage Hand to SUMMON actors on the T2v2a summon piece (stat block on the spell, owner control, removed when the spell ends), each with a parity proof and a room test. Riders with no automated equivalent stay GM rulings (D187a).",
-              "note": "Registered 2026-10-23 at the user's yes (D187b split)."
+              "note": "Registered 2026-10-23 at the user's yes (D187b split).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2w",
               "wsjf": {
@@ -11167,7 +11228,8 @@
                 "after": ["SPELLS-4.T1", "SPELLS-4.T2v", "SPELLS-4.T2v2a3d"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B; T2a2 ruling): SUMMON manifests in Encounters with a source-turn-start attack roll against one chosen hostile within the manifest's reach. Converts FAITHFUL_HOUND, with a parity proof and a room test; the kind deleted.",
-              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b: Faithful Hound builds on the T2v2 summon token."
+              "note": "D187a re-plan: size 5 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. D187b: Faithful Hound builds on the T2v2 summon token.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T1k",
@@ -11733,7 +11795,7 @@
             {
               "id": "SPELLS-8.T7",
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Multi-Effect spells (Arcane Sword, Faithful Hound, Grease, Spiritual Weapon) cast in an Encounter.",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-8.1"],
               "wsjf": {
                 "bv": 5,
@@ -11742,7 +11804,8 @@
                 "size": 2,
                 "after": ["SPELLS-8.T1"]
               },
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-8.T8",
@@ -13958,7 +14021,7 @@
             },
             {
               "id": "SPELLS-31.T4j",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -13968,7 +14031,8 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2j1", "SPELLS-4.T2j2a"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2j: Multiattack Defense, Nature's Ward, both Land's Stride. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T4k1",
@@ -14360,7 +14424,7 @@
             },
             {
               "id": "SPELLS-31.T5n2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 2,
@@ -14370,7 +14434,8 @@
                 "after": ["SPELLS-31.T5n"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Scene-light activation gate (split from T5n, ruled 2026-10-20): ACTION_SCENE reads the holder cell's illumination (scene lights, zones, barriers) so an activation can require dim light or darkness; One with Shadows gains the gate (converted ungated in T5n). Generic predicate, no feature-specific code.",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T5o",
@@ -14559,7 +14624,7 @@
             },
             {
               "id": "SPELLS-32.T4j",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-32.1"],
               "wsjf": {
                 "bv": 5,
@@ -14568,7 +14633,8 @@
                 "size": 2,
                 "after": ["SPELLS-32.T1", "SPELLS-4.T2j1", "SPELLS-4.T2j2a"]
               },
-              "text": "Fey Ancestry, Gnome Cunning (\"against magic\" qualifier, built with SPELLS-33.T4j) and Dwarven Resilience (\"against poison\": the POISONED condition or poison damage, the same qualifier family) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
+              "text": "Fey Ancestry, Gnome Cunning (\"against magic\" qualifier, built with SPELLS-33.T4j) and Dwarven Resilience (\"against poison\": the POISONED condition or poison damage, the same qualifier family) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-32.T5",
@@ -14915,7 +14981,7 @@
             },
             {
               "id": "SPELLS-33.T4gh",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -14924,7 +14990,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2g1", "SPELLS-4.T2h1"]
               },
-              "text": "five Rejuvenations, Ghost and Night Hag Etherealness (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "five Rejuvenations, Ghost and Night Hag Etherealness (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4i1a",
@@ -15106,7 +15173,7 @@
             },
             {
               "id": "SPELLS-33.T4i4b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15116,11 +15183,12 @@
                 "after": ["SPELLS-33.T4i4a", "RULES-2.T6c2"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry.",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4j",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15129,7 +15197,8 @@
                 "size": 3,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2j1", "SPELLS-33.T3a2", "SPELLS-4.T2j2a"]
               },
-              "text": "Magic Resistance, Fey Ancestry, Gnome Cunning, Duergar Resilience, angelic and hellish weapons, Turn Resistance (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Magic Resistance, Fey Ancestry, Gnome Cunning, Duergar Resilience, angelic and hellish weapons, Turn Resistance (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4k",
@@ -15210,7 +15279,7 @@
             },
             {
               "id": "SPELLS-33.T4m",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15219,11 +15288,12 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2m1", "SPELLS-4.T2m2", "SPELLS-4.T2m1b2b"]
               },
-              "text": "Horrifying Visage, Petrifying Gaze, Vrock Spores, Freedom of Movement (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Horrifying Visage, Petrifying Gaze, Vrock Spores, Freedom of Movement (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4n",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15233,11 +15303,12 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2n1", "SPELLS-4.T2n2"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: absorption healing x3, healing denial bites x3 (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4o",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15247,7 +15318,8 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2o"]
               },
               "text": "Spider Climb, standing leaps, Ice Walk, Harpoon pull (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": " 2026-10-24: Adult and Ancient White Dragon CREATURE_ICE_WALK ships as the same GM ruling as Young White Dragon Ice Walk (T6d2)."
+              "note": " 2026-10-24: Adult and Ancient White Dragon CREATURE_ICE_WALK ships as the same GM ruling as Young White Dragon Ice Walk (T6d2).",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4pr",
@@ -15280,7 +15352,7 @@
             },
             {
               "id": "SPELLS-33.T4s2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15290,11 +15362,12 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: lycanthrope and vampire shapechanging, Misty Escape (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4s3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15304,7 +15377,8 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T4s1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion and Mimic Grappler (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4w",
@@ -15426,7 +15500,7 @@
             },
             {
               "id": "SPELLS-33.T6a3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15436,7 +15510,8 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: held-creature relationship options (damage to or from the held creature, auto-hit, attach drain, reel) (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6b1",
@@ -15911,7 +15986,7 @@
             },
             {
               "id": "SPELLS-33.T6m2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15921,7 +15996,8 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: subtype and can-hear target filters, ordinal use variants, wake action, stacking recurring damage, tree size (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T7a",
@@ -17505,7 +17581,7 @@
         {
           "id": "RELIABILITY-8",
           "title": "Authored forms share one typed factory with no silent defaults",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -17572,7 +17648,63 @@
             "tc": 2,
             "rr": 5,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "RELIABILITY-8.T1",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-8.1", "RELIABILITY-8.6"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 5,
+                "size": 5
+              },
+              "text": "One typed form config per authored domain consumed by one generic factory; guided forms typed by domain values; pass-through wrappers and untyped converters deleted (workbook slice-reliability-8.md).",
+              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+            },
+            {
+              "id": "RELIABILITY-8.T2",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-8.2", "RELIABILITY-8.3"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 5,
+                "size": 3,
+                "after": ["RELIABILITY-8.T1"]
+              },
+              "text": "No silent first-in-list System or school, explicit missing state; empty label is a validation error; defaults once in empty values (workbook slice-reliability-8.md).",
+              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+            },
+            {
+              "id": "RELIABILITY-8.T3",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-8.4", "RELIABILITY-8.5"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 5,
+                "size": 2,
+                "after": ["RELIABILITY-8.T1"]
+              },
+              "text": "Enum-typed feature and feat selects with shared charge reset helpers; node defaults satisfy schema DTOs, default invocation declared once (workbook slice-reliability-8.md).",
+              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+            },
+            {
+              "id": "RELIABILITY-8.T4",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-8.7"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 2,
+                "rr": 5,
+                "size": 3
+              },
+              "text": "Shared web rules once: formatEnumLabel, one ReferenceOption, Campaign owner-and-active capability flag from the server, shared social admission lists, auth form feedback and dice dismiss effect (workbook slice-reliability-8-t4.md).",
+              "activeWorkbook": "docs/handoffs/slice-reliability-8-t4.md"
+            }
+          ]
         },
         {
           "id": "RELIABILITY-9",
@@ -17782,7 +17914,22 @@
             "tc": 1,
             "rr": 3,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "RELIABILITY-10.T1",
+              "status": "TODO",
+              "closes": ["RELIABILITY-10.1", "RELIABILITY-10.2", "RELIABILITY-10.3"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 8,
+                "after": ["RELIABILITY-8.T1"]
+              },
+              "text": "One state owner (top-level TanStack form) with behaviour-split stable contexts; narrow selectors so a keystroke re-renders only that field; builder submit/finalize/saving from one source with a red-first regression test (OQ-1 option 1)."
+            }
+          ]
         },
         {
           "id": "RELIABILITY-11",
@@ -17815,7 +17962,7 @@
         {
           "id": "RELIABILITY-12",
           "title": "Convex infers real types for authoring DTOs and creature speeds",
-          "status": "TODO",
+          "status": "IN_PROGRESS",
           "journeyTests": [],
           "journeyStatus": "none",
           "origin": [],
@@ -17842,7 +17989,22 @@
             "tc": 1,
             "rr": 5,
             "size": 5
-          }
+          },
+          "tasks": [
+            {
+              "id": "RELIABILITY-12.T1",
+              "status": "IN_PROGRESS",
+              "closes": ["RELIABILITY-12.1", "RELIABILITY-12.2"],
+              "wsjf": {
+                "bv": 1,
+                "tc": 1,
+                "rr": 5,
+                "size": 5
+              },
+              "text": "Flatten intersection-built facet and effect-path schemas into unions so api.d.ts carries real types; type stat block speeds from the stored creature speed shape; generatedApiTypes type test proves both (workbook slice-reliability-12.md).",
+              "activeWorkbook": "docs/handoffs/slice-reliability-12.md"
+            }
+          ]
         },
         {
           "id": "RELIABILITY-13",
