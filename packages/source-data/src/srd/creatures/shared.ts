@@ -700,6 +700,8 @@ export type GrappleRider = {
   restrictedActionEffectIds?: readonly string[]
   /** The hold applies only when this holds of the open Attack action (a Multiattack's "if both attacks hit"). */
   appliesWhen?: AttackSlotCondition
+  /** The printed "takes N damage at the start of each of its turns" while held. */
+  recurrence?: ActorRelationshipAuthored['recurrence']
 }
 
 /**
@@ -753,6 +755,7 @@ export function grappledOutcome(
     effectKind: EFFECT_KIND.ACTOR_RELATIONSHIP,
     heldAtOnce: rider.heldAtOnce,
     ...(rider.appliesWhen ? { appliesWhen: rider.appliesWhen } : {}),
+    ...(rider.recurrence ? { recurrence: rider.recurrence } : {}),
     modules: modules.map((module, order) => ({ ...module, order: order + 1 })),
     conditions: [
       ...(rider.omitGrappled ? [] : [GRAPPLED_CONDITION_ID]),

@@ -660,6 +660,102 @@ describe('seeded SRD Creature hit riders in the room', () => {
     expect(activeEffects).toHaveLength(1)
   })
 
+  it('grapples and restrains the Character with the Chain Devil’s Chain, holding 2d6 piercing for each of its turns (SPELLS-33.T6a3)', async () => {
+    // 2d6 + 4 slashing with both dice rolling 1; the hold recurs at the start of the target's turns.
+    const room = await hitRiderRoom({
+      creature: 'Chain Devil',
+      feature: 'Chain',
+      playerAutoRoll: true,
+      rolls: [18, 0, 0]
+    })
+    const batch = await settle(room, null)
+    expect(batch.damage).toEqual([[6, damageTypeId('SLASHING')]])
+    expect(batch.targetTransition.after.conditionIds).toEqual(
+      expect.arrayContaining([conditionId('GRAPPLED'), conditionId('RESTRAINED')])
+    )
+    expect(batch.activeEffectTransitions).toMatchObject([
+      { kind: 'CREATE', recurrenceStage: 'START_OF_TURN' }
+    ])
+  })
+
+  it('grapples and restrains a Medium Character with the Marilith’s Tail beside the auto-hit ruling (SPELLS-33.T6a3)', async () => {
+    // 2d10 + 4 bludgeoning with both dice rolling 1.
+    const room = await hitRiderRoom({
+      creature: 'Marilith',
+      feature: 'Tail',
+      playerAutoRoll: true,
+      rolls: [18, 0, 0]
+    })
+    const batch = await settle(room, null)
+    expect(batch.damage).toEqual([[6, damageTypeId('BLUDGEONING')]])
+    expect(batch.targetTransition.after.conditionIds).toEqual(
+      expect.arrayContaining([conditionId('GRAPPLED'), conditionId('RESTRAINED')])
+    )
+  })
+
+  it('attaches the Stirge to the Character its Blood Drain hits, beside the drain ruling (SPELLS-33.T6a3)', async () => {
+    // 1d4 + 3 piercing with the die rolling 1.
+    const room = await hitRiderRoom({
+      creature: 'Stirge',
+      feature: 'Blood Drain',
+      playerAutoRoll: true,
+      rolls: [18, 0]
+    })
+    const batch = await settle(room, null)
+    expect(batch.damage).toEqual([[4, damageTypeId('PIERCING')]])
+    expect(batch.activeEffectTransitions).toMatchObject([{ kind: 'CREATE' }])
+  })
+
+  it('poisons and paralyzes only a creature the Chuul holds with its Tentacles (SPELLS-33.T6a3)', async () => {
+    // Pincer hits (2d6 + 4) and grapples the Large Ogre; it then fails the DC 13 Constitution save.
+    const chuul = seededSrdCreature('Chuul')
+    const room = await actionRoom({
+      actors: [
+        srdCreatureActor({ id: SOURCE_ID, creature: chuul }),
+        srdCreatureActor({ id: CREATURE_TARGET_ID, creature: seededSrdCreature('Ogre') })
+      ],
+      ownerFeatureId: creatureFeature(chuul, 'Pincer').id,
+      autoRoll: 'GAME_MASTER',
+      rolls: [18, 0, 0, 0]
+    })
+    const tentacles = (await room.actionChoices()).actions.find(
+      ({ label }) => label === 'Tentacles'
+    )
+    if (!tentacles) throw new Error('The Chuul offers no Tentacles.')
+    expect(tentacles.target).toMatchObject({ kind: 'ACTOR', heldBySource: true })
+    const refused = await room.startAction(
+      CREATURE_TARGET_ID,
+      ['TARGET_RANGE_UNCHECKED'],
+      null,
+      null,
+      tentacles.id
+    )
+    expect(refused.answer.type).not.toBe('COMMAND_COMMITTED')
+
+    const pincer = await room.startAction(CREATURE_TARGET_ID, ['TARGET_RANGE_UNCHECKED'])
+    expect(pincer.answer.type, JSON.stringify(pincer.answer)).toBe('COMMAND_COMMITTED')
+    const poisoned = await room.startAction(
+      CREATURE_TARGET_ID,
+      ['TARGET_RANGE_UNCHECKED'],
+      null,
+      null,
+      tentacles.id
+    )
+    expect(poisoned.answer.type, JSON.stringify(poisoned.answer)).toBe('COMMAND_COMMITTED')
+    const { actors } = await readRoomHistory(room.room.base.stub)
+    const row = actors.find(({ id }) => id === CREATURE_TARGET_ID)
+    if (!row) throw new Error('The Ogre is missing from the Run.')
+    const target = readStoredRunActor(row)
+    if (target.kind !== 'CREATURE') throw new Error('Expected the Ogre Creature actor.')
+    expect(readEncounterActorConditionState(target.conditions).ids).toEqual(
+      expect.arrayContaining([
+        conditionId('GRAPPLED'),
+        conditionId('POISONED'),
+        conditionId('PARALYZED')
+      ])
+    )
+  })
+
   it('poisons the Character for 1 minute when it fails its save against the Homunculus’s Bite', async () => {
     const room = await hitRiderRoom({
       creature: 'Homunculus',

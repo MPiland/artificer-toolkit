@@ -575,7 +575,13 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **SUMMON manifests:** Faithful Hound, plus creature-summoned allies.
 - **Containment:** swallow (Purple Worm, Kraken, Remorhaz, Tarrasque, Giant Frog and Toad; ships as a GM ruling beside the attack damage, no containment, acid or regurgitation piece) and engulf (Gelatinous Cube Engulf and Ooze Cube, Water Elemental Whelm; ships as GM rulings beside the authored save and damage).
   - **Save over contained or passed-through creatures (N4 CONTAINED_CREATURES/PASSAGE, SPELLS-33.T6a2):** a save aimed at the creatures in the source's own space (Water Elemental Whelm) or the creatures it moves through (Gelatinous Cube Engulf). Chosen-creature saves need an Unlimited, Touch or 1 ft+ range, so both actions stay refused at compile on the bounded shape and the GM runs them from the ruling.
-- **Auto-hit and reel tails:** Marilith, Roper.
+- **Held-creature riders (SPELLS-33.T6a3, D187a):** the grapple, start-of-turn damage and held-only targeting are data; these ship as GM rulings or description:
+  - **Auto-hit on a held target:** the Marilith Tail's automatic hit against the creature it grapples.
+  - **Reel held creatures:** the Roper pulling each creature it grapples 25 feet toward it.
+  - **Source-turn hit point loss with a drained-total detach:** the Stirge Blood Drain loses hit points at the start of the stirge's turn and detaches after 10 drained or the target's death (relationship recurrence fires on the held target's turn as typed damage); any creature's action to detach it.
+  - **Damage transfer to a held creature:** Cloaker Damage Transfer.
+  - **Damage to a grappler and touch retaliation:** Barbed Devil Barbed Hide.
+  - **Adhesion on contact:** Mimic Adhesive (Object Form Only).
 - **Creature forms beyond Wild Shape:** Change Shape, lycanthrope and vampire shapes, Misty Escape.
 - **Extra reactions and reaction denial; terrain and underwater predicates; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts (Hydra heads, Roper tendrils) and damage-triggered splitting (Black Pudding, Ochre Jelly).**
 - **Rare class senses and riders:** Blindsense, Feral Senses, Witch Sight, Retaliation, and the One with Shadows light gate.

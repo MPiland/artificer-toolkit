@@ -156,13 +156,19 @@ export const chainDevil: CreatureAuthored = {
                     localIndex: 1,
                     escapeDc: 14,
                     heldAtOnce: 1,
-                    untilEnds: ['RESTRAINED']
-                  }),
-                  {
-                    id: S.actionId(61, 112),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_CHAIN_DEVIL_CHAIN
-                  }
+                    untilEnds: ['RESTRAINED'],
+                    recurrence: {
+                      stage: 'START_OF_TURN',
+                      damage: {
+                        id: S.actionId(61, 112),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('PIERCING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '2d6'
+                      }
+                    }
+                  })
                 ]
               }
             }

@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 export const roper: CreatureAuthored = {
   id: S.CREATURE_IDS.ROPER,
@@ -263,8 +264,11 @@ export const roper: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(7072, 11),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: 'ROPER_REEL' as const
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Reel in grappled creatures',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      'The roper pulls each creature grappled by it up to 25 feet straight toward it; the GM moves each one.'
                   }
                 ]
               }
