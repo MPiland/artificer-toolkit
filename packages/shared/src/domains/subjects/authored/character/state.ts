@@ -1,4 +1,5 @@
 import type { CreatureOriginKindCode, CreatureRelationshipKindCode, EquippedSlotCode } from '#core'
+import type { SummonStatBlockAuthored } from '#authored'
 
 export interface CharacterEquipmentItemState {
   /** Character-owned item id */
@@ -114,6 +115,23 @@ export interface CharacterExhaustionState {
   notes?: string
 }
 
+/** A creature a Sheet spell cast conjured outside an Encounter (D190). */
+export interface CharacterSpellSummonState {
+  id: string
+  spellId: string
+  summonOutcomeId: string
+  label: string
+  concentration: boolean
+  statBlock: SummonStatBlockAuthored
+  armorClass: number | null
+  maximumHitPoints: number
+  currentHitPoints: number
+  tempHitPoints?: number
+  customName?: string
+  notes?: string
+  castAt: string
+}
+
 export type CharacterNoteGroupKind = 'SESSION' | 'LOOT' | 'CHARACTERS' | 'PLACES' | 'CUSTOM'
 
 export interface CharacterNoteGroupState {
@@ -167,6 +185,7 @@ export interface CharacterState {
   spellSlots?: CharacterSpellSlotUsageState[]
   conditions?: CharacterConditionState[]
   exhaustion?: CharacterExhaustionState
+  spellSummons?: CharacterSpellSummonState[]
   noteGroups?: CharacterNoteGroupState[]
   notes?: CharacterNoteState[]
   creatures?: CharacterOwnedCreatureState[]
