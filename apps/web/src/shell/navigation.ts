@@ -28,7 +28,7 @@ export interface AppShellNavGroup {
 
 export type ContentKind = GameSystemRuleCapabilityDto['contentKinds'][number]
 
-/** Presentation of each authored content kind; its key order is the Content group's order. */
+/** Presentation of each authored content kind; a missing kind fails typecheck. */
 const contentKindNavigation = {
   SPELL: { label: 'Spells', href: '/spells', icon: IScroll },
   BACKGROUND: { label: 'Backgrounds', href: '/backgrounds', icon: IBook },
@@ -40,7 +40,16 @@ const contentKindNavigation = {
   VEHICLE: { label: 'Vehicles', href: '/vehicles', icon: ICategory }
 } satisfies Record<ContentKind, AppShellNavItem>
 
-export const contentKindOrder = Object.keys(contentKindNavigation) as ContentKind[]
+export const contentKindOrder = [
+  'SPELL',
+  'BACKGROUND',
+  'FEAT',
+  'RACE',
+  'CLASS',
+  'EQUIPMENT',
+  'CREATURE',
+  'VEHICLE'
+] as const satisfies readonly ContentKind[]
 
 const workspaceNavigation: AppShellNavGroup = {
   label: 'Workspace',

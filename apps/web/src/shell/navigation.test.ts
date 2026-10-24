@@ -1,3 +1,4 @@
+import { authoredSubjectKindSchema } from '@artificer-toolkit/schema/projections'
 import { buildPlatformNavigation, contentKindOrder, isNavItemActive } from './navigation'
 
 const platformNavigation = buildPlatformNavigation(contentKindOrder)
@@ -36,7 +37,10 @@ describe('capability-driven navigation', () => {
     ])
   })
 
-  it('offers every kind when every kind is published', () => {
+  it('orders every authored subject kind the schema defines', () => {
+    expect([...contentKindOrder].sort()).toEqual(
+      Object.keys(authoredSubjectKindSchema._zod.def.entries).sort()
+    )
     expect(contentLabels(contentKindOrder)).toHaveLength(contentKindOrder.length)
   })
 
