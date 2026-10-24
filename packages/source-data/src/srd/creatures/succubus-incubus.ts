@@ -1,4 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -61,7 +62,7 @@ export const succubusIncubus: CreatureAuthored = {
       description:
         "Shapechanger. The fiend can use its action to polymorph into a Small or Medium humanoid, or back into its true form. Without wings, the fiend loses its flying speed. Other than its size and speed, its statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(267, 200),
           invocation: {
             kind: 'ACTION',
@@ -70,7 +71,7 @@ export const succubusIncubus: CreatureAuthored = {
             range: { id: S.actionId(267, 201), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SUCCUBUS_INCUBUS_SHAPECHANGER
+          ...CHANGE_SHAPE_RULING.SIZED_FORM
         })
       ],
       order: 1
