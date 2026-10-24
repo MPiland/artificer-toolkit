@@ -11,6 +11,7 @@ import {
   evaluateEncounterBasicActionCheck,
   startEncounterBasicActionCheck
 } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { encounterHeldCheckDice } from '@artificer-toolkit/rules-runtime/encounterD20Window'
 import {
   completeEncounterEscapeCheckResult,
   encounterActorsAfterEscape,
@@ -155,8 +156,16 @@ export async function planNativeLiveEscape(
     addedDice: context.d20.addedDice
   })
   let check: LiveSessionEncounterEscapeCommitInput['check']
-  // The holder's controller rolls unless their preference rolls for them (ADR 0034 decision 3).
-  if (ready.autoRollByActorId[actor.id] !== true)
+  // The holder's controller rolls unless their preference rolls for them (ADR 0034 decision 3). A
+  // roller holding after-roll dice sees its d20 before the check settles, so it rolls the d20 itself.
+  if (
+    ready.autoRollByActorId[actor.id] !== true ||
+    encounterHeldCheckDice(
+      system,
+      activeEffectsByActorId.get(actor.id) ?? [],
+      context.check.checkDefinitionId
+    ).length > 0
+  )
     check = {
       kind: 'PENDING',
       snapshot: encounterBasicActionCheckPendingSnapshot({

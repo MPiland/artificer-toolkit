@@ -21,6 +21,7 @@ import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/sys
 
 import { activeAfterRollAbilityCheckDice } from './character/activeEffectGrantTotals.js'
 import { encounterBasicActionCheckTrigger } from './encounterBasicActionCheck.js'
+import { encounterConcealmentCheckTrigger } from './encounterConcealmentCheck.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { checkAbilityCode } from './encounterMovementPassagePreparation.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
@@ -42,7 +43,10 @@ export function encounterD20WindowRollerActorId(
 
 /** The check the window follows, as the roll card and decision name it. */
 export function encounterD20WindowTrigger(context: EncounterD20WindowPendingContextDto) {
-  return encounterBasicActionCheckTrigger(context.source.context)
+  const { source } = context
+  return source.kind === 'CONCEALMENT_CHECK'
+    ? encounterConcealmentCheckTrigger(source.context)
+    : encounterBasicActionCheckTrigger(source.context)
 }
 
 /** One die a roller holds for after its d20: the effect that holds it and the grant that gives it. */

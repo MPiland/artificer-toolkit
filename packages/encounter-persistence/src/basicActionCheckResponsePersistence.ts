@@ -4,6 +4,7 @@ import {
 } from '@artificer-toolkit/schema/api/encounterData'
 import type {
   LiveSessionEncounterBasicActionResponseCommitInput,
+  LiveSessionEncounterCheckPauseCommitInput,
   LiveSessionEncounterEscapeResponseCommitInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
@@ -31,7 +32,6 @@ import {
 import {
   readBasicActionCheckResponseAdmission,
   readCheckActionResponseAdmission,
-  readD20WindowResponseAdmission,
   readEscapeCheckResponseAdmission
 } from './basicActionCheckAdmission.js'
 import {
@@ -39,7 +39,7 @@ import {
   projectNativeD20WindowPending
 } from './basicActionCheckPending.js'
 import { isCheckActionSettlement } from './checkActionSettlement.js'
-import { addResponseChangesToRoot } from './consumedGrantPersistence.js'
+import { addResponseChangesToRoot, deleteGrants } from './consumedGrantPersistence.js'
 import { settleEncounterConcealmentCheck } from './concealmentCheckSettlement.js'
 import { changedFields, readRunActors } from './documents.js'
 import { settleEncounterEscapeCheck } from './escapeCheckSettlement.js'
@@ -58,16 +58,19 @@ type CheckResponseAdmission =
   | Awaited<ReturnType<typeof readBasicActionCheckResponseAdmission>>
   | Awaited<ReturnType<typeof readEscapeCheckResponseAdmission>>
 type AdmittedCheck = Exclude<
-  | CheckResponseAdmission
-  | Awaited<ReturnType<typeof readD20WindowResponseAdmission>>
-  | Awaited<ReturnType<typeof readCheckActionResponseAdmission>>,
+  CheckResponseAdmission | Awaited<ReturnType<typeof readCheckActionResponseAdmission>>,
   { kind: 'REPLAY' }
 >
+type WindowPayload = EncounterD20WindowPendingContextDto['pause']['payload']
+
+const mismatch = () => new Error('Live Session check result does not match its pending evidence.')
 
 /** What differs between the checks a root command can pend: its admission, its die and its effects. */
 type CheckPersistenceSpec<TInput extends CheckResponseCommitInput> = {
   admit(ctx: EncounterWriteTransaction, input: TInput): Promise<CheckResponseAdmission>
-  selectedNatural(execution: TInput['settlement']['execution']): number | null
+  settledD20(
+    execution: TInput['settlement']['execution']
+  ): Parameters<typeof requireD20WindowAnswer>[0]['settled']['d20'] | null
   settle(
     ctx: EncounterWriteTransaction,
     input: {
@@ -79,6 +82,7 @@ type CheckPersistenceSpec<TInput extends CheckResponseCommitInput> = {
       initiatorUserId: string
       occurredAt: string
       occurrenceVersion: number
+      windowDice: WindowPayload['offer']['options']
     }
   ): Promise<{ actors: EncounterRunActorState[]; endedEffects?: ActiveRuleEffectRecord[] }>
   validateReadFence(
@@ -89,9 +93,10 @@ type CheckPersistenceSpec<TInput extends CheckResponseCommitInput> = {
 }
 
 /**
- * Commits the roller's d20 for a pending concealment check (Hide, Search): its concealment change,
- * the occurrence's completion and the receipts, atomically. The root command already spent the
- * Action, so a failed check changes only the occurrence.
+ * Commits the answer that settles a pending concealment check (Hide, Search), its d20 or a d20
+ * window's decision: its concealment change, the spent held die, the occurrence's completion and
+ * the receipts, atomically. The root command already spent the Action, so a failed check changes
+ * only the occurrence.
  */
 export function persistEncounterBasicActionResponse(
   ctx: EncounterWriteTransaction,
@@ -103,15 +108,14 @@ export function persistEncounterBasicActionResponse(
   return persistCheckResponse(ctx, input, {
     admit: (transaction, scope) =>
       readBasicActionCheckResponseAdmission(transaction, { ...scope, response: scope.command }),
-    selectedNatural: (execution) =>
+    settledD20: (execution) =>
       execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'CONCEALMENT_CHECK'
-        ? execution.applicationOutputs.d20.selectedNatural
+        ? execution.applicationOutputs.d20
         : null,
     settle: (transaction, settleInput) => {
       const { settlement } = settleInput
       // A check action's answer commits through persistEncounterCheckActionResponse.
-      if (isCheckActionSettlement(settlement))
-        throw new Error('Live Session check result does not match its pending evidence.')
+      if (isCheckActionSettlement(settlement)) throw mismatch()
       return settleEncounterConcealmentCheck(transaction, { ...settleInput, settlement })
     },
     validateReadFence: callbacks.validateReadFence
@@ -119,9 +123,10 @@ export function persistEncounterBasicActionResponse(
 }
 
 /**
- * Commits the holder's d20 for a pending Escape check (D105): the release it earned, the
- * occurrence's completion and the receipts, atomically. The root command already spent the
- * activation, so a failed check changes only the occurrence.
+ * Commits the answer that settles a pending Escape check (D105), its d20 or a d20 window's
+ * decision: the release it earned, the spent held die, the occurrence's completion and the
+ * receipts, atomically. The root command already spent the activation, so a failed check changes
+ * only the occurrence.
  */
 export function persistEncounterEscapeResponse(
   ctx: EncounterWriteTransaction,
@@ -133,9 +138,9 @@ export function persistEncounterEscapeResponse(
   return persistCheckResponse(ctx, input, {
     admit: (transaction, scope) =>
       readEscapeCheckResponseAdmission(transaction, { ...scope, response: scope.command }),
-    selectedNatural: (execution) =>
+    settledD20: (execution) =>
       execution.status === 'COMPLETE' && execution.applicationOutputs.kind === 'ESCAPE_CHECK'
-        ? execution.applicationOutputs.d20.selectedNatural
+        ? execution.applicationOutputs.d20
         : null,
     settle: settleEncounterEscapeCheck,
     validateReadFence: callbacks.validateReadFence
@@ -200,11 +205,148 @@ export function requireD20WindowAnswer(input: {
           (face) => !Number.isSafeInteger(face) || face < 1 || face > option.faces
         )))
   )
-    throw new Error('Live Session check result does not match its pending evidence.')
+    throw mismatch()
   return {
     windowDice: option ? [option] : [],
     selectedIndex: encounterD20WindowSelectedIndex(offered, selection)
   }
+}
+
+/**
+ * What the answer that settles a check adds to the d20 it froze: the d20 itself, rolled from the
+ * paused facts with the app roll the answer settled (the occurrence's next version, the natural as
+ * the receipt's value), or a d20 window's decision on that d20 (the version the d20 was evidenced
+ * at, the chosen offer's index). It returns the dice the window added.
+ */
+export function readD20Answer(input: {
+  admission: AdmittedCheck
+  window: WindowPayload | null
+  settlement: { appRollId: string | null; window?: { spentEffect: ActiveRuleEffectRecord | null } }
+  execution: { evidence: Parameters<typeof checksumRuleDocument>[0]; initialFactsChecksum?: string }
+  d20: Parameters<typeof requireD20WindowAnswer>[0]['settled']['d20']
+}) {
+  const { admission, window, settlement, execution, d20 } = input
+  const { occurrence } = admission
+  if (window) {
+    if (!settlement.window) throw mismatch()
+    const answer = requireD20WindowAnswer({
+      offered: window,
+      resolution: admission.response.resolution,
+      spentEffect: settlement.window.spentEffect,
+      settled: {
+        execution,
+        initialFactsChecksum: execution.initialFactsChecksum,
+        d20,
+        appRollId: settlement.appRollId
+      }
+    })
+    return {
+      windowDice: answer.windowDice,
+      occurrenceVersion: occurrence.version,
+      value: answer.selectedIndex
+    }
+  }
+  if (
+    settlement.window ||
+    !rolledFromPendingD20(admission, {
+      initialFactsChecksum: execution.initialFactsChecksum,
+      appRollId: settlement.appRollId
+    })
+  )
+    throw mismatch()
+  return { windowDice: [], occurrenceVersion: occurrence.version + 1, value: d20.selectedNatural }
+}
+
+/**
+ * Whether a d20 was rolled from the facts its check paused on, with the app roll its answer
+ * settled.
+ */
+function rolledFromPendingD20(
+  admission: AdmittedCheck,
+  rolled: { initialFactsChecksum: string | undefined; appRollId: string | null }
+) {
+  return (
+    rolled.initialFactsChecksum === checksumRuleDocument(admission.pending.continuation.facts) &&
+    rolled.appRollId === (admission.appRoll?.rollId ?? null)
+  )
+}
+
+/**
+ * The d20 a pause opens a window on (D168), or null when the pause is not the window of this
+ * paused check, which it freezes as it paused.
+ */
+export function openedD20Window(
+  next: ServerRuleExecutionPendingSnapshotDto['applicationContext'],
+  paused: EncounterD20WindowPendingContextDto['source']['context']
+) {
+  return next.kind === 'ENCOUNTER_D20_WINDOW' &&
+    checksumCanonicalJson(next.source.context) === checksumCanonicalJson(paused)
+    ? next.pause.payload
+    : null
+}
+
+/** Whether a rolled d20 a pause carries follows from the check's own answer under the Run's System. */
+export function pausedOnAnsweredD20(
+  admission: AdmittedCheck,
+  rolled: Pick<WindowPayload, 'rolled' | 'appRollId'>
+) {
+  return (
+    rolled.rolled.execution.evidence.source.gameSystemId === admission.state.gameSystemId &&
+    rolledFromPendingD20(admission, {
+      initialFactsChecksum: rolled.rolled.initialFactsChecksum,
+      appRollId: rolled.appRollId
+    })
+  )
+}
+
+/**
+ * Pauses a concealment or Escape check on the d20 window its roller's d20 opened (D168), when the
+ * roller holds an after-roll die. Nothing settles, so no receipt is written; the window's answer
+ * settles the check.
+ */
+export async function persistEncounterCheckD20WindowOpen(
+  ctx: EncounterWriteTransaction,
+  input: LiveSessionEncounterCheckPauseCommitInput,
+  callbacks: {
+    check: 'CONCEALMENT_CHECK' | 'ESCAPE_CHECK'
+    validateReadFence: CheckPersistenceSpec<LiveSessionEncounterBasicActionResponseCommitInput>['validateReadFence']
+  }
+): Promise<EncounterCommandResultDto> {
+  const admission = await (
+    callbacks.check === 'ESCAPE_CHECK'
+      ? readEscapeCheckResponseAdmission
+      : readBasicActionCheckResponseAdmission
+  )(ctx, { ...input, response: input.command })
+  if (admission.kind === 'REPLAY') return admission.result
+  const { state, occurrence, pending } = admission
+  const { snapshot } = input
+  const { actors, rulesMatch } = await readCheckScope(
+    ctx,
+    state,
+    input,
+    callbacks.validateReadFence
+  )
+  const opened =
+    pending.context.kind === 'ENCOUNTER_D20_WINDOW'
+      ? null
+      : openedD20Window(snapshot.applicationContext, pending.context)
+  if (
+    !opened ||
+    !pausedOnAnsweredD20(admission, opened) ||
+    input.window ||
+    snapshot.occurrenceId !== occurrence.id ||
+    !rulesMatch
+  )
+    throw mismatch()
+  return recordCheckResponse(ctx, {
+    admission,
+    input,
+    actors,
+    endedEffects: [],
+    ruleResult: opened.rolled.execution,
+    receipt: null,
+    next: { kind: 'PENDING', snapshot }
+  })
 }
 
 async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
@@ -216,24 +358,30 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
   // A lost acknowledgement replays before checking inputs its commit consumed.
   if (admission.kind === 'REPLAY') return admission.result
   const { state, campaign, occurrence, pending } = admission
-  const { context, continuation } = pending
+  // A d20 window settles the check whose d20 opened it.
+  const window = pending.context.kind === 'ENCOUNTER_D20_WINDOW' ? pending.context : null
+  const context = window ? window.source.context : pending.context
   const { settlement } = input
   const { execution } = settlement
-  const natural = spec.selectedNatural(execution)
+  const d20 = spec.settledD20(execution)
   const { actors, rulesMatch } = await readCheckScope(ctx, state, input, spec.validateReadFence)
   if (
     checksumCanonicalJson(settlement.context) !== checksumCanonicalJson(context) ||
     execution.status !== 'COMPLETE' ||
-    natural === null ||
+    d20 === null ||
     execution.occurrenceId !== occurrence.id ||
-    execution.initialFactsChecksum !== checksumRuleDocument(continuation.facts) ||
     execution.evidence.source.gameSystemId !== state.gameSystemId ||
-    !rulesMatch ||
-    (settlement.appRollId !== null) !== (admission.appRoll !== null) ||
-    (admission.appRoll !== null && settlement.appRollId !== admission.appRoll.rollId)
+    !rulesMatch
   )
-    throw new Error('Live Session check result does not match its pending evidence.')
-  const occurrenceVersion = occurrence.version + 1
+    throw mismatch()
+  const answered = readD20Answer({
+    admission,
+    window: window?.pause.payload ?? null,
+    settlement,
+    execution,
+    d20
+  })
+  const spentEffect = settlement.window?.spentEffect ?? null
   const settled = await spec.settle(ctx, {
     campaign,
     state,
@@ -242,15 +390,18 @@ async function persistCheckResponse<TInput extends CheckResponseCommitInput>(
     rootCommandId: context.commandId,
     initiatorUserId: admission.initiatorUserId,
     occurredAt: input.occurredAt,
-    occurrenceVersion
+    occurrenceVersion: answered.occurrenceVersion,
+    windowDice: answered.windowDice
   })
+  // The room planned the settlement's new effects beside the held die, so it ends after them.
+  if (spentEffect) await deleteGrants(ctx, [spentEffect])
   return recordCheckResponse(ctx, {
     admission,
     input,
     actors: settled.actors,
-    endedEffects: settled.endedEffects ?? [],
+    endedEffects: [...(spentEffect ? [spentEffect] : []), ...(settled.endedEffects ?? [])],
     ruleResult: execution,
-    receipt: { requestId: continuation.request.requestId, value: natural },
+    receipt: { requestId: pending.continuation.request.requestId, value: answered.value },
     next: { kind: 'COMPLETE' }
   })
 }

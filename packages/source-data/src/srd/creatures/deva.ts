@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 export const deva: CreatureAuthored = {
   id: S.CREATURE_IDS.DEVA,
@@ -287,7 +288,7 @@ export const deva: CreatureAuthored = {
       description:
         "Change Shape. The deva magically polymorphs into a humanoid or beast that has a challenge rating equal to or less than its own, or back into its true form. It reverts to its true form if it dies. Any equipment it is wearing or carrying is absorbed or borne by the new form (the deva's choice). In a new form, the deva retains its game statistics and ability to speak, but its AC, movement modes, Strength, Dexterity, and special senses are replaced by those of the new form, and it gains any statistics and capabilities (except class features, legendary actions, and lair actions) that the new form has but that it lacks.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(80, 207),
           invocation: {
             kind: 'ACTION',
@@ -296,7 +297,7 @@ export const deva: CreatureAuthored = {
             range: { id: S.actionId(80, 1207), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEVA_CHANGE_SHAPE
+          ...CHANGE_SHAPE_RULING.CR_CAPPED_FORM
         })
       ],
       order: 7
