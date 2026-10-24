@@ -15173,7 +15173,8 @@
                 "size": 2,
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2o"]
               },
-              "text": "Spider Climb, standing leaps, Ice Walk, Harpoon pull (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
+              "text": "Spider Climb, standing leaps, Ice Walk, Harpoon pull (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
+              "note": " 2026-10-24: Adult and Ancient White Dragon CREATURE_ICE_WALK ships as the same GM ruling as Young White Dragon Ice Walk (T6d2)."
             },
             {
               "id": "SPELLS-33.T4pr",
@@ -15440,7 +15441,7 @@
             },
             {
               "id": "SPELLS-33.T6d2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15450,8 +15451,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6d1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: terrain and underwater predicates (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m403.",
+              "mergedAt": "2026-10-24T05:09:21Z",
+              "proof": "Tests and Live green on tip 24f2bfa1d; Deep Gnome Stone Camouflage, Octopus and underwater camouflage, Vampire Harmed by Running Water (its 20 acid moved into the ruling, as T6d1) and Young White Dragon Ice Walk ship as MANUAL_ADJUDICATION (D187a); Octopus Ink Cloud is a bonus-action Dash via grantedActions plus a ruling (REFUSED to SINGLE_GRAPH); 6 kinds deleted; proofs descriptionOnlyCreatureAndRaceRules.test.ts and creatureStandingGrantedActionsAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-33.T6d3a",
