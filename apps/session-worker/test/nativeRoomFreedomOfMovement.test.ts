@@ -36,7 +36,7 @@ const FROG_ID = testUuid(0x2d13)
 const PARALYZED = conditionTypeId('PARALYZED')
 const RESTRAINED = conditionTypeId('RESTRAINED')
 
-/** No Scene measures the spell's range (D11). */
+/** No Scene measures a spell's range or an attack's reach (D11). */
 const RANGE: EncounterRuleWarningCodeDto[] = ['TARGET_RANGE_UNCHECKED']
 /** Every die shows its lowest face, so each save fails; a draw of 19 is a natural 20 that hits. */
 const LOWEST = 0
@@ -159,7 +159,7 @@ describe('room Freedom of Movement (SPELLS-4.T2m2)', () => {
       ...freedom(true, FROG_ID)
     })
 
-    committed(await room.startAction(GUARD_ID, []))
+    committed(await room.startAction(GUARD_ID, RANGE))
 
     expect(await conditionsOf(room)).toContainEqual({ conditionTypeId: RESTRAINED })
   })
