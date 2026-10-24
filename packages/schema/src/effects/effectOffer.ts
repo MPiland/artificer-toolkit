@@ -39,6 +39,13 @@ export const repeatOfferOriginSchema = lazySchema(() => z.enum(['ACTOR', 'CONJUR
 export type RepeatOfferOrigin = 'ACTOR' | 'CONJURED'
 
 /**
+ * What a repeat's first use costs in the turn its cast was made (D190a): `FREE_ONCE` spends no
+ * action economy for that one use, by the caster.
+ */
+export const repeatOfferCastTurnUseSchema = lazySchema(() => z.literal('FREE_ONCE'))
+export type RepeatOfferCastTurnUse = 'FREE_ONCE'
+
+/**
  * As authored: what the offer re-runs, named by id. `pathIds` re-run those paths of the Effect that
  * carries the offer; `effectId` re-runs every path of a sibling Effect of the same subject, with its
  * invocation (an attack the carrier's own invocation is not). Exactly one is set.
@@ -53,6 +60,8 @@ export interface RepeatSourcePathOffer {
   target?: RepeatOfferTarget
   /** Absent means `ACTOR`. */
   origin?: RepeatOfferOrigin
+  /** Absent means every use is charged to `activation`. */
+  castTurnUse?: RepeatOfferCastTurnUse
 }
 
 export type EffectOffer = MoveHeldEffectOffer | RepeatSourcePathOffer
@@ -81,7 +90,8 @@ const repeatSourcePathOfferSchema = lazySchema(() =>
       ),
       effectId: z.optional(authoredIdentifierSchema),
       target: z.optional(repeatOfferTargetSchema),
-      origin: z.optional(repeatOfferOriginSchema)
+      origin: z.optional(repeatOfferOriginSchema),
+      castTurnUse: z.optional(repeatOfferCastTurnUseSchema)
     })
     .check(
       z.refine(

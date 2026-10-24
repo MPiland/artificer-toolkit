@@ -50,6 +50,7 @@ import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/en
 import { encounterDragDoublesCost } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
 import { liveEffectOffers } from '@artificer-toolkit/rules-runtime/encounterEffectOffers'
 import {
+  repeatOfferFreeUseKey,
   repeatOfferOriginActorId,
   repeatPathActionId
 } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
@@ -649,12 +650,23 @@ export async function readEncounterActionChoices(
     effectsByHolder,
     zeroHitPointActorIds: await readZeroHitPointActorIds(tx, runActors)
   })) {
-    const economy = await readEconomy({ code: offer.activation, amount: 1 })
+    // A repeat's free cast-turn use is offered as FREE until it is spent (D190a).
+    const activation =
+      offer.kind === 'REPEAT_SOURCE_PATH' &&
+      offer.castTurnUse &&
+      repeatOfferFreeUseKey({
+        offer,
+        turn: state,
+        spentKeys: await readTurnUses(tx, { state, actorId: actor.id })
+      }) !== null
+        ? 'FREE'
+        : offer.activation
+    const economy = await readEconomy({ code: activation, amount: 1 })
     const shared = {
       effectId: offer.effectId,
       offerIndex: offer.offerIndex,
       holderActorId: offer.holderActorId,
-      activation: offer.activation,
+      activation,
       warnings: economy.warnings
     }
     if (offer.kind === 'MOVE_HELD_EFFECT') {

@@ -88,6 +88,7 @@ export function prepareNativeSourceEffect<
     activeEffectPlan: input.plan,
     spellCastLevel: preparedSpellCastLevel(prepared) ?? undefined,
     attackBonus: preparedSpellAttackBonus(prepared),
+    turnSequence: prepared.state.turnSequence,
     published: input.published,
     d20: null
   })
@@ -311,6 +312,7 @@ export function prepareNativeActionEffectsPlan<
     ...(chosen ? { chosenItem: { item: chosen.item, released } } : {}),
     spellCastLevel: preparedSpellCastLevel(prepared) ?? undefined,
     attackBonus: preparedSpellAttackBonus(prepared),
+    turnSequence: prepared.state.turnSequence,
     published: execution.published,
     execution: execution.execution,
     d20: execution.d20,

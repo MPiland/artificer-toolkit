@@ -1,5 +1,8 @@
 import type { RepeatOfferOrigin } from '@artificer-toolkit/schema/effects/effectOffer'
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 
 import { normalizeCharacterActionMechanicFacts } from './character/characterActionRuleFacts.js'
@@ -92,15 +95,38 @@ export function encounterActionOriginActorId(input: {
 }
 
 /**
+ * The once-per-turn key the free use of a `FREE_ONCE` repeat offer spends now (D190a), or null when a
+ * use costs the offer's activation: the use is free only in the Run turn the cast was made, only while
+ * that turn runs (between turns no key is spent), and only until its key is spent. The offer goes only
+ * to its source, so only the caster ever takes it.
+ */
+export function repeatOfferFreeUseKey(input: {
+  offer: Pick<LiveEffectOffer, 'effectId' | 'offerIndex'> & { castTurnSequence?: number }
+  turn: Pick<EncounterRunState, 'turnSequence' | 'currentActorId'>
+  spentKeys: readonly string[]
+}): string | null {
+  const key = `repeat-free:${input.offer.effectId}:${input.offer.offerIndex}`
+  return input.offer.castTurnSequence === input.turn.turnSequence &&
+    input.turn.currentActorId !== null &&
+    !input.spentKeys.includes(key)
+    ? key
+    : null
+}
+
+/**
  * The repeat a repeat action id names, read from the effects held now: an ended carrier or an offer
  * that no longer exists makes the id stale. The capability compiles the offer's frozen Effect like any
- * authored action, so the repeat runs through the normal pipeline.
+ * authored action, so the repeat runs through the normal pipeline; a free cast-turn use is charged as
+ * a `FREE` activation that spends `freeUseKey` instead.
  */
 export function discoverEncounterRepeatPath(input: {
   actorId: string
   actionId: string
   gameSystemId: string
   effectsByHolder: Parameters<typeof resolveEffectOffer>[0]['effectsByHolder']
+  turn: Parameters<typeof repeatOfferFreeUseKey>[0]['turn']
+  /** The once-per-turn keys the actor has spent this turn. */
+  spentKeys: readonly string[]
   conditionDefinitionIds: readonly string[]
   abilityDefinitions: readonly { id: string; code: string }[]
 }) {
@@ -128,6 +154,13 @@ export function discoverEncounterRepeatPath(input: {
     (contribution) => contribution.kind === 'MODIFIER_GRANT'
   )
   if (!grant) throw new Error('The selected repeat action is stale.')
+  const freeUseKey = repeatOfferFreeUseKey({
+    offer,
+    turn: input.turn,
+    spentKeys: input.spentKeys
+  })
+  const mechanicFacts = normalizeCharacterActionMechanicFacts(compiledEffect)
+  const { invocation } = mechanicFacts
   const capability: EncounterRepeatPathCapabilityDescriptor = {
     kind: 'REPEAT_PATH',
     gameSystemId: input.gameSystemId,
@@ -137,7 +170,16 @@ export function discoverEncounterRepeatPath(input: {
     actionId: input.actionId,
     sourceId: offer.effectId,
     label: grant.sourceLabel,
-    mechanicFacts: normalizeCharacterActionMechanicFacts(compiledEffect),
+    mechanicFacts:
+      freeUseKey === null
+        ? mechanicFacts
+        : {
+            ...mechanicFacts,
+            invocation: {
+              ...invocation,
+              activation: { ...invocation.activation, code: 'FREE', amount: 1 }
+            }
+          },
     conditionDefinitionIds: normalized.conditionDefinitionIds ?? input.conditionDefinitionIds,
     savingThrowAbilityDefinitionId: normalized.savingThrowAbilityDefinitionId ?? null,
     compiledEffect,
@@ -155,6 +197,7 @@ export function discoverEncounterRepeatPath(input: {
   return {
     capability,
     /** The item the cast chose, which the repeat is made on; the carrier ends when it is released. */
-    boundItemInstanceId: grant.boundItem?.itemInstanceId
+    boundItemInstanceId: grant.boundItem?.itemInstanceId,
+    freeUseKey
   }
 }

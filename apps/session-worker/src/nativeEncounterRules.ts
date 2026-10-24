@@ -20,8 +20,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
   actorGrantedActions,
-  firstGrantedActionUseKey,
-  parseGrantedActionId
+  firstGrantedActionUseKey
 } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
@@ -82,7 +81,11 @@ import {
   readNativeLiveEnemyProximity,
   readNativeLiveMoveToward
 } from './nativeAttackEnemyProximity.js'
-import { readNativeLiveTurnMovedFeet, readNativeLiveTurnUses } from './nativeTurnUses.js'
+import {
+  readNativeActionSourceOffers,
+  readNativeLiveTurnMovedFeet,
+  readNativeLiveTurnUses
+} from './nativeTurnUses.js'
 import {
   readNativeLiveAttackPerception,
   readNativeLiveSourcesSeen
@@ -142,7 +145,6 @@ import {
   prepareNativeIncomingDamageGrantTriggers
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterChosenItemRefusal } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
-import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
 import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import {
@@ -536,17 +538,13 @@ export async function planNativeLiveEncounterAction(
     loadSource: async (input: EncounterActionSourceRequest) =>
       resolveEncounterActionSource({
         ...input,
-        // A granted action resolves against the holder's effects and spent uses as they stand now (D160).
-        granted: parseGrantedActionId(input.actionId)
-          ? {
-              heldEffects: activeEffectsByActorId.get(input.actor.id) ?? [],
-              spentKeys: await readNativeLiveTurnUses(capture, input.actor.id)
-            }
-          : undefined,
-        // A repeat offer resolves against the effects every holder keeps now (D166).
-        repeat: parseRepeatPathActionId(input.actor.id, input.actionId)
-          ? { effectsByHolder: activeEffectsByActorId }
-          : undefined,
+        ...(await readNativeActionSourceOffers({
+          capture,
+          actorId: input.actor.id,
+          actionId: input.actionId,
+          state,
+          activeEffectsByActorId
+        })),
         system,
         spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({

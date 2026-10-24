@@ -639,6 +639,12 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - Not here: FREE_ONCE (a3b), the bonus-action move (GM ruling, description only), the bonus-action casting time (a3d), ending by recast (GM ruling).
 - Proof: `encounterRepeatPathAction.test.ts` "the creature its range is measured from", `characterSpellCastActions.test.ts` "holds a CONJURED repeat on the carrier", room `nativeRoomCoreOptionSpells.test.ts` "room Flame Blade reach" (a non-conjured repeat still measures from the caster: a Wolf beyond reach is `TARGET_OUT_OF_RANGE` until overridden).
 
+## T2v2a3b (D190a): a free repeat on the cast turn
+
+- Contract: `castTurnUse?: 'FREE_ONCE'` on the `REPEAT_SOURCE_PATH` offer (schema, authored type, compiler, node map "On the Cast Turn", shown only for a repeat). The held offer adds `castTurnSequence`, the Run `turnSequence` its cast froze; the stored schema requires it exactly when `castTurnUse` is set. Generic: no spell is wired here (Spiritual Weapon is a3d).
+- Rule: `repeatOfferFreeUseKey` (rules-runtime `encounterRepeatPathAction.ts`) gives the key `repeat-free:<effectId>:<offerIndex>` only in the frozen turn, only while a turn runs, and only until spent. `discoverEncounterRepeatPath` then charges `FREE`, and the REPEAT_PATH source carries `grantedUseKey`; the worker economy (`nativeEncounterActionEconomy.ts`) spends no allowance and records the key as a granted action does. Both source loaders (worker `nativeEncounterRules.ts`, Convex `actionPreparationReads.ts`) pass the turn and the spent keys; the choice listing (`actionChoiceReads.ts`) shows `FREE` while open.
+- Proof: `encounterRepeatPathAction.test.ts` "a free cast-turn use" (once, only in the cast turn and never between turns, a spent key charges the authored activation, caster only, the stored refinement); room `nativeRoomCoreOptionSpells.test.ts` "room free cast-turn repeat" (a FREE_ONCE Flame Blade attacks free after its Action cast, the second attack is refused for the spent Action, and the next turn's offer costs the Action).
+
 ## T2v2a3c (D190a): an invulnerable summon, and one that takes no space
 
 - Persisted: the summon's CUSTOM actor snapshot gains `body` (`summonBodyDtoSchema`: `damageabilityKind`, `occupiesSpace`), written by `buildEncounterSummon` through `summonBody`. A missing `occupiesSpace` is false, as the placement check always read it. Pre-launch: no migration.

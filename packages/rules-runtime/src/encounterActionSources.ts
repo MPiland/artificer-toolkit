@@ -55,8 +55,14 @@ export type EncounterActionSourceInput = {
     heldEffects: Parameters<typeof resolveGrantedAction>[0]['heldEffects']
     spentKeys: readonly string[]
   }
-  /** Every Run actor's held effects, read for a repeat offer (D166); required when `actionId` names one. */
-  repeat?: { effectsByHolder: Parameters<typeof discoverEncounterRepeatPath>[0]['effectsByHolder'] }
+  /**
+   * Every Run actor's held effects, the Run's turn and the once-per-turn keys the actor has spent,
+   * read for a repeat offer (D166, D190a); required when `actionId` names one.
+   */
+  repeat?: Pick<
+    Parameters<typeof discoverEncounterRepeatPath>[0],
+    'effectsByHolder' | 'turn' | 'spentKeys'
+  >
 }
 
 /** What a caller names; the loader adds the System and the basic action the id names. */
@@ -84,6 +90,8 @@ export type NativeEncounterActionSource =
       capability: EncounterRepeatPathCapabilityDescriptor
       /** The item the cast chose, which the repeat's paths act on. */
       boundItemInstanceId?: string
+      /** Set when the use is a free cast-turn use (D190a): the key it spends. */
+      grantedUseKey?: string
     }
   | {
       kind: 'CHARACTER_ACTION'
@@ -113,11 +121,11 @@ export function resolveEncounterActionSource(
     const { system } = input
     if (!system || system.id !== input.gameSystemId || !input.repeat)
       throw new Error('The selected repeat action source is stale.')
-    const { capability, boundItemInstanceId } = discoverEncounterRepeatPath({
+    const { capability, boundItemInstanceId, freeUseKey } = discoverEncounterRepeatPath({
+      ...input.repeat,
       actorId: actor.id,
       actionId: input.actionId,
       gameSystemId: input.gameSystemId,
-      effectsByHolder: input.repeat.effectsByHolder,
       conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
       abilityDefinitions: systemAbilityDefinitions(system)
     })
@@ -125,7 +133,8 @@ export function resolveEncounterActionSource(
       kind: 'REPEAT_PATH',
       actor,
       capability,
-      ...(boundItemInstanceId === undefined ? {} : { boundItemInstanceId })
+      ...(boundItemInstanceId === undefined ? {} : { boundItemInstanceId }),
+      ...(freeUseKey === null ? {} : { grantedUseKey: freeUseKey })
     }
   }
   if (isEncounterBasicActionId(actor.id, input.actionId)) {
