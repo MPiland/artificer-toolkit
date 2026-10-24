@@ -250,9 +250,7 @@ describe('the repeat a held effect offers its source (SPELLS-4.T2lb2a, D166)', (
           effectsByHolder: new Map([
             [
               HOLDER_ID,
-              [
-                heldCarrier({ ...offer, ...(damageExpressions && { damageExpressions }) })
-              ]
+              [heldCarrier({ ...offer, ...(damageExpressions && { damageExpressions }) })]
             ]
           ])
         }

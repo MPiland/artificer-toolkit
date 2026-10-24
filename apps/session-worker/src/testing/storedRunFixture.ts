@@ -1,5 +1,6 @@
 import { insertRunActor } from '@artificer-toolkit/encounter-persistence/documents'
 import { createMemoryEncounterStore } from '@artificer-toolkit/encounter-persistence/memoryEncounterStore'
+import { takesInitiativeTurns } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import type { EncounterTableName } from '@artificer-toolkit/encounter-persistence/store'
 import { encounterStoredRunSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type {
@@ -24,7 +25,8 @@ export function memoryRoomDocuments(
 
 /**
  * Writes the manual initiative round an ACTIVE Run projects from: one participant per actor in
- * `actors` order, those before the current actor already acted.
+ * `actors` order, those before the current actor already acted. An owned actor acts on its owner's
+ * turn and has none (D190a).
  */
 export async function insertInitiativeRound(
   memory: ReturnType<typeof createMemoryEncounterStore>,
@@ -35,7 +37,8 @@ export async function insertInitiativeRound(
     now: string
   }
 ) {
-  const { encounterId, actors, currentActorId, now } = input
+  const { encounterId, currentActorId, now } = input
+  const actors = input.actors.filter(takesInitiativeTurns)
   const currentOrdinal = actors.findIndex((actor) => actor.id === currentActorId)
   const initiative = encounterInitiativeRoundStateDtoSchema.parse({
     round: {
