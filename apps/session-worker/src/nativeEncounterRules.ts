@@ -521,10 +521,7 @@ export async function planNativeLiveEncounterAction(
         sceneVersion: sceneInputs.sceneVersion,
         sourceToken: sceneInputs.sourceToken,
         targetToken: sceneInputs.targetToken,
-        grid: resolveEncounterSceneGrid({
-          encounter: state,
-          sceneGrid: sceneInputs.sceneGrid
-        })
+        grid: resolveEncounterSceneGrid({ encounter: state, sceneGrid: sceneInputs.sceneGrid })
       }
     : null
   const definitions = {

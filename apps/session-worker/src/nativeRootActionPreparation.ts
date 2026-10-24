@@ -55,7 +55,12 @@ export async function prepareNativeLiveRootActionMechanics(input: {
   const capturedScene = root.sceneContext
     ? await capture({
         kind: 'ACTION_SCENE',
-        command: { actorId: root.actorId, targetActorId, sceneContext: root.sceneContext }
+        command: {
+          actorId: root.actorId,
+          targetActorId,
+          sceneContext: root.sceneContext,
+          actionId: root.actionId
+        }
       })
     : null
   if (capturedScene && capturedScene.kind !== 'ACTION_SCENE')
