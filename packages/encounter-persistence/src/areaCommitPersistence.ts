@@ -79,7 +79,7 @@ import type {
   persistEncounterConcentrationChildren
 } from './concentrationChildrenPersistence.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
-import { readRunActors } from './documents.js'
+import { insertRunActor, readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
 import { createPlacedSpatialEffect } from './placedSpatialEffects.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
@@ -748,6 +748,7 @@ export async function persistEncounterAreaCommit(
   let nextActors: EncounterRunActorState[] = actors.map((actor) => live(actor.id))
   const nextState = encounterRunStateSchema.parse({
     ...state,
+    actorIds: [...state.actorIds, ...input.summonedTokens.map(({ actor }) => actor.id)],
     version: state.version + 1,
     updatedAt: input.occurredAt
   })
@@ -916,7 +917,9 @@ export async function persistEncounterAreaCommit(
         rules: input.rules
       })
     : { moves: [], landings: [], actors: settledChildren.actors, rules: input.rules }
-  // The creature the cast conjures stands on the Scene from this commit (D187b).
+  // The creature the cast conjures is a new Encounter actor and stands on the Scene from this
+  // commit (D187b).
+  for (const { actor } of input.summonedTokens) await insertRunActor(ctx, actor)
   const summoned = input.summonedTokens.length
     ? await callbacks.applySummonTokens({
         state,
@@ -927,7 +930,7 @@ export async function persistEncounterAreaCommit(
   const projection = await projectNativeGm(
     ctx,
     nextState,
-    settledMovements.actors,
+    [...settledMovements.actors, ...input.summonedTokens.map(({ actor }) => actor)],
     settledMovements.rules
   )
   // Each creature's save is its own card; the area's one damage roll is carded once, with the first,

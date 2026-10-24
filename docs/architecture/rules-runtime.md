@@ -1981,9 +1981,14 @@ on the v4 `CHARACTER_ACTION` entry (`compileSummonPlacement` on the System adapt
 zone's lasting entry) that carries the duration in turns and the Concentration the cast opens, and `executionPlan` is
 its frozen graph. It is exclusive with `zonePlacement` and `choice`. A summon that authors `behaviors`, an
 attachment or shape, a lifecycle, no stat block or no bounded duration is refused and the action goes manual (Mage Hand
-until T2v2b authors its stat block, Spiritual Weapon until T2v2a3 models behaviors). Target: **transitional**, nothing
-yet reads `summonPlacement` at cast, so the action is not offered in an Encounter; T2v2a2b adds the staged-Scene cast
-write and T2v2a2c creates and removes the actor.
+until T2v2b authors its stat block, Spiritual Weapon until T2v2a3 models behaviors). Current (SPELLS-4.T2v2a2c1): the choice is a POINT cast target whose cube is the stat block's size in feet
+(`sizeSpaceFeet`), and `evaluateEncounterSummonTarget` validates it on the server: range from the caster and sight
+are overridable warnings like an area origin; a free square is a hard refusal (`SPACE_OCCUPIED`) when the stat block
+`occupiesSpace`; a stat block with no modelled size is refused (`UNSUPPORTED_SUMMON`). The planner treats the cast as
+a zone placed at the point with nobody caught, and `buildEncounterSummon` makes the CUSTOM actor (`owner` = caster,
+no controllers of its own, hit points from `evaluateNumericExpr` against the caster's maximum when the Run holds it;
+a Character caster's maximum lives on the Sheet, so a `HIT_POINT_MAXIMUM` stat block is refused with `HIT_POINTS_UNKNOWN` until T2v2b feeds it).
+Current (a2c2): a revert of the cast removes the conjured creature (see persistence). Target (a2c2b): the lasting carrier effect with Concentration, and removal at every end.
 
 ### Effect offers: moving a held effect (current, SPELLS-4.T2d2, D160)
 

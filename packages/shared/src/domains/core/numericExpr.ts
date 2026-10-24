@@ -117,6 +117,36 @@ export type NumericClamp = {
 
 export type NumericExpr = NumericTerm | NumericAdd | NumericClamp
 
+/** The facts a numeric expression can read when it is evaluated outside a character sheet. */
+export type NumericExprFacts = { hitPointMaximum?: number }
+
+/** The value of `expr` for `facts`; null when it reads a fact `facts` does not carry. */
+export function evaluateNumericExpr(expr: NumericExpr, facts: NumericExprFacts): number | null {
+  switch (expr.kind) {
+    case NUMERIC_EXPR_CODE.FIXED:
+      return expr.value
+    case NUMERIC_EXPR_CODE.HIT_POINT_MAXIMUM:
+      return facts.hitPointMaximum ?? null
+    case NUMERIC_EXPR_CODE.ADD: {
+      const terms = expr.args.map((term) => evaluateNumericExpr(term, facts))
+      return terms.includes(null) ? null : (terms as number[]).reduce((sum, term) => sum + term, 0)
+    }
+    case NUMERIC_EXPR_CODE.MUL: {
+      const left = evaluateNumericExpr(expr.left, facts)
+      const right = evaluateNumericExpr(expr.right, facts)
+      return left === null || right === null ? null : left * right
+    }
+    case NUMERIC_EXPR_CODE.CLAMP: {
+      const value = evaluateNumericExpr(expr.value, facts)
+      return value === null
+        ? null
+        : Math.min(Math.max(value, expr.min ?? -Infinity), expr.max ?? Infinity)
+    }
+    default:
+      return null
+  }
+}
+
 export function atom(value: NumericAtom): NumericAtom {
   return value
 }

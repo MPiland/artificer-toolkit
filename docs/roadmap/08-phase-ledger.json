@@ -10958,8 +10958,8 @@
             },
             {
               "closes": ["SPELLS-4.1"],
-              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A). 2026-10-23 ruling: the caster picks the summon point (reuse the cast's existing point contract if one fits, else one optional summonPlacement { position }), validated for range, free square and sight; this slice adds the ApplyEncounterSummonTokens callback against a fixture actor id, a2c creates the actor.",
-              "status": "IN_PROGRESS",
+              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A). 2026-10-23 ruling: the caster picks the summon point (reuse the cast's existing point contract if one fits, else one optional summonPlacement { position }), validated for range, free square and sight; this slice adds the ApplyEncounterSummonTokens callback against a fixture actor id, a2c creates the actor. Merged in m396.",
+              "status": "DONE",
               "id": "SPELLS-4.T2v2a2b",
               "wsjf": {
                 "bv": 8,
@@ -10969,13 +10969,14 @@
                 "after": ["SPELLS-4.T2v2a2a"]
               },
               "text": "D187b summon piece, part 2b: the cast commit writes Scene rows (token and binding) in the cast's own room transaction through the staged-Scene planner movement uses; boundary recorded in persistence.md.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-24T00:45:53Z",
+              "proof": "Tests and Live green on tip 3a32274e; the cast commit writes the summon token to the staged Scene in the same room transaction (ApplyEncounterSummonTokens against a fixture actor id), at a caster-picked point validated for range, free square and sight."
             },
             {
               "closes": ["SPELLS-4.1"],
-              "note": "Split from T2v2a2 2026-10-23 (D187b, Scene token option A).",
-              "status": "TODO",
-              "id": "SPELLS-4.T2v2a2c",
+              "note": "Split from T2v2a2c 2026-10-24 (re-estimate, same scope; D187b option A). Merged in m397.",
+              "status": "DONE",
+              "id": "SPELLS-4.T2v2a2c1",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
@@ -10983,7 +10984,40 @@
                 "size": 8,
                 "after": ["SPELLS-4.T2v2a2b"]
               },
-              "text": "D187b summon piece, part 2c: create the owned actor and its token on cast and remove both at the effect-end chokepoints (expiry, Concentration end, recast, dispel, undo); replay receipts carry the created actor id."
+              "text": "D187b summon piece, part 2c1: the summon action is offered with a POINT target validated for range, free square and sight; the cast commit creates the owned CUSTOM actor (stat block, HP from the caster) and its sized token; the receipt carries the actor id; undo, revert and replay remove or reuse them.",
+              "mergedAt": "2026-10-24T02:14:13Z",
+              "proof": "Tests and Live green on tip 2f7f0f1e; a summoning cast creates the caster-owned CUSTOM actor and its sized Scene token in one room transaction and the receipt carries the actor id; a Character caster with a HIT_POINT_MAXIMUM stat block is refused with HIT_POINTS_UNKNOWN until T2v2b supplies the Sheet maximum; revert of a summoning cast refuses until a2c2 (orchestrator ruling)."
+            },
+            {
+              "closes": ["SPELLS-4.1"],
+              "note": "Split from T2v2a2c 2026-10-24 (re-estimate, same scope; D187b option A). 2026-10-24 split (option B): the carrier effect and effect-end hooks moved to T2v2a2c3. Merged in m398.",
+              "status": "DONE",
+              "id": "SPELLS-4.T2v2a2c2",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["SPELLS-4.T2v2a2c1"]
+              },
+              "text": "D187b summon piece, part 2c2: one room removal port removes the summon actor, its binding and its Scene token; undo and revert of a summoning cast use it (replacing the a2c1 revert refusal).",
+              "mergedAt": "2026-10-24T02:39:05Z",
+              "proof": "Tests and Live green on tip 028fbc10; removeConjuredActors removes the summon Scene tokens through the room port, then bindings and actors, and returns Run state without the ids; revert and undo of a summoning cast use it (refusal replaced); cast-then-revert room journey lands with T2v2a3."
+            },
+            {
+              "closes": ["SPELLS-4.1"],
+              "status": "IN_PROGRESS",
+              "id": "SPELLS-4.T2v2a2c3",
+              "note": "Split from T2v2a2c2 2026-10-24 (option B, same scope).",
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 5,
+                "size": 8,
+                "after": ["SPELLS-4.T2v2a2c2"]
+              },
+              "text": "D187b summon piece, part 2c3: the summoning cast creates the carrier effect from the compiled summon entry (duration and Concentration maintenance) and sets owner.sourceEffectId; expiry, Concentration end, recast and dispel call the a2c2 removal port.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "closes": ["SPELLS-4.1"],
@@ -10994,7 +11028,7 @@
                 "tc": 3,
                 "rr": 5,
                 "size": 13,
-                "after": ["SPELLS-4.T2v2a2c", "SPELLS-4.T2v"]
+                "after": ["SPELLS-4.T2v2a2c1", "SPELLS-4.T2v"]
               },
               "text": "D187b summon piece, part 3: drive it. Granted move and attack actions on the summon spend the owner's economy (System-neutral; D&D bonus action only in data), spell attack bonus frozen at cast, reach from the token, damageabilityKind and occupiesSpace honoured; reuses the T2v REPEAT_SOURCE_PATH effectId/target extension. Converts SPIRITUAL_WEAPON (WEAPON, MOVE_MANIFEST and COMMAND_MANIFEST) with a parity proof; room journey: cast, attack, later-turn move and attack on the owner's bonus action, removed at spell end.",
               "note": "Split from T2v2a 2026-10-23 (D187b)."
@@ -15220,7 +15254,7 @@
             },
             {
               "id": "SPELLS-33.T6a1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15230,8 +15264,9 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: swallowed creatures (containment with total cover, acid each turn, regurgitate on a damage threshold) (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling). Includes Purple Worm Bite (from ATTACK-5.T4d, 2026-10-20).",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Includes the one proof that a creature ON_HIT attack with damage plus MANUAL_ADJUDICATION compiles through the attack sweep, and removes those allowlist entries.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Includes the one proof that a creature ON_HIT attack with damage plus MANUAL_ADJUDICATION compiles through the attack sweep, and removes those allowlist entries. Merged in m395.",
+              "mergedAt": "2026-10-24T00:13:00Z",
+              "proof": "Tests and Live green on tip fb4c91dc; Remorhaz and Tarrasque Swallow ship as ON_HIT MANUAL_ADJUDICATION GM rulings beside the automated bite attack and damage (D187a); swallow closed kinds deleted with parity proofs; compile golden updated."
             },
             {
               "id": "SPELLS-33.T6a2",
@@ -15931,7 +15966,7 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-4.T2v2a2c", "SPELLS-34.T1"]
+                "after": ["SPELLS-4.T2v2a2c3", "SPELLS-34.T1"]
               }
             }
           ]

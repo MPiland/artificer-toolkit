@@ -241,6 +241,8 @@ export async function completeAreaCommit(args: {
   sealedRays?: readonly { targetActorId: string; ray: ScenePoint }[]
   /** The zone an action leaves at the picked point, with the area it fills. */
   placement: AreaReach['placement']
+  /** The creature an action summons at the picked point; its actor and token are written with the cast. */
+  summon?: AreaReach['summon']
   occurrenceVersion: number
   response: ResolveRuleOccurrenceInputDto | null
   removal: RemoveAreaTargetInputDto | null
@@ -272,6 +274,7 @@ export async function completeAreaCommit(args: {
     unaffectedActorIds,
     sealedRays,
     placement,
+    summon,
     occurrenceVersion,
     response,
     removal,
@@ -394,6 +397,7 @@ export async function completeAreaCommit(args: {
     occurredAt,
     lead,
     placement,
+    summon,
     movementTargets,
     areaOccurrenceId,
     areaSnapshot,

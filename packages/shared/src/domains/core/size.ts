@@ -95,6 +95,23 @@ export function sizeRank(size: string | null | undefined): number | null {
   return size != null && Object.hasOwn(SIZE_RANK, size) ? SIZE_RANK[size as SizeCode] : null
 }
 
+/** The width in feet of the square a creature of each size fills; Fine and Giant sizes fill none a Scene models. */
+const SIZE_SPACE_FEET: Partial<Record<SizeCode, number>> = {
+  TINY: 2.5,
+  SMALL: 5,
+  MEDIUM: 5,
+  LARGE: 10,
+  HUGE: 15,
+  GARGANTUAN: 20
+}
+
+/** The edge in feet of the space a creature of `size` fills; null for a missing size or one with no modelled space. */
+export function sizeSpaceFeet(size: string | null | undefined): number | null {
+  return size != null && Object.hasOwn(SIZE_SPACE_FEET, size)
+    ? SIZE_SPACE_FEET[size as SizeCode]!
+    : null
+}
+
 export type SizeRegistryValue = (typeof SIZE_REGISTRY)[keyof typeof SIZE_REGISTRY]
 
 export const SIZE_OPTIONS = valuesOf(SIZE_REGISTRY) as readonly SizeRegistryValue[]

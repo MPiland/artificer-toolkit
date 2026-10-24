@@ -3,7 +3,10 @@ import type { EncounterWriteContext } from '@artificer-toolkit/encounter-persist
 import { liveSessionCheckpointSceneSourceSchema } from '@artificer-toolkit/schema/api/liveSessionCheckpointScenes'
 import { encounterActorTokenBindingSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { RoomTransaction } from './roomEncounterStore.js'
-import { persistRoomSceneTokenCreate } from './roomSceneCommandPersistence.js'
+import {
+  persistRoomSceneTokenCreate,
+  persistRoomSceneTokenRemove
+} from './roomSceneCommandPersistence.js'
 import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'
 
 /**
@@ -32,7 +35,10 @@ export async function applyRoomSummonTokens(input: {
     JSON.parse(sourceRecord.json)
   )
   const created: Awaited<ReturnType<ApplyEncounterSummonTokens>> = []
-  for (const { actorId, token } of summons) {
+  for (const {
+    actor: { id: actorId },
+    token
+  } of summons) {
     const { scene } = await readRoomSceneState(transaction, sceneId)
     const sceneCommandId = crypto.randomUUID()
     persistRoomSceneTokenCreate({
@@ -59,4 +65,38 @@ export async function applyRoomSummonTokens(input: {
     created.push({ sceneId, sceneCommandId, tokenId: token.id, actorId })
   }
   return created
+}
+
+/**
+ * Takes the tokens of conjured creatures off their Scene, in the transaction of the command that
+ * ends them. Each removal is a Scene command that names that command as its origin.
+ */
+export async function removeRoomSummonTokens(input: {
+  transaction: RoomTransaction
+  userId: string
+  encounterId: string
+  commandId: string
+  tokens: readonly { sceneId: string; tokenId: string }[]
+}): Promise<void> {
+  const { transaction } = input
+  for (const { sceneId, tokenId } of input.tokens) {
+    const sourceRecord = transaction.record('SCENE_CHECKPOINT_SOURCE', sceneId)
+    if (!sourceRecord) throw new Error('Room Scene source is unavailable.')
+    const { presentationVersion } = liveSessionCheckpointSceneSourceSchema.parse(
+      JSON.parse(sourceRecord.json)
+    )
+    const { scene } = await readRoomSceneState(transaction, sceneId)
+    persistRoomSceneTokenRemove({
+      transaction,
+      header: readRoomScene(transaction, sceneId).header,
+      scene,
+      tokenId,
+      commandId: crypto.randomUUID(),
+      actorUserId: input.userId,
+      presentationVersion,
+      saveId: crypto.randomUUID(),
+      now: Date.now(),
+      actionOrigin: { encounterId: input.encounterId, commandId: input.commandId }
+    })
+  }
 }
