@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { freedomOfMovement } from '@artificer-toolkit/source-data/srd/spells/freedom-of-movement.js'
+import { gaseousForm } from '@artificer-toolkit/source-data/srd/spells/gaseous-form.js'
+import { SRD_DAMAGE_TYPES, SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   conditionTypeId,
   creatureTypeId,
@@ -21,7 +23,11 @@ import {
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
-import { protectionFromEvilAndGoodEffect, stoneskinEffect } from './antitoxinEffectFixture.js'
+import {
+  plannedGrantEffect,
+  protectionFromEvilAndGoodEffect,
+  stoneskinEffect
+} from './antitoxinEffectFixture.js'
 
 const HOLDER_ID = testUuid(0xd6a1)
 const WARD_ID = testUuid(0xd6a2)
@@ -79,7 +85,8 @@ describe('Protection from Evil and Good as source-qualified grants', () => {
       conditionImmunityIdsAgainstSource(
         target.conditionImmunityIds,
         target.sourceConditionImmunities,
-        { creatureTypeIds: [creatureTypeId(code)] }
+        { creatureTypeIds: [creatureTypeId(code)] },
+        null
       )
     expect([...against('FIEND')].sort()).toEqual([charmed, frightened].sort())
     expect(against('HUMANOID')).toEqual([])
@@ -88,6 +95,67 @@ describe('Protection from Evil and Good as source-qualified grants', () => {
   it('applies nothing for a holder without the spell', async () => {
     const bare = holder([])
     expect(await defend(bare)).toBe(bare)
+  })
+})
+
+describe('Freedom of Movement as a magical-source condition immunity (SPELLS-4.T2m2)', () => {
+  const paralyzed = conditionTypeId('PARALYZED')
+  const restrained = conditionTypeId('RESTRAINED')
+  const freed = () =>
+    defend(
+      holder([
+        plannedGrantEffect({
+          id: WARD_ID,
+          holderActorId: HOLDER_ID,
+          effect: freedomOfMovement.effects?.[0],
+          sourceLabel: freedomOfMovement.label
+        })
+      ])
+    )
+
+  it('holds immunity to paralyzed and restrained only against a magical source', async () => {
+    const target = await freed()
+    expect(target.conditionImmunityIds).toEqual([])
+    expect(target.sourceConditionImmunities.map(({ conditionTypeId: id }) => id).sort()).toEqual(
+      [paralyzed, restrained].sort()
+    )
+    const against = (traits: readonly 'MAGICAL'[], spellCastSystemId: string | null) =>
+      [
+        ...conditionImmunityIdsAgainstSource(
+          target.conditionImmunityIds,
+          target.sourceConditionImmunities,
+          { creatureTypeIds: [], traits },
+          spellCastSystemId
+        )
+      ].sort()
+    expect(against(['MAGICAL'], null)).toEqual([paralyzed, restrained].sort())
+    expect(against([], null)).toEqual([])
+  })
+
+  it("makes every spell cast's condition magical through the System's spell-cast traits", async () => {
+    const target = await freed()
+    expect(
+      [
+        ...conditionImmunityIdsAgainstSource(
+          target.conditionImmunityIds,
+          target.sourceConditionImmunities,
+          { creatureTypeIds: [] },
+          SRD_SYSTEM_ID
+        )
+      ].sort()
+    ).toEqual([paralyzed, restrained].sort())
+  })
+
+  it('holds no immunity against an equipment source such as a net, which is not a spell cast', async () => {
+    const target = await freed()
+    expect(
+      conditionImmunityIdsAgainstSource(
+        target.conditionImmunityIds,
+        target.sourceConditionImmunities,
+        { creatureTypeIds: [] },
+        null
+      )
+    ).toEqual([])
   })
 })
 
@@ -118,5 +186,41 @@ describe('Stoneskin as a qualified damage resistance', () => {
 
   it('holds no unqualified defense for them', () => {
     expect(stoned().defenses.filter(({ damageTypeId: id }) => physical.includes(id))).toEqual([])
+  })
+})
+
+describe('Gaseous Form as a qualified resistance to all damage (SPELLS-4.T2p)', () => {
+  const misty = () =>
+    holder([
+      plannedGrantEffect({
+        id: WARD_ID,
+        holderActorId: HOLDER_ID,
+        effect: gaseousForm.effects?.[0],
+        sourceLabel: gaseousForm.label
+      })
+    ])
+  const resisted = (
+    traits: { magical: boolean; silvered: boolean; adamantine: boolean } | null
+  ) => {
+    const target = misty()
+    return dnd5eAttackDamageDefenses(target.defenses, target.qualifiedDefenses, traits, null)
+      .filter(({ kind }) => kind === 'RESISTANCE')
+      .map(({ damageTypeId: id }) => id)
+  }
+  const every = SRD_DAMAGE_TYPES.map(({ id }) => id)
+
+  it('resists every damage type from a nonmagical attack', () => {
+    expect(resisted({ magical: false, silvered: false, adamantine: false })).toEqual(
+      expect.arrayContaining(every)
+    )
+  })
+
+  it('does not resist a magical attack or damage that is not an attack', () => {
+    const magical = resisted({ magical: true, silvered: false, adamantine: false })
+    const notAttack = resisted(null)
+    for (const id of every) {
+      expect(magical).not.toContain(id)
+      expect(notAttack).not.toContain(id)
+    }
   })
 })

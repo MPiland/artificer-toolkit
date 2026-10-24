@@ -848,7 +848,7 @@
 00000000-0002-00c8-0070-010400000000 CREATURE Heart Sight | TEST_OUTCOME test=ea47dad4f349d781efd974dadc9d3d731c890e67607cfc482a56fd047c7c3e26 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=de5c73c62534c5fe086392f70a2dcd98b35bc203660775706cb21e0576263bce,ON_SAVE_SUCCESS=0c9336558016c587f3978f94748618e7e6fe2a42b1c3128fe0b72c11befcbb6e]
 00000000-0002-00c8-0070-010500000000 CREATURE Cunning Action | NOT_A_DISCOVERED_ACTION
 00000000-0002-00c8-0070-010900000000 CREATURE Immutable Form | NOT_A_DISCOVERED_ACTION
-00000000-0002-00c8-0070-010b00000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-00c8-0070-010b00000000 CREATURE Shapechanger | SINGLE_GRAPH 0c278df9fb1d2b11e31b8c3d372addb7c16c5074d04bd9a929150fd1ebc31445 nodes=1 outputs=1
 00000000-0002-00c8-0070-011200000000 CREATURE Regeneration | NOT_A_DISCOVERED_ACTION
 00000000-0002-00c8-0070-011500000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00c8-0070-011600000000 CREATURE Regeneration | NOT_A_DISCOVERED_ACTION
@@ -869,7 +869,7 @@
 00000000-0002-00c9-0070-006200000000 CREATURE Hellish Weapons | NOT_A_DISCOVERED_ACTION
 00000000-0002-00c9-0070-009c00000000 CREATURE Rejuvenation | NOT_A_DISCOVERED_ACTION
 00000000-0002-00c9-0070-00a200000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
-00000000-0002-00c9-0070-00ad00000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-00c9-0070-00ad00000000 CREATURE Shapechanger | SINGLE_GRAPH 41d67af8ba8cbda06d8d56752f353bab976288497934f227097a3f57021d894f nodes=1 outputs=1
 00000000-0002-00ca-0070-004e00000000 CREATURE Gnome Cunning | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-005a00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ca-0070-006200000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
@@ -930,13 +930,13 @@
 00000000-0002-00ce-0070-011600000000 CREATURE Spider Climb | NOT_A_DISCOVERED_ACTION
 00000000-0002-00ce-0070-012000000000 CREATURE Maul (Humanoid or Hybrid Form Only) | TEST_OUTCOME test=ed71731df454501ff3c591ac07b735762673808119458cfc90b2ca8d466d0488 nodes=3 outputs=5 outcomes=[ON_CRIT=505d3f5d061bda2940abf4da7bd093e565066daafc61fd410ae17c8bafe1c4e3,ON_HIT=505d3f5d061bda2940abf4da7bd093e565066daafc61fd410ae17c8bafe1c4e3]
 00000000-0002-00ce-0070-012100000000 CREATURE Hand Crossbow (Humanoid or Hybrid Form Only) | TEST_OUTCOME test=03c464ea812f707d4db5374c1034c985f7309093ef199d437ee740072e6a3aff nodes=3 outputs=5 outcomes=[ON_CRIT=cd53242c75c6143e31f610e9293c8417f00385273a60784fd6109207e25b7974,ON_HIT=cd53242c75c6143e31f610e9293c8417f00385273a60784fd6109207e25b7974]
-00000000-0002-00cf-0070-005000000000 CREATURE Change Shape | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-00cf-0070-005000000000 CREATURE Change Shape | SINGLE_GRAPH 30a717aa268d292290cb1e0ee25d0231914ef1e472042629a84090f8381143bc nodes=1 outputs=1
 00000000-0002-00d0-0070-005900000000 CREATURE Quarterstaff | TEST_OUTCOME test=d20567fe1032af0e42eb541297bf7ae392ead63b5c3402909641f84f3de2a693 nodes=3 outputs=5 outcomes=[ON_CRIT=965cfc1d24af816e0beb6448898dfffd9604e3cb7fa3e127c85f5dbbd8554526,ON_HIT=965cfc1d24af816e0beb6448898dfffd9604e3cb7fa3e127c85f5dbbd8554526]
 00000000-0002-00d0-0070-007900000000 CREATURE Talons | TEST_OUTCOME test=e2b7959e0f13be54ce2886b81a0211d96061879a3697aa37992d74028d489f73 nodes=3 outputs=5 outcomes=[ON_CRIT=a4b7e02cf6b9c262536cba23c6982daca0b1f7a25a261fde6efb3b7ec3003792,ON_HIT=a4b7e02cf6b9c262536cba23c6982daca0b1f7a25a261fde6efb3b7ec3003792]
 00000000-0002-00d0-0070-00a700000000 CREATURE Tail | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-00d0-0070-010000000000 CREATURE Healing Touch (4/Day) | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0002-00d0-0070-011600000000 CREATURE Bite | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
-00000000-0002-00d1-0070-004700000000 CREATURE Change Shape | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-00d1-0070-004700000000 CREATURE Change Shape | SINGLE_GRAPH 05fba888527ffedf457185de2dd5a6896012598aa859597d3b83555cdde5dd92 nodes=1 outputs=1
 00000000-0002-00d1-0070-005f00000000 CREATURE Hurl Flame | TEST_OUTCOME test=168c4fb36004acc91de883192fa210a7c5e44804e62ed6096f68bff8ba6c29c9 nodes=3 outputs=5 outcomes=[ON_CRIT=6c18e5045938e81a942f744baadf59d39ba1e9a9ae7247fdc764f66d0d753f83,ON_HIT=6c18e5045938e81a942f744baadf59d39ba1e9a9ae7247fdc764f66d0d753f83]
 00000000-0002-00d1-0070-009700000000 CREATURE Invisible Passage | SINGLE_GRAPH 2251a52508157f52ed06f130d67179c5e2ca38deb9f45e4910e5122e37e224bf nodes=1 outputs=2
 00000000-0002-00d1-0070-010c00000000 CREATURE Claw | TEST_OUTCOME test=71a9dc112944efded70f178cafc6b18e8ea40b9ecf6c05c50da95ff0fcc3d2aa nodes=3 outputs=5 outcomes=[ON_CRIT=cb5137bce9fbb4e3a43b2434b737128cde22a7ba7b46aa98fc1e23cafee87276,ON_HIT=cb5137bce9fbb4e3a43b2434b737128cde22a7ba7b46aa98fc1e23cafee87276]
@@ -998,7 +998,7 @@
 00000000-0002-01f5-0070-00b600000000 CREATURE Hellish Rejuvenation | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00c000000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00c200000000 CREATURE Petrifying Gaze | NOT_A_DISCOVERED_ACTION
-00000000-0002-01f5-0070-00c500000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-01f5-0070-00c500000000 CREATURE Shapechanger | SINGLE_GRAPH 6d78811d9f6e232147eac22cb485426c36c2183142a1f65cc0b2becd1df34f30 nodes=1 outputs=1
 00000000-0002-01f5-0070-00ca00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00cb00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00cc00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
@@ -1010,7 +1010,7 @@
 00000000-0002-01f5-0070-00dc00000000 CREATURE Angelic Weapons | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00e100000000 CREATURE Mace | TEST_OUTCOME test=013abb79d999712290360daf8ce038281b330cdcf3cc606cb4f176aad50b6e07 nodes=3 outputs=5 outcomes=[ON_CRIT=05347870ba842860b30ae2a2845d239e475a7a9cf44d065ec1b5ba3555309912,ON_HIT=05347870ba842860b30ae2a2845d239e475a7a9cf44d065ec1b5ba3555309912]
 00000000-0002-01f5-0070-00e200000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
-00000000-0002-01f5-0070-00e400000000 CREATURE Shapechanger | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-01f5-0070-00e400000000 CREATURE Shapechanger | SINGLE_GRAPH 48beb8b6824f31afb1eec6e726c12dd67d14fb2a9e7f0a3ba65819bd50f28d84 nodes=1 outputs=1
 00000000-0002-01f5-0070-00eb00000000 CREATURE Heated Body | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f5-0070-00f100000000 CREATURE Antennae | TEST_OUTCOME test=fea366ac18dd104bd31cc32491741032ed444b82f85b1eb9a3b5be4c1f55914a nodes=3 outputs=5 outcomes=[]
 00000000-0002-01f5-0070-00fb00000000 CREATURE Lightning Absorption | NOT_A_DISCOVERED_ACTION
@@ -1024,7 +1024,7 @@
 00000000-0002-01f6-0070-00cd00000000 CREATURE Illumination | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00cf00000000 CREATURE Spider Climb | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00d000000000 CREATURE Underwater Camouflage | NOT_A_DISCOVERED_ACTION
-00000000-0002-01f6-0070-00d300000000 CREATURE Change Shape | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
+00000000-0002-01f6-0070-00d300000000 CREATURE Change Shape | SINGLE_GRAPH 37f2c6d96a4b4bf525512f44c3d48c118cbe8c040401f19742f0acfa87858928 nodes=1 outputs=1
 00000000-0002-01f6-0070-00d400000000 CREATURE Javelin | TEST_OUTCOME test=d22bd20ff44608944283f49fb3fc7b2edbd5b5586763787b28d6849b5fccfd81 nodes=3 outputs=5 outcomes=[ON_CRIT=cfe9d9bc2bf879312a86898505cbea3e7c7457a96cd3bb5cf71cebf86eb4d2f2,ON_HIT=cfe9d9bc2bf879312a86898505cbea3e7c7457a96cd3bb5cf71cebf86eb4d2f2]
 00000000-0002-01f6-0070-00db00000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
 00000000-0002-01f6-0070-00e400000000 CREATURE Magic Resistance | NOT_A_DISCOVERED_ACTION
@@ -1258,9 +1258,9 @@
 00000020-0000-0210-0084-000000000001 CHARACTER:spells Forbiddance | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0085-000000000001 CHARACTER:spells Forcecage | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0086-000000000001 CHARACTER:spells Foresight | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
-00000020-0000-0210-0087-000000000001 CHARACTER:spells Freedom of Movement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000020-0000-0210-0087-000000000001 CHARACTER:spells Freedom of Movement | SINGLE_GRAPH d028d02e7369f098c70bd34b543519cabe5afe7a1600d84724cf26e2268b3195 nodes=2 outputs=1
 00000020-0000-0210-0088-000000000001 CHARACTER:spells Freezing Sphere | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=0f2f16d69b37a4b7f4a12b6aafacfe92eb65362bf24e92c77c265eee0aab7196,ON_SAVE_SUCCESS=b81c00a9fd245cd78d1d0ef07e965bf88af654f0a3be3c9d68d3031468494e3c]
-00000020-0000-0210-0089-000000000001 CHARACTER:spells Gaseous Form | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000020-0000-0210-0089-000000000001 CHARACTER:spells Gaseous Form | SINGLE_GRAPH 42e42b6d10dd3f352a002b299f921cac87d078df0d4f8a9da1b7fadca28efb95 nodes=2 outputs=1
 00000020-0000-0210-008a-000000000001 CHARACTER:spells Gate | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-008b-000000000001 CHARACTER:spells Geas | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000020-0000-0210-008c-000000000001 CHARACTER:spells Gentle Repose | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
@@ -1371,7 +1371,7 @@
 00000020-0000-0210-00f6-000000000001 CHARACTER:spells Protection from Poison | SINGLE_GRAPH d843c2ca4efea1f7c7a898134b346573ec8aa265a04732461787eee2eb072316 nodes=2 outputs=1
 00000020-0000-0210-00f7-000000000001 CHARACTER:spells Purify Food and Drink | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-00f8-000000000001 CHARACTER:spells Raise Dead | SINGLE_GRAPH f107a53bf556df524f3da25c014befd4a725805fede1b6c66fbda96db886fe95 nodes=3 outputs=3
-00000020-0000-0210-00f9-000000000001 CHARACTER:spells Ray of Enfeeblement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
+00000020-0000-0210-00f9-000000000001 CHARACTER:spells Ray of Enfeeblement | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=2a7473724cba1e6ac42fd4ac66f19eba0ad08fda55f266145aca6d155af2bfb2,ON_HIT=2a7473724cba1e6ac42fd4ac66f19eba0ad08fda55f266145aca6d155af2bfb2]
 00000020-0000-0210-00fa-000000000001 CHARACTER:spells Ray of Frost | TEST_OUTCOME test=5849176d1960337584e70e04fffcd887057196d92642b3982c76dc2876874142 nodes=3 outputs=5 outcomes=[ON_CRIT=07500783ffd83746bb885fc1f754ea318b00b2cc5cb4e29a8dabe2c745820102,ON_HIT=07500783ffd83746bb885fc1f754ea318b00b2cc5cb4e29a8dabe2c745820102]
 00000020-0000-0210-00fc-000000000001 CHARACTER:spells Regenerate | SINGLE_GRAPH 40f54c05360382fcb7427b3e614b6cc75f0c78b5202b3f78813ab04a4eaf1865 nodes=9 outputs=3
 00000020-0000-0210-00fd-000000000001 CHARACTER:spells Reincarnate | SINGLE_GRAPH de43954bf4e5c5181994fc452a34b4dfe2e090d7495cfc7150fea82a33b02002 nodes=2 outputs=3
@@ -1416,7 +1416,7 @@
 00000020-0000-0210-0124-000000000001 CHARACTER:spells Stoneskin | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000020-0000-0210-0125-000000000001 CHARACTER:spells Storm of Vengeance | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-0126-000000000001 CHARACTER:spells Suggestion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
-00000020-0000-0210-0127-000000000001 CHARACTER:spells Sunbeam | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000020-0000-0210-0127-000000000001 CHARACTER:spells Sunbeam | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action paths must be unique direct outcomes.
 00000020-0000-0210-0128-000000000001 CHARACTER:spells Sunburst | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000020-0000-0210-012a-000000000001 CHARACTER:spells Symbol | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000020-0000-0210-012b-000000000001 CHARACTER:spells Telekinesis | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.

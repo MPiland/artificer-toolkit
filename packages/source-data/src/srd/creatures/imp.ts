@@ -1,4 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 import { indefiniteInvisibilityEffect } from './indefiniteInvisibility.js'
@@ -52,7 +53,7 @@ export const imp: CreatureAuthored = {
       description:
         "Shapechanger. The imp can use its action to polymorph into a beast form that resembles a rat (speed 20 ft.), a raven (20 ft., fly 60 ft.), or a spider (20 ft., climb 20 ft.), or back into its true form. Its statistics are the same in each form, except for the speed changes noted. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(173, 201),
           invocation: {
             kind: 'ACTION',
@@ -61,7 +62,7 @@ export const imp: CreatureAuthored = {
             range: { id: S.actionId(173, 1201), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_IMP_SHAPECHANGER
+          ...CHANGE_SHAPE_RULING.BEAST_SPEED_FORM
         })
       ],
       order: 1

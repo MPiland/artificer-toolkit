@@ -645,6 +645,11 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - Rule: `repeatOfferFreeUseKey` (rules-runtime `encounterRepeatPathAction.ts`) gives the key `repeat-free:<effectId>:<offerIndex>` only in the frozen turn, only while a turn runs, and only until spent. `discoverEncounterRepeatPath` then charges `FREE`, and the REPEAT_PATH source carries `grantedUseKey`; the worker economy (`nativeEncounterActionEconomy.ts`) spends no allowance and records the key as a granted action does. Both source loaders (worker `nativeEncounterRules.ts`, Convex `actionPreparationReads.ts`) pass the turn and the spent keys; the choice listing (`actionChoiceReads.ts`) shows `FREE` while open.
 - Proof: `encounterRepeatPathAction.test.ts` "a free cast-turn use" (once, only in the cast turn and never between turns, a spent key charges the authored activation, caster only, the stored refinement); room `nativeRoomCoreOptionSpells.test.ts` "room free cast-turn repeat" (a FREE_ONCE Flame Blade attacks free after its Action cast, the second attack is refused for the spent Action, and the next turn's offer costs the Action).
 
+## T2m1d (D187a): Irresistible Dance as grants plus a GM ruling
+
+- Replan row DESC: the disadvantage and advantage grants fit (speed `MULTIPLY` 0, `ATTACK_ROLL` and Dexterity `SAVING_THROW_MODIFIER` disadvantage, `ATTACKS_AGAINST` advantage with `requiresHolderSeesAttacker: false`), so the spell is data and the `IRRESISTIBLE_DANCE` closed kind is deleted. The holder-action Wisdom save and the charm immunity are a `MANUAL_ADJUDICATION` GM ruling; the engine piece (steps 1, 3 and 4 of the old resume plan) is in `future-enhancements.md` under Deferred rules pieces (D187a).
+- Proof: `irresistibleDanceRulingAuthoringParity.test.ts` (effects pass the equipment node map exactly as authored; kind gone).
+
 ## T2v2a3c (D190a): an invulnerable summon, and one that takes no space
 
 - Persisted: the summon's CUSTOM actor snapshot gains `body` (`summonBodyDtoSchema`: `damageabilityKind`, `occupiesSpace`), written by `buildEncounterSummon` through `summonBody`. A missing `occupiesSpace` is false, as the placement check always read it. Pre-launch: no migration.
@@ -676,6 +681,13 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
   - `bonusActionWeaponAttackCompile.test.ts`: a spell attack at bonus action;
   - `spellCastLevels.test.ts`;
   - the golden (Spiritual Weapon's attack → `TEST_OUTCOME`).
+
+## T2m2 (D187a): Freedom of Movement and Calm Emotions leave their closed kinds
+
+- Freedom of Movement: an `APPLY_GRANT` of two `CONDITION_IMMUNITY` `ADD_OPTION` modifiers (PARALYZED, RESTRAINED), each restricted by a `SOURCE_TRAIT` `MAGICAL` facet (`sourceTraitRestriction`, source-data `classes/mechanics.ts`), then a `MANUAL_ADJUDICATION` for difficult terrain, speed reduction, the 5-foot escape and underwater movement. Calm Emotions is one `MANUAL_ADJUDICATION` (GM ruling). `CALM_EMOTIONS` and `FREEDOM_OF_MOVEMENT` are gone from `closedRuleKind.ts`; the semantic ledger marks both `COMPLETE_WITH_MANUAL_EXCEPTIONS`.
+- One point for the trait: `conditionImmunityIdsAgainstSource` (rules-runtime `encounterActiveGrants.ts`) takes the System of the spell a condition comes from and adds its `spellCastSourceTraits` (a new `AttackProfileCapability` hook; the D&D 5e profile names `MAGICAL`). Action preparation passes it when `preparedCastsSpell` holds. `executeTargetBoundActiveRuleEffect` resolves the new `sourceConditionImmunities` input against the effect's origin (a spell when `originLevel` is set), and the spatial, turn and repeat-save target facts pass them, so a zone's held condition is filtered at interpretation like any other. A placed zone now records its cast's `originLevel` (`nativeAreaCommitMaintenance.ts` through `preparedSpellCastLevel`).
+- Limit: the executor paths do not know the origin's creature types, so a creature-type condition immunity (Protection from Evil and Good) still holds only at action preparation.
+- Proof: `encounterSourceQualifiedGrants.test.ts` "Freedom of Movement as a magical-source condition immunity" (immune only against a magical source, every spell cast is magical through the System hook, and an equipment source such as a net is not); room `nativeRoomFreedomOfMovement.test.ts` (Hold Person cannot paralyze and Web cannot restrain a holder; a Giant Frog's grapple still restrains it). The room net proof waits on the SRD Net attack, which does not compile yet (orchestrator ruling A: a separate bug task carries it); `manualBesideSpellAuthoringParity.test.ts` rows for both spells; the compile golden now plans Freedom of Movement.
 
 ## T2s (D191): forms and possession
 

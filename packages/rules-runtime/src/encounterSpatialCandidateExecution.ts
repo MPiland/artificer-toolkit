@@ -51,6 +51,7 @@ export type SpatialMovementTarget = {
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: TargetBoundActiveRuleEffectExecutionInput['defenses']
   conditionImmunityIds: readonly string[]
+  sourceConditionImmunities: MovementTarget['sourceConditionImmunities']
   scalarValues: Readonly<Record<string, number>>
 }
 
@@ -80,6 +81,7 @@ export function toSpatialMovementTarget<TCharacterFacts extends ProjectableChara
     targetDerivedFacts: target.targetDerivedFacts,
     defenses: target.defenses,
     conditionImmunityIds: target.conditionImmunityIds,
+    sourceConditionImmunities: target.sourceConditionImmunities,
     scalarValues: target.effectiveScalarValues
   }
 }
@@ -155,6 +157,7 @@ export function spatialExecutionInput(input: {
     targetDerivedFacts: { ...input.target.targetDerivedFacts, ...input.contactFacts },
     defenses: input.target.defenses,
     conditionImmunityIds: input.target.conditionImmunityIds,
+    sourceConditionImmunities: input.target.sourceConditionImmunities,
     runtime: input.runtime
   }
 }

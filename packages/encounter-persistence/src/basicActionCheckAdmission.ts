@@ -207,28 +207,54 @@ async function admitCheckResponse<
   }
 }
 
-/** Admits the roller's d20 for a pending concealment check: the hider's or the searcher's. */
+type D20WindowPending = ReturnType<typeof readNativeD20WindowPending>
+
+const isD20Window = (context: { kind: string }): context is D20WindowPending['context'] =>
+  context.kind === 'ENCOUNTER_D20_WINDOW'
+
+/**
+ * A check whose d20 may open a d20 window (D168): while its roller decides on a held die, the
+ * window waits in the check's place and takes only that decision.
+ */
+function orD20Window<TPending extends { context: { kind: string; commandFingerprint: string } }>(
+  sourceKind: D20WindowPending['context']['source']['kind'],
+  spec: CheckAdmissionSpec<TPending>
+): CheckAdmissionSpec<TPending | D20WindowPending> {
+  return {
+    readPending: (occurrence, snapshot) => {
+      if (snapshot?.applicationContext.kind !== 'ENCOUNTER_D20_WINDOW')
+        return spec.readPending(occurrence, snapshot)
+      const window = readNativeD20WindowPending(occurrence, snapshot)
+      if (window.context.source.kind !== sourceKind)
+        throw new Error('The check occurrence is unavailable.')
+      return window
+    },
+    rollerActorId: (context) =>
+      isD20Window(context) ? encounterD20WindowRollerActorId(context) : spec.rollerActorId(context),
+    takesResolution: (resolution, context) =>
+      isD20Window(context)
+        ? takesD20WindowDecision(resolution)
+        : spec.takesResolution(resolution, context)
+  }
+}
+
+/**
+ * Admits the roller's answer to a pending concealment check, the hider's or the searcher's: its d20,
+ * or the decision on a held die in that d20's window.
+ */
 export function readBasicActionCheckResponseAdmission(
   ctx: EncounterReadTransaction,
   input: CheckResponseInput
 ) {
-  return admitCheckResponse(ctx, input, {
-    readPending: readNativeBasicActionCheckPending,
-    rollerActorId: (context) => context.actorId,
-    takesResolution: takesD20Evidence
-  })
-}
-
-/** Admits the roller's decision on a held die for a rolled basic action check's d20 window. */
-export function readD20WindowResponseAdmission(
-  ctx: EncounterReadTransaction,
-  input: CheckResponseInput
-) {
-  return admitCheckResponse(ctx, input, {
-    readPending: readNativeD20WindowPending,
-    rollerActorId: encounterD20WindowRollerActorId,
-    takesResolution: takesD20WindowDecision
-  })
+  return admitCheckResponse(
+    ctx,
+    input,
+    orD20Window('CONCEALMENT_CHECK', {
+      readPending: readNativeBasicActionCheckPending,
+      rollerActorId: (context) => context.actorId,
+      takesResolution: takesD20Evidence
+    })
+  )
 }
 
 /**
@@ -239,36 +265,35 @@ export function readCheckActionResponseAdmission(
   ctx: EncounterReadTransaction,
   input: CheckResponseInput
 ) {
-  return admitCheckResponse(ctx, input, {
-    readPending: (occurrence, snapshot) => {
-      if (snapshot?.applicationContext.kind !== 'ENCOUNTER_D20_WINDOW')
-        return readNativeCheckActionPending(occurrence, snapshot)
-      const window = readNativeD20WindowPending(occurrence, snapshot)
-      if (window.context.source.kind !== 'CHECK_ACTION')
-        throw new Error('The check action occurrence is unavailable.')
-      return window
-    },
-    rollerActorId: (context) =>
-      context.kind === 'ENCOUNTER_D20_WINDOW'
-        ? encounterD20WindowRollerActorId(context)
-        : context.actorId,
-    takesResolution: (resolution, context) =>
-      context.kind === 'ENCOUNTER_D20_WINDOW'
-        ? takesD20WindowDecision(resolution)
-        : context.phase.kind === 'CHECK'
+  return admitCheckResponse(
+    ctx,
+    input,
+    orD20Window('CHECK_ACTION', {
+      readPending: readNativeCheckActionPending,
+      rollerActorId: (context) => context.actorId,
+      takesResolution: (resolution, context) =>
+        context.phase.kind === 'CHECK'
           ? takesD20Evidence(resolution)
           : resolution.kind === 'ENTER_INTEGER' || resolution.kind === 'SYSTEM_ROLL'
-  })
+    })
+  )
 }
 
-/** Admits the held creature's d20 for a pending Escape check (D105). */
+/**
+ * Admits the roller's answer to a pending Escape check (D105): its d20, or the decision on a held
+ * die in that d20's window.
+ */
 export function readEscapeCheckResponseAdmission(
   ctx: EncounterReadTransaction,
   input: CheckResponseInput
 ) {
-  return admitCheckResponse(ctx, input, {
-    readPending: readNativeEscapeCheckPending,
-    rollerActorId: (context) => context.actorId,
-    takesResolution: takesD20Evidence
-  })
+  return admitCheckResponse(
+    ctx,
+    input,
+    orD20Window('ESCAPE_CHECK', {
+      readPending: readNativeEscapeCheckPending,
+      rollerActorId: (context) => context.actorId,
+      takesResolution: takesD20Evidence
+    })
+  )
 }

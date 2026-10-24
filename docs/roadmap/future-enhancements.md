@@ -549,7 +549,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **EXTRA_TURN:** Time Stop (extra consecutive turns and ending conditions; initiative insertion is not built) and Thief's Reflexes.
 - **Gated DAMAGE outcome at start of turn on holder illumination:** the Vampire's Sunlight Hypersensitivity 20 radiant damage (SPELLS-33.T6d1, D189). Needs a gated DAMAGE outcome, lifting the heal-only start-of-turn passive limit, and a holder-light gate fact.
 - **Active-effect end condition on holder illumination:** the Cloaker Phantasms duplicates vanishing in bright light (SPELLS-33.T6d1, D189).
-- **Holder-action save escape:** Irresistible Dance.
+- **Holder-action save escape:** Irresistible Dance (SPELLS-4.T2m1d). The movement, attack-roll, Dexterity-save and attacks-against grants are data; the holder's action Wisdom save to end the spell and the charm immunity ship as a GM ruling. The engine piece is a save variant of `lifecycle.escape` (an authored `escape.savingThrow` against the spell save DC, a stored `CONDITION_ESCAPE` roll kind on a non-zone effect, save facts in `prepareEncounterEscapeCheck`, `escapeEffectVerification`, `nativeEscapeAction` and offers); the cast DC pin already exists through `castFactKeys`.
 - **Target-chosen save ability:** the Bulette Deadly Leap lets each creature pick Strength or Dexterity for its save (SPELLS-33.T6k3). It ships as a Strength save with the choice, the 15-foot jump precondition and the push as a GM ruling.
 - **Condition suppression:** Calm Emotions.
 - **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits. Contagion (SPELLS-4.T2m3) ships its whole disease as a GM ruling on hit: the 7-day duration is over `MAX_ACTIVE_EFFECT_TURNS`, so neither its threshold saves nor its disease rows can ride an active effect.
@@ -559,7 +559,11 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Maze escape as a spell-held effect.**
 - **Holy Aura blinding attackers who hit the holder:** retaliation for multi-target holders.
 - **Jumping and elevation (3D movement):** the engine has no vertical position, so Jump, Levitate and Reverse Gravity ship as GM rulings (SPELLS-4.T2o, D187a), and Second-Story Work and Step of the Wind wait on it. The speed-equal-to-another-speed value source shipped in SPELLS-4.T2o.
-- **Damage MULTIPLY:** Ray of Enfeeblement.
+- **Damage MULTIPLY:** Ray of Enfeeblement (SPELLS-4.T2p ships it as a GM ruling with the end-of-turn Constitution save).
+- **Forced push along a line and doubled movement cost:** Gust of Wind and Telekinesis ship as GM rulings (SPELLS-4.T2p).
+- **Re-aimable line and creature-type save disadvantage:** Sunbeam's fresh line each turn and the undead and ooze disadvantage (SPELLS-4.T2p).
+- **Save-for-half damage beside a timed save condition on the Character compile:** `timedConditionPlan` refuses a fail path that pairs damage with a timed condition when the success path also deals damage, so Sunbeam and Sunburst stay refused at Character compile (SPELLS-4.T2p).
+- **Nonmagical non-attack damage resistance:** qualified defenses apply only to attack damage, so Gaseous Form's resistance does not cover falls or traps; the GM applies it (SPELLS-4.T2p).
 - **Form filters beyond type and challenge rating (SPELLS-4.T2s, D191):** an excluded creature type (Shapechange's undead and constructs) and a maximum size (Animal Shapes' Large); both ship as GM rulings.
 - **Per-target forms and re-forming (SPELLS-4.T2s, D191):** Animal Shapes' different form per target and its action to re-form, as a per-target form map and a re-form offer.
 - **Project Image illusory double:** a summoned token the caster sees and speaks through (SPELLS-4.T2s ships it as a GM ruling).

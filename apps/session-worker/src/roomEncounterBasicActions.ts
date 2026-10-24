@@ -1,5 +1,6 @@
 import {
   persistEncounterBasicActionResponse,
+  persistEncounterCheckD20WindowOpen,
   persistEncounterEscapeResponse
 } from '@artificer-toolkit/encounter-persistence/basicActionCheckResponsePersistence'
 import { persistEncounterBasicAction } from '@artificer-toolkit/encounter-persistence/basicActionPersistence'
@@ -244,14 +245,14 @@ export async function executeRoomEncounterEscapeResponse(
   if (plan.kind === 'REPLAY') return plan.result
   const revisions = await readBasicActionRevisions(input)
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
-  return persistEncounterEscapeResponse(
-    ctx,
-    { ...plan.input, revisions },
-    {
-      validateReadFence: async (state, characterIds, fence) =>
-        assertRoomEncounterRulesRevisions(observed, state, characterIds, fence)
-    }
-  )
+  const validateReadFence = roomCheckReadFence(observed)
+  if (plan.kind === 'D20_WINDOW_PAUSE')
+    return persistEncounterCheckD20WindowOpen(
+      ctx,
+      { ...plan.input, revisions },
+      { check: 'ESCAPE_CHECK', validateReadFence }
+    )
+  return persistEncounterEscapeResponse(ctx, { ...plan.input, revisions }, { validateReadFence })
 }
 
 /** A d20 or outcome answer settles or pauses a pending check action (D173) or concealment check in one native commit. */
@@ -267,11 +268,13 @@ export async function executeRoomEncounterBasicActionResponse(
   if (plan.kind === 'REPLAY') return plan.result
   const revisions = await readBasicActionRevisions(input)
   mergeNativeRulesRevisions(revisions, plan.input.revisions)
-  const validateReadFence = async (
-    state: Parameters<typeof assertRoomEncounterRulesRevisions>[1],
-    characterIds: Parameters<typeof assertRoomEncounterRulesRevisions>[2],
-    fence: Parameters<typeof assertRoomEncounterRulesRevisions>[3]
-  ) => assertRoomEncounterRulesRevisions(observed, state, characterIds, fence)
+  const validateReadFence = roomCheckReadFence(observed)
+  if (plan.kind === 'D20_WINDOW_PAUSE')
+    return persistEncounterCheckD20WindowOpen(
+      ctx,
+      { ...plan.input, revisions },
+      { check: 'CONCEALMENT_CHECK', validateReadFence }
+    )
   if (plan.kind === 'CHECK_ACTION_PAUSE')
     return persistEncounterCheckActionPause(
       ctx,
@@ -282,4 +285,13 @@ export async function executeRoomEncounterBasicActionResponse(
   if (plan.kind === 'CHECK_ACTION_SETTLED')
     return persistEncounterCheckActionResponse(ctx, { ...plan.input, revisions }, callbacks)
   return persistEncounterBasicActionResponse(ctx, { ...plan.input, revisions }, callbacks)
+}
+
+/** A pending check's commit checks the Run and Sheet revisions its plan read, as the room observed them. */
+function roomCheckReadFence(observed: RoomBasicActionInput['observed']) {
+  return async (
+    state: Parameters<typeof assertRoomEncounterRulesRevisions>[1],
+    characterIds: Parameters<typeof assertRoomEncounterRulesRevisions>[2],
+    fence: Parameters<typeof assertRoomEncounterRulesRevisions>[3]
+  ) => assertRoomEncounterRulesRevisions(observed, state, characterIds, fence)
 }

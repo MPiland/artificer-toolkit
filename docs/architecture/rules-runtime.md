@@ -1411,7 +1411,7 @@ Spare the Dying and Sheet tracking of death saves are not built (target).
 
 **d20 window (SPELLS-31.T4c1a, current).** A roller holding `AFTER_ROLL` rolled dice on its own active effects pauses a rolled d20
 before the check settles. Two commands act on one occurrence: the d20 response pends a second `ENCOUNTER_D20_WINDOW`
-`KERNEL_EVIDENCE` snapshot (discriminated `source`, today `CHECK_ACTION`; no rule receipt, version +1), then
+`KERNEL_EVIDENCE` snapshot (discriminated `source`: `CHECK_ACTION`, `CONCEALMENT_CHECK`, `ESCAPE_CHECK`; no rule receipt, version +1), then
 its `pause` is the `D20_WINDOW` member of the one pause union. `D20_WINDOW_USE { requestId, optionId, faces? }` or
 `D20_WINDOW_DECLINE` resumes the System-owned bounded choice (index 0 declines),
 appends the die to the d20's `addedDice`, settles the check with the final total and ends the spending effect in the same transaction.
@@ -1942,7 +1942,7 @@ A spell the Character may cast only as a ritual (a `RITUAL` spell grant the Shee
 
 ### Source creature type on grants (current, SPELLS-4.T2j1, D179)
 
-The facet predicate `SOURCE_CREATURE_TYPE` (selectable `creatureTypeIds`, System vocabulary ids) limits a grant to sources of certain creature types: the attacker for `ATTACKS_AGAINST`, the effect's origin for `CONDITION_IMMUNITY`. The grant fold keeps it a deferred requirement. `holderStateSourceQualifier` checks the grant's holder conditions when the holder is prepared and leaves the source conditions as a `sourceQualifier`, which `sourceQualifierAdmits` decides where the source is known: `prepareEncounterActionMechanics` filters `attackAgainstContributors` by the attacker's type and adds `sourceConditionImmunities` that admit it (`conditionImmunityIdsAgainstSource`). Turn and spatial effects bind the holder's unqualified immunities only (their origin type is not on those paths).
+The facet predicate `SOURCE_CREATURE_TYPE` (selectable `creatureTypeIds`, System vocabulary ids) limits a grant to sources of certain creature types: the attacker for `ATTACKS_AGAINST`, the effect's origin for `CONDITION_IMMUNITY`. The grant fold keeps it a deferred requirement. `holderStateSourceQualifier` checks the grant's holder conditions when the holder is prepared and leaves the source conditions as a `sourceQualifier`, which `sourceQualifierAdmits` decides where the source is known: `prepareEncounterActionMechanics` filters `attackAgainstContributors` by the attacker's type and adds `sourceConditionImmunities` that admit it (`conditionImmunityIdsAgainstSource`). The trait `SOURCE_TRAIT` (`MAGICAL`) is decided at the same point: `conditionImmunityIdsAgainstSource` takes the System of the spell a condition comes from and adds that System's `spellCastSourceTraits` (the D&D 5e profile names `MAGICAL`), so every effect of a spell cast is magical without each path tagging it (Freedom of Movement, SPELLS-4.T2m2). Action preparation passes the System when `preparedCastsSpell` holds; `executeTargetBoundActiveRuleEffect` resolves the holder's `sourceConditionImmunities` against the effect's origin, a spell when `originLevel` is set, so spatial (a zone's held condition, which a placed zone records with its cast level), turn and repeat-save effects apply them too. Those paths do not know the origin's creature types, so a creature-type immunity still holds only at action preparation.
 
 `SOURCE_TRAIT` (selectable `traits`: `MAGICAL`, `SILVERED`, `ADAMANTINE`; SPELLS-4.T2j2a) is the same deferred source restriction for the attack's traits: `prepareEncounterActionMechanics` passes a `GrantSource` (creature type ids plus the traits of the attack) to `sourceQualifierAdmits`. Holy Aura (attack disadvantage from any attacker on every attack domain, plus advantage on every saving throw, on chosen creatures) and Dispel Evil and Good (the same disadvantage from celestials, elementals, fey, fiends and undead) are authored from these grants; their `CLOSED_RULE` outcomes are removed, and the `HOLY_AURA` kind stays until T2j2b supplies the retaliation. The `DISPEL_EVIL_AND_GOOD` kind is deleted (T2lb2b1, D187a): Break Enchantment and Dismissal ship as `MANUAL_ADJUDICATION` GM rulings, and the `EYEBITE` kind is deleted the same way (its per-turn retarget is a GM ruling; see future-enhancements "Deferred rules pieces (D187a)"). Proofs: `encounterHolyAuraDispelEvilGrants.test.ts`, `sourceTraitAuthoringParity.test.ts`, and the room journey `apps/session-worker/test/nativeRoomHolyAuraDispelEvil.test.ts`.
 
@@ -2668,7 +2668,11 @@ settles the check; a success re-prepares the action from the root command on the
 (`prepareNativeLiveRootActionMechanics`) and runs its outcome, which pauses in the `OUTCOME` phase on its dice
 (`ACTION_OUTCOME_EVIDENCE`) unless the roller's preference rolls them. The room plans each answer
 (`planNativeLiveCheckActionResponse`); Convex records a pause through `persistEncounterCheckActionPause` and the settled
-check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Undo returns the check's
+check through `persistEncounterCheckActionResponse`, whose pushes join the root `RESOLVE_ACTION`. Every pending d20 (check action,
+concealment, Escape) is answered by the one Worker step `answerNativeD20Check` (`apps/session-worker/src/nativeD20Window.ts`,
+SPELLS-31.T4c1a2): it opens the window or returns the settled d20 and the die it spent. A concealment or Escape window opens
+through `persistEncounterCheckD20WindowOpen` (room plan `D20_WINDOW_PAUSE`) and its answer settles through that check's
+response commit; the spent die ends after the settle, and on an `ESCAPE` root it joins `receipt.consumedGrants` for undo. Undo returns the check's
 economy, feature charges and grants and, for a success, inverts its outcome's mechanics behind the generic
 `targetOutcomeTransition` stream-version fence (RULES-2.T6e3b2).
 

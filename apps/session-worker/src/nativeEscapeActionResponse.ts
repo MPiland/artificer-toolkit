@@ -1,11 +1,14 @@
 import { readEscapeCheckSnapshot } from '@artificer-toolkit/encounter-persistence/basicActionCheckPending'
 import type { ResolveRuleOccurrenceInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import { liveSessionEncounterEscapeResponseCommitInputSchema } from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
+import {
+  liveSessionEncounterCheckPauseCommitInputSchema,
+  liveSessionEncounterEscapeResponseCommitInputSchema
+} from '@artificer-toolkit/schema/api/liveSessionEncounterBasicAction'
 import {
   liveSessionEncounterRulesInputSchema,
   type LiveSessionEncounterRulesInput
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import { evaluateEncounterBasicActionCheck } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
+import { evaluateRolledEncounterBasicActionCheck } from '@artificer-toolkit/rules-runtime/encounterBasicActionCheck'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
@@ -15,8 +18,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterEscapeCheck'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
-import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
-import { bindEncounterD20Evidence } from './nativeD20Evidence.js'
+import { answerNativeD20Check } from './nativeD20Window.js'
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 import {
   prepareNativeLiveMovementTarget,
@@ -25,7 +27,8 @@ import {
 
 /**
  * Plans the holder's d20 for a pending Escape check in the room: the die settles the frozen check,
- * and a roll that reaches the DC frees the holder if the relationship still holds them. Convex
+ * and a roll that reaches the DC frees the holder if the relationship still holds them. A d20 whose
+ * roller holds after-roll dice opens a d20 window first, and its answer settles the check (D168). Convex
  * re-applies the release and records the result; it never rolls.
  */
 export async function planNativeLiveEscapeResponse(
@@ -56,14 +59,44 @@ export async function planNativeLiveEscapeResponse(
   const ready = admission.ready
   if (!ready || ready.command.type !== 'RESOLVE_RULE_OCCURRENCE' || !ready.snapshot)
     throw new Error('The escape check is unavailable.')
-  const { context, continuation, snapshot } = readEscapeCheckSnapshot(ready.snapshot)
-  const { state } = await capture({ kind: 'INPUTS' })
+  const { context, continuation, snapshot, window } = readEscapeCheckSnapshot(ready.snapshot)
+  const { state, system } = await capture({ kind: 'INPUTS' })
   if (state.id !== initial.encounterId || state.version !== initial.expectedVersion)
     throw new Error('Escape check Run inputs changed during capture.')
   const { actors, activeEffectsByActorId } = await readNativeLiveActorsAndEffects({
     state,
     capture
   })
+  const answered = await answerNativeD20Check({
+    ...executionOptions,
+    gameSystemId: state.gameSystemId,
+    system,
+    command: ready.command,
+    appRoll: ready.appRoll,
+    source: { kind: 'ESCAPE_CHECK', context },
+    pending: { snapshot, continuation, window },
+    rollerEffects: activeEffectsByActorId.get(context.actorId) ?? [],
+    optionalCombatSnapshotChecksum: snapshot.optionalCombatSnapshotChecksum ?? null,
+    refusal: 'An escape check requires d20 evidence.'
+  })
+  const occurredAt = new Date().toISOString()
+  const facts = buildEncounterActorRuleFacts({ actors })
+  const rules = reconcileEncounterActorRuleOutput(
+    evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
+    facts
+  )
+  if (answered.kind === 'WINDOW')
+    return {
+      kind: 'D20_WINDOW_PAUSE' as const,
+      input: liveSessionEncounterCheckPauseCommitInputSchema.parse({
+        ...scope,
+        command: ready.command,
+        revisions: reads.revisions(),
+        occurredAt,
+        snapshot: answered.snapshot,
+        rules
+      })
+    }
   // The roller is the held creature, or the rescuer who frees it (ATTACK-7.9).
   const heldActorId = context.heldActorId ?? context.actorId
   const holder = actors.find((entry) => entry.id === heldActorId)
@@ -80,20 +113,7 @@ export async function planNativeLiveEscapeResponse(
   reads.observe(prepared.revisions)
   // The roll was spent either way; the relationship may have ended while it waited.
   const effectStillHeld = heldEffects.some((effect) => effect.id === context.activeEffectId)
-  const answer = bindEncounterD20Evidence({
-    response: { resolution: ready.command.resolution, appRoll: ready.appRoll },
-    refusal: 'An escape check requires d20 evidence.'
-  })
-  const evaluated = await evaluateEncounterBasicActionCheck({
-    gameSystemId: state.gameSystemId,
-    runtime: executionOptions.runtime,
-    context,
-    continuation,
-    answer,
-    rollD20: () => executionOptions.random(20) + 1,
-    random: executionOptions.random,
-    expectedOccurrenceId: snapshot.occurrenceId
-  })
+  const evaluated = evaluateRolledEncounterBasicActionCheck(answered.rolled, context.check.dc)
   const { result } = completeEncounterEscapeCheckResult({
     context,
     continuation,
@@ -102,8 +122,8 @@ export async function planNativeLiveEscapeResponse(
     removedConditionIds: effectStillHeld
       ? encounterEscapeEndedConditionIds(heldEffects, context.activeEffectId)
       : [],
-    occurrenceVersion: response.expectedOccurrenceVersion + 1,
-    initialFactsChecksum: checksumRuleDocument(continuation.facts)
+    occurrenceVersion: answered.occurrenceVersion,
+    initialFactsChecksum: answered.rolled.initialFactsChecksum
   })
   const nextActors =
     effectStillHeld && evaluated.reachesDc
@@ -115,7 +135,6 @@ export async function planNativeLiveEscapeResponse(
           activeEffectId: context.activeEffectId
         })
       : actors
-  const facts = buildEncounterActorRuleFacts({ actors })
   const nextFacts = buildEncounterActorRuleFacts({ actors: nextActors })
   return {
     kind: 'PLANNED' as const,
@@ -123,21 +142,17 @@ export async function planNativeLiveEscapeResponse(
       ...scope,
       command: ready.command,
       revisions: reads.revisions(),
-      occurredAt: new Date().toISOString(),
+      occurredAt,
       settlement: {
         context,
         execution: result,
-        appRollId: ready.appRoll?.rollId ?? null
+        appRollId: answered.appRollId,
+        ...(answered.window && { window: answered.window })
       },
       rules: reconcileEncounterActorRuleOutput(
         evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts: nextFacts }),
         nextFacts,
-        {
-          output: reconcileEncounterActorRuleOutput(
-            evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
-            facts
-          )
-        }
+        { output: rules }
       )
     })
   }

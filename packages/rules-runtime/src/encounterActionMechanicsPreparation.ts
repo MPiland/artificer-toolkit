@@ -40,6 +40,7 @@ import {
   UnavailableCreatureActionError
 } from './encounterErrors.js'
 import { encounterActorHeldItems } from './encounterHolderDefense.js'
+import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
 import { refuseUnmetTargetRequirements } from './encounterTargetRequirements.js'
 import {
   characterActionDrawWeapon,
@@ -900,7 +901,8 @@ export async function prepareEncounterActionMechanics<
       conditionImmunityIds: conditionImmunityIdsAgainstSource(
         targetFacts.conditionImmunityIds,
         targetFacts.sourceConditionImmunities,
-        attackSource
+        attackSource,
+        preparedCastsSpell({ source, characterActionState, state }) ? state.gameSystemId : null
       ),
       targetDamageTypesTaken: damageTypeIdsTaken(targetFacts.actor)
     }

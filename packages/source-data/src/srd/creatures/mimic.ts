@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 export const mimic: CreatureAuthored = {
   id: S.CREATURE_IDS.MIMIC,
@@ -44,7 +45,7 @@ export const mimic: CreatureAuthored = {
       description:
         "Shapechanger. The mimic can use its action to polymorph into an object or back into its true, amorphous form. Its statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(197, 501),
           invocation: {
             kind: 'ACTION',
@@ -53,7 +54,7 @@ export const mimic: CreatureAuthored = {
             range: { id: S.actionId(197, 601), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_SHAPECHANGER
+          ...CHANGE_SHAPE_RULING.OBJECT_FORM
         })
       ],
       order: 1

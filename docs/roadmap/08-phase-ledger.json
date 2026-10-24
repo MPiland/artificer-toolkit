@@ -10705,7 +10705,7 @@
             },
             {
               "id": "SPELLS-4.T2m1d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10715,12 +10715,13 @@
                 "after": ["SPELLS-4.T2m1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Holder-action repeat save (split from T2m1, ruled 2026-10-20): a save variant of the D105/D146 lifecycle.escape seam (prepare, verify, plan, offers, outputs) beside any held condition, not only spatial; DC pinned at cast through the T2i3 castFactKeys save-DC pin (no second pin path). Converts IRRESISTIBLE_DANCE with a parity proof and room journey; kind deleted. Propose a split at start if still size 8.",
-              "note": "D187a re-plan: size 8 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 8 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m414.",
+              "mergedAt": "2026-10-24T15:53:15Z",
+              "proof": "Tests and Live green on tip 29720f5ed (batch m414); Irresistible Dance ships as a MANUAL_ADJUDICATION GM ruling under D187a and its closed kind is deleted; proof irresistibleDanceRulingAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-4.T2m2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10737,8 +10738,23 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Condition suppression (split from T2m, 2026-10-20): a CONDITION_SUPPRESSION modifier (conditionIds, effect origin any or magical, SUPPRESS keeps the condition counting down, PREVENT blocks it). Converts CALM_EMOTIONS and FREEDOM_OF_MOVEMENT with parity proofs; kinds deleted. The magical-origin filter reuses the D179 SOURCE_TRAIT restriction.",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Resized 2 -> 3 2026-10-24 (user-approved growth, D187): spell-sourced conditions carry MAGICAL at the one condition-application point so Freedom of Movement blocks spell conditions on every path; Calm Emotions is a GM ruling.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Resized 2 -> 3 2026-10-24 (user-approved growth, D187): spell-sourced conditions carry MAGICAL at the one condition-application point so Freedom of Movement blocks spell conditions on every path; Calm Emotions is a GM ruling. Merged in m415.",
+              "mergedAt": "2026-10-24T16:09:01Z",
+              "proof": "Tests and Live green on tip 3e658fc41; Freedom of Movement and Calm Emotions suppress conditions through the shared grant pieces and both closed kinds are deleted; the net case is proved at the single immunity point (an equipment source is not blocked), the room net proof moves to T2m2b; the Giant Frog grapple room proof uses the seeded frog; proofs nativeRoomFreedomOfMovement.test.ts, manualBesideSpellAuthoringParity.test.ts and encounterSourceQualifiedGrants.test.ts."
+            },
+            {
+              "id": "SPELLS-4.T2m2b",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-4.T2m2"]
+              },
+              "text": "Bug: the SRD Net attack does not compile (both actions REFUSED in srdEffectCompile.golden.txt, \"D&D test action outcome is not supported\"), so no room offers a Net. Make it compile from core options (attack, Restrained on a hit, the DC 10 Strength check or 5 slashing to free); proofs: a regression row, a parity proof, and a room proof that Freedom of Movement does not block a net (non-MAGICAL source).",
+              "note": "Registered 2026-10-24 under the D187 bug exception, found by SPELLS-4.T2m2."
             },
             {
               "id": "SPELLS-4.T2m3",
@@ -10842,7 +10858,7 @@
               "proof": "Tests and Live green on tip 36ebeae4; SPEED SET_VALUE accepts { equalsSpeedId } resolved by widestLengthByKey (speedEqualsPayloadSchema); Spider Climb and Alter Self authored with it; Jump, Levitate and Reverse Gravity ship as GM rulings with 3D movement deferred; nativeRoomGrantModifiers.test.ts room proof; compile golden updated."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2p",
               "wsjf": {
@@ -10853,8 +10869,9 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New generic option (D156 T2 split, class B), ruled before coding: Directional and vertical movement and damage multiplication. Converts GUST_OF_WIND, TELEKINESIS, RAY_OF_ENFEEBLEMENT, SUNBEAM, GASEOUS_FORM, with parity proofs; each kind deleted.",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m412.",
+              "mergedAt": "2026-10-24T15:23:35Z",
+              "proof": "Tests and Live green on tip 20fa71c38; five closed-rule kinds deleted: Gaseous Form authored from core options (fly 10 with other speeds 0, advantage on Str/Dex/Con saves, resistance to all damage bypassed by MAGICAL via the generalized nonmagicalResistanceGrants; falls and traps not resisted, stated in the GM ruling), Sunbeam first blast (Con save, 6d8 radiant and Blinded on a fail, half on a success), Gust of Wind, Telekinesis and Ray of Enfeeblement MANUAL_ADJUDICATION; proofs grantAuthoringParity.test.ts, encounterSourceQualifiedGrants.test.ts and saveForHalfDamage.test.ts."
             },
             {
               "status": "IN_PROGRESS",
@@ -10904,12 +10921,12 @@
               "closes": ["SPELLS-4.1"],
               "status": "IN_PROGRESS",
               "id": "SPELLS-4.T2s2",
-              "note": "Bug found in SPELLS-4.T2s (D187 freeze exception, D191), registered 2026-10-24.",
+              "note": "Bug found in SPELLS-4.T2s (D187 freeze exception, D191), registered 2026-10-24. Resized 5 -> 8 on 2026-10-24 under the D187 bug exception: damage to a Character in any form (Wild Shape, Polymorph) was rejected in the room because the CHARACTER_MECHANICS_BATCH receipt refine demanded a Sheet stream version; foldCharacterBatch now marks form-only hit point changes and the refine reads it.",
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 8,
                 "after": ["SPELLS-4.T2s"]
               },
               "text": "Bug: a Character in a creature form rolls saves, checks and contested checks with its own proficiencies and keeps its own damage defenses; RAW Polymorph and True Polymorph use the creature stat block. Authored retainsProficiencies beside retainedAbilityDefinitionIds, frozen on the CREATURE_FORM contribution; false builds the target from the Creature path (stat-block saves, skills, defenses) while Sheet conditions, Concentration and excess damage stay on the Character. Polymorph and True Polymorph set false; Wild Shape and Shapechange keep proficiencies. Regression tests fail first, one proof per site.",
@@ -11110,12 +11127,12 @@
               "closes": ["SPELLS-4.1"],
               "status": "IN_PROGRESS",
               "id": "SPELLS-4.T2v2a3d",
-              "note": "Split from T2v2a3 2026-10-24 (13 → 3+3+2+5, same scope; D190a).",
+              "note": "Split from T2v2a3 2026-10-24 (13 → 3+3+2+5, same scope; D190a). Resized 5 -> 8 on 2026-10-24 under the D187 bug exception: a summon in an ACTIVE Encounter failed validateInitiativeCursor (cohort mismatch), so the initiative cohort becomes the Run's unowned actors (D190a ruling 1); also fixes the area output scope check and the sibling-effect cast-level read.",
               "wsjf": {
                 "bv": 8,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["SPELLS-4.T2v2a3b", "SPELLS-4.T2v2a3c"]
               },
               "text": "D187b summon piece, part 3d: Spiritual Weapon becomes a SUMMON with a stat block (fly 20, hover, invulnerable, not occupying space) on the 3a/3b offer; casting time fixed to 1 bonus action (SRD; regression test); MOVE_MANIFEST and COMMAND_MANIFEST kinds and node-map branches deleted (WEAPON stays for Arcane Sword); parity proof; room journey: cast and free attack, later-turn move and bonus-action attack, removal at expiry, revert. The move tied to the bonus action and the recast ending the weapon are GM rulings (D187a).",
@@ -13806,7 +13823,7 @@
             },
             {
               "id": "SPELLS-31.T4c1a2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -13816,8 +13833,9 @@
                 "after": ["SPELLS-31.T4c1a", "RULES-2.T3a"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: D168 result window on the Hide/Search (concealment) and Escape check sites (split 2026-10-20), with room proofs. Held behind RULES-2.T3a (ADR 0039, 2026-10-20): the window hooks the one d20 settlement instead of each check site.",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m413.",
+              "mergedAt": "2026-10-24T15:36:04Z",
+              "proof": "Tests and Live green on tip 4aa0d5b69; a Hide/Search (concealment) or Escape check opens the D168 d20 result window when the roller holds after-roll dice, through one step answerNativeD20Check (nativeD20Window.ts) shared by the check, concealment and Escape responses; occurrenceOwner reads a d20 window as its own occurrence-facts member; proofs nativeRoomHideAction.test.ts, nativeRoomEscapeAction.test.ts and occurrenceOwner.test.ts."
             },
             {
               "id": "SPELLS-31.T4c1b",
@@ -14113,11 +14131,12 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2s", "SPELLS-4.T2h1"]
               },
               "text": "Join SPELLS-4.T2s: Wild Shape, Beast Spells, Archdruid, Hurl Through Hell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
+              "note": "Resized 3 -> 5 on 2026-10-24 (user-approved growth): Wild Shape needs a level-scaled form filter, a SCALED challengeRatingCapKind with CLASS_LEVEL breakpoints that the compiler resolves at cast time into the stored FIXED filter."
             },
             {
               "id": "SPELLS-31.T4v",
@@ -15240,7 +15259,7 @@
             },
             {
               "id": "SPELLS-33.T4s1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15250,8 +15269,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2s"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Change Shape and Shapechanger polymorphs into listed forms (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m414.",
+              "mergedAt": "2026-10-24T15:53:15Z",
+              "proof": "Tests and Live green on tip 4e781e307 (batch m414); all nine Change Shape kinds become MANUAL_ADJUDICATION GM rulings through creatures/changeShapeRuling.ts and the closed kinds are deleted; proof creatureChangeShapeRulingAuthoringParity.test.ts."
             },
             {
               "id": "SPELLS-33.T4s2",

@@ -12,6 +12,7 @@ import {
   VALUE_DOMAIN_CODE,
   type ActivationCode,
   type AuthoringConstraintCode,
+  type DamageDefenseBypassCode,
   type EquipmentCategoryCode,
   type EquipmentPropertyCode
 } from '@artificer-toolkit/shared/core'
@@ -143,6 +144,45 @@ export function sourceCreatureTypeRestriction(
                 predicateCode: 'SOURCE_CREATURE_TYPE',
                 authoringModeKind: 'SELECTED',
                 creatureTypeIds: [...creatureTypeIds]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+
+/**
+ * Gate on a trait of a grant's source (D179): with INCLUDE the source carries one of `traits`, as
+ * a spell's effects are magical. Uses ids `makeId(0..3)`.
+ */
+export function sourceTraitRestriction(
+  makeId: (entry: number) => string,
+  constraint: AuthoringConstraintCode,
+  traits: readonly DamageDefenseBypassCode[]
+): FacetAuthored {
+  return {
+    id: makeId(0),
+    groups: [
+      {
+        id: makeId(1),
+        order: 0,
+        contexts: [
+          {
+            id: makeId(2),
+            order: 0,
+            subject: 'CREATURE',
+            authoringModeKind: 'ALL',
+            conditions: [
+              {
+                id: makeId(3),
+                order: 0,
+                kind: 'PREDICATE',
+                constraint,
+                predicateCode: 'SOURCE_TRAIT',
+                authoringModeKind: 'SELECTED',
+                traits: [...traits]
               }
             ]
           }

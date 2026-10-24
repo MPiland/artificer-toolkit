@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 export const oni: CreatureAuthored = {
   id: S.CREATURE_IDS.ONI,
@@ -136,7 +137,7 @@ export const oni: CreatureAuthored = {
       description:
         'Change Shape. The oni magically polymorphs into a Small or Medium humanoid, into a Large giant, or back into its true form. Other than its size, its statistics are the same in each form. The only equipment that is transformed is its glaive, which shrinks so that it can be wielded in humanoid form. If the oni dies, it reverts to its true form, and its glaive reverts to its normal size.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(211, 502),
           invocation: {
             kind: 'ACTION',
@@ -145,7 +146,7 @@ export const oni: CreatureAuthored = {
             range: { id: S.actionId(211, 602), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_ONI_SHAPECHANGER
+          ...CHANGE_SHAPE_RULING.SIZED_FORM
         })
       ],
       order: 4
