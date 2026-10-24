@@ -54,7 +54,7 @@ export const mummyLord: CreatureAuthored = {
       description:
         'Magic Resistance. The mummy lord has advantage on saving throws against spells and other magical effects.',
       effects: [
-        S.manualAdjudicationEffect({
+        S.closedRuleEffect({
           id: S.actionId(202, 501),
           invocation: {
             kind: 'PASSIVE',
@@ -73,7 +73,7 @@ export const mummyLord: CreatureAuthored = {
       description:
         "Rejuvenation. A destroyed mummy lord gains a new body in 24 hours if its heart is intact, regaining all its hit points and becoming active again. The new body appears within 5 feet of the mummy lord's heart.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(202, 502),
           invocation: {
             kind: 'PASSIVE',
