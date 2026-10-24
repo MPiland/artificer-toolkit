@@ -9,6 +9,7 @@ import { encounterOptionalCombatSnapshotDtoSchema } from '@artificer-toolkit/sch
 import { giantApe } from '@artificer-toolkit/source-data/srd/creatures/giant-ape.js'
 import { club } from '@artificer-toolkit/source-data/srd/equipment/club.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
+import { mace } from '@artificer-toolkit/source-data/srd/equipment/mace.js'
 import { SRD_ACTION_ALLOWANCE_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/ruleState.js'
 import {
   SRD_ATHLETICS_SKILL_ID,
@@ -462,8 +463,8 @@ describe('room Disarm of a Character in a form that replaces its proficiencies',
       rolls: [9, 9, 9, 9],
       actors: [srdCreatureActor({ id: SOURCE_ID, creature: ogre }), actor],
       ownerFeatureId: creatureFeature(ogre, 'Greatclub').id,
-      // A one-handed Club: a Versatile weapon's grip would need the GM's judgment.
-      characterEquipment: [club],
+      // A one-handed Mace: a Versatile weapon's grip would need the GM's judgment.
+      characterEquipment: [mace],
       optionalCombatKinds: ['DISARM'],
       seed
     })
