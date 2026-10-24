@@ -10885,7 +10885,7 @@
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Zone and aura miscellany. Converts GUARDIAN_OF_FAITH, ANTIPATHY_SYMPATHY, CONTINGENCY, with parity proofs; each kind deleted."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2s",
               "wsjf": {
@@ -10896,11 +10896,13 @@
                 "after": ["SPELLS-4.T1"]
               },
               "text": "New generic option (D156 T2 split, class B), ruled before coding: Forms and possession. Converts ANIMAL_SHAPES, SHAPECHANGE, MAGIC_JAR, PLANAR_BINDING, PROJECT_IMAGE, with parity proofs; each kind deleted.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "mergedAt": "2026-10-24T14:31:49Z",
+              "proof": "Tests and Live green on tip afff13a2c; D191: a form effect authors retainedAbilityDefinitionIds, frozen onto the contribution as required retainedAbilityIds (System formRetainedAbilityIds deleted; Polymorph keeps none), holderEnd and endOnConditionIds end Wild Shape forms, Animal Shapes and Shapechange author their forms, Magic Jar, Planar Binding and Project Image are GM rulings; proofs creatureFormAuthoringParity.test.ts, manualBesideSpellAuthoringParity.test.ts, nativeRoomPolymorph.test.ts, grantLifetimes.test.ts, formRetentionMigration.test.ts and encounterMechanicsBatchPlan.test.ts.",
+              "note": " Merged in m411."
             },
             {
               "closes": ["SPELLS-4.1"],
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-4.T2s2",
               "note": "Bug found in SPELLS-4.T2s (D187 freeze exception, D191), registered 2026-10-24.",
               "wsjf": {
@@ -10910,7 +10912,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2s"]
               },
-              "text": "Bug: a Character in a creature form rolls saves, checks and contested checks with its own proficiencies and keeps its own damage defenses; RAW Polymorph and True Polymorph use the creature stat block. Authored retainsProficiencies beside retainedAbilityDefinitionIds, frozen on the CREATURE_FORM contribution; false builds the target from the Creature path (stat-block saves, skills, defenses) while Sheet conditions, Concentration and excess damage stay on the Character. Polymorph and True Polymorph set false; Wild Shape and Shapechange keep proficiencies. Regression tests fail first, one proof per site."
+              "text": "Bug: a Character in a creature form rolls saves, checks and contested checks with its own proficiencies and keeps its own damage defenses; RAW Polymorph and True Polymorph use the creature stat block. Authored retainsProficiencies beside retainedAbilityDefinitionIds, frozen on the CREATURE_FORM contribution; false builds the target from the Creature path (stat-block saves, skills, defenses) while Sheet conditions, Concentration and excess damage stay on the Character. Polymorph and True Polymorph set false; Wild Shape and Shapechange keep proficiencies. Regression tests fail first, one proof per site.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "DONE",
@@ -11105,7 +11108,7 @@
             },
             {
               "closes": ["SPELLS-4.1"],
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "id": "SPELLS-4.T2v2a3d",
               "note": "Split from T2v2a3 2026-10-24 (13 → 3+3+2+5, same scope; D190a).",
               "wsjf": {
@@ -11115,7 +11118,8 @@
                 "size": 5,
                 "after": ["SPELLS-4.T2v2a3b", "SPELLS-4.T2v2a3c"]
               },
-              "text": "D187b summon piece, part 3d: Spiritual Weapon becomes a SUMMON with a stat block (fly 20, hover, invulnerable, not occupying space) on the 3a/3b offer; casting time fixed to 1 bonus action (SRD; regression test); MOVE_MANIFEST and COMMAND_MANIFEST kinds and node-map branches deleted (WEAPON stays for Arcane Sword); parity proof; room journey: cast and free attack, later-turn move and bonus-action attack, removal at expiry, revert. The move tied to the bonus action and the recast ending the weapon are GM rulings (D187a)."
+              "text": "D187b summon piece, part 3d: Spiritual Weapon becomes a SUMMON with a stat block (fly 20, hover, invulnerable, not occupying space) on the 3a/3b offer; casting time fixed to 1 bonus action (SRD; regression test); MOVE_MANIFEST and COMMAND_MANIFEST kinds and node-map branches deleted (WEAPON stays for Arcane Sword); parity proof; room journey: cast and free attack, later-turn move and bonus-action attack, removal at expiry, revert. The move tied to the bonus action and the recast ending the weapon are GM rulings (D187a).",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "status": "TODO",
@@ -14103,16 +14107,18 @@
             },
             {
               "id": "SPELLS-31.T4s",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 3,
+                "size": 5,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2s", "SPELLS-4.T2h1"]
               },
-              "text": "Join SPELLS-4.T2s: Wild Shape, Beast Spells, Archdruid, Hurl Through Hell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "Join SPELLS-4.T2s: Wild Shape, Beast Spells, Archdruid, Hurl Through Hell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
+              "note": "Resized 3 -> 5 on 2026-10-24 (user-approved growth): Wild Shape needs a level-scaled form filter, a SCALED challengeRatingCapKind with CLASS_LEVEL breakpoints that the compiler resolves at cast time into the stored FIXED filter."
             },
             {
               "id": "SPELLS-31.T4v",
@@ -15235,7 +15241,7 @@
             },
             {
               "id": "SPELLS-33.T4s1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15245,7 +15251,8 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2s"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Change Shape and Shapechanger polymorphs into listed forms (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T4s2",

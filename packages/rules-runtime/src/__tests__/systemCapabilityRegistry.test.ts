@@ -110,16 +110,16 @@ describe('installed D&D capability adapters', () => {
     expect([1, 4, 5, 17].map(progression.proficiencyBonus)).toEqual([2, 2, 3, 6])
   })
 
-  it('ability scores give the 5e modifier and keep the mental abilities in a Creature form', () => {
+  it('ability scores give the 5e modifier and name each ability by its authored code', () => {
     const abilities = abilityScoreCapabilityRegistry.require(DND5E_SYSTEM_ID)
     expect([1, 8, 9, 10, 11, 15, 20, 30].map(abilities.abilityModifier)).toEqual([
       -5, -1, -1, 0, 0, 2, 5, 10
     ])
-    expect(abilities.formRetainedAbilityIds).toEqual({
-      INTELLIGENCE: DND5E_ABILITY_DEFINITION_ID_BY_CODE.INTELLIGENCE,
-      WISDOM: DND5E_ABILITY_DEFINITION_ID_BY_CODE.WISDOM,
-      CHARISMA: DND5E_ABILITY_DEFINITION_ID_BY_CODE.CHARISMA
-    })
+    expect(
+      ['INTELLIGENCE', 'WISDOM', 'CHARISMA'].map((code) =>
+        abilities.abilityCode(DND5E_ABILITY_DEFINITION_ID_BY_CODE[code]!)
+      )
+    ).toEqual(['INTELLIGENCE', 'WISDOM', 'CHARISMA'])
   })
 
   it('creature conditions are Unconscious at 0 hit points and Exhaustion for exhaustion levels', () => {

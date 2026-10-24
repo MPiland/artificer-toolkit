@@ -10,9 +10,4 @@ export interface AbilityScoreCapabilityAdapter {
   abilityDefinitionIdByCode: Readonly<Record<string, string>>
   /** The authored code of an ability definition id; an id outside the System throws. */
   abilityCode(abilityDefinitionId: string): string
-  /**
-   * The ability scores a Character keeps in a Creature form (D130 amendment), definition id by
-   * authored code; the form brings the rest.
-   */
-  formRetainedAbilityIds: Readonly<Record<string, string>>
 }

@@ -41,6 +41,7 @@ export async function readActorFormCreature(
   )
     throw new Error('The creature form does not match the Campaign Game System.')
   return {
+    systemId: enemy.systemId,
     sourceId: enemy.sourceId,
     sourceRevision: enemy.sourceRevision,
     snapshot: enemy.snapshot,
@@ -58,7 +59,12 @@ export function actorFormEntry(
 ): EncounterMechanicsBatchInput['enterForm'] {
   const form = creatureFormContribution(effect)
   return form
-    ? { effectId: effect.id, excessDamageCarriesOver: form.excessDamageCarriesOver, creature }
+    ? {
+        effectId: effect.id,
+        excessDamageCarriesOver: form.excessDamageCarriesOver,
+        retainedAbilityIds: form.retainedAbilityIds,
+        creature
+      }
     : undefined
 }
 

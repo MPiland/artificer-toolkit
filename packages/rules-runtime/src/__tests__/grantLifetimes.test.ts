@@ -746,6 +746,52 @@ describe('a Rage made on the Barbarian’s own turn', () => {
   })
 })
 
+describe('a creature form that ends on Unconscious (Wild Shape, SPELLS-4.T2s)', () => {
+  const unconsciousEnded = grantRecord(
+    storedGrant({
+      lifecycle: { endOnConditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID] },
+      currentActorId: null
+    }),
+    { id: 0xc376, holderId: TARGET_ID }
+  )
+  const form = (effect: ActiveRuleEffectRecord): ActiveRuleEffectRecord => ({
+    ...effect,
+    definition: {
+      ...effect.definition,
+      stateContributions: [
+        {
+          kind: 'CREATURE_FORM',
+          formOutcomeId: 'form',
+          creatureId: testUuid(0xc377),
+          excessDamageCarriesOver: true,
+          retainedAbilityIds: []
+        }
+      ]
+    }
+  })
+  const wildShape = form(unconsciousEnded)
+  const polymorph = form(
+    grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc378,
+      holderId: TARGET_ID
+    })
+  )
+
+  it('follows its holder’s state only when it names an end condition', () => {
+    expect(stateBoundGrants([polymorph, wildShape]).map(({ id }) => id)).toEqual([wildShape.id])
+  })
+
+  it('ends while its holder is Unconscious', () => {
+    expect(
+      grantsEndedByHolderState([wildShape], {
+        reason: null,
+        conditionIds: [DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID],
+        itemInstanceIdsOnActor: []
+      }).map(({ id }) => id)
+    ).toEqual([wildShape.id])
+  })
+})
+
 describe('a grant that ends on an idle turn (SRD Rage)', () => {
   const idle = grantRecord(
     storedGrant({ lifecycle: { endOnEvents: ['ON_IDLE_TURN'] }, currentActorId: null }),
@@ -1633,7 +1679,8 @@ describe('planCarriedOverEffects', () => {
             kind: 'CREATURE_FORM' as const,
             formOutcomeId: 'form',
             creatureId: testUuid(0xc370),
-            excessDamageCarriesOver: true
+            excessDamageCarriesOver: true,
+            retainedAbilityIds: []
           }
         ]
       }

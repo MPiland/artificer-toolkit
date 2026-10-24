@@ -66,8 +66,11 @@ export const magicJar: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.MAGIC_JAR, 0x212, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'MAGIC_JAR' as const
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Resolve the Possession',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  "The GM runs the caster's soul in the container, the Charisma saves of the creatures it tries to possess, control of a possessed body, and the soul's return when the body or container is destroyed."
               }
             ]
           }

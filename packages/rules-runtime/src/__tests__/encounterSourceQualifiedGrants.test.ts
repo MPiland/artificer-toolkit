@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { gaseousForm } from '@artificer-toolkit/source-data/srd/spells/gaseous-form.js'
+import { SRD_DAMAGE_TYPES, SRD_SPEEDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   conditionTypeId,
   creatureTypeId,
@@ -21,7 +22,11 @@ import {
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
-import { protectionFromEvilAndGoodEffect, stoneskinEffect } from './antitoxinEffectFixture.js'
+import {
+  plannedGrantEffect,
+  protectionFromEvilAndGoodEffect,
+  stoneskinEffect
+} from './antitoxinEffectFixture.js'
 
 const HOLDER_ID = testUuid(0xd6a1)
 const WARD_ID = testUuid(0xd6a2)
@@ -118,5 +123,41 @@ describe('Stoneskin as a qualified damage resistance', () => {
 
   it('holds no unqualified defense for them', () => {
     expect(stoned().defenses.filter(({ damageTypeId: id }) => physical.includes(id))).toEqual([])
+  })
+})
+
+describe('Gaseous Form as a qualified resistance to all damage (SPELLS-4.T2p)', () => {
+  const misty = () =>
+    holder([
+      plannedGrantEffect({
+        id: WARD_ID,
+        holderActorId: HOLDER_ID,
+        effect: gaseousForm.effects?.[0],
+        sourceLabel: gaseousForm.label
+      })
+    ])
+  const resisted = (
+    traits: { magical: boolean; silvered: boolean; adamantine: boolean } | null
+  ) => {
+    const target = misty()
+    return dnd5eAttackDamageDefenses(target.defenses, target.qualifiedDefenses, traits, null)
+      .filter(({ kind }) => kind === 'RESISTANCE')
+      .map(({ damageTypeId: id }) => id)
+  }
+  const every = SRD_DAMAGE_TYPES.map(({ id }) => id)
+
+  it('resists every damage type from a nonmagical attack', () => {
+    expect(resisted({ magical: false, silvered: false, adamantine: false })).toEqual(
+      expect.arrayContaining(every)
+    )
+  })
+
+  it('does not resist a magical attack or damage that is not an attack', () => {
+    const magical = resisted({ magical: true, silvered: false, adamantine: false })
+    const notAttack = resisted(null)
+    for (const id of every) {
+      expect(magical).not.toContain(id)
+      expect(notAttack).not.toContain(id)
+    }
   })
 })
