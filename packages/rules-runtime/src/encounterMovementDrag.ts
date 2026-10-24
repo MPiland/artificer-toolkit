@@ -40,7 +40,7 @@ const translated = (path: readonly ScenePoint[], offset: ScenePoint) =>
  * is two or more sizes smaller than the mover; an unknown size counts as not smaller. `path`, when
  * given, is checked for each dragged token translated by its offset from the mover: a path that
  * leaves the map, crosses a barrier, or ends overlapping a token that stays put is refused
- * (release the grapple first). Scene effects the drag crosses settle on the dragged creature in
+ * (release the grapple first), unless either token does not occupy its space. Scene effects the drag crosses settle on the dragged creature in
  * the mover's spatial pass (D170), not here.
  */
 export function encounterMovementDrag(input: {
@@ -49,6 +49,8 @@ export function encounterMovementDrag(input: {
   actorIdByTokenId: ReadonlyMap<string, string>
   activeEffectsByActorId: EncounterRelationshipActiveEffectsByActorId
   sizeOf(actorId: string): string | null
+  /** Whether a token fills its space (`encounterTokenOccupiesSpace`). */
+  occupiesSpace(tokenId: string): boolean
   path: readonly ScenePoint[] | null
 }): { kind: 'DRAG'; tokens: EncounterDraggedToken[]; doublesCost: boolean } | { kind: 'REFUSED' } {
   const { scene, mover } = input
@@ -84,8 +86,14 @@ export function encounterMovementDrag(input: {
     const end = dragged.at(-1)!
     if (sceneTokenMovementFailure(scene, tokenId, end, dragged, 'VOLUNTARY')) return true
     const arrived: SceneToken = { ...token, position: end }
-    return scene.tokens.some(
-      (other) => !movingTokenIds.has(other.id) && sceneTokenFootprintsOverlap(arrived, other)
+    return (
+      input.occupiesSpace(tokenId) &&
+      scene.tokens.some(
+        (other) =>
+          !movingTokenIds.has(other.id) &&
+          input.occupiesSpace(other.id) &&
+          sceneTokenFootprintsOverlap(arrived, other)
+      )
     )
   })
   return refused ? { kind: 'REFUSED' } : { kind: 'DRAG', tokens, doublesCost }

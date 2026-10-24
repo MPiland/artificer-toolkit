@@ -7,6 +7,8 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { buildEncounterSummon } from '@artificer-toolkit/rules-runtime/encounterSummon'
+import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { banishment } from '@artificer-toolkit/source-data/srd/spells/banishment.js'
 import { etherealness } from '@artificer-toolkit/source-data/srd/spells/etherealness.js'
@@ -38,18 +40,24 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-/** The Character (first in the order) who prepares `spell`, and a Wolf to remove from play. */
-async function spellRoom(spell: typeof maze, positions?: Record<string, { x: number; y: number }>) {
+const character = {
+  ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+  // A turn change reads the Character's frozen identity.
+  snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+}
+
+/**
+ * The Character (first in the order) who prepares `spell`, a Wolf to remove from play, and any
+ * other actors the case stands on the Scene.
+ */
+async function spellRoom(
+  spell: typeof maze,
+  positions?: Record<string, { x: number; y: number }>,
+  others: readonly EncounterRunActorState[] = []
+) {
   const room = await actionRoom({
     ...(positions && { positions }),
-    actors: [
-      {
-        ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
-        // A turn change reads the Character's frozen identity.
-        snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
-      },
-      srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
-    ],
+    actors: [character, srdCreatureActor({ id: WOLF_ID, creature: plainWolf }), ...others],
     autoRoll: 'BOTH',
     rolls: [14],
     fallbackRoll: 3,
@@ -151,6 +159,33 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
       label: expect.stringContaining('returned to play onto an occupied space'),
       ruleOverrides: [{ code: 'RETURN_SPACE_OCCUPIED' }]
     })
+  }, 120000)
+
+  it('flags nothing when the Wolf returns onto a summon that does not occupy its space (SPELLS-4.T2v2a3c)', async () => {
+    // Owned with no carrier effect, so the orphan sweep after each command keeps it on the Scene.
+    const { actor: conjured } = buildEncounterSummon({
+      summon: { statBlock: { occupiesSpace: false, hitPoints: { kind: 'FIXED', value: 10 } } },
+      caster: character,
+      casterHitPointMaximum: null,
+      label: 'Conjured',
+      sourceEffectId: testUuid(0x7f3),
+      point: { x: 450, y: 150 },
+      edgeLength: 100,
+      occurredAt: new Date().toISOString()
+    })
+    const summon = { ...conjured, owner: { ownerActorId: character.id } }
+    const { room } = await spellRoom(
+      maze,
+      { [WOLF_ID]: { x: 450, y: 150 }, [summon.id]: { x: 450, y: 150 } },
+      [summon]
+    )
+    const cast = await room.startAction(WOLF_ID, RANGE)
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    const ended = await gmEndsConcentration(room)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await wolfAbsence(room)).toBeNull()
+    expect(await absenceOf(room, summon.id)).toBeNull()
+    expect(await returnEntries(room)).toEqual([])
   }, 120000)
 
   it('flags nothing when the returning creature has its own space', async () => {

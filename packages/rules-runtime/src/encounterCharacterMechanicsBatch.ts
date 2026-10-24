@@ -29,6 +29,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterRuleActionApplication } from './characterRuleActionSystemAdapter.js'
 import {
+  applyDamageInterceptions,
   hitPointsAfterDamage,
   interceptionChargeMatches,
   interceptionChargeReceipt,
@@ -161,6 +162,12 @@ export function foldCharacterMechanicsApplications<
    */
   damageInterceptions?: readonly HeldDamageInterception[]
   /**
+   * The target takes no damage (an INVULNERABLE body, `encounterActorBody`). This fold is where that
+   * is decided for every flow: each damage settles as IMMUNE at 0, and the batch's later hit point
+   * changes are rebased onto the pools it left.
+   */
+  invulnerable?: boolean
+  /**
    * A dying Character's turn-start death save (D96), applied after the applications: its kept d20
    * and the signed total of its added dice (D156).
    */
@@ -230,7 +237,17 @@ export function foldCharacterMechanicsApplications<
   let absence = input.absence ?? null
   const receipt: ReceiptApplications = []
   const unspentInterceptions = [...(input.damageInterceptions ?? [])]
-  for (const [ordinal, application] of input.applications.entries()) {
+  const applications = input.invulnerable
+    ? applyDamageInterceptions({
+        applications: input.applications,
+        currentHitPoints: input.currentHitPoints,
+        temporaryHitPoints: input.temporaryHitPoints,
+        temporaryHitPointsSourceEffectId: input.temporaryHitPointsSourceEffectId,
+        interceptions: [],
+        invulnerable: true
+      })
+    : input.applications
+  for (const [ordinal, application] of applications.entries()) {
     if (application.targetActorId !== input.targetActorId)
       throw new EncounterValidationError('The Character rule action target is invalid.')
     if (application.kind === 'CONDITION_APPLY' || application.kind === 'CONDITION_REMOVE') {

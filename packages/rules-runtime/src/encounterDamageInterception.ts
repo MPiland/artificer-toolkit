@@ -282,7 +282,9 @@ export function killInterception(interceptions: readonly HeldDamageInterception[
  * temporary hit points) is rebased onto the pools the interception left, so a second blow meets the
  * ward already spent. This is the one place a batch's interceptions are decided: the planner calls it,
  * and the fold only validates the result. Pure, and shared by every actor kind: a Character and a Run
- * creature settle damage through the same planner and fold.
+ * creature settle damage through the same planner and fold. An invulnerable target's damage settles
+ * here too, as IMMUNE at 0 with no interception spent; the fold asks for that itself, so every flow
+ * that folds the target's damage agrees.
  */
 export function applyDamageInterceptions(input: {
   applications: readonly CharacterRuleActionApplication[]
@@ -290,8 +292,10 @@ export function applyDamageInterceptions(input: {
   temporaryHitPoints: number
   temporaryHitPointsSourceEffectId?: string | null
   interceptions: readonly HeldDamageInterception[]
+  /** The target takes no damage (`encounterActorBody`): every damage is IMMUNE. */
+  invulnerable?: boolean
 }): CharacterRuleActionApplication[] {
-  if (input.interceptions.length === 0) return [...input.applications]
+  if (input.interceptions.length === 0 && !input.invulnerable) return [...input.applications]
   const unspent = [...input.interceptions]
   let current = input.currentHitPoints
   let pool: TemporaryHitPointsPool = {
@@ -357,10 +361,15 @@ export function applyDamageInterceptions(input: {
       return result
     }
     if (application.kind !== 'DAMAGE') return application
-    const resolvedAmount = resolveDispositionDamage(
-      application.damageDisposition,
-      application.requestedAmount
-    )
+    // A planned interception is decided again here, against the pools this batch leaves.
+    const {
+      interceptedBy: _interceptedBy,
+      interceptionSaves: _interceptionSaves,
+      interceptionCharge: _interceptionCharge,
+      ...planned
+    } = application
+    const damageDisposition = input.invulnerable ? 'IMMUNE' : planned.damageDisposition
+    const resolvedAmount = resolveDispositionDamage(damageDisposition, planned.requestedAmount)
     const temporaryLost = Math.min(pool.amount, resolvedAmount)
     const currentLost = Math.min(current, resolvedAmount - temporaryLost)
     const { after, interception, saves } = hitPointsAfterDamage({
@@ -374,10 +383,11 @@ export function applyDamageInterceptions(input: {
     })
     const intercepted = interception !== undefined
     if (intercepted) unspent.splice(unspent.indexOf(interception), 1)
-    rebased ||= intercepted
     const interceptionCharge = interception && interceptionChargeReceipt(interception)
     const result = {
-      ...application,
+      ...planned,
+      damageDisposition,
+      resolvedAmount,
       appliedAmount: temporaryLost + current - after,
       beforeCurrentHitPoints: current,
       afterCurrentHitPoints: after,
@@ -387,6 +397,9 @@ export function applyDamageInterceptions(input: {
       ...(saves.length > 0 && { interceptionSaves: saves }),
       ...(interceptionCharge && { interceptionCharge })
     }
+    rebased ||=
+      result.afterCurrentHitPoints !== application.afterCurrentHitPoints ||
+      result.afterTemporaryHitPoints !== application.afterTemporaryHitPoints
     current = after
     pool = temporaryHitPointsAfterLoss(pool, temporaryLost)
     return result
