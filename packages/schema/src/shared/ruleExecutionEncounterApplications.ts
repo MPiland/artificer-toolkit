@@ -1554,38 +1554,26 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
     .check(
       z.superRefine((value, context) => {
         validateSourceSpendReceipts(value, context)
+        const reject = (path: string, message: string) =>
+          context.addIssue({ code: 'custom', path: [path], message })
         if (
           value.sourceGrantTransition &&
           value.sourceGrantTransition.targetActorId !== value.sourceActorId
         )
-          context.addIssue({
-            code: 'custom',
-            path: ['sourceGrantTransition'],
-            message: 'An area root grants only its source.'
-          })
+          reject('sourceGrantTransition', 'An area root grants only its source.')
         if (new Set(value.targetOccurrenceIds).size !== value.targetOccurrenceIds.length)
-          context.addIssue({
-            code: 'custom',
-            path: ['targetOccurrenceIds'],
-            message: 'Area target occurrences must be unique.'
-          })
+          reject('targetOccurrenceIds', 'Area target occurrences must be unique.')
         if (new Set(value.placedSpatialEffectIds).size !== value.placedSpatialEffectIds.length)
-          context.addIssue({
-            code: 'custom',
-            path: ['placedSpatialEffectIds'],
-            message: 'Placed spatial effects must be unique.'
-          })
+          reject('placedSpatialEffectIds', 'Placed spatial effects must be unique.')
         if (
           value.maintenanceTransition &&
           value.placedSpatialEffectIds.length === 0 &&
           !value.sourceGrantTransition
         )
-          context.addIssue({
-            code: 'custom',
-            path: ['maintenanceTransition'],
-            message:
-              'An area root carries a maintained effect only for the zone it placed or the carrier effect it left on its source.'
-          })
+          reject(
+            'maintenanceTransition',
+            'An area root carries a maintained effect only for the zone it placed or the carrier effect it left on its source.'
+          )
       })
     )
 )
