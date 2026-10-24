@@ -39,6 +39,7 @@ function scene(): SceneDefinitionDto {
       }
     ],
     ambientIllumination: 'BRIGHT',
+    daylight: false,
     campaignId: ids.campaign,
     darknessZones: [],
     fogMode: 'SHARED_PARTY',

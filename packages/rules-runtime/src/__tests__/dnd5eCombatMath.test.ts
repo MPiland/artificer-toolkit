@@ -997,7 +997,8 @@ describe('D&D 5e modifier scope', () => {
           minimumRank: null,
           category: null,
           requiredProperties: [property],
-          sourceState: null
+          sourceState: null,
+          requiresDaylight: false
         }
       ]
     }

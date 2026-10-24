@@ -452,6 +452,7 @@ async function setup(
       campaignId: campaign.id,
       name: 'Cleaving Scene',
       ambientIllumination: 'BRIGHT' as const,
+      daylight: false,
       fogMode: 'SHARED_PARTY' as const,
       visionRevealMode: 'ON_DRAG' as const,
       grid: {

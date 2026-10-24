@@ -212,7 +212,10 @@ export interface MovementRoomConfig {
   }[]
   /** Scene lighting and barriers, where the room's open, bright Scene is not what a test needs. */
   sceneOverrides?: Partial<
-    Pick<CampaignSceneStateDto, 'ambientIllumination' | 'barriers' | 'darknessZones' | 'lights'>
+    Pick<
+      CampaignSceneStateDto,
+      'ambientIllumination' | 'barriers' | 'darknessZones' | 'daylight' | 'lights'
+    >
   >
   /** The Scene's grid, where it is not the default 100 px square grid of 5 feet per cell. */
   sceneGrid?: CampaignSceneStateDto['grid']

@@ -159,6 +159,7 @@ export function CampaignScenePreparation({
         ambientIllumination: 'BRIGHT',
         barriers: [],
         campaignId,
+        daylight: false,
         darknessZones: [],
         fogMode: 'OFF',
         visionRevealMode: 'ON_DRAG',

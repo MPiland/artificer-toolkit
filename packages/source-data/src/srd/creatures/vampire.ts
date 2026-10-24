@@ -1,7 +1,9 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 
 export const vampire: CreatureAuthored = {
   id: S.CREATURE_IDS.VAMPIRE,
@@ -235,6 +237,7 @@ export const vampire: CreatureAuthored = {
       label: 'Sunlight Hypersensitivity',
       description:
         'Sunlight Hypersensitivity. The vampire takes 20 radiant damage when it starts its turn in sunlight. While in sunlight, it has disadvantage on attack rolls and ability checks.',
+      grants: R.lightSensitivityGrants(277, 100, true, Object.values(S.ABILITY_CODE)),
       effects: [
         {
           id: S.actionId(277, 220),
@@ -250,25 +253,20 @@ export const vampire: CreatureAuthored = {
               id: S.actionId(277, 254),
               order: 1,
               pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
                 id: S.actionId(277, 255),
-                resultKind: 'SEQUENCE',
+                resultKind: 'SINGLE',
                 outcomes: [
                   {
                     id: S.actionId(277, 256),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('RADIANT'),
-                    valueKind: S.DAMAGE_VALUE_KIND.FIXED,
-                    scalingKind: S.SCALING.NONE,
-                    amount: 20
-                  },
-                  {
-                    id: S.actionId(277, 257),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_SUNLIGHT_HYPERSENSITIVITY
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Sunlight Hypersensitivity',
+                    instructions:
+                      'The vampire takes 20 radiant damage when it starts its turn in sunlight.',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.NARRATIVE_JUDGMENT
                   }
                 ]
               }

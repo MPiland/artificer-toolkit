@@ -160,7 +160,7 @@ const sceneHead = (version: number) =>
     fogLayerCount: 0,
     nextFogOrdinal: 0,
     settings: {
-      ambientIllumination: { value: 'BRIGHT', version: 0 },
+      ambientIllumination: { value: 'BRIGHT', daylight: false, version: 0 },
       visionRevealMode: { value: 'ON_DRAG', version: 0 },
       fogMode: { value: 'OFF', version: 0 }
     },

@@ -65,6 +65,7 @@ export function readRoomScene(transaction: RoomRecordReader, sceneId: string) {
     fogLayerCount: live?.fogLayerCount ?? 0,
     currentCounts: live?.counts ?? { ...base.counts, measurements: 0 },
     ambientIllumination: live?.settings.ambientIllumination.value ?? base.ambientIllumination,
+    daylight: live?.settings.ambientIllumination.daylight ?? base.daylight,
     visionRevealMode: live?.settings.visionRevealMode.value ?? base.visionRevealMode,
     fogMode: live?.settings.fogMode.value ?? base.fogMode
   })

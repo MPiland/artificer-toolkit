@@ -40,6 +40,7 @@ function token(ordinal: number) {
 const tokens = Array.from({ length: 10 }, (_, ordinal) => token(ordinal))
 const header = sceneLiveStateHeaderSchema.parse({
   ambientIllumination: 'DIM',
+  daylight: false,
   campaignId,
   counts: { annotations: 0, barriers: 0, darknessZones: 0, lights: 0, tokens: 0 },
   currentCounts: {

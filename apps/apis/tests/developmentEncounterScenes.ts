@@ -111,6 +111,7 @@ async function createScene(
       campaignId,
       name,
       ambientIllumination: 'BRIGHT',
+      daylight: false,
       fogMode: options.fogMode ?? 'PER_PLAYER',
       visionRevealMode: 'ON_DRAG',
       grid: options.grid,

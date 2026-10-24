@@ -48,6 +48,7 @@ export function createLiveSceneObjectDraft(
     ambientIllumination: scene.ambientIllumination,
     barriers: [],
     campaignId: scene.campaignId,
+    daylight: scene.daylight,
     darknessZones: [],
     fogMode: scene.fogMode,
     grid: scene.grid,

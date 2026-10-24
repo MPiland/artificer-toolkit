@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
+import * as R from './rollInfluenceGrants.js'
 export const giantRat: CreatureAuthored = {
   id: S.CREATURE_IDS.GIANT_RAT,
   label: 'Giant Rat',
@@ -49,7 +50,7 @@ export const giantRat: CreatureAuthored = {
       label: 'Pack Tactics',
       description:
         "Pack Tactics. The rat has advantage on an attack roll against a creature if at least one of the rat's allies is within 5 feet of the creature and the ally isn't incapacitated.",
-      grants: S.conditionalAttackAdvantageGrants(131, 1, S.ENEMY_WITHIN_5_FEET_OF_TARGET),
+      grants: R.conditionalAttackAdvantageGrants(131, 1, R.ENEMY_WITHIN_5_FEET_OF_TARGET),
       order: 2
     },
     {

@@ -112,8 +112,16 @@ export function planSceneInlineCommand(args: {
   let change: StoredRow<typeof sceneStoredLiveEntitySchema> | null = null
   if (input.type === 'SET_SCENE_AMBIENT_ILLUMINATION') {
     if (state.settings.ambientIllumination.version > input.expectedSceneVersion) return changed
-    state.settings.ambientIllumination = { value: input.illumination, version }
-    delta = { kind: 'AMBIENT_ILLUMINATION_SET', illumination: input.illumination }
+    state.settings.ambientIllumination = {
+      value: input.illumination,
+      daylight: input.daylight,
+      version
+    }
+    delta = {
+      kind: 'AMBIENT_ILLUMINATION_SET',
+      daylight: input.daylight,
+      illumination: input.illumination
+    }
   } else if (input.type === 'SET_SCENE_VISION_REVEAL_MODE') {
     if (state.settings.visionRevealMode.version > input.expectedSceneVersion) return changed
     state.settings.visionRevealMode = { value: input.mode, version }

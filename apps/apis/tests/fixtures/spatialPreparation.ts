@@ -72,6 +72,7 @@ export async function createSpatialPreparationFixture() {
           campaignId: scene.campaignId,
           name: scene.name,
           ambientIllumination: scene.ambientIllumination,
+          daylight: scene.daylight,
           fogMode: scene.fogMode,
           visionRevealMode: scene.visionRevealMode,
           grid: scene.grid,

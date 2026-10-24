@@ -230,6 +230,18 @@ export function resolveSceneIlluminationAt(
   return { illumination, obscurement }
 }
 
+/** Sunlight at a Scene point: the Scene is daylit and that point resolves BRIGHT (D189). */
+export function resolveSceneDaylightAt(
+  scene: PerceptionSceneState & Pick<CampaignSceneState, 'daylight'>,
+  point: ScenePoint,
+  barrierIndex: SceneBarrierIndex
+): boolean {
+  return (
+    scene.daylight &&
+    resolveSceneIlluminationAt(scene, point, barrierIndex).illumination === 'BRIGHT'
+  )
+}
+
 /**
  * Derives portable combat-perception environment facts from authoritative Scene state.
  * Token presentation (`hidden`), fog, labels, and viewer projections are deliberately absent.

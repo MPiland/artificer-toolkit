@@ -155,6 +155,7 @@ function definition(): SceneDefinition {
       }
     ],
     ambientIllumination: 'BRIGHT',
+    daylight: false,
     barriers: [],
     campaignId: ids.campaign,
     darknessZones: [],

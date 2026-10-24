@@ -72,6 +72,7 @@ async function setup(selected = false) {
     campaignId: base.campaign.id,
     name: 'Response scene',
     ambientIllumination: 'BRIGHT' as const,
+    daylight: false,
     fogMode: 'SHARED_PARTY' as const,
     visionRevealMode: 'ON_DRAG' as const,
     grid: {

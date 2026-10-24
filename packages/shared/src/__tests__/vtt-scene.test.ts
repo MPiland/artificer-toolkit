@@ -68,6 +68,7 @@ function definition(): SceneDefinition {
       }
     ],
     ambientIllumination: 'BRIGHT',
+    daylight: false,
     barriers: [
       {
         a: { x: 10, y: 0 },
@@ -388,7 +389,11 @@ describe('VTT scene conflict keys', () => {
 
   it('uses one conflict key for authoritative ambient illumination', () => {
     expect(
-      sceneDeltaConflictKeys({ kind: 'AMBIENT_ILLUMINATION_SET', illumination: 'DIM' })
+      sceneDeltaConflictKeys({
+        kind: 'AMBIENT_ILLUMINATION_SET',
+        daylight: false,
+        illumination: 'DIM'
+      })
     ).toEqual(['ENVIRONMENT:AMBIENT_ILLUMINATION'])
   })
 })
@@ -578,6 +583,7 @@ describe('VTT scene replay and projection', () => {
     const source = {
       ...definition(),
       ambientIllumination: 'ORDINARY_DARKNESS' as const,
+      daylight: false,
       darknessZones: [
         {
           id: ids.command1,
@@ -599,18 +605,20 @@ describe('VTT scene replay and projection', () => {
       {
         actorUserId: ids.user,
         commandId: ids.command2,
-        delta: { kind: 'AMBIENT_ILLUMINATION_SET', illumination: 'DIM' },
+        delta: { kind: 'AMBIENT_ILLUMINATION_SET', daylight: true, illumination: 'DIM' },
         sceneId: ids.scene,
         version: 1
       }
     ])
 
     expect(materialized.ambientIllumination).toBe('ORDINARY_DARKNESS')
+    expect(materialized.daylight).toBe(false)
     expect(materialized.darknessZones[0]).toMatchObject({
       mechanicalIllumination: 'MAGICAL_DARKNESS',
       mechanicalObscurement: 'HEAVY'
     })
     expect(replayed.ambientIllumination).toBe('DIM')
+    expect(replayed.daylight).toBe(true)
     expect(
       projectSceneForViewer(replayed, { role: 'PLAYER', userId: ids.player }, new Map())
         .ambientIllumination

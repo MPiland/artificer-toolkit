@@ -45,6 +45,7 @@ const sceneWith = (tokens: ReturnType<typeof token>[]) =>
     definitionVersion: 1,
     name: 'Room Scene',
     ambientIllumination: 'BRIGHT',
+    daylight: false,
     fogMode: 'OFF',
     visionRevealMode: 'ON_DRAG',
     grid: { kind: 'GRIDLESS', pixelsPerUnit: 50, unit: 'FEET' },
