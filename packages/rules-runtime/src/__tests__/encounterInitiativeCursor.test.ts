@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { stableActors } from '../encounterActorState.js'
 import {
   readSideOrder,
   readTurnCursor,
@@ -111,9 +112,56 @@ describe('validateInitiativeCursor', () => {
       validateInitiativeCursor({
         state: gap,
         currentActorId: ACTOR_A,
-        actorIds: ORDER,
+        actors: ORDER.map((id) => ({ id })),
         allowedSideIds: [SIDE_FOES]
       })
     ).toThrow('Initiative actor must retain one exact contiguous order.')
+  })
+
+  it('leaves an owned actor out of the cohort, which acts on its owner’s turn (D190a)', async () => {
+    const state = await roundAt(ORDER, ACTOR_A, 'ENCOUNTER_START')
+    const summon = { id: crypto.randomUUID(), owner: { ownerActorId: ACTOR_A } }
+    const validate = (actors: { id: string; owner?: { ownerActorId: string } }[]) =>
+      validateInitiativeCursor({
+        state,
+        currentActorId: ACTOR_A,
+        actors,
+        allowedSideIds: [SIDE_FOES]
+      })
+    expect(() => validate([...ORDER.map((id) => ({ id })), summon])).not.toThrow()
+    expect(() => validate([...ORDER.map((id) => ({ id })), { id: summon.id }])).toThrow(
+      'Initiative actor cohort does not match the Encounter Run.'
+    )
+  })
+})
+
+describe('createStagedInitiativeRoundState', () => {
+  it('stages no participant for an owned actor', () => {
+    const summonId = crypto.randomUUID()
+    const staged = preparingRound({
+      actors: [
+        { id: ACTOR_A, sideId: SIDE_HEROES },
+        { id: summonId, sideId: SIDE_HEROES, owner: { ownerActorId: ACTOR_A } }
+      ],
+      policy: initiativePolicySnapshot({ procedure: 'SIDE_ROLL', cadence: 'ENCOUNTER_START' })
+    })
+    expect(staged.participants.map(({ actorId }) => actorId)).toEqual([ACTOR_A])
+  })
+})
+
+describe('stableActors', () => {
+  it('puts each owned actor right after its owner and keeps it out of the ACTIVE order (D190a)', async () => {
+    const state = await roundAt(ORDER, ACTOR_B, 'ENCOUNTER_START')
+    const summonId = crypto.randomUUID()
+    const actor = (id: string, owner?: { ownerActorId: string }) => ({
+      id,
+      manualOrder: null,
+      initiative: null,
+      stableTieKey: id,
+      ...(owner && { owner })
+    })
+    const actors = [actor(summonId, { ownerActorId: ACTOR_A }), ...ORDER.map((id) => actor(id))]
+    const ordered = stableActors({ actors, round: state.round.round, initiativeRoundState: state })
+    expect(ordered.map(({ id }) => id)).toEqual([ACTOR_A, summonId, ACTOR_B, ACTOR_C])
   })
 })

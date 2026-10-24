@@ -31,6 +31,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { prepareNativeCharacterActionState } from '../character/characterNativeActionResources.js'
+import { buildCharacterSpellActionRuleFacts } from '../character/characterSpellActionRuleFacts.js'
 import { activeEffectEndsOnRest } from '../character/sheetRest.js'
 import {
   buildCharacterSpellCastActions,
@@ -91,6 +92,7 @@ const WALL_OF_THORNS = spell('Wall of Thorns')
 const HEROISM = spell('Heroism')
 const REGENERATE = spell('Regenerate')
 const ENHANCE_ABILITY = spell('Enhance Ability')
+const SPIRITUAL_WEAPON = spell('Spiritual Weapon')
 const MEND = { ...fixedHealSpell(), id: '00000000-0000-4000-8000-00000000c0de', label: 'Mend' }
 
 /** The cast candidate of a spell at a level, the way the policy lists it. */
@@ -437,6 +439,7 @@ const authoredById = new Map(
     HEALING_WORD,
     SHIELD,
     SHIELD_OF_FAITH,
+    SPIRITUAL_WEAPON,
     INVISIBILITY,
     CHARM_PERSON,
     ANIMAL_FRIENDSHIP,
@@ -1001,6 +1004,8 @@ describe('the activation a cast carries', () => {
     { authored: CURE_WOUNDS, activation: 'ACTION' },
     { authored: HEALING_WORD, activation: 'BONUS_ACTION' },
     { authored: SHIELD_OF_FAITH, activation: 'BONUS_ACTION' },
+    // SPELLS-4.T2v2a3d: the SRD casts it as a bonus action, not an action.
+    { authored: SPIRITUAL_WEAPON, activation: 'BONUS_ACTION' },
     { authored: SHIELD, activation: 'REACTION' }
   ])(
     'offers $authored.label with the $activation its Effect authors, ready to run',
@@ -2992,10 +2997,108 @@ describe('the creature a summon spell conjures (SPELLS-4.T2v2a2a)', () => {
     expect(actor.maxHitPoints).toBe(40)
   })
 
-  it.each(['Mage Hand', 'Spiritual Weapon'])(
-    'leaves %s to the GM until its stat block and behaviors are modelled',
-    (label) => {
-      expect(compiledCastEntry(spell(label))).toBeNull()
-    }
-  )
+  it('conjures Spiritual Weapon: invulnerable, taking no space, attacked through as a bonus action that is free on the cast turn (SPELLS-4.T2v2a3d)', () => {
+    const attack = SPIRITUAL_WEAPON.effects?.[1]
+    const cast = compiledCast(SPIRITUAL_WEAPON)
+
+    expect(cast?.summonPlacement).toMatchObject({
+      label: 'Spiritual Weapon',
+      statBlock: {
+        speeds: [{ amount: 20, unit: 'FEET' }],
+        damageabilityKind: 'INVULNERABLE',
+        occupiesSpace: false
+      },
+      entry: {
+        initialRemaining: 10,
+        modifierGrantContribution: {
+          effectOffers: [
+            {
+              kind: 'REPEAT_SOURCE_PATH',
+              activation: 'BONUS_ACTION',
+              target: 'INVOCATION',
+              origin: 'CONJURED',
+              castTurnUse: 'FREE_ONCE',
+              effect: { id: attack?.id, invocation: { activation: { code: 'BONUS_ACTION' } } }
+            }
+          ]
+        }
+      }
+    })
+    // The spell is not Concentration: it lasts its minute.
+    expect(cast?.summonPlacement?.entry.maintenance).toBeNull()
+  })
+
+  describe('the Effect Spiritual Weapon’s offer repeats (SPELLS-4.T2v2a3d)', () => {
+    const attack = SPIRITUAL_WEAPON.effects?.[1]
+    const casts = [2, 4].map((level, sequence) => candidate(SPIRITUAL_WEAPON, level, { sequence }))
+    const { spellActionFacts } = buildCharacterSpellActionRuleFacts({
+      spellIds: [SPIRITUAL_WEAPON.id],
+      spells: [compileSpell(SPIRITUAL_WEAPON)]
+    })
+    // A +5 spell attack bonus at proficiency +2 is a +3 spellcasting modifier.
+    const evaluated = evaluateDnd5e2014CharacterActions({
+      candidates: [],
+      abilityDefinitions: [],
+      spellCandidates: casts,
+      spellSlots: [],
+      spellEffects: spellActionFacts,
+      spellMechanics: [{ source: casts[0]!.source, attackBonus: 5, saveDc: 13, damageBonus: 0 }],
+      spellcastingLocked: false,
+      proficiencies: [],
+      itemAdjustments: [],
+      activeSourceIds: [],
+      activeEquipmentInstanceIds: [],
+      resources: [],
+      modifierGroups: [],
+      totalLevel: 3,
+      classLevels: [],
+      proficiencyBonus: 2,
+      abilities: [],
+      skills: [],
+      spellcasting: null
+    })
+
+    it('is kept apart from the castable Effects, and only the Effect an offer names is kept', () => {
+      expect(spellActionFacts).toEqual([
+        expect.objectContaining({
+          effects: [expect.objectContaining({ effectId: SPIRITUAL_WEAPON.effects?.[0]?.id })],
+          repeatedEffects: [expect.objectContaining({ effectId: attack?.id })]
+        })
+      ])
+      const {
+        spellActionFacts: [fireball]
+      } = buildCharacterSpellActionRuleFacts({
+        spellIds: [FIREBALL.id],
+        spells: [compileSpell(FIREBALL)]
+      })
+      expect(fireball).not.toHaveProperty('repeatedEffects')
+    })
+
+    it('is resolved with each cast, at its level and with the caster’s spellcasting modifier', () => {
+      expect(
+        evaluated.spellCastMechanics.map(({ repeatMechanics }) =>
+          repeatMechanics?.flatMap(({ outcomes }) =>
+            outcomes.map((outcome) => outcome.kind === 'DAMAGE' && outcome.diceExpression)
+          )
+        )
+      ).toEqual([['1d8 + 3'], ['2d8 + 3']])
+    })
+
+    it('makes no cast action of its own', () => {
+      const built = build(casts, {
+        policyOutput: {
+          ...policyFor(casts, authoredById),
+          spellCastMechanics: evaluated.spellCastMechanics
+        }
+      })
+      expect(built.candidates.map((entry) => entry.actionId)).toEqual(
+        casts.map((cast) => spellCastActionId(cast.candidateId))
+      )
+      expect(built.candidates.map((entry) => entry.effectId)).not.toContain(attack?.id)
+    })
+  })
+
+  it('leaves Mage Hand to the GM until its stat block is modelled', () => {
+    expect(compiledCastEntry(spell('Mage Hand'))).toBeNull()
+  })
 })

@@ -44,7 +44,7 @@ export function projectCurrentEncounterGm(input: {
   characterStates: EncounterProjectionCharacterStates
 }) {
   const { state, actors, rules, initiativeRoundState, characterStates } = input
-  requireCurrentInitiativeRound(state, initiativeRoundState)
+  requireCurrentInitiativeRound(state, actors, initiativeRoundState)
   return projectGm({ ...state, actors, initiativeRoundState }, rules, characterStates)
 }
 
@@ -57,12 +57,13 @@ export function projectCurrentEncounterGmFacts(input: {
   characterStates: EncounterProjectionCharacterStates
 }) {
   const { state, actors, sources, initiativeRoundState, characterStates } = input
-  requireCurrentInitiativeRound(state, initiativeRoundState)
+  requireCurrentInitiativeRound(state, actors, initiativeRoundState)
   return projectGmFacts({ ...state, actors, initiativeRoundState }, sources, characterStates)
 }
 
 function requireCurrentInitiativeRound(
   state: EncounterRunState,
+  actors: readonly { id: string; owner?: { ownerActorId: string } | null }[],
   initiativeRoundState: EncounterInitiativeRoundStateDto | null
 ) {
   if (state.status === 'ACTIVE') {
@@ -75,7 +76,7 @@ function requireCurrentInitiativeRound(
     validateInitiativeCursor({
       state: initiativeRoundState,
       currentActorId: state.currentActorId,
-      actorIds: state.actorIds,
+      actors,
       allowedSideIds: state.sides.map((side) => side.id)
     })
   }

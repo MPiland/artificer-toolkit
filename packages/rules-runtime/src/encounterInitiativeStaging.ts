@@ -3,6 +3,7 @@ import type { EncounterInitiativeRoundStateDto } from '@artificer-toolkit/schema
 import type { StagedInitiativeRoundStateDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 
 import { EncounterConflictError } from './encounterErrors.js'
+import { takesInitiativeTurns } from './encounterInitiativeCursor.js'
 import type { settleEncounterInitiativeRound } from './encounterInitiativeStateSettlement.js'
 
 type MutableInitiativeRepository = Parameters<
@@ -136,7 +137,11 @@ export function createStagedInitiativeRoundState(input: {
     Partial<
       Pick<EncounterRunState, 'initiativePolicySnapshot' | 'initiativePolicySnapshotChecksum'>
     > & {
-      actors: readonly { id: string; sideId?: string }[]
+      actors: readonly {
+        id: string
+        sideId?: string
+        owner?: { ownerActorId: string } | null
+      }[]
     }
   round: number
 }): StagedInitiativeRoundStateDto {
@@ -145,7 +150,7 @@ export function createStagedInitiativeRoundState(input: {
   const policy = manualExecution ? null : input.encounter.initiativePolicySnapshot
   const procedure = policy?.policy.document.procedure ?? 'MANUAL'
   const cadence = policy?.policy.document.cadence ?? 'ENCOUNTER_START'
-  const actorSides = input.encounter.actors.map((actor) => {
+  const actorSides = input.encounter.actors.filter(takesInitiativeTurns).map((actor) => {
     if (!actor.sideId) {
       throw new EncounterConflictError('Encounter actor side state is unavailable for initiative.')
     }

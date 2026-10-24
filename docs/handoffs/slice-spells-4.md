@@ -666,6 +666,29 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - Not here: SPECIAL damageability stays with the GM.
 - Proof: `encounterMechanicsBatchPlan.test.ts` (an area damages a creature and an invulnerable summon; the summon takes none), `encounterMovementPassage.test.ts` (through and ending in a non-occupying hostile summon, and a non-occupying mover), `encounterAreaAction.test.ts` (placement onto a non-occupying token), `encounterMovementDrag.test.ts` and `vtt-teleport-destination.test.ts` (arriving on a non-occupying summon), room `nativeRoomRemoveFromPlay.test.ts` (a Wolf returns onto one unflagged), `encounterSummon.test.ts` (the snapshot carries the body).
 
+## T2v2a3d (D187b, D190a): Spiritual Weapon as a summon
+
+- Status: implemented on `spells-4-t2v2a3d`; CI is the gate.
+- Data: Spiritual Weapon's cast (1 bonus action, as the SRD has it, not an action) summons a `MANIFEST` / `SUMMON` weapon with fly 20, `INVULNERABLE` and `occupiesSpace: false`, through the 3a/3b offer: a `CONJURED` `REPEAT_SOURCE_PATH` of its sibling melee spell attack, `FREE_ONCE` on the cast turn and a bonus action afterwards. Hover has no schema field and stays in the description. Moving the weapon with that bonus action, and ending it by casting the spell again, are GM rulings (D187a).
+- Deleted: the `MOVE_MANIFEST` and `COMMAND_MANIFEST` kinds (schema, authored types, compiler, enums, node-map branches). `WEAPON` stays for Arcane Sword.
+- Contract (D166 freeze): the stored offer gains optional `damageExpressions` (outcome id → expression, at most 10), computed by `frozenRepeatOffer` from the cast. `discoverEncounterRepeatPath` carries it onto the capability, and `featureActionMechanic` uses it for each DAMAGE outcome, with no compiler branch. Because `compileSpell` drops the Effects an offer repeats, the spell facts gain `repeatedEffects` (only the Effects an offer names) and the cast mechanics gain `repeatMechanics`. Both are resolved by the same `resolveDnd5eActionMechanic` at the cast's level and spellcasting, and never yield a cast candidate.
+- Cohort (D190a): the initiative cohort is the Run's unowned actors (`takesInitiativeTurns` in `validateInitiativeCursor`). Every caller passes the actors it already read, owners included. Staging and reinforcement leave owned actors out. See [persistence](../architecture/persistence.md#owned-run-actors-current-spells-4t2v2a1) and [rules-runtime](../architecture/rules-runtime.md).
+- Fixes (each with a test that fails before it):
+  - an area's rule output now covers the creatures its cast conjures (`areaCommitPersistence.ts`);
+  - a sibling Effect a repeat re-runs reads the cast level (`characterActionRuleFacts.ts`);
+  - `stableActors` puts an owned actor after its owner, and an ACTIVE round's order ignores owned actors;
+  - a spell attack compiles as a bonus action (`isSupportedTestActivation`);
+  - a repeat's ability-bonus damage is the one frozen at cast.
+- Proof:
+  - room `nativeRoomCoreOptionSpells.test.ts` "Spiritual Weapon": the cast and its free attack, a later-turn bonus-action attack, removal at expiry, and revert;
+  - `coreOptionSpellAuthoringParity.test.ts` (Spiritual Weapon);
+  - `characterSpellCastActions.test.ts`: bonus-action activation, and "the Effect Spiritual Weapon's offer repeats" (facts, `1d8 + 3`/`2d8 + 3`, no cast action of its own);
+  - `encounterRepeatPathAction.test.ts`: frozen damage, whatever the caster has now;
+  - `encounterInitiativeCursor.test.ts`: cohort, staging and `stableActors`;
+  - `bonusActionWeaponAttackCompile.test.ts`: a spell attack at bonus action;
+  - `spellCastLevels.test.ts`;
+  - the golden (Spiritual Weapon's attack → `TEST_OUTCOME`).
+
 ## T2m2 (D187a): Freedom of Movement and Calm Emotions leave their closed kinds
 
 - Freedom of Movement: an `APPLY_GRANT` of two `CONDITION_IMMUNITY` `ADD_OPTION` modifiers (PARALYZED, RESTRAINED), each restricted by a `SOURCE_TRAIT` `MAGICAL` facet (`sourceTraitRestriction`, source-data `classes/mechanics.ts`), then a `MANUAL_ADJUDICATION` for difficult terrain, speed reduction, the 5-foot escape and underwater movement. Calm Emotions is one `MANUAL_ADJUDICATION` (GM ruling). `CALM_EMOTIONS` and `FREEDOM_OF_MOVEMENT` are gone from `closedRuleKind.ts`; the semantic ledger marks both `COMPLETE_WITH_MANUAL_EXCEPTIONS`.
@@ -688,5 +711,6 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - Contract: authored `retainsProficiencies` on the `CREATURE` manifest (toggle "Retains Proficiencies"), frozen as a required boolean on the `CREATURE_FORM` contribution (compiles absent to `false`). Polymorph and True Polymorph set `false`, Shapechange `true`; Animal Shapes and Giant Insect stay absent (`false`), which matches RAW (beast or insect statistics). Dev rows: `encounters/formRetentionMigration:run` now also backfills `retainsProficiencies: false` (its migrations are renamed `characterEffectFormProficiencies` and `encounterEffectFormProficiencies`); a stored Shapechange row backfills `false` until recast.
 - Fix: a Character in a form that does not keep its proficiencies builds its target from the Creature path (`encounterMovementTargets.ts`): stat-block save rows (effect and Concentration saves), defenses and immunities, and `formCreature` for checks and contests (`encounterMovementPassagePreparation.ts`, `encounterDisarmPreparation.ts`). Sheet conditions, Concentration, hit points and excess damage stay on the Character.
 - Bug fixed here (orchestrator ruling, D187 bug exception): a hit on any Character in a form was rejected in the room, because the `CHARACTER_MECHANICS_BATCH` receipt demanded a Sheet version for every hit point change while the form's hit points leave the Sheet untouched. `foldCharacterBatch` now marks the target transition `inForm`, and the receipt refine accepts a form's hit point and death save change with or without a Sheet version (the form may end onto the Sheet); every other change still needs it (`rules-runtime-contracts.test.ts`).
+- Merge fixes with m416 (SPELLS-31.T4s Wild Shape): the druid's Wild Shape form now authors `retainsProficiencies: true` (absent compiled to `false`; proof `wildShapeScaling.test.ts` "keeps the druid's proficiencies"), and `creatureFormOutcomeFields.ts` imports the form and form-filter node maps from m416's `creatureForm.ts` instead of keeping its own copies.
 - Proof: `characterFormProficiencies.test.ts` (saves, held saves, a check, defenses, a missing holding effect, and the retaining case), `encounterAreaActionCompilation.test.ts` (Polymorph compiles `false`), room `nativeRoomConcentration.test.ts` "a Concentrating Character in a form that replaces its proficiencies", `nativeRoomDisarm.test.ts` "room Disarm of a Character in a form that replaces its proficiencies", and `nativeRoomPolymorph.test.ts` T4d now seeds its form effect (`characterFormFixture.ts`).
 - Not here (follow-ups): a retaining form (Wild Shape) still contests with the Character's own size; a Character in any form keeps its own granted attack traits, innate conditions and movement passage.

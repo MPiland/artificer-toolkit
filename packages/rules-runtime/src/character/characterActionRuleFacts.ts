@@ -3,9 +3,10 @@ import type { CharacterActionRuleEntryPoint } from '@artificer-toolkit/schema/ap
 import type { CharacterGrantFoldInput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { equalCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { sha256Hex } from '@artificer-toolkit/shared/sha256'
-import type {
-  CompiledEffectGroup,
-  CompiledFeatureEffectGroup
+import {
+  compileEffect,
+  type CompiledEffectGroup,
+  type CompiledFeatureEffectGroup
 } from '@artificer-toolkit/shared/compilers'
 import type { CompiledEquipmentEffectGroup } from '@artificer-toolkit/shared/subjects/compilers'
 import type {
@@ -858,8 +859,8 @@ function outcomeReadsSpellCastLevel(outcome: CompiledOutcome): boolean {
 
 /**
  * Whether casting the Effect at a higher level changes it: a result scaled by the cast level (damage,
- * healing, targets, a granted amount, in a follow-up save branch or a manifest's behaviors too) or one
- * compared with it (Counterspell's slot-versus-spell check).
+ * healing, targets, a granted amount, in a follow-up save branch, a manifest's behaviors or the
+ * Effect a repeat offer re-runs too) or one compared with it (Counterspell's slot-versus-spell check).
  */
 export function effectReadsSpellCastLevel(effect: CompiledEffectGroup): boolean {
   return (
@@ -868,7 +869,14 @@ export function effectReadsSpellCastLevel(effect: CompiledEffectGroup): boolean 
       (entry) =>
         'outcome' in entry &&
         (targetingReadsSpellCastLevel(entry.targetingOverride) ||
-          outcomeReadsSpellCastLevel(entry.outcome))
+          outcomeReadsSpellCastLevel(entry.outcome) ||
+          (entry.lifecycle?.effectOffers ?? []).some(
+            (offer) =>
+              // A repeat of the Effect's own paths is read above; a sibling Effect is read here.
+              offer.kind === 'REPEAT_SOURCE_PATH' &&
+              offer.effect.id !== effect.id &&
+              effectReadsSpellCastLevel(compileEffect(offer.effect))
+          ))
     )
   )
 }

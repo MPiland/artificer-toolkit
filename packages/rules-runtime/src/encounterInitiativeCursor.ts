@@ -58,17 +58,26 @@ export function readSideOrder(state: EncounterInitiativeRoundStateDto, orderErro
   return sides
 }
 
+/** Whether a Run actor is in the initiative order: an owned actor acts on its owner's turn (D190a). */
+export function takesInitiativeTurns(actor: { owner?: { ownerActorId: string } | null }) {
+  return !actor.owner
+}
+
 export function validateInitiativeCursor(input: {
   state: EncounterInitiativeRoundStateDto
   currentActorId: string | null
-  actorIds: readonly string[]
+  /** Every Run actor; the owned ones are left out of the cohort. */
+  actors: readonly { id: string; owner?: { ownerActorId: string } | null }[]
   allowedSideIds: readonly string[]
 }): void {
-  const { state, currentActorId, actorIds, allowedSideIds } = input
+  const { state, currentActorId, actors, allowedSideIds } = input
   if (state.round.status !== 'ACTIVE')
     throw new Error('The normalized initiative round is unavailable.')
   const participantIds = state.participants.map((participant) => participant.actorId).sort()
-  const expectedActorIds = [...actorIds].sort()
+  const expectedActorIds = actors
+    .filter(takesInitiativeTurns)
+    .map((actor) => actor.id)
+    .sort()
   if (
     participantIds.length !== expectedActorIds.length ||
     participantIds.some((id, index) => id !== expectedActorIds[index]) ||

@@ -3,7 +3,10 @@ import {
   encounterInitiativeRoundStateDtoSchema,
   type EncounterInitiativeRoundStateDto
 } from '@artificer-toolkit/schema/shared/initiativeState'
-import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import { createEncounterInitiativeStore } from './initiativeStore.js'
 import { validateInitiativeCursor } from '@artificer-toolkit/rules-runtime/encounterInitiativeCursor'
 import type { EncounterWriteContext } from './store.js'
@@ -15,6 +18,7 @@ import type { EncounterWriteContext } from './store.js'
 export async function removeActorInitiative(
   ctx: EncounterWriteContext,
   state: EncounterRunState,
+  actors: readonly EncounterRunActorState[],
   actorId: string,
   occurredAt: string,
   keepsActor: boolean
@@ -34,7 +38,7 @@ export async function removeActorInitiative(
     validateInitiativeCursor({
       state: current,
       currentActorId: state.currentActorId,
-      actorIds: state.actorIds,
+      actors,
       allowedSideIds: state.sides.map((side) => side.id)
     })
   }
@@ -101,7 +105,7 @@ export async function removeActorInitiative(
   validateInitiativeCursor({
     state: result,
     currentActorId,
-    actorIds: keepsActor ? state.actorIds : state.actorIds.filter((id) => id !== actorId),
+    actors: keepsActor ? actors : actors.filter((actor) => actor.id !== actorId),
     allowedSideIds: state.sides.map((side) => side.id)
   })
   const round = await ctx.db

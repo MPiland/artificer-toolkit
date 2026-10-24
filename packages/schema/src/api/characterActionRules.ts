@@ -664,7 +664,21 @@ export const characterSpellActionFactsSchema = lazySchema(() =>
               mechanicFacts: characterActionMechanicFactSchema
             })
           )
-          .check(z.maxLength(100))
+          .check(z.maxLength(100)),
+        /**
+         * The sibling Effects a cast Effect's repeat offers re-run (D166): resolved with the cast so
+         * the offer can freeze them, never cast on their own.
+         */
+        repeatedEffects: z.optional(
+          z
+            .array(
+              z.strictObject({
+                effectId: postgresUuidSchema,
+                mechanicFacts: characterActionMechanicFactSchema
+              })
+            )
+            .check(z.maxLength(100))
+        )
       })
     )
     .check(z.maxLength(1_000))
@@ -831,7 +845,11 @@ export const characterSpellCastMechanicsSchema = lazySchema(() =>
         spellId: identitySchema,
         source: characterActionSpellSourceSchema,
         castLevel: integerSchema.check(z.gte(0)).check(z.lte(9)),
-        mechanics: z.array(characterResolvedActionMechanicSchema).check(z.maxLength(100))
+        mechanics: z.array(characterResolvedActionMechanicSchema).check(z.maxLength(100)),
+        /** The spell's `repeatedEffects` resolved at this cast, which its repeat offers freeze. */
+        repeatMechanics: z.optional(
+          z.array(characterResolvedActionMechanicSchema).check(z.maxLength(100))
+        )
       })
     )
     .check(z.maxLength(5_000))

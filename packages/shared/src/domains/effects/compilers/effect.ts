@@ -1,6 +1,5 @@
 import type {
   ApplyGrantAuthored,
-  CommandManifestAuthored,
   EffectAuthored,
   EffectInvocationAuthored,
   EffectPathAuthored,
@@ -247,8 +246,6 @@ export type CompiledEffectOutcome =
   | ApplyGrantAuthored
   | ForcedMovementAuthored
   | CompiledManifest
-  | import('#authored').MoveManifestAuthored
-  | CommandManifestAuthored
   | CompiledFollowUpSave
   | CompiledFollowUpCheck
   | import('#authored').MovementRuleAuthored
@@ -365,8 +362,6 @@ function compileOutcomePayload(
     case EFFECT_KIND.APPLY_GRANT:
     case EFFECT_KIND.FORCED_MOVEMENT:
     case EFFECT_KIND.TELEPORT:
-    case EFFECT_KIND.MOVE_MANIFEST:
-    case EFFECT_KIND.COMMAND_MANIFEST:
       return [outcome]
     case EFFECT_KIND.FOLLOW_UP_SAVE:
       return [compileFollowUpSave(outcome)]

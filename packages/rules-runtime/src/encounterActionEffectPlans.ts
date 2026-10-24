@@ -8,6 +8,7 @@ import {
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CompiledRepeatSourcePathOffer } from '@artificer-toolkit/schema/effects/storedEffectOffer'
 import { sizeRank } from '@artificer-toolkit/shared/core'
+import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
 import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
@@ -138,6 +139,8 @@ export function prepareEncounterActionEffectPlans(input: {
   spellCastLevel?: number
   /** The caster's attack bonus, which an attack repeat offer freezes; omitted for a cast that has none. */
   attackBonus?: number
+  /** The cast's resolved damage by outcome id, which a repeat offer freezes (D166); omitted for any other action. */
+  damageExpressions?: Readonly<Record<string, string>>
   /** The Run's turn, which a `FREE_ONCE` repeat offer freezes; omitted for every action that plans none. */
   turnSequence?: number
   published: ServerPublishedRuleDefinitionDto
@@ -716,7 +719,7 @@ function frozenRepeatOffer(
   offer: CompiledRepeatSourcePathOffer,
   input: Pick<
     Parameters<typeof prepareRecurringActiveEffect>[0],
-    'd20' | 'spellCastLevel' | 'attackBonus' | 'turnSequence' | 'published'
+    'd20' | 'spellCastLevel' | 'attackBonus' | 'damageExpressions' | 'turnSequence' | 'published'
   >
 ): CompiledRepeatSourcePathOffer {
   const castTurnSequence = offer.castTurnUse ? input.turnSequence : undefined
@@ -736,11 +739,19 @@ function frozenRepeatOffer(
     throw new EncounterActionEffectPlanError(
       'A repeat offer freezes the attack bonus its cast had.'
     )
+  const damageExpressions = Object.fromEntries(
+    compileEffect(offer.effect).entries.flatMap((entry) => {
+      if (!('outcome' in entry) || entry.outcome.effectKind !== 'DAMAGE') return []
+      const expression = input.damageExpressions?.[entry.outcome.id]
+      return expression === undefined ? [] : [[entry.outcome.id, expression]]
+    })
+  )
   return {
     ...offer,
     ...(input.spellCastLevel !== undefined &&
       input.spellCastLevel > 0 && { castLevel: input.spellCastLevel }),
     ...(attackBonus !== undefined && { attackBonus }),
+    ...(Object.keys(damageExpressions).length > 0 && { damageExpressions }),
     ...(castTurnSequence !== undefined && { castTurnSequence }),
     effect: {
       ...offer.effect,

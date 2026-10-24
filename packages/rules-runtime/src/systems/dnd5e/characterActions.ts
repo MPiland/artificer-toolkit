@@ -99,6 +99,12 @@ export function evaluateDnd5e2014CharacterActions(
             attackBonus: sourceMechanics.attackBonus,
             saveDc: sourceMechanics.saveDc
           }
+    const castContext = {
+      spellcasting,
+      spellCastLevel: candidate.castLevel,
+      spellDamageBonus: sourceMechanics?.damageBonus ?? 0,
+      spellId: candidate.spellId
+    }
     return {
       sequence: candidate.sequence,
       candidateId: candidate.candidateId,
@@ -106,13 +112,13 @@ export function evaluateDnd5e2014CharacterActions(
       source: candidate.source,
       castLevel: candidate.castLevel,
       mechanics: (spell?.effects ?? []).map((effect) =>
-        resolveDnd5eActionMechanic(parsedInput, effect, {
-          spellcasting,
-          spellCastLevel: candidate.castLevel,
-          spellDamageBonus: sourceMechanics?.damageBonus ?? 0,
-          spellId: candidate.spellId
-        })
-      )
+        resolveDnd5eActionMechanic(parsedInput, effect, castContext)
+      ),
+      ...(spell?.repeatedEffects && {
+        repeatMechanics: spell.repeatedEffects.map((effect) =>
+          resolveDnd5eActionMechanic(parsedInput, effect, castContext)
+        )
+      })
     }
   })
   const spellReferenceMechanics = parsedInput.spellEffects.map((spell, sequence) => ({
