@@ -10,7 +10,6 @@ import {
 import {
   readBasicActionCheckResponseAdmission,
   readCheckActionResponseAdmission,
-  readD20WindowResponseAdmission,
   readEscapeCheckResponseAdmission
 } from './basicActionCheckAdmission.js'
 import { readPendingSnapshot } from './pendingSnapshots.js'
@@ -42,14 +41,13 @@ export async function readBasicActionScopeAdmission(
   const context = occurrence
     ? (await readPendingSnapshot(ctx, occurrence))?.applicationContext
     : null
+  // A d20 window is answered under the check whose d20 opened it.
+  const check = context?.kind === 'ENCOUNTER_D20_WINDOW' ? context.source.context : context
   const admit =
-    context?.kind === 'ENCOUNTER_CHECK_ACTION' ||
-    (context?.kind === 'ENCOUNTER_D20_WINDOW' && context.source.kind === 'CHECK_ACTION')
+    check?.kind === 'ENCOUNTER_CHECK_ACTION'
       ? readCheckActionResponseAdmission
-      : context?.kind === 'ENCOUNTER_ESCAPE_CHECK'
+      : check?.kind === 'ENCOUNTER_ESCAPE_CHECK'
         ? readEscapeCheckResponseAdmission
-        : context?.kind === 'ENCOUNTER_D20_WINDOW'
-          ? readD20WindowResponseAdmission
-          : readBasicActionCheckResponseAdmission
+        : readBasicActionCheckResponseAdmission
   return admit(ctx, { ...input, response: command })
 }
