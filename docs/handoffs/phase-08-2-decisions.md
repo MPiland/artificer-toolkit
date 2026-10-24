@@ -1241,6 +1241,9 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 
 - **Bright light is rank 0.** Bright-light and daylight checks (Sunlight Sensitivity, `measureHolderLight`, `resolveSceneDaylightAt`) read the illumination level's rank: the first, brightest level is bright. Render class stays a drawing property only. The illumination adapter guide states the invariant that levels are ordered brightest first. There is no contract change; a System needing more than one bright level is a future enhancement, not a flag now.
 - **Slot pools are a list.** `characterRulePolicyOutputSchema.spellSlots.pactMagic` becomes `slotPools`, one entry per System slot pool with its pool code and source class. Neutral readers work per pool; dnd5e yields zero or one entry, and D&D behavior is unchanged. The output is computed, so nothing is migrated. A second-System test proves two pools. This is T9g's own scope ("Pact Magic leaves the neutral character pipeline"), and T9p already moved the literals, so it stays at size 2; if it measures larger, the session reports before building.
+- **Ability thresholds are authored references (T9f3).** `actorLinkContribution.excludesIntelligenceAtOrBelow` becomes `excludesAbilityAtOrBelow { abilityDefinitionId, score }`, authored on the effect, and the Worker's `'INTELLIGENCE'` read goes. It is an authored ability reference, so T9f3 owns it; there is no new task.
+- **One hit point ability.** The System's `derivedStatisticAbilityCodes.hitPoints` is the only source of the hit point ability. The class's authored `hitpoint.ability` is deleted in T9f3 (not converted), and the per-level rows read the System's. A per-class override is speculative: no SRD class differs, and two sources that agree today drift later.
+- **Authoring node defaults** that name ability codes (`authoringNodeDefaults.ts`) move with T9f2/T9f3, not T9e.
 
 ## Approved implementation decisions
 
