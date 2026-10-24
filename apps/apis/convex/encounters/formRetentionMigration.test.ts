@@ -125,7 +125,7 @@ it('gives each stored creature form no retained scores and re-checksums the effe
       ...row,
       id: uuid(20),
       characterId: ids.character,
-      sourceEncounterId: ids.encounter,
+      sourceEncounterId: null,
       concentrationCasterCharacterId: null,
       ...legacyDefinitionJson(characterDefinition)
     })

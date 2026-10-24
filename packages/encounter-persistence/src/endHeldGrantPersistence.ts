@@ -83,10 +83,10 @@ export async function persistEncounterEndHeldGrant(
         overridden: overridesActionEconomy(input.ruleOverrides)
       })
     : actor
-  // Ending a form's own effect reverts its wearer (D130), as the plan's rules assumed.
-  const spent = paid.form?.effectId === grant.id ? revertActorForm(paid) : paid
-  await replaceRunActor(ctx, actor, spent)
+  await replaceRunActor(ctx, actor, paid)
+  // Deleting a form's own effect reverts its wearer (D130); the answer shows that reverted actor.
   await deleteGrants(ctx, [grant])
+  const spent = paid.form?.effectId === grant.id ? revertActorForm(paid) : paid
   const nextActors = actors.map((entry) => (entry.id === spent.id ? spent : entry))
   const nextState = encounterRunStateSchema.parse({
     ...state,
