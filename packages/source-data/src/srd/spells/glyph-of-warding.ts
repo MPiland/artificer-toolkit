@@ -65,16 +65,19 @@ export const glyphOfWarding: SpellAuthored = {
             },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.GLYPH_OF_WARDING, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'GLYPH_OF_WARDING' as const
-              },
-              {
                 id: spellChildId(SPELL_IDS.GLYPH_OF_WARDING, 0x212, 1),
                 effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
                 label: 'Define the Trigger',
                 reasonCode: 'PLAYER_DECLARATION' as const,
                 instructions: 'You decide what triggers the glyph when you cast the spell.'
+              },
+              {
+                id: spellChildId(SPELL_IDS.GLYPH_OF_WARDING, 0x2f0, 1),
+                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+                label: 'Trigger the Glyph',
+                reasonCode: 'GM_CHOICE' as const,
+                instructions:
+                  'When the glyph is triggered, the spell ends. Explosive runes: each creature in a 20-foot-radius sphere centered on the glyph makes a Dexterity saving throw, taking 5d8 damage of the chosen type (plus 1d8 for each slot level above 3rd) on a failure, or half as much on a success. Spell glyph: the stored spell is cast at the creature that triggered the glyph.'
               }
             ]
           }

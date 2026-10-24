@@ -5,6 +5,7 @@ import {
   CASTING_TIME_UNIT_CODE,
   DURATION_KIND,
   EFFECT_KIND,
+  MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SHAPE_KIND,
@@ -73,7 +74,7 @@ export const earthquake: SpellAuthored = {
           id: spellChildId(SPELL_IDS.EARTHQUAKE, 0x213, 1),
           order: 1,
           pathCode: PATH_CODE.ON_USE,
-          groupType: PATH_GROUP_TYPE.SINGLE,
+          groupType: PATH_GROUP_TYPE.SEQUENTIAL,
           originKind: 'SOURCE' as const,
           selectionKind: 'FIXED' as const,
           resultBlock: {
@@ -87,15 +88,27 @@ export const earthquake: SpellAuthored = {
             outcomes: [
               {
                 id: spellChildId(SPELL_IDS.EARTHQUAKE, 0x2f0, 1),
-                effectKind: EFFECT_KIND.CLOSED_RULE,
-                ruleKind: 'EARTHQUAKE' as const
-              },
-              {
-                id: spellChildId(SPELL_IDS.EARTHQUAKE, 0x213, 1),
-                effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-                label: 'Place Fissures',
-                reasonCode: 'GM_CHOICE' as const,
-                instructions: 'A total of 1d6 such fissures open in locations chosen by the GM.'
+                // The prone saves (on cast and at the end of each of the caster's turns), the concentration
+                // save, fissures and structures are the GM's to rule from the description (D187a): a prone
+                // the engine applied would end with the Concentration that holds every effect of this spell.
+                effectKind: EFFECT_KIND.MANIFEST,
+                manifestKind: MANIFEST_KIND.ZONE,
+                attachmentKind: 'PLACED_SPACE',
+                label: 'Earthquake',
+                shape: {
+                  id: spellChildId(SPELL_IDS.EARTHQUAKE, 0x220, 1),
+                  shapeKind: SHAPE_KIND.CIRCLE,
+                  radius: { amount: 100, unit: MEASUREMENT_UNIT_CODE.FEET }
+                },
+                components: [
+                  {
+                    id: spellChildId(SPELL_IDS.EARTHQUAKE, 0x221, 1),
+                    order: 1,
+                    label: 'Shaking ground',
+                    // The ground in the area is difficult terrain.
+                    movementCostMultiplier: 2
+                  }
+                ]
               }
             ]
           }
