@@ -217,27 +217,27 @@ export const vrock: CreatureAuthored = {
           },
           paths: [
             {
-              id: S.actionId(281, 221),
+              id: S.actionId(281, 227),
               order: 1,
               pathCode: S.PATH_CODE.ON_SAVE_FAIL,
               groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
-                id: S.actionId(281, 222),
+                id: S.actionId(281, 228),
                 resultKind: 'SEQUENCE',
                 outcomes: [
                   {
-                    id: S.actionId(281, 223),
+                    id: S.actionId(281, 229),
                     effectKind: S.EFFECT_KIND.CONDITION,
                     conditionId: conditionTypeId('POISONED')
                   },
                   {
-                    id: S.actionId(281, 224),
+                    id: S.actionId(281, 230),
                     effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
                     timing: S.FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
                     savingThrow: {
-                      id: S.actionId(281, 225),
+                      id: S.actionId(281, 231),
                       dcMethod: 'FIXED_DC',
                       abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
                       baseDc: 14
@@ -247,7 +247,7 @@ export const vrock: CreatureAuthored = {
                     onFailure: { kind: 'CONTINUE' }
                   },
                   {
-                    id: S.actionId(281, 226),
+                    id: S.actionId(281, 232),
                     effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
                     label: 'Spore damage',
                     reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
