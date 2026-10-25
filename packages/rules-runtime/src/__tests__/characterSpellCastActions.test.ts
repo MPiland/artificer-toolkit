@@ -165,7 +165,7 @@ function policyFor(
         ...SLOT_ENTRY,
         ...(spellLevel === 3 ? { rawUsed: 1, effectiveUsed: 1, remaining: 1 } : {})
       })),
-      pactMagic: null,
+      slotPools: [],
       fusionStrategy: 'NONE' as const
     }
   }
@@ -658,27 +658,25 @@ describe('what a leveled cast carries into the Encounter action', () => {
     expect(manual.actionMechanic.spellCastLevel).toBe(3)
   })
 
-  it('reads the slot a key names, a pact slot included', () => {
+  it('reads the slot a key names, each slot pool included', () => {
     expect(readSpellCastSlot(policy.spellSlots, 'STANDARD:3')).toEqual({ level: 3, used: 1 })
     expect(readSpellCastSlot(policy.spellSlots, 'STANDARD:9')).toBeNull()
     expect(readSpellCastSlot(policy.spellSlots, 'PACT')).toBeNull()
-    expect(
-      readSpellCastSlot(
-        {
-          ...policy.spellSlots,
-          pactMagic: {
-            poolCode: 'PACT',
-            sourceClassId: 'warlock',
-            slots: 2,
-            level: 3,
-            rawUsed: 1,
-            effectiveUsed: 1,
-            remaining: 1
-          }
-        },
-        'PACT'
-      )
-    ).toEqual({ level: 3, used: 1 })
+    const slotPool = (poolCode: string, level: number, rawUsed: number) => ({
+      poolCode,
+      sourceClassId: 'caster',
+      slots: 2,
+      level,
+      rawUsed,
+      effectiveUsed: rawUsed,
+      remaining: 2 - rawUsed
+    })
+    const pooled = {
+      ...policy.spellSlots,
+      slotPools: [slotPool('PACT', 3, 1), slotPool('RITUAL_POOL', 5, 0)]
+    }
+    expect(readSpellCastSlot(pooled, 'PACT')).toEqual({ level: 3, used: 1 })
+    expect(readSpellCastSlot(pooled, 'RITUAL_POOL')).toEqual({ level: 5, used: 0 })
   })
 })
 
@@ -727,7 +725,7 @@ describe('a cast paid from a spell-source pool', () => {
       castMode,
       resourceOwnerKey: poolId
     })
-  const pactMagic = {
+  const pactPool = {
     poolCode: 'PACT',
     sourceClassId: 'warlock',
     slots: 2,
@@ -743,7 +741,7 @@ describe('a cast paid from a spell-source pool', () => {
     return {
       ...policy,
       resources: [pool(rawUsed)],
-      spellSlots: { ...policy.spellSlots, pactMagic: paysPact ? pactMagic : null }
+      spellSlots: { ...policy.spellSlots, slotPools: paysPact ? [pactPool] : [] }
     }
   }
   const buildPooled = (cast: SpellCastCandidate, rawUsed = 0) =>

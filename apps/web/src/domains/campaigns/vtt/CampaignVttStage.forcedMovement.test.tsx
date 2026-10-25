@@ -60,6 +60,7 @@ vi.mock('./vttSceneRenderer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./vttSceneRenderer')>()),
   createVttSceneRenderer: (
     _host: HTMLElement,
+    _gameSystemId: string,
     handlers: { onSquarePick: (center: ScenePoint) => void }
   ) => {
     mocks.onSquarePick = handlers.onSquarePick

@@ -5,11 +5,13 @@ import type {
   CampaignSceneStateDto,
   SceneTransientEnvelopeDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { combatPerceptionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import {
   applySceneDelta,
   createSceneFogAreaPatch,
   extendSceneMovementPath,
   isSceneMovementPathValid,
+  requireSceneIlluminationLevel,
   resolveSceneIlluminationAt,
   sceneTokenLights,
   SceneBarrierIndex,
@@ -59,6 +61,8 @@ import {
   resolveSceneTokenMove,
   resolveVttTokenFocusScale,
   resolveVttZoomScale,
+  sceneIlluminationAreas,
+  senseAccessLevel,
   senseEffect,
   senseReachRadius,
   selectionOutlineColor,
@@ -68,7 +72,9 @@ import {
   statusOverflowColour,
   shouldReloadVttMap,
   visibleGridLinePositions,
+  wholeMapPolygon,
   type VttAreaSize,
+  type VttIlluminationArea,
   type VttScenePresentationOverlay,
   type VttSquarePick,
   type VttSenseEffect,
@@ -311,6 +317,8 @@ const zoomFactor = 1.1
 /** A larger map renders its darkness and sight textures at a lower resolution than this. */
 const maxLightingTextureSize = 2048
 const darknessZoneLabelPrefix = 'darkness-zone:'
+/** A zone whose System level dispels light; other zones are labelled by their render class. */
+const darknessZoneSuppressingLabel = `${darknessZoneLabelPrefix}SUPPRESSES_LIGHT`
 const obscurementLabelPrefix = 'obscurement:'
 const lightTintDimLabel = 'light-tint-dim'
 const lightTintBrightLabel = 'light-tint-bright'
@@ -341,15 +349,6 @@ function destroyChildren(container: Container): void {
   for (const child of container.removeChildren()) child.destroy({ children: true })
 }
 
-function wholeMapPolygon(map: CampaignSceneStateDto['map']): ScenePoint[] {
-  return [
-    { x: 0, y: 0 },
-    { x: map.width, y: 0 },
-    { x: map.width, y: map.height },
-    { x: 0, y: map.height }
-  ]
-}
-
 function positionKey(point: ScenePoint): string {
   return `${Math.round(point.x)}:${Math.round(point.y)}`
 }
@@ -360,8 +359,12 @@ function pointsEqual(left: ScenePoint, right: ScenePoint): boolean {
 
 export async function createVttSceneRenderer(
   host: HTMLElement,
+  gameSystemId: string,
   callbacks: VttSceneRendererCallbacks
 ): Promise<VttSceneRenderer> {
+  const { illuminationLevels } = combatPerceptionCapabilityRegistry.require(gameSystemId)
+  const levelOf = (code: CampaignSceneStateDto['ambientIllumination']) =>
+    requireSceneIlluminationLevel(illuminationLevels, code)
   // @ts-expect-error -- Pixi publishes this CSP fallback without a declaration file.
   await import('pixi.js/unsafe-eval')
   const pixi = await import('pixi.js')
@@ -1066,29 +1069,22 @@ export async function createVttSceneRenderer(
     lightCutPolygons = []
     lightingRevision += 1
     const { map } = scene
-    const ambientAlpha = illuminationOverlayAlpha(scene.ambientIllumination)
-    if (ambientAlpha > 0) {
-      classMap.addChild(
-        new pixi.Graphics()
-          .rect(0, 0, map.width, map.height)
-          .fill({ alpha: ambientAlpha, color: 0 })
-      )
+    const areas = sceneIlluminationAreas(scene, illuminationLevels)
+    // Each area is drawn at its level's class; a level that dispels light goes over every light.
+    const drawArea = ({ level, points, zone }: VttIlluminationArea) => {
+      const alpha = illuminationOverlayAlpha(level.renderClass)
+      if (alpha === 0) return
+      const label = !zone
+        ? 'ambient-illumination'
+        : level.suppressesLight
+          ? darknessZoneSuppressingLabel
+          : `${darknessZoneLabelPrefix}${level.renderClass}`
+      classMap.addChild(overlayShape(points, alpha, 'max', label))
     }
-    for (const zone of scene.darknessZones) {
-      if (
-        zone.mechanicalIllumination === 'DIM' ||
-        zone.mechanicalIllumination === 'ORDINARY_DARKNESS'
-      ) {
-        classMap.addChild(
-          overlayShape(
-            zone.polygon.points,
-            illuminationOverlayAlpha(zone.mechanicalIllumination),
-            'max',
-            `${darknessZoneLabelPrefix}${zone.mechanicalIllumination}`
-          )
-        )
-      }
-    }
+    for (const area of areas) if (!area.level.suppressesLight) drawArea(area)
+    // A light's radii shed the levels they are named for, drawn at those levels' classes.
+    const brightBandAlpha = illuminationOverlayAlpha(levelOf('BRIGHT').renderClass)
+    const dimBandAlpha = illuminationOverlayAlpha(levelOf('DIM').renderClass)
     for (const light of [...scene.lights, ...tokenLights]) {
       const polygon = visibilityPolygonForLight(
         light,
@@ -1100,30 +1096,19 @@ export async function createVttSceneRenderer(
       const radii = lightRadii(light)
       if (radii.dim > radii.bright) {
         const reach = clampPolygonToRadius(polygon.points, light.position, radii.dim)
-        classMap.addChild(overlayShape(reach, dimOverlayAlpha, 'min', 'light-dim'))
+        classMap.addChild(overlayShape(reach, dimBandAlpha, 'min', 'light-dim'))
         lightCutPolygons.push(reach)
         lightTintLayer.addChild(tintShape(reach, light, lightTintDimLabel))
       }
       if (radii.bright > 0) {
         const core = clampPolygonToRadius(polygon.points, light.position, radii.bright)
-        classMap.addChild(overlayShape(core, 0, 'min', 'light-bright'))
+        classMap.addChild(overlayShape(core, brightBandAlpha, 'min', 'light-bright'))
         lightCutPolygons.push(core)
         lightTintLayer.addChild(tintShape(core, light, lightTintBrightLabel))
       }
     }
-    for (const zone of scene.darknessZones) {
-      if (zone.mechanicalIllumination === 'MAGICAL_DARKNESS') {
-        classMap.addChild(
-          overlayShape(zone.polygon.points, 1, 'max', `${darknessZoneLabelPrefix}MAGICAL_DARKNESS`)
-        )
-      }
-      drawZoneCues(zone)
-    }
-    if (scene.ambientIllumination === 'MAGICAL_DARKNESS') {
-      classMap.addChild(
-        new pixi.Graphics().rect(0, 0, map.width, map.height).fill({ alpha: 1, color: 0 })
-      )
-    }
+    for (const area of areas) if (area.level.suppressesLight) drawArea(area)
+    for (const zone of scene.darknessZones) drawZoneCues(zone)
     darknessTexture = textureForMap(darknessTexture, map)
     renderLightingTexture(classMap, darknessTexture, map)
     darknessSprite.texture = darknessTexture
@@ -1132,7 +1117,7 @@ export async function createVttSceneRenderer(
 
   /** What a zone shows beyond its class: a visual-only fill, and non-colour outlines. */
   function drawZoneCues(zone: CampaignSceneStateDto['darknessZones'][number]): void {
-    const style = darknessZoneStyle(zone)
+    const style = darknessZoneStyle(zone, illuminationLevels)
     const points = zone.polygon.points
     if (zone.mechanicalIllumination === null) {
       const fill = new pixi.Graphics()
@@ -1249,9 +1234,9 @@ export async function createVttSceneRenderer(
   }
 
   /**
-   * Adds the ground that ordinary darkness covers, as an indicator: ordinary darkness at
-   * `ordinaryAlpha`, cleared by every light, with magical darkness (which no light clears) either
-   * added back in full or erased from it.
+   * Adds the ground that ordinary darkness covers, as an indicator: a dark level that light
+   * dispels at `ordinaryAlpha`, cleared by every light, with a level that dispels light (which no
+   * light clears) either added back in full or erased from it.
    */
   function addDarknessIndicator(
     composition: Container,
@@ -1259,25 +1244,16 @@ export async function createVttSceneRenderer(
     ordinaryAlpha: number,
     magical: 'erase' | 'max'
   ): void {
-    const wholeMap = wholeMapPolygon(scene.map)
     const indicator = (points: readonly ScenePoint[], alpha: number, blend: 'erase' | 'max') =>
       overlayShape(points, alpha, blend, 'sense-indicator', 0xffffff)
-    if (scene.ambientIllumination === 'ORDINARY_DARKNESS') {
-      composition.addChild(indicator(wholeMap, ordinaryAlpha, 'max'))
-    }
-    for (const zone of scene.darknessZones) {
-      if (zone.mechanicalIllumination === 'ORDINARY_DARKNESS') {
-        composition.addChild(indicator(zone.polygon.points, ordinaryAlpha, 'max'))
-      }
+    const areas = sceneIlluminationAreas(scene, illuminationLevels)
+    for (const { level, points } of areas) {
+      if (level.renderClass === 'DARK' && !level.suppressesLight)
+        composition.addChild(indicator(points, ordinaryAlpha, 'max'))
     }
     for (const polygon of lightCutPolygons) composition.addChild(indicator(polygon, 1, 'erase'))
-    if (scene.ambientIllumination === 'MAGICAL_DARKNESS') {
-      composition.addChild(indicator(wholeMap, 1, magical))
-    }
-    for (const zone of scene.darknessZones) {
-      if (zone.mechanicalIllumination === 'MAGICAL_DARKNESS') {
-        composition.addChild(indicator(zone.polygon.points, 1, magical))
-      }
+    for (const { level, points } of areas) {
+      if (level.suppressesLight) composition.addChild(indicator(points, 1, magical))
     }
   }
 
@@ -1301,11 +1277,12 @@ export async function createVttSceneRenderer(
       : []
     const widest = new Map<VttSenseEffect, VttSenseReach>()
     for (const sense of viewToken.senses) {
-      const effect = senseEffect(sense)
+      const effect = senseEffect(sense, illuminationLevels)
       if (!effect) continue
       const radius = senseReachRadius(grid, viewToken, sense)
       if ((widest.get(effect)?.radius ?? -1) >= radius) continue
       widest.set(effect, {
+        access: senseAccessLevel(sense, illuminationLevels),
         effect,
         origin: viewToken.position,
         polygon:
@@ -1445,8 +1422,11 @@ export async function createVttSceneRenderer(
         (next.role === 'PLAYER' && canControlSceneToken(token, next)) ||
         isTokenRevealed({
           halfSize: Math.max(token.height, token.width) / 2,
-          illumination: resolveSceneIlluminationAt(scene, token.position, barrierIndex)
-            .illumination,
+          illumination: levelOf(
+            resolveSceneIlluminationAt(scene, token.position, barrierIndex, illuminationLevels)
+              .illumination
+          ),
+          illuminationLevels,
           point: token.position,
           reaches: senseReaches
         })
@@ -1466,7 +1446,7 @@ export async function createVttSceneRenderer(
   }
 
   function updateCanvasDescription(scene: CampaignSceneStateDto): void {
-    const lighting = describeSceneLighting(scene, visionLabels)
+    const lighting = describeSceneLighting(scene, visionLabels, illuminationLevels)
     app.canvas.setAttribute(
       'aria-description',
       lighting ? `${tokenSummary}. ${lighting}` : tokenSummary
@@ -2606,8 +2586,8 @@ export async function createVttSceneRenderer(
             dim: drawnCount(darknessClassMap, `${darknessZoneLabelPrefix}DIM`),
             heavyObscured: drawnCount(obscurementLayer, `${obscurementLabelPrefix}HEAVY`),
             lightObscured: drawnCount(obscurementLayer, `${obscurementLabelPrefix}LIGHT`),
-            magical: drawnCount(darknessClassMap, `${darknessZoneLabelPrefix}MAGICAL_DARKNESS`),
-            ordinary: drawnCount(darknessClassMap, `${darknessZoneLabelPrefix}ORDINARY_DARKNESS`),
+            magical: drawnCount(darknessClassMap, darknessZoneSuppressingLabel),
+            ordinary: drawnCount(darknessClassMap, `${darknessZoneLabelPrefix}DARK`),
             unspecified: drawnCount(obscurementLayer, `${darknessZoneLabelPrefix}VISUAL`)
           },
           dimLightCount: drawnCount(lightTintLayer, lightTintDimLabel),

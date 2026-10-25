@@ -1,11 +1,56 @@
+import { reusableDefinitionWorkspaceDtoSchema } from '@artificer-toolkit/schema/api/reusableDefinitions'
+import { conditionDtoSchema } from '@artificer-toolkit/schema/effects/condition'
+import { createFollowUpCheckDtoSchema } from '@artificer-toolkit/schema/effects/followUpCheck'
+import { createFollowUpSaveDtoSchema } from '@artificer-toolkit/schema/effects/followUpSave'
+import type { SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import type { FunctionArgs, FunctionReturnType } from 'convex/server'
-import { describe, expectTypeOf, it } from 'vitest'
+import { zodToConvex } from 'convex-helpers/server/zod4'
+import { describe, expect, expectTypeOf, it } from 'vitest'
 
 import type { api } from './_generated/api'
 
+/** The parts of Convex's validator JSON (an internal getter) that locate its `any` leaves. */
+type ValidatorJson = {
+  type: string
+  value?: unknown
+  values?: { fieldType: ValidatorJson }
+}
+
+/** Lists each `v.any()` leaf of a validator, naming a union member by its `kind` literal. */
+function anyLeafPaths(node: ValidatorJson, path = ''): string[] {
+  switch (node.type) {
+    case 'any':
+      return [path]
+    case 'object':
+      return Object.entries(node.value as Record<string, { fieldType: ValidatorJson }>).flatMap(
+        ([key, field]) => anyLeafPaths(field.fieldType, path ? `${path}.${key}` : key)
+      )
+    case 'union':
+      return (node.value as ValidatorJson[]).flatMap((member, index) => {
+        const kind =
+          member.type === 'object'
+            ? (member.value as Record<string, { fieldType: ValidatorJson }>).kind?.fieldType.value
+            : undefined
+        return anyLeafPaths(member, `${path}|${String(kind ?? index)}`)
+      })
+    case 'array':
+      return anyLeafPaths(node.value as ValidatorJson, `${path}[]`)
+    case 'record':
+      return node.values ? anyLeafPaths(node.values.fieldType, `${path}{}`) : []
+    default:
+      return []
+  }
+}
+
+/** The sorted `v.any()` leaves of the Convex validator `zodToConvex` builds from a schema. */
+function leaves(schema: Parameters<typeof zodToConvex>[0]): string[] {
+  return anyLeafPaths((zodToConvex(schema) as unknown as { json: ValidatorJson }).json).sort()
+}
+
 /**
  * Type-level proof, checked by `typecheck:convex`: `zodToConvex` types a zod intersection as `any`,
- * so a DTO that reaches a Convex boundary through one loses its type in the generated API.
+ * so a DTO that reaches a Convex boundary through one loses its type in the generated API. The
+ * D194 leaves are `any` on purpose; the validator walks prove no other leaf is.
  */
 describe('generated Convex API types stay real', () => {
   type Panel = FunctionReturnType<typeof api.characters.panels.get>
@@ -33,8 +78,50 @@ describe('generated Convex API types stay real', () => {
     expectTypeOf<Saved['adjustment']>().not.toBeAny()
   })
 
+  it('types an encounter stat block speed as the stored Creature speed', () => {
+    type Projection = NonNullable<FunctionReturnType<typeof api.encounters.projectionReads.get>>
+    type StatBlock = NonNullable<
+      Extract<Projection['actors'][number], { statBlock: unknown }>['statBlock']
+    >
+    expectTypeOf<StatBlock['speeds'][number]>().not.toBeAny()
+    expectTypeOf<StatBlock['speeds'][number]>().toEqualTypeOf<SpeedDto>()
+  })
+
   it('types the adjustment of a Sheet command', () => {
     type Upsert = Extract<Command, { type: 'UPSERT_SHEET_ADJUSTMENT' }>
     expectTypeOf<Upsert['adjustment']>().not.toBeAny()
+  })
+
+  it('leaves a follow-up save or check untyped only at its outcomes (D194)', () => {
+    // A typed outcome schema still yields an untyped leaf: the opaque leaf is named, not inferred.
+    expect(leaves(createFollowUpSaveDtoSchema(conditionDtoSchema))).toEqual([
+      'onDurationComplete|OUTCOMES.outcomes[]',
+      'onFailure|OUTCOMES.outcomes[]',
+      'onSuccess|OUTCOMES.outcomes[]'
+    ])
+    expect(leaves(createFollowUpCheckDtoSchema(conditionDtoSchema))).toEqual([
+      'onFailure|OUTCOMES.outcomes[]',
+      'onSuccess|OUTCOMES.outcomes[]'
+    ])
+  })
+
+  it('leaves the Reusable Definition workspace untyped only at its facet and path leaves (D194)', () => {
+    type Workspace = FunctionReturnType<typeof api.content.definitions.get>
+    type BasicAction = Extract<
+      NonNullable<Workspace['current']>['document'],
+      { kind: 'BASIC_ACTION' }
+    >
+    expectTypeOf<BasicAction>().not.toBeAny()
+    expectTypeOf<BasicAction['rulesText']>().toEqualTypeOf<string>()
+    expectTypeOf<BasicAction['effects'][number]>().not.toBeAny()
+    expectTypeOf<BasicAction['restrictions']>().toBeAny()
+    expectTypeOf<BasicAction['effects'][number]['paths'][number]>().toBeAny()
+
+    expect(leaves(reusableDefinitionWorkspaceDtoSchema)).toEqual([
+      'current|0.document|BASIC_ACTION.effects[].paths[]',
+      'current|0.document|BASIC_ACTION.restrictions|0',
+      'draft|0.document|BASIC_ACTION.effects[].paths[]',
+      'draft|0.document|BASIC_ACTION.restrictions|0'
+    ])
   })
 })

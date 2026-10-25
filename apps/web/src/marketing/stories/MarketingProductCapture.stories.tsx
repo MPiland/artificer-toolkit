@@ -8,7 +8,8 @@ import type { CharacterSheetTabId } from '#domains/characters/sheet/core/Charact
 import { CharacterSheetFixtureView as CharacterSheetView } from '#domains/characters/sheet/fixtures/CharacterSheetFixtureView'
 import { mockMulticlassHitDieRoll } from '#domains/characters/sheet/fixtures/characterSheetStory.fixture'
 import { mockSheetRestPreview } from '#domains/characters/sheet/fixtures/characterSheetNativeStory.fixture'
-import { Shell, platformNavigation } from '#app/shell'
+import { Shell } from '#app/shell'
+import { buildPlatformNavigation, contentKindOrder } from '#app/shell/navigation'
 
 const meta = {
   title: 'Guest/Marketing/Product captures',
@@ -31,7 +32,7 @@ function CharacterSheetCapture({
 }) {
   return (
     <Shell
-      navigation={platformNavigation}
+      navigation={buildPlatformNavigation(contentKindOrder)}
       currentPath={`/characters/${sheet.publicId ?? sheet.meta.characterId}`}
       isAuthenticated
       userEmail='player@example.test'

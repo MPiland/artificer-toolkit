@@ -7,16 +7,14 @@ import {
   authButton,
   authFooterRow,
   authForm,
-  authFormMessage,
-  authFormMessageError,
-  authFormMessageSuccess,
   inlineLink,
   inlineLinkIcon,
   inlineLinkIconGlyph,
   textInput
 } from '../auth.css'
 import { AuthDivider } from './AuthDivider'
-import { AuthFormProps } from './authForm.types'
+import { AuthFormFeedback } from './AuthFormFeedback'
+import type { AuthFeedback, AuthFormProps } from './authForm.types'
 
 export function ResetPasswordForm({
   authClient = browserAuthClient,
@@ -26,9 +24,7 @@ export function ResetPasswordForm({
   const hydrated = useHydrated()
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
-    null
-  )
+  const [feedback, setFeedback] = useState<AuthFeedback | null>(null)
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -73,17 +69,7 @@ export function ResetPasswordForm({
       <Button className={authButton} type='submit' disabled={!hydrated} loading={isSubmitting}>
         Send verification code
       </Button>
-      {feedback && (
-        <div
-          className={`${authFormMessage} ${
-            feedback.tone === 'error' ? authFormMessageError : authFormMessageSuccess
-          }`}
-          role={feedback.tone === 'error' ? 'alert' : 'status'}
-          aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
-        >
-          {feedback.message}
-        </div>
-      )}
+      <AuthFormFeedback feedback={feedback} />
       <AuthDivider />
       <div className={authFooterRow}>
         <Anchor className={inlineLink} href='/verify-password-reset'>
