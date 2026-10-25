@@ -21,7 +21,7 @@ export type AuthoredFormDomain =
   | 'spell'
   | 'vehicle'
 
-export type AuthoredFormFactoryBase = {
+type AuthoredFormFactoryBase = {
   domain: AuthoredFormDomain
   fallbackLabel: string
   mapId: AuthoredFormDomain

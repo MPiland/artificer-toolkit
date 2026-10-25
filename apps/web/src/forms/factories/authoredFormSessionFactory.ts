@@ -66,7 +66,7 @@ export type AuthoredFormEditData<TAuthored extends object> = {
 }
 
 /** Resolves the per-session context a domain's pure functions need beyond the form values. */
-export type AuthoredFormContextResolver<TEditData, TContext> = {
+type AuthoredFormContextResolver<TEditData, TContext> = {
   fromCreate: (data: AuthoredFormCreateData) => TContext
   fromEdit: (data: TEditData) => TContext
 }
@@ -80,7 +80,7 @@ export const noAuthoredFormContext: AuthoredFormContextResolver<object, undefine
  * One authored domain's form config: empty values, to-submit and to-form-values, consumed by
  * `defineAuthoredForm`.
  */
-export type AuthoredFormConfig<
+type AuthoredFormConfig<
   TValues extends AuthoredFormValuesBase,
   TSubmit extends AuthoredFormSubmitBase,
   TAuthored extends AuthoredFormValuesBase,
