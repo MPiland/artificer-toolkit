@@ -4,7 +4,10 @@ import { snapshotAbilityScore } from '../../encounterActorState.js'
 import type { InitiativeActorFactSource } from '@artificer-toolkit/schema/shared/initiativeFactSources'
 import type { InitiativeDeclarationFactsDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
-import { RULE_VALUE_KIND, type GameSystemRuleCapabilityContract } from '@artificer-toolkit/shared/rules'
+import {
+  RULE_VALUE_KIND,
+  type GameSystemRuleCapabilityContract
+} from '@artificer-toolkit/shared/rules'
 
 import {
   INITIATIVE_POLICY_DEFINITION_FAMILY_KEY,
@@ -80,12 +83,17 @@ function dexterityScore(source: InitiativeActorFactSource): number | null {
   switch (source.kind) {
     case 'CHARACTER':
       return (
-        (source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput).derivedStats.abilities.find(
+        (
+          source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput
+        ).derivedStats.abilities.find(
           (entry) => (resolveAbilityAlias(entry.abilityId) ?? entry.abilityId) === 'DEXTERITY'
         )?.score.effective ?? null
       )
     case 'CREATURE':
-      return snapshotAbilityScore({ kind: 'CREATURE', snapshot: source.actor.snapshot }, 'DEXTERITY')
+      return snapshotAbilityScore(
+        { kind: 'CREATURE', snapshot: source.actor.snapshot },
+        'DEXTERITY'
+      )
     case 'CUSTOM':
       return null
   }
@@ -93,7 +101,9 @@ function dexterityScore(source: InitiativeActorFactSource): number | null {
 
 function dexterityFacts(source: InitiativeActorFactSource) {
   const score = dexterityScore(source)
-  return score === null ? {} : { [DND5E_INITIATIVE_FACT_KEYS.dexterityScore]: score }
+  const facts: Record<string, number> = {}
+  if (score !== null) facts[DND5E_INITIATIVE_FACT_KEYS.dexterityScore] = score
+  return facts
 }
 
 function declarationMatchesSource(
