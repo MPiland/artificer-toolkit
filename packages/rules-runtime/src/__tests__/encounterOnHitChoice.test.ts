@@ -219,7 +219,7 @@ describe('which optional on-hit riders a Character can pay for (D123)', () => {
         effectiveUsed: 0,
         remaining: 2
       })),
-      pactMagic: null,
+      slotPools: [],
       fusionStrategy: 'NONE' as const
     }
 
@@ -241,6 +241,37 @@ describe('which optional on-hit riders a Character can pay for (D123)', () => {
         }
       })
     ).toEqual([])
+  })
+
+  it('pays a level from a slot pool only where no standard slot or earlier pool is left there', () => {
+    const slotPool = (poolCode: string, level: number, remaining: number) => ({
+      poolCode,
+      sourceClassId: 'caster',
+      slots: 2,
+      level,
+      rawUsed: 2 - remaining,
+      effectiveUsed: 2 - remaining,
+      remaining
+    })
+    const spellSlots = {
+      calculationId: 'slots',
+      sourceClassIds: [],
+      maxByLevel: [
+        { spellLevel: 2, slotCount: 1, sourceIds: [], rawUsed: 0, effectiveUsed: 0, remaining: 1 }
+      ],
+      slotPools: [
+        slotPool('FIRST_POOL', 2, 2),
+        slotPool('FIRST_POOL_HIGH', 4, 1),
+        slotPool('SECOND_POOL', 4, 2),
+        slotPool('SPENT_POOL', 5, 0)
+      ],
+      fusionStrategy: 'NONE' as const
+    }
+
+    expect(onHitSlotChoices(spellSlots)).toEqual([
+      { level: 2, slotKey: 'STANDARD:2' },
+      { level: 4, slotKey: 'FIRST_POOL_HIGH' }
+    ])
   })
 })
 
@@ -287,7 +318,7 @@ const emptySlots = {
   calculationId: 'slots',
   sourceClassIds: [],
   maxByLevel: [],
-  pactMagic: null,
+  slotPools: [],
   fusionStrategy: 'NONE' as const
 }
 

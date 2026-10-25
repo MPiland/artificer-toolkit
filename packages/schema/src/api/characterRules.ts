@@ -1495,7 +1495,8 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
           remaining: integerSchema.check(z.gte(0))
         })
       ),
-      pactMagic: z.nullable(
+      /** One entry per System slot pool the Character casts from beside its standard slots. */
+      slotPools: z.array(
         z.strictObject({
           poolCode: boundedIdentitySchema,
           sourceClassId: boundedIdentitySchema,
