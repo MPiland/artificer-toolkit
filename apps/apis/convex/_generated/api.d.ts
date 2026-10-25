@@ -164,7 +164,11 @@ export declare const api: {
           systemId: string;
           values?: Record<string, any>;
         },
-        { clearedPaths: Array<Array<string | number>>; values: any }
+        {
+          clearedPaths: Array<Array<string | number>>;
+          refusedPaths: Array<Array<string | number>>;
+          values: any;
+        }
       >;
       resolve: FunctionReference<
         "query",
@@ -280,9 +284,9 @@ export declare const api: {
                         value: string;
                       }>;
                       path: Array<string | number>;
-                      preserveUnknownOptions?: boolean;
                       required: boolean;
                       type: "SELECT_SINGLE";
+                      unknownOptions?: "PRESERVE" | "REFUSE";
                       visible: boolean;
                     }
                   | {
@@ -306,9 +310,9 @@ export declare const api: {
                         value: string;
                       }>;
                       path: Array<string | number>;
-                      preserveUnknownOptions?: boolean;
                       required: boolean;
                       type: "SELECT_NUMBER";
+                      unknownOptions?: "PRESERVE" | "REFUSE";
                       visible: boolean;
                     }
                   | {
@@ -332,9 +336,9 @@ export declare const api: {
                         value: string;
                       }>;
                       path: Array<string | number>;
-                      preserveUnknownOptions?: boolean;
                       required: boolean;
                       type: "SELECT_MULTI";
+                      unknownOptions?: "PRESERVE" | "REFUSE";
                       visible: boolean;
                     }
                   | {
@@ -965,9 +969,9 @@ export declare const api: {
                       value: string;
                     }>;
                     path: Array<string | number>;
-                    preserveUnknownOptions?: boolean;
                     required: boolean;
                     type: "SELECT_SINGLE";
+                    unknownOptions?: "PRESERVE" | "REFUSE";
                     visible: boolean;
                   }
                 | {
@@ -991,9 +995,9 @@ export declare const api: {
                       value: string;
                     }>;
                     path: Array<string | number>;
-                    preserveUnknownOptions?: boolean;
                     required: boolean;
                     type: "SELECT_NUMBER";
+                    unknownOptions?: "PRESERVE" | "REFUSE";
                     visible: boolean;
                   }
                 | {
@@ -1017,9 +1021,9 @@ export declare const api: {
                       value: string;
                     }>;
                     path: Array<string | number>;
-                    preserveUnknownOptions?: boolean;
                     required: boolean;
                     type: "SELECT_MULTI";
+                    unknownOptions?: "PRESERVE" | "REFUSE";
                     visible: boolean;
                   }
                 | {
