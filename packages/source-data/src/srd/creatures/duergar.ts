@@ -1,4 +1,5 @@
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 import * as R from './rollInfluenceGrants.js'
@@ -183,8 +184,11 @@ export const duergar: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(3450, 3),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: 'DUERGAR_ENLARGE' as const
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Enlarge',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      'For 1 minute the duergar and what it wears or carries become Large (or the largest size the space allows), and it makes Strength checks and Strength saving throws with advantage. The doubled Strength weapon damage dice are already in its attacks.'
                   }
                 ]
               }
