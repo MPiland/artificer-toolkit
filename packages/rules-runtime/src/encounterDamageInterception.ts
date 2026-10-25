@@ -2,7 +2,7 @@ import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/cha
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import { damageInterceptionPayloadDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import {
-  resolveDispositionDamage,
+  resolveIncomingDamage,
   type DamageInterceptionChargeDto,
   type DamageInterceptionSaveDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
@@ -369,7 +369,7 @@ export function applyDamageInterceptions(input: {
       ...planned
     } = application
     const damageDisposition = input.invulnerable ? 'IMMUNE' : planned.damageDisposition
-    const resolvedAmount = resolveDispositionDamage(damageDisposition, planned.requestedAmount)
+    const resolvedAmount = resolveIncomingDamage({ ...planned, damageDisposition })
     const temporaryLost = Math.min(pool.amount, resolvedAmount)
     const currentLost = Math.min(current, resolvedAmount - temporaryLost)
     const { after, interception, saves } = hitPointsAfterDamage({

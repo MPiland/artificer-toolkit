@@ -39,7 +39,13 @@ import {
   SRD_USER_ID,
   ABILITY_CODE
 } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect, gmRulingEffect } from './mechanics.js'
+import {
+  abilityScoreImprovementOptions,
+  closedRuleEffect,
+  evasionGrant,
+  gmRulingEffect,
+  uncannyDodgeEffect
+} from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -736,19 +742,13 @@ export const rogue: ClassAuthored = {
       description:
         "Starting at 5th level, when an attacker that you can see hits you with an attack, you can use your reaction to halve the attack's damage against you.",
       effects: [
-        closedRuleEffect({
-          id: classRowId(R, 0x60, 7),
-          ruleKind: CLOSED_RULE_KIND.CLASS_ROGUE_UNCANNY_DODGE,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.ACTIVATED,
-            activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-            range: { id: classRowId(R, 0x69, 7), rangeKind: RANGE_KIND.SIGHT },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
+        uncannyDodgeEffect({
+          effect: classRowId(R, 0x60, 7),
+          range: classRowId(R, 0x69, 7),
+          path: classRowId(R, 0x8c, 1),
+          duration: classRowId(R, 0x8c, 2),
+          outcome: classRowId(R, 0x8c, 3),
+          grant: classRowId(R, 0x8c, 4)
         })
       ],
       availableAtLevel: 5,
@@ -796,7 +796,7 @@ export const rogue: ClassAuthored = {
       label: 'Evasion',
       description:
         "Beginning at 7th level, you can nimbly dodge out of the way of certain area effects, such as a red dragon's fiery breath or an ice storm spell. When you are subjected to an effect that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail.",
-      effects: [selfClassRuleEffect(9, CLOSED_RULE_KIND.CLASS_ROGUE_EVASION)],
+      grants: { modifiers: [evasionGrant(classRowId(R, 0x8d, 1))] },
       availableAtLevel: 7,
       order: 8
     },

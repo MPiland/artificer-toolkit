@@ -92,7 +92,8 @@ async function mechanicsFixture() {
         afterTemporaryHitPoints: 0,
         maximumHitPoints: 3,
         damageTypeId: crypto.randomUUID(),
-        damageDisposition: 'NORMAL'
+        damageDisposition: 'NORMAL',
+        incomingHalved: false
       }
     ]
   }

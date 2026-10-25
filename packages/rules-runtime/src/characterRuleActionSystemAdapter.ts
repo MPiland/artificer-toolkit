@@ -437,6 +437,8 @@ export type CharacterHitPointOutcomeApplication =
       kind: 'DAMAGE'
       damageTypeId: string
       damageDisposition: DamageDispositionDto
+      /** The target halved the damage before its defenses (an `INCOMING_DAMAGE` HALVE grant). */
+      incomingHalved: boolean
       /** A critical hit: damage at 0 hit points adds two death save failures (D96). */
       critical: boolean
       /** The held effect whose damage interception left the target above 0 hit points instead. */
@@ -832,6 +834,11 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /**
+     * The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE`
+     * HALVE). Interpretation reads it; it binds no fact.
+     */
+    incomingHalved?: boolean
     /** The damage types the target took since its last turn began, which a suppression gate reads. */
     targetDamageTypesTaken?: readonly string[]
     /**
@@ -941,6 +948,8 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE` HALVE). */
+    incomingHalved?: boolean
   }): readonly CharacterRuleActionApplication[]
   /** Returns sealed spatial proposals only; Scene settlement remains aggregate-owned. */
   interpretSpatial?(input: {
@@ -966,6 +975,8 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE` HALVE). */
+    incomingHalved?: boolean
     replacement: CharacterRuleActionSaveSuccessReplacement
   }): readonly CharacterRuleActionApplication[]
   /** Interprets one completed persisted recurring effect against its exact graph. */
@@ -985,6 +996,8 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE` HALVE). */
+    incomingHalved?: boolean
   }): {
     applications: readonly CharacterRuleActionApplication[]
     /** Sealed from the exact frozen graph result, never command input. */
