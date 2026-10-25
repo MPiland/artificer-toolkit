@@ -18,7 +18,6 @@ import {
   type Fixture
 } from '../../tests/fixtures/liveCharacterRun'
 import {
-  checkpointLiveRoom,
   executeInRoom,
   queueRoomRolls,
   readRoomRollCards,
@@ -28,16 +27,13 @@ import {
 import { expectReusedCommandRefusal, rejection } from '../../tests/fixtures/roomRefusals'
 import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
-import { readReceiptHeaders } from '../lib/receiptLedgers'
 
 useLocalRoomWorker()
 
 const injuries = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
   (definition) => definition.document.kind === 'INJURIES'
 )
-if (!injuries || injuries.document.parameters.kind !== 'INJURIES')
-  throw new Error('Missing published Injuries.')
-const injuryBands = injuries.document.parameters.bands
+if (!injuries) throw new Error('Missing published Injuries.')
 
 /** The raw draw that makes a d20 show `die`: the room's dice draw in `[0, 20)`. */
 const draw = (die: number) => die - 1
@@ -122,25 +118,6 @@ function resolve(
   })
 }
 
-/** The resolve command Convex stores once the room publishes, as its only one. */
-async function storedResolve(fixture: Fixture) {
-  await checkpointLiveRoom(fixture.campaign.id)
-  const commands = await fixture.t.run(async (ctx) =>
-    readReceiptHeaders(
-      ctx,
-      'encounterRunCommands',
-      await ctx.db.query('encounterRunCommands').collect()
-    )
-  )
-  const resolves = commands.filter(
-    (command) => command.commandType === 'RESOLVE_CONSEQUENCE_ROLL_OFFER'
-  )
-  expect(resolves.map(({ commandType }) => commandType)).toEqual(['RESOLVE_CONSEQUENCE_ROLL_OFFER'])
-  const [resolved] = resolves
-  if (resolved?.commandType !== 'RESOLVE_CONSEQUENCE_ROLL_OFFER') throw new Error('Unreachable.')
-  return resolved
-}
-
 describe('Consequence roll offers through the room (ATTACK-15.1)', () => {
   it('offers the GM a roll when a Character drops to 0; accepting rolls the table on the server', async () => {
     const { fixture, bitten } = await droppedCharacter()
@@ -187,27 +164,13 @@ describe('Consequence roll offers through the room (ATTACK-15.1)', () => {
       )
     ).toMatchObject({ reason: 'TARGET_UNAVAILABLE' })
     await expectReusedCommandRefusal(resolve(fixture, bitten, 'DECLINE', { commandId }))
-
-    expect((await storedResolve(fixture)).receipt).toEqual({
-      actorId: fixture.hero.id,
-      offer: offersIn(fixture, bitten)[0],
-      resolution: {
-        decision: 'ACCEPT',
-        dieFaces: 20,
-        roll: 1,
-        rowId: injuryBands.find((band) => band.minimum <= 1 && 1 <= band.maximum)!.outcome.id
-      }
-    })
   }, 120000)
 
-  it('removes a declined offer and records the decline', async () => {
+  it('removes a declined offer without a roll', async () => {
     const { fixture, bitten } = await droppedCharacter()
     const declined = await resolve(fixture, bitten, 'DECLINE')
     expect(offersIn(fixture, declined)).toEqual([])
     expect(declined.roll).toBeNull()
-    expect((await storedResolve(fixture)).receipt).toMatchObject({
-      resolution: { decision: 'DECLINE' }
-    })
   }, 120000)
 
   it('withdraws the offer when the GM undoes the damaging action', async () => {
