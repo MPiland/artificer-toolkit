@@ -687,6 +687,12 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - Each of the nine (Couatl, Deva, Imp, Mimic, Oni, Quasit, Succubus/Incubus, Night Hag, and the eight Adult/Ancient dragons) stays an ACTION/SELF effect whose single outcome is a `MANUAL_ADJUDICATION` / `GM_CHOICE` ruling from `creatures/changeShapeRuling.ts` (four wordings: CR-capped form, beast speed form, sized form, object form). The nine closed-rule kinds are deleted.
 - Proof: `creatureChangeShapeRulingAuthoringParity.test.ts` (action shape, creature node map round trip, kinds gone). T4s2 (lycanthropes, vampire, Misty Escape) reuses `changeShapeRuling.ts`.
 
+## T4s2: lycanthrope and vampire shapechanging, Misty Escape as GM rulings (D187a; `ci/spells-33-t4s2`)
+
+- Status: implemented; CI is the gate. Werebear, Wereboar, Wererat, Weretiger, Werewolf and Vampire Shapechanger stay ACTION/SELF effects whose single outcome is a `MANUAL_ADJUDICATION` / `GM_CHOICE` ruling from `creatures/changeShapeRuling.ts` (new wordings `LYCANTHROPE_FORM` and `VAMPIRE_FORM`). Vampire Misty Escape stays a PASSIVE effect with the `MISTY_ESCAPE` ruling. Same reason as T4s1: a form swap would replace hit points, and the 0-hit-point replacement, 2-hour deadline and resting-place recovery have no engine piece (rare, D187a). No engine piece built.
+- The seven closed-rule kinds (`CREATURE_{WEREBEAR,WEREBOAR,WERERAT,WERETIGER,WEREWOLF,VAMPIRE}_SHAPECHANGER`, `CREATURE_VAMPIRE_MISTY_ESCAPE`) are deleted from `closedRuleKind.ts`.
+- Proof: `creatureChangeShapeRulingAuthoringParity.test.ts` extended (action shape, Misty Escape passive ruling, creature node map round trip, kinds gone).
+
 ## T6m2: lingering creature riders (D187a; `ci/spells-33-t6m2`)
 
 - Deletes `CREATURE_ANDROSPHINX_ROAR`, `CREATURE_COUATL_BITE_POISON`, `CREATURE_DRYAD_TREE_STRIDE`, `CREATURE_HORNED_DEVIL_INFERNAL_WOUND` and `CREATURE_VROCK_STUNNING_SCREECH`, and the Couatl Bite allowlist entry.
@@ -696,3 +702,4 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - Vrock Stunning Screech: the failed save stuns until the end of the vrock's next turn (ROUND 1, SOURCE END_OF_TURN anchor); the demon and hearing exemptions are a GM ruling.
 - Dryad Tree Stride: the placeholder TELEPORT stays; the trees and their size are a GM ruling.
 - Filters, ordinal variants, wake, stacking damage and absolute tree size are in future-enhancements under "Lingering creature riders". Proofs: `creatureLingeringRiderAuthoringParity.test.ts`, the attack sweep and the Couatl room test in `nativeRoomHitRiders.test.ts`.
+>>>>>>> origin/codex/phase-08-2-convex-cutover

@@ -1237,6 +1237,22 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - RULES-2.T12 follows T9f1 and T9f2. T9f3 may run beside T12.
 - **Codemod exception (this task only):** the session may run a one-off ts-morph AST codemod from its scratchpad for the mechanical rewrite. The diff is reviewed before commit. The Edit/Write-only rule still applies to all other work.
 
+### D193: bright light and slot pools (orchestrator ruling, 2026-10-24, RULES-2.T9d and T9g)
+
+- **Bright light is rank 0.** Bright-light and daylight checks (Sunlight Sensitivity, `measureHolderLight`, `resolveSceneDaylightAt`) read the illumination level's rank: the first, brightest level is bright. Render class stays a drawing property only. The illumination adapter guide states the invariant that levels are ordered brightest first. There is no contract change; a System needing more than one bright level is a future enhancement, not a flag now.
+- **Slot pools are a list.** `characterRulePolicyOutputSchema.spellSlots.pactMagic` becomes `slotPools`, one entry per System slot pool with its pool code and source class. Neutral readers work per pool; dnd5e yields zero or one entry, and D&D behavior is unchanged. The output is computed, so nothing is migrated. A second-System test proves two pools. This is T9g's own scope ("Pact Magic leaves the neutral character pipeline"), and T9p already moved the literals, so it stays at size 2; if it measures larger, the session reports before building.
+- **Ability thresholds are authored references (T9f3).** `actorLinkContribution.excludesIntelligenceAtOrBelow` becomes `excludesAbilityAtOrBelow { abilityDefinitionId, score }`, authored on the effect, and the Worker's `'INTELLIGENCE'` read goes. It is an authored ability reference, so T9f3 owns it; there is no new task.
+- **One hit point ability.** The System's `derivedStatisticAbilityCodes.hitPoints` is the only source of the hit point ability. The class's authored `hitpoint.ability` is deleted in T9f3 (not converted), and the per-level rows read the System's. A per-class override is speculative: no SRD class differs, and two sources that agree today drift later.
+- **Authoring node defaults** that name ability codes (`authoringNodeDefaults.ts`) move with T9f2/T9f3, not T9e.
+
+### D194: facet and path wire types stay nested (user ruling, 2026-10-24, RELIABILITY-12.1)
+
+- **The wire stays nested.** No flatten/rebuild codec. A client-side rebuild would be duplicated by every non-TypeScript client, and nested JSON is the natural shape for Swift `Codable` and Kotlin serialization.
+- **`staticApi` stays on (ADR 0029).** A CI trial with it off (2026-10-24) gave 1,450 web and 40 Convex type errors: circular handler inference (TS7022/TS7023) and excessive depth (TS2589), and the web typecheck took about 4 minutes against 1.5–2.
+- **Intersections become flat unions** (AC 12.1 as written), so facet restrictions are fully typed. The facet `where` relation graph is acyclic, so it expands with no `any`; the slice verifies how the converter emits `z.lazy`.
+- **One named recursive leaf.** The only true recursion is follow-up save/check `outcomes` in effect paths. That validator leaf alone stays `v.any()`, named at its definition; every other field is validated at runtime.
+- **One shared TypeScript type.** The workspace DTO type in `packages/schema` is the type: the four `content/definitions.ts` handlers (`get`, `create`, `saveDraft`, `publish`) declare it as their return type, and the web data adapter reads results through a typed reference to the same type, with no client logic. A contract test proves each typed reference names the type its handler declares, and the `generatedApiTypes` test proves no `any` remains outside the named leaf.
+
 ## Approved implementation decisions
 
 - **D70 (2026-09-29): packed history with indexed receipt headers. Decision maker: Codex.**
