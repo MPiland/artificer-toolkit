@@ -89,7 +89,8 @@ const emberActor = {
 const wardenActor = { ...tabletopGmEncounter.actors[1]!, defeated: true }
 const presentationEncounter = {
   ...tabletopGmEncounter,
-  actors: [emberActor, wardenActor]
+  actors: [emberActor, wardenActor],
+  facingStepDegrees: 45
 }
 function reactionPending(reactor: {
   actorId: string

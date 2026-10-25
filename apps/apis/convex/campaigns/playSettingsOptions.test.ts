@@ -30,6 +30,9 @@ const disarm = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
 const facing = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
   (definition) => definition.document.kind === 'FACING'
 )!
+const mark = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+  (definition) => definition.document.kind === 'MARK'
+)!
 const morale = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
   (definition) => definition.document.kind === 'MORALE'
 )!
@@ -46,7 +49,7 @@ async function setup() {
   })
   await base.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: [disarm, facing]
+    definitions: [disarm, mark]
   })
   return { ...base, campaign }
 }
@@ -101,7 +104,21 @@ describe('native Campaign settings options', () => {
       label: morale.label,
       kind: 'MORALE'
     })
-    expect(result.optionalCombatRules.map(({ kind }) => kind)).not.toContain('FACING')
+    expect(result.optionalCombatRules.map(({ kind }) => kind)).not.toContain('MARK')
+  })
+
+  it('offers Facing once its System policy resolves it (ATTACK-12.3)', async () => {
+    const { t, owner, campaign } = await setup()
+    await t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: [facing]
+    })
+    const result = await owner.caller.query(options, { campaignId: campaign.id })
+    expect(result.optionalCombatRules).toContainEqual({
+      definitionId: facing.id,
+      label: facing.label,
+      kind: 'FACING'
+    })
   })
 
   it('includes additional catalogue sources once and excludes unpublished, unselected and private definitions', async () => {
@@ -219,11 +236,11 @@ describe('native Campaign settings options', () => {
         .collect()
       for (let index = seeded.length; index < 500; index++) {
         const id = crypto.randomUUID()
-        const document = { ...facing.document, id }
+        const document = { ...mark.document, id }
         await ctx.db.insert('reusableDefinitions', {
-          label: facing.label,
-          definitionFamilyKey: facing.definitionFamilyKey,
-          description: facing.description,
+          label: mark.label,
+          definitionFamilyKey: mark.definitionFamilyKey,
+          description: mark.description,
           id,
           documentJson: encodeDefinitionDocument(document),
           checksum: checksumRuleDocument(document),
@@ -241,11 +258,11 @@ describe('native Campaign settings options', () => {
     ).toHaveLength(1)
     await t.run((ctx) => {
       const id = crypto.randomUUID()
-      const document = { ...facing.document, id }
+      const document = { ...mark.document, id }
       return ctx.db.insert('reusableDefinitions', {
-        label: facing.label,
-        definitionFamilyKey: facing.definitionFamilyKey,
-        description: facing.description,
+        label: mark.label,
+        definitionFamilyKey: mark.definitionFamilyKey,
+        description: mark.description,
         id,
         documentJson: encodeDefinitionDocument(document),
         checksum: checksumRuleDocument(document),

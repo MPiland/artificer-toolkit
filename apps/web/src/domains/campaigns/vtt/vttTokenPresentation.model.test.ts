@@ -78,6 +78,25 @@ describe('VTT token presentation model', () => {
     expect(result.statuses[0]).toMatchObject({ kind: 'REACTION', label: 'Reaction available' })
   })
 
+  it('draws an Encounter creature facing only while the Facing rule is active', () => {
+    const actor = tabletopGmEncounter.actors[0]!
+    const scene = sceneForActor()
+    const token = scene.tokens[0]!
+    const present = (facingStepDegrees: number | null) =>
+      buildVttTokenPresentations({
+        boundTokenControl: new Map(),
+        actorIdByTokenId: new Map([[token.id, actor.id]]),
+        conditionTypes: srdSystemRecord.conditionTypes,
+        currentUserId: token.controlledByUserIds[0]!,
+        encounter: { ...tabletopGmEncounter, facingStepDegrees },
+        pending: null,
+        scene
+      })[token.id]!
+
+    expect(present(45).facing).toBe(true)
+    expect(present(null).facing).toBe(false)
+  })
+
   it('shows players no health for any actor', () => {
     const scene = sceneForActor()
     const token = scene.tokens[0]!
