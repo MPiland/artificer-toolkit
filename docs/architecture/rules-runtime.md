@@ -1875,8 +1875,12 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
 - **Restrictions (slice E).** An actor is offered a basic action, and may take it, only when its facet `restrictions` hold; no
   restriction means every actor, Characters and Creatures alike. The check is `encounterBasicActionRestrictionsHold`
   (`encounterBasicActionRestrictions.ts`): it normalizes the facet with the grant-fold restriction normalizer and decides the holder-state
-  predicates (`CAN_ACT`, `SPEED_ABOVE_ZERO`, `FREE_HAND`, `TURN_MOVEMENT`) against `EncounterHolderState` (`encounterHolderDefense.ts`), the same live
-  decision grant restrictions use; any other predicate fails closed. Each CHARACTER or CREATURE context also normalizes to a
+  predicates (`CAN_ACT`, `SPEED_ABOVE_ZERO`, `FREE_HAND`, `TURN_MOVEMENT`, `HOLDER_ACTIVE_EFFECT`) against `EncounterHolderState` (`encounterHolderDefense.ts`), the same live
+  decision grant restrictions use; any other predicate fails closed. `HOLDER_ACTIVE_EFFECT { effectIds }` (SPELLS-31.T5f1)
+  holds while the holder carries an active effect whose `authoredEffectId` is one of `effectIds`
+  (`EncounterHolderState.activeAuthoredEffectIds`): a feature that works "while raging" names Rage's authored effect id, never
+  the reverse. A Character feature's `CONDITION_IMMUNITY` grant restricted by a holder-state predicate is deferred by the fold
+  and joins `sourceConditionImmunities` only while its restriction holds (Mindless Rage). Each CHARACTER or CREATURE context also normalizes to a
   `HOLDER_KIND` condition on its subject, and a CREATURE context's `CREATURE_TYPE` to a `CREATURE_TYPE` condition (D152): the
   Encounter decides both from the holder's `kind` and `creatureTypeIds`, the Character fold decides them as constants (a Character
   holder, no creature type), so its outputs are unchanged, and item-action requirements always see a Character. `FREE_HAND` is true

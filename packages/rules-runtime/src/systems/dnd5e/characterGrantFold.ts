@@ -60,6 +60,7 @@ const DEFERRED_CONDITION_KINDS: ReadonlySet<RestrictionCondition['kind']> = new 
   'SPEED_ABOVE_ZERO',
   'FREE_HAND',
   'TURN_MOVEMENT',
+  'HOLDER_ACTIVE_EFFECT',
   'ATTACK_ACTION_OTHER_WEAPON',
   'ENEMY_NEAR_TARGET',
   'TARGET_HAS_NOT_TAKEN_TURN',
@@ -245,6 +246,7 @@ export function evaluateDnd5e2014CharacterGrantFold(
       case 'SPEED_ABOVE_ZERO':
       case 'FREE_HAND':
       case 'TURN_MOVEMENT':
+      case 'HOLDER_ACTIVE_EFFECT':
       case 'ATTACK_ACTION_OTHER_WEAPON':
       case 'ENEMY_NEAR_TARGET':
       case 'TARGET_HAS_NOT_TAKEN_TURN':
