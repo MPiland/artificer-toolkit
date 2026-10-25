@@ -34,6 +34,7 @@ export function tracerCreatureActor(input: {
   sideId: string
   ratings: Readonly<Record<TracerApproach, number>>
   ruleUsage?: Readonly<Record<string, number>>
+  defeated?: boolean
 }): EncounterRunActorState {
   return encounterRunActorStateSchema.parse({
     id: input.id,
@@ -56,7 +57,7 @@ export function tracerCreatureActor(input: {
     maxHitPoints: 3,
     tempHitPoints: 0,
     conditions: [],
-    defeated: false,
+    defeated: input.defeated ?? false,
     resources: input.ruleUsage ? { ruleUsage: { ...input.ruleUsage } } : {},
     gmNotes: null,
     sideId: input.sideId,

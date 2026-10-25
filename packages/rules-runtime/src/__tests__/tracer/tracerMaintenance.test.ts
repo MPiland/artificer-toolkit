@@ -15,7 +15,7 @@ const ratings = { CAREFUL: 2, CLEVER: 1, FLASHY: 0, FORCEFUL: 1, QUICK: 1, SNEAK
 
 function endReason(defeated: boolean) {
   return encounterConcentrationEndReason({
-    actor: { ...tracerCreatureActor({ id: HOLDER_ID, sideId: SIDE_ID, ratings }), defeated },
+    actor: tracerCreatureActor({ id: HOLDER_ID, sideId: SIDE_ID, ratings, defeated }),
     deadCharacterIds: new Set(),
     conditionIds: [],
     activeEffects: [],
