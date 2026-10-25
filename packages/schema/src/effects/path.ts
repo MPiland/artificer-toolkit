@@ -1,4 +1,4 @@
-import { z, lazySchema } from '../zod.js'
+import { z, convexOpaqueSchema, lazySchema } from '../zod.js'
 
 import { modifierGrantDtoSchema } from '../grants/modifier.js'
 import { effectOffersDtoSchema } from './effectOffer.js'
@@ -340,7 +340,9 @@ const nonManifestOutcomePayloadDtoSchema = lazySchema(() =>
   })
 )
 
-export const pathDtoSchema = lazySchema(() => createPathDtoSchema(outcomePayloadDtoSchema))
+export const pathDtoSchema = lazySchema(() =>
+  convexOpaqueSchema(createPathDtoSchema(outcomePayloadDtoSchema))
+)
 export const manifestBehaviorPathDtoSchema = lazySchema(() =>
   createPathDtoSchema(nonManifestOutcomePayloadDtoSchema)
 )

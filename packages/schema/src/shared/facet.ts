@@ -5,7 +5,7 @@ import {
   type PredicatePayloadByCode
 } from '@artificer-toolkit/shared/core'
 import type { FacetBodyAuthored, FacetContextAuthored } from '@artificer-toolkit/shared/authored'
-import { z, lazySchema, lazySchemaParts } from '../zod.js'
+import { z, convexOpaqueSchema, lazySchema, lazySchemaParts } from '../zod.js'
 
 import {
   abilityCodeSchema,
@@ -818,12 +818,14 @@ const facetGroupSchema = lazySchema(() =>
  * `AUTHORED_LIMITS.facetNestingDepth`.
  */
 export const facetDtoSchema: z.ZodMiniType<FacetDto> = lazySchema(() =>
-  z.pipe(
-    z.transform(rejectExcessiveFacetNesting),
-    z.object({
-      id: authoredIdentifierSchema,
-      groups: authoredNestedCollectionSchema(facetGroupSchema)
-    })
+  convexOpaqueSchema(
+    z.pipe(
+      z.transform(rejectExcessiveFacetNesting),
+      z.object({
+        id: authoredIdentifierSchema,
+        groups: authoredNestedCollectionSchema(facetGroupSchema)
+      })
+    )
   )
 )
 
