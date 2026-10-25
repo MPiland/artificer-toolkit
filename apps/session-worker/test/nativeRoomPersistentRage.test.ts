@@ -46,7 +46,7 @@ async function ragingRoom(classLevel: number) {
     // The room needs an action to offer; these turns pass without one.
     characterAction: () => true,
     characterClassFeatures: barbarian.features?.filter(
-      ({ label, availableAtLevel }) => label === 'Persistent Rage' && availableAtLevel <= classLevel
+      ({ label, availableAtLevel }) => label === 'Persistent Rage' && (availableAtLevel ?? 1) <= classLevel
     ),
     characterPlay: { characterClass: barbarian, classLevel, currentHitPoints: 30 },
     seed: async ({ effects, encounterId, occurredAt }) => {
