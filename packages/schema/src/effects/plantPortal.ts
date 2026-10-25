@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 
-import { lengthUnitCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import { lengthUnitCodeSchema } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import {
   authoredIdentifierSchema,
   authoredPositiveLengthAmountSchema
@@ -10,7 +11,7 @@ export const plantPortalDtoSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
     effectKind: z.literal('PLANT_PORTAL'),
-    minimumPlantSize: sizeCodeSchema,
+    minimumPlantSize: systemCoreCodeSchema,
     requiresInanimatePlant: z.boolean(),
     samePlaneOnly: z.boolean(),
     destinationMustBeSeenOrTouched: z.boolean(),

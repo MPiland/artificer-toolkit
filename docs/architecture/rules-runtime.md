@@ -353,8 +353,11 @@ duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollMode
 the wire types a code as `systemCoreCodeSchema` (`schema/shared/systemCoreCode.ts`, shape
 only), and the one seam that decides membership is `systemCoreCodeRegistry.requireCode(gameSystemId,
 kind, code)` (`systemCoreCodeCapability.ts`, installed in `platformSystemCoreCodes.ts`; the D&D lists in
-`systems/dnd5e/coreCodes.ts`). Lists today: `rollInfluence`, `rollMode`, each code with its display
-label. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
+`systems/dnd5e/coreCodes.ts`). Lists today: `rollInfluence`, `rollMode` and `size` (RULES-2.T9f1),
+each code with its display label. The `size` list runs smallest first and gives each size its square's
+edge where one applies; neutral code reads a size's rank and space only through `sizeRank` and
+`sizeSpaceFeet(gameSystemId, size)` (`systemSizes.ts`), and authoring draws size selects from the `sizes`
+source. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
 settlement) validates through it; capability registries call it before an adapter sees a code. A
 rule-execution d20 DTO carries `keep` beside its `rollMode`, and `keep` is derived once, by the
 adapter's `keepFor` through `rollModeCapabilityRegistry.resolveRollMode` or `rollModeKeep`, when the
@@ -921,7 +924,8 @@ ends beyond the field still triggers the save and, on a failure, stops at the fi
 `movementKinds` to voluntary, forced and teleport movement, `activation` to `REPEATABLE` and `visibility` to
 `PUBLIC`. The compiled zone stores only the grant contribution the planner reads: the zone row's own
 `recurrence.endOnEvents` stays empty, and the creature's grant takes its end events from the grant template. The
-action opens no area occurrence (`placesZone` on the pending root): it commits the spend and a
+action opens no area occurrence (`placesZone` on the pending root; a summoning cast's `placesSummon` likewise
+catches nobody): it commits the spend and a
 `liveSessionPlacedSpatialEffect` per zone component (see the bands below) in the same transaction as every other
 area commit. The zone is
 built by `planEncounterPlacedZone` (FIXED, `SCENE_ABSOLUTE`, a cube as a polygon via `pointCubeOutline`), stored
@@ -1994,14 +1998,16 @@ on the v4 `CHARACTER_ACTION` entry (`compileSummonPlacement` on the System adapt
 `{ summonOutcomeId, label, statBlock, entry }`. `entry` is a lasting carrier plan (no contribution, the same shape as a
 zone's lasting entry) that carries the duration in turns and the Concentration the cast opens, and `executionPlan` is
 its frozen graph. It is exclusive with `zonePlacement` and `choice`. A summon that authors `behaviors`, an
-attachment or shape, a lifecycle, no stat block or no bounded duration is refused and the action goes manual (Mage Hand
-until T2v2b authors its stat block, Spiritual Weapon until T2v2a3 models behaviors). Current (SPELLS-4.T2v2a2c1): the choice is a POINT cast target whose cube is the stat block's size in feet
+attachment or shape, a lifecycle, no stat block or no bounded duration is refused and the action goes manual. Current (SPELLS-4.T2v2a2c1): the choice is a POINT cast target whose cube is the stat block's size in feet
 (`sizeSpaceFeet`), and `evaluateEncounterSummonTarget` validates it on the server: range from the caster and sight
 are overridable warnings like an area origin; a free square is a hard refusal (`SPACE_OCCUPIED`) when the stat block
 `occupiesSpace`; a stat block with no modelled size is refused (`UNSUPPORTED_SUMMON`). The planner treats the cast as
 a zone placed at the point with nobody caught, and `buildEncounterSummon` makes the CUSTOM actor (`owner` = caster,
-no controllers of its own, hit points from `evaluateNumericExpr` against the caster's maximum when the Run holds it;
-a Character caster's maximum lives on the Sheet, so a `HIT_POINT_MAXIMUM` stat block is refused with `HIT_POINTS_UNKNOWN` until T2v2b feeds it).
+no controllers of its own, hit points from `summonHitPoints` against the caster's effective maximum: the caster's
+movement target's `effectiveMaximumHitPoints`, which is a Character's Sheet maximum and another actor's Run maximum,
+SPELLS-4.T2v2b).
+Current (T2v2b): a summoning cast that opens Concentration carries its `maintenanceTransition` on the area root beside
+the carrier `sourceGrantTransition`, with no placed zone.
 Current (a2c2): a revert of the cast removes the conjured creature (see persistence). Current (a2c3): the cast creates the carrier effect on the caster from the compiled summon entry (`prepareNativeSourceEffect`), with the summon's duration and Concentration (`prepareEncounterActionMaintenance` names the summon's policy), and `buildEncounterSummon` sets `owner.sourceEffectId` to it. Removal at every end is the persistence sweep.
 Current (a3c, D190a): `buildEncounterSummon` keeps the stat block's body in the actor snapshot (`body`:
 `damageabilityKind`, `occupiesSpace`; `summonBody` fills the defaults: damageable, no space). `encounterActorBody` is its
@@ -2019,13 +2025,16 @@ capability discovery and entry-point compile. The Encounter's movement targets a
 it. `sheetSpellCastSummonPlacement` picks the plan for the cast's spell and level. `buildSheetSpellSummon` and
 `buildEncounterSummon` share `summonHitPoints`. The Sheet entry is `state.spellSummons[]` (play state; see
 [persistence](persistence.md)). It stores only the stat block values the cast resolved against the caster at cast time:
-size, armor class, ability scores, speeds, passive Perception and maximum hit points, never the plan's expressions. The
+size, armor class, ability scores, speeds, passive Perception and maximum hit points, never the plan's expressions.
+A stat block with no hit points (Spiritual Weapon, Mage Hand) stores no hit point pool: the entry has neither
+`maximumHitPoints` nor `currentHitPoints`, the Extras item no `hitPoints`, the row no hit point control, and
+UPDATE_SHEET_EXTRA refuses hit points for it (SPELLS-4.T2v2b). The
 shared `CharacterSpellSummonState` owns the shape, and the schema is typed against it. The Sheet projects it as an Extras item of kind `SPELL_SUMMON`, and
 UPDATE/REMOVE_SHEET_EXTRA edit and dismiss it.
 
 - A summon whose plan maintains Concentration is the Sheet's Concentration. The overview shows it when no carried
   effect does. END_CONCENTRATION, a new Concentration cast and the caster dropping to 0 hit points each end it.
-- Any summon ends at 0 hit points or on a long rest.
+- A summon with a hit point pool ends at 0 hit points; any summon ends on a long rest.
 - A timed summon stays until it is dismissed or the caster takes a long rest.
 - Attacks are SPELLS-34.T2.
 
@@ -2074,6 +2083,14 @@ and cadence (`ENCOUNTER_START` carries the settled order into later rounds, `EAC
 fresh round), and pins an evaluation graph, a bounded order-choice graph and bounded tie resolvers.
 Graphs supply facts and scores; the application orders results and invokes the pinned resolver.
 Unresolved ties go through the order-choice graph, never an application tiebreak.
+**Speed Factor (current, ENCOUNTER-4.T1).** `INITIATIVE_POLICY` is a union on `procedure`: only the `DECLARED_ACTION_ROLL`
+variant carries `declarationModifiers`, the authored table of size and per-declaration factors
+(`initiativeDeclarationModifier`, `encounterInitiativeDeclarationModifier.ts`; no System code holds a table). The compiler
+reads sizes and factors from the frozen policy, and the `GM_ADJUDICATED` request lists the policy's `factorIds`. The seeded SRD
+policy (`source-data/srd/initiativePolicies.ts`, selectable like optional combat) settles a tie by the higher Dexterity score
+(D&D fact `initiative.dexterity-score`, one attempt) and leaves a still-equal tie to the table's order choice. A declared actor's
+action and spell admission refuse any other action with `UNDECLARED_ACTION`; basic actions stay unenforced (see
+future-enhancements).
 
 Lifecycle order: `START` creates a `PREPARING` round, evaluates the policy, resolves ties and choices,
 activates the first participant, then enters that actor's `START_OF_TURN`. At an `EACH_ROUND` wrap the
@@ -2597,6 +2614,7 @@ conditions from its frozen `relationship-state` graph, which is not part of the 
 Character target's `CHARACTER_MECHANICS_BATCH` binds each of those `CONDITION_APPLY` applications to the
 batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's result path rather than to a
 kernel trace.
+A hold ends on its own when its source can no longer act or its held creature stands beyond the reach it sealed (`encounterEndedRelationships`, D152), unless it carries a `SOURCE_INDEPENDENT_HOLD` module: that lifetime fact, authored on the relationship (a net, SPELLS-4.T2m2b), skips those two ends and nothing else, so only an escape or a rescue (or a separately authored end) releases it.
 
 **Gated holds and held-only actions (D93, ATTACK-7.T8).** An `ACTOR_RELATIONSHIP` outcome's optional `appliesWhen`
 (an attack-slot condition) gates the hold on the open Attack action: the planner evaluates it with

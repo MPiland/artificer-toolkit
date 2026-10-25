@@ -5,13 +5,13 @@ import { useQuery } from '@tanstack/react-query'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared/startingEquipment'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { getEquipmentOptions } from '#app/data/equipment/options'
 import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import {
   createGuidedStartingEquipmentItem,
   isGuidedStartingEquipmentItem,
@@ -25,20 +25,20 @@ import {
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
-import { readField } from '#forms/guided/guidedValues'
+import { EMPTY_GUIDED_FORM_VALUES, readField, readString } from '#forms/guided/guidedValues'
 
 const STEPS = ['Basics', 'Benefits', 'Starting gear', 'Features', 'Review'] as const
 
-type Props = {
-  session: AuthoredFormSession
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-}
-
 export const GuidedBackgroundAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as Props,
-  render: function RenderGuidedBackgroundAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedBackgroundAuthoring({
+    form,
+    onAdvanced,
+    onStateChange,
+    session,
+    system
+  }) {
     const [screen, setScreen] = useState(0)
     const values = useSelector(form.store, (state) => state.values)
     const label = readString(values, 'label')
@@ -129,33 +129,24 @@ export const GuidedBackgroundAuthoring = withForm({
         ) : null}
 
         {screen === 3 ? (
-          <GuidedFeatureAccordion
-            features={features}
-            system={session.system!}
-            onChange={setFeatures}
-          />
+          <GuidedFeatureAccordion features={features} system={system} onChange={setFeatures} />
         ) : null}
 
         {screen === 4 ? (
           <Stack gap='md'>
             <Text fw={600}>{label || 'Untitled Background'}</Text>
             <dl className={styles.summary}>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Benefits</dt>
-                <dd className={styles.summaryValue}>
-                  {details.filter((item) => item.label || item.description).length || 'None yet'}
-                </dd>
-              </div>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Starting gear</dt>
-                <dd className={styles.summaryValue}>
-                  {getStartingEquipmentItems(equipment).length || 'None yet'}
-                </dd>
-              </div>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Features</dt>
-                <dd className={styles.summaryValue}>{features.length || 'None yet'}</dd>
-              </div>
+              <GuidedSummaryRow
+                label='Benefits'
+                value={String(
+                  details.filter((item) => item.label || item.description).length || 'None yet'
+                )}
+              />
+              <GuidedSummaryRow
+                label='Starting gear'
+                value={String(getStartingEquipmentItems(equipment).length || 'None yet')}
+              />
+              <GuidedSummaryRow label='Features' value={String(features.length || 'None yet')} />
             </dl>
           </Stack>
         ) : null}
@@ -306,11 +297,6 @@ function replaceStartingEquipmentItemInPlace(
       ...sets.slice(1)
     ]
   }
-}
-
-function readString(values: object, key: string): string {
-  const value = readField(values, key)
-  return typeof value === 'string' ? value : ''
 }
 
 function readDetails(values: object): DetailDto[] {

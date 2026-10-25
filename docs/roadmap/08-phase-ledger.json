@@ -3749,9 +3749,8 @@
             },
             {
               "id": "RULES-2.T9f1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
@@ -3759,7 +3758,10 @@
                 "size": 3,
                 "after": ["RULES-2.T9b"]
               },
-              "text": "System vocabulary (D192 split of T9f): sizes become System core codes; rank and spaceFeet on the dnd5e adapter; no reseed."
+              "text": "System vocabulary (D192 split of T9f): sizes become System core codes; rank and spaceFeet on the dnd5e adapter; no reseed.",
+              "mergedAt": "2026-10-25T05:24:38Z",
+              "proof": "Tests 40164499480 and Live 40164499439 green on tip a878c3a59; reviewed: sizes as System core codes, every ingress refuses a size the System does not list, empty size when systemId is empty; merged in m432.",
+              "note": " Merged in m432."
             },
             {
               "id": "RULES-2.T9f2",
@@ -3788,7 +3790,7 @@
                 "size": 5,
                 "after": ["RULES-2.T9f2"]
               },
-              "text": "System vocabulary (D192 as amended 2026-10-24): authored ability references (grants, effects, facets, charge, numericExpr, class) are checked against the System ability codes at every ingress; the class hitpoint.ability field is deleted (D193); excludesIntelligenceAtOrBelow becomes excludesAbilityAtOrBelow; BRIGHT/DIM literals in vttSceneRenderer and illuminationFromLight, the slotPools z.maxLength bound in characterRules.ts, and illumination level-table validation (empty, duplicate, misordered) from the RULES-2.T9 review."
+              "text": "System vocabulary (D192 as amended 2026-10-24): authored ability references (grants, effects, facets, charge, numericExpr, class) are checked against the System ability codes at every ingress; the class hitpoint.ability field is deleted (D193); excludesIntelligenceAtOrBelow becomes excludesAbilityAtOrBelow; BRIGHT/DIM literals in vttSceneRenderer and illuminationFromLight, the slotPools z.maxLength bound in characterRules.ts, and illumination level-table validation (empty, duplicate, misordered) from the RULES-2.T9 review. Size codes too (from the RULES-2.T9f1 review): facet sizes, manifest statBlock.size, maximumTargetSize and effect appliesWhen size conditions are refused at publication rather than cleared by node-map normalization."
             },
             {
               "id": "RULES-2.T10",
@@ -6986,31 +6988,35 @@
           "acs": [
             {
               "text": "Speed Factor can be declared for an actor.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by ENCOUNTER-4.T1 (m433); see each task's proof."],
               "origin": ["P81-SPEED-DECLARATION"],
-              "id": "ENCOUNTER-4.1"
+              "id": "ENCOUNTER-4.1",
+              "note": "Closed 2026-10-24 by ENCOUNTER-4.T1."
             },
             {
               "text": "Speed Factor modifiers produce the correct turn order.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by ENCOUNTER-4.T1 (m433); see each task's proof."],
               "origin": ["P81-SPEED-ORDERING"],
-              "id": "ENCOUNTER-4.2"
+              "id": "ENCOUNTER-4.2",
+              "note": "Closed 2026-10-24 by ENCOUNTER-4.T1."
             },
             {
               "text": "Speed Factor ties are settled by the authored rule.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by ENCOUNTER-4.T1 (m433); see each task's proof."],
               "origin": ["P81-SPEED-TIES"],
-              "id": "ENCOUNTER-4.3"
+              "id": "ENCOUNTER-4.3",
+              "note": "Closed 2026-10-24 by ENCOUNTER-4.T1."
             },
             {
               "text": "A declared Speed Factor is enforced when the declared action resolves.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by ENCOUNTER-4.T1 (m433); see each task's proof."],
               "origin": ["P81-SPEED-ENFORCEMENT"],
-              "id": "ENCOUNTER-4.4"
+              "id": "ENCOUNTER-4.4",
+              "note": "Closed 2026-10-24 by ENCOUNTER-4.T1."
             }
           ],
           "wsjf": {
@@ -7022,7 +7028,7 @@
           "tasks": [
             {
               "id": "ENCOUNTER-4.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ENCOUNTER-4.1", "ENCOUNTER-4.2", "ENCOUNTER-4.3", "ENCOUNTER-4.4"],
               "wsjf": {
                 "bv": 2,
@@ -7031,7 +7037,9 @@
                 "size": 5
               },
               "text": "Speed Factor initiative as a Campaign optional rule: per-round declaration, System-authored modifiers, authored tie rule, declared action enforced at resolution, built through the initiative cursor and staging owners (workbook slice-encounter-4.md).",
-              "activeWorkbook": "docs/handoffs/slice-encounter-4.md"
+              "mergedAt": "2026-10-25T05:52:55Z",
+              "proof": "Tests 40166227690 and Live 40166229082 green on tip c03de4e99; reviewed and approved with fixes; actorSize on systemCoreCodeSchema after the T9f1 resync; merged in the m433 batch.",
+              "note": " Merged in m433."
             }
           ]
         },
@@ -7818,7 +7826,7 @@
                   "SPELLS-33.T4i4b"
                 ]
               },
-              "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i."
+              "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i. Left by SPELLS-33.T6b2 (orchestrator ruling 2026-10-25): Wereboar Tusks stays on the allowlist as FOLLOW_UP_SAVE because its Charge needs a ruling before the immediate save, and immediateFollowUpSaveEntries accepts only DAMAGE ahead of an immediate save; covering it means widening that shape generically."
             }
           ]
         },
@@ -10669,7 +10677,7 @@
             },
             {
               "id": "SPELLS-4.T2lb2d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
@@ -10678,7 +10686,8 @@
                 "size": 1,
                 "after": ["SPELLS-4.T2lb2c"]
               },
-              "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable."
+              "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -10859,7 +10868,7 @@
             },
             {
               "id": "SPELLS-4.T2m2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 3,
@@ -10869,8 +10878,9 @@
                 "after": ["SPELLS-4.T2m2"]
               },
               "text": "Bug: the SRD Net attack does not compile (both actions REFUSED in srdEffectCompile.golden.txt, \"D&D test action outcome is not supported\"), so no room offers a Net. Make it compile from core options (attack, Restrained on a hit, the DC 10 Strength check or 5 slashing to free); proofs: a regression row, a parity proof, and a room proof that Freedom of Movement does not block a net (non-MAGICAL source).",
-              "note": "Registered 2026-10-24 under the D187 bug exception, found by SPELLS-4.T2m2.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Registered 2026-10-24 under the D187 bug exception, found by SPELLS-4.T2m2. Merged in m429.",
+              "mergedAt": "2026-10-25T04:12:04Z",
+              "proof": "Reviewed and approved; resynced onto the phase tip plus T4j and T4s3 without T4m/T4n; Tests and Live green on the chain tip e4f786f45 (ci/spells-4-t2v2b-r2); merged in the m429 batch."
             },
             {
               "id": "SPELLS-4.T2m3",
@@ -11258,7 +11268,7 @@
               "proof": "Tests and Live green on tip 4ffe12d71; Spiritual Weapon conjures an owned actor whose bonus-action spell attack repeats through the stored REPEAT_SOURCE_PATH offer with damage frozen at cast (D166); repeated Effects resolve through resolveDnd5eActionMechanic and never yield a cast action; the initiative cohort is the Run's unowned actors with one home in validateInitiativeCursor (D190a); fixes for area output scope over conjured creatures, sibling-effect cast level and stableActors order; proofs encounterInitiativeCursor.test.ts, initiativeCorrection.test.ts, encounterRepeatPathAction.test.ts, bonusActionWeaponAttackCompile.test.ts, characterSpellCastActions.test.ts, spellCastLevels.test.ts, coreOptionSpellAuthoringParity.test.ts, nativeRoomCoreOptionSpells.test.ts and authored-length-amount-bounds.test.ts."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-4.1"],
               "id": "SPELLS-4.T2v2b",
               "wsjf": {
@@ -11269,8 +11279,9 @@
                 "after": ["SPELLS-4.T2v2a3d"]
               },
               "text": "D187b: convert Arcane Hand and Mage Hand to SUMMON actors on the T2v2a summon piece (stat block on the spell, owner control, removed when the spell ends), each with a parity proof and a room test. Riders with no automated equivalent stay GM rulings (D187a).",
-              "note": "Registered 2026-10-23 at the user's yes (D187b split).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Registered 2026-10-23 at the user's yes (D187b split). Merged in m429.",
+              "mergedAt": "2026-10-25T04:12:04Z",
+              "proof": "Reviewed and approved; resynced onto the phase tip plus T4j and T4s3 without T4m/T4n; Tests and Live green on the chain tip e4f786f45 (ci/spells-4-t2v2b-r2); merged in the m429 batch."
             },
             {
               "status": "DONE",
@@ -15385,7 +15396,7 @@
             },
             {
               "id": "SPELLS-33.T4o",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15395,8 +15406,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-4.T2o"]
               },
               "text": "Spider Climb, standing leaps, Ice Walk, Harpoon pull (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": " 2026-10-24: Adult and Ancient White Dragon CREATURE_ICE_WALK ships as the same GM ruling as Young White Dragon Ice Walk (T6d2).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": " 2026-10-24: Adult and Ancient White Dragon CREATURE_ICE_WALK ships as the same GM ruling as Young White Dragon Ice Walk (T6d2). Merged in m429.",
+              "mergedAt": "2026-10-25T04:12:04Z",
+              "proof": "Reviewed and approved; resynced onto the phase tip plus T4j and T4s3 without T4m/T4n; Tests and Live green on the chain tip e4f786f45 (ci/spells-4-t2v2b-r2); merged in the m429 batch."
             },
             {
               "id": "SPELLS-33.T4pr",
@@ -15579,7 +15591,7 @@
             },
             {
               "id": "SPELLS-33.T6a3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15589,8 +15601,9 @@
                 "after": ["SPELLS-33.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: held-creature relationship options (damage to or from the held creature, auto-hit, attach drain, reel) (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m429.",
+              "mergedAt": "2026-10-25T04:12:04Z",
+              "proof": "Reviewed and approved; resynced onto the phase tip plus T4j and T4s3 without T4m/T4n; Tests and Live green on the chain tip e4f786f45 (ci/spells-4-t2v2b-r2); merged in the m429 batch."
             },
             {
               "id": "SPELLS-33.T6b1",
@@ -15610,7 +15623,7 @@
             },
             {
               "id": "SPELLS-33.T6b2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
@@ -15620,7 +15633,9 @@
                 "after": ["SPELLS-33.T1", "SPELLS-33.T6b1", "SPELLS-33.T4s2"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: lycanthropy curse on a failed save (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m433.",
+              "mergedAt": "2026-10-25T05:52:55Z",
+              "proof": "Tests 40166009561 and Live 40166009568 green on tip c1f2fcd67; reviewed and approved; Wereboar Tusks left to ATTACK-5.T4; merged in the m433 batch."
             },
             {
               "id": "SPELLS-33.T6b3",
@@ -17676,34 +17691,34 @@
             },
             {
               "text": "A new authored item's System comes from the route or the author's selection, and a spell's magic school from the author's choice; neither silently takes the first in the list, and a missing one is an explicit state.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-8.T2 (m431); see each task's proof."],
               "origin": [],
-              "note": "Nine resolveCreate<Subject>SystemId functions are `systems[0]?.id ?? null`; getSpellFormContext takes magicSchools[0]. Also characterBuilderAuthoringSession.ts:44 (systems[0]?.id on create), CharacterEquipmentStep.tsx:173-196 ([0] currency writing currencyId ''), formNormalization createFallbackCharacterFormValues placeholders ('pending-system', 'pending-character', 'server-owned'), stepNavigation.ts:64/73 `?? 'REVIEW'`, SocialListingFormPage.tsx:259 `?? 'ONGOING'`, socialModels `?? 'Recurring'`. Out of scope (orchestrator ruling 2026-10-24): social ?? 'ONGOING' and ?? 'Recurring' are display defaults, not silent first-in-list selection.",
+              "note": "Nine resolveCreate<Subject>SystemId functions are `systems[0]?.id ?? null`; getSpellFormContext takes magicSchools[0]. Also characterBuilderAuthoringSession.ts:44 (systems[0]?.id on create), CharacterEquipmentStep.tsx:173-196 ([0] currency writing currencyId ''), formNormalization createFallbackCharacterFormValues placeholders ('pending-system', 'pending-character', 'server-owned'), stepNavigation.ts:64/73 `?? 'REVIEW'`, SocialListingFormPage.tsx:259 `?? 'ONGOING'`, socialModels `?? 'Recurring'`. Out of scope (orchestrator ruling 2026-10-24): social ?? 'ONGOING' and ?? 'Recurring' are display defaults, not silent first-in-list selection. Closed 2026-10-24 by RELIABILITY-8.T2.",
               "id": "RELIABILITY-8.2"
             },
             {
               "text": "An empty label is a validation error at submit, not replaced with \"Untitled <Subject>\"; status and other defaults live once in the empty-form values, not in eight submit normalisers.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-8.T2 (m431); see each task's proof."],
               "origin": [],
-              "note": "19 `|| 'Untitled ...'` fallbacks and `status ?? 'DRAFT'` across the vehicles, backgrounds, classes, races, spells, feats, creatures and equipment normalisers.",
+              "note": "19 `|| 'Untitled ...'` fallbacks and `status ?? 'DRAFT'` across the vehicles, backgrounds, classes, races, spells, feats, creatures and equipment normalisers. Closed 2026-10-24 by RELIABILITY-8.T2.",
               "id": "RELIABILITY-8.3"
             },
             {
               "text": "Feature and feat authoring selects are typed against their enums (no deselect, no casts, no 'TRAIT' or 'LONG_REST' fallback), and the charge reset options and helpers are shared by both editors.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-8.T3 (m431); see each task's proof."],
               "origin": [],
-              "note": "GuidedFeatureAccordion.tsx:157-216 and GuidedFeatAuthoring.tsx:219-234 duplicate the reset-timing options, isSimpleCharge and createCharge.",
+              "note": "GuidedFeatureAccordion.tsx:157-216 and GuidedFeatAuthoring.tsx:219-234 duplicate the reset-timing options, isSimpleCharge and createCharge. Closed 2026-10-24 by RELIABILITY-8.T3.",
               "id": "RELIABILITY-8.4"
             },
             {
               "text": "Authoring node defaults are checked against the schema DTOs (`satisfies`, no casts to an untyped group record) and the default invocation is declared once.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-8.T3 (m431); see each task's proof."],
               "origin": [],
-              "note": "apps/web/src/forms/rendering/authoringNodeDefaults.ts: invocation default at 344-350, 355-360 and 639-644; createTargeting(...) as AuthoringGroupValues.",
+              "note": "apps/web/src/forms/rendering/authoringNodeDefaults.ts: invocation default at 344-350, 355-360 and 639-644; createTargeting(...) as AuthoringGroupValues. Closed 2026-10-24 by RELIABILITY-8.T3.",
               "id": "RELIABILITY-8.5"
             },
             {
@@ -17745,7 +17760,7 @@
             },
             {
               "id": "RELIABILITY-8.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-8.2", "RELIABILITY-8.3"],
               "wsjf": {
                 "bv": 1,
@@ -17755,11 +17770,13 @@
                 "after": ["RELIABILITY-8.T1"]
               },
               "text": "No silent first-in-list System or school, explicit missing state; empty label is a validation error; defaults once in empty values (workbook slice-reliability-8.md).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+              "mergedAt": "2026-10-25T04:48:12Z",
+              "proof": "Tests green on tip 89322d471 and Live green (run 40162765832); reviewed: no first-in-list System or school (SystemChoiceAlert, school gate), blank label is a draft-save field error and blocks activate, typed feature/feat selects with shared charge helpers, node defaults satisfy schema DTOs (165 of 170, zero casts); merged in m431.",
+              "note": " Merged in m431."
             },
             {
               "id": "RELIABILITY-8.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-8.4", "RELIABILITY-8.5"],
               "wsjf": {
                 "bv": 1,
@@ -17769,7 +17786,9 @@
                 "after": ["RELIABILITY-8.T1"]
               },
               "text": "Enum-typed feature and feat selects with shared charge reset helpers; node defaults satisfy schema DTOs, default invocation declared once (workbook slice-reliability-8.md).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+              "mergedAt": "2026-10-25T04:48:12Z",
+              "proof": "Tests green on tip 89322d471 and Live green (run 40162765832); reviewed: no first-in-list System or school (SystemChoiceAlert, school gate), blank label is a draft-save field error and blocks activate, typed feature/feat selects with shared charge helpers, node defaults satisfy schema DTOs (165 of 170, zero casts); merged in m431.",
+              "note": " Merged in m431."
             },
             {
               "id": "RELIABILITY-8.T4",

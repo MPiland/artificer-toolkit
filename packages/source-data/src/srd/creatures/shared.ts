@@ -24,7 +24,6 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   SHAPE_KIND,
-  SIZE_CODE,
   SPELL_GRANT_ATTRIBUTE,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
@@ -42,13 +41,13 @@ import {
   type FeatureAuthored,
   type FollowUpSaveAuthored,
   type ModifierGrantAuthored,
-  type MovementPassageOption,
-  type SizeCode
+  type MovementPassageOption
 } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { magicConditionImmunityGrant, magicSaveAdvantageGrants } from '../classes/mechanics.js'
 import { CREATURE_IDS } from '../ids.js'
+import { SIZE_CODE, type SizeCode } from '../sizes.js'
 export { SPELL_IDS } from '../ids.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -742,6 +741,8 @@ export type GrappleRider = {
   restrictedActionEffectIds?: readonly string[]
   /** The hold applies only when this holds of the open Attack action (a Multiattack's "if both attacks hit"). */
   appliesWhen?: AttackSlotCondition
+  /** The printed "takes N damage at the start of each of its turns" while held. */
+  recurrence?: ActorRelationshipAuthored['recurrence']
 }
 
 /**
@@ -795,6 +796,7 @@ export function grappledOutcome(
     effectKind: EFFECT_KIND.ACTOR_RELATIONSHIP,
     heldAtOnce: rider.heldAtOnce,
     ...(rider.appliesWhen ? { appliesWhen: rider.appliesWhen } : {}),
+    ...(rider.recurrence ? { recurrence: rider.recurrence } : {}),
     modules: modules.map((module, order) => ({ ...module, order: order + 1 })),
     conditions: [
       ...(rider.omitGrappled ? [] : [GRAPPLED_CONDITION_ID]),

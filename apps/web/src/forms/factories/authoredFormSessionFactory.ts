@@ -1,18 +1,24 @@
 import type { ReactNode } from 'react'
+import type { ConvexReactClient } from 'convex/react'
 import type * as core from 'zod/v4/core'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
-import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
+import type { AuthoredContentProvenanceDto } from '@artificer-toolkit/schema/api/common'
+import type {
+  SystemListResponseDto,
+  SystemResponseDto
+} from '@artificer-toolkit/schema/api/systems'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { queryKeys as globalQueryKeys } from '#app/lib/queryKeys'
-import type { AuthoredFormEditData } from './authoredFormFactories'
 import type {
+  AuthoredFormFactory,
   AuthoredFormPreviewContext,
   AuthoredFormDomain,
   AuthoredFormSession,
   AuthoredFormSessionInput
 } from './authoredFormFactories.types'
-import type { AuthoredFormActionFactory } from '../actions/authoredFormActionFactories'
+import { authoredFormActionFactories } from '../actions/authoredFormActionFactories'
 import { authoredPreviewFactories } from '../previews/authoredPreviewFactories'
+import { isObjectValue } from '../utils/valueGuards'
 
 type AuthoredFormValuesBase = {
   label?: string | null
@@ -40,72 +46,140 @@ type AuthoredFormOperations<TSubmit extends object> = {
   saveDraft: (payload: TSubmit) => ReturnType<AuthoredFormSession['operations']['saveDraft']>
 }
 
-export type AuthoredSessionConfig<
+type AuthoredFormEditResponse<TAuthored extends object> = {
+  item?: TAuthored | null
+  permissions?: {
+    canCopy: boolean
+    canDelete: boolean
+    canEdit: boolean
+  }
+  provenance?: AuthoredContentProvenanceDto
+}
+
+export type AuthoredFormCreateData = {
+  system?: SystemResponseDto | null
+  systems: SystemListResponseDto
+}
+
+export type AuthoredFormEditData<TAuthored extends object> = {
+  draft?: AuthoredDraftDto | null
+  response?: AuthoredFormEditResponse<TAuthored> | null
+  subjectId: string
+  system?: SystemResponseDto | null
+}
+
+/** Resolves the per-session context a domain's pure functions need beyond the form values. */
+type AuthoredFormContextResolver<TEditData, TContext> = {
+  fromCreate: (data: AuthoredFormCreateData) => TContext
+  fromEdit: (data: TEditData) => TContext
+}
+
+export const noAuthoredFormContext: AuthoredFormContextResolver<object, undefined> = {
+  fromCreate: () => undefined,
+  fromEdit: () => undefined
+}
+
+/**
+ * One authored domain's form config: empty values, to-submit and to-form-values, consumed by
+ * `defineAuthoredForm`.
+ */
+type AuthoredFormConfig<
   TValues extends AuthoredFormValuesBase,
   TSubmit extends AuthoredFormSubmitBase,
   TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
-  TEditData extends AuthoredFormEditData<TAuthored>,
+  TEditData extends AuthoredFormEditData<TAuthored> = AuthoredFormEditData<TAuthored>,
   TContext = undefined
 > = {
-  actionFactory: AuthoredFormActionFactory
+  context: AuthoredFormContextResolver<TEditData, TContext>
   createEmptyValues: (input: { systemId: string }, context: TContext) => TValues
+  createOperations: (client?: ConvexReactClient) => AuthoredFormOperations<TSubmit>
   domain: AuthoredFormDomain
-  getCreateContext?: (data: TCreateData) => TContext
-  getCreateSystems: (data: TCreateData) => readonly { id: string }[]
-  getEditContext?: (data: TEditData) => TContext
   normalizeForSubmit: (values: TValues, context: TContext) => TSubmit
-  operations: AuthoredFormOperations<TSubmit>
   queryKeys: AuthoredFormQueryKeys
   renderPreview?: (
     context: AuthoredFormPreviewContext<TValues>,
     sessionContext: TContext
   ) => ReactNode
-  resolveCreateSystemId: (systems: readonly { id: string }[], context: TContext) => string | null
   schema: core.$ZodType<TSubmit>
-  subjectKindLabel: string
-  toCreateData: (data: unknown) => TCreateData
-  toEditData: (data: unknown) => TEditData
   toFormValues: (record: TValues | TSubmit | TAuthored, context: TContext) => TValues
 }
 
-export function createAuthoredSession<
+const EMPTY_CREATE_DATA: AuthoredFormCreateData = { systems: [] }
+const EMPTY_EDIT_DATA: AuthoredFormEditData<never> = { draft: null, response: null, subjectId: '' }
+
+/** Route loader data arrives type-erased through router matches; this is the one narrowing point. */
+function isCreateData(data: unknown): data is AuthoredFormCreateData {
+  return isObjectValue(data) && Array.isArray(data.systems)
+}
+
+function isEditData<TEditData extends AuthoredFormEditData<object>>(
+  data: unknown
+): data is TEditData {
+  return isObjectValue(data) && typeof data.subjectId === 'string'
+}
+
+export function defineAuthoredForm<
   TValues extends AuthoredFormValuesBase,
   TSubmit extends AuthoredFormSubmitBase,
   TAuthored extends AuthoredFormValuesBase,
-  TCreateData extends { system?: SystemResponseDto | null },
+  TEditData extends AuthoredFormEditData<TAuthored> = AuthoredFormEditData<TAuthored>,
+  TContext = undefined
+>(
+  config: AuthoredFormConfig<TValues, TSubmit, TAuthored, TEditData, TContext>
+): AuthoredFormFactory<TValues, TSubmit, TAuthored> {
+  const actionFactory = authoredFormActionFactories[config.domain]
+  const emptyContext = config.context.fromCreate(EMPTY_CREATE_DATA)
+
+  return {
+    createEmptyValues: (input) => config.createEmptyValues(input, emptyContext),
+    createSession: (input) => createAuthoredSession(input, config),
+    domain: config.domain,
+    fallbackLabel: `Untitled ${actionFactory.subjectKindLabel}`,
+    mapId: config.domain,
+    normalizeForSubmit: (values) => config.normalizeForSubmit(values, emptyContext),
+    subjectKindLabel: actionFactory.subjectKindLabel,
+    toFormValues: (record) => config.toFormValues(record, emptyContext)
+  }
+}
+
+function createAuthoredSession<
+  TValues extends AuthoredFormValuesBase,
+  TSubmit extends AuthoredFormSubmitBase,
+  TAuthored extends AuthoredFormValuesBase,
   TEditData extends AuthoredFormEditData<TAuthored>,
   TContext
 >(
-  { data, mode }: AuthoredFormSessionInput,
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>
+  { convexClient, data, mode }: AuthoredFormSessionInput,
+  config: AuthoredFormConfig<TValues, TSubmit, TAuthored, TEditData, TContext>
 ): AuthoredFormSession {
   if (mode === 'create') {
-    return createAuthoredCreateSession(data, config)
+    return createAuthoredCreateSession(data, convexClient, config)
   }
 
-  return createAuthoredEditSession(data, mode, config)
+  return createAuthoredEditSession(data, mode, convexClient, config)
 }
 
 function createAuthoredCreateSession<
   TValues extends AuthoredFormValuesBase,
   TSubmit extends AuthoredFormSubmitBase,
   TAuthored extends AuthoredFormValuesBase,
-  TCreateData extends { system?: SystemResponseDto | null },
   TEditData extends AuthoredFormEditData<TAuthored>,
   TContext
 >(
   data: unknown,
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>
+  convexClient: ConvexReactClient | undefined,
+  config: AuthoredFormConfig<TValues, TSubmit, TAuthored, TEditData, TContext>
 ): AuthoredFormSession {
-  const createData = config.toCreateData(data)
-  const context = getCreateContext(config, createData)
-  const systemId = config.resolveCreateSystemId(config.getCreateSystems(createData), context) ?? ''
+  const createData = isCreateData(data) ? data : EMPTY_CREATE_DATA
+  const context = config.context.fromCreate(createData)
+  const systemId = createData.system?.id ?? ''
   const initialValues = config.createEmptyValues({ systemId }, context)
+  const { subjectKindLabel } = authoredFormActionFactories[config.domain]
 
   return createAuthoredSessionBase({
     config,
     context,
+    convexClient,
     canCopy: false,
     canDelete: false,
     canSaveDraft: Boolean(systemId),
@@ -114,15 +188,16 @@ function createAuthoredCreateSession<
     initialValues,
     invalidDraftOnly: false,
     isDraft: false,
-    key: `${config.actionFactory.subjectKindLabel.toLowerCase()}:create:${systemId || 'missing-system'}`,
+    key: `${subjectKindLabel.toLowerCase()}:create:${systemId || 'missing-system'}`,
     mode: 'create',
     notFound: false,
     provenanceKind: 'OWNED',
     readOnly: false,
-    subjectLabel: initialValues.label || `Untitled ${config.actionFactory.subjectKindLabel}`,
+    subjectLabel: initialValues.label || `Untitled ${subjectKindLabel}`,
     system: createData.system ?? null,
     systemId,
-    systemRequired: !systemId
+    systemRequired: !systemId,
+    systems: createData.systems
   })
 }
 
@@ -130,16 +205,19 @@ function createAuthoredEditSession<
   TValues extends AuthoredFormValuesBase,
   TSubmit extends AuthoredFormSubmitBase,
   TAuthored extends AuthoredFormValuesBase,
-  TCreateData extends { system?: SystemResponseDto | null },
   TEditData extends AuthoredFormEditData<TAuthored>,
   TContext
 >(
   data: unknown,
   requestedMode: AuthoredFormSession['mode'],
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>
+  convexClient: ConvexReactClient | undefined,
+  config: AuthoredFormConfig<TValues, TSubmit, TAuthored, TEditData, TContext>
 ): AuthoredFormSession {
-  const editData = config.toEditData(data)
-  const context = getEditContext(config, editData)
+  const routeEditData = isEditData<TEditData>(data) ? data : undefined
+  const editData: AuthoredFormEditData<TAuthored> = routeEditData ?? EMPTY_EDIT_DATA
+  const context = routeEditData
+    ? config.context.fromEdit(routeEditData)
+    : config.context.fromCreate(EMPTY_CREATE_DATA)
   const parsedDraft = parseAuthoredDraftPayload(editData.draft ?? null, config.schema)
   const draftItem = parsedDraft.item
   const activeRecord = editData.response?.item ?? undefined
@@ -157,11 +235,12 @@ function createAuthoredEditSession<
   const canDelete =
     !readOnly && Boolean(parsedDraft.draft || editData.response?.permissions?.canDelete)
   const invalidDraftOnly = !editData.response && parsedDraft.isInvalid
-  const subjectKindLabel = config.actionFactory.subjectKindLabel
+  const { subjectKindLabel } = authoredFormActionFactories[config.domain]
 
   return createAuthoredSessionBase({
     config,
     context,
+    convexClient,
     activeRecord,
     canCopy,
     canDelete,
@@ -181,7 +260,8 @@ function createAuthoredEditSession<
     subjectLabel: initialValues.label || `Untitled ${subjectKindLabel}`,
     system: editData.system ?? null,
     systemId: initialValues.systemId,
-    systemRequired: false
+    systemRequired: false,
+    systems: []
   })
 }
 
@@ -189,7 +269,6 @@ function createAuthoredSessionBase<
   TValues extends AuthoredFormValuesBase,
   TSubmit extends AuthoredFormSubmitBase,
   TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
   TEditData extends AuthoredFormEditData<TAuthored>,
   TContext
 >({
@@ -199,6 +278,7 @@ function createAuthoredSessionBase<
   canSaveDraft,
   config,
   context,
+  convexClient,
   draft = null,
   hasActiveDraft,
   hasInvalidDraft,
@@ -214,14 +294,16 @@ function createAuthoredSessionBase<
   subjectLabel,
   system,
   systemId,
-  systemRequired
+  systemRequired,
+  systems
 }: {
   activeRecord?: TAuthored | null
   canCopy: boolean
   canDelete: boolean
   canSaveDraft: boolean
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>
+  config: AuthoredFormConfig<TValues, TSubmit, TAuthored, TEditData, TContext>
   context: TContext
+  convexClient: ConvexReactClient | undefined
   draft?: AuthoredDraftDto | null
   hasActiveDraft: boolean
   hasInvalidDraft: boolean
@@ -238,8 +320,12 @@ function createAuthoredSessionBase<
   system?: SystemResponseDto | null
   systemId?: string
   systemRequired: boolean
+  systems: SystemListResponseDto
 }): AuthoredFormSession {
-  const { actionFactory, domain, operations, queryKeys, subjectKindLabel } = config
+  const { domain, queryKeys } = config
+  const actionFactory = authoredFormActionFactories[domain]
+  const { subjectKindLabel } = actionFactory
+  const operations = config.createOperations(convexClient)
   const renderPreview:
     | ((previewContext: AuthoredFormPreviewContext<TValues>, sessionContext: TContext) => ReactNode)
     | undefined = config.renderPreview ?? authoredPreviewFactories[domain]
@@ -327,34 +413,7 @@ function createAuthoredSessionBase<
     subjectLabel,
     system,
     systemId,
-    systemRequired
+    systemRequired,
+    systems
   }
-}
-
-function getCreateContext<
-  TValues extends AuthoredFormValuesBase,
-  TSubmit extends AuthoredFormSubmitBase,
-  TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
-  TEditData extends AuthoredFormEditData<TAuthored>,
-  TContext
->(
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>,
-  data: TCreateData
-): TContext {
-  return config.getCreateContext ? config.getCreateContext(data) : (undefined as TContext)
-}
-
-function getEditContext<
-  TValues extends AuthoredFormValuesBase,
-  TSubmit extends AuthoredFormSubmitBase,
-  TAuthored extends AuthoredFormValuesBase,
-  TCreateData,
-  TEditData extends AuthoredFormEditData<TAuthored>,
-  TContext
->(
-  config: AuthoredSessionConfig<TValues, TSubmit, TAuthored, TCreateData, TEditData, TContext>,
-  data: TEditData
-): TContext {
-  return config.getEditContext ? config.getEditContext(data) : (undefined as TContext)
 }

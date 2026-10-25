@@ -1,5 +1,3 @@
-import { sizeSpaceFeet } from '@artificer-toolkit/shared/core'
-import { summonHitPoints } from './summonHitPoints.js'
 import { encounterActorBody, summonBody } from './encounterActorBody.js'
 import type { TargetingDto } from '@artificer-toolkit/schema/effects/targeting'
 import type {
@@ -36,6 +34,7 @@ import {
 import { TOUCH_RANGE } from './encounterActionTargetPolicy.js'
 import { selectScalingRow } from './scalingRowSelection.js'
 import { sharedZonePlacement } from './encounterZonePlacement.js'
+import { sizeSpaceFeet } from './systemSizes.js'
 
 const OUT_OF_SIGHT: EncounterRuleWarningDto = {
   code: 'TARGET_OUT_OF_SIGHT',
@@ -312,10 +311,12 @@ export function encounterActionChoiceTarget(
   castChoice?: { options: readonly { optionId: string; label: string }[] } | null,
   /** The action is used on an item its creature has equipped (Shillelagh, Heat Metal). */
   choosesItem?: boolean,
-  /** The creature the action summons: the caster picks the point it stands at (T2v2a2). */
-  summonPlacement?: Pick<CompiledActionSummonPlacement, 'statBlock'> | null
+  /**
+   * The edge in feet of the square the creature the action summons fills (`sizeSpaceFeet`): the
+   * caster picks the point it stands at (T2v2a2).
+   */
+  summonFeet?: number | null
 ): EncounterActionChoiceDto['target'] {
-  const summonFeet = summonPlacement && sizeSpaceFeet(summonPlacement.statBlock.size)
   if (summonFeet)
     return {
       kind: 'POINT',
@@ -492,12 +493,8 @@ export function evaluateEncounterAreaTargetPolicy(input: {
  * range this path cannot measure, is refused as unsupported.
  */
 export function evaluateEncounterSummonTarget(input: {
-  statBlock: Pick<
-    CompiledActionSummonPlacement['statBlock'],
-    'size' | 'occupiesSpace' | 'hitPoints'
-  >
-  /** The caster's hit point maximum, when the Run holds it (a Character's lives on the Sheet). */
-  casterHitPointMaximum: number | null
+  gameSystemId: string
+  statBlock: Pick<CompiledActionSummonPlacement['statBlock'], 'size' | 'occupiesSpace'>
   range: CompiledActionTargetPolicy['range']
   point: ScenePoint
   grid: SceneGrid
@@ -517,9 +514,9 @@ export function evaluateEncounterSummonTarget(input: {
       shape: { kind: 'CUBE'; edgeLength: number }
       warnings: EncounterRuleWarningDto[]
     }
-  | { refusal: 'UNSUPPORTED_SUMMON' | 'SPACE_OCCUPIED' | 'HIT_POINTS_UNKNOWN' } {
+  | { refusal: 'UNSUPPORTED_SUMMON' | 'SPACE_OCCUPIED' } {
   const unsupported = { refusal: 'UNSUPPORTED_SUMMON' } as const
-  const feet = sizeSpaceFeet(input.statBlock.size)
+  const feet = sizeSpaceFeet(input.gameSystemId, input.statBlock.size)
   const shape =
     feet === null
       ? null
@@ -529,8 +526,6 @@ export function evaluateEncounterSummonTarget(input: {
         )
   const rangeWarnings = evaluateRangeWarnings(input, input.range)
   if (shape?.kind !== 'CUBE' || rangeWarnings === null) return unsupported
-  if (summonHitPoints(input.statBlock, input.casterHitPointMaximum) === null)
-    return { refusal: 'HIT_POINTS_UNKNOWN' }
   const placed = { position: input.point, width: shape.edgeLength, height: shape.edgeLength }
   if (
     summonBody(input.statBlock).occupiesSpace &&

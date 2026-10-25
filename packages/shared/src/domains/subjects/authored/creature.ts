@@ -4,8 +4,7 @@ import type {
   CreatureCategoryCode,
   DamageDefenseBypassCode,
   DiceExpression,
-  EquipmentSlotCode,
-  SizeCode
+  EquipmentSlotCode
 } from '#core'
 import type {
   CapacityAuthored,
@@ -79,7 +78,7 @@ export interface CreatureBaseAuthored {
   systemId: string
   category: CreatureCategoryCode
   creatureTypeId?: string
-  size?: SizeCode
+  size?: string
   alignmentId?: string
   tags?: string[]
 
@@ -94,7 +93,7 @@ export interface CreatureBaseAuthored {
 
 export interface CreatureAuthored extends CreatureBaseAuthored {
   creatureTypeId: string
-  size: SizeCode
+  size: string
 
   abilityScores: Record<AbilityCode, number>
   /** Armor class added to the loadout's armor formula; the Creature's armor class is computed. */

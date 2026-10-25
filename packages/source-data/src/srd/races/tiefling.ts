@@ -14,12 +14,12 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   SCALING_SOURCE,
-  SIZE_CODE,
   SPELL_GRANT_ATTRIBUTE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SPELL_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import {
   SRD_DAMAGE_TYPES,
   SRD_DARKVISION_SENSE_ID,

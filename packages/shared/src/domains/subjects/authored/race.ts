@@ -1,4 +1,4 @@
-import type { RACE_CATEGORY_CODE, RaceSelectionMode, SizeCode, AuthoredRecordStatus } from '#core'
+import type { RACE_CATEGORY_CODE, RaceSelectionMode, AuthoredRecordStatus } from '#core'
 import type { FeatureAuthored, DetailAuthored, SpeedAuthored } from '#authored'
 
 export interface RaceAncestryAuthored {
@@ -28,7 +28,7 @@ export type BaseRaceAuthored = {
   heritageIds?: string[]
   details?: DetailAuthored[]
   features?: FeatureAuthored[]
-  size: SizeCode
+  size: string
   speeds: SpeedAuthored[]
   userId: string
   systemId: string

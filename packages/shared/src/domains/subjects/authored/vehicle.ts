@@ -1,4 +1,4 @@
-import type { SizeCode, AuthoredRecordStatus } from '#core'
+import type { AuthoredRecordStatus } from '#core'
 import type { CostAuthored, DetailAuthored, FeatureAuthored, WeightAuthored } from '#authored'
 
 export type VehicleCategory = 'LAND' | 'WATER' | 'AIR' | 'SPELLJAMMER'
@@ -12,7 +12,7 @@ export interface VehicleAuthored {
   userId: string
   systemId: string
   category: VehicleCategory
-  size?: SizeCode
+  size?: string
   armorClass?: number
   hitPoints?: number
   speed?: number

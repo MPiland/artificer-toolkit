@@ -1,6 +1,7 @@
 import { SRD_BASIC_ACTION_DEFINITIONS } from './basicActions.js'
 import { SRD_CONCENTRATION_DEFINITIONS } from './concentration.js'
 import { SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS } from './encounterLifecycle.js'
+import { SRD_INITIATIVE_POLICY_DEFINITIONS } from './initiativePolicies.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from './optionalCombat.js'
 import { SRD_RULE_STATE_DEFINITIONS } from './ruleState.js'
 import { SRD_SENSE_DEFINITIONS } from './senses.js'
@@ -38,6 +39,7 @@ export const SRD_REUSABLE_DEFINITIONS: readonly SrdReusableDefinitionSeed[] = [
   ...SRD_RULE_STATE_DEFINITIONS,
   ...SRD_OPTIONAL_COMBAT_DEFINITIONS,
   ...SRD_ENCOUNTER_LIFECYCLE_DEFINITIONS,
+  ...SRD_INITIATIVE_POLICY_DEFINITIONS,
   ...SRD_CONCENTRATION_DEFINITIONS,
   ...SRD_BASIC_ACTION_DEFINITIONS
 ]

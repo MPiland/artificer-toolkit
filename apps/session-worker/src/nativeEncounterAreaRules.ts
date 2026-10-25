@@ -390,6 +390,7 @@ export async function sealReachSaves(
     casterActorId: reach.caster.id,
     placesZone: reach.placement !== null,
     zoneAppearSave: reach.placement?.appearSave ?? false,
+    placesSummon: Boolean(reach.summon),
     scene: reach.scene && { sceneId: reach.scene.sceneId, sceneVersion: reach.scene.sceneVersion },
     area: reach.area && { origin: reach.area.origin, shape: reach.area.shape },
     ...(window.failedCounters.length > 0 ? { failedCounters: [...window.failedCounters] } : {}),

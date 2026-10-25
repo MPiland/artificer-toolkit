@@ -111,6 +111,11 @@ const CREATURE_KINDS = [
   'CREATURE_VAMPIRE_FORBIDDANCE',
   'CREATURE_VAMPIRE_HARMED_BY_RUNNING_WATER',
   'CREATURE_VAMPIRE_STAKE_TO_THE_HEART',
+  'CREATURE_WEREBEAR_BITE',
+  'CREATURE_WEREBOAR_TUSKS',
+  'CREATURE_WERERAT_BITE',
+  'CREATURE_WERETIGER_BITE',
+  'CREATURE_WEREWOLF_BITE',
   'CREATURE_WILL_O_WISP_EPHEMERAL',
   'CREATURE_YOUNG_WHITE_DRAGON_ICE_WALK',
   'DRAGON_LEGENDARY_DETECT',
@@ -187,6 +192,23 @@ describe('disease as a GM ruling (D187a, SPELLS-33.T6b3)', () => {
     const rulings = nodesWhere(owner, (node) => node.effectKind === 'MANUAL_ADJUDICATION')
     expect(rulings).toHaveLength(1)
     expect(String(rulings[0]?.instructions)).toMatch(/disease/i)
+  })
+})
+
+describe('lycanthropy as a GM ruling (D187a, SPELLS-33.T6b2)', () => {
+  it.each([
+    ['Werebear', 'Bite (Bear or Hybrid Form Only)', /DC 14 .*werebear lycanthropy/],
+    ['Wereboar', 'Tusks (Boar or Hybrid Form Only)', /DC 12 .*wereboar lycanthropy/],
+    ['Wererat', 'Bite (Rat or Hybrid Form Only)', /DC 11 .*wererat lycanthropy/],
+    ['Weretiger', 'Bite (Tiger or Hybrid Form Only)', /DC 13 .*weretiger lycanthropy/],
+    ['Werewolf', 'Bite (Wolf or Hybrid Form Only)', /DC 12 .*werewolf lycanthropy/]
+  ])('%s: %s carries its curse as a manual adjudication', (creature, feature, curse) => {
+    const authored = srdCreatures.find((entry) => entry.label === creature)
+    const owner = authored?.features?.find((entry) => entry.label === feature)
+    const rulings = nodesWhere(owner, (node) => node.effectKind === 'MANUAL_ADJUDICATION')
+    expect(rulings).toHaveLength(1)
+    expect(String(rulings[0]?.instructions)).toMatch(curse)
+    expect(String(rulings[0]?.instructions)).toMatch(/remove curse/i)
   })
 })
 

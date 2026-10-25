@@ -1,7 +1,8 @@
 import { z, lazySchema } from '../zod.js'
 import { validateCharacterHitDiceRollEvidence } from '@artificer-toolkit/shared/character/sheetRest'
 import { authoredLengthSchema } from '../shared/authoredLimits.js'
-import { abilityCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import { abilityCodeSchema } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
 
 const identifierSchema = lazySchema(() => z.string().check(z.trim()).check(z.minLength(1)))
@@ -252,7 +253,7 @@ const adjustmentMembers = <Fields extends z.core.$ZodShape>(fields: Fields) => (
       family: z.literal('COMPANION'),
       companionInstanceId: uuidSchema,
       field: z.literal('SIZE_OVERRIDE'),
-      value: sizeCodeSchema
+      value: systemCoreCodeSchema
     })
   ] as const
 })

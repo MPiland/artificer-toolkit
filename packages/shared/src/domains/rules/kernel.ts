@@ -43,7 +43,10 @@ function resolveBinding(input: {
   }
 }
 
-function requiredFacts(graph: CompiledRuleGraph): Set<string> {
+/** The fact keys a graph's node inputs and outputs read, each of which execution requires. */
+export function requiredRuleGraphFacts(
+  graph: Pick<CompiledRuleGraph, 'nodes' | 'outputs'>
+): Set<string> {
   return new Set(
     [...graph.nodes.flatMap((node) => Object.values(node.inputs)), ...Object.values(graph.outputs)]
       .filter(
@@ -67,7 +70,7 @@ export function freezeRuleGraphFacts(
       throw new RuleKernelError(`Runtime fact "${key}" must be ${contract.valueKind}.`)
   }
   const frozen: Record<string, RuleValue> = {}
-  for (const key of requiredFacts(graph)) {
+  for (const key of requiredRuleGraphFacts(graph)) {
     const contract = contracts.get(key)
     const value = facts[key]
     if (!contract || value === undefined)

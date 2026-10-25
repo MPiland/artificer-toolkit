@@ -11,6 +11,7 @@ import { encounterBasicActionId } from '@artificer-toolkit/rules-runtime/encount
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { MAX_ACTIVE_EFFECT_STORED_TICKS } from '@artificer-toolkit/schema/shared/activeRuleEffectLifecycle'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-hand.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
 import { arcaneSword } from '@artificer-toolkit/source-data/srd/spells/arcane-sword.js'
@@ -23,6 +24,7 @@ import {
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
 import { mageArmor } from '@artificer-toolkit/source-data/srd/spells/mage-armor.js'
+import { mageHand } from '@artificer-toolkit/source-data/srd/spells/mage-hand.js'
 import { mindBlank } from '@artificer-toolkit/source-data/srd/spells/mind-blank.js'
 import { passWithoutTrace } from '@artificer-toolkit/source-data/srd/spells/pass-without-trace.js'
 import { produceFlame } from '@artificer-toolkit/source-data/srd/spells/produce-flame.js'
@@ -763,6 +765,41 @@ describe('room free cast-turn repeat (SPELLS-4.T2v2a3b)', () => {
   }, 120000)
 })
 
+/** The Run actors the caster owns, with the Scene token bound to each. */
+async function conjured(room: ActionRoom) {
+  const { stub } = room.room.base
+  const actors = (await readRoomHistory(stub)).actors
+    .map((row) => readStoredRunActor(row))
+    .filter((actor) => actor.owner?.ownerActorId === CHARACTER_ACTOR_ID)
+  const bindings = await runInDurableObject(stub, async (_instance, context) =>
+    new RoomEncounterStore(context.storage).documents('encounterActorTokenBindings')
+  )
+  return actors.map((actor) => ({
+    actor,
+    tokenId: bindings.find(({ actorId }) => actorId === actor.id)?.tokenId
+  }))
+}
+
+/** Casts the room's summon spell at `point` and returns the one creature it conjured. */
+async function castSummon(room: ActionRoom, point: { x: number; y: number }) {
+  const cast = await room.startAreaAction(point)
+  expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+  const [summon] = await conjured(room)
+  if (!summon?.tokenId) throw new Error('The cast conjured nothing.')
+  return { ...summon, tokenId: summon.tokenId }
+}
+
+/** The caster attacks the Wolf through the creature its spell conjured. */
+async function attackThrough(room: ActionRoom, activation: 'FREE' | 'BONUS_ACTION') {
+  const [offer] = (await room.actionChoices()).effectOffers
+  expect(offer).toMatchObject({ kind: 'REPEAT_SOURCE_PATH', activation })
+  if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+  const attack = await room.startAction(WOLF_ID, RANGE, null, null, offer.actionId)
+  expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+  await settlePendingAction(room)
+  return appliedDamage(room, attack.command.commandId)
+}
+
 /**
  * SPELLS-4.T2v2a3d (D187b, D190a): Spiritual Weapon conjures an owned weapon beside the Wolf; its
  * caster attacks through it once free on the cast turn and as a Bonus Action on later turns, and the
@@ -783,38 +820,7 @@ describe('room Spiritual Weapon (SPELLS-4.T2v2a3d)', () => {
   /** Beside the Wolf, two squares from the caster. */
   const WEAPON_POINT = { x: 350, y: 150 }
 
-  /** The Run actors the caster owns, with the Scene token bound to each. */
-  async function conjured(room: ActionRoom) {
-    const { stub } = room.room.base
-    const actors = (await readRoomHistory(stub)).actors
-      .map((row) => readStoredRunActor(row))
-      .filter((actor) => actor.owner?.ownerActorId === CHARACTER_ACTOR_ID)
-    const bindings = await runInDurableObject(stub, async (_instance, context) =>
-      new RoomEncounterStore(context.storage).documents('encounterActorTokenBindings')
-    )
-    return actors.map((actor) => ({
-      actor,
-      tokenId: bindings.find(({ actorId }) => actorId === actor.id)?.tokenId
-    }))
-  }
-
-  async function castWeapon(room: ActionRoom) {
-    const cast = await room.startAreaAction(WEAPON_POINT)
-    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
-    const [weapon] = await conjured(room)
-    if (!weapon?.tokenId) throw new Error('The cast conjured no weapon.')
-    return weapon
-  }
-
-  async function attackThrough(room: ActionRoom, activation: 'FREE' | 'BONUS_ACTION') {
-    const [offer] = (await room.actionChoices()).effectOffers
-    expect(offer).toMatchObject({ kind: 'REPEAT_SOURCE_PATH', activation })
-    if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
-    const attack = await room.startAction(WOLF_ID, RANGE, null, null, offer.actionId)
-    expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
-    await settlePendingAction(room)
-    return appliedDamage(room, attack.command.commandId)
-  }
+  const castWeapon = (room: ActionRoom) => castSummon(room, WEAPON_POINT)
 
   it('conjures the weapon, attacks free on the cast turn, moves and attacks as a Bonus Action later, and goes at expiry', async () => {
     const room = await weaponRoom()
@@ -867,6 +873,50 @@ describe('room Spiritual Weapon (SPELLS-4.T2v2a3d)', () => {
 })
 
 /**
+ * SPELLS-4.T2v2b (D187b, D190a): Arcane Hand conjures a Large owned hand with the caster's hit point
+ * maximum; the caster strikes with its Clenched Fist once free on the cast turn and as a Bonus Action
+ * later, and the hand goes when Concentration ends. Its other three hands are GM rulings.
+ */
+describe('room Arcane Hand (SPELLS-4.T2v2b)', () => {
+  /** A 3rd-level Character (11 + 7 + 7 hit points) who prepares the spell, then a Wolf. Every die shows 1. */
+  const handRoom = () =>
+    actionRoom({
+      rolls: [18, 0, 0, 0, 0, 18],
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel: 3 },
+      characterSpellcasting: { spells: [arcaneHand], prepared: [arcaneHand.id] },
+      characterAction: (action) => action.label.startsWith(arcaneHand.label)
+    })
+  /** Over the Wolf: the hand does not fill its space. */
+  const HAND_POINT = { x: 300, y: 200 }
+
+  it('conjures a hand with the caster’s hit point maximum that strikes free on the cast turn, as a Bonus Action later, and goes with Concentration', async () => {
+    const room = await handRoom()
+    const hand = await castSummon(room, HAND_POINT)
+    expect(hand.actor).toMatchObject({
+      label: 'Arcane Hand',
+      kind: 'CUSTOM',
+      maxHitPoints: 25,
+      currentHitPoints: 25
+    })
+    const [offer] = (await room.actionChoices()).effectOffers
+    expect(offer).toMatchObject({ originActorId: hand.actor.id })
+
+    // The Clenched Fist's 4d8 force, each die a 1.
+    expect(await attackThrough(room, 'FREE')).toEqual([[4, damageTypeId('FORCE')]])
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect(await attackThrough(room, 'BONUS_ACTION')).toEqual([[4, damageTypeId('FORCE')]])
+
+    const ended = await endConcentrationAtSheet(room, CHARACTER_ID)
+    expect(ended.type, JSON.stringify(ended)).toBe('COMMAND_COMMITTED')
+    expect(await conjured(room)).toEqual([])
+    expect((await room.actionChoices()).effectOffers).toEqual([])
+  }, 120000)
+})
+
+/**
  * SPELLS-8.T7 (D187a): Arcane Sword is cast like Spiritual Weapon: an owned sword is conjured, and
  * the caster attacks through it once free on the cast turn. Moving it is a GM ruling.
  */
@@ -909,6 +959,49 @@ describe('room Arcane Sword (SPELLS-8.T7)', () => {
       expectedVersion: await room.version()
     })
     expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+  }, 120000)
+})
+
+/**
+ * SPELLS-4.T2v2b (D187b): Mage Hand conjures an owned, invulnerable hand that takes no space and
+ * moves as any token does; it offers no attack, and goes when its minute ends. Using it is a GM ruling.
+ */
+describe('room Mage Hand (SPELLS-4.T2v2b)', () => {
+  const HAND_POINT = { x: 350, y: 150 }
+
+  it('conjures the hand, moves it as a token, and takes it away at expiry', async () => {
+    const room = await actionRoom({
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterSpellcasting: { spells: [mageHand], prepared: [mageHand.id] },
+      characterAction: (action) => action.label.startsWith(mageHand.label)
+    })
+    const hand = await castSummon(room, HAND_POINT)
+    expect(hand.actor).toMatchObject({ label: 'Mage Hand', kind: 'CUSTOM' })
+    const snapshotRow = await runInDurableObject(room.room.base.stub, async (_instance, context) =>
+      new RoomEncounterStore(context.storage)
+        .documents('encounterActorSnapshots')
+        .find(({ checksum }) => checksum === hand.actor.snapshotChecksum)
+    )
+    if (!snapshotRow) throw new Error('The hand’s snapshot is not stored.')
+    expect(readStoredActorSnapshot(snapshotRow)).toMatchObject({
+      body: { damageabilityKind: 'INVULNERABLE', occupiesSpace: false }
+    })
+    expect((await room.actionChoices()).effectOffers).toEqual([])
+
+    const moved = await room.room.move(
+      [HAND_POINT, { x: 350, y: 250 }],
+      await room.version(),
+      room.room.scene.version + 1,
+      hand.tokenId
+    )
+    expect(moved.type, JSON.stringify(moved)).toBe('COMMAND_COMMITTED')
+
+    // One minute is 10 rounds of the caster and the Wolf, as Spiritual Weapon's is.
+    for (let turn = 0; turn < 20; turn++) await room.advanceTurn()
+    expect(await conjured(room)).toHaveLength(1)
+    await room.advanceTurn()
+    await room.advanceTurn()
+    expect(await conjured(room)).toEqual([])
   }, 120000)
 })
 

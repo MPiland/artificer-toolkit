@@ -12,6 +12,8 @@ import {
   evaluateEncounterSummonTarget
 } from '../encounterAreaAction.js'
 import { summonBody } from '../encounterActorBody.js'
+import { sizeSpaceFeet } from '../systemSizes.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 /** 100px cells of 5 feet; a Medium token fills one cell and is anchored at its center. */
 const FEET_GRID: SceneGrid = {
@@ -573,8 +575,8 @@ describe('summon target', () => {
   const at = (cells: number) => ({ x: 50 + cells * 100, y: 50 })
   const evaluate = (input: Partial<Parameters<typeof evaluateEncounterSummonTarget>[0]>) =>
     evaluateEncounterSummonTarget({
+      gameSystemId: DND5E_SYSTEM_ID,
       statBlock: { size: 'MEDIUM' },
-      casterHitPointMaximum: 40,
       range: RANGE_150,
       point: at(10),
       grid: FEET_GRID,
@@ -633,14 +635,6 @@ describe('summon target', () => {
     })
   })
 
-  it('refuses a stat block whose hit points need a caster maximum the Run does not hold', () => {
-    const statBlock = { size: 'MEDIUM', hitPoints: { kind: 'HIT_POINT_MAXIMUM' } } as const
-    expect(evaluate({ statBlock, casterHitPointMaximum: null })).toEqual({
-      refusal: 'HIT_POINTS_UNKNOWN'
-    })
-    expect(evaluate({ statBlock, casterHitPointMaximum: 40 })).toHaveProperty('shape')
-  })
-
   it('refuses a stat block with no size', () => {
     expect(evaluate({ statBlock: {} })).toEqual({ refusal: 'UNSUPPORTED_SUMMON' })
   })
@@ -656,7 +650,7 @@ describe('summon target', () => {
         null,
         null,
         false,
-        { statBlock: { size: 'MEDIUM' } }
+        sizeSpaceFeet(DND5E_SYSTEM_ID, 'MEDIUM')
       )
     ).toMatchObject({
       kind: 'POINT',

@@ -94,12 +94,15 @@ export function compileDnd5eSummonPlacement(
       entry: { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
     }
   }
+  // The bare carrier holds nothing but the summon's duration, counted on its caster's turns as
+  // the grant tick planner counts a carrier grant.
   const plan = {
     authoredEffectId: action.effectId,
     compiledEntryId: entry.entryId,
     frozenGraphNodeId: 'summon',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: 'END_OF_TURN' as const,
+    tickAnchor: 'SOURCE' as const,
     initialRemaining,
     adapterFacts: {},
     perceptionContributions: [],

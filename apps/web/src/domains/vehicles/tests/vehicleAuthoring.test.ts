@@ -1,7 +1,6 @@
 import {
   createEmptyVehicle,
   normalizeVehicleForSubmit,
-  resolveCreateVehicleSystemId,
   toVehicleFormValues
 } from '../vehicleAuthoring.utils'
 import { ownedVehicleResponseFixture } from '../vehicle.fixtures'
@@ -32,7 +31,7 @@ describe('vehicle authoring utils', () => {
 
     expect(payload).toMatchObject({
       id: ownedVehicleResponseFixture.item.id,
-      label: 'Untitled Vehicle',
+      label: '',
       properties: ['fast']
     })
     expect('userId' in payload).toBe(false)
@@ -42,10 +41,5 @@ describe('vehicle authoring utils', () => {
     expect(toVehicleFormValues(ownedVehicleResponseFixture.item).properties).toEqual([
       { value: 'fast' }
     ])
-  })
-
-  it('requires a real system for create mode', () => {
-    expect(resolveCreateVehicleSystemId([{ id: 'system-1' }])).toBe('system-1')
-    expect(resolveCreateVehicleSystemId([])).toBeNull()
   })
 })

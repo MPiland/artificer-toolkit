@@ -12,7 +12,7 @@ import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import { encounterCommandRefusal, RoomAdmissionExpiredError } from './nativeRoomEncounterCommand.js'
 import { commitMovementDecision } from './roomSceneCommit.js'
 import { accountBucket, send, type Admission, type SocketAttachment } from './roomSocket.js'
-import { readRoomSceneHeader, readRoomSceneState } from './roomSceneRead.js'
+import { readRoomSceneMovedBy } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
 import { RoomRateLimitedError } from './roomRateLimits.js'
 import { lookupRoomEncounterReplay } from './roomEncounterReplayIndex.js'
@@ -310,14 +310,8 @@ async function executeLocalEncounterCommand(
             delta: { scope: 'ENCOUNTER', result: ownResult }
           })
           // An action's forced movement (D139) or its revert moved tokens on the presented Scene.
-          const sceneHeader = sceneCache?.sceneHeader
-            ? readRoomSceneHeader(transaction, sceneCache.sceneHeader.id)
-            : null
-          const sceneState =
-            sceneHeader && sceneHeader.version !== sceneCache?.sceneHeader?.version
-              ? await readRoomSceneState(transaction, sceneHeader.id)
-              : null
-          const uncomposedScene = sceneState?.scene ?? sceneCache?.uncomposedScene
+          const moved = await readRoomSceneMovedBy(transaction, sceneCache?.sceneHeader)
+          const uncomposedScene = moved?.scene ?? sceneCache?.uncomposedScene
           const composition = uncomposedScene
             ? await composeRoomSceneVision({
                 store: host.store,
@@ -331,11 +325,7 @@ async function executeLocalEncounterCommand(
             : null
           if (composition)
             nextSceneStateJson = createNativeLiveSessionState(composition.scene).stateJson
-          return {
-            ...result,
-            composition,
-            moved: sceneState && sceneHeader ? { ...sceneState, header: sceneHeader } : null
-          }
+          return { ...result, composition, moved }
         },
         (entry) => {
           const latest = host.authorization.current(value.authorityEpoch)

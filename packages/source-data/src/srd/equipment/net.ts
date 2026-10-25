@@ -1,4 +1,5 @@
 import type { EquipmentAuthored } from '@artificer-toolkit/shared'
+import { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import * as S from './shared.js'
 export const net: EquipmentAuthored = {
   kind: S.SUBJECT.EQUIPMENT,
@@ -52,60 +53,40 @@ export const net: EquipmentAuthored = {
             outcomes: [
               {
                 id: S.equipmentChildId(S.equipId(37), 0x220, 1),
-                effectKind: S.EFFECT_KIND.MANIFEST,
-                manifestKind: 'OBJECT' as const,
-                attachmentKind: 'PRIMARY_TARGET' as const,
-                label: 'Restraining net',
-                maximumTargetSize: 'LARGE' as const,
-                excludesFormlessTargets: true,
-                components: [
+                effectKind: S.EFFECT_KIND.ACTOR_RELATIONSHIP,
+                heldAtOnce: 1,
+                modules: [
                   {
                     id: S.equipmentChildId(S.equipId(37), 0x221, 1),
                     order: 1,
-                    label: 'Net',
-                    armorClass: 10,
-                    destructionCriteria: [
-                      {
-                        id: S.equipmentChildId(S.equipId(37), 0x222, 1),
-                        order: 1,
-                        kind: 'DAMAGE_THRESHOLD' as const,
-                        damageTypeId: S.damageTypeId('SLASHING'),
-                        amount: 5
-                      }
-                    ]
+                    kind: 'TARGET_SIZE_MAXIMUM' as const,
+                    sizeCode: 'LARGE'
+                  },
+                  {
+                    id: S.equipmentChildId(S.equipId(37), 0x222, 1),
+                    order: 2,
+                    kind: 'ESCAPE_CHECK' as const,
+                    activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
+                    checks: {
+                      skillIds: [],
+                      abilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.STRENGTH]
+                    },
+                    dc: { kind: 'FIXED' as const, value: 10 },
+                    actorKinds: ['TARGET' as const, 'CREATURE_WITHIN_REACH' as const]
+                  },
+                  {
+                    id: S.equipmentChildId(S.equipId(37), 0x223, 1),
+                    order: 3,
+                    kind: 'SOURCE_INDEPENDENT_HOLD' as const
+                  }
+                ],
+                conditions: [
+                  {
+                    id: S.equipmentChildId(S.equipId(37), 0x224, 1),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: S.conditionTypeId('RESTRAINED')
                   }
                 ]
-              },
-              {
-                id: S.equipmentChildId(S.equipId(37), 0x212, 1),
-                effectKind: S.EFFECT_KIND.CONDITION,
-                conditionId: S.conditionTypeId('RESTRAINED')
-              }
-            ]
-          }
-        },
-        {
-          id: S.equipmentChildId(S.equipId(37), 0x213, 1),
-          order: 2,
-          pathCode: S.PATH_CODE.ON_HIT,
-          groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
-          originKind: 'SOURCE' as const,
-          selectionKind: 'FIXED' as const,
-          resultBlock: {
-            id: S.equipmentChildId(S.equipId(37), 0x213, 1) + '__result',
-            resultKind: 'SEQUENCE' as const,
-            outcomes: [
-              {
-                id: S.equipmentChildId(S.equipId(37), 0x213, 1),
-                effectKind: S.EFFECT_KIND.FOLLOW_UP_CHECK,
-                label: 'Free a creature from the net',
-                activation: { code: S.ACTIVATION_CODE.ACTION, amount: 1 },
-                ability: S.ABILITY_CODE.STRENGTH,
-                fixedDc: 10,
-                actorKinds: ['TARGET', 'CREATURE_WITHIN_REACH'],
-                repeatable: true,
-                onSuccess: { kind: 'END' as const },
-                onFailure: { kind: 'CONTINUE' as const }
               }
             ]
           }

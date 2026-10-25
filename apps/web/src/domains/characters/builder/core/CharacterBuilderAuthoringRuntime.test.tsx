@@ -213,7 +213,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
     mocks.create.mockRejectedValue(new Error('Temporary failure'))
     renderWithAppProviders(
       <AuthoringLayout
-        data={{ systems: [{ id: characterBuilderPayloadFixture.character.systemId }] }}
+        data={{ systemId: characterBuilderPayloadFixture.character.systemId, systems: [] }}
         kind='character-builder'
         mode='create'
       />
@@ -236,7 +236,7 @@ describe('CharacterBuilderAuthoringRuntime', () => {
       .mockReturnValueOnce(retry.promise)
     renderWithAppProviders(
       <AuthoringLayout
-        data={{ systems: [{ id: characterBuilderPayloadFixture.character.systemId }] }}
+        data={{ systemId: characterBuilderPayloadFixture.character.systemId, systems: [] }}
         kind='character-builder'
         mode='create'
       />

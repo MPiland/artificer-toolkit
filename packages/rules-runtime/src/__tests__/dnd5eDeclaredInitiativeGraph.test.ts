@@ -1,4 +1,6 @@
+import { SRD_DND5E_SPEED_FACTOR_INITIATIVE_GRAPH } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 import {
+  checksumRuleDocument,
   compileRuleGraph,
   createRuleOperationRegistry,
   executeRuleGraph,
@@ -12,7 +14,6 @@ import {
 } from '../platformRulesRuntime.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import {
-  createDnd5eSpeedFactorInitiativeDefinition,
   dnd5eDeclaredInitiativeRollFacts,
   dnd5eInitiativeFactAdapter,
   DND5E_INITIATIVE_FACT_KEYS
@@ -20,10 +21,9 @@ import {
 
 const OCCURRENCE_ID = '44444444-4444-4444-8444-444444444444'
 const operations = createRuleOperationRegistry(installedGameSystemRuleOperations)
-const published = createDnd5eSpeedFactorInitiativeDefinition()
 const compiled = compileRuleGraph({
-  definition: published.definition,
-  sourceChecksum: published.checksum,
+  definition: SRD_DND5E_SPEED_FACTOR_INITIATIVE_GRAPH,
+  sourceChecksum: checksumRuleDocument(SRD_DND5E_SPEED_FACTOR_INITIATIVE_GRAPH),
   capability: requireInstalledGameSystemRuleCapability(DND5E_SYSTEM_ID),
   operations
 })

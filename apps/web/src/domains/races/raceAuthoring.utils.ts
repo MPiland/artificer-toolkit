@@ -1,3 +1,4 @@
+import { defaultSize } from '@artificer-toolkit/rules-runtime/systemSizes'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type {
@@ -8,8 +9,7 @@ import type { SpeedDto } from '@artificer-toolkit/schema/shared'
 import {
   MEASUREMENT_UNIT_CODE,
   RACE_CATEGORY_CODE,
-  RACE_SELECTION_MODE,
-  SIZE_CODE
+  RACE_SELECTION_MODE
 } from '@artificer-toolkit/shared/core'
 
 type BaseRaceDto = Extract<RaceAuthoringInputDto, { category: 'BASE' }>
@@ -50,7 +50,7 @@ export function createEmptyBaseRace({ systemId }: CreateEmptyRaceInput): RaceFor
     heritageIds: [],
     details: [],
     features: [],
-    size: SIZE_CODE.MEDIUM,
+    size: systemId ? defaultSize(systemId) : '',
     speeds: [createEmptySpeed()],
     systemId
   }
@@ -96,10 +96,10 @@ export function toRaceFormValues(
 export function normalizeRaceForSubmit(race: RaceFormValues): RaceAuthoringInputDto {
   const common = {
     id: race.id,
-    label: race.label.trim() || 'Untitled Race',
+    label: race.label.trim(),
     quote: race.quote ?? '',
     description: race.description ?? '',
-    status: race.status ?? 'DRAFT',
+    status: race.status,
     details: race.details ?? [],
     features: race.features ?? [],
     systemId: race.systemId,
@@ -120,13 +120,9 @@ export function normalizeRaceForSubmit(race: RaceFormValues): RaceAuthoringInput
     selectionMode: race.selectionMode ?? RACE_SELECTION_MODE.DIRECT,
     ancestry: normalizeAncestry(race.ancestry),
     heritageIds: race.heritageIds ?? [],
-    size: race.size ?? SIZE_CODE.MEDIUM,
+    size: race.size ?? defaultSize(race.systemId),
     speeds: race.speeds ?? []
   }
-}
-
-export function resolveCreateRaceSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
 }
 
 function normalizeAncestry(ancestry: RaceFormValues['ancestry']): BaseRaceDto['ancestry'] {
