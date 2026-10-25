@@ -3,13 +3,14 @@ import {
   type D20Contributor,
   type RollModeContributorSource
 } from '@artificer-toolkit/shared/rules/contributors'
+import { facingArcLabel } from '@artificer-toolkit/shared/vtt/facingArc'
 
 import type { EncounterD20RollMode } from './encounterEvidenceAnswer.js'
 
 /** One recorded d20 contributor, as the evidence policies store it. */
 export type EncounterD20Contributor = Pick<
   D20Contributor,
-  'sourceId' | 'domainKey' | 'influence' | 'source'
+  'sourceId' | 'domainKey' | 'influence' | 'source' | 'positional'
 >
 
 /** The key a reason label is stored under: the contributor's typed source, never its opaque ids. */
@@ -29,6 +30,9 @@ export type EncounterRollModeReasons = (input: {
 /** A ranged attack beyond its normal range (D62): a rules-owned contributor with no authored source. */
 export const ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE}`
 
+/** An attacker standing in an arc of its target's facing that the Facing rule names (ATTACK-12). */
+export const ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.FACING}`
+
 /** An attacker its target cannot see (SRD): advantage on the attack roll. */
 export const ENCOUNTER_UNSEEN_ATTACKER_CONTRIBUTOR_SOURCE_ID = `rule:${ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER}`
 
@@ -44,6 +48,7 @@ export function encounterRuleContributorSource(
 
 /** The reason labels of rules-owned contributors, which no authored source names. */
 const RULE_CONTRIBUTOR_LABELS: ReadonlyMap<string, string> = new Map([
+  [ROLL_MODE_RULE_SOURCE_IDS.FACING, 'Facing'],
   [ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE, 'Long range'],
   [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_ATTACKER, 'Unseen attacker'],
   [ROLL_MODE_RULE_SOURCE_IDS.UNSEEN_TARGET, 'Unseen target']
@@ -90,7 +95,10 @@ export function labelEncounterRollModeReasons(
           : contributor.source.kind === 'RULE'
             ? RULE_CONTRIBUTOR_LABELS.get(contributor.source.id)
             : labels.get(rollModeSourceKey(contributor.source))
-        return label ? [label] : []
+        if (!label) return []
+        return contributor.positional && !hidden(contributor)
+          ? [`${label} (${facingArcLabel(contributor.positional.arc)} arc)`]
+          : [label]
       })
     )
   ]

@@ -59,6 +59,7 @@ import {
   withOwnedTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import {
   snapshotCreatureTypeId,
   withFeatureChargeUsed
@@ -82,15 +83,12 @@ import {
   readNativeLiveEnemyProximity,
   readNativeLiveMoveToward
 } from './nativeAttackEnemyProximity.js'
+import { nativeLiveAttackSceneLoaders } from './nativeAttackSceneLoaders.js'
 import {
   readNativeActionSourceOffers,
   readNativeLiveTurnMovedFeet,
   readNativeLiveTurnUses
 } from './nativeTurnUses.js'
-import {
-  readNativeLiveAttackPerception,
-  readNativeLiveSourcesSeen
-} from './nativeAttackPerception.js'
 import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
@@ -568,27 +566,16 @@ export async function planNativeLiveEncounterAction(
       overridable: true,
       movementTargets: targets,
       sceneContext,
-      loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
-        readNativeLiveAttackPerception({
-          state,
-          system,
-          attacker: sourceFacts,
-          target: targetFacts,
-          roller,
-          sceneContext,
-          capture
-        }),
-      loadSourcesSeen: ({ holder, sourceActorIds }) =>
-        readNativeLiveSourcesSeen({
-          state,
-          system,
-          holder,
-          sourceActorIds,
-          actors,
-          loadTarget: async (actor) => targets.get(actor.id) ?? loadTarget(actor),
-          sceneContext,
-          capture
-        }),
+      ...nativeLiveAttackSceneLoaders({
+        state,
+        system,
+        actors,
+        movementTargets: targets,
+        loadTarget,
+        definitions,
+        sceneContext,
+        capture
+      }),
       loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
         readNativeLiveEnemyProximity({
           state,
@@ -741,7 +728,8 @@ export async function planNativeLiveEncounterAction(
       target: prepared.target,
       targetPolicy: prepared.targetPolicy,
       makesAttackRoll: prepared.makesAttackRoll,
-      sceneContext
+      sceneContext,
+      facing: encounterFacingRule(state)
     },
     targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
     sizes: {

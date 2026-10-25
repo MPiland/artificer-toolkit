@@ -11,10 +11,12 @@ import {
 import { readRunActors, readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import { persistEncounterEndHeldGrant } from '@artificer-toolkit/encounter-persistence/endHeldGrantPersistence'
 import { persistEncounterMoveHeldEffect } from '@artificer-toolkit/encounter-persistence/moveHeldEffectPersistence'
+import { persistEncounterChangeFacing } from '@artificer-toolkit/encounter-persistence/changeFacingPersistence'
 import { persistEncounterEscape } from '@artificer-toolkit/encounter-persistence/escapePersistence'
 import { persistEncounterReleaseRelationship } from '@artificer-toolkit/encounter-persistence/releaseRelationshipPersistence'
 import type { EncounterWriteTransaction } from '@artificer-toolkit/encounter-persistence/ports'
 import type {
+  ChangeFacingInputDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
@@ -30,6 +32,8 @@ import { planNativeLiveEndHeldGrant } from './nativeEndHeldGrantAction.js'
 import { planNativeLiveEscape } from './nativeEscapeAction.js'
 import { planNativeLiveEscapeResponse } from './nativeEscapeActionResponse.js'
 import { planNativeLiveMoveHeldEffect } from './nativeMoveHeldEffectAction.js'
+import { planNativeLiveChangeFacing } from './nativeChangeFacingAction.js'
+import { setRoomActorFacing } from './roomActionFacing.js'
 import { planNativeLiveReleaseRelationship } from './nativeReleaseRelationshipAction.js'
 import { applyRoomEncounterMechanicsBatch } from './roomEncounterMechanics.js'
 import { applyRoomForcedMovements } from './roomActionForcedMovement.js'
@@ -205,6 +209,37 @@ export async function executeRoomEncounterMoveHeldEffect(
         assertRoomEncounterReadFence(ctx, transaction, observed, state, actors, {
           revisions: fence.revisions,
           scenes: []
+        })
+    }
+  )
+}
+
+/** A creature's Change facing reaction turns its token and spends its reaction in one native commit (ATTACK-12). */
+export async function executeRoomEncounterChangeFacing(
+  input: RoomBasicActionInput & { command: ChangeFacingInputDto }
+) {
+  const { ctx, transaction, scope, observed } = input
+  const plan = await planNativeLiveChangeFacing(scope, input.command, basicActionExecution(input))
+  if (plan.kind === 'REPLAY') return plan.result
+  const revisions = await readBasicActionRevisions(input)
+  mergeNativeRulesRevisions(revisions, plan.input.revisions)
+  return persistEncounterChangeFacing(
+    ctx,
+    { ...plan.input, revisions },
+    {
+      validateReadFence: (state, actors, fence) =>
+        assertRoomEncounterReadFence(ctx, transaction, observed, state, actors, {
+          revisions: fence.revisions,
+          scenes: []
+        }),
+      setActorFacing: ({ encounterId, commandId, actorId, rotationDegrees }) =>
+        setRoomActorFacing({
+          ctx,
+          transaction,
+          userId: scope.expectedUserId,
+          actorId,
+          rotationDegrees,
+          origin: { encounterId, commandId }
         })
     }
   )

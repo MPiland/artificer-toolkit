@@ -25,6 +25,7 @@ import {
   endHeldGrantInputDtoSchema,
   escapeRelationshipInputDtoSchema,
   moveHeldEffectInputDtoSchema,
+  changeFacingInputDtoSchema,
   releaseRelationshipInputDtoSchema,
   resolveCheckActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema
@@ -256,6 +257,22 @@ export const liveSessionEncounterMoveHeldEffectCommitInputSchema = lazySchema(()
 )
 
 /**
+ * A room-planned facing change (ATTACK-12): the reaction it spent. The room turns the actor's token
+ * in the same commit; Convex never runs it.
+ */
+export const liveSessionEncounterChangeFacingCommitInputSchema = lazySchema(() =>
+  z.extend(basicActionScope, {
+    command: changeFacingInputDtoSchema,
+    revisions: liveSessionRulesRevisionsSchema,
+    occurredAt: z.iso.datetime(),
+    actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+    /** Warnings the command acknowledged and the room overrode. */
+    ruleOverrides: encounterRuleWarningsDtoSchema,
+    rules: encounterActorRuleOutputSchema
+  })
+)
+
+/**
  * A room-planned release of a relationship by its source (D152): free, so it spends nothing.
  * Convex re-reads the effect's source, ends it and the conditions only it held, and records it.
  */
@@ -287,6 +304,9 @@ export type LiveSessionEncounterEndHeldGrantCommitInput = z.infer<
 >
 export type LiveSessionEncounterMoveHeldEffectCommitInput = z.infer<
   typeof liveSessionEncounterMoveHeldEffectCommitInputSchema
+>
+export type LiveSessionEncounterChangeFacingCommitInput = z.infer<
+  typeof liveSessionEncounterChangeFacingCommitInputSchema
 >
 export type LiveSessionEncounterReleaseRelationshipCommitInput = z.infer<
   typeof liveSessionEncounterReleaseRelationshipCommitInputSchema

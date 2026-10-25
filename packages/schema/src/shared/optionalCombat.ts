@@ -1,9 +1,12 @@
+import { FACING_ARCS, type FacingArc } from '@artificer-toolkit/shared/vtt/facingArc'
+
 import { z, lazySchema } from '../zod.js'
 
 import type { AutomationModeDto } from '../api/campaignSettings.js'
 import { ruleCapabilityKeyDtoSchema } from '../api/rulesRuntime.js'
 import { effectDtoSchema } from '../effects/effect.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUuid.js'
+import { systemCoreCodeSchema } from './systemCoreCode.js'
 import { dnd5eOptionalCombatRuleKindDtoSchema } from './reusableDefinitionIdentity.js'
 export { dnd5eOptionalCombatRuleKindDtoSchema }
 export { DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY } from './reusableDefinitionIdentity.js'
@@ -354,6 +357,64 @@ const boundedCheckDefinitionChoicesSchema = lazySchema(() =>
     )
 )
 
+const facingArcDtoSchema = lazySchema(() => z.enum(FACING_ARCS))
+
+function uniqueFacingArcs<T>(arcOf: (entry: T) => FacingArc) {
+  return z.superRefine<T[]>((entries, context) => {
+    if (new Set(entries.map(arcOf)).size !== entries.length)
+      context.addIssue({ code: 'custom', message: 'Facing arcs must be unique.' })
+  })
+}
+
+/**
+ * Clockwise offsets from a token's facing. The arcs tile the full circle without overlap, so every
+ * direction belongs to exactly one arc; a direction on a shared edge belongs to the arc nearer the front.
+ */
+const facingArcTableDtoSchema = lazySchema(() =>
+  z
+    .array(
+      z
+        .strictObject({
+          arc: facingArcDtoSchema,
+          fromDegrees: z.number().check(z.int()).check(z.gte(-360)).check(z.lt(360)),
+          toDegrees: z.number().check(z.int()).check(z.gt(-360)).check(z.lte(720))
+        })
+        .check(
+          z.superRefine((range, context) => {
+            if (range.toDegrees <= range.fromDegrees || range.toDegrees - range.fromDegrees > 360)
+              context.addIssue({
+                code: 'custom',
+                message: 'A facing arc spans more than zero and at most 360 degrees.'
+              })
+          })
+        )
+    )
+    .check(z.minLength(1))
+    .check(z.maxLength(FACING_ARCS.length))
+    .check(uniqueFacingArcs((range) => range.arc))
+    .check(
+      z.superRefine((arcs, context) => {
+        const wrap = (degrees: number) => ((degrees % 360) + 360) % 360
+        const ordered = [...arcs].sort(
+          (left, right) => wrap(left.fromDegrees) - wrap(right.fromDegrees)
+        )
+        const span = ordered.reduce(
+          (total, range) => total + range.toDegrees - range.fromDegrees,
+          0
+        )
+        const contiguous = ordered.every(
+          (range, index) =>
+            wrap(range.toDegrees) === wrap(ordered[(index + 1) % ordered.length]!.fromDegrees)
+        )
+        if (span !== 360 || !contiguous)
+          context.addIssue({
+            code: 'custom',
+            message: 'Facing arcs must cover the full circle without gaps or overlap.'
+          })
+      })
+    )
+)
+
 export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
@@ -361,7 +422,33 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
       participantCapabilityDefinitionId: serverUuidIdentityDtoSchema
     }),
     z.strictObject({ kind: z.literal('ALTERNATING_DIAGONALS') }),
-    z.strictObject({ kind: z.literal('FACING') }),
+    z.strictObject({
+      kind: z.literal('FACING'),
+      /** A facing is a whole multiple of this step from north; it divides 360. */
+      facingStepDegrees: z
+        .number()
+        .check(z.int())
+        .check(z.positive())
+        .check(z.lte(360))
+        .check(
+          z.superRefine((step, context) => {
+            if (360 % step !== 0)
+              context.addIssue({
+                code: 'custom',
+                message: 'A facing step must divide 360 degrees.'
+              })
+          })
+        ),
+      arcs: facingArcTableDtoSchema,
+      attackerInTargetArc: z
+        .array(z.strictObject({ arc: facingArcDtoSchema, influence: systemCoreCodeSchema }))
+        .check(z.maxLength(FACING_ARCS.length))
+        .check(uniqueFacingArcs((entry) => entry.arc)),
+      sourceCannotTargetInOwnArcs: z
+        .array(facingArcDtoSchema)
+        .check(z.maxLength(FACING_ARCS.length))
+        .check(uniqueFacingArcs((arc) => arc))
+    }),
     z.strictObject({ kind: z.literal('CLIMB_ONTO_LARGER_CREATURE') }),
     z.strictObject({
       kind: z.literal('DISARM'),
