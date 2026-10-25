@@ -274,17 +274,18 @@ function getProficiencyLabel(
   )
 }
 
+function requireSystemAbility(params: BuildCharacterSheetPanelParams, code: string) {
+  const ability = params.resolution.registry.system?.abilities.find((entry) => entry.code === code)
+  if (!ability) throw new Error(`Ability "${code}" is not available on this character sheet.`)
+  return ability
+}
+
 function buildAbilityPanel(
   params: BuildCharacterSheetPanelParams,
   ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'ABILITY' }>
 ): CharacterSheetPanelDto {
-  const ability = params.sheet.overview.abilities.find((row) => row.ability === target.ability)
-  if (!ability)
-    throw new Error(`Ability "${target.ability}" is not available on this character sheet.`)
-  const description = params.resolution.registry.system?.abilities.find(
-    ({ code }) => code === target.ability
-  )?.description
+  const ability = requireSystemAbility(params, target.ability)
   const matching = params.adjustments.filter(
     (adjustment) => adjustment.family === 'ABILITY' && adjustment.ability === target.ability
   )
@@ -309,7 +310,7 @@ function buildAbilityPanel(
     characterId: params.character.id,
     target,
     title: ability.label,
-    ...(description ? { description } : {}),
+    ...(ability.description ? { description: ability.description } : {}),
     state: resolvePanelState(params.adjustments, target),
     editable: params.editable,
     allowedCommands: [...CORE_PANEL_COMMANDS],
@@ -345,10 +346,7 @@ function buildSavingThrowPanel(
   ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'SAVING_THROW' }>
 ): CharacterSheetPanelDto {
-  const ability = params.sheet.overview.savingThrows.find((row) => row.ability === target.ability)
-  if (!ability) {
-    throw new Error(`Saving throw "${target.ability}" is not available on this character sheet.`)
-  }
+  const ability = requireSystemAbility(params, target.ability)
   const getNumeric = (field: 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE') =>
     findAdjustment(
       params.adjustments,
@@ -483,10 +481,7 @@ function buildSkillPanel(
       label: 'Governing ability',
       value:
         governingAbility?.field === 'GOVERNING_ABILITY_OVERRIDE' ? governingAbility.value : null,
-      options: params.sheet.overview.abilities.map(({ ability, label }) => ({
-        value: ability,
-        label
-      })),
+      options: params.sheet.overview.abilities.map((a) => ({ value: a.ability, label: a.label })),
       commitIntent: 'IMMEDIATE',
       ...adjustmentEditorMetadata(governingAbility)
     }

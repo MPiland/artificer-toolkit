@@ -894,10 +894,7 @@ const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNo
         selectSingle(
           ['ability'],
           'Ability',
-          {
-            kind: 'DATA',
-            relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
-          },
+          { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
           { requiredIf: true, showIf: isAbilityModifier }
         )
       )
@@ -2259,10 +2256,7 @@ function registerOutcomeFields(
       selectSingle(
         ['ability'],
         'Ability',
-        {
-          kind: 'DATA',
-          relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
-        },
+        { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
         {
           requiredIf: true,
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)

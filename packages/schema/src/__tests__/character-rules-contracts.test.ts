@@ -711,7 +711,7 @@ describe('Character rule contracts', () => {
         ...inputWithClosedCodes,
         spellAccessCandidates: inputWithClosedCodes.spellAccessCandidates.map((candidate) => ({
           ...candidate,
-          castingAbility: 'ARCANA'
+          castingAbility: 'arcana'
         }))
       }).success
     ).toBe(false)
@@ -921,7 +921,7 @@ describe('Character rule contracts', () => {
     expect(
       characterRulePolicyOutputSchema.safeParse({
         ...outputWithClosedCodes,
-        spellAccess: [{ ...outputWithClosedCodes.spellAccess[0]!, castingAbility: 'ARCANA' }]
+        spellAccess: [{ ...outputWithClosedCodes.spellAccess[0]!, castingAbility: 'arcana' }]
       }).success
     ).toBe(false)
   })
