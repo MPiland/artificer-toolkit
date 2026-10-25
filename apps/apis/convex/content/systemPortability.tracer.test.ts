@@ -118,7 +118,7 @@ const saveFirstDraft = (author: Author, graph: ReturnType<typeof tracerGraph>) =
     definitionId: graph.id,
     expectedDefinitionVersion: 0,
     expectedDraftVersion: null,
-    document: jsonValueSchema.parse(JSON.parse(JSON.stringify(graph)))
+    document: graph
   })
 
 const publishFirstDraft = (author: Author, definitionId: string) =>
