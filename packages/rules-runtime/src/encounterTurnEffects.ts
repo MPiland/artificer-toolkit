@@ -49,13 +49,14 @@ import { rebuildEncounterTurnTarget } from './encounterTurnTarget.js'
 import { sourceActorIdOf } from './events/encounterEventHooks.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import {
-  isTurnEffectEligible,
   requireTurnMaintainedStates,
+  selectTurnEffectCandidates,
   turnEffectDamageEnded,
   turnEffectOwner,
   turnEffectRetainedConditions,
   turnEffectSelectionChecksum,
-  type TurnEffectBoundary
+  type TurnEffectBoundary,
+  type TurnEffectCandidate
 } from './encounterTurnEffectState.js'
 import type { EncounterResponseAnswer } from './encounterEvidenceAnswer.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
@@ -72,6 +73,14 @@ type TurnPending = Extract<
 
 function same(left: unknown, right: unknown) {
   return checksumCanonicalJson(left) === checksumCanonicalJson(right)
+}
+
+type TurnEffectHolder = { target: MovementTarget; effects: ActiveRuleEffectRecord[] }
+
+function holderOf(holders: ReadonlyMap<string, TurnEffectHolder>, candidate: TurnEffectCandidate) {
+  const holder = holders.get(candidate.holder.id)
+  if (!holder) throw new Error('Turn effect target facts are unavailable.')
+  return holder
 }
 
 function targetChecksum(
@@ -355,10 +364,10 @@ async function evaluateEncounterTurnEffects(input: {
   occurrenceId: string
   actors: EncounterRunActorState[]
   boundary: TurnEffectBoundary
-  target: MovementTarget
   targets: ReadonlyMap<string, MovementTarget>
-  effects: ActiveRuleEffectRecord[]
-  candidates: ActiveRuleEffectRecord[]
+  /** Each candidate holder's rebuilt target and the effects it holds. */
+  holders: ReadonlyMap<string, TurnEffectHolder>
+  candidates: TurnEffectCandidate[]
   selectionChecksum: string
   root?: TurnCoordinatorRootDto
   pending?: ServerRuleExecutionPendingSnapshotDto
@@ -387,14 +396,15 @@ async function evaluateEncounterTurnEffects(input: {
   // Check the entire issued suffix before consuming any new random evidence.
   if (pending) {
     for (const expected of [pending.currentCandidate, ...pending.remainingCandidates]) {
-      const effect = input.candidates[expected.ordinal]
-      if (!effect) throw new Error('Turn effect candidate is stale.')
+      const candidate = input.candidates[expected.ordinal]
+      if (!candidate) throw new Error('Turn effect candidate is stale.')
+      const { target } = holderOf(input.holders, candidate)
       const actual = pendingCandidate({
         ordinal: expected.ordinal,
         boundary: input.boundary,
-        target: input.target,
-        effect,
-        state: executionState(input.target),
+        target,
+        effect: candidate.effect,
+        state: executionState(target),
         sealed: expected.ordinal === pending.currentCandidate.ordinal ? expected : null
       })
       if (!same({ ...actual, targetStateChecksum: expected.targetStateChecksum }, expected))
@@ -403,13 +413,19 @@ async function evaluateEncounterTurnEffects(input: {
   }
   const runtime = await input.createRuntime()
   const executions: TurnExecution[] = []
-  const applications: CharacterRuleActionApplication[] = []
+  const applications = new Map<string, CharacterRuleActionApplication[]>()
   const expired = new Set<string>()
   // Effects an earlier execution's damage ended; a candidate among them expires at its own turn.
   const damageEnded = new Set<string>()
   const dispositions = new Map(input.actors.map(({ id, disposition }) => [id, disposition]))
-  let state = executionState(input.target)
-  for (const [ordinal, effect] of input.candidates.entries()) {
+  // Each holder's state chains through its own executions only.
+  const states = new Map(
+    [...input.holders].map(([actorId, { target }]) => [actorId, executionState(target)])
+  )
+  for (const [ordinal, candidate] of input.candidates.entries()) {
+    const { effect } = candidate
+    const { target, effects } = holderOf(input.holders, candidate)
+    const state = states.get(target.actor.id)!
     if (effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId)
       throw new Error('Turn effect Game System is stale.')
     const recurrence = effect.definition.recurrence
@@ -429,10 +445,10 @@ async function evaluateEncounterTurnEffects(input: {
       lifecycle: effect.lifecycle,
       lifecycleChecksum: effect.lifecycleChecksum,
       occurrenceId: input.occurrenceId,
-      ...activeEffectTargetFacts(input.target, state),
+      ...activeEffectTargetFacts(target, state),
       perception: await input.resolvePerception({
         actors: input.actors,
-        target: input.target,
+        target,
         targets: input.targets,
         effect
       }),
@@ -459,7 +475,7 @@ async function evaluateEncounterTurnEffects(input: {
         pendingCandidate({
           ordinal,
           boundary: input.boundary,
-          target: input.target,
+          target,
           effect,
           state,
           sealed: pending.currentCandidate
@@ -508,7 +524,7 @@ async function evaluateEncounterTurnEffects(input: {
         effectInput,
         candidate: {
           sourceActorId: sourceActorIdOf(effect) ?? null,
-          targetActorId: input.target.actor.id
+          targetActorId: target.actor.id
         },
         result,
         d20,
@@ -530,32 +546,33 @@ async function evaluateEncounterTurnEffects(input: {
             currentCandidate: pendingCandidate({
               ordinal,
               boundary: input.boundary,
-              target: input.target,
+              target,
               effect,
               state,
               sealed: { d20Policy: result.evidencePolicy, diceStage: d20 }
             }),
             completedExecutions: executions,
-            remainingCandidates: input.candidates.slice(ordinal + 1).map((remaining, offset) =>
-              pendingCandidate({
+            remainingCandidates: input.candidates.slice(ordinal + 1).map((remaining, offset) => {
+              const holder = holderOf(input.holders, remaining)
+              return pendingCandidate({
                 ordinal: ordinal + offset + 1,
                 boundary: input.boundary,
-                target: input.target,
-                effect: remaining,
-                state
+                target: holder.target,
+                effect: remaining.effect,
+                state: states.get(holder.target.actor.id)!
               })
-            )
+            })
           }
         })
       }
     }
     const ended = turnEffectDamageEnded({
       effect,
-      holderActorId: input.target.actor.id,
-      held: input.effects,
+      holderActorId: target.actor.id,
+      held: effects,
       excluded: new Set([
         ...damageEnded,
-        ...input.candidates.slice(0, ordinal + 1).map(({ id }) => id)
+        ...input.candidates.slice(0, ordinal + 1).map(({ effect: { id } }) => id)
       ]),
       testEvidence: [result.d20],
       applications: result.applications,
@@ -575,7 +592,7 @@ async function evaluateEncounterTurnEffects(input: {
         ...result.applications,
         ...ended.releases,
         ...(lifecycle(effect, terminal).kind === 'EXPIRE'
-          ? expiredEffectReleases(effect, input.target.actor.id)
+          ? expiredEffectReleases(effect, target.actor.id)
           : [])
       ]
     }
@@ -583,18 +600,21 @@ async function evaluateEncounterTurnEffects(input: {
     const { execution, ownConditions } = completeExecution({
       ordinal,
       boundary: input.boundary,
-      target: input.target,
+      target,
       effect,
       state,
-      retainedConditionIds: turnEffectRetainedConditions(effect, input.effects, expired),
+      retainedConditionIds: turnEffectRetainedConditions(effect, effects, expired),
       result: settled
     })
     if (existing && !same(existing, execution))
       throw new Error('Retained turn effect execution is stale.')
     executions.push(execution)
-    applications.push(...settled.applications)
+    applications.set(target.actor.id, [
+      ...(applications.get(target.actor.id) ?? []),
+      ...settled.applications
+    ])
     const after = execution.targetTransition.after
-    state = {
+    states.set(target.actor.id, {
       current: after.currentHitPoints,
       temporary: after.temporaryHitPoints,
       temporarySourceEffectId: after.temporaryHitPointsSourceEffectId ?? null,
@@ -602,21 +622,29 @@ async function evaluateEncounterTurnEffects(input: {
       deathSaves: after.deathSaves,
       ownConditions,
       scalarValues: after.scalarValues
-    }
+    })
     if (execution.lifecycle.kind === 'EXPIRE') expired.add(effect.id)
   }
-  const retainedConditionIds = [
-    ...new Set(
-      input.candidates.flatMap((effect) =>
-        turnEffectRetainedConditions(effect, input.effects, expired)
-      )
-    )
-  ].sort()
   return {
     kind: 'COMPLETE' as const,
     plan: { selectionChecksum: input.selectionChecksum, executions },
-    applications,
-    retainedConditionIds
+    settlements: [...applications].map(([actorId, targetApplications]) => ({
+      actorId,
+      applications: targetApplications,
+      retainedConditionIds: [
+        ...new Set(
+          input.candidates.flatMap((candidate) =>
+            candidate.holder.id === actorId
+              ? turnEffectRetainedConditions(
+                  candidate.effect,
+                  holderOf(input.holders, candidate).effects,
+                  expired
+                )
+              : []
+          )
+        )
+      ].sort()
+    }))
   }
 }
 
@@ -704,35 +732,36 @@ export async function prepareEncounterTurnEffects<
     }
   }
   if (input.boundary.actorId === null) return none()
-  const actor = input.actors.find((candidate) => candidate.id === input.boundary.actorId)
-  if (!actor) throw new Error('Turn effect actor is unavailable.')
-  const currentEffects = await input.listEffects(turnEffectOwner(actor, input.state.id))
-  if (
-    input.priorPlan?.kind === 'STAGED' &&
-    input.priorPlan.plan.executions.some(
-      (entry) =>
-        entry.targetActorId === actor.id &&
-        !currentEffects.some((effect) => effect.id === entry.activeEffectId)
-    )
+  const turnActorId = input.boundary.actorId
+  if (!input.actors.some(({ id }) => id === turnActorId))
+    throw new Error('Turn effect actor is unavailable.')
+  const priorExecutions = input.priorPlan?.kind === 'STAGED' ? input.priorPlan.plan.executions : []
+  const holders = await Promise.all(
+    input.actors.map(async (actor) => {
+      const currentEffects = await input.listEffects(turnEffectOwner(actor, input.state.id))
+      if (
+        priorExecutions.some(
+          (entry) =>
+            entry.targetActorId === actor.id &&
+            !currentEffects.some((effect) => effect.id === entry.activeEffectId)
+        )
+      )
+        throw new Error('Prior turn effect selection is stale.')
+      return { actor, effects: overlayEffects(currentEffects, input.priorPlan) }
+    })
   )
-    throw new Error('Prior turn effect selection is stale.')
-  const effects = overlayEffects(currentEffects, input.priorPlan)
-  const candidates = effects
-    .filter((effect) => isTurnEffectEligible(effect, actor, input.state, input.boundary.stage))
-    .sort(
-      (left, right) => left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
-    )
+  const candidates = selectTurnEffectCandidates({
+    state: input.state,
+    stage: input.boundary.stage,
+    turnActorId,
+    holders
+  })
   if (!candidates.length) return none()
-  if (
-    candidates.length +
-      (input.priorPlan?.kind === 'STAGED' ? input.priorPlan.plan.executions.length : 0) >
-    128
-  )
+  if (candidates.length + priorExecutions.length > 128)
     throw new Error('A turn may execute at most 128 active effects.')
   const selected = turnEffectSelectionChecksum(
     input.root.commandType,
     input.boundary,
-    actor,
     input.state.id,
     candidates
   )
@@ -759,72 +788,86 @@ export async function prepareEncounterTurnEffects<
     }
   }
   if (input.retainedPhase?.kind === 'MANUAL') throw new Error('Retained turn automation is stale.')
-  await requireTurnMaintainedStates(input.state.id, actor, candidates, input.loadMaintainedState)
-  let target = targets.get(actor.id)
-  if (!target) target = await input.loadTarget(actor.id)
-  if (!target) throw new Error('Turn effect target facts are unavailable.')
-  // Root-owned transient facts may include earlier phase mechanics and resource refreshes.
-  target = rebuildEncounterTurnTarget({
-    source: target,
-    actor,
-    characterFacts: target.characterFacts,
-    activeEffects: effects,
-    state: input.state
-  })
-  targets.set(actor.id, target)
+  const held = new Map<
+    string,
+    { target: MovementTarget<TCharacterFacts>; effects: ActiveRuleEffectRecord[] }
+  >()
+  for (const { actor, effects } of holders) {
+    const own = candidates.flatMap(({ holder, effect }) => (holder.id === actor.id ? [effect] : []))
+    if (!own.length) continue
+    await requireTurnMaintainedStates(input.state.id, actor, own, input.loadMaintainedState)
+    const loaded = targets.get(actor.id) ?? (await input.loadTarget(actor.id))
+    if (!loaded) throw new Error('Turn effect target facts are unavailable.')
+    // Root-owned transient facts may include earlier phase mechanics and resource refreshes.
+    const target = rebuildEncounterTurnTarget({
+      source: loaded,
+      actor,
+      characterFacts: loaded.characterFacts,
+      activeEffects: effects,
+      state: input.state
+    })
+    targets.set(actor.id, target)
+    held.set(actor.id, { target, effects })
+  }
   const evaluated = await evaluateEncounterTurnEffects({
     ...input,
-    target,
     targets,
-    effects,
+    holders: held,
     candidates,
     selectionChecksum: selected,
     retainedPlan: input.retainedPhase?.kind === 'STAGED' ? input.retainedPhase.plan : undefined
   })
   if (evaluated.kind === 'PENDING') return evaluated
-  const batch = turnEffectMechanicsBatch({
-    ...input,
-    target,
-    rootCommandId: input.root.rootCommandId,
-    occurredAt: target.characterFacts?.active.updatedAt ?? '1970-01-01T00:00:00.000Z',
-    applications: evaluated.applications,
-    retainedConditionIds: evaluated.retainedConditionIds
-  })
-  const mechanics = planEncounterMechanicsBatch({
-    batch,
-    actor,
-    userId: input.userId,
-    characterFacts: target.characterFacts ?? undefined
-  })
-  const first = evaluated.plan.executions[0]!
-  const last = evaluated.plan.executions.at(-1)!
-  if (
-    !same(mechanics.targetTransition.before, first.targetTransition.before) ||
-    !same(mechanics.targetTransition.after, last.targetTransition.after)
-  )
-    throw new Error('Grouped turn effect target transition is stale.')
-  const projected = projectEncounterActionTarget({
-    target,
-    actor: mechanics.updatedActor,
-    plan: mechanics,
-    campaignId: input.state.campaignId,
-    gameSystemId: input.state.gameSystemId,
-    occurredAt: batch.occurredAt
-  })
-  // The next boundary observes expired/updated rows as well as staged target mechanics.
-  targets.set(
-    actor.id,
-    rebuildEncounterTurnTarget({
-      source: target,
-      actor: projected.actor,
-      characterFacts: projected.characterFacts,
-      activeEffects: overlayEffects(effects, { kind: 'STAGED', plan: evaluated.plan }),
-      state: input.state
+  const actors = new Map(input.actors.map((actor) => [actor.id, actor]))
+  // One mechanics batch per holder, each spanning that holder's chained executions.
+  for (const settlement of evaluated.settlements) {
+    const { target, effects } = held.get(settlement.actorId)!
+    const batch = turnEffectMechanicsBatch({
+      ...input,
+      target,
+      rootCommandId: input.root.rootCommandId,
+      occurredAt: target.characterFacts?.active.updatedAt ?? '1970-01-01T00:00:00.000Z',
+      applications: settlement.applications,
+      retainedConditionIds: settlement.retainedConditionIds
     })
-  )
+    const mechanics = planEncounterMechanicsBatch({
+      batch,
+      actor: actors.get(settlement.actorId)!,
+      userId: input.userId,
+      characterFacts: target.characterFacts ?? undefined
+    })
+    const own = evaluated.plan.executions.filter(
+      ({ targetActorId }) => targetActorId === settlement.actorId
+    )
+    if (
+      !same(mechanics.targetTransition.before, own[0]!.targetTransition.before) ||
+      !same(mechanics.targetTransition.after, own.at(-1)!.targetTransition.after)
+    )
+      throw new Error('Grouped turn effect target transition is stale.')
+    const projected = projectEncounterActionTarget({
+      target,
+      actor: mechanics.updatedActor,
+      plan: mechanics,
+      campaignId: input.state.campaignId,
+      gameSystemId: input.state.gameSystemId,
+      occurredAt: batch.occurredAt
+    })
+    // The next boundary observes expired/updated rows as well as staged target mechanics.
+    targets.set(
+      settlement.actorId,
+      rebuildEncounterTurnTarget({
+        source: target,
+        actor: projected.actor,
+        characterFacts: projected.characterFacts,
+        activeEffects: overlayEffects(effects, { kind: 'STAGED', plan: evaluated.plan }),
+        state: input.state
+      })
+    )
+    actors.set(settlement.actorId, mechanics.updatedActor)
+  }
   return {
     kind: 'COMPLETE',
-    actors: input.actors.map((value) => (value.id === actor.id ? mechanics.updatedActor : value)),
+    actors: input.actors.map(({ id }) => actors.get(id)!),
     movementTargets: targets,
     plan: evaluated.plan,
     phase: { kind: 'STAGED', plan: evaluated.plan }

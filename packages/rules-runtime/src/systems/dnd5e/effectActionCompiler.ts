@@ -192,7 +192,7 @@ import {
   marginRiderPlan,
   timedBandConditions
 } from './effectActionBandConditions.js'
-import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import { conditionDurationTurns, dnd5eRepeatSave, planTickAnchor } from './effectActionFollowUp.js'
 import { compiledCreatureFormFilter, formDuration } from './effectActionCreatureFormFilter.js'
 import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
 import { turnEndGateEvidenceBinding, turnEndGatePlan } from './effectActionTurnEndGate.js'
@@ -760,14 +760,11 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   const plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,
     compiledEntryId: relationship.id,
-    frozenGraphNodeId: recurrence?.save
-      ? 'proposal-on_save_fail'
-      : recurrence
-        ? 'relationship-recurrence'
-        : 'relationship-state',
+    frozenGraphNodeId: recurrence?.frozenGraphNodeId ?? 'relationship-state',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: recurrence ? 'START_OF_TURN' : 'NONE',
     initialRemaining: null,
+    tickAnchor: planTickAnchor(relationship.recurrence?.turnAnchor),
     actorRelationshipContribution: {
       relationshipOutcomeId: relationship.id,
       heldAtOnce: relationship.heldAtOnce,
@@ -1076,7 +1073,7 @@ function timedConditionPlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: indefinite ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
-    tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
+    tickAnchor: planTickAnchor(turnAnchor),
     conditionContributions: conditionEntries.map(({ outcome }) => ({
       conditionId: outcome.conditionId,
       recordsSource: outcome.recordsSource,

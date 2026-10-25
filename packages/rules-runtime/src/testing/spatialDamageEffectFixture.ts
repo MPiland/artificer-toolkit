@@ -217,6 +217,7 @@ export async function buildSpatialDamageEffect(input: {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],
@@ -229,8 +230,7 @@ export async function buildSpatialDamageEffect(input: {
           : {
               kind: 'TICKS',
               initialRemaining: input.remainingTicks,
-              decrementStage: 'END_OF_TURN',
-              anchor: 'HOLDER'
+              decrementStage: 'END_OF_TURN'
             }
     }
   })

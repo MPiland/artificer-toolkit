@@ -15,6 +15,7 @@ import { endSubscriptions } from './events/effectHooks.js'
 import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import type { EncounterEvent } from './events/encounterEventTable.js'
 import {
+  effectAnchorActorId,
   isEffectLiveInEncounter,
   turnEffectOwner,
   type TurnEffectBoundary
@@ -119,26 +120,6 @@ export function grantsEndedBySourceState<Effect extends ActiveRuleEffectRecord>(
 }
 
 /**
- * The actor whose turns count a timed grant down: its holder, or the Encounter actor that applied
- * it. A source-anchored grant carried in from an earlier Run has no source here, so its holder
- * counts it (D151).
- */
-function grantAnchorActorId(
-  effect: ActiveRuleEffectRecord,
-  holderActorId: string,
-  encounterId: string
-) {
-  const { expiration } = effect.definition.recurrence
-  if (expiration.kind !== 'TICKS') return null
-  const { origin } = effect.definition
-  return expiration.anchor === 'SOURCE' &&
-    origin.kind === 'ENCOUNTER' &&
-    origin.sourceAggregateId === encounterId
-    ? origin.sourceActorId
-    : holderActorId
-}
-
-/**
  * Timed effects anchored to an actor that left the Run can no longer count down, so they end with
  * it. Holder-anchored effects, and those carried in from an earlier Run, keep their own lifetime.
  */
@@ -151,7 +132,7 @@ export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectR
     effects.filter(
       (effect) =>
         effect.definition.recurrence.expiration.kind === 'TICKS' &&
-        effect.definition.recurrence.expiration.anchor === 'SOURCE' &&
+        effect.definition.recurrence.anchor === 'SOURCE' &&
         effect.definition.origin.kind === 'ENCOUNTER' &&
         effect.definition.origin.sourceAggregateId === input.encounterId &&
         effect.definition.origin.sourceActorId === input.departedActorId
@@ -180,12 +161,12 @@ export function planEncounterGrantTicks(input: {
         remaining === null ||
         recurrence.recurrenceStage !== 'NONE' ||
         expiration.kind !== 'TICKS' ||
-        (!isModifierGrant(effect) && expiration.anchor !== 'SOURCE') ||
+        (!isModifierGrant(effect) && recurrence.anchor !== 'SOURCE') ||
         expiration.decrementStage !== input.stage ||
         !isEffectLiveInEncounter(effect, actor, input.encounterId)
       )
         continue
-      if (grantAnchorActorId(effect, actor.id, input.encounterId) !== input.turnActorId) continue
+      if (effectAnchorActorId(effect, actor.id, input.encounterId) !== input.turnActorId) continue
       const owner = turnEffectOwner(actor, input.encounterId)
       ticks.push(
         remaining <= 1

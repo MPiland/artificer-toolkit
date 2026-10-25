@@ -76,6 +76,7 @@ export function planSpatialEntryGrant(input: {
       perceptionContributions: [],
       recurrence: {
         recurrenceStage: 'NONE',
+        anchor: 'HOLDER',
         consumeOnFirstEvents: [],
         endOnEvents,
         endOnTriggers: [],

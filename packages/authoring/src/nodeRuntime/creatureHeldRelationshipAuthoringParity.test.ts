@@ -10,6 +10,7 @@ import { cloaker } from '@artificer-toolkit/source-data/srd/creatures/cloaker.js
 import { marilith } from '@artificer-toolkit/source-data/srd/creatures/marilith.js'
 import { mimic } from '@artificer-toolkit/source-data/srd/creatures/mimic.js'
 import { roper } from '@artificer-toolkit/source-data/srd/creatures/roper.js'
+import { shamblingMound } from '@artificer-toolkit/source-data/srd/creatures/shambling-mound.js'
 import { stirge } from '@artificer-toolkit/source-data/srd/creatures/stirge.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -122,6 +123,26 @@ describe('held-creature riders from core options (D187a)', () => {
       expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
     }
   )
+
+  it('engulfs with a DC 14 Constitution save or 2d8+4 bludgeoning at the start of each of the Shambling Mound’s turns (SPELLS-33.T6n2)', async () => {
+    const engulf = featureOutcomes(shamblingMound, 'Engulf').find(
+      (outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP'
+    )
+    expect(engulf).toMatchObject({
+      recurrence: {
+        turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+        savingThrow: {
+          dcMethod: 'FIXED_DC',
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+          baseDc: 14
+        },
+        damage: { effectKind: 'DAMAGE', diceConfig: '2d8+4' }
+      }
+    })
+    const result = await normalize(shamblingMound)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(shamblingMound.features)
+  })
 
   it('lets the Chuul Tentacles target only a creature the chuul holds', () => {
     const [tentacles] = feature(chuul, 'Tentacles').effects ?? []

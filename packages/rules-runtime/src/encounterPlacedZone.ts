@@ -167,6 +167,7 @@ function placedZoneRecord(
     perceptionContributions: entry.perceptionContributions,
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],

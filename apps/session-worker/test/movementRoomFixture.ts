@@ -137,6 +137,7 @@ export function dependentEffectDefinition(input: { encounterId: string; sourceAc
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],
@@ -146,8 +147,7 @@ export function dependentEffectDefinition(input: { encounterId: string; sourceAc
       expiration: {
         kind: 'TICKS',
         initialRemaining: 3,
-        decrementStage: 'END_OF_TURN',
-        anchor: 'HOLDER'
+        decrementStage: 'END_OF_TURN'
       }
     }
   })

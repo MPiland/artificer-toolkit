@@ -51,8 +51,7 @@ export function relationshipStateGraph(input: {
 
 /**
  * A hold's recurrence as the D&D compiler admits it: one exact damage roll at the start of the held
- * creature's turns, saved against at most one fixed DC. The holder's turns wait for a phase that
- * reaches every creature it holds.
+ * creature's or its holder's turns, saved against at most one fixed DC, and the graph node it settles.
  */
 export function relationshipRecurrencePlan(relationship: ActorRelationshipAuthored) {
   const recurrence = relationship.recurrence
@@ -68,10 +67,8 @@ export function relationshipRecurrencePlan(relationship: ActorRelationshipAuthor
     !isUuid(damage.damageTypeId)
   )
     unsupported('D&D relationship recurrence must be one exact damage outcome.')
-  if (turnAnchor.actor !== 'TARGET' || turnAnchor.boundary !== 'START_OF_TURN')
-    unsupported(
-      'D&D relationship recurrence counts only at the start of the held creature’s turns.'
-    )
+  if (turnAnchor.boundary !== 'START_OF_TURN')
+    unsupported('D&D relationship recurrence counts only at the start of a turn.')
   // The hold's own roll is no saving throw, so it settles no caster's DC for the recurrence.
   const save =
     savingThrow?.dcMethod === 'FIXED_DC' && !savingThrow.bonuses?.length
@@ -85,7 +82,8 @@ export function relationshipRecurrencePlan(relationship: ActorRelationshipAuthor
   return {
     diceConfig: damage.diceConfig,
     damageTypeId: damageTypeIdentity(damage.damageTypeId),
-    save
+    save,
+    frozenGraphNodeId: save ? 'proposal-on_save_fail' : 'relationship-recurrence'
   }
 }
 

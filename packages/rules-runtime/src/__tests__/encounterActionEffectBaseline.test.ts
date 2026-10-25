@@ -488,13 +488,35 @@ describe('a held creature’s relationship recurrence (SPELLS-33.T6n1)', () => {
     ).toEqual({ kind: 'LITERAL', value: 3 })
   })
 
-  it('refuses a recurrence anchored on the holder’s turns until the holder-turn phase exists', () => {
-    expect(() =>
-      recurrencePlan({ turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' } })
-    ).toThrow('D&D relationship recurrence counts only at the start of the held creature’s turns.')
+  it.each([
+    { actor: 'TARGET', anchor: 'HOLDER' },
+    { actor: 'SOURCE', anchor: 'SOURCE' }
+  ] as const)(
+    'stores a $actor-anchored recurrence on its $anchor’s turn starts (SPELLS-33.T6n2)',
+    ({ actor, anchor }) => {
+      const action = rugSmotherCapability(1, { turnAnchor: { actor, boundary: 'START_OF_TURN' } })
+      const published = dnd5eCharacterRuleActionSystemAdapter.compile({ action })
+      const [plan] = dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans!({ action, published })
+      if (!plan) throw new Error('The relationship has no active-effect plan.')
+      expect(plan).toMatchObject({ recurrenceStage: 'START_OF_TURN', tickAnchor: anchor })
+      // An indefinite hold is no grant tick: the turn-effect kernel runs it on the anchor's turns.
+      expect(
+        relationshipDefinition(planWith([], [], { fixture: { plan, published } })).recurrence
+      ).toMatchObject({
+        recurrenceStage: 'START_OF_TURN',
+        anchor,
+        expiration: { kind: 'INDEFINITE' }
+      })
+    }
+  )
+
+  it('refuses a recurrence at the end of a turn', () => {
     expect(() =>
       recurrencePlan({ turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' } })
-    ).toThrow('D&D relationship recurrence counts only at the start of the held creature’s turns.')
+    ).toThrow('D&D relationship recurrence counts only at the start of a turn.')
+    expect(() =>
+      recurrencePlan({ turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } })
+    ).toThrow('D&D relationship recurrence counts only at the start of a turn.')
   })
 
   it('refuses a save against the holder’s save DC, which the hold’s attack never settles', () => {

@@ -1,6 +1,6 @@
 import { compileModifierGrant, type CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
-import { conditionDurationTurns } from './effectActionFollowUp.js'
+import { conditionDurationTurns, planTickAnchor } from './effectActionFollowUp.js'
 import { UUID, DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION } from './effectActionContracts.js'
 import { canonicalEndTriggers } from './effectActionBandConditions.js'
 import { buildCharacterGrantFoldModifierFacts } from '../../character/characterGrantFoldSourceFacts.js'
@@ -164,7 +164,7 @@ export function modifierGrantEntryPlan(input: {
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: untilEndEvent ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
-    tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
+    tickAnchor: planTickAnchor(turnAnchor),
     modifierGrantContribution: {
       applyGrantOutcomeId: entry.outcome.id,
       modifiers: buildCharacterGrantFoldModifierFacts(modifiers.map(compileModifierGrant)),

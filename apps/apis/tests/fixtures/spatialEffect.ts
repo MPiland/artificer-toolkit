@@ -100,6 +100,7 @@ export async function seedSpatialEffect(
       perceptionContributions: [],
       recurrence: {
         recurrenceStage: 'NONE',
+        anchor: 'HOLDER',
         consumeOnFirstEvents: [],
         endOnEvents: [],
         endOnTriggers: [],
@@ -109,8 +110,7 @@ export async function seedSpatialEffect(
         expiration: {
           kind: 'TICKS',
           initialRemaining: 3,
-          decrementStage: 'END_OF_TURN',
-          anchor: 'HOLDER'
+          decrementStage: 'END_OF_TURN'
         }
       }
     })

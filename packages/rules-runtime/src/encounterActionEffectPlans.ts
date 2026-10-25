@@ -502,14 +502,6 @@ export function prepareRecurringActiveEffect(
   )
   const ownsTemporaryHitPoints = plan.ownsTemporaryHitPoints === true
   const tickAnchor = plan.tickAnchor ?? 'HOLDER'
-  // The grant tick planner counts a grant, unless it repeats a save, and any other effect counted on
-  // its source's turns (Color Spray's blindness); the turn-effect kernel counts the rest.
-  const countedByGrantTicks = grantContribution
-    ? !grantContribution.countedByTurnEffects
-    : tickAnchor === 'SOURCE'
-  // An effect made on its anchor actor's own turn would otherwise lose a counted turn to the very
-  // end of turn it was made in, so "until the end of the next turn" counts one more. A duration
-  // "for the turn" already is that end of turn.
   const baseRemaining =
     plan.initialRemaining !== null && formContribution
       ? resolveCreatureFormDuration(
@@ -518,6 +510,15 @@ export function prepareRecurringActiveEffect(
           input.sourceClassLevels ?? {}
         )
       : plan.initialRemaining
+  // The grant tick planner counts a grant, unless it repeats a save, and any other effect counted on
+  // its source's turns (Color Spray's blindness); the turn-effect kernel counts the rest, and runs an
+  // indefinite effect that recurs on its source's turns (Engulf).
+  const countedByGrantTicks = grantContribution
+    ? !grantContribution.countedByTurnEffects
+    : tickAnchor === 'SOURCE' && baseRemaining !== null
+  // An effect made on its anchor actor's own turn would otherwise lose a counted turn to the very
+  // end of turn it was made in, so "until the end of the next turn" counts one more. A duration
+  // "for the turn" already is that end of turn.
   const initialRemaining =
     baseRemaining !== null &&
     countedByGrantTicks &&
@@ -551,6 +552,7 @@ export function prepareRecurringActiveEffect(
       // An effect the grant tick planner counts stores no stage, so the turn-effect kernel never
       // selects it.
       recurrenceStage: countedByGrantTicks ? 'NONE' : plan.recurrenceStage,
+      anchor: tickAnchor,
       // A grant held beside conditions (Hypnotic Pattern's speed 0) ends with them, so the plan's
       // own lifecycle joins the grant's.
       consumeOnFirstEvents: sortedUnion(
@@ -597,8 +599,7 @@ export function prepareRecurringActiveEffect(
           : {
               kind: 'TICKS',
               initialRemaining,
-              decrementStage: plan.recurrenceStage,
-              anchor: tickAnchor
+              decrementStage: plan.recurrenceStage
             }
     },
     stateContributions: [
@@ -889,6 +890,7 @@ export function sourceImmunityEffect(input: {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: immunity.initialRemaining === null ? 'NONE' : 'END_OF_TURN',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],
@@ -902,8 +904,7 @@ export function sourceImmunityEffect(input: {
           : {
               kind: 'TICKS',
               initialRemaining: immunity.initialRemaining,
-              decrementStage: 'END_OF_TURN',
-              anchor: 'HOLDER'
+              decrementStage: 'END_OF_TURN'
             }
     },
     stateContributions: [
@@ -989,6 +990,7 @@ function prepareTargetStateEffect(
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],

@@ -19,6 +19,16 @@ export type FollowUpSaveOutcome = Extract<
   { effectKind: 'FOLLOW_UP_SAVE' }
 >
 
+/**
+ * The actor whose turns time an effect: its holder for an authored target anchor (or none), its
+ * source for a source anchor.
+ */
+export function planTickAnchor(
+  turnAnchor: { actor: 'TARGET' | 'SOURCE' } | undefined
+): NonNullable<CharacterRuleActionActiveEffectPlan['tickAnchor']> {
+  return turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER'
+}
+
 const TURNS_PER_DURATION_UNIT: Partial<Record<CompiledDuration['durationKind'], number>> = {
   TURN: 1,
   ROUND: 1,

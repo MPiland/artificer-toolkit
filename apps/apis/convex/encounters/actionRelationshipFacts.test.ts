@@ -59,6 +59,7 @@ function relationshipEffect(input: {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],

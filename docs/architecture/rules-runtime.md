@@ -2420,7 +2420,7 @@ Scene geometry, so every actor the policy allows is offered.
 **Grant lifetimes (D99).** A timed `APPLY_GRANT` of modifiers compiles to a `MODIFIER_GRANT` active
 effect (`modifierGrantPlan`). Its authored `lifecycle.turnAnchor` names whose turn counts it down and at
 which boundary (`TARGET`, i.e. the holder, at `END_OF_TURN` when absent); the plan carries it as its
-`tickAnchor` and the stored expiration's `anchor`/`decrementStage`. A grant made on its
+`tickAnchor`, the stored recurrence's `anchor` and the expiration's `decrementStage`. A grant made on its
 anchor actor's own turn with an `END_OF_TURN` boundary counts one more turn, so "until the end of its next
 turn" outlasts the current one. The longest authorable duration is `MAX_ACTIVE_EFFECT_TURNS` (14,400 turns,
 24 hours; SPELLS-4.T2a3, D156), exported from `packages/schema/src/shared/activeRuleEffectLifecycle.ts`; the compiler
@@ -2429,7 +2429,22 @@ leaves a longer duration MANUAL and never clamps it. The stored tick fields (`ex
 own-turn tick. Grants are stored with `recurrenceStage: 'NONE'`, so the turn-effect kernel
 never selects them. A timed condition with a `SOURCE` turn anchor (Color Spray's blindness, "until the end of
 the caster's next turn") is stored and counted the same way, extra turn included; the kernel counts other timed
-conditions on the holder's turns. `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
+conditions on the holder's turns.
+
+**Source-anchored recurrences (current, SPELLS-33.T6n2).** Every stored recurrence names a required `anchor`
+(`HOLDER` or `SOURCE`): the actor whose turns time it. The D&D compiler maps an authored `turnAnchor.actor` to the
+plan's `tickAnchor` in one place, `planTickAnchor` (`TARGET` or none to `HOLDER`, `SOURCE` to `SOURCE`), and a
+`SOURCE` anchor requires an Encounter origin with a source actor. A counted `SOURCE` effect runs through grant ticks
+(stored at `recurrenceStage: 'NONE'`); an uncounted one keeps its stage and runs in the turn-effect kernel on its
+source's turns, the holder-turn phase following the D144 pattern. `selectTurnEffectCandidates`
+(`encounterTurnEffectState`) is the one selection Convex and the room share: at a turn boundary it picks the
+actor's own `HOLDER` effects and every `SOURCE` effect whose source is that actor, across holders, in creation order
+(`createdOrdinal`, then id), and skips a `SOURCE` effect on its holder's own turn. An effect whose source is not in
+this Run falls back to its holder (D151). The kernel then runs one mechanics batch per holder: the save goes to the
+held creature's controllers, the damage dice to the source's. Shambling Mound Engulf (2d8+4 bludgeoning, DC 14
+Constitution) is the SRD case; dev data was migrated by `rules/recurrenceAnchorMigration`.
+
+`planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
 such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo

@@ -56,6 +56,7 @@ export function onEndGrantEffect(
       perceptionContributions: [],
       recurrence: {
         recurrenceStage: 'NONE',
+        anchor: 'HOLDER',
         consumeOnFirstEvents: [],
         endOnEvents: [],
         endOnTriggers: [],
@@ -66,8 +67,7 @@ export function onEndGrantEffect(
         expiration: {
           kind: 'TICKS',
           initialRemaining: onEnd.turns,
-          decrementStage: 'END_OF_TURN',
-          anchor: 'HOLDER'
+          decrementStage: 'END_OF_TURN'
         }
       },
       stateContributions: [{ ...grant, modifiers: onEnd.modifiers, senses: [] }]

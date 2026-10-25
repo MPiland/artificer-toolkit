@@ -3,6 +3,7 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import type { ActorRelationshipAuthored } from '@artificer-toolkit/shared/authored'
 import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -27,10 +28,12 @@ afterEach(() => {
 })
 
 /**
- * The seeded Chain Devil, its Chain hold's start-of-turn piercing now saved against: a fixture
- * Creature authored from the core options (a DC 14 Constitution save), not an SRD stat block.
+ * The seeded Chain Devil, its Chain hold's start-of-turn piercing edited by `edit`: a fixture
+ * Creature authored from the core options, not an SRD stat block.
  */
-function chainDevilWithHoldSave(): CreatureAuthored {
+function chainDevilWith(
+  edit: (recurrence: NonNullable<ActorRelationshipAuthored['recurrence']>) => void
+): CreatureAuthored {
   const creature = structuredClone(seededSrdCreature('Chain Devil'))
   const outcome = creatureFeature(creature, 'Chain')
     .effects?.flatMap((effect) => effect.paths)
@@ -38,13 +41,23 @@ function chainDevilWithHoldSave(): CreatureAuthored {
     .find((candidate) => candidate.effectKind === 'ACTOR_RELATIONSHIP')
   if (outcome?.effectKind !== 'ACTOR_RELATIONSHIP' || !outcome.recurrence)
     throw new Error('The Chain Devil’s Chain holds no recurring relationship.')
-  outcome.recurrence.savingThrow = {
+  edit(outcome.recurrence)
+  return creature
+}
+
+/** A DC 14 Constitution save against the hold's piercing. */
+function withHoldSave(recurrence: NonNullable<ActorRelationshipAuthored['recurrence']>) {
+  recurrence.savingThrow = {
     id: testUuid(0x7a3),
     dcMethod: 'FIXED_DC',
     abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
     baseDc: 14
   }
-  return creature
+}
+
+/** The hold's piercing recurs at the start of the Devil's turns instead of the held creature's. */
+function onTheDevilsTurns(recurrence: NonNullable<ActorRelationshipAuthored['recurrence']>) {
+  recurrence.turnAnchor = { actor: 'SOURCE', boundary: 'START_OF_TURN' }
 }
 
 /**
@@ -162,7 +175,7 @@ describe('a held creature’s relationship recurrence in the room (SPELLS-33.T6n
   ])(
     'asks the held Character for the save at its turn start; when it $label it, the hold stands and nothing recurs on the Devil’s turn',
     async ({ face, damage }) => {
-      const room = await heldCharacterRoom(chainDevilWithHoldSave())
+      const room = await heldCharacterRoom(chainDevilWith(withHoldSave))
 
       const charactersTurn = await advance(room)
       const save = charactersTurn.pending
@@ -186,6 +199,64 @@ describe('a held creature’s relationship recurrence in the room (SPELLS-33.T6n
       expect((await readRoomHistory(room.room.base.stub)).characterEffects).toHaveLength(1)
 
       await expectNothingOnTheDevilsTurn(room)
+    }
+  )
+})
+
+describe('a held creature’s relationship recurrence on its holder’s turns (SPELLS-33.T6n2)', () => {
+  /** The held Character's own turn is off the anchor: nothing asks, nothing recurs. */
+  async function expectNothingOnTheCharactersTurn(room: HeldCharacterRoom) {
+    const charactersTurn = await advance(room)
+    expect(charactersTurn.pending).toBeNull()
+    expect(await incomingExecutions(room, charactersTurn.commandId)).toEqual([])
+  }
+
+  it('deals the Chain’s piercing to the held Character at the Devil’s turn start, rolled by the Devil’s GM', async () => {
+    const room = await heldCharacterRoom(chainDevilWith(onTheDevilsTurns))
+    await expectNothingOnTheCharactersTurn(room)
+
+    const devilsTurn = await advance(room)
+    expect(devilsTurn.pending).toBeNull()
+    const [execution, ...others] = await incomingExecutions(room, devilsTurn.commandId)
+    expect(others).toEqual([])
+    expect(execution).toMatchObject({ targetActorId: CHARACTER_ACTOR_ID, stage: 'START_OF_TURN' })
+    expect(damageOf(execution)).toEqual([[2, PIERCING_ID]])
+    expect((await readRoomHistory(room.room.base.stub)).characterEffects).toHaveLength(1)
+  })
+
+  it.each([
+    { label: 'fails', face: 1, damage: [[2, PIERCING_ID]] },
+    { label: 'makes', face: 20, damage: [] }
+  ])(
+    'asks the held Character for the save at the Devil’s turn start; when it $label it, the hold stands',
+    async ({ face, damage }) => {
+      const room = await heldCharacterRoom(
+        chainDevilWith((recurrence) => {
+          withHoldSave(recurrence)
+          onTheDevilsTurns(recurrence)
+        })
+      )
+      await expectNothingOnTheCharactersTurn(room)
+
+      const devilsTurn = await advance(room)
+      const save = devilsTurn.pending
+      if (save?.kind !== 'D20_EVIDENCE') throw new Error('Expected the Character’s save prompt.')
+      // The save belongs to the held Character; a failed save's damage dice to the Devil's GM.
+      expect(save.rollerActorId).toBe(CHARACTER_ACTOR_ID)
+      expect(
+        await answer(room, save, {
+          kind: 'ENTER_DICE',
+          requestId: save.request.requestId,
+          rawFaces: save.request.rollMode === 'NORMAL' ? [face] : [face, face],
+          rollMode: save.request.rollMode
+        })
+      ).toBeNull()
+
+      const [execution, ...others] = await incomingExecutions(room, devilsTurn.commandId)
+      expect(others).toEqual([])
+      expect(execution).toMatchObject({ targetActorId: CHARACTER_ACTOR_ID, stage: 'START_OF_TURN' })
+      expect(damageOf(execution)).toEqual(damage)
+      expect((await readRoomHistory(room.room.base.stub)).characterEffects).toHaveLength(1)
     }
   )
 })
