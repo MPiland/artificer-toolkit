@@ -319,12 +319,6 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         amount: 0,
         currencyId: ''
       } satisfies CostDto
-    case 'creatureAction':
-      return {
-        id: crypto.randomUUID(),
-        label: '',
-        description: ''
-      }
     case 'creatureCompanionProfile':
       return {
         bondType: 'ANIMAL_COMPANION',
@@ -346,16 +340,6 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         die: 8,
         modifier: 0
       } satisfies DiceExpressionDto
-    case 'creatureLairProfile':
-      return {
-        lairActions: [],
-        regionalEffects: []
-      }
-    case 'creatureLegendaryProfile':
-      return {
-        actionsCount: 3,
-        legendaryResistanceCount: 0
-      }
     case 'creatureQualifiedDamageDefense':
       return {
         kind: 'RESISTANCE',

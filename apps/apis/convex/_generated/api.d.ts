@@ -127791,6 +127791,82 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  morale?: {
+                    commandId: string;
+                    definitionId: string;
+                    disposition: "CONTINUE" | "FLEE" | "SURRENDER" | null;
+                    firedTriggerKinds: Array<
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER"
+                    >;
+                    groupLeaderActorId: string | null;
+                    proposed: "CONTINUE" | "FLEE" | "SURRENDER";
+                    rollerActorId: string;
+                    save: {
+                      addedDice?: Array<{
+                        count: number;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        rolledFaces: Array<number>;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
+                      contributorChecksum: string;
+                      contributors: Array<{
+                        domainKey: string | null;
+                        grantId: string | null;
+                        influence: string;
+                        source: {
+                          holderActorId: string | null;
+                          id: string;
+                          kind:
+                            "ACTIVE_EFFECT" | "CONDITION" | "AUTHORED" | "RULE";
+                        };
+                        sourceId: string;
+                      }>;
+                      dc: number;
+                      derivedRollMode: string;
+                      keep: "FIRST" | "HIGHER" | "LOWER";
+                      minimumRoll?: {
+                        amount: number;
+                        label: string;
+                        sourceEffectId: string;
+                      };
+                      modifier: number;
+                      rawFaces: Array<number>;
+                      requestId: string;
+                      rollMode: string;
+                      selectedNatural: number;
+                      total: number;
+                    } | null;
+                    scope: "SUBJECT" | "GROUP";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  } | null;
+                  moraleOffers?: Array<{
+                    origin: "RUN_STATE" | "GM_DECLARED";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  }>;
                   owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   resources:
@@ -128925,6 +129001,82 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  morale?: {
+                    commandId: string;
+                    definitionId: string;
+                    disposition: "CONTINUE" | "FLEE" | "SURRENDER" | null;
+                    firedTriggerKinds: Array<
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER"
+                    >;
+                    groupLeaderActorId: string | null;
+                    proposed: "CONTINUE" | "FLEE" | "SURRENDER";
+                    rollerActorId: string;
+                    save: {
+                      addedDice?: Array<{
+                        count: number;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        rolledFaces: Array<number>;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
+                      contributorChecksum: string;
+                      contributors: Array<{
+                        domainKey: string | null;
+                        grantId: string | null;
+                        influence: string;
+                        source: {
+                          holderActorId: string | null;
+                          id: string;
+                          kind:
+                            "ACTIVE_EFFECT" | "CONDITION" | "AUTHORED" | "RULE";
+                        };
+                        sourceId: string;
+                      }>;
+                      dc: number;
+                      derivedRollMode: string;
+                      keep: "FIRST" | "HIGHER" | "LOWER";
+                      minimumRoll?: {
+                        amount: number;
+                        label: string;
+                        sourceEffectId: string;
+                      };
+                      modifier: number;
+                      rawFaces: Array<number>;
+                      requestId: string;
+                      rollMode: string;
+                      selectedNatural: number;
+                      total: number;
+                    } | null;
+                    scope: "SUBJECT" | "GROUP";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  } | null;
+                  moraleOffers?: Array<{
+                    origin: "RUN_STATE" | "GM_DECLARED";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  }>;
                   owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   resources:
@@ -129904,6 +130056,81 @@ export declare const api: {
               label: string;
               manualOrder: number | null;
               maxHitPoints: number;
+              morale?: {
+                commandId: string;
+                definitionId: string;
+                disposition: "CONTINUE" | "FLEE" | "SURRENDER" | null;
+                firedTriggerKinds: Array<
+                  | "INDIVIDUAL_SURPRISED"
+                  | "INDIVIDUAL_REDUCED_TO_HALF"
+                  | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                  | "GROUP_SURPRISED"
+                  | "GROUP_HALF_REMOVED"
+                  | "GROUP_LEADER_REMOVED"
+                  | "GROUP_LEADER_INCAPACITATED"
+                  | "GROUP_LEADER_TAKEN_PRISONER"
+                >;
+                groupLeaderActorId: string | null;
+                proposed: "CONTINUE" | "FLEE" | "SURRENDER";
+                rollerActorId: string;
+                save: {
+                  addedDice?: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    rolledFaces: Array<number>;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
+                  contributorChecksum: string;
+                  contributors: Array<{
+                    domainKey: string | null;
+                    grantId: string | null;
+                    influence: string;
+                    source: {
+                      holderActorId: string | null;
+                      id: string;
+                      kind: "ACTIVE_EFFECT" | "CONDITION" | "AUTHORED" | "RULE";
+                    };
+                    sourceId: string;
+                  }>;
+                  dc: number;
+                  derivedRollMode: string;
+                  keep: "FIRST" | "HIGHER" | "LOWER";
+                  minimumRoll?: {
+                    amount: number;
+                    label: string;
+                    sourceEffectId: string;
+                  };
+                  modifier: number;
+                  rawFaces: Array<number>;
+                  requestId: string;
+                  rollMode: string;
+                  selectedNatural: number;
+                  total: number;
+                } | null;
+                scope: "SUBJECT" | "GROUP";
+                triggerKind:
+                  | "INDIVIDUAL_SURPRISED"
+                  | "INDIVIDUAL_REDUCED_TO_HALF"
+                  | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                  | "GROUP_SURPRISED"
+                  | "GROUP_HALF_REMOVED"
+                  | "GROUP_LEADER_REMOVED"
+                  | "GROUP_LEADER_INCAPACITATED"
+                  | "GROUP_LEADER_TAKEN_PRISONER";
+              } | null;
+              moraleOffers?: Array<{
+                origin: "RUN_STATE" | "GM_DECLARED";
+                triggerKind:
+                  | "INDIVIDUAL_SURPRISED"
+                  | "INDIVIDUAL_REDUCED_TO_HALF"
+                  | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                  | "GROUP_SURPRISED"
+                  | "GROUP_HALF_REMOVED"
+                  | "GROUP_LEADER_REMOVED"
+                  | "GROUP_LEADER_INCAPACITATED"
+                  | "GROUP_LEADER_TAKEN_PRISONER";
+              }>;
               owner?: { ownerActorId: string; sourceEffectId?: string };
               public: boolean;
               resources:
@@ -130217,6 +130444,82 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  morale?: {
+                    commandId: string;
+                    definitionId: string;
+                    disposition: "CONTINUE" | "FLEE" | "SURRENDER" | null;
+                    firedTriggerKinds: Array<
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER"
+                    >;
+                    groupLeaderActorId: string | null;
+                    proposed: "CONTINUE" | "FLEE" | "SURRENDER";
+                    rollerActorId: string;
+                    save: {
+                      addedDice?: Array<{
+                        count: number;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        rolledFaces: Array<number>;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
+                      contributorChecksum: string;
+                      contributors: Array<{
+                        domainKey: string | null;
+                        grantId: string | null;
+                        influence: string;
+                        source: {
+                          holderActorId: string | null;
+                          id: string;
+                          kind:
+                            "ACTIVE_EFFECT" | "CONDITION" | "AUTHORED" | "RULE";
+                        };
+                        sourceId: string;
+                      }>;
+                      dc: number;
+                      derivedRollMode: string;
+                      keep: "FIRST" | "HIGHER" | "LOWER";
+                      minimumRoll?: {
+                        amount: number;
+                        label: string;
+                        sourceEffectId: string;
+                      };
+                      modifier: number;
+                      rawFaces: Array<number>;
+                      requestId: string;
+                      rollMode: string;
+                      selectedNatural: number;
+                      total: number;
+                    } | null;
+                    scope: "SUBJECT" | "GROUP";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  } | null;
+                  moraleOffers?: Array<{
+                    origin: "RUN_STATE" | "GM_DECLARED";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  }>;
                   owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   resources:
@@ -130864,6 +131167,81 @@ export declare const api: {
             label: string;
             manualOrder: number | null;
             maxHitPoints: number;
+            morale?: {
+              commandId: string;
+              definitionId: string;
+              disposition: "CONTINUE" | "FLEE" | "SURRENDER" | null;
+              firedTriggerKinds: Array<
+                | "INDIVIDUAL_SURPRISED"
+                | "INDIVIDUAL_REDUCED_TO_HALF"
+                | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                | "GROUP_SURPRISED"
+                | "GROUP_HALF_REMOVED"
+                | "GROUP_LEADER_REMOVED"
+                | "GROUP_LEADER_INCAPACITATED"
+                | "GROUP_LEADER_TAKEN_PRISONER"
+              >;
+              groupLeaderActorId: string | null;
+              proposed: "CONTINUE" | "FLEE" | "SURRENDER";
+              rollerActorId: string;
+              save: {
+                addedDice?: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  rolledFaces: Array<number>;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
+                contributorChecksum: string;
+                contributors: Array<{
+                  domainKey: string | null;
+                  grantId: string | null;
+                  influence: string;
+                  source: {
+                    holderActorId: string | null;
+                    id: string;
+                    kind: "ACTIVE_EFFECT" | "CONDITION" | "AUTHORED" | "RULE";
+                  };
+                  sourceId: string;
+                }>;
+                dc: number;
+                derivedRollMode: string;
+                keep: "FIRST" | "HIGHER" | "LOWER";
+                minimumRoll?: {
+                  amount: number;
+                  label: string;
+                  sourceEffectId: string;
+                };
+                modifier: number;
+                rawFaces: Array<number>;
+                requestId: string;
+                rollMode: string;
+                selectedNatural: number;
+                total: number;
+              } | null;
+              scope: "SUBJECT" | "GROUP";
+              triggerKind:
+                | "INDIVIDUAL_SURPRISED"
+                | "INDIVIDUAL_REDUCED_TO_HALF"
+                | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                | "GROUP_SURPRISED"
+                | "GROUP_HALF_REMOVED"
+                | "GROUP_LEADER_REMOVED"
+                | "GROUP_LEADER_INCAPACITATED"
+                | "GROUP_LEADER_TAKEN_PRISONER";
+            } | null;
+            moraleOffers?: Array<{
+              origin: "RUN_STATE" | "GM_DECLARED";
+              triggerKind:
+                | "INDIVIDUAL_SURPRISED"
+                | "INDIVIDUAL_REDUCED_TO_HALF"
+                | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                | "GROUP_SURPRISED"
+                | "GROUP_HALF_REMOVED"
+                | "GROUP_LEADER_REMOVED"
+                | "GROUP_LEADER_INCAPACITATED"
+                | "GROUP_LEADER_TAKEN_PRISONER";
+            }>;
             owner?: { ownerActorId: string; sourceEffectId?: string };
             public: boolean;
             resources:

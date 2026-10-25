@@ -223,10 +223,11 @@ export async function setup({
     commandId: crypto.randomUUID(),
     enemies: [{ kind: 'CREATURE', sourceId: creature.id }]
   })
+  const createCommandId = crypto.randomUUID()
   const run = await base.owner.caller.mutation(createRun, {
     campaignId: base.campaign.id,
     blueprintId: blueprint.id,
-    commandId: crypto.randomUUID()
+    commandId: createCommandId
   })
   const hero = run.actors.find((actor) => actor.sourceId === base.character.id)
   const ally = base.gmCharacterId
@@ -285,7 +286,7 @@ export async function setup({
       enemy: enemyAction.actionId
     }
   })
-  return { ...base, run, hero, ally, enemy, actionIds }
+  return { ...base, run, createCommandId, hero, ally, enemy, actionIds }
 }
 
 export type Fixture = Awaited<ReturnType<typeof setup>>

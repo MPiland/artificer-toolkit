@@ -1,4 +1,12 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type {
+  EncounterActorMoraleDto,
+  EncounterMoraleOfferDto
+} from '@artificer-toolkit/schema/shared/encounterMorale'
+import type {
+  MoraleDispositionDto,
+  MoraleTriggerKindDto
+} from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 
 /** Exact optional-combat policy identity a proposal and its contest graph are sealed against. */
@@ -161,7 +169,53 @@ export interface DisarmContestProposal {
   readonly pin: OptionalCombatPolicyPin
 }
 
-/** A System's optional-combat policy modules: Disarm, movement passage contests and Cleaving. */
+/** One Encounter actor's Run facts that morale triggers read; `removed` is defeated or absent. */
+export interface MoraleActorFacts {
+  readonly actorId: string
+  readonly sideId: string
+  readonly kind: 'CHARACTER' | 'CREATURE' | 'CUSTOM'
+  readonly currentHitPoints: number
+  readonly maxHitPoints: number
+  readonly removed: boolean
+  readonly morale: EncounterActorMoraleDto | null
+}
+
+export interface MoraleOfferInput extends OptionalCombatPolicyInput {
+  readonly actors: readonly MoraleActorFacts[]
+}
+
+export interface MoralePreparationInput extends MoraleOfferInput {
+  readonly subjectActorId: string
+  readonly triggerKind: MoraleTriggerKindDto
+  /** The group's leader the GM names; null asks the policy for the fallback roller. */
+  readonly leaderActorId: string | null
+  readonly overwhelmingOpposition: boolean
+  readonly escapePossible: boolean
+  /** The save modifiers by ability of each present member of the subject's side. */
+  readonly rollers: ReadonlyMap<
+    string,
+    { readonly canAct: boolean; readonly saveModifiers: ReadonlyMap<string, number> }
+  >
+}
+
+/** A sealed morale save before the roller rolls; settlement records it on every member. */
+export interface MoraleSaveProposal {
+  readonly pin: OptionalCombatPolicyPin
+  readonly triggerKind: MoraleTriggerKindDto
+  readonly scope: 'GROUP' | 'SUBJECT'
+  readonly rollerActorId: string
+  readonly groupLeaderActorId: string | null
+  readonly memberActorIds: readonly string[]
+  readonly abilityDefinitionId: string
+  readonly difficultyClass: number
+  readonly contributors: readonly OptionalCombatD20Contributor[]
+  /** Authored overwhelming opposition fails the check without a roll. */
+  readonly automaticFailure: boolean
+  readonly successDisposition: MoraleDispositionDto
+  readonly failureDisposition: MoraleDispositionDto
+}
+
+/** A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving and Morale. */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
   prepareDisarmContest(
@@ -174,4 +228,9 @@ export interface OptionalCombatPolicyCapabilityAdapter {
     input: TumblePreparationInput
   ): OptionalCombatResolution<TumbleContestProposal>
   resolveCleaving(input: CleavingInput): OptionalCombatResolution<CleavingProposal>
+  /** Triggers each actor may be checked for now; an actor with none is absent from the map. */
+  offerMoraleTriggers(
+    input: MoraleOfferInput
+  ): ReadonlyMap<string, readonly EncounterMoraleOfferDto[]>
+  prepareMoraleSave(input: MoralePreparationInput): OptionalCombatResolution<MoraleSaveProposal>
 }

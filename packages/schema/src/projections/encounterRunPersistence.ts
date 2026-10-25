@@ -25,6 +25,7 @@ import {
   encounterMaintainedEffectStateRecordSchema
 } from './activeRuleEffectPersistence.js'
 import { rollModeKeepSchema, systemCoreCodeSchema } from '../shared/systemCoreCode.js'
+import { encounterActorMoraleDtoSchema } from '../shared/encounterMorale.js'
 
 // Keep the Convex table schema independent of recursive authored snapshots. Projections are built
 // on read from the Run state and its actors (ADR 0035 Amendment 12), so the Run stores neither.
@@ -585,6 +586,22 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         afterVersion: z.number().check(z.int()).check(z.positive()),
         /** The concealment as it was when this change left it no observers and ended it; undo gives it back. */
         endedEffect: z.nullable(activeRuleEffectRecordSchema)
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.enum(['MORALE_SAVE', 'CONFIRM_MORALE']),
+      /** Each actor's morale record before and after the GM's check or confirmation (ENCOUNTER-6.2). */
+      receipt: z.strictObject({
+        actors: z
+          .array(
+            z.strictObject({
+              actorId: postgresUuidSchema,
+              before: z.nullable(encounterActorMoraleDtoSchema),
+              after: encounterActorMoraleDtoSchema
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {

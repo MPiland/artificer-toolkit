@@ -342,13 +342,14 @@ export function initiativeRollRecord(input: {
 
 /**
  * The roll-log record of a basic action's check (First Aid's Wisdom (Medicine), Hide's Dexterity
- * (Stealth)), from its recorded faces and the roller's modifier. The card is the roller's own and
- * names no DC.
+ * (Stealth)), or of a GM-declared save such as a morale save, from its recorded faces and the
+ * roller's modifier. The card is the roller's own; a check with a DC (a morale save) names it.
  */
 export function basicActionCheckRollRecord(input: {
   occurrenceId: string
   /** The card's id where the occurrence cards more than one check. */
   rollId?: string
+  sourceKind?: 'SAVING_THROW' | 'SKILL_CHECK'
   d20: Omit<ReturnType<typeof ruleCheckD20EvidenceDtoSchema.parse>, 'dc'>
   actionLabel: string
   checkLabel: string
@@ -383,7 +384,7 @@ export function basicActionCheckRollRecord(input: {
     characterId: null,
     characterLabel: input.rollerLabel,
     source: {
-      kind: 'SKILL_CHECK',
+      kind: input.sourceKind ?? 'SKILL_CHECK',
       label: `${input.actionLabel}: ${input.checkLabel}`.slice(0, 80)
     },
     ruleset: input.ruleset,

@@ -94,6 +94,19 @@ visible GM adjudications. Climb attachment is Encounter-owned tactical state and
 Character's authored body or inventory. A mark is represented by the existing active-effect lifecycle
 with bounded per-turn usage evidence, not by a parallel mark or reaction-economy table.
 
+Morale (ENCOUNTER-6, current) is offered in Campaign settings once its System policy resolves it.
+The GM projection derives each creature's offers from Run state as a pure read: at or below half
+hit points, half its side removed, and the leader named on an earlier group check defeated or gone.
+Surprise, "cannot harm the opposition", and a leader incapacitated or taken prisoner have no
+derived fact and are offered as GM-declared triggers. Two GM-only commands own it. `MORALE_SAVE`
+lets the policy seal the roller (the named leader, or the side's best able save), DC, overwhelming-
+opposition contributor and outcomes, then rolls the roller's own saving throw on the shared d20 path
+with the usual roll card and visibility. `CONFIRM_MORALE` records the GM's outcome, proposed or not,
+on every creature the check covered. The outcome lives on the Encounter actor beside the triggers
+already fired, which are not offered again; the command receipts keep the history. Characters never
+check morale: their players decide. Undo does not reverse a morale check; the GM confirms another
+outcome instead.
+
 The D&D policy may be reused by other systems only through the shared typed primitives. Another
 System can supply different contest, sense, damage, action-economy, or consequence definitions
 without changing the runtime coordinator. Homebrew follows the same UUID-backed authored source,
