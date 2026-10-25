@@ -18631,7 +18631,7 @@
             },
             {
               "id": "SPELLS-31.T5f4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18645,7 +18645,9 @@
                 ]
               },
               "text": "Frenzy as generic, data-authored options: an uncharged FREE self action; a holder-active-effect gate on Character feature actions (the one basic actions use); grantedActions extended to grant a BONUS_ACTION weapon attack on each later turn while the holder effect lasts (the existing action-grant seam, not a modifier and not a second mechanism); endWithEffectIds stored on the definition and expanded on every Rage end path. Exhaustion on end is MANUAL_ADJUDICATION. Authoring-parity proof, room journey, deletes the Frenzy kind.",
-              "note": "Registered 2026-10-25 (user ruling, D187 growth +5): four seams measured missing in spells-31-t5f2-frenzy-sizing.md."
+              "note": "Registered 2026-10-25 (user ruling, D187 growth +5): four seams measured missing in spells-31-t5f2-frenzy-sizing.md. Merged in m450.",
+              "mergedAt": "2026-10-25T21:14:42Z",
+              "proof": "Tests 40232860742 and Live 40232860598 green on ci/spells-31-t5f4@43b5ff1b3 (contains the phase tip): Frenzy as an uncharged FREE self action gated on held Rage, a D160 BONUS_ACTION weaponAttack grant ending with Rage (nextGrantedAttackCharge), linked dependents now end on grant-tick expiry and idle-turn checks (regression tests), CLASS_BERSERKER_FRENZY deleted, room journey nativeRoomFrenzy.test.ts; fast-path merge m450 (run 40234540144)."
             },
             {
               "id": "SPELLS-31.T5f3",
