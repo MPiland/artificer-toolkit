@@ -14397,6 +14397,7 @@
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2l", "SPELLS-4.T2m1"]
               },
               "text": "New option (ruling at start): options bound to another active effect; Persistent, Relentless and Mindless Rage, Frenzy, Reckless Attack. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
+              "note": "Split by the orchestrator: T5f1 (HOLDER_ACTIVE_EFFECT predicate, Mindless Rage, Reckless Attack), T5f3 (Character feature-held damage interceptions, Relentless Rage) and T5f2 (Persistent Rage, Frenzy). T5f1 deletes CLASS_BERSERKER_MINDLESS_RAGE and CLASS_BARBARIAN_RECKLESS_ATTACK.",
               "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {

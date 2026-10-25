@@ -571,6 +571,12 @@ const FACET_BODY_EXISTS_NODE_MAP = createFacetExistsNodeMap(
 
 const facetPredicateNode = buildNodeMap<PredicateConditionAuthored>()
 
+const holderEffectId = buildNodeMap<{ value: string }>()
+
+const HOLDER_EFFECT_ID_NODE_MAP = holderEffectId.define('holderEffectId', ({ map, nodes }) => {
+  map.set('value', nodes.text(['value'], 'Effect ID'))
+})
+
 function createFacetPredicateNodeMap(
   mapId: string,
   ownerScope: 'PARENT' | 'BODY'
@@ -584,7 +590,7 @@ function createFacetPredicateNodeMap(
       ownerScope === 'PARENT' ? cond.parent<FacetExistMin>() : cond.ancestor<FacetExistMin>(2)
     const p = { field: owner.field, id: selection.id, scope: selection.scope }
 
-    const { selectSingle, selectMulti, number, toggle } = nodes
+    const { selectSingle, selectMulti, number, toggle, groupArray } = nodes
     const { chain, mapValues, table, condition } = data
     const attackActivation = local.field(['predicateCode']).eq('ATTACK_ACTIVATION')
     const attackRollMode = local.field(['predicateCode']).eq('ATTACK_ROLL_MODE')
@@ -1043,6 +1049,14 @@ function createFacetPredicateNodeMap(
         number(['maxSpeedFraction'], 'Max Fraction of Speed', {
           order: 3,
           showIf: local.field(['predicateCode']).eq('TURN_MOVEMENT')
+        })
+      )
+      .set(
+        'effectIds',
+        groupArray(['effectIds'], 'Active Effects', () => HOLDER_EFFECT_ID_NODE_MAP, {
+          order: 3,
+          presentation: 'inline',
+          showIf: local.field(['predicateCode']).eq('HOLDER_ACTIVE_EFFECT')
         })
       )
       .set(

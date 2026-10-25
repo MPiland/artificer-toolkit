@@ -11,6 +11,7 @@ import {
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   PATH_CODE,
   PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
@@ -18,7 +19,6 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   STARTING_EQUIPMENT_KIND,
-  TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
   MODIFIER_KIND,
@@ -45,7 +45,8 @@ import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
   closedRuleEffect,
-  equippedCategoryRestriction
+  equippedCategoryRestriction,
+  gmRulingEffect
 } from './mechanics.js'
 
 function skillId(code: string): string {
@@ -70,6 +71,9 @@ function classRowId(classIndex: number, group: number, entry: number): string {
 }
 
 const B = 1 // Barbarian class index
+
+/** Rage's authored effect id, which features that work "while raging" require active. */
+export const RAGE_EFFECT_ID = classRowId(B, 0x60, 1)
 
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
@@ -389,7 +393,7 @@ function rageEffect(): EffectAuthored {
     order: 8
   }
   return {
-    id: classRowId(B, 0x60, 1),
+    id: RAGE_EFFECT_ID,
     order: 1,
     invocation: {
       kind: 'ACTION',
@@ -751,20 +755,20 @@ export const barbarian: ClassAuthored = {
       label: 'Reckless Attack',
       description:
         'Starting at 2nd level, you can throw aside all concern for defense to attack with fierce desperation. When you make your first attack on your turn, you can decide to attack recklessly. Doing so gives you advantage on melee weapon attack rolls using Strength during this turn, but attack rolls against you have advantage until your next turn.',
+      // Its two grants end on different turn boundaries, which one fixed self action cannot hold, so it is a GM ruling (D187a).
       effects: [
-        closedRuleEffect({
-          id: classRowId(B, 0x60, 4),
-          ruleKind: CLOSED_RULE_KIND.CLASS_BARBARIAN_RECKLESS_ATTACK,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(B, 0x69, 4), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'HOSTILE'
-            }
-          }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(B, 0x60, 4),
+            range: classRowId(B, 0x69, 4),
+            path: classRowId(B, 0x90, 1),
+            result: classRowId(B, 0x91, 1),
+            outcome: classRowId(B, 0x94, 1)
+          },
+          label: 'Reckless Attack',
+          instructions:
+            'When you make your first attack on your turn, you can attack recklessly. You then have advantage on melee weapon attack rolls using Strength this turn, and attack rolls against you have advantage until the start of your next turn. The GM applies both.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ],
       availableAtLevel: 2,
