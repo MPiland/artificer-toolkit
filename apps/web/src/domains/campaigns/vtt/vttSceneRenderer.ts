@@ -47,6 +47,7 @@ import {
   describeSceneLighting,
   gmDarknessCapAlpha,
   illuminationOverlayAlpha,
+  lightBandAlphas,
   formatSceneMeasurement,
   formatSceneRoute,
   hasCommittedSceneTokenPositionChanged,
@@ -1082,9 +1083,8 @@ export async function createVttSceneRenderer(
       classMap.addChild(overlayShape(points, alpha, 'max', label))
     }
     for (const area of areas) if (!area.level.suppressesLight) drawArea(area)
-    // A light's radii shed the levels they are named for, drawn at those levels' classes.
-    const brightBandAlpha = illuminationOverlayAlpha(levelOf('BRIGHT').renderClass)
-    const dimBandAlpha = illuminationOverlayAlpha(levelOf('DIM').renderClass)
+    // A light's radii shed the System's two brightest levels, drawn at those levels' classes.
+    const bandAlpha = lightBandAlphas(illuminationLevels)
     for (const light of [...scene.lights, ...tokenLights]) {
       const polygon = visibilityPolygonForLight(
         light,
@@ -1096,13 +1096,13 @@ export async function createVttSceneRenderer(
       const radii = lightRadii(light)
       if (radii.dim > radii.bright) {
         const reach = clampPolygonToRadius(polygon.points, light.position, radii.dim)
-        classMap.addChild(overlayShape(reach, dimBandAlpha, 'min', 'light-dim'))
+        classMap.addChild(overlayShape(reach, bandAlpha.dim, 'min', 'light-dim'))
         lightCutPolygons.push(reach)
         lightTintLayer.addChild(tintShape(reach, light, lightTintDimLabel))
       }
       if (radii.bright > 0) {
         const core = clampPolygonToRadius(polygon.points, light.position, radii.bright)
-        classMap.addChild(overlayShape(core, brightBandAlpha, 'min', 'light-bright'))
+        classMap.addChild(overlayShape(core, bandAlpha.bright, 'min', 'light-bright'))
         lightCutPolygons.push(core)
         lightTintLayer.addChild(tintShape(core, light, lightTintBrightLabel))
       }

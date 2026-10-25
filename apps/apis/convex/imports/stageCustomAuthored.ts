@@ -25,7 +25,7 @@ import {
 import { jsonValueSchema, type JsonValue } from '@artificer-toolkit/schema/projections/identity'
 import {
   authoredSourceFacts,
-  normalizeNodeRuntimeValues
+  normalizeIngressValues
 } from '@artificer-toolkit/authoring/nodeRuntime'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import {
@@ -43,7 +43,6 @@ import {
   compileCurrentEquipment
 } from '../content/equipmentRelationships'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
-import { requireAuthoredSizes } from '@artificer-toolkit/rules-runtime/systemSizes'
 import { requireAuthoredAbilities } from '@artificer-toolkit/rules-runtime/systemAbilities'
 import { ensureDraftImageSlot, promoteDraftImageSlot } from '../content/imageSlots'
 import {
@@ -310,7 +309,6 @@ async function prepareActive(
     userId: ownerUserId,
     status: 'ACTIVE'
   })
-  requireAuthoredSizes(authored)
   requireAuthoredAbilities(authored)
   const initialChecksum = checksumRuleDocument(authored.document)
   const reader = await createSystemSourceReader(
@@ -324,7 +322,7 @@ async function prepareActive(
       ownerUserId
     )
   )
-  const normalized = await normalizeNodeRuntimeValues(reader, {
+  const normalized = await normalizeIngressValues(reader, {
     mapId: args.subjectKind.toLowerCase(),
     systemId: args.systemId,
     values: authored.document

@@ -36,8 +36,17 @@ import {
 } from '@artificer-toolkit/shared/utils'
 import { executeRelationshipPlan, streamToOptions } from './relationshipExecutor.js'
 import { getRuntimeNodeMap } from './mapRegistry.js'
+import { systemCoreCodeTables } from './systemSourceRows.js'
 
 type NodeRuntimeReader = NodeRuntimeSourceReader
+
+type NormalizedValues = {
+  values: Record<string, unknown>
+  clearedPaths: RuntimePath[]
+  refusedPaths: RuntimePath[]
+}
+
+const coreCodeTables = new Set<string>(systemCoreCodeTables)
 
 export async function resolveNodeRuntime(
   db: NodeRuntimeReader,
@@ -220,12 +229,31 @@ export async function normalizeNodeRuntimeValues(
   return normalizeParsedValues(db, nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request))
 }
 
+/**
+ * Normalizes an authored document at ingress (publication, import staging): it refuses a value that
+ * names a System core code the System does not list, where an editor's normalization clears it.
+ */
+export async function normalizeIngressValues(
+  db: NodeRuntimeReader,
+  request: NodeRuntimeNormalizeValuesRequestDto
+): Promise<NodeRuntimeNormalizeValuesResponseDto> {
+  const normalized = await normalizeNodeRuntimeValues(db, request)
+  const [refused] = normalized.refusedPaths
+  if (refused) {
+    const value = isRuntimeRecord(request.values) ? getValueAtPath(request.values, refused) : null
+    throw new Error(
+      `The Game System does not define ${JSON.stringify(value)} at ${refused.join('.')}.`
+    )
+  }
+  return normalized
+}
+
 // Group rows recurse here: the root request already passed the size and depth limits, and parsing
 // each child again would re-walk and re-serialize the whole record, its parent and its ancestors.
 async function normalizeParsedValues(
   db: NodeRuntimeReader,
   parsedRequest: NodeRuntimeNormalizeValuesRequestDto
-): Promise<NodeRuntimeNormalizeValuesResponseDto> {
+): Promise<NormalizedValues> {
   const resolved = await resolveNodeRuntimeScope(db, parsedRequest)
   const values = isRuntimeRecord(parsedRequest.values) ? parsedRequest.values : {}
   const optionNormalized = normalizeVisibleSelectOptions(values, resolved.steps)
@@ -243,16 +271,18 @@ async function normalizeParsedValues(
       ...optionNormalized.clearedPaths,
       ...hiddenNormalized.clearedPaths,
       ...nestedNormalized.clearedPaths
-    ]
+    ],
+    refusedPaths: [...optionNormalized.refusedPaths, ...nestedNormalized.refusedPaths]
   }
 }
 
 function normalizeVisibleSelectOptions(
   values: Record<string, unknown>,
   steps: readonly NodeRuntimeStepDto[]
-): { values: Record<string, unknown>; clearedPaths: RuntimePath[] } {
+): NormalizedValues {
   let nextValues = values
   const clearedPaths: RuntimePath[] = []
+  const refusedPaths: RuntimePath[] = []
 
   for (const step of steps) {
     for (const section of step.sections) {
@@ -265,7 +295,11 @@ function normalizeVisibleSelectOptions(
         ) {
           continue
         }
-        if (node.preserveUnknownOptions) continue
+        if (node.unknownOptions === 'PRESERVE') continue
+        const clear = (path: RuntimePath) => {
+          clearedPaths.push(path)
+          if (node.unknownOptions === 'REFUSE') refusedPaths.push(path)
+        }
 
         const allowedValues = new Set((node.options ?? []).map((option) => option.value))
         const currentValue = getValueAtPath(nextValues, node.path)
@@ -282,7 +316,7 @@ function normalizeVisibleSelectOptions(
 
           const normalized = clearValuesAtPaths(nextValues, [node.path])
           nextValues = normalized.values
-          if (normalized.clearedPaths.length > 0) clearedPaths.push(node.path)
+          if (normalized.clearedPaths.length > 0) clear(node.path)
           continue
         }
 
@@ -295,12 +329,12 @@ function normalizeVisibleSelectOptions(
         if (nextArrayValue.length === currentValue.length) continue
 
         nextValues = setValueAtPath(nextValues, node.path, nextArrayValue)
-        clearedPaths.push(node.path)
+        clear(node.path)
       }
     }
   }
 
-  return { values: nextValues, clearedPaths }
+  return { values: nextValues, clearedPaths, refusedPaths }
 }
 
 async function normalizeVisibleGroups(
@@ -308,9 +342,10 @@ async function normalizeVisibleGroups(
   values: Record<string, unknown>,
   steps: readonly NodeRuntimeStepDto[],
   request: NodeRuntimeNormalizeValuesRequestDto
-): Promise<{ values: Record<string, unknown>; clearedPaths: RuntimePath[] }> {
+): Promise<NormalizedValues> {
   let nextValues = values
   const clearedPaths: RuntimePath[] = []
+  const refusedPaths: RuntimePath[] = []
 
   for (const step of steps) {
     for (const section of step.sections) {
@@ -333,6 +368,7 @@ async function normalizeVisibleGroups(
           })
           nextValues = setValueAtPath(nextValues, node.path, child.values)
           clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, ...path]))
+          refusedPaths.push(...child.refusedPaths.map((path) => [...node.path, ...path]))
           continue
         }
 
@@ -350,6 +386,7 @@ async function normalizeVisibleGroups(
               systemId: request.systemId
             })
             clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, index, ...path]))
+            refusedPaths.push(...child.refusedPaths.map((path) => [...node.path, index, ...path]))
             return child.values
           })
         )
@@ -359,7 +396,7 @@ async function normalizeVisibleGroups(
     }
   }
 
-  return { values: nextValues, clearedPaths }
+  return { values: nextValues, clearedPaths, refusedPaths }
 }
 
 function setValueAtPath(
@@ -466,8 +503,7 @@ async function resolveNode(
       kind: 'INPUT',
       type: node.type,
       options: visible ? await resolveOptions(db, node.source, scope) : [],
-      preserveUnknownOptions:
-        node.source.kind === 'DATA' ? node.source.preserveUnknownOptions : undefined,
+      unknownOptions: unknownOptionsPolicy(node.source),
       constraints: node.constraints,
       authoring: resolveInputAuthoringMeta(node.authoring)
     }
@@ -480,6 +516,15 @@ async function resolveNode(
     constraints: node.constraints,
     authoring: resolveInputAuthoringMeta(node.authoring)
   }
+}
+
+// A data source keeps an unknown value when it says so; a System core-code table refuses it.
+function unknownOptionsPolicy(source: NodeSelectSource): 'PRESERVE' | 'REFUSE' | undefined {
+  if (source.kind !== 'DATA') return undefined
+  if (source.preserveUnknownOptions) return 'PRESERVE'
+  return source.relationship.kind === 'TABLE' && coreCodeTables.has(source.relationship.table)
+    ? 'REFUSE'
+    : undefined
 }
 
 async function resolveOptions(

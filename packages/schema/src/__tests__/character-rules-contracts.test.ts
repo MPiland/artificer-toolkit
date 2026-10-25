@@ -18,6 +18,20 @@ import {
 } from '../api/characterActionRules.js'
 
 describe('Character rule contracts', () => {
+  it('bounds the slot pools a Character casts from like its casting classes', () => {
+    const pool = {
+      poolCode: 'PACT',
+      sourceClassId: 'warlock',
+      slots: 2,
+      level: 3,
+      rawUsed: 0,
+      effectiveUsed: 0,
+      remaining: 2
+    }
+    const slotPools = characterRulePolicyOutputSchema.shape.spellSlots.shape.slotPools
+    expect(slotPools.safeParse(Array.from({ length: 20 }, () => pool)).success).toBe(true)
+    expect(slotPools.safeParse(Array.from({ length: 21 }, () => pool)).success).toBe(false)
+  })
   it('preserves bounded composite pool identities built from full UUID spell sources', () => {
     const id = '00000000-0000-4000-8000-000000000001'
     const sourceInstanceId = `SUBCLASS:${id}:${id}:${id}:${id}`

@@ -6,10 +6,12 @@ import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUui
  * which fails closed on a System that does not provide the capability.
  *
  * @param capability Lower-case hyphenated name used in errors, such as `roll-mode`.
+ * @param validate Refuses an adapter whose System data the capability cannot use, at registration.
  */
 export function createSystemCapabilityRegistry<TAdapter extends { readonly gameSystemId: string }>(
   capability: string,
-  adapters: readonly TAdapter[]
+  adapters: readonly TAdapter[],
+  validate?: (adapter: TAdapter) => void
 ) {
   const canonicalSystemId = (value: string) => {
     const parsed = postgresUuidSchema.safeParse(value)
@@ -26,6 +28,7 @@ export function createSystemCapabilityRegistry<TAdapter extends { readonly gameS
     if (bySystemId.has(gameSystemId)) {
       throw new Error(`Duplicate ${capability} System adapter: ${gameSystemId}.`)
     }
+    validate?.(adapter)
     bySystemId.set(gameSystemId, adapter)
   }
   return {
