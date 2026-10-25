@@ -24,6 +24,7 @@ export const VALUE_DOMAIN_CODE = {
   DAMAGE_INTERCEPTION: 'DAMAGE_INTERCEPTION',
   DAMAGE_MIRROR: 'DAMAGE_MIRROR',
   END_EVENT_EXEMPTION: 'END_EVENT_EXEMPTION',
+  INCOMING_DAMAGE: 'INCOMING_DAMAGE',
   INCOMING_ATTACK_GATE: 'INCOMING_ATTACK_GATE',
   HEALING_RECEIVED: 'HEALING_RECEIVED',
   ARMOR_CLASS: 'ARMOR_CLASS',
@@ -181,6 +182,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'End Event Exemption',
     description:
       "The holder's own active effects with the chosen ids no longer end on the chosen events; their other end conditions still apply."
+  },
+
+  [VALUE_DOMAIN_CODE.INCOMING_DAMAGE]: {
+    code: VALUE_DOMAIN_CODE.INCOMING_DAMAGE,
+    label: 'Incoming Damage',
+    description:
+      'Damage the holder takes is halved before its resistances, or damage from an effect that allows a saving throw for half damage is set by the holder’s save result instead.'
   },
 
   [VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE]: {
@@ -504,6 +512,9 @@ export type ValueDomainParamByCode = {
 
   // The holder's chosen effects no longer end on the chosen events (Persistent Rage).
   END_EVENT_EXEMPTION: EmptyObject
+
+  // The holder halves incoming damage or overrides save-for-half damage bands.
+  INCOMING_DAMAGE: EmptyObject
 
   // A save an attacker must pass before targeting the holder.
   INCOMING_ATTACK_GATE: EmptyObject

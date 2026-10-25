@@ -323,7 +323,10 @@ export async function persistEncounterActionCommit(
     })),
     effectiveMaximumHitPoints: batch.targetTransition.before.maximumHitPoints,
     effectiveScalarValues: batch.targetTransition.before.scalarValues,
-    forceVersionAdvance: target.kind === 'CHARACTER' && input.createdEffects.length > 0,
+    // A used reaction versions its Character even when it leaves no effect behind (Uncanny Dodge).
+    forceVersionAdvance:
+      target.kind === 'CHARACTER' &&
+      (input.createdEffects.length > 0 || reaction?.selection === 'USE'),
     ...combineSpendMutations(
       source.id === target.id ? sourceMutation : {},
       reactionSpend.mutation,

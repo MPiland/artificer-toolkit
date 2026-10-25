@@ -105,26 +105,31 @@ export const damageDispositionDtoSchema = lazySchema(() =>
 export type DamageDispositionDto = z.infer<typeof damageDispositionDtoSchema>
 
 /**
- * Damage after the target's defenses (SRD 5.1): immunity takes it to 0, resistance halves it
- * rounding down, then vulnerability doubles it. Resistance and vulnerability do not cancel.
+ * The damage one application deals its target (SRD 5.1): the target's own halving first (an
+ * `INCOMING_DAMAGE` HALVE grant, Uncanny Dodge), then its defenses: immunity takes it to 0,
+ * resistance halves it, then vulnerability doubles it. Each halving rounds down, per application.
+ * Resistance and vulnerability do not cancel.
  */
-export function resolveDispositionDamage(
-  disposition: DamageDispositionDto,
+export function resolveIncomingDamage(application: {
   requestedAmount: number
-): number {
-  if (disposition === 'IMMUNE') return 0
+  incomingHalved: boolean
+  damageDisposition: DamageDispositionDto
+}): number {
+  const { requestedAmount, incomingHalved, damageDisposition } = application
+  if (damageDisposition === 'IMMUNE') return 0
+  const halved = incomingHalved ? Math.floor(requestedAmount / 2) : requestedAmount
   const resisted =
-    disposition === 'RESISTANT' || disposition === 'RESISTANT_AND_VULNERABLE'
-      ? Math.floor(requestedAmount / 2)
-      : requestedAmount
-  return disposition === 'VULNERABLE' || disposition === 'RESISTANT_AND_VULNERABLE'
+    damageDisposition === 'RESISTANT' || damageDisposition === 'RESISTANT_AND_VULNERABLE'
+      ? Math.floor(halved / 2)
+      : halved
+  return damageDisposition === 'VULNERABLE' || damageDisposition === 'RESISTANT_AND_VULNERABLE'
     ? resisted * 2
     : resisted
 }
 
 /**
  * The disposition a target's defenses give one damage type: immunity wins, and resistance and
- * vulnerability together are both kept (`resolveDispositionDamage` applies them in order).
+ * vulnerability together are both kept (`resolveIncomingDamage` applies them in order).
  */
 export function damageDispositionOf(
   defenses: readonly { kind: 'IMMUNITY' | 'RESISTANCE' | 'VULNERABILITY'; damageTypeId: string }[],
@@ -183,6 +188,8 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
       maximumHitPoints: integerSchema.check(z.gte(0)),
       damageTypeId: uuidSchema,
       damageDisposition: damageDispositionDtoSchema,
+      /** The target halved the damage before its defenses (an `INCOMING_DAMAGE` HALVE grant). */
+      incomingHalved: z.boolean(),
       /** A critical hit: damage at 0 hit points adds two death save failures (D96). */
       critical: z.boolean(),
       /** The held effect whose damage interception left the target above 0 hit points instead. */

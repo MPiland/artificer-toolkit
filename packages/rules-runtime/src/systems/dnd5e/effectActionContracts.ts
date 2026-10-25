@@ -114,6 +114,14 @@ export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
   ON_SAVE_SUCCESS: 'dnd5e.resolved-damage-expression.on-save-success',
   ON_CHECK_SUCCESS: 'dnd5e.resolved-damage-expression.on-check-success'
 } as const satisfies Record<SpecializedPath, string>
+/**
+ * The target's own multiplier on the damage of an effect it saves against for half (Evasion: none on
+ * a success, half on a failure), bound per save result from its incoming-damage profile.
+ */
+export const DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS = {
+  ON_SAVE_FAIL: 'dnd5e.save-damage-multiplier.on-save-fail',
+  ON_SAVE_SUCCESS: 'dnd5e.save-damage-multiplier.on-save-success'
+} as const
 export const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
 export const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
@@ -351,6 +359,10 @@ export const nestedSaveGateNodeId = (pathCode: string) =>
   `nested-save-gate-${pathCode.toLowerCase()}`
 /** The result path a closed gate hands its band: no authored path is satisfied by it. */
 export const NESTED_SAVE_GATE_CLOSED_PATH = 'GATE_CLOSED'
+/** The op that opens a roll-table row's outcomes to the result path only when the table die lands in the row. */
+export const DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY = 'dnd5e.roll-table-row-gate'
+/** The id prefix of a roll table's own dice and running sums, which every row gate reads. */
+export const ROLL_TABLE_DICE_NODE_PREFIX = 'roll-table-'
 export const nestedSaveRiderConditionNodeId = (index: number) =>
   index === 0 ? 'nested-save-rider-condition' : `nested-save-rider-condition-${index + 1}`
 /** The authored result path in a direct proposal node id: `[prefix]proposal-<path>[-condition]`. */

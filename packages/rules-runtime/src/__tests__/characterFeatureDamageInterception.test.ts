@@ -67,6 +67,7 @@ const lethal: CharacterRuleActionApplication = {
   targetActorId: ACTOR_ID,
   damageTypeId: testUuid(0xf307),
   damageDisposition: 'NORMAL',
+  incomingHalved: false,
   requestedAmount: 14,
   resolvedAmount: 14,
   appliedAmount: 10,

@@ -11864,11 +11864,10 @@
           "tasks": [
             {
               "id": "ATTACK-16.T1a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ATTACK-16.1"
               ],
-              "activeWorkbook": "docs/handoffs/slice-attack-16.md",
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
@@ -11877,11 +11876,13 @@
                 "after": []
               },
               "text": "Kernel roll-table execution: the effect compiler accepts an authored ROLL_TABLE path rolled server-side in the OUTCOME phase (receipt keeps the roll) with a generic row-gate op (nested-save band pattern), each row an ordinary compiled outcome graph of path-gatable kinds, the roll and selected row in trace and replay; publication refuses gaps, overlaps and out-of-die ranges. REPEAT_TABLE rows refused. Generic; authoring-parity proof with a homebrew table.",
-              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
+              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray). Merged in m446.",
+              "mergedAt": "2026-10-25T19:46:55Z",
+              "proof": "Carried in ci/attack-16-t1a2@05b465df8 (Tests 40225999688, Live 40225999714, contains m445); fast-path merge m446 (run 40227624049)."
             },
             {
               "id": "ATTACK-16.T1a2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ATTACK-16.1"
               ],
@@ -11895,8 +11896,9 @@
                 ]
               },
               "text": "Row-scoped lasting plans: a roll-table row can carry its own timed CONDITION and APPLY_GRANT plans (lasting plans chosen per selected row, not once per action), with proofs. Repeat saves inside rows stay with SPELLS-4.T2ps.",
-              "note": "Registered 2026-10-25 (T1a measured 11 against 8; user ruling accepted +3). Re-sized 3 to 5 on 2026-10-25 (user ruling): one plan per row via the hit-point-tier pattern, adding optional rollTableRow and rollTableRowPlans contract fields.",
-              "activeWorkbook": "docs/handoffs/slice-attack-16.md"
+              "note": "Registered 2026-10-25 (T1a measured 11 against 8; user ruling accepted +3). Re-sized 3 to 5 on 2026-10-25 (user ruling): one plan per row via the hit-point-tier pattern, adding optional rollTableRow and rollTableRowPlans contract fields. Merged in m446.",
+              "mergedAt": "2026-10-25T19:46:55Z",
+              "proof": "Tests 40225999688 and Live 40225999714 green on ci/attack-16-t1a2@05b465df8; D62.2 timed-condition expiry binding (ruleExecutionTurnResults.ts) reviewed and accepted; fast-path merge m446."
             },
             {
               "id": "ATTACK-16.T1b",
@@ -18470,7 +18472,7 @@
             },
             {
               "id": "SPELLS-31.T5a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18484,7 +18486,9 @@
                 ]
               },
               "text": "New option (ruling at start): holder-side save-damage override and incoming halving; Evasion x3, Uncanny Dodge x2. Shares the damage-resolution step with SPELLS-4.T2p, not an option. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "mergedAt": "2026-10-25T19:21:31Z",
+              "proof": "Tests 40224100237 and Live 40224100169 green on ci/spells-31-t5a@9794fedcc (contains the phase tip); fast-path merge m445 (run 40225613668), full backstop on ci/merge-m445.",
+              "note": " Merged in m445."
             },
             {
               "id": "SPELLS-31.T5b",

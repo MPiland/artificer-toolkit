@@ -32,8 +32,11 @@ import {
   withCreatureActiveGrantProtection,
   withCreatureActiveGrantSaves,
   encounterGrantsEnabledDomain,
-  encounterSavingThrowAddedDice
+  encounterSavingThrowAddedDice,
+  incomingDamageProfile
 } from './encounterActiveGrants.js'
+import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
+import type { IncomingDamageProfileDto } from '@artificer-toolkit/schema/grants/modifier'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
   EncounterRunActorState,
@@ -135,6 +138,8 @@ export type MovementTarget<
   /** Defenses that apply only to attacks without their bypassing traits. */
   qualifiedDefenses: readonly QualifiedDamageDefense[]
   conditionImmunityIds: readonly string[]
+  /** How the actor takes damage (`INCOMING_DAMAGE`); `targetDerivedFacts.incomingDamage` carries it to its saves. */
+  incomingDamage: IncomingDamageProfileDto
   /** Conditions the actor always has (see `heldConditionIds`); `state.conditions` holds only those applied to it. */
   innateConditionIds: readonly string[]
   /** What the actor's own grants let it move through (D154). */
@@ -426,6 +431,7 @@ export function buildMovementTarget<
           conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
           spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds
         }
+    const incomingDamage = incomingDamageProfile(effectiveRulePolicyOutput.grantFold.modifiers)
     const sheetInputs = nativeCharacterBatchInputs(
       characterFacts,
       effectiveRulePolicyOutput,
@@ -553,9 +559,11 @@ export function buildMovementTarget<
         ...(formStatBlock ? { statBlock: formStatBlock } : {}),
         savingThrowAddedDice: encounterSavingThrowAddedDice(gameSystemId, activeEffects),
         healingMaximized: encounterGrantsEnabledDomain(activeEffects, 'HEALING_RECEIVED'),
+        incomingDamage,
         targetProtection: { status: 'NORMALIZED', ...protection }
       },
       ...protection,
+      incomingDamage,
       ...(formCreature ? { formCreature } : {}),
       movementPassage: encounterActorMovementPassage(
         gameSystemId,
@@ -605,6 +613,10 @@ export function buildMovementTarget<
   const conditions = readEncounterActorConditionState(actor.conditions ?? [])
   const creatureStatBlock = snapshotStatBlock(actor)
   const featureDefinitions = snapshotFeatureDefinitions(actor)
+  const incomingDamage = incomingDamageProfile([
+    ...(creatureFacts?.modifiers ?? []),
+    ...listActiveEffectGrants(activeEffects).flatMap(({ modifiers }) => modifiers)
+  ])
   return {
     actor,
     activeEffects,
@@ -651,6 +663,7 @@ export function buildMovementTarget<
       ),
       savingThrowAddedDice: encounterSavingThrowAddedDice(gameSystemId, activeEffects),
       healingMaximized: encounterGrantsEnabledDomain(activeEffects, 'HEALING_RECEIVED'),
+      incomingDamage,
       featureResources: actorRule.featureResources,
       creatureTypeId: snapshotCreatureTypeId(actor),
       targetProtection,
@@ -663,6 +676,7 @@ export function buildMovementTarget<
     defenses: targetProtection.defenses,
     qualifiedDefenses: targetProtection.qualifiedDefenses,
     conditionImmunityIds: targetProtection.conditionImmunityIds,
+    incomingDamage,
     movementPassage: encounterActorMovementPassage(gameSystemId, actor, null),
     grantedAttackTraits: grantedAttackTraits(gameSystemId, creatureFacts?.modifiers ?? []),
     innateConditionIds: creatureInnateConditionIds(activeEffects, creatureFacts?.modifiers ?? []),

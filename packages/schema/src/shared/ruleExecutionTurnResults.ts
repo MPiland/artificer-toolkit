@@ -695,6 +695,25 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
                 })
               continue
             }
+            if (application.sourceOperationKey === 'dnd5e.condition-duration') {
+              // A timed condition's last counted turn removes the conditions its effect owns (D62.2):
+              // the removal follows from the expiry, not from a trace candidate.
+              if (
+                application.kind !== 'CONDITION_REMOVE' ||
+                application.sourceActiveEffectId !== execution.activeEffectId ||
+                application.sourceNodeId !== execution.definition.frozenGraphNodeId ||
+                application.authoredPath !== null ||
+                application.resolvedPath !== null ||
+                execution.lifecycle.kind !== 'EXPIRE' ||
+                sourceTraces[0]?.operation.key !== 'dnd5e.condition-duration'
+              )
+                context.addIssue({
+                  code: 'custom',
+                  path: ['executions', index, 'applications'],
+                  message: 'Turn-effect application trace binding is invalid.'
+                })
+              continue
+            }
             if (application.sourceNodeId !== execution.definition.frozenGraphNodeId)
               context.addIssue({
                 code: 'custom',

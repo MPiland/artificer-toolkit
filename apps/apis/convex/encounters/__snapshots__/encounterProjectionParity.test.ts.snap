@@ -20,6 +20,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
         "critical": false,
         "damageDisposition": "NORMAL",
         "damageTypeId": "<uuid:0>",
+        "incomingHalved": false,
         "kind": "DAMAGE",
         "maximumHitPoints": 11,
         "ordinal": 0,

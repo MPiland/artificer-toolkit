@@ -60,6 +60,7 @@ import {
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 import { entryOwed } from './effectActionEntryOwed.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
+import { saveDamageMultiplierFacts, withSaveDamageMultiplier } from './effectActionSaveDamage.js'
 import {
   relationshipRecurrenceGraph,
   relationshipRecurrencePlan,
@@ -86,11 +87,11 @@ import {
   isRepeatCarrierEntry,
   repeatCarrierPlan
 } from './effectActionRepeatCarrier.js'
+import { compileTestDefinition, type TestPlan } from './effectActionTestPhase.js'
 import {
-  compileTestDefinition,
-  withMovementInterruption,
-  type TestPlan
-} from './effectActionTestPhase.js'
+  bindMovementInterruptionOutput,
+  bindMovementInterruptionTestOutput
+} from './effectActionMovementInterruption.js'
 import { compileDnd5eSummonPlacement } from './effectActionSummons.js'
 import { compileDnd5eZonePlacement } from './effectActionZones.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
@@ -251,6 +252,13 @@ import {
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition
 } from './effectActionNestedSave.js'
+import { hitPointTierActions } from './effectActionNarrowing.js'
+import {
+  admitRollTablePaths,
+  rollTableOutcomeTemplate,
+  rollTablePath,
+  rollTableRowActions
+} from './effectActionRollTable.js'
 
 const DND5E_ORDINARY_SIGHT_DEFINITION_ID = '0b4d8603-8e15-4e5a-89a6-9e1a179c4371'
 const DND5E_ORDINARY_SIGHT_NAMESPACE = '6871f0d5-9ac4-45d4-84c0-30cbd4e7df0c'
@@ -2330,8 +2338,14 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     unsupported('D&D test action has an unsupported bounded shape.')
   }
   const paths = new Set<string>()
+  const tablePaths = admitRollTablePaths(
+    action,
+    kind === 'SAVE' ? allowedPaths : [],
+    timedActiveEffectPlan
+  )
   const conditionCounts = new Map<string, number>()
   for (const entry of action.compiledEffect.entries) {
+    if (tablePaths.has(entry.pathCode)) continue
     if (isActiveEffectPlanOutcome(entry, action)) continue
     // A SEQUENCE result block applies each of its outcomes in order; OUTCOME
     // specializes every outcome as its own group, exactly like separate paths.
@@ -2930,6 +2944,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
 }): Dnd5eEffectActionTemplate | null {
   if (!isCheckOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
   assertKnownTestResultPath(input.action, input.selectedPath)
+  const table = rollTableOutcomeTemplate(input.action, input.selectedPath)
+  if (table) return table
   if (
     (input.selectedPath === 'ON_HIT' || input.selectedPath === 'ON_CRIT') &&
     isExactImmediateFollowUpSaveAction(input.action)
@@ -3114,14 +3130,18 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
           })
         : unsupported('D&D fixed outcome path must compile to one direct result.')
   })
-  const definition = mergedOutcomeGraphDefinition({
+  const definition = withSaveDamageMultiplier({
     action: input.action,
-    definitions: withDamageAddedDice({
+    selectedPath: input.selectedPath,
+    definition: mergedOutcomeGraphDefinition({
       action: input.action,
-      selectedPath: input.selectedPath,
-      groups,
-      definitions,
-      dice: input.facts.damageAddedDice ?? []
+      definitions: withDamageAddedDice({
+        action: input.action,
+        selectedPath: input.selectedPath,
+        groups,
+        definitions,
+        dice: input.facts.damageAddedDice ?? []
+      })
     })
   })
   const published = publishedGraph(definition)
@@ -3133,73 +3153,6 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     // owed to this attack and their locked dice and rider specialization.
     templateChecksum: checksumRuleDocument(authoredGroups)
   }
-}
-
-/**
- * A movement interruption is an explicit authored reaction binding.  The
- * compiler projects it into the graph so execution never infers it from an
- * action label, outcome, or system-specific branch.
- */
-function movementInterruptionOf(action: Dnd5eCompiledEffectActionSource) {
-  const { invocation } = action.compiledEffect
-  const trigger = 'reactionTrigger' in invocation ? invocation.reactionTrigger : undefined
-  return trigger?.kind === 'MOVEMENT' ? trigger.movementInterruption : null
-}
-
-function bindMovementInterruptionTestOutput(input: {
-  action: Dnd5eCompiledEffectActionSource
-  published: ServerPublishedRuleDefinitionDto
-  kind: TestKind
-}): ServerPublishedRuleDefinitionDto {
-  const binding = movementInterruptionOf(input.action)
-  if (binding?.kind !== 'STOP') return input.published
-  const allowedPaths =
-    input.kind === 'ATTACK' ? ['ON_HIT', 'ON_MISS', 'ON_CRIT'] : ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-  if (
-    !allowedPaths.includes(binding.whenResultPath) ||
-    !input.action.compiledEffect.entries.some((entry) => entry.pathCode === binding.whenResultPath)
-  )
-    throw new Dnd5eEffectActionCompilerError(
-      'Movement interruption must bind one exact authored D&D test path.'
-    )
-  return withMovementInterruption(input.published, binding.whenResultPath)
-}
-
-function bindMovementInterruptionOutput(input: {
-  action: Dnd5eCompiledEffectActionSource
-  published: ServerPublishedRuleDefinitionDto
-}): ServerPublishedRuleDefinitionDto {
-  const binding = movementInterruptionOf(input.action)
-  if (binding?.kind !== 'STOP') return input.published
-
-  const proposalNodeId = `proposal-${binding.whenResultPath.toLowerCase()}`
-  const proposal = input.published.definition.nodes.find((node) => node.id === proposalNodeId)
-  if (
-    !proposal ||
-    proposal.inputs.authoredPath?.kind !== 'LITERAL' ||
-    proposal.inputs.authoredPath.value !== binding.whenResultPath
-  ) {
-    throw new Dnd5eEffectActionCompilerError(
-      'Movement interruption must bind one exact D&D test proposal path.'
-    )
-  }
-
-  const definition: RuleGraphDefinition = {
-    ...input.published.definition,
-    outputs: {
-      ...input.published.definition.outputs,
-      movementInterruption: {
-        kind: 'NODE_OUTPUT',
-        nodeId: proposalNodeId,
-        port: 'authorized'
-      }
-    }
-  }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    ...input.published,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
 }
 
 /** Whether the active-effect plan the action ends up with is held under a maintained effect. */
@@ -3233,36 +3186,6 @@ function timedActiveEffectPlan(action: Dnd5eCompiledEffectActionSource) {
     actorLinkPlan(action) ??
     creatureFormPlan(action)
   )
-}
-
-/**
- * The action narrowed to each hit-point tier its entries author, with the entries no tier owns
- * (a success path's immunity) riding every tier; null for an action that authors no tier.
- */
-function hitPointTierActions(
-  action: Dnd5eCompiledEffectActionSource
-): { atMost: number; tierAction: Dnd5eCompiledEffectActionSource }[] | null {
-  const { entries } = action.compiledEffect
-  const tierOf = (entry: (typeof entries)[number]) =>
-    'hitPointTier' in entry ? entry.hitPointTier?.atMost : undefined
-  const atMosts = [...new Set(entries.flatMap((entry) => tierOf(entry) ?? []))]
-  if (atMosts.length === 0) return null
-  return atMosts.map((atMost) => ({
-    atMost,
-    tierAction: {
-      ...action,
-      compiledEffect: {
-        ...action.compiledEffect,
-        entries: entries
-          .filter((entry) => tierOf(entry) === undefined || tierOf(entry) === atMost)
-          .map((entry) => {
-            if (!('hitPointTier' in entry)) return entry
-            const { hitPointTier: _tier, ...untiered } = entry
-            return untiered
-          })
-      }
-    }
-  }))
 }
 
 function dnd5eActiveEffectPlans(
@@ -3721,36 +3644,26 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
     }
   }[]
   for (const pathCode of [...paths].sort((left, right) => left.localeCompare(right))) {
-    const groups = selectedOutcomeGroups(action, pathCode)
-    if (groups.length === 0) continue
-    if (
+    const table = rollTablePath(action, pathCode)
+    const groups = table ? [] : selectedOutcomeGroups(action, pathCode)
+    if (!table && groups.length === 0) continue
+    const followUpSave =
+      !table &&
       (pathCode === 'ON_HIT' || pathCode === 'ON_CRIT') &&
       isExactImmediateFollowUpSaveAction(action)
-    ) {
-      outcomes.push({
-        pathCode,
-        template: {
-          definitionId: action.effectId,
-          gameSystemId: DND5E_SYSTEM_ID,
-          definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-          checksum: checksumRuleDocument(action.compiledEffect.entries)
-        }
-      })
-      continue
-    }
     // Validate every reachable outcome at source compilation time. The
     // specialized graph itself is intentionally deferred until locked
     // runtime scaling facts are available.
-    for (const entries of groups) {
-      for (const entry of entries) specializedTestOutcome(entry)
-    }
+    if (!followUpSave) for (const entry of groups.flat()) specializedTestOutcome(entry)
     outcomes.push({
       pathCode,
       template: {
         definitionId: action.effectId,
         gameSystemId: DND5E_SYSTEM_ID,
         definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-        checksum: checksumRuleDocument(groups)
+        checksum: checksumRuleDocument(
+          table ? table.rows : followUpSave ? action.compiledEffect.entries : groups
+        )
       }
     })
   }
@@ -3902,6 +3815,17 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   },
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
+    const rows = rollTableRowActions(action)
+    if (rows && hitPointTierActions(action))
+      unsupported('D&D roll table cannot share an action with hit-point tiers.')
+    if (rows)
+      return rows.flatMap(({ rowId, row, rowAction }) =>
+        dnd5eActiveEffectPlans(rowAction, published).map((plan) =>
+          plan.compiledEntryId === rowId
+            ? { ...plan, rollTableRow: row }
+            : unsupported('D&D roll table row plan must hold its own row.')
+        )
+      )
     const tiers = hitPointTierActions(action)
     if (tiers)
       return tiers.flatMap(({ atMost, tierAction }) =>
@@ -4046,6 +3970,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_HEALING_MAXIMIZED_FACT_KEY]: targetDerivedFacts.healingMaximized === true
       }
     }
+    const action = actionMechanic as {
+      attackBonus?: unknown
+      attackRollMode?: unknown
+      attackKind?: unknown
+      save?: { abilityDefinitionId?: unknown; dc?: unknown } | null
+    }
     const { spellCastLevel, classLevels, selectedOptionalRiderIds } = actionMechanic
     const damageAddedDice =
       sourceDerivedFacts.damageAddedDice === undefined
@@ -4065,6 +3995,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
       ...gateFacts(published.definition, { targetDamageTypesTaken }),
+      ...saveDamageMultiplierFacts(published.definition, {
+        abilityDefinitionId: action.save?.abilityDefinitionId,
+        incomingDamage: targetDerivedFacts.incomingDamage
+      }),
       ...resolvedDamageExpressionFacts,
       ...weaponDamageDieFacts,
       ...(Object.keys(resolvedDamageOutcomeExpressions).length > 0
@@ -4102,12 +4036,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...(damageAddedDice.length === 0
         ? {}
         : { [DND5E_DAMAGE_ADDED_DICE_FACT_KEY]: JSON.stringify(damageAddedDice) })
-    }
-    const action = actionMechanic as {
-      attackBonus?: unknown
-      attackRollMode?: unknown
-      attackKind?: unknown
-      save?: { abilityDefinitionId?: unknown; dc?: unknown } | null
     }
     const derivedStats = targetDerivedFacts.derivedStats as
       | { armorClass?: { effective?: unknown }; savingThrows?: unknown }
@@ -4390,7 +4318,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         scalarValues: targetScalarValues,
         conditionIds: targetConditionIds
       }),
-      ...conditionImmunityFacts(definition.frozenGraph, conditionImmunityIds)
+      ...conditionImmunityFacts(definition.frozenGraph, conditionImmunityIds),
+      ...saveDamageMultiplierFacts(definition.frozenGraph, {
+        abilityDefinitionId:
+          definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY],
+        incomingDamage: targetDerivedFacts.incomingDamage
+      })
     }
     const abilityDefinitionId =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]

@@ -1,7 +1,7 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   damageDispositionOf,
-  resolveDispositionDamage
+  resolveIncomingDamage
 } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 
 import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
@@ -91,7 +91,12 @@ export function damageMirrorMechanicsBatch(input: {
   let temporary = target.state.temporary
   const applications = input.mirrors.map((mirror): CharacterRuleActionApplication => {
     const damageDisposition = damageDispositionOf(target.defenses, mirror.damageTypeId)
-    const resolvedAmount = resolveDispositionDamage(damageDisposition, mirror.amount)
+    const { halved: incomingHalved } = target.incomingDamage
+    const resolvedAmount = resolveIncomingDamage({
+      requestedAmount: mirror.amount,
+      incomingHalved,
+      damageDisposition
+    })
     const temporaryLost = Math.min(temporary, resolvedAmount)
     const currentLost = Math.min(current, resolvedAmount - temporaryLost)
     const application: CharacterRuleActionApplication = {
@@ -107,6 +112,7 @@ export function damageMirrorMechanicsBatch(input: {
       targetActorId: actor.id,
       damageTypeId: mirror.damageTypeId,
       damageDisposition,
+      incomingHalved,
       critical: false,
       mirrored: true,
       sourceNodeId: mirror.effectId,

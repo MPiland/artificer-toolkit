@@ -23,7 +23,7 @@ import {
   characterMechanicsTargetTransitionDtoSchema,
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
-  resolveDispositionDamage,
+  resolveIncomingDamage,
   sourceApplicationsChangeState,
   sourceApplicationsDtoSchema,
   stateEffectCreateReceiptDtoSchema,
@@ -358,10 +358,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
                 message: 'Temporary hit-point receipt arithmetic is invalid.'
               })
           } else if (application.kind === 'DAMAGE') {
-            const expectedResolved = resolveDispositionDamage(
-              application.damageDisposition,
-              application.requestedAmount
-            )
+            const expectedResolved = resolveIncomingDamage(application)
             const temporaryLost = Math.min(application.beforeTemporaryHitPoints, expectedResolved)
             temporarySource = temporaryHitPointsAfterLoss(
               { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
@@ -563,8 +560,10 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             path: ['targetItemDegradation'],
             message: 'Target item degradation must match the target Character.'
           })
+        // A used reaction writes its spend and effect onto the Character even when it leaves its
+        // hit points unchanged (a halved 1 deals nothing).
         const hasReactionMutation =
-          reaction?.spellCastConsumption != null ||
+          reaction?.selection === 'USE' ||
           value.targetFailedCounterSpend ||
           release !== null ||
           degradation !== null
