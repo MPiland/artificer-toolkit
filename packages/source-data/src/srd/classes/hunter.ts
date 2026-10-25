@@ -7,6 +7,7 @@ import {
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MEASUREMENT_UNIT_CODE,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -21,7 +22,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_CONDITION_TYPES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
-import { closedRuleEffect } from './mechanics.js'
+import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -198,16 +199,20 @@ export const hunterConclave: ClassAuthored = {
           description:
             'When a creature hits you with an attack, you gain a +4 bonus to AC against all subsequent attacks made by that creature for the rest of the turn.',
           order: 1,
+          // The engine keeps no per-attacker memory within a turn, so the bonus is a GM ruling (D187a).
           effects: [
-            closedRuleEffect({
-              id: classRowId(RA, 20, 5),
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.ACTIVATED,
-                range: { id: classRowId(RA, 21, 5), rangeKind: RANGE_KIND.SELF },
-                targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+            gmRulingEffect({
+              ids: {
+                effect: classRowId(RA, 20, 5),
+                range: classRowId(RA, 21, 5),
+                path: classRowId(RA, 0xd0, 1),
+                result: classRowId(RA, 0xd1, 1),
+                outcome: classRowId(RA, 0xd2, 1)
               },
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_MULTIATTACK_DEFENSE
+              label: 'Multiattack Defense',
+              instructions:
+                'After a creature hits you with an attack, you have a +4 bonus to AC against its later attacks this turn. The GM adds the bonus to those attacks.',
+              reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
             })
           ]
         },
