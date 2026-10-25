@@ -1144,7 +1144,8 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
     kind: 'ATTACKED',
     holderActorId: TARGET_ID,
     attackerActorId: OTHER_ID,
-    turnActorId: OTHER_ID
+    turnActorId: OTHER_ID,
+    melee: true
   } satisfies EncounterEvent
 
   // A stored grant's recurrence carries each subscription (the 5e Effect-action compiler authors
@@ -1530,7 +1531,7 @@ describe('what a saving throw ends for its holder (SPELLS-4.T2c2b)', () => {
     targetEndedEffects({
       holderActorId: TARGET_ID,
       held,
-      attacked: false,
+      attack: null,
       testEvidence,
       turnActorId: null,
       applications: [],

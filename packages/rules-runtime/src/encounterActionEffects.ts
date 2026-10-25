@@ -12,7 +12,7 @@ import { encounterAttackActionAttacks } from './encounterAttackAction.js'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
-import type { IncomingDamageGrantTrigger } from './encounterEndedEffectRelease.js'
+import type { EncounterGrantTrigger } from './encounterEndedEffectRelease.js'
 import {
   discoverEncounterFeatureActions,
   type EncounterPassiveWeaponHit
@@ -50,7 +50,7 @@ type CompleteExecution = Extract<
 >
 
 /** The facts an effect plan reads from the creature that will hold the effect. */
-function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
+export function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
   return {
     actorId: target.actor.id,
     conditionIds: target.characterFacts
@@ -123,7 +123,7 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
   /** Tells apart the settlements of one occurrence that damage the same creature (Legendary Actions). */
   ordinal?: number | string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
-}): IncomingDamageGrantTrigger[] {
+}): EncounterGrantTrigger[] {
   const { holder } = input
   if (holder.kind !== 'CREATURE') return []
   return discoverEncounterFeatureActions({
@@ -159,7 +159,7 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
         INCOMING_DAMAGE_GRANT_NAMESPACE
       ),
       authoredEffectId: capability.effectId,
-      damageTypeIds,
+      subscription: { event: 'DAMAGED', damageTypeIds },
       effect
     }
   })

@@ -8,6 +8,7 @@ import type {
   MoraleTriggerKindDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
 import type { ResolvedRuleCapabilityAvailabilityDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt'
 import type { FacingArc } from '@artificer-toolkit/shared/vtt/facingArc'
@@ -218,6 +219,15 @@ export interface MoraleSaveProposal {
   readonly failureDisposition: MoraleDispositionDto
 }
 
+/** An effect an enabled optional rule has a qualifying attack give its target, sourced by the attacker. */
+export interface AttackAppliedEffect {
+  readonly effectId: string
+  readonly label: string
+  /** Only a melee attack qualifies; otherwise any attack roll does. */
+  readonly meleeOnly: boolean
+  readonly plan: CharacterRuleActionActiveEffectPlan
+}
+
 /**
  * The Encounter's Facing rule as its definition authors it (ATTACK-12): the steps a token may face
  * in, the arc each offset from its facing falls in, the d20 influence an attacker in a target's arc
@@ -261,7 +271,10 @@ export interface FlankingInput extends OptionalCombatPolicyInput {
   })[]
 }
 
-/** A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale, Facing and Flanking. */
+/**
+ * A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale,
+ * Facing, Flanking and attack-applied effects.
+ */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
   prepareDisarmContest(
@@ -279,6 +292,8 @@ export interface OptionalCombatPolicyCapabilityAdapter {
     input: MoraleOfferInput
   ): ReadonlyMap<string, readonly EncounterMoraleOfferDto[]>
   prepareMoraleSave(input: MoralePreparationInput): OptionalCombatResolution<MoraleSaveProposal>
+  /** The effects the Encounter's enabled rules have an attack give its target; none when off. */
+  attackAppliedEffects(input: OptionalCombatPolicyInput): readonly AttackAppliedEffect[]
   /** The Encounter's active Facing rule, or null when facing is off. */
   facingRule(input: OptionalCombatPolicyInput): FacingRule | null
   /** The capability an actor needs to flank, or null when flanking is off. */

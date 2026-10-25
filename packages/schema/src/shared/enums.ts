@@ -355,6 +355,9 @@ export const pathLifecycleTurnActorSchema = lazySchema(() => z.enum(['TARGET', '
 export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
   z.enum(['START_OF_TURN', 'END_OF_TURN'])
 )
+/** Which earlier effects a new one ends: `PER_SOURCE`, its source's from the same Effect on any holder. */
+export const pathLifecycleExclusivitySchema = lazySchema(() => z.enum(['PER_SOURCE']))
+
 /** The turn boundary an effect is counted or recurs at, on its target's or its source's turns. */
 export const pathLifecycleTurnAnchorDtoSchema = lazySchema(() =>
   z.strictObject({

@@ -144,6 +144,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     holderEnd: ActiveGrantHolderEnd | null
     /** Only the effect's source meets its attacker grants and attack consume. */
     fromSourceOnly?: true
+    /** `PER_SOURCE`: the grant ends its source's earlier one from the same Effect, on any holder. */
+    exclusivity?: 'PER_SOURCE'
     /** The grant is active only during its tick anchor's turn while one tick remains. */
     activeOnlyOnFinalAnchorTurn?: true
     /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */

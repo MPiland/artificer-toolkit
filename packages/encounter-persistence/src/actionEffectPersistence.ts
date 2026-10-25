@@ -67,10 +67,6 @@ function actionOutputs(input: EffectCommitInput) {
   return outputs
 }
 
-function isSourceImmunityEffect(effect: ActiveRuleEffectRecord) {
-  return effect.definition.stateContributions.some(({ kind }) => kind === 'SOURCE_IMMUNITY')
-}
-
 function classifyCreatedEffects(input: EffectCommitInput) {
   const outputs = actionOutputs(input)
   const stateTransition = outputs.stateEffectTransitions
@@ -80,8 +76,9 @@ function classifyCreatedEffects(input: EffectCommitInput) {
     outputs.kind === 'CHARACTER_MECHANICS_BATCH'
       ? [...(outputs.reaction?.activeEffectTransitions ?? []), ...outputs.reactionEffectTransitions]
       : []
-  // The target's own rules create timed effects on it beside the action's effects: its damage-trigger
-  // grants and the immunity a passed ward leaves on its holder.
+  // Rules met by the attack create timed effects on the target beside the action's effects: its own
+  // damage-trigger grants, the immunity a passed ward leaves on its holder, and a mark the attacker
+  // gives it.
   const grantTransition = outputs.grantEffectTransitions
   // The action's recurring effect may carry its riders' effects after it.
   if (
@@ -372,13 +369,12 @@ export async function persistEncounterActionEffects(
       checksumCanonicalJson(effect.owner) !== checksumCanonicalJson(owner) ||
       origin.kind !== 'ENCOUNTER' ||
       origin.sourceAggregateId !== input.state.id ||
-      // A reaction's effect and a damage-trigger grant come from the target itself; the immunity a
-      // passed ward leaves on its holder names the attacker it frees.
-      origin.sourceActorId !==
-        (effect.id === reaction?.id ||
-        (grants.some((grant) => grant.id === effect.id) && !isSourceImmunityEffect(effect))
-          ? target.id
-          : input.command.actorId) ||
+      // A reaction's effect comes from the target itself. A grant names its giver: the target's own
+      // rule, or the attacker (the immunity a passed ward frees it from, a mark it gives).
+      (grants.some((grant) => grant.id === effect.id)
+        ? origin.sourceActorId !== target.id && origin.sourceActorId !== input.command.actorId
+        : origin.sourceActorId !==
+          (effect.id === reaction?.id ? target.id : input.command.actorId)) ||
       origin.sourceOccurrenceId !== input.execution.occurrenceId ||
       origin.rootCommandId !== input.command.commandId ||
       effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId ||

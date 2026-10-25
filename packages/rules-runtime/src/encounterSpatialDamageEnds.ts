@@ -7,7 +7,7 @@ import { type TargetState, targetTemporaryHitPoints } from './encounterCharacter
 import {
   endedEffectReleases,
   targetEndedEffects,
-  type IncomingDamageGrantTrigger
+  type EncounterGrantTrigger
 } from './encounterEndedEffectRelease.js'
 import { temporaryHitPointsAfterRelease } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 
@@ -34,7 +34,7 @@ export function spatialDamageEnds(input: {
   /** Every Encounter actor's disposition, to tell a zone source's side from the rest. */
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
   /** The grants the holder's passive features give when a zone's damage meets them; none when omitted. */
-  grantTriggers?: readonly IncomingDamageGrantTrigger[]
+  grantTriggers?: readonly EncounterGrantTrigger[]
 }): {
   endedEffects: ActiveRuleEffectRecord[]
   releases: CharacterEndedEffectReleaseApplication[]
@@ -46,7 +46,7 @@ export function spatialDamageEnds(input: {
     const endedBy = targetEndedEffects({
       holderActorId: input.holderActorId,
       held: input.held,
-      attacked: false,
+      attack: null,
       testEvidence: [],
       turnActorId: input.turnActorId,
       applications: execution.applications.map((application) => ({

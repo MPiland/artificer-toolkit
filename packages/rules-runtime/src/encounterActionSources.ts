@@ -8,6 +8,7 @@ import { characterFormCreatureView } from './encounterActorForm.js'
 import { StaleCharacterActionError, UnavailableCreatureActionError } from './encounterErrors.js'
 import { discoverEncounterFeatureActions } from './encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { snapshotFeatureDefinitions } from './encounterActorState.js'
+import { isInstalledMeleeAttackTrigger } from './platformRulesRuntime.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from './encounterFeatureActionCapabilityDiscovery.js'
 import {
   parseGrantedActionId,
@@ -102,6 +103,19 @@ export type NativeEncounterActionSource =
       entry: CompiledCharacterAction
       effectivePolicyOutput: CharacterRulePolicyOutput
     }
+
+/**
+ * Whether the source's action is a melee attack, by the System's classification of its trigger (a
+ * melee weapon or melee spell attack), never by distance: a reach attack is still melee.
+ */
+export function isMeleeAttackSource(gameSystemId: string, source: NativeEncounterActionSource) {
+  return isInstalledMeleeAttackTrigger(
+    gameSystemId,
+    source.kind === 'CHARACTER_ACTION'
+      ? source.candidate.mechanicFacts.invocation.triggerCode
+      : source.capability.mechanicFacts.invocation.triggerCode
+  )
+}
 
 /** The ability definitions a System authors, as Creature discovery reads them. */
 export function systemAbilityDefinitions(system: SystemAuthoredDto) {

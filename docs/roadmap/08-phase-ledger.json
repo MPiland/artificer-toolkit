@@ -11562,12 +11562,14 @@
           "acs": [
             {
               "text": "With Marking enabled, a melee attack marks its target until the end of the attacker's next turn, as an active effect (one mark per attacker).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by ATTACK-13.T1 (m447); see each task's proof."
+              ],
               "origin": [
                 "G2-OPTIONAL-COMBAT"
               ],
-              "note": "2014 DMG variant, approved for Phase 8. Marks use the active-effect lifecycle (docs/architecture/dnd5e-optional-combat.md). The removed proposal resolvers are in 437b2dd15 (optionalActionPolicy.ts). Presentation is VTT_UI-1.3.",
+              "note": "2014 DMG variant, approved for Phase 8. Marks use the active-effect lifecycle (docs/architecture/dnd5e-optional-combat.md). The removed proposal resolvers are in 437b2dd15 (optionalActionPolicy.ts). Presentation is VTT_UI-1.3. Closed 2026-10-24 by ATTACK-13.T1.",
               "id": "ATTACK-13.1"
             },
             {
@@ -11598,7 +11600,7 @@
           "tasks": [
             {
               "id": "ATTACK-13.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ATTACK-13.1"
               ],
@@ -11609,8 +11611,9 @@
                 "size": 8
               },
               "text": "Melee attack applies a mark active effect, one per attacker, expiring at the end of the attacker's next turn: widen the MARK arm (or graph), one-mark-per-attacker rule and an after-attack hook.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
-              "activeWorkbook": "docs/handoffs/slice-attack-13.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling). Merged in m447.",
+              "mergedAt": "2026-10-25T19:47:52Z",
+              "proof": "Tests 40226054105 and Live 40226054035 green on ci/attack-13-t1@3cdd5b740 (contains m445; homebrew-parity test reads recurrence.anchor after T6n2, assertion unchanged); merged in m447 (run 40227699163)."
             },
             {
               "id": "ATTACK-13.T2",
@@ -11786,6 +11789,24 @@
               "text": "Trigger detection (critical hit, 0 HP, death save failed by 5+) stores an event-backed GM roll offer on the actor (Run state, Convex validators, GM command, receipts) on the authored table with gap-tolerant bands.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
               "activeWorkbook": "docs/handoffs/slice-attack-15.md"
+            },
+            {
+              "id": "ATTACK-15.T1g",
+              "status": "TODO",
+              "closes": [
+                "ATTACK-15.1"
+              ],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 2,
+                "after": [
+                  "ATTACK-15.T1"
+                ]
+              },
+              "text": "Move the consequence-roll offer write into the shared mechanics batch seam (applyRoomEncounterMechanicsBatch / persistEncounterMechanicsBatchPlan), deleting the per-path call sites, so voluntary zone entry, forced-movement zone damage, melee retaliation during movement, contest/basic-action outcomes and damage mirrors offer too. Room tests for zone entry and forced movement. Manual Sheet HP adjustments do not offer (user ruling 2026-10-25: automation only).",
+              "note": "Registered 2026-10-25 (user ruling, D187 growth +2): T1 audit found 5 HP-lowering paths outside its call sites; all write through the mechanics batch seam."
             },
             {
               "id": "ATTACK-15.T2",
