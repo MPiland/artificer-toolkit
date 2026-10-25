@@ -8,7 +8,9 @@ import {
 import {
   sceneCommandResultDtoSchema,
   sceneStoredTokenDtoSchema,
+  sceneTokenFacingCommandInputDtoSchema,
   type CampaignSceneStateDto,
+  type SceneTokenFacingCommandInputDto,
   type SceneCommandResultDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import {
@@ -34,8 +36,8 @@ import { liveSessionSceneGeometryCommandInputSchema } from './nativeRoomSceneCom
 import { readRoomSceneRow, writeRoomSceneRow } from './roomSceneRecords.js'
 
 /**
- * Stages native checkpoint records for an approved standalone move or door plan; the caller owns
- * the outer commit. Undo commits through `publishRoomSceneUndo`.
+ * Stages native checkpoint records for an approved standalone move or door plan, or an Encounter
+ * action's facing change; the caller owns the outer commit. Undo commits through `publishRoomSceneUndo`.
  */
 export function persistRoomSceneCommand(args: {
   transaction: RoomTransaction
@@ -43,7 +45,9 @@ export function persistRoomSceneCommand(args: {
   /** Current native entities before Character vision composition. */
   scene: CampaignSceneStateDto
   baseOrdinals: SceneBaseOrdinals
-  command: ReturnType<typeof liveSessionSceneGeometryCommandInputSchema.parse>
+  command:
+    | ReturnType<typeof liveSessionSceneGeometryCommandInputSchema.parse>
+    | SceneTokenFacingCommandInputDto
   actorUserId: string
   result: SceneCommandResultDto
   presentationVersion: number
@@ -54,11 +58,20 @@ export function persistRoomSceneCommand(args: {
   actionOrigin?: { encounterId: string; commandId: string }
 }) {
   const { transaction, header, scene } = args
-  const supplied = liveSessionSceneGeometryCommandInputSchema.parse(args.command)
+  const supplied =
+    args.command.type === 'SET_SCENE_TOKEN_FACING'
+      ? sceneTokenFacingCommandInputDtoSchema.parse(args.command)
+      : liveSessionSceneGeometryCommandInputSchema.parse(args.command)
   const { state, result } = beginDirectSceneCommand({ ...args, supplied })
   const input = normalizeGeometryInput(supplied)
-  if (input.type !== 'MOVE_SCENE_TOKEN' && input.type !== 'SET_SCENE_DOOR_STATE')
+  if (
+    input.type !== 'MOVE_SCENE_TOKEN' &&
+    input.type !== 'SET_SCENE_DOOR_STATE' &&
+    input.type !== 'SET_SCENE_TOKEN_FACING'
+  )
     throw new Error('Room Scene command is unsupported.')
+  if (input.type === 'SET_SCENE_TOKEN_FACING' && !args.actionOrigin)
+    throw new Error("Only an Encounter action changes a token's facing.")
   if (input.type === 'MOVE_SCENE_TOKEN' && input.expectedEncounterVersion !== null)
     throw new Error('Room Scene persistence requires a standalone move.')
   const target = geometryTarget(input)
@@ -143,7 +156,11 @@ export function persistRoomSceneCommand(args: {
     saveId: args.saveId,
     actorUserId: args.actorUserId,
     now: args.now,
-    actionOrigin: args.actionOrigin
+    actionOrigin: args.actionOrigin,
+    priorRotationDegrees:
+      input.type === 'SET_SCENE_TOKEN_FACING' && rawValue.collection === 'tokens'
+        ? rawValue.entity.rotationDegrees
+        : undefined
   })
 }
 
@@ -326,6 +343,7 @@ function writeDirectSceneCommand(args: {
   actorUserId: string
   now: number
   actionOrigin: { encounterId: string; commandId: string } | undefined
+  priorRotationDegrees?: number
 }) {
   const { transaction, header, state, input, change, result } = args
   // Direct commands never derive fog (`isStagedSceneCommand`); fog-deriving ones stage and publish
@@ -353,7 +371,10 @@ function writeDirectSceneCommand(args: {
     inputChecksum,
     result: retainedResult,
     resultChecksum: checksumCanonicalJson(retainedResult),
-    actionOrigin: args.actionOrigin ?? null
+    actionOrigin: args.actionOrigin ?? null,
+    ...(args.priorRotationDegrees !== undefined && {
+      priorRotationDegrees: args.priorRotationDegrees
+    })
   })
   parseGeometrySave(save)
   parseGeometryCommand(receipt, state.version)

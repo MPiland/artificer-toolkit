@@ -248,6 +248,7 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
         path: save.input.path,
         outcome: preparation.outcome,
         sceneVersion: save.snapshotVersion,
+        facingDegrees: save.input.facingDegrees,
         draggedTokens: preparation.draggedTokens
       })
       if (preparation.outcome.kind === 'UNINTERRUPTED') {
@@ -355,9 +356,11 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
           path: save.input.path,
           outcome: preparation?.outcome ?? null,
           sceneVersion: header.version,
+          facingDegrees: save.input.facingDegrees,
           draggedTokens: preparation?.draggedTokens
         })
       : target.delta
+  const moverDelta = delta?.kind === 'BATCH' ? delta.deltas[0] : delta
   // Each dragged token stands where the room planned it and moves by the mover's displacement (D105).
   const dragged: {
     tokenId: string
@@ -428,7 +431,6 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
           speedId
         })
         // The Charge gate reads where this move began and ended (D164).
-        const moverDelta = delta?.kind === 'BATCH' ? delta.deltas[0] : delta
         if (current?.collection === 'tokens' && moverDelta?.kind === 'TOKEN_MOVED')
           await recordTurnLastMove(ctx, {
             state: geometry.encounter,
@@ -522,6 +524,13 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
     delta,
     fogPatches
   })
+  // A move that chose a facing keeps the one it replaced, so its undo turns the token back.
+  const priorRotationDegrees =
+    moverDelta?.kind === 'TOKEN_MOVED' &&
+    moverDelta.rotationDegrees !== undefined &&
+    current?.collection === 'tokens'
+      ? current.entity.rotationDegrees
+      : undefined
   if (sceneChanged) await callbacks.writeLiveState(state)
   await callbacks.markGeometryPublished(save.id)
   await callbacks.insertSceneCommand(
@@ -533,7 +542,8 @@ export async function publishSceneGeometry<TGeometry extends SpatialSceneGeometr
       input: save.input,
       inputChecksum: save.inputChecksum,
       result,
-      resultChecksum: checksumCanonicalJson(result)
+      resultChecksum: checksumCanonicalJson(result),
+      ...(priorRotationDegrees !== undefined && { priorRotationDegrees })
     })
   )
   return result

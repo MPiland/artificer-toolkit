@@ -17,7 +17,7 @@ export const DND5E_FLANKING_POLICY_MODULE = {
   contractVersion: 1
 } as const
 
-const DND5E_FACING_POLICY_MODULE = {
+export const DND5E_FACING_POLICY_MODULE = {
   key: DND5E_FACING_OPERATION_KEY,
   contractVersion: 1
 } as const

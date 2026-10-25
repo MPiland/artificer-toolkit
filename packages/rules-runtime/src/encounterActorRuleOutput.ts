@@ -57,11 +57,15 @@ function requireExactActorResourceIdentity(
         `Encounter actor "${factActor.actorId}" target protections do not match input facts.`
       )
     }
+    // A System without saving throws reports none; one with them reports one per ability score.
     const expectedSavingThrowIds = Object.keys(factActor.abilityScores).sort()
-    const actualSavingThrowIds = (outputActor.savingThrowDefinitions ?? []).map(
+    const actualSavingThrowIds = outputActor.savingThrowDefinitions?.map(
       (savingThrow) => savingThrow.abilityDefinitionId
     )
-    if (JSON.stringify(actualSavingThrowIds) !== JSON.stringify(expectedSavingThrowIds)) {
+    if (
+      actualSavingThrowIds &&
+      JSON.stringify(actualSavingThrowIds) !== JSON.stringify(expectedSavingThrowIds)
+    ) {
       throw new EncounterValidationError(
         `Encounter actor "${factActor.actorId}" saving throws do not match input facts.`
       )
@@ -94,7 +98,6 @@ export function reconcileEncounterActorRuleOutput(
       const previousActor = previous?.output.actors[actorIndex]
       return {
         ...actor,
-        savingThrowDefinitions: actor.savingThrowDefinitions ?? [],
         featureResources: actor.featureResources.map((resource, resourceIndex) => {
           const fact = actorFacts.featureResources[resourceIndex]!
           if (resource.rawUsed !== fact.used) {
@@ -123,7 +126,6 @@ export function bindEncounterActorRuleOutputToFacts(
   return encounterActorRuleOutputSchema.parse({
     actors: output.actors.map((actor, actorIndex) => ({
       ...actor,
-      savingThrowDefinitions: actor.savingThrowDefinitions ?? [],
       featureResources: actor.featureResources.map((resource, resourceIndex) => {
         const used = facts.actors[actorIndex]!.featureResources[resourceIndex]!.used
         if (resource.maximum !== null && used > resource.maximum) {

@@ -22279,7 +22279,22 @@ export declare const api: {
                         participantCapabilityDefinitionId: string;
                       }
                     | { kind: "ALTERNATING_DIAGONALS" }
-                    | { kind: "FACING" }
+                    | {
+                        arcs: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          fromDegrees: number;
+                          toDegrees: number;
+                        }>;
+                        attackerInTargetArc: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          influence: string;
+                        }>;
+                        facingStepDegrees: number;
+                        kind: "FACING";
+                        sourceCannotTargetInOwnArcs: Array<
+                          "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
+                        >;
+                      }
                     | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
@@ -33493,7 +33508,22 @@ export declare const api: {
                         participantCapabilityDefinitionId: string;
                       }
                     | { kind: "ALTERNATING_DIAGONALS" }
-                    | { kind: "FACING" }
+                    | {
+                        arcs: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          fromDegrees: number;
+                          toDegrees: number;
+                        }>;
+                        attackerInTargetArc: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          influence: string;
+                        }>;
+                        facingStepDegrees: number;
+                        kind: "FACING";
+                        sourceCannotTargetInOwnArcs: Array<
+                          "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
+                        >;
+                      }
                     | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
@@ -44716,7 +44746,22 @@ export declare const api: {
                         participantCapabilityDefinitionId: string;
                       }
                     | { kind: "ALTERNATING_DIAGONALS" }
-                    | { kind: "FACING" }
+                    | {
+                        arcs: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          fromDegrees: number;
+                          toDegrees: number;
+                        }>;
+                        attackerInTargetArc: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          influence: string;
+                        }>;
+                        facingStepDegrees: number;
+                        kind: "FACING";
+                        sourceCannotTargetInOwnArcs: Array<
+                          "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
+                        >;
+                      }
                     | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
@@ -55930,7 +55975,22 @@ export declare const api: {
                         participantCapabilityDefinitionId: string;
                       }
                     | { kind: "ALTERNATING_DIAGONALS" }
-                    | { kind: "FACING" }
+                    | {
+                        arcs: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          fromDegrees: number;
+                          toDegrees: number;
+                        }>;
+                        attackerInTargetArc: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          influence: string;
+                        }>;
+                        facingStepDegrees: number;
+                        kind: "FACING";
+                        sourceCannotTargetInOwnArcs: Array<
+                          "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
+                        >;
+                      }
                     | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
@@ -67179,7 +67239,22 @@ export declare const api: {
                         participantCapabilityDefinitionId: string;
                       }
                     | { kind: "ALTERNATING_DIAGONALS" }
-                    | { kind: "FACING" }
+                    | {
+                        arcs: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          fromDegrees: number;
+                          toDegrees: number;
+                        }>;
+                        attackerInTargetArc: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          influence: string;
+                        }>;
+                        facingStepDegrees: number;
+                        kind: "FACING";
+                        sourceCannotTargetInOwnArcs: Array<
+                          "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
+                        >;
+                      }
                     | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
@@ -78393,7 +78468,22 @@ export declare const api: {
                         participantCapabilityDefinitionId: string;
                       }
                     | { kind: "ALTERNATING_DIAGONALS" }
-                    | { kind: "FACING" }
+                    | {
+                        arcs: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          fromDegrees: number;
+                          toDegrees: number;
+                        }>;
+                        attackerInTargetArc: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          influence: string;
+                        }>;
+                        facingStepDegrees: number;
+                        kind: "FACING";
+                        sourceCannotTargetInOwnArcs: Array<
+                          "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
+                        >;
+                      }
                     | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
@@ -89609,7 +89699,22 @@ export declare const api: {
                       participantCapabilityDefinitionId: string;
                     }
                   | { kind: "ALTERNATING_DIAGONALS" }
-                  | { kind: "FACING" }
+                  | {
+                      arcs: Array<{
+                        arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                        fromDegrees: number;
+                        toDegrees: number;
+                      }>;
+                      attackerInTargetArc: Array<{
+                        arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                        influence: string;
+                      }>;
+                      facingStepDegrees: number;
+                      kind: "FACING";
+                      sourceCannotTargetInOwnArcs: Array<
+                        "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
+                      >;
+                    }
                   | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
                   | {
                       defenderCheckDefinitionIds: Array<string>;
@@ -100673,7 +100778,22 @@ export declare const api: {
                         participantCapabilityDefinitionId: string;
                       }
                     | { kind: "ALTERNATING_DIAGONALS" }
-                    | { kind: "FACING" }
+                    | {
+                        arcs: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          fromDegrees: number;
+                          toDegrees: number;
+                        }>;
+                        attackerInTargetArc: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          influence: string;
+                        }>;
+                        facingStepDegrees: number;
+                        kind: "FACING";
+                        sourceCannotTargetInOwnArcs: Array<
+                          "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
+                        >;
+                      }
                     | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
@@ -111887,7 +112007,22 @@ export declare const api: {
                         participantCapabilityDefinitionId: string;
                       }
                     | { kind: "ALTERNATING_DIAGONALS" }
-                    | { kind: "FACING" }
+                    | {
+                        arcs: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          fromDegrees: number;
+                          toDegrees: number;
+                        }>;
+                        attackerInTargetArc: Array<{
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                          influence: string;
+                        }>;
+                        facingStepDegrees: number;
+                        kind: "FACING";
+                        sourceCannotTargetInOwnArcs: Array<
+                          "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
+                        >;
+                      }
                     | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
@@ -125700,6 +125835,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_FACING_ARC"
                 | "TARGET_ABILITY_EXCLUDED"
                 | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
@@ -127457,6 +127593,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_FACING_ARC"
                 | "TARGET_ABILITY_EXCLUDED"
                 | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
@@ -127499,6 +127636,7 @@ export declare const api: {
                     | "TARGET_DEFEATED"
                     | "TARGET_CREATURE_TYPE_EXCLUDED"
                     | "TARGET_DISPOSITION"
+                    | "TARGET_FACING_ARC"
                     | "TARGET_ABILITY_EXCLUDED"
                     | "TARGET_NOT_DEAD"
                     | "TARGET_NOT_DYING"
@@ -127533,6 +127671,7 @@ export declare const api: {
                     | "TARGET_DEFEATED"
                     | "TARGET_CREATURE_TYPE_EXCLUDED"
                     | "TARGET_DISPOSITION"
+                    | "TARGET_FACING_ARC"
                     | "TARGET_ABILITY_EXCLUDED"
                     | "TARGET_NOT_DEAD"
                     | "TARGET_NOT_DYING"
@@ -127565,6 +127704,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_FACING_ARC"
                 | "TARGET_ABILITY_EXCLUDED"
                 | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
@@ -127591,6 +127731,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_FACING_ARC"
                 | "TARGET_ABILITY_EXCLUDED"
                 | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
@@ -127825,6 +127966,9 @@ export declare const api: {
                         domainKey: string | null;
                         grantId: string | null;
                         influence: string;
+                        positional?: {
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                        };
                         source: {
                           holderActorId: string | null;
                           id: string;
@@ -129035,6 +129179,9 @@ export declare const api: {
                         domainKey: string | null;
                         grantId: string | null;
                         influence: string;
+                        positional?: {
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                        };
                         source: {
                           holderActorId: string | null;
                           id: string;
@@ -130090,6 +130237,9 @@ export declare const api: {
                     domainKey: string | null;
                     grantId: string | null;
                     influence: string;
+                    positional?: {
+                      arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                    };
                     source: {
                       holderActorId: string | null;
                       id: string;
@@ -130478,6 +130628,9 @@ export declare const api: {
                         domainKey: string | null;
                         grantId: string | null;
                         influence: string;
+                        positional?: {
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                        };
                         source: {
                           holderActorId: string | null;
                           id: string;
@@ -131201,6 +131354,9 @@ export declare const api: {
                   domainKey: string | null;
                   grantId: string | null;
                   influence: string;
+                  positional?: {
+                    arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                  };
                   source: {
                     holderActorId: string | null;
                     id: string;

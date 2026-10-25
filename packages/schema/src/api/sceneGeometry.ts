@@ -7,6 +7,7 @@ import {
   sceneDeltaDtoSchema,
   sceneGeometryCommandInputDtoSchema,
   sceneTokenMovementCommandInputDtoSchema,
+  sceneTokenFacingCommandInputDtoSchema,
   sceneFogLayerDtoSchema
 } from './vttScenes.js'
 import {
@@ -31,7 +32,11 @@ export const scenePresentationFenceSchema = lazySchema(() =>
   })
 )
 export const sceneNativeGeometryCommandInputSchema = lazySchema(() =>
-  z.union([sceneGeometryCommandInputDtoSchema, sceneTokenMovementCommandInputDtoSchema])
+  z.union([
+    sceneGeometryCommandInputDtoSchema,
+    sceneTokenMovementCommandInputDtoSchema,
+    sceneTokenFacingCommandInputDtoSchema
+  ])
 )
 export type SceneNativeGeometryCommandInput = z.infer<typeof sceneNativeGeometryCommandInputSchema>
 

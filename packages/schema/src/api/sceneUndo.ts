@@ -1,6 +1,10 @@
 import { z, lazySchema } from '../zod.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
-import { scenePointDtoSchema, sceneUndoLastMoveCommandInputDtoSchema } from './vttScenes.js'
+import {
+  scenePointDtoSchema,
+  sceneTokenFacingCommandInputDtoSchema,
+  sceneUndoLastMoveCommandInputDtoSchema
+} from './vttScenes.js'
 import { scenePresentationFenceSchema } from './sceneGeometry.js'
 
 export const sceneUndoExecuteInputSchema = lazySchema(() =>
@@ -15,6 +19,7 @@ const tokenMoveUndoneSchema = lazySchema(() =>
     kind: z.literal('TOKEN_MOVE_UNDONE'),
     tokenId: postgresUuidSchema,
     position: scenePointDtoSchema,
+    rotationDegrees: z.optional(sceneTokenFacingCommandInputDtoSchema.shape.rotationDegrees),
     undoneCommandId: postgresUuidSchema
   })
 )

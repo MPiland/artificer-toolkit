@@ -4046,9 +4046,8 @@
             },
             {
               "id": "RULES-2.T12a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
@@ -4067,11 +4066,13 @@
                 ]
               },
               "text": "Tiered installed System lists (installedGameSystems/vocabulary, policy, encounter) with one module object per System per tier, every registry building from its tier list; a test-only Fate-like tracer fixture (vocabulary, policy and encounter adapters) aliased in by a tracer Vitest project registered in CI; proofs for actor evaluation, initiative and turn order, and action economy.",
-              "note": "Split from RULES-2.T12 (size 8 re-measured at 10; user ruling 2026-10-25 accepted +2, scope unchanged; D195 as amended)."
+              "note": "Split from RULES-2.T12 (size 8 re-measured at 10; user ruling 2026-10-25 accepted +2, scope unchanged; D195 as amended). Merged in m441.",
+              "mergedAt": "2026-10-25T16:19:50Z",
+              "proof": "Tests 40207900048 and Live 40207900030 green on tip dcc80e6e8 (contains the phase tip; flaky timeout rerun green, timeout unchanged); reviewed and approved; five tiered installed-System lists with the tracer project (D195); merged in m441."
             },
             {
               "id": "RULES-2.T12b",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -4081,7 +4082,8 @@
                 "after": ["RULES-2.T12a"]
               },
               "text": "Tracer check through its own published graph on the neutral d20 settlement (ADR 0039 decision 2), its event vocabulary, the maintenance link, require-fails-closed and find-skips proofs for absent D&D-shaped capabilities, and fixes for dnd5e assumptions found on that path.",
-              "note": "Split from RULES-2.T12 (size 8 re-measured at 10; user ruling 2026-10-25 accepted +2, scope unchanged; D195 as amended)."
+              "note": "Split from RULES-2.T12 (size 8 re-measured at 10; user ruling 2026-10-25 accepted +2, scope unchanged; D195 as amended).",
+              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md"
             },
             {
               "id": "RULES-2.T13a",
@@ -8194,10 +8196,11 @@
           "acs": [
             {
               "text": "Creature equipment is a UUID-backed loadout contract shared by authoring and Encounters.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by ATTACK-6.T2 (m442); see each task's proof."],
               "origin": ["P81-CREATURE-GEAR-CONTRACT"],
-              "id": "ATTACK-6.1"
+              "id": "ATTACK-6.1",
+              "note": "Closed 2026-10-24 by ATTACK-6.T2."
             },
             {
               "text": "The Creature equipment source audit names loadout-specific checks.",
@@ -8258,7 +8261,7 @@
             },
             {
               "id": "ATTACK-6.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-6.1"],
               "wsjf": {
                 "bv": 5,
@@ -8267,8 +8270,9 @@
                 "size": 2
               },
               "text": "Move the Creature loadout pin DTO into packages/schema; the UUID-backed loadout contract (packages/schema/src/subjects/creature.ts) already exists and is shared by authoring and Encounters.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
-              "activeWorkbook": "docs/handoffs/slice-attack-6.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling). Merged in m442.",
+              "mergedAt": "2026-10-25T17:54:14Z",
+              "proof": "Tests 40212588070 and Live 40212587679 green on 8918d095e (contains the phase tip); authoring and Encounters validate loadouts with creatureEquipmentLoadoutDtoSchema; merged in m442."
             },
             {
               "id": "ATTACK-6.T3",
@@ -9320,18 +9324,19 @@
           "acs": [
             {
               "text": "With Facing enabled, every token has a facing that its controller sets at the end of its move and can change as a reaction, using the kept square-grid arc geometry (classifySquareGridFootprintFacingArcs).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["roomEncounterMechanics.test.ts"],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "note": "2014 DMG variant, approved for Phase 8. An uncalled resolver was removed by the 2026-10 dead-code sweep; recover it from 437b2dd15 (systems/dnd5e/facingPolicy.ts). Presentation is VTT_UI-1.3.",
+              "note": "2014 DMG variant, approved for Phase 8. An uncalled resolver was removed by the 2026-10 dead-code sweep; recover it from 437b2dd15 (systems/dnd5e/facingPolicy.ts). Presentation is VTT_UI-1.3. Closed 2026-10-24 by ATTACK-12.T1.",
               "id": "ATTACK-12.1"
             },
             {
               "text": "Attacks resolve with the arcs: an attacker in the target's rear arc has advantage, an actor cannot target a creature in its own rear arc, and the roll evidence names the arc.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by ATTACK-12.T2 (m442); see each task's proof."],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "id": "ATTACK-12.2"
+              "id": "ATTACK-12.2",
+              "note": "Closed 2026-10-24 by ATTACK-12.T2."
             },
             {
               "text": "Campaign settings offer Facing only once it resolves (isIntegratedOptionalCombatRule).",
@@ -9342,8 +9347,10 @@
             },
             {
               "id": "ATTACK-12.4",
-              "status": "TODO",
-              "text": "With Flanking enabled, a melee attack at the table (including opportunity attacks) by an attacker whose ally is on the opposite side of the target has advantage, and the roll evidence names flanking; without an opposite ally it does not."
+              "status": "DONE",
+              "text": "With Flanking enabled, a melee attack at the table (including opportunity attacks) by an attacker whose ally is on the opposite side of the target has advantage, and the roll evidence names flanking; without an opposite ally it does not.",
+              "proof": ["Closed by ATTACK-12.T2f (m442); see each task's proof."],
+              "note": "Closed 2026-10-24 by ATTACK-12.T2f."
             }
           ],
           "wsjf": {
@@ -9355,7 +9362,7 @@
           "tasks": [
             {
               "id": "ATTACK-12.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ATTACK-12.1"],
               "wsjf": {
                 "bv": 2,
@@ -9364,12 +9371,13 @@
                 "size": 5
               },
               "text": "Per-token facing state set at end of move and changeable as a reaction, Convex plus Worker.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-attack-12.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m442.",
+              "mergedAt": "2026-10-25T17:54:14Z",
+              "proof": "Tests 40212391823 and Live 40212391797 green on ci/attack-12 aeec43ede; reviewed and approved; merged in m442 from ci/attack-12-timeout@1d50ec67a (adds a 30 s timeout to roomEncounterMechanics.test.ts after light-lane timings showed load, not a regression: phase tip 2993/4213 ms, merged 4040/3683 ms)."
             },
             {
               "id": "ATTACK-12.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-12.2"],
               "wsjf": {
                 "bv": 2,
@@ -9379,11 +9387,13 @@
                 "after": ["ATTACK-12.T1"]
               },
               "text": "Attack resolution with arcs: rear-arc advantage, cannot target own rear arc, evidence names the arc.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m442.",
+              "mergedAt": "2026-10-25T17:54:14Z",
+              "proof": "Same tip as T1 (aeec43ede, import cycle fixed); merged in m442."
             },
             {
               "id": "ATTACK-12.T2f",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-12.4"],
               "wsjf": {
                 "bv": 2,
@@ -9393,11 +9403,13 @@
                 "after": ["ATTACK-12.T2"]
               },
               "text": "Live flanking bug fix: move flanking into encounterActionPositionalContributors (via the optional-combat capability registry, reusing resolveDnd5eFlankingContributor), add one mechanics-prep positional-candidate loader (target-adjacent allies with relationships, capability states and perception) wired into the 4 attack prep sites, and delete the compiler-only flankingContributor and positionalFacts path. Regression room test that fails before the fix, plus a negative case.",
-              "note": "Registered 2026-10-25 (measured by the ATTACK-12 session; user ruling +5)."
+              "note": "Registered 2026-10-25 (measured by the ATTACK-12 session; user ruling +5). Merged in m442.",
+              "mergedAt": "2026-10-25T17:54:14Z",
+              "proof": "Same tip as T1: live Flanking through encounterActionPositionalContributors, flankingContributor/positionalFacts/CharacterRuleActionPositionalFacts deleted, regression room test; merged in m442."
             },
             {
               "id": "ATTACK-12.T3",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-12.3"],
               "wsjf": {
                 "bv": 2,
@@ -9407,7 +9419,8 @@
                 "after": ["ATTACK-12.T2", "ATTACK-12.T2f"]
               },
               "text": "Integrate in table and settings; journey test.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/handoffs/slice-attack-12.md"
             }
           ]
         },
@@ -9684,17 +9697,18 @@
             },
             {
               "id": "ATTACK-16.T1a2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-16.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 3,
+                "size": 5,
                 "after": ["ATTACK-16.T1a"]
               },
               "text": "Row-scoped lasting plans: a roll-table row can carry its own timed CONDITION and APPLY_GRANT plans (lasting plans chosen per selected row, not once per action), with proofs. Repeat saves inside rows stay with SPELLS-4.T2ps.",
-              "note": "Registered 2026-10-25 (T1a measured 11 against 8; user ruling accepted +3)."
+              "note": "Registered 2026-10-25 (T1a measured 11 against 8; user ruling accepted +3). Re-sized 3 to 5 on 2026-10-25 (user ruling): one plan per row via the hit-point-tier pattern, adding optional rollTableRow and rollTableRowPlans contract fields.",
+              "activeWorkbook": "docs/handoffs/slice-attack-16.md"
             },
             {
               "id": "ATTACK-16.T1b",
@@ -15223,7 +15237,7 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): d20 test overrides (reroll, floor, outcome); Indomitable, Diamond Soul, Reliable Talent, Indomitable Might, Stroke of Luck (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Reliable Talent reuses SPELLS-4.T2c3's MINIMUM_ROLL option but needs a proficiency condition on the grant (floor only on checks the holder is proficient in), which T2c3 did not add.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m439.",
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m439. Review follow-up (one shared full-proficiency predicate, no non-null assertion) merged in m441 from ci/spells-31-t5c2@8f042cc.",
               "mergedAt": "2026-10-25T15:38:10Z",
               "proof": "Tests 40206396607 and Live 40206396624 green on tip 9e966f09d (contains the phase tip); reviewed and approved; five class kinds deleted, one ability-check floor reducer with proficientOnly; merged in m439."
             },
@@ -19426,6 +19440,44 @@
             }
           ],
           "journeyStatus": "verified"
+        },
+        {
+          "id": "RELIABILITY-19",
+          "title": "Size-budget cap edits never block a batch merge",
+          "status": "TODO",
+          "journeyTests": ["scripts/mergeSlice.mjs"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 3,
+            "tc": 8,
+            "rr": 8,
+            "size": 2
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-19.1",
+              "text": "When merge-slice merges a slice whose only conflict is scripts/fileSizeBudget.json, it resolves each entry to the lower of the two caps, keeps entries present on either side, re-runs the source ratchets on the merged tree and continues; any other conflicting file, or a ratchet failure after resolution, still refuses the merge. The ADR 0039 shrink-only ratchet is unchanged.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-25 (user yes): fileSizeBudget.json refused 3 of 4 m442 attempts because sourceRatchets.mjs makes every slice that shrinks a listed file lower its cap line."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-19.T1",
+              "text": "In scripts/mergeSlice.mjs, resolve a fileSizeBudget.json-only conflict by taking the per-entry minimum (union of keys), then run ratchetProblems from scripts/sourceRatchets.mjs on the merged tree before committing; refuse on any other conflict or remaining ratchet problem. Unit-test the resolver and the refusal paths against real git merges in a temp repo; update docs/architecture/ci-validation.md (approved merges).",
+              "status": "TODO",
+              "closes": ["RELIABILITY-19.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 2
+              }
+            }
+          ]
         }
       ]
     },
