@@ -13,7 +13,7 @@ import type { AuthoringNavigationTarget } from './authoringNavigation'
 import { ShellReturnHrefContext } from '#app/shell/returnLocation'
 
 const RACE_CREATE_REGISTRATION = {
-  data: { systems: [{ id: DND5E_SYSTEM_ID }] },
+  data: { system: { id: DND5E_SYSTEM_ID }, systems: [{ id: DND5E_SYSTEM_ID }] },
   domain: 'race',
   mode: 'create'
 } as const
@@ -128,7 +128,7 @@ describe('AuthoringFormProvider unsaved navigation', () => {
     render(
       <TestRouterProvider initialPath='/backgrounds'>
         <AuthoringFormProvider
-          data={{ systems: [{ id: DND5E_SYSTEM_ID }] }}
+          data={{ system: { id: DND5E_SYSTEM_ID }, systems: [{ id: DND5E_SYSTEM_ID }] }}
           domain='race'
           mode='create'
         >
@@ -196,7 +196,7 @@ describe('AuthoringFormProvider unsaved navigation', () => {
     render(
       <TestRouterProvider initialPath='/backgrounds'>
         <AuthoringFormProvider
-          data={{ systems: [{ id: DND5E_SYSTEM_ID }] }}
+          data={{ system: { id: DND5E_SYSTEM_ID }, systems: [{ id: DND5E_SYSTEM_ID }] }}
           domain='race'
           mode='create'
         >
@@ -230,7 +230,7 @@ describe('AuthoringFormProvider unsaved navigation', () => {
     render(
       <TestRouterProvider initialPath='/backgrounds'>
         <AuthoringFormProvider
-          data={{ systems: [{ id: DND5E_SYSTEM_ID }] }}
+          data={{ system: { id: DND5E_SYSTEM_ID }, systems: [{ id: DND5E_SYSTEM_ID }] }}
           domain='race'
           mode='create'
         >
@@ -329,7 +329,7 @@ describe('AuthoringFormProvider URL navigation', () => {
     render(
       <TestRouterProvider initialPath='/backgrounds?source=owned&step=step%3Arace%3Aroot%3Abasics'>
         <AuthoringFormProvider
-          data={{ systems: [{ id: DND5E_SYSTEM_ID }] }}
+          data={{ system: { id: DND5E_SYSTEM_ID }, systems: [{ id: DND5E_SYSTEM_ID }] }}
           domain='race'
           mode='create'
         >

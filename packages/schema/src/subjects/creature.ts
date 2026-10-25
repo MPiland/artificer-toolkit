@@ -72,6 +72,10 @@ export const creatureQualifiedDamageDefenseDtoSchema = lazySchema(() =>
   })
 )
 
+export type CreatureQualifiedDamageDefenseDto = z.infer<
+  typeof creatureQualifiedDamageDefenseDtoSchema
+>
+
 export const creatureMountProfileDtoSchema = lazySchema(() =>
   z.object({
     mountType: z.enum(['CONTROLLED', 'INDEPENDENT']),
@@ -81,6 +85,8 @@ export const creatureMountProfileDtoSchema = lazySchema(() =>
   })
 )
 
+export type CreatureMountProfileDto = z.infer<typeof creatureMountProfileDtoSchema>
+
 export const creatureCompanionProfileDtoSchema = lazySchema(() =>
   z.object({
     bondType: z.enum(['FAMILIAR', 'ANIMAL_COMPANION', 'SUMMON']),
@@ -88,6 +94,8 @@ export const creatureCompanionProfileDtoSchema = lazySchema(() =>
     notes: z.optional(authoredPlainTextSchema)
   })
 )
+
+export type CreatureCompanionProfileDto = z.infer<typeof creatureCompanionProfileDtoSchema>
 
 export const creatureNpcProfileDtoSchema = lazySchema(() =>
   z.object({
@@ -97,6 +105,8 @@ export const creatureNpcProfileDtoSchema = lazySchema(() =>
     personalityTraits: z.optional(authoredReferenceCollectionSchema(authoredPlainTextSchema))
   })
 )
+
+export type CreatureNpcProfileDto = z.infer<typeof creatureNpcProfileDtoSchema>
 
 export const creatureAbilityScoresDtoSchema = lazySchema(() =>
   z.object({

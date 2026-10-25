@@ -5,7 +5,6 @@ import {
   createDefaultAbilityScores,
   createEmptyCreature,
   normalizeCreatureForSubmit,
-  resolveCreateCreatureSystemId,
   toCreatureFormValues
 } from '../creatureAuthoring.utils'
 
@@ -35,11 +34,6 @@ describe('creature authoring helpers', () => {
     })
   })
 
-  it('uses only real system list data when creating creatures', () => {
-    expect(resolveCreateCreatureSystemId([])).toBeNull()
-    expect(resolveCreateCreatureSystemId([{ id: 'dnd-5e-srd' }])).toBe('dnd-5e-srd')
-  })
-
   it('normalizes creature payloads before submit', () => {
     const creature = createEmptyCreature({ systemId: DND5E_SYSTEM_ID })
     const normalized = normalizeCreatureForSubmit({
@@ -49,7 +43,7 @@ describe('creature authoring helpers', () => {
     })
 
     expect(normalized).toMatchObject({
-      label: 'Untitled Creature',
+      label: '',
       description: '',
       category: 'MONSTER',
       speeds: []

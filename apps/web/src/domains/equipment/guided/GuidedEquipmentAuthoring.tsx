@@ -7,33 +7,33 @@ import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import { getEquipmentOptions } from '#app/data/equipment/options'
 import { withForm } from '#forms/app-form/AppForm'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import { GuidedSimpleEffectComposer } from '#forms/guided/GuidedSimpleEffectComposer'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
-import { toFeatures } from '#forms/guided/guidedValues'
+import { EMPTY_GUIDED_FORM_VALUES, toFeatures, toSelectOption } from '#forms/guided/guidedValues'
 import { isRecord } from '#forms/utils/valueGuards'
 
-type GuidedEquipmentAuthoringProps = {
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-  session: AuthoredFormSession
-}
-
 export const GuidedEquipmentAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as GuidedEquipmentAuthoringProps,
-  render: function RenderGuidedEquipmentAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedEquipmentAuthoring({
+    form,
+    onAdvanced,
+    onStateChange,
+    session,
+    system
+  }) {
     const [step, setStep] = useState(0)
     const values = useSelector(form.store, (state) => readEquipmentValues(state.values))
     const categoryLocked = session.mode === 'edit'
     const parentEquipment = useQuery({
-      ...getEquipmentOptions(session.system?.id, true),
-      enabled: values.category === EQUIPMENT_CATEGORY_CODE.VARIANT && Boolean(session.system?.id)
+      ...getEquipmentOptions(system.id, true),
+      enabled: values.category === EQUIPMENT_CATEGORY_CODE.VARIANT
     })
 
     useEffect(() => {
@@ -120,7 +120,7 @@ export const GuidedEquipmentAuthoring = withForm({
               <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['rarityId'])}>
                 {(field) => (
                   <field.SelectField
-                    data={(session.system?.rarities ?? []).map(optionFor)}
+                    data={system.rarities.map(toSelectOption)}
                     label='Rarity'
                     required
                   />
@@ -143,7 +143,7 @@ export const GuidedEquipmentAuthoring = withForm({
                   >
                     {(field) => (
                       <field.SelectField
-                        data={(session.system?.currencies ?? []).map(optionFor)}
+                        data={system.currencies.map(toSelectOption)}
                         label='Currency'
                       />
                     )}
@@ -163,7 +163,7 @@ export const GuidedEquipmentAuthoring = withForm({
             ) : null}
             <GuidedSimpleEffectComposer
               effects={values.effects}
-              system={session.system!}
+              system={system}
               onChange={setEffects}
             />
           </Stack>
@@ -171,17 +171,17 @@ export const GuidedEquipmentAuthoring = withForm({
         {step === 3 ? (
           <GuidedFeatureAccordion
             features={values.features}
-            system={session.system!}
+            system={system}
             onChange={setFeatures}
           />
         ) : null}
         {step === 4 ? (
           <Stack gap='md'>
             <dl className={styles.summary}>
-              <Summary label='Name' value={values.label || 'Untitled Equipment'} />
-              <Summary label='Item type' value={formatEnum(values.category)} />
-              <Summary label='Core outcomes' value={String(values.effects.length)} />
-              <Summary label='Features' value={String(values.features.length)} />
+              <GuidedSummaryRow label='Name' value={values.label || 'Untitled Equipment'} />
+              <GuidedSummaryRow label='Item type' value={formatEnum(values.category)} />
+              <GuidedSummaryRow label='Core outcomes' value={String(values.effects.length)} />
+              <GuidedSummaryRow label='Features' value={String(values.features.length)} />
             </dl>
           </Stack>
         ) : null}
@@ -189,19 +189,6 @@ export const GuidedEquipmentAuthoring = withForm({
     )
   }
 })
-
-function Summary({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={styles.summaryRow}>
-      <dt className={styles.summaryLabel}>{label}</dt>
-      <dd className={styles.summaryValue}>{value}</dd>
-    </div>
-  )
-}
-
-function optionFor(item: { id: string; label: string }) {
-  return { label: item.label, value: item.id }
-}
 
 function readEquipmentValues(values: object) {
   const record: Record<string, unknown> = isRecord(values) ? values : {}

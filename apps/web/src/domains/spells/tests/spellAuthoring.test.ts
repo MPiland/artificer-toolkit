@@ -12,20 +12,8 @@ describe('Spell authoring runtime', () => {
       materialDescription: 'Should be cleared'
     })
 
-    expect(normalized.label).toBe('Untitled Spell')
+    expect(normalized.label).toBe('')
     expect(normalized.magicSchoolId).toBe('')
     expect(normalized.materialDescription).toBeUndefined()
-  })
-
-  it('uses the supplied system school fallback when the spell value is blank', () => {
-    const normalized = normalizeSpellForSubmit(
-      {
-        ...spellFixture,
-        magicSchoolId: ''
-      },
-      'school-evocation'
-    )
-
-    expect(normalized.magicSchoolId).toBe('school-evocation')
   })
 })

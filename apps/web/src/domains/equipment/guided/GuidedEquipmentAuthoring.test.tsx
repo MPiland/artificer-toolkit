@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import {
   authoredRouteStoryEquipmentParentResponse,
+  authoredRouteStorySystem,
   createEditLoaderData
 } from '#domains/authoredRouteStory.fixtures'
 import { useAppForm } from '#forms/app-form/AppForm'
@@ -35,6 +36,7 @@ function Harness() {
         <GuidedEquipmentAuthoring
           form={form}
           session={equipmentSession}
+          system={authoredRouteStorySystem}
           onAdvanced={undefined}
           onStateChange={vi.fn()}
         />

@@ -45,9 +45,9 @@ export function toVehicleFormValues(
 export function normalizeVehicleForSubmit(vehicle: VehicleFormValues): VehicleAuthoringInputDto {
   return {
     id: vehicle.id,
-    label: vehicle.label.trim() || 'Untitled Vehicle',
+    label: vehicle.label.trim(),
     description: vehicle.description ?? '',
-    status: vehicle.status ?? 'DRAFT',
+    status: vehicle.status,
     details: vehicle.details ?? [],
     systemId: vehicle.systemId,
     category: vehicle.category,
@@ -66,10 +66,6 @@ export function normalizeVehicleForSubmit(vehicle: VehicleFormValues): VehicleAu
       .filter((property) => property.length > 0),
     features: vehicle.features ?? []
   }
-}
-
-export function resolveCreateVehicleSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
 }
 
 function toPropertyFormValues(

@@ -41,7 +41,7 @@ export function createEmptyCreature({ systemId }: CreateEmptyCreatureInput): Cre
     status: 'DRAFT',
     category: CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: '',
-    size: defaultSize(systemId),
+    size: systemId ? defaultSize(systemId) : '',
     systemId,
     tags: [],
     abilityScores: createDefaultAbilityScores(),
@@ -77,10 +77,10 @@ export function normalizeCreatureForSubmit(
 ): CreatureAuthoringInputDto {
   return {
     ...creature,
-    label: creature.label.trim() || 'Untitled Creature',
+    label: creature.label.trim(),
     description: creature.description ?? '',
     quote: creature.quote ?? '',
-    status: creature.status ?? 'DRAFT',
+    status: creature.status,
     tags: normalizeStringFormValues(creature.tags),
     logisticsNotes: normalizeStringFormValues(creature.logisticsNotes),
     npcProfile: creature.npcProfile
@@ -127,8 +127,4 @@ function toStringFormValues(
   return (values ?? []).map((value) =>
     typeof value === 'string' ? { value } : { value: value.value }
   )
-}
-
-export function resolveCreateCreatureSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
 }

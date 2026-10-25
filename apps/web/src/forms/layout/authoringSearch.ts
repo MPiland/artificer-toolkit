@@ -14,7 +14,9 @@ export const authoringSearchSchema = z.object({
         ? toAuthoringStepSearchValue(value)
         : undefined,
     z.string().optional()
-  )
+  ),
+  /** The System a new authored item or character is created in; absent until chosen. */
+  system: z.string().min(1).optional().catch(undefined)
 })
 
 export function markAuthoringStepNavigationState<TState extends object>(state: TState) {

@@ -33,6 +33,16 @@ const {
   vehicle: vehicleFormFactory
 } = authoredFormFactories
 
+const systemListItem = {
+  id: authoredRouteStorySystem.id,
+  label: authoredRouteStorySystem.label,
+  rulesetCode: authoredRouteStorySystem.rulesetCode,
+  rulesetVersion: authoredRouteStorySystem.rulesetVersion,
+  userId: 'user-1',
+  rulesCatalogues: []
+}
+const createData = { system: authoredRouteStorySystem, systems: [systemListItem] }
+
 describe('authoredFormFactories', () => {
   it('registers every authored form domain factory', () => {
     expect(Object.keys(authoredFormFactories).sort()).toEqual([
@@ -106,24 +116,39 @@ describe('authoredFormFactories', () => {
     ])
   })
 
-  it('resolves create system ids from available systems', () => {
-    const systems = [{ id: DND5E_SYSTEM_ID }]
+  it('takes the create session system from the route-resolved system', () => {
+    for (const factory of Object.values(authoredFormFactories)) {
+      const session = factory.createSession({ data: createData, mode: 'create' })
 
-    expect(backgroundFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
-    expect(classFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
-    expect(creatureFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
-    expect(equipmentFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
-    expect(featFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
-    expect(raceFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
-    expect(spellFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
-    expect(vehicleFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
+      expect(session.systemId).toBe(authoredRouteStorySystem.id)
+      expect(session.systemRequired).toBe(false)
+    }
+  })
+
+  it('requires an explicit system choice when several systems exist and none is resolved', () => {
+    const data = { systems: [systemListItem, { ...systemListItem, id: 'system-2' }] }
+
+    for (const factory of Object.values(authoredFormFactories)) {
+      const session = factory.createSession({ data, mode: 'create' })
+
+      expect(session.systemId).toBe('')
+      expect(session.systemRequired).toBe(true)
+      expect(session.canSaveDraft).toBe(false)
+      expect(session.systems).toEqual(data.systems)
+    }
+  })
+
+  it('reports a missing system when the create route has no systems', () => {
+    for (const factory of Object.values(authoredFormFactories)) {
+      const session = factory.createSession({ data: { systems: [] }, mode: 'create' })
+
+      expect(session.systemRequired).toBe(true)
+      expect(session.canSaveDraft).toBe(false)
+    }
   })
 
   it('caches saved draft JSON for the first navigation to its edit route', async () => {
-    const session = spellFormFactory.createSession?.({
-      data: { systems: [{ id: DND5E_SYSTEM_ID }] },
-      mode: 'create'
-    })
+    const session = spellFormFactory.createSession?.({ data: createData, mode: 'create' })
     if (!session) throw new Error('Expected a spell create session.')
 
     const queryClient = new QueryClient()
@@ -150,7 +175,7 @@ describe('authoredFormFactories', () => {
   })
 
   it('creates authoring sessions for every authored form domain', () => {
-    const systemData = { systems: [{ id: DND5E_SYSTEM_ID }] }
+    const systemData = createData
     const sessions = [
       ['background', backgroundFormFactory.createSession?.({ data: systemData, mode: 'create' })],
       ['class', classFormFactory.createSession?.({ data: systemData, mode: 'create' })],
@@ -174,7 +199,7 @@ describe('authoredFormFactories', () => {
       expect(session?.initialValues).toEqual(
         expect.objectContaining({
           label: '',
-          systemId: DND5E_SYSTEM_ID
+          systemId: authoredRouteStorySystem.id
         })
       )
     }
@@ -228,7 +253,7 @@ describe('authoredFormFactories', () => {
     const session = equipmentFormFactory.createSession?.({
       data: {
         system: authoredRouteStorySystem,
-        systems: [authoredRouteStorySystem]
+        systems: [systemListItem]
       },
       mode: 'create'
     })

@@ -9622,7 +9622,7 @@
                   "SPELLS-33.T4i4b"
                 ]
               },
-              "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i."
+              "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i. Left by SPELLS-33.T6b2 (orchestrator ruling 2026-10-25): Wereboar Tusks stays on the allowlist as FOLLOW_UP_SAVE because its Charge needs a ruling before the immediate save, and immediateFollowUpSaveEntries accepts only DAMAGE ahead of an immediate save; covering it means widening that shape generically."
             }
           ]
         },
@@ -12991,7 +12991,7 @@
             },
             {
               "id": "SPELLS-4.T2lb2d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -13004,7 +13004,8 @@
                   "SPELLS-4.T2lb2c"
                 ]
               },
-              "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable."
+              "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -19043,7 +19044,7 @@
             },
             {
               "id": "SPELLS-33.T6b2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -19059,7 +19060,8 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: lycanthropy curse on a failed save (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6b3",
@@ -21467,34 +21469,42 @@
             },
             {
               "text": "A new authored item's System comes from the route or the author's selection, and a spell's magic school from the author's choice; neither silently takes the first in the list, and a missing one is an explicit state.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-8.T2 (m431); see each task's proof."
+              ],
               "origin": [],
-              "note": "Nine resolveCreate<Subject>SystemId functions are `systems[0]?.id ?? null`; getSpellFormContext takes magicSchools[0]. Also characterBuilderAuthoringSession.ts:44 (systems[0]?.id on create), CharacterEquipmentStep.tsx:173-196 ([0] currency writing currencyId ''), formNormalization createFallbackCharacterFormValues placeholders ('pending-system', 'pending-character', 'server-owned'), stepNavigation.ts:64/73 `?? 'REVIEW'`, SocialListingFormPage.tsx:259 `?? 'ONGOING'`, socialModels `?? 'Recurring'`. Out of scope (orchestrator ruling 2026-10-24): social ?? 'ONGOING' and ?? 'Recurring' are display defaults, not silent first-in-list selection.",
+              "note": "Nine resolveCreate<Subject>SystemId functions are `systems[0]?.id ?? null`; getSpellFormContext takes magicSchools[0]. Also characterBuilderAuthoringSession.ts:44 (systems[0]?.id on create), CharacterEquipmentStep.tsx:173-196 ([0] currency writing currencyId ''), formNormalization createFallbackCharacterFormValues placeholders ('pending-system', 'pending-character', 'server-owned'), stepNavigation.ts:64/73 `?? 'REVIEW'`, SocialListingFormPage.tsx:259 `?? 'ONGOING'`, socialModels `?? 'Recurring'`. Out of scope (orchestrator ruling 2026-10-24): social ?? 'ONGOING' and ?? 'Recurring' are display defaults, not silent first-in-list selection. Closed 2026-10-24 by RELIABILITY-8.T2.",
               "id": "RELIABILITY-8.2"
             },
             {
               "text": "An empty label is a validation error at submit, not replaced with \"Untitled <Subject>\"; status and other defaults live once in the empty-form values, not in eight submit normalisers.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-8.T2 (m431); see each task's proof."
+              ],
               "origin": [],
-              "note": "19 `|| 'Untitled ...'` fallbacks and `status ?? 'DRAFT'` across the vehicles, backgrounds, classes, races, spells, feats, creatures and equipment normalisers.",
+              "note": "19 `|| 'Untitled ...'` fallbacks and `status ?? 'DRAFT'` across the vehicles, backgrounds, classes, races, spells, feats, creatures and equipment normalisers. Closed 2026-10-24 by RELIABILITY-8.T2.",
               "id": "RELIABILITY-8.3"
             },
             {
               "text": "Feature and feat authoring selects are typed against their enums (no deselect, no casts, no 'TRAIT' or 'LONG_REST' fallback), and the charge reset options and helpers are shared by both editors.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-8.T3 (m431); see each task's proof."
+              ],
               "origin": [],
-              "note": "GuidedFeatureAccordion.tsx:157-216 and GuidedFeatAuthoring.tsx:219-234 duplicate the reset-timing options, isSimpleCharge and createCharge.",
+              "note": "GuidedFeatureAccordion.tsx:157-216 and GuidedFeatAuthoring.tsx:219-234 duplicate the reset-timing options, isSimpleCharge and createCharge. Closed 2026-10-24 by RELIABILITY-8.T3.",
               "id": "RELIABILITY-8.4"
             },
             {
               "text": "Authoring node defaults are checked against the schema DTOs (`satisfies`, no casts to an untyped group record) and the default invocation is declared once.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-8.T3 (m431); see each task's proof."
+              ],
               "origin": [],
-              "note": "apps/web/src/forms/rendering/authoringNodeDefaults.ts: invocation default at 344-350, 355-360 and 639-644; createTargeting(...) as AuthoringGroupValues.",
+              "note": "apps/web/src/forms/rendering/authoringNodeDefaults.ts: invocation default at 344-350, 355-360 and 639-644; createTargeting(...) as AuthoringGroupValues. Closed 2026-10-24 by RELIABILITY-8.T3.",
               "id": "RELIABILITY-8.5"
             },
             {
@@ -21541,7 +21551,7 @@
             },
             {
               "id": "RELIABILITY-8.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-8.2",
                 "RELIABILITY-8.3"
@@ -21556,11 +21566,13 @@
                 ]
               },
               "text": "No silent first-in-list System or school, explicit missing state; empty label is a validation error; defaults once in empty values (workbook slice-reliability-8.md).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+              "mergedAt": "2026-10-25T04:48:12Z",
+              "proof": "Tests green on tip 89322d471 and Live green (run 40162765832); reviewed: no first-in-list System or school (SystemChoiceAlert, school gate), blank label is a draft-save field error and blocks activate, typed feature/feat selects with shared charge helpers, node defaults satisfy schema DTOs (165 of 170, zero casts); merged in m431.",
+              "note": " Merged in m431."
             },
             {
               "id": "RELIABILITY-8.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-8.4",
                 "RELIABILITY-8.5"
@@ -21575,7 +21587,9 @@
                 ]
               },
               "text": "Enum-typed feature and feat selects with shared charge reset helpers; node defaults satisfy schema DTOs, default invocation declared once (workbook slice-reliability-8.md).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+              "mergedAt": "2026-10-25T04:48:12Z",
+              "proof": "Tests green on tip 89322d471 and Live green (run 40162765832); reviewed: no first-in-list System or school (SystemChoiceAlert, school gate), blank label is a draft-save field error and blocks activate, typed feature/feat selects with shared charge helpers, node defaults satisfy schema DTOs (165 of 170, zero casts); merged in m431.",
+              "note": " Merged in m431."
             },
             {
               "id": "RELIABILITY-8.T4",

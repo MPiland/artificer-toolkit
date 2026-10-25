@@ -63,7 +63,7 @@ vi.mock('../rendering/FormRenderer', () => ({
         Field: (props: {
           children: (field: {
             handleChange: (value: string) => void
-            state: { value: string }
+            state: { value: string; meta: { errors: readonly unknown[] } }
           }) => ReactNode
           name: string
         }) => ReactNode
@@ -73,11 +73,14 @@ vi.mock('../rendering/FormRenderer', () => ({
         {canvasContent}
         <form.Field name='label'>
           {(field) => (
-            <input
-              aria-label='Label'
-              value={field.state.value}
-              onChange={(event) => field.handleChange(event.target.value)}
-            />
+            <>
+              <input
+                aria-label='Label'
+                value={field.state.value}
+                onChange={(event) => field.handleChange(event.target.value)}
+              />
+              <span role='alert'>{field.state.meta.errors.join(' ')}</span>
+            </>
           )}
         </form.Field>
       </>
@@ -108,7 +111,8 @@ function setSession({ key, initialValues }: TestSession) {
       subjectKindLabel: 'Spell',
       system: { rulesetCode: 'dnd5e', rulesetVersion: '2014' },
       systemId: 'system-1',
-      systemRequired: false
+      systemRequired: false,
+      systems: []
     },
     clearValidationIssues: vi.fn(),
     hasActiveDraft: false,
@@ -196,5 +200,18 @@ describe('AuthoringLayout guided state', () => {
 
     view.switchSession(session('spell-b', 'Magic Missile'))
     expect(screen.getByTestId('editor')).toHaveAttribute('data-show-activate', 'false')
+  })
+
+  it('refuses to save a draft with a blank label and marks the label field', async () => {
+    mocks.saveDraftValues.mockReset().mockResolvedValue(true)
+    renderLayout(session('spell-a', 'Fireball'))
+    fireEvent.change(labelInput(), { target: { value: '   ' } })
+
+    await act(async () => {
+      await lastActions().onSaveDraft?.()
+    })
+
+    expect(mocks.saveDraftValues).not.toHaveBeenCalled()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Name is required.')
   })
 })
