@@ -14386,18 +14386,33 @@
               "text": "New option (ruling at start): damage die rerolls; the three Great Weapon styles, Empowered Spell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
             {
-              "id": "SPELLS-31.T5f",
+              "id": "SPELLS-31.T5f1",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2l", "SPELLS-4.T2m1"]
               },
-              "text": "New option (ruling at start): options bound to another active effect; Persistent, Relentless and Mindless Rage, Frenzy, Reckless Attack. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "text": "Options bound to another active effect, part 1: the HOLDER_ACTIVE_EFFECT holder-state predicate; Mindless Rage (condition immunity gated on Rage; suspension clause a GM ruling), Relentless Rage (Character DAMAGE_INTERCEPTION gated on Rage, generic save DC plusPerChargeUsed over a SHORT_REST charge), Reckless Attack. Each conversion has an authoring-parity proof and deletes its kind.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
+              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25)."
+            },
+            {
+              "id": "SPELLS-31.T5f2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-31.T5f1"]
+              },
+              "text": "Options bound to another active effect, part 2: Persistent Rage (generic END_EVENT_EXEMPTION holder grant read in planIdleTurnCheck) and Frenzy (FREE self action while raging with a granted bonus-action weapon attack, endWithEffectIds through the T2l release seam, exhaustion on end via an existing outcome shape where one exists; melee-only limit a GM ruling). Each conversion has an authoring-parity proof and deletes its kind.",
+              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25)."
             },
             {
               "id": "SPELLS-31.T5g",
@@ -14740,7 +14755,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-32.T1", "SPELLS-31.T5c", "SPELLS-31.T5d", "SPELLS-31.T5f"]
+                "after": ["SPELLS-32.T1", "SPELLS-31.T5c", "SPELLS-31.T5d", "SPELLS-31.T5f2"]
               },
               "text": "Halfling Lucky, Relentless Endurance, Savage Attacks (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
             },
@@ -15522,7 +15537,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T1", "SPELLS-31.T5a", "SPELLS-31.T5f", "SPELLS-31.T5p"]
+                "after": ["SPELLS-33.T1", "SPELLS-31.T5a", "SPELLS-31.T5f2", "SPELLS-31.T5p"]
               },
               "text": "Evasion, Reckless, Roper Tendril, Divine Eminence (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
