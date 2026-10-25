@@ -128068,6 +128068,7 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingStepDegrees?: number | null;
                 gameSystemId: string;
                 healthDisplayDefault:
                   "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
@@ -128180,6 +128181,7 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingStepDegrees?: number | null;
                 gameSystemId: string;
                 id: string;
                 initiativePolicy?: {
@@ -129281,6 +129283,7 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingStepDegrees?: number | null;
                 gameSystemId: string;
                 healthDisplayDefault:
                   "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
@@ -129393,6 +129396,7 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingStepDegrees?: number | null;
                 gameSystemId: string;
                 id: string;
                 initiativePolicy?: {
@@ -130338,6 +130342,7 @@ export declare const api: {
             campaignId: string;
             createdAt: string;
             currentActorId: string | null;
+            facingStepDegrees?: number | null;
             gameSystemId: string;
             healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
             id: string;
@@ -130449,6 +130454,7 @@ export declare const api: {
             campaignId: string;
             createdAt: string;
             currentActorId: string | null;
+            facingStepDegrees?: number | null;
             gameSystemId: string;
             id: string;
             initiativePolicy?: {
@@ -130730,6 +130736,7 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingStepDegrees?: number | null;
                 gameSystemId: string;
                 healthDisplayDefault:
                   "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
@@ -130842,6 +130849,7 @@ export declare const api: {
                 campaignId: string;
                 createdAt: string;
                 currentActorId: string | null;
+                facingStepDegrees?: number | null;
                 gameSystemId: string;
                 id: string;
                 initiativePolicy?: {
@@ -131455,6 +131463,7 @@ export declare const api: {
           campaignId: string;
           createdAt: string;
           currentActorId: string | null;
+          facingStepDegrees?: number | null;
           gameSystemId: string;
           healthDisplayDefault: "HIDDEN" | "DESCRIPTIVE" | "BAR" | "EXACT";
           id: string;
@@ -142609,6 +142618,64 @@ export declare const internal: {
         any
       >;
       spatialEffectModifierOperations: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+    };
+    recurrenceAnchorMigration: {
+      characterEffectRecurrenceAnchors: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      encounterEffectRecurrenceAnchors: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      run: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          batchSize?: number;
+          cursor?: string | null;
+          dryRun?: boolean;
+          fn?: string;
+          next?: Array<string>;
+          oneBatchOnly?: boolean;
+          reset?: boolean;
+        },
+        any
+      >;
+      spatialEffectRecurrenceAnchors: FunctionReference<
         "mutation",
         "internal",
         {

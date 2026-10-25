@@ -107,6 +107,14 @@ already fired, which are not offered again; the command receipts keep the histor
 check morale: their players decide. Undo does not reverse a morale check; the GM confirms another
 outcome instead.
 
+Facing (ATTACK-12, current) is offered in Campaign settings. Facing is the token's
+`rotationDegrees`, and both Encounter projections carry the rule's `facingStepDegrees` (null when
+the rule is off). The tabletop reads that step and nothing else. While it is set, it draws Encounter
+creatures' facing, and a walk ends with a facing choice that offers the direction of travel first.
+The choice is sent as the move's `facingDegrees`. A selected creature the member controls offers
+"Change facing (reaction)", which sends `CHANGE_FACING`. The room checks the rule, its step and the
+reaction.
+
 The D&D policy may be reused by other systems only through the shared typed primitives. Another
 System can supply different contest, sense, damage, action-economy, or consequence definitions
 without changing the runtime coordinator. Homebrew follows the same UUID-backed authored source,

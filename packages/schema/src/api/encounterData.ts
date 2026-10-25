@@ -13,7 +13,10 @@ import {
   teleportAllowanceDtoSchema
 } from '../shared/teleportAllowance.js'
 import { encounterInitiativePolicySummaryDtoSchema } from '../shared/initiativePolicySnapshot.js'
-import { encounterOptionalCombatSummaryDtoSchema } from '../shared/optionalCombat.js'
+import {
+  encounterOptionalCombatSummaryDtoSchema,
+  facingStepDegreesDtoSchema
+} from '../shared/optionalCombat.js'
 import {
   encounterActorMoraleDtoSchema,
   encounterMoraleOfferDtoSchema
@@ -278,6 +281,8 @@ export const encounterPlayerProjectionDtoSchema = lazySchema(() =>
       z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),
       []
     ),
+    /** The step a token's facing turns by while the Facing rule is active (ATTACK-12); null when it is off. */
+    facingStepDegrees: z._default(z.nullable(facingStepDegreesDtoSchema), null),
     version: z.number().check(z.int()).check(z.nonnegative()),
     round: z.number().check(z.int()).check(z.nonnegative()),
     currentActorId: z.nullable(uuidSchema),
@@ -307,6 +312,8 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
       z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),
       []
     ),
+    /** The step a token's facing turns by while the Facing rule is active (ATTACK-12); null when it is off. */
+    facingStepDegrees: z._default(z.nullable(facingStepDegreesDtoSchema), null),
     version: z.number().check(z.int()).check(z.nonnegative()),
     round: z.number().check(z.int()).check(z.nonnegative()),
     currentActorId: z.nullable(uuidSchema),

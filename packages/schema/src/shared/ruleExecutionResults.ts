@@ -66,7 +66,8 @@ const completedTurnLifecyclePhaseEvidenceDtoSchema = lazySchema(() =>
     }),
     executedTurnPhaseEvidenceDtoSchema(
       z.lazy(() => turnEffectExecutionDtoSchema),
-      MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS
+      MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS,
+      MAX_ENCOUNTER_ACTORS
     )
   ])
 )

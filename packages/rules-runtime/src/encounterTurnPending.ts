@@ -39,7 +39,11 @@ export function turnPendingActorId(pending: ServerRuleExecutionPendingSnapshotDt
   if (pending.snapshotKind !== 'KERNEL_EVIDENCE') return null
   switch (context.kind) {
     case 'ENCOUNTER_TURN_ACTIVE_EFFECTS':
-      return context.currentCandidate.targetActorId
+      return spatialPendingRollerActorId({
+        candidate: context.currentCandidate,
+        d20Policy: context.currentCandidate.d20Policy,
+        diceStage: context.currentCandidate.diceStage
+      })
     case 'ENCOUNTER_TURN_ZONE_EFFECTS':
       return spatialPendingRollerActorId(context.currentCandidate)
     case 'ENCOUNTER_TURN_RECHARGE':
@@ -224,50 +228,23 @@ export function projectNativeTurnPending(
   input: Parameters<typeof projectNativeLegendaryPending>[0]
 ) {
   const context = input.snapshot.applicationContext
-  if (context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS') {
-    if (
-      input.snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
-      input.snapshot.occurrenceId !== input.occurrenceId ||
-      !context.currentCandidate.d20Policy
-    )
-      throw new Error('Turn-effect evidence is unavailable.')
-    return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse({
-      kind: 'D20_EVIDENCE',
-      occurrenceId: input.occurrenceId,
-      occurrenceVersion: input.occurrenceVersion,
-      encounterVersion: input.encounterVersion,
-      rollerActorId: context.currentCandidate.targetActorId,
-      request: {
-        requestId: input.snapshot.request.requestId,
-        min: 1,
-        max: 20,
-        rollMode: context.currentCandidate.d20Policy.rollMode,
-        keep: context.currentCandidate.d20Policy.keep,
-        rollModes: rollModeCapabilityRegistry.offeredRollModes(input.gameSystemId),
-        derivedRollModeReasons: (input.reasons ?? noEncounterRollModeReasons)({
-          rollMode: context.currentCandidate.d20Policy.rollMode,
-          contributors: context.currentCandidate.d20Policy.contributors
-        }),
-        ...(context.currentCandidate.d20Policy.addedDice?.length
-          ? { addedDice: context.currentCandidate.d20Policy.addedDice }
-          : {})
-      },
-      allowedResponses: ['ENTER_DICE', 'SYSTEM_ROLL']
-    })
-  }
   if (context.kind === 'ENCOUNTER_TURN_DEATH_SAVE') return projectNativeDeathSavePending(input)
-  if (context.kind === 'ENCOUNTER_TURN_ZONE_EFFECTS') {
+  // An effect pauses on its target's save, then on its source's damage dice.
+  if (
+    context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
+    context.kind === 'ENCOUNTER_TURN_ZONE_EFFECTS'
+  ) {
     const candidate = context.currentCandidate
     if (
       input.snapshot.snapshotKind !== 'KERNEL_EVIDENCE' ||
       input.snapshot.occurrenceId !== input.occurrenceId
     )
-      throw new Error('Zone evidence is unavailable.')
+      throw new Error('Turn effect evidence is unavailable.')
     const identity = {
       occurrenceId: input.occurrenceId,
       occurrenceVersion: input.occurrenceVersion,
       encounterVersion: input.encounterVersion,
-      rollerActorId: spatialPendingRollerActorId(candidate)
+      rollerActorId: turnPendingActorId(input.snapshot)
     }
     const { request } = input.snapshot
     return pendingEncounterRuleOccurrenceSummaryDtoSchema.parse(

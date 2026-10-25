@@ -75,6 +75,8 @@ export type TurnSaveDamageEffectInput = {
   damage: number
   saveDc: number
   recurrenceStage?: 'NONE' | 'START_OF_TURN' | 'END_OF_TURN'
+  /** Whose turns run the effect: its holder's (the default) or its source's. */
+  anchor?: 'HOLDER' | 'SOURCE'
   /** Remaining ticks decremented at the recurrence stage, or null for an indefinite effect. */
   ticks: number | null
   lifetimeScope?: 'OWNER' | 'ENCOUNTER'
@@ -206,6 +208,7 @@ export async function turnSaveDamageEffect(
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: stage,
+      anchor: input.anchor ?? 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [...(input.endOnEvents ?? [])],
       endOnTriggers: [...(input.endOnTriggers ?? [])],
@@ -218,8 +221,7 @@ export async function turnSaveDamageEffect(
           : {
               kind: 'TICKS',
               initialRemaining: input.ticks,
-              decrementStage: stage === 'NONE' ? 'START_OF_TURN' : stage,
-              anchor: 'HOLDER'
+              decrementStage: stage === 'NONE' ? 'START_OF_TURN' : stage
             }
     }
   }
@@ -296,6 +298,7 @@ export function activeEffect(input: {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [...(input.consumeOnFirstEvents ?? [])],
       endOnEvents: [...(input.endOnEvents ?? [])],
       endOnTriggers: [...(input.endOnTriggers ?? [])],

@@ -322,6 +322,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
       perceptionContributions: [],
       recurrence: {
         recurrenceStage: 'NONE',
+        anchor: 'HOLDER',
         consumeOnFirstEvents: [],
         endOnEvents: [],
         endOnTriggers: [],
@@ -331,8 +332,7 @@ it('atomically resolves a failed native Concentration save, retains the private 
         expiration: {
           kind: 'TICKS',
           initialRemaining: 3,
-          decrementStage: 'END_OF_TURN',
-          anchor: 'HOLDER'
+          decrementStage: 'END_OF_TURN'
         }
       }
     })

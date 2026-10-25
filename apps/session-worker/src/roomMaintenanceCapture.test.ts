@@ -127,6 +127,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],
@@ -136,8 +137,7 @@ it('pages both native dependent owner kinds through exhaustion and rejects curso
       expiration: {
         kind: 'TICKS',
         initialRemaining: 3,
-        decrementStage: 'END_OF_TURN',
-        anchor: 'HOLDER'
+        decrementStage: 'END_OF_TURN'
       }
     }
   })

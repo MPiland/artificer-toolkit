@@ -134,7 +134,10 @@ function candidate(
     definitionChecksum: value.definitionChecksum,
     lifecycleChecksum: value.lifecycleChecksum,
     targetStateChecksum: stateChecksum,
-    d20Policy
+    sourceActorId:
+      value.definition.origin.kind === 'ENCOUNTER' ? value.definition.origin.sourceActorId : null,
+    d20Policy,
+    diceStage: null
   }
 }
 
@@ -186,7 +189,7 @@ function prepare(input: {
     },
     resolvePerception: async () => null,
     userId: GM_USER_ID,
-    autoRoll: input.autoRoll ?? true,
+    autoRollByActorId: { [actor.id]: input.autoRoll ?? true },
     root,
     occurrenceId: OCCURRENCE_ID,
     actors: [actor],
@@ -529,8 +532,7 @@ describe('prepareEncounterTurnEffects', () => {
           expiration: {
             kind: 'TICKS',
             initialRemaining: 3,
-            decrementStage: 'END_OF_TURN',
-            anchor: 'HOLDER'
+            decrementStage: 'END_OF_TURN'
           }
         }
       }
@@ -539,5 +541,85 @@ describe('prepareEncounterTurnEffects', () => {
 
     await expect(run.result).rejects.toThrow(new Error('Turn effect recurrence is unsupported.'))
     expect(run.remainingFaces()).toBe(1)
+  })
+})
+
+describe('prepareEncounterTurnEffects on the source’s turns (SPELLS-33.T6n2)', () => {
+  const HELD_ID = testUuid(0x205)
+  const held = srdCreatureActor({ id: HELD_ID, creature: GOBLIN })
+  const state = srdEncounterState({ actors: [goblin, held], currentActorId: GOBLIN_ID })
+
+  /** The Goblin holds `held` in an indefinite hold that recurs at the Goblin's turn starts. */
+  function holdTurn(engulf: ActiveRuleEffectRecord, actorId: string) {
+    const listed: string[] = []
+    const result = prepareEncounterTurnEffects({
+      state,
+      listEffects: async (owner) => {
+        if (owner.kind !== 'ENCOUNTER_ACTOR') throw new Error('Expected an Encounter actor owner.')
+        listed.push(owner.targetActorId)
+        return owner.targetActorId === HELD_ID ? [engulf] : []
+      },
+      loadMaintainedState: () => Promise.reject(new Error('No maintained state is loaded.')),
+      loadTarget: async (targetActorId) => {
+        expect(targetActorId).toBe(HELD_ID)
+        return srdCreatureTarget(held, [engulf])
+      },
+      createRuntime: async () => runtime,
+      random: () => 9,
+      resolvePerception: async () => null,
+      userId: GM_USER_ID,
+      autoRollByActorId: { [GOBLIN_ID]: true, [HELD_ID]: true },
+      root,
+      occurrenceId: OCCURRENCE_ID,
+      actors: [goblin, held],
+      boundary: { ...BOUNDARY, actorId }
+    })
+    return { result, listed }
+  }
+
+  it('fails the held creature’s save and damages it, not the source, at the source’s turn start', async () => {
+    const engulf = await effect(1, {
+      target: held,
+      ticks: null,
+      anchor: 'SOURCE',
+      sourceActorId: GOBLIN_ID,
+      damage: 2
+    })
+    const run = holdTurn(engulf, GOBLIN_ID)
+    const result = await run.result
+    if (result.kind !== 'COMPLETE') throw new Error('Expected a completed turn-effect phase.')
+
+    expect(run.listed).toEqual([GOBLIN_ID, HELD_ID])
+    expect(
+      result.plan?.executions.map((execution) => ({
+        activeEffectId: execution.activeEffectId,
+        targetActorId: execution.targetActorId,
+        hitPoints: [
+          execution.targetTransition.before.currentHitPoints,
+          execution.targetTransition.after.currentHitPoints
+        ],
+        resultPath: execution.d20?.resultPath
+      }))
+    ).toEqual([
+      {
+        activeEffectId: engulf.id,
+        targetActorId: HELD_ID,
+        hitPoints: [7, 5],
+        resultPath: 'ON_SAVE_FAIL'
+      }
+    ])
+    expect(creatureHitPoints(result.actors)).toEqual([7, 5])
+  })
+
+  it('runs nothing on the held creature’s own turn', async () => {
+    const engulf = await effect(1, {
+      target: held,
+      ticks: null,
+      anchor: 'SOURCE',
+      sourceActorId: GOBLIN_ID
+    })
+    const result = await holdTurn(engulf, HELD_ID).result
+
+    expect(result).toMatchObject({ kind: 'COMPLETE', plan: null, phase: { kind: 'NONE' } })
   })
 })

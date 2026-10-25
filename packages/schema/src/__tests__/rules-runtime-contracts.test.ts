@@ -358,7 +358,9 @@ function turnPendingContext() {
     definitionChecksum: 'c'.repeat(64),
     lifecycleChecksum: 'd'.repeat(64),
     targetStateChecksum: 'e'.repeat(64),
-    d20Policy: null
+    sourceActorId: null,
+    d20Policy: null,
+    diceStage: null
   })
   return {
     kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS' as const,
@@ -1178,6 +1180,7 @@ describe('rules runtime contracts', () => {
         perceptionContributions: [],
         recurrence: {
           recurrenceStage: 'START_OF_TURN',
+          anchor: 'HOLDER',
           consumeOnFirstEvents: [],
           endOnEvents: ['ON_ATTACK_ROLL'],
           endOnTriggers: [],
@@ -1186,8 +1189,7 @@ describe('rules runtime contracts', () => {
           expiration: {
             kind: 'TICKS',
             initialRemaining: 2,
-            decrementStage: 'END_OF_TURN',
-            anchor: 'HOLDER'
+            decrementStage: 'END_OF_TURN'
           },
           lifetimeScope: 'OWNER'
         }
@@ -1307,13 +1309,13 @@ describe('rules runtime contracts', () => {
         origin,
         recurrence: {
           ...activeState.definition.recurrence,
-          expiration: { ...activeState.definition.recurrence.expiration, anchor: 'SOURCE' }
+          anchor: 'SOURCE'
         }
       }
     })
     expect(() =>
       activeRuleEffectStateDtoSchema.parse(sourceAnchored(activeState.definition.origin))
-    ).toThrow('Source-anchored expiration requires an Encounter origin with a source actor.')
+    ).toThrow('A source-anchored effect requires an Encounter origin with a source actor.')
     expect(
       activeRuleEffectStateDtoSchema.parse(
         sourceAnchored({
@@ -1323,8 +1325,8 @@ describe('rules runtime contracts', () => {
           rootCommandId: '00000000-0000-4000-8000-000000000015',
           sourceActorId: '00000000-0000-4000-8000-000000000020'
         })
-      ).definition.recurrence.expiration
-    ).toMatchObject({ kind: 'TICKS', anchor: 'SOURCE' })
+      ).definition.recurrence
+    ).toMatchObject({ anchor: 'SOURCE', expiration: { kind: 'TICKS' } })
 
     const withTriggers = (
       endOnTriggers: unknown,

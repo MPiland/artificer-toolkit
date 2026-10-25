@@ -59,6 +59,7 @@ function definition(
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'END_OF_TURN',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],
@@ -68,8 +69,7 @@ function definition(
       expiration: {
         kind: 'TICKS',
         initialRemaining: 3,
-        decrementStage: 'END_OF_TURN',
-        anchor: 'HOLDER'
+        decrementStage: 'END_OF_TURN'
       }
     },
     stateContributions: [formContribution]

@@ -35,6 +35,7 @@ import {
 } from './platformEncounterPolicy.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
 import { creatureInnateConditionRows } from './encounterInnateConditions.js'
+import { encounterFacingRule } from './encounterFacing.js'
 import { healthBand } from './encounterPlayerProjection.js'
 import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
 
@@ -398,6 +399,13 @@ function projectGmFacts(
         label: definition.label,
         kind: definition.document.kind
       })) ?? [],
+    facingStepDegrees:
+      encounterFacingRule({
+        automationMode: encounter.automationMode,
+        gameSystemId: encounter.gameSystemId,
+        optionalCombatSnapshot: encounter.optionalCombatSnapshot ?? null,
+        optionalCombatSnapshotChecksum: encounter.optionalCombatSnapshotChecksum ?? null
+      })?.facingStepDegrees ?? null,
     version: encounter.version,
     round: encounter.round,
     currentActorId: currentActorIdForProjection(encounter),

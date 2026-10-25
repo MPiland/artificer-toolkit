@@ -124,7 +124,7 @@ async function stagedPhase(scene: Awaited<ReturnType<typeof seeded>>, face: numb
     random: () => face - 1,
     resolvePerception: async () => null,
     userId: GM_USER_ID,
-    autoRoll: true,
+    autoRollByActorId: Object.fromEntries(actors.map(({ id }) => [id, true])),
     root,
     occurrenceId: OCCURRENCE_ID,
     actors,
