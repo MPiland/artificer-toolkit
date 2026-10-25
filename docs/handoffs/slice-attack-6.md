@@ -2,7 +2,6 @@
 
 Owned by the ATTACK-6 slice session. Design notes, rulings and proofs go here.
 
-
 ## ATTACK-6.T2 (AC ATTACK-6.1)
 
 - Seam trace: authoring (`creatureAuthoredDtoSchema.equipmentLoadout`, `packages/schema/src/subjects/creature.ts`) and Encounters (`snapshotCreatureEquipmentLoadout`, including the GM `equipmentLoadoutOverride`, `packages/rules-runtime/src/encounterCreatureEquipmentSources.ts`) both parse `creatureEquipmentLoadoutDtoSchema`. The web authoring defaults type against `CreatureEquipmentLoadoutEntryDto`.
