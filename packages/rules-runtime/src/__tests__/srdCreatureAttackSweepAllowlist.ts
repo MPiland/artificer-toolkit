@@ -18,10 +18,7 @@ export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
 > = {
   // OUTCOME_KIND
   '00000000-0002-00d0-0070-00a700000000': 'OUTCOME_KIND', // Horned Devil: Tail
-  '00000000-0002-01f9-0070-00db00000000': 'OUTCOME_KIND', // Pit Fiend: Bite
   '00000000-0002-01f9-0070-00ef00000000': 'OUTCOME_KIND', // Roper: Tendril
-  '00000000-0002-00d0-0070-011600000000': 'OUTCOME_KIND', // Vampire Spawn: Bite
-  '00000000-0002-00e6-0070-011500000000': 'OUTCOME_KIND', // Vampire: Bite
   // Wereboar: Tusks (Boar or Hybrid Form Only): its curse ruling (T6b2) sits ahead of the merged
   // Charge save (T5n2); `immediateFollowUpSaveEntries` admits only DAMAGE before an immediate save,
   // so the missing piece is a ruling entry ahead of it (ATTACK-5.T4).
