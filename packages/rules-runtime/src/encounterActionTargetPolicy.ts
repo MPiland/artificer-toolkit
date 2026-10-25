@@ -13,8 +13,12 @@ import {
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
+import { facingArcLabel } from '@artificer-toolkit/shared/vtt/facingArc'
+import { encounterFacingArcs } from './encounterFacing.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import type { FacingRule } from './optionalCombatPolicyCapability.js'
 import {
+  ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
   ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
   encounterRuleContributorSource
 } from './encounterRollModeReasons.js'
@@ -169,6 +173,8 @@ export function evaluateEncounterActionTargetPolicy(input: {
   sceneContext: EncounterActionSceneContext | null
   /** The action makes an attack roll; an attack never targets its own user (D99). */
   makesAttackRoll: boolean
+  /** The Encounter's Facing rule (ATTACK-12): a creature cannot target into the arcs it names. */
+  facing: Pick<FacingRule, 'arcs' | 'sourceCannotTargetInOwnArcs'> | null
 }): EncounterRuleWarningDto[] | null {
   // An actor out of play, however it left, is no legal target (D178).
   if (input.target.absence != null) return null
@@ -192,6 +198,15 @@ export function evaluateEncounterActionTargetPolicy(input: {
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' })
   else if (dispositionKind === 'HOSTILE' && relationship === 'ALLIED')
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action targets hostile creatures.' })
+  const facingArc =
+    input.facing && input.sceneContext && !targetsSelf
+      ? encounterFacingArcs(input.facing.arcs, input.sceneContext)?.sourceToTarget
+      : null
+  if (facingArc && input.facing?.sourceCannotTargetInOwnArcs.includes(facingArc))
+    warnings.push({
+      code: 'TARGET_FACING_ARC',
+      message: `The target is in this creature's ${facingArcLabel(facingArc)} arc.`
+    })
   if (range.rangeKind === 'UNLIMITED') return warnings
   // A ranged weapon attack reaches its long range, at disadvantage beyond its normal range.
   const band = input.sceneContext
@@ -250,6 +265,29 @@ export function encounterActionLongRangeContributor(input: {
         source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE)
       }
     : null
+}
+
+/**
+ * The roll-mode contributors an attack takes from where its attacker stands relative to its target:
+ * one per arc of the target's facing that the Facing rule gives an influence to (ATTACK-12), each
+ * naming the arc. None without the rule or a Scene to measure on.
+ */
+export function encounterActionPositionalContributors(input: {
+  facing: Pick<FacingRule, 'arcs' | 'attackerInTargetArc'> | null
+  sceneContext: EncounterActionSceneContext | null
+}): EncounterRelationshipD20Contributor[] {
+  if (!input.facing || !input.sceneContext) return []
+  const arc = encounterFacingArcs(input.facing.arcs, input.sceneContext)?.targetToSource
+  return input.facing.attackerInTargetArc
+    .filter((entry) => entry.arc === arc)
+    .map((entry) => ({
+      sourceId: ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
+      grantId: null,
+      domainKey: ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
+      influence: entry.influence,
+      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.FACING),
+      positional: { arc: entry.arc }
+    }))
 }
 
 /** A range in Scene units and the token footprints' measured distance. */

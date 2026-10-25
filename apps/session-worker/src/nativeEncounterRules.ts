@@ -58,6 +58,7 @@ import {
   withOwnedTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import {
   snapshotCreatureTypeId,
   withFeatureChargeUsed
@@ -743,7 +744,8 @@ export async function planNativeLiveEncounterAction(
       target: prepared.target,
       targetPolicy: prepared.targetPolicy,
       makesAttackRoll: prepared.makesAttackRoll,
-      sceneContext
+      sceneContext,
+      facing: encounterFacingRule(state)
     },
     targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
     sizes: {

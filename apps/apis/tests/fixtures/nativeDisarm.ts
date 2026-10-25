@@ -43,6 +43,7 @@ import {
   readEncounterDisarmSelection,
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import type { QueryCtx } from '../../convex/_generated/server'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { readPendingSnapshot } from '@artificer-toolkit/encounter-persistence/pendingSnapshots'
@@ -443,6 +444,7 @@ export async function prepareStoredDisarm(
     definition,
     prepared,
     sceneContext,
+    facing: encounterFacingRule(state),
     rejectTarget: () => rejectDomain('TARGET_UNAVAILABLE', 'Optional combat target is unavailable.')
   })
   const actionEconomy = await prepareActionEconomy(tx, {

@@ -4344,12 +4344,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       const attackDomain = attackKind.success ? dnd5eAttackModifierDomain(attackKind.data) : 'MELEE'
       const addedDice = derivedAddedDice(sourceDerivedFacts.attackAddedDice, attackDomain)
       const contributors = (sourceContributorEvidence?.attacks?.[attackDomain] ?? []).map(
-        ({ sourceId, grantId, domainKey, influence, source }) => ({
+        ({ sourceId, grantId, domainKey, influence, source, positional }) => ({
           sourceId,
           grantId,
           domainKey,
           influence,
-          source
+          source,
+          ...(positional ? { positional } : {})
         })
       )
       const flanking = flankingContributor({

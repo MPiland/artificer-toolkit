@@ -1,13 +1,18 @@
 import { runInDurableObject } from 'cloudflare:test'
-import { srdCreatureActor } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import {
+  creatureFeature,
+  srdCreatureActor
+} from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
+import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
 import { movementRoom } from './movementRoomFixture.js'
+import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * ATTACK-12.T1: with the Facing rule on, a voluntary move may end in a facing, and a creature may
@@ -179,5 +184,85 @@ describe('Facing (ATTACK-12.T1)', () => {
       expect(JSON.stringify(refused)).toContain('FACING_UNAVAILABLE')
     }
     expect(await feetMoved(off)).toBe(0)
+  })
+})
+
+/** The Watcher bites the Mover; both face north, the Watcher standing at `attackerAt`. */
+async function biteRoom(attackerAt: ScenePoint, facing = true) {
+  const wolf = biteWolf('ATTACK')
+  return actionRoom({
+    autoRoll: 'BOTH',
+    rolls: Array.from({ length: 8 }, () => 14),
+    actors: [
+      srdCreatureActor({ id: WATCHER_ID, creature: wolf }),
+      srdCreatureActor({ id: MOVER_ID, creature: wolf, disposition: 'FRIENDLY' })
+    ],
+    positions: { [WATCHER_ID]: attackerAt, [MOVER_ID]: MOVER_START },
+    optionalCombatKinds: facing ? ['FACING'] : [],
+    ownerFeatureId: creatureFeature(wolf, 'Bite').id
+  })
+}
+
+/** The Bite's settled attack d20, as its receipt records it. */
+async function biteD20(room: Awaited<ReturnType<typeof biteRoom>>, commandId: string) {
+  const { receipts } = await readRoomHistory(room.room.base.stub)
+  const receipt = receipts.find(
+    (candidate) => candidate.commandId === commandId && candidate.commandType === 'RESOLVE_ACTION'
+  )
+  if (!receipt) throw new Error('The Bite left no receipt.')
+  const execution = parseReceiptExecution(receipt)
+  if (
+    execution.status !== 'COMPLETE' ||
+    execution.applicationOutputs.kind !== 'ENCOUNTER_ACTOR_MECHANICS_BATCH' ||
+    !execution.applicationOutputs.d20
+  )
+    throw new Error('Expected a settled Bite attack.')
+  return execution.applicationOutputs.d20
+}
+
+describe('attacks with Facing (ATTACK-12.T2)', () => {
+  const behindMover = { x: MOVER_START.x, y: MOVER_START.y + 100 }
+  const aheadOfMover = { x: MOVER_START.x, y: MOVER_START.y - 100 }
+
+  const rearArc = {
+    sourceId: 'rule:facing',
+    grantId: null,
+    domainKey: 'rule:facing',
+    influence: 'ADVANTAGE',
+    source: { kind: 'RULE', id: 'facing', holderActorId: null },
+    positional: { arc: 'REAR' }
+  }
+
+  it('rolls an attack from the target’s rear arc with advantage, and the receipt names the arc', async () => {
+    const room = await biteRoom(behindMover)
+    const { command, answer } = await room.startAction(MOVER_ID, [], room.sceneContext(1))
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const d20 = await biteD20(room, command.commandId)
+    expect(d20.rollMode).toBe('ADVANTAGE')
+    expect(d20.contributors).toEqual([rearArc])
+  })
+
+  it('gives no advantage from the front, or with the rule off', async () => {
+    for (const room of [await biteRoom(aheadOfMover), await biteRoom(behindMover, false)]) {
+      // From ahead the target stands behind the attacker, which the GM overrides here.
+      const { command, answer } = await room.startAction(
+        MOVER_ID,
+        ['TARGET_FACING_ARC'],
+        room.sceneContext(1)
+      )
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      const d20 = await biteD20(room, command.commandId)
+      expect(d20.rollMode).toBe('NORMAL')
+      expect(d20.contributors).toEqual([])
+    }
+  })
+
+  it('refuses a target in the attacker’s own rear arc until the GM overrides it', async () => {
+    const room = await biteRoom(aheadOfMover)
+    const before = await room.version()
+    const { answer } = await room.startAction(MOVER_ID, [], room.sceneContext(1))
+    expect(answer.type).toBe('COMMAND_REJECTED')
+    expect(JSON.stringify(answer)).toContain('TARGET_FACING_ARC')
+    expect(await room.version()).toBe(before)
   })
 })

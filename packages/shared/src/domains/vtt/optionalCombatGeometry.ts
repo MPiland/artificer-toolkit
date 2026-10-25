@@ -2,7 +2,7 @@ import type { SceneGrid, ScenePoint, SceneToken } from './scene.js'
 import { canTokenFootprintMoveBetween, measureSceneDistance } from './geometry.js'
 import { measureSceneTokenFootprintDistance } from './sceneCombatPerception.js'
 import type { CampaignSceneState } from './scene.js'
-import type { FacingArc } from './facingArc.js'
+import type { FacingArc, FacingArcRange } from './facingArc.js'
 
 const EPSILON = 1e-9
 
@@ -636,7 +636,14 @@ function normalizeDegrees(degrees: number): number | null {
   return ((degrees % 360) + 360) % 360
 }
 
+/** How far an arc's middle lies from the facing, which settles a direction on a shared edge. */
+function arcDistanceFromFront(range: FacingArcRange): number {
+  const middle = ((((range.fromDegrees + range.toDegrees) / 2) % 360) + 360) % 360
+  return Math.min(middle, 360 - middle)
+}
+
 function classifyFacingArcAt(input: {
+  readonly arcs: readonly FacingArcRange[]
   readonly orientationCenter: ScenePoint
   readonly rotationDegrees: number
   readonly subject: ScenePoint
@@ -648,12 +655,21 @@ function classifyFacingArcAt(input: {
   const dy = input.subject.y - input.orientationCenter.y
   if (Math.abs(dx) <= EPSILON && Math.abs(dy) <= EPSILON) return null
   const direction = ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360
-  const offset = ((direction - rotation + 540) % 360) - 180
-  const absoluteOffset = Math.abs(offset)
-  if (absoluteOffset <= 45 + EPSILON) return 'FRONT'
-  if (offset > 0 && offset <= 135 + EPSILON) return 'RIGHT_SIDE'
-  if (offset < 0 && offset >= -135 - EPSILON) return 'LEFT_SIDE'
-  return 'REAR'
+  const offset = (direction - rotation + 360) % 360
+  // A direction on a shared edge belongs to the arc nearer the front.
+  const matches = input.arcs.filter((range) => {
+    const along = (((offset - range.fromDegrees) % 360) + 360) % 360
+    return along <= range.toDegrees - range.fromDegrees + EPSILON || along >= 360 - EPSILON
+  })
+  return (
+    matches.reduce<FacingArcRange | null>(
+      (nearest, range) =>
+        nearest === null || arcDistanceFromFront(range) < arcDistanceFromFront(nearest)
+          ? range
+          : nearest,
+      null
+    )?.arc ?? null
+  )
 }
 
 function compareCells(left: SquareGridCell, right: SquareGridCell): number {
@@ -693,11 +709,13 @@ function closestFootprintCells(input: {
 
 /** Classifies a point against a token's orientation; rotation never changes collision geometry. */
 export function classifySquareGridFacingArc(input: {
+  readonly arcs: readonly FacingArcRange[]
   readonly subject: ScenePoint
   readonly target: Pick<SceneToken, 'height' | 'position' | 'rotationDegrees' | 'width'>
 }): FacingArc | null {
   if (!validTokenFootprint(input.target) || !isFinitePoint(input.subject)) return null
   return classifyFacingArcAt({
+    arcs: input.arcs,
     orientationCenter: input.target.position,
     rotationDegrees: input.target.rotationDegrees,
     subject: input.subject
@@ -710,6 +728,7 @@ export function classifySquareGridFacingArc(input: {
  * as if they occupied a single square.
  */
 export function classifySquareGridFootprintFacingArcs(input: {
+  readonly arcs: readonly FacingArcRange[]
   readonly grid: SceneGrid
   readonly source: { readonly footprint: SquareGridFootprint; readonly rotationDegrees: number }
   readonly target: { readonly footprint: SquareGridFootprint; readonly rotationDegrees: number }
@@ -730,11 +749,13 @@ export function classifySquareGridFootprintFacingArcs(input: {
   if (closest === null) return null
   return {
     sourceToTarget: classifyFacingArcAt({
+      arcs: input.arcs,
       orientationCenter: input.source.footprint.center,
       rotationDegrees: input.source.rotationDegrees,
       subject: closest.target.center
     }),
     targetToSource: classifyFacingArcAt({
+      arcs: input.arcs,
       orientationCenter: input.target.footprint.center,
       rotationDegrees: input.target.rotationDegrees,
       subject: closest.source.center

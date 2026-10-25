@@ -76,8 +76,10 @@ import {
 import { reconcileEncounterActorRuleOutput } from './encounterActorRuleOutput.js'
 import {
   encounterActionLongRangeContributor,
+  encounterActionPositionalContributors,
   type EncounterActionSceneContext
 } from './encounterActionTargetPolicy.js'
+import { encounterFacingRule } from './encounterFacing.js'
 import { activeAttackCriticalRules, activeDamageDice } from './character/activeEffectGrantTotals.js'
 import { attackDomainCodeSchema, attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
@@ -744,6 +746,12 @@ export async function prepareEncounterActionMechanics<
       ? attackSight.trueSight
       : attacksAgainst.flatMap(({ contributor }) => (contributor ? [contributor] : [])),
     longRange ? [longRange] : [],
+    attackKind === null
+      ? []
+      : encounterActionPositionalContributors({
+          facing: encounterFacingRule(state),
+          sceneContext: input.sceneContext ?? null
+        }),
     attackDomain === null
       ? []
       : activeEffectSourceAttackContributors({

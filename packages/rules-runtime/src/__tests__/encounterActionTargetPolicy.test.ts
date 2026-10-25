@@ -6,6 +6,7 @@ import { sceneRangeBand, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import {
   encounterActionLongRangeContributor,
+  encounterActionPositionalContributors,
   encounterActorRelationship,
   encounterActionReachFeet,
   evaluateEncounterActionTargetPolicy,
@@ -13,10 +14,13 @@ import {
   withoutCreatureTypeRestrictions
 } from '../encounterActionTargetPolicy.js'
 import {
+  ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
   ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
   encounterRuleContributorSource,
   labelEncounterRollModeReasons
 } from '../encounterRollModeReasons.js'
+import { encounterFacingRule } from '../encounterFacing.js'
+import { srdEncounterState } from '../testing/dnd5eSrdEncounter.js'
 
 const DISPOSITIONS: readonly EncounterActorDispositionDto[] = ['FRIENDLY', 'NEUTRAL', 'HOSTILE']
 
@@ -50,7 +54,8 @@ function dispositionWarnings(
       pathOverrides: []
     },
     sceneContext: null,
-    makesAttackRoll: false
+    makesAttackRoll: false,
+    facing: null
   })
   if (warnings === null) throw new Error('Expected a resolvable single-target policy.')
   return warnings.filter((warning) => warning.code === 'TARGET_DISPOSITION')
@@ -115,7 +120,8 @@ describe('encounter action self target', () => {
         pathOverrides: []
       },
       sceneContext: null,
-      makesAttackRoll: input.makesAttackRoll ?? false
+      makesAttackRoll: input.makesAttackRoll ?? false,
+      facing: null
     })
   }
 
@@ -212,6 +218,7 @@ function rangeWarnings(input: {
     source: ReturnType<typeof token>
     target: ReturnType<typeof token>
   } | null
+  facing?: Parameters<typeof evaluateEncounterActionTargetPolicy>[0]['facing']
 }) {
   const [source, target] = input.dispositions ?? ['FRIENDLY', 'HOSTILE']
   return evaluateEncounterActionTargetPolicy({
@@ -227,6 +234,7 @@ function rangeWarnings(input: {
       pathOverrides: input.pathOverrides ?? []
     },
     makesAttackRoll: false,
+    facing: input.facing ?? null,
     sceneContext:
       input.scene === undefined || input.scene === null
         ? null
@@ -237,6 +245,128 @@ function rangeWarnings(input: {
           }
   })
 }
+
+describe('a creature’s own facing arcs (ATTACK-12)', () => {
+  const srdFacing = encounterFacingRule(
+    srdEncounterState({ actors: [], currentActorId: null, optionalCombatKinds: ['FACING'] })
+  )
+  const facingSouth = (column: number, row: number) => ({
+    ...token(column, row),
+    rotationDegrees: 180
+  })
+  const inRear = {
+    code: 'TARGET_FACING_ARC',
+    message: "The target is in this creature's rear arc."
+  }
+
+  it('warns about a target in the source’s rear arc, at any range', () => {
+    expect(srdFacing).not.toBeNull()
+    // Rotation 0 faces north, so a target due south stands behind.
+    const scene = { source: token(2, 2), target: token(2, 3) }
+    expect(rangeWarnings({ facing: srdFacing, scene })).toEqual([inRear])
+    expect(
+      rangeWarnings({ facing: srdFacing, scene, range: { id: 'range', rangeKind: 'UNLIMITED' } })
+    ).toEqual([inRear])
+  })
+
+  it('allows a target ahead or to the side, and one behind once the source turns', () => {
+    for (const target of [token(2, 1), token(3, 2), token(1, 2)])
+      expect(rangeWarnings({ facing: srdFacing, scene: { source: token(2, 2), target } })).toEqual(
+        []
+      )
+    expect(
+      rangeWarnings({
+        facing: srdFacing,
+        scene: { source: facingSouth(2, 2), target: token(2, 3) }
+      })
+    ).toEqual([])
+  })
+
+  it('measures from the closest occupied squares of a Large source', () => {
+    // The Large source fills columns 2-3; a target south of its east half is still behind it.
+    expect(
+      rangeWarnings({ facing: srdFacing, scene: { source: token(2, 2, 2), target: token(3, 4) } })
+    ).toEqual([inRear])
+  })
+
+  it('never warns when facing is off, without the map, or for a self target', () => {
+    const behind = { source: token(2, 2), target: token(2, 3) }
+    expect(rangeWarnings({ facing: null, scene: behind })).toEqual([])
+    expect(
+      rangeWarnings({
+        facing: srdFacing,
+        scene: null,
+        range: { id: 'range', rangeKind: 'UNLIMITED' }
+      })
+    ).toEqual([])
+    expect(rangeWarnings({ facing: srdFacing, scene: behind, targetId: 'source' })).toEqual([])
+  })
+
+  it('reads the refused arcs from the authored rule, so a homebrew rule refuses its own (parity)', () => {
+    if (!srdFacing) throw new Error('The SRD Facing rule is missing.')
+    const homebrew = { ...srdFacing, sourceCannotTargetInOwnArcs: ['REAR', 'LEFT_SIDE'] as const }
+    const west = { source: token(2, 2), target: token(1, 2) }
+    expect(rangeWarnings({ facing: srdFacing, scene: west })).toEqual([])
+    expect(rangeWarnings({ facing: homebrew, scene: west })).toEqual([
+      { code: 'TARGET_FACING_ARC', message: "The target is in this creature's left side arc." }
+    ])
+  })
+
+  const positional = (
+    facing: Parameters<typeof encounterActionPositionalContributors>[0]['facing'],
+    scene: { source: ReturnType<typeof token>; target: ReturnType<typeof token> } | null
+  ) =>
+    encounterActionPositionalContributors({
+      facing,
+      sceneContext: scene && {
+        grid: FEET_GRID,
+        sourceToken: scene.source,
+        targetToken: scene.target
+      }
+    })
+  const fromArc = (arc: 'REAR' | 'LEFT_SIDE', influence: string) => ({
+    sourceId: ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
+    grantId: null,
+    domainKey: ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
+    influence,
+    source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.FACING),
+    positional: { arc }
+  })
+
+  it('gives an attacker in its target’s rear arc advantage, naming the arc', () => {
+    // The target at (2, 2) faces north; the attacker due south stands behind it.
+    const behind = { source: token(2, 3), target: token(2, 2) }
+    expect(positional(srdFacing, behind)).toEqual([fromArc('REAR', 'ADVANTAGE')])
+    expect(
+      labelEncounterRollModeReasons(new Map())({
+        rollMode: 'ADVANTAGE',
+        contributors: positional(srdFacing, behind)
+      })
+    ).toEqual(['Facing (rear arc)'])
+    // Ahead, beside, or behind a target that turned to face the attacker: no influence.
+    for (const source of [token(2, 1), token(3, 2), token(1, 2)])
+      expect(positional(srdFacing, { source, target: token(2, 2) })).toEqual([])
+    expect(positional(srdFacing, { source: token(2, 3), target: facingSouth(2, 2) })).toEqual([])
+  })
+
+  it('gives nothing when facing is off or without the map', () => {
+    const behind = { source: token(2, 3), target: token(2, 2) }
+    expect(positional(null, behind)).toEqual([])
+    expect(positional(srdFacing, null)).toEqual([])
+  })
+
+  it('reads the arc influences from the authored rule, so a homebrew rule gives its own (parity)', () => {
+    if (!srdFacing) throw new Error('The SRD Facing rule is missing.')
+    const homebrew = {
+      ...srdFacing,
+      attackerInTargetArc: [{ arc: 'LEFT_SIDE' as const, influence: 'DISADVANTAGE' }]
+    }
+    const west = { source: token(1, 2), target: token(2, 2) }
+    expect(positional(srdFacing, west)).toEqual([])
+    expect(positional(homebrew, west)).toEqual([fromArc('LEFT_SIDE', 'DISADVANTAGE')])
+    expect(positional(homebrew, { source: token(2, 3), target: token(2, 2) })).toEqual([])
+  })
+})
 
 describe('encounter action target range', () => {
   it('does not warn about a target well inside a distance range', () => {
@@ -737,7 +867,8 @@ describe('an actor out of play as a target (D178)', () => {
         pathOverrides: []
       },
       sceneContext: null,
-      makesAttackRoll: false
+      makesAttackRoll: false,
+      facing: null
     })
 
   it.each(['GM_REMOVED', 'DEPARTED', 'EFFECT', 'EFFECT_KEEPS_TURN'] as const)(

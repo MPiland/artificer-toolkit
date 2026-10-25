@@ -14,6 +14,7 @@ import {
   readEncounterDisarmSelection,
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import {
@@ -368,6 +369,7 @@ export async function readDisarmSelection<TFacts extends CharacterTurnFacts>(
     definition,
     prepared,
     sceneContext: await readActionSceneContext(tx, state, command),
+    facing: encounterFacingRule(state),
     rejectTarget: () => rejectDomain('TARGET_UNAVAILABLE', 'Optional combat target is unavailable.')
   })
   await prepareActionEconomy(tx, {
