@@ -50,6 +50,7 @@ import {
   pathLifecycleConsumeEventSchema,
   pathLifecycleEndEventSchema,
   pathLifecycleRecurringKindSchema,
+  pathLifecycleExclusivitySchema,
   pathLifecycleTurnAnchorDtoSchema,
   pathOriginKindSchema,
   pathRollTableKindSchema,
@@ -162,6 +163,8 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
     endsWithHeldEffectId: z.optional(authoredIdentifierSchema),
     /** See `PathLifecycleAuthored.fromSourceOnly`. */
     fromSourceOnly: z.optional(z.boolean()),
+    /** See `PathLifecycleAuthored.exclusivity`. */
+    exclusivity: z.optional(pathLifecycleExclusivitySchema),
     /** See `PathLifecycleAuthored.uses`. */
     uses: z.optional(activeEffectUsesSchema),
     /** See `PathLifecycleAuthored.activeOnlyOnFinalAnchorTurn`. */

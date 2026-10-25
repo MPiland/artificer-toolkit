@@ -374,3 +374,18 @@ export const PATH_LIFECYCLE_TURN_BOUNDARY_REGISTRY: Record<
 export const PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS = valuesOf(
   PATH_LIFECYCLE_TURN_BOUNDARY_REGISTRY
 ) as readonly PathLifecycleTurnBoundaryOption[]
+
+/** Which earlier effects a new one ends: `PER_SOURCE`, its source's from the same Effect on any holder. */
+export const PATH_LIFECYCLE_EXCLUSIVITY = {
+  PER_SOURCE: 'PER_SOURCE'
+} as const
+
+export type PathLifecycleExclusivity = keyof typeof PATH_LIFECYCLE_EXCLUSIVITY
+
+export const PATH_LIFECYCLE_EXCLUSIVITY_OPTIONS: readonly CoreMeta<PathLifecycleExclusivity>[] = [
+  {
+    code: PATH_LIFECYCLE_EXCLUSIVITY.PER_SOURCE,
+    label: 'One Per Source',
+    description: 'A new one from the same source ends its earlier one, on any creature.'
+  }
+]

@@ -15,7 +15,11 @@ import {
 import { characterAuthoredDtoSchema, type CharacterAuthoredDto } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
-import { equipmentCategoryCodeSchema, equipmentPropertyCodeSchema } from '../shared/enums.js'
+import {
+  equipmentCategoryCodeSchema,
+  equipmentPropertyCodeSchema,
+  pathLifecycleExclusivitySchema
+} from '../shared/enums.js'
 import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
   SPATIAL_TURN_TRIGGERS,
@@ -276,6 +280,7 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             endOnConditionIds: activeGrantEndConditionIdsSchema,
             holderEnd: z.nullable(activeGrantHolderEndSchema),
             fromSourceOnly: z.optional(z.literal(true)),
+            exclusivity: z.optional(pathLifecycleExclusivitySchema),
             activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
             uses: z.optional(activeEffectUsesSchema),
             onEnd: z.optional(activeEffectOnEndSchema),

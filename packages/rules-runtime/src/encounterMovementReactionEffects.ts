@@ -12,6 +12,7 @@ import {
 import { decoyStrikeEffects } from './encounterAttackDecoys.js'
 import { createLinkedRiders, riderEffectKey } from './encounterActionEffectPlans.js'
 import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
+import { isMeleeAttackSource } from './encounterActionSources.js'
 import {
   actionEndedEffects,
   actsAgainstEnemy,
@@ -158,7 +159,9 @@ export function planEncounterMovementReactionEffects<
     held: (prepared.movementTargets.get(prepared.target.id)?.activeEffects ?? []).filter(
       ({ id }) => !reactor.consumedGrants.some((ended) => ended.id === id)
     ),
-    attacked: makesAttackRoll,
+    attack: makesAttackRoll
+      ? { melee: isMeleeAttackSource(prepared.state.gameSystemId, prepared.source) }
+      : null,
     testEvidence: [input.execution.d20, input.execution.nestedD20],
     turnActorId: prepared.state.currentActorId,
     applications: [...input.execution.applications, ...effects.relationshipConditionApplications],
