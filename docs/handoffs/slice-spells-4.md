@@ -722,3 +722,7 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - Not built (D187a): an automatic attack a summon makes at the start of its source's turn. It stays in `future-enhancements.md` (SUMMON manifests).
 - Deleted: the `FAITHFUL_HOUND` closed rule kind (`closedRuleKind.ts`).
 - Proof: `coreOptionSpellAuthoringParity.test.ts` (Faithful Hound); room `nativeRoomCoreOptionSpells.test.ts` "Faithful Hound": the cast conjures an owned actor and revert removes it.
+
+## SPELLS-8.T7 (D187a): Arcane Sword as a summon
+
+See [slice-spells-8-t7.md](slice-spells-8-t7.md). Arcane Sword follows the Spiritual Weapon shape; the `WEAPON` manifest is now unauthored, and a Concentration summon no longer fails the area receipt.
