@@ -101,7 +101,9 @@ describe('keyed ability scores through the authoring form (D193 parity)', () => 
       values: structuredClone(brownBear) as unknown as Record<string, unknown>
     })
     expect(result.clearedPaths).toEqual([])
-    expect(result.values.abilityScores).toEqual(brownBear.abilityScores)
+    expect(result.values).toEqual(
+      expect.objectContaining({ abilityScores: brownBear.abilityScores })
+    )
   })
 
   it('keeps the SRD Arcane Hand’s summoned ability scores exactly as authored', async () => {
@@ -112,6 +114,6 @@ describe('keyed ability scores through the authoring form (D193 parity)', () => 
     })
     // The reader authors no classes, so only the effects subtree is compared.
     expect(result.clearedPaths.filter(([root]) => root === 'effects')).toEqual([])
-    expect(result.values.effects).toEqual(arcaneHand.effects)
+    expect(result.values).toEqual(expect.objectContaining({ effects: arcaneHand.effects }))
   })
 })
