@@ -1,4 +1,5 @@
 import type { CharacterMechanicSourceRef } from '../character/sheetCalculation.js'
+import type { FacingArc } from '../vtt/facingArc.js'
 
 export const ROLL_MODE_CONTRIBUTOR_SOURCE_KINDS = [
   'ACTIVE_EFFECT',
@@ -22,6 +23,7 @@ export interface RollModeContributorSource {
 
 /** The rules-owned contributors that no authored source names. */
 export const ROLL_MODE_RULE_SOURCE_IDS = {
+  FACING: 'facing',
   LONG_RANGE: 'long-range',
   UNSEEN_ATTACKER: 'unseen-attacker',
   UNSEEN_TARGET: 'unseen-target'
@@ -63,6 +65,8 @@ export interface D20Contributor<
   grantId: string | null
   domainKey: string | null
   source: RollModeContributorSource
+  /** The facing arc a positional rule found the attacker in, which the reason names (ATTACK-12). */
+  positional?: { arc: FacingArc }
 }
 
 export function canonicalD20ContributorKey(input: CanonicalD20Contributor): string {

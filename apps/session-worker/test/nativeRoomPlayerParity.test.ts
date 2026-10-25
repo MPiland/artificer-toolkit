@@ -219,6 +219,17 @@ const PARITY: Record<CommandType, Entry> = {
       activeEffectId: SOME_ID
     })
   },
+  CHANGE_FACING: {
+    access: 'PLAYER',
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'CHANGE_FACING',
+      actorId: probe.actorId,
+      rotationDegrees: 90,
+      acknowledgedWarnings: []
+    })
+  },
   MOVE_HELD_EFFECT: {
     access: 'PLAYER',
     actorScoped: true,
@@ -576,6 +587,7 @@ describe('registry', () => {
       if (entry.access === 'TABLE') expect(entry.rule).toContain(AC_2_5_SCOPE)
     expect(typesOf('PLAYER')).toEqual([
       'ADVANCE_TURN',
+      'CHANGE_FACING',
       'END_HELD_GRANT',
       'ESCAPE',
       'MOVE_HELD_EFFECT',

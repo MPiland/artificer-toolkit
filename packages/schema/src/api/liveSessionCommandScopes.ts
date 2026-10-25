@@ -1,6 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { advanceEncounterTurnInputDtoSchema } from './encounters.js'
 import {
+  changeFacingInputDtoSchema,
   endHeldGrantInputDtoSchema,
   escapeRelationshipInputDtoSchema,
   moveHeldEffectInputDtoSchema,
@@ -11,8 +12,8 @@ import {
 } from './encounterRuleCommands.js'
 
 /**
- * A CHECK action, an Escape, the end of a held grant, the move of a held effect or a relationship's release, or the answer to
- * the check either of the first two started.
+ * A CHECK action, an Escape, the end of a held grant, the move of a held effect, a facing change
+ * or a relationship's release, or the answer to the check either of the first two started.
  */
 export const liveSessionEncounterBasicActionCommandSchema = lazySchema(() =>
   z.discriminatedUnion('type', [
@@ -20,6 +21,7 @@ export const liveSessionEncounterBasicActionCommandSchema = lazySchema(() =>
     escapeRelationshipInputDtoSchema,
     endHeldGrantInputDtoSchema,
     moveHeldEffectInputDtoSchema,
+    changeFacingInputDtoSchema,
     releaseRelationshipInputDtoSchema,
     resolveRuleOccurrenceInputDtoSchema
   ])

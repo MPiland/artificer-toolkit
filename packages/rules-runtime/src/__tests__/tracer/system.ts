@@ -1,3 +1,5 @@
+import { systemAuthoredDtoSchema } from '@artificer-toolkit/schema/vocabulary/system'
+
 import type { SystemCoreCodeAdapter } from '../../systemCoreCodeCapability.js'
 
 /**
@@ -32,17 +34,56 @@ export const TRACER_APPROACH_DEFINITION_IDS: Readonly<Record<TracerApproach, str
 export const TRACER_EXCHANGE_ACTION_ALLOWANCE_ID = '00000000-0000-4000-8000-0000000f0b01'
 /** The capability a taken-out actor has suppressed. */
 export const TRACER_ACTOR_ACTION_CAPABILITY_ID = '00000000-0000-4000-8000-0000000f0b02'
+/** The published rule of a held stunt: what keeps it up, and the save stress forces. */
+export const TRACER_STUNT_MAINTENANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000f0b03'
+/** The one roll mode: a single die, with no advantage or disadvantage to cancel. */
+export const TRACER_ROLL_MODE = 'STANDARD'
+
+/** The tracer's System document: its approaches as abilities, and nothing D&D catalogues. */
+export const tracerSystem = systemAuthoredDtoSchema.parse({
+  id: TRACER_SYSTEM_ID,
+  label: 'Tracer',
+  rulesetCode: 'TRACER',
+  rulesetVersion: '1',
+  userId: '00000000-0000-4000-8000-0000000f0c01',
+  schemaVersion: 4,
+  abilities: TRACER_APPROACHES.map((code) => ({
+    id: TRACER_APPROACH_DEFINITION_IDS[code],
+    code,
+    label: code.charAt(0) + code.slice(1).toLowerCase()
+  })),
+  skills: [],
+  passives: [],
+  ...Object.fromEntries(
+    [
+      'alignments',
+      'challengeRatings',
+      'conditionTypes',
+      'creatureTypes',
+      'currencies',
+      'damageTypes',
+      'heritages',
+      'languages',
+      'lifestyles',
+      'magicSchools',
+      'rarities',
+      'senses',
+      'speeds',
+      'terrains'
+    ].map((list) => [list, []])
+  )
+})
 
 export const tracerCoreCodeAdapter: SystemCoreCodeAdapter = {
   gameSystemId: TRACER_SYSTEM_ID,
   lists: {
     rollInfluence: [],
-    rollMode: [],
+    rollMode: [{ code: TRACER_ROLL_MODE, label: 'Standard' }],
     spellSlotPool: [],
     effectConsumeEvent: [{ code: 'INVOKED', label: 'Invoked' }],
     effectEndEvent: [
-      { code: 'END_OF_EXCHANGE', label: 'End of exchange', grantable: true },
-      { code: 'END_OF_SCENE', label: 'End of scene', grantable: true }
+      { code: 'TAKEN_OUT', label: 'Taken out', grantable: true },
+      { code: 'STRESSED', label: 'Stressed', grantable: true }
     ],
     actionTrait: [{ code: 'ATTACK', label: 'Attack', actionFact: 'attackRoll' }],
     size: [

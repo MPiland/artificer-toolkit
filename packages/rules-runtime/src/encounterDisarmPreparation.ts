@@ -32,6 +32,7 @@ import type { prepareEncounterActionMechanics } from './encounterActionMechanics
 import type { ReceiptApplications } from './encounterCharacterMechanicsBatch.js'
 import { freezeD20Context } from './encounterD20Settlement.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
+import type { FacingRule } from './optionalCombatPolicyCapability.js'
 import {
   creatureActiveGrantAttackContributors,
   creatureAttackAbility,
@@ -139,6 +140,7 @@ export function readEncounterDisarmSelection(input: {
   definition: ReturnType<typeof requireEncounterDisarmDefinition>
   prepared: PreparedMechanics
   sceneContext: SceneContext
+  facing: FacingRule | null
   /** Refuses a target that cannot be disarmed (neither a Character nor a Creature). */
   rejectTarget(): never
 }) {
@@ -151,7 +153,8 @@ export function readEncounterDisarmSelection(input: {
     target,
     targetPolicy: prepared.targetPolicy,
     sceneContext: input.sceneContext,
-    makesAttackRoll: prepared.makesAttackRoll
+    makesAttackRoll: prepared.makesAttackRoll,
+    facing: input.facing
   })
   if (targetWarnings === null || targetWarnings.length)
     throw new Error('The selected action does not permit this target.')

@@ -294,6 +294,7 @@ async function executeLocalEncounterCommand(
             command.type === 'ESCAPE' ||
             command.type === 'END_HELD_GRANT' ||
             command.type === 'MOVE_HELD_EFFECT' ||
+            command.type === 'CHANGE_FACING' ||
             command.type === 'RELEASE_RELATIONSHIP'
               ? {
                   turnExecution: { runtime: host.liveRulesRuntime() }

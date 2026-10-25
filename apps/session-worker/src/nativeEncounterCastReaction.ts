@@ -71,6 +71,7 @@ import {
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import { executionOutcomeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
@@ -212,7 +213,8 @@ export function discoverNativeCastReactions(input: {
           target: prepared.target,
           targetPolicy: prepared.targetPolicy,
           sceneContext: { grid, sourceToken: reactorToken, targetToken: againstToken },
-          makesAttackRoll: prepared.makesAttackRoll
+          makesAttackRoll: prepared.makesAttackRoll,
+          facing: encounterFacingRule(state)
         })
         if (!warnings || warnings.some(({ code }) => code === 'TARGET_OUT_OF_RANGE')) continue
         const { economy, suppressed } = await evaluateNativeLiveActionEconomy({
