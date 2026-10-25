@@ -1,3 +1,4 @@
+import { runInDurableObject } from 'cloudflare:test'
 import { withEncounterActorIdleTurnMark } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import { srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import {
@@ -9,10 +10,10 @@ import { encounterRunActorStateSchema } from '@artificer-toolkit/schema/projecti
 import { barbarian, RAGE_EFFECT_ID } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { actionRoom, biteWolf } from './actionRoomFixture.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
-import { readRoomHistory } from './roomHistoryReads.js'
 
 /**
  * SPELLS-31.T5f2 through the room: a raging Barbarian whose turn passes idle keeps Rage at level 15
@@ -46,7 +47,8 @@ async function ragingRoom(classLevel: number) {
     // The room needs an action to offer; these turns pass without one.
     characterAction: () => true,
     characterClassFeatures: barbarian.features?.filter(
-      ({ label, availableAtLevel }) => label === 'Persistent Rage' && (availableAtLevel ?? 1) <= classLevel
+      ({ label, availableAtLevel }) =>
+        label === 'Persistent Rage' && (availableAtLevel ?? 1) <= classLevel
     ),
     characterPlay: { characterClass: barbarian, classLevel, currentHitPoints: 30 },
     seed: async ({ effects, encounterId, occurredAt }) => {
@@ -71,10 +73,14 @@ async function ragingRoom(classLevel: number) {
   })
 }
 
-async function rageIds(room: Awaited<ReturnType<typeof ragingRoom>>) {
-  return (await readRoomHistory(room.room.base.stub)).activeEffects
-    .map(({ id }) => id)
-    .filter((id) => id === RAGE_ID)
+/** The Rage the Character holds: the room keeps a Character actor's effects on the Character. */
+function rageIds(room: Awaited<ReturnType<typeof ragingRoom>>) {
+  return runInDurableObject(room.room.base.stub, (_instance, context) =>
+    new RoomEncounterStore(context.storage)
+      .documents('characterActiveRuleEffects')
+      .map(({ id }) => id)
+      .filter((id) => id === RAGE_ID)
+  )
 }
 
 describe('Persistent Rage keeps Rage through an idle turn (SPELLS-31.T5f2)', () => {
