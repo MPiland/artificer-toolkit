@@ -60,6 +60,7 @@ function hit(
         maximumHitPoints: 30,
         damageTypeId: testUuid(0x15d1),
         damageDisposition: 'NORMAL',
+        incomingHalved: false,
         critical: damage.critical ?? false
       }
     ]
