@@ -41,7 +41,7 @@ export function CampaignEncounters({
   const [encounterAdderOpen, setEncounterAdderOpen] = useState(false)
   const [selectedBlueprintId, setSelectedBlueprintId] = useState<string | null>(null)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  const canManage = campaign.capabilities.manageActiveCampaign
   const blueprints = useEncounterBlueprints(campaign.gameSystemId, canManage && encounterAdderOpen)
   const summaries = (encounters.data ?? []).map((summary) =>
     mergeEncounterSummary(liveSummary, summary)

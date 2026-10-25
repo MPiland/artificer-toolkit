@@ -31,7 +31,7 @@ export function CampaignEncounterBuilderPage({ campaignId }: { campaignId: strin
   const campaign = useCampaignDetail(campaignId)
   const blueprints = useEncounterBlueprints(
     campaign.gameSystemId,
-    campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+    campaign.capabilities.manageActiveCampaign
   )
   const creatures = useContentCatalogue('CREATURE')
   const [name, setName] = useState('')

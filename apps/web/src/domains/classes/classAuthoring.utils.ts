@@ -52,9 +52,9 @@ export function toClassFormValues(
 export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuthoringInputDto {
   const common = {
     id: classRecord.id,
-    label: classRecord.label.trim() || 'Untitled Class',
+    label: classRecord.label.trim(),
     description: classRecord.description ?? '',
-    status: classRecord.status ?? 'DRAFT',
+    status: classRecord.status,
     details: classRecord.details ?? [],
     proficiencies: classRecord.proficiencies ?? [],
     spellcasting: classRecord.spellcasting,
@@ -92,10 +92,6 @@ export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuth
     ...common,
     attributes: classRecord.attributes ?? []
   }
-}
-
-export function resolveCreateClassSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
 }
 
 function createEmptyStartingGold(): ClassStartingGoldDto {

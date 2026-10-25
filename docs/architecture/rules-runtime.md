@@ -177,7 +177,9 @@ contribution kind, with no System import. It replaced the per-kind `grant-author
 facts; a relationship keeps `relationship-authored-path` only as its application trace's `authoredPath`. So a grant
 on a hit or a miss, and a link or a creature form on either save result, compile under a test. `CONCEAL` and
 `DETECT_CONCEALED` stay refused under an attack or a save, for a rule: they are settled from the holder's own check
-total, which neither test produces. `KILL` under a test stays limited to hit-point tiers, which is also a rule.
+total, which neither test produces. `KILL` under a test is limited to hit-point tiers, a reduced-to-0 gate and the
+action's own failed save (Will-o'-Wisp Consume Life, SPELLS-33.T4i4b), which is also a rule: a hit alone never kills.
+A nested follow-up save's band still needs a gate to kill.
 
 **Effect lifetime (current, RULES-2.T6d1).** An active-effect plan's lifetime is its neutral fields: the clock
 (`recurrenceStage`, `initialRemaining`, `tickAnchor`), the repeat (`saveThresholds`, `lifecycle.repeatTriggers`), the
@@ -351,8 +353,11 @@ duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollMode
 the wire types a code as `systemCoreCodeSchema` (`schema/shared/systemCoreCode.ts`, shape
 only), and the one seam that decides membership is `systemCoreCodeRegistry.requireCode(gameSystemId,
 kind, code)` (`systemCoreCodeCapability.ts`, installed in `platformSystemCoreCodes.ts`; the D&D lists in
-`systems/dnd5e/coreCodes.ts`). Lists today: `rollInfluence`, `rollMode`, each code with its display
-label. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
+`systems/dnd5e/coreCodes.ts`). Lists today: `rollInfluence`, `rollMode` and `size` (RULES-2.T9f1),
+each code with its display label. The `size` list runs smallest first and gives each size its square's
+edge where one applies; neutral code reads a size's rank and space only through `sizeRank` and
+`sizeSpaceFeet(gameSystemId, size)` (`systemSizes.ts`), and authoring draws size selects from the `sizes`
+source. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
 settlement) validates through it; capability registries call it before an adapter sees a code. A
 rule-execution d20 DTO carries `keep` beside its `rollMode`, and `keep` is derived once, by the
 adapter's `keepFor` through `rollModeCapabilityRegistry.resolveRollMode` or `rollModeKeep`, when the
@@ -390,7 +395,8 @@ neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `attackProfileCapability`, `modifierScopeCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
 `combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
-Creature form keeps; the web Creature detail, Encounter enemy stat block and Builder hit points read the
+Creature form keeps, and `derivedStatisticAbilityCodes`: the ability armor class, initiative and hit points add,
+which the character fact builders and the Sheet hit die check read, RULES-2.T9e; the web Creature detail, Encounter enemy stat block and Builder hit points read the
 modifier through it), `characterProgressionCapabilityRegistry` (`characterProgressionCapability.ts`: hit die
 size and average, the hit points a level adds and the proficiency bonus, read by the Builder hit point step
 and Class detail) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
@@ -745,8 +751,9 @@ preparation call the optional `loadHolderLight` supplier, and `deferredGroupMet`
 `readNativeLiveHolderLight` (the locked Scene read, refusing a Scene that moved) for a direct action, and with
 `measureHolderLight` on the captured Scene for a movement-reaction attack from the reactor's own square.
 `daylight` is Scene state (`settings.ambientIllumination.daylight`, default false) that the GM sets with the existing
-`SET_SCENE_AMBIENT_ILLUMINATION` command; `resolveSceneDaylightAt` is `scene.daylight && illumination === 'BRIGHT'`
-at the holder's square, so a torch-lit square on a non-daylit Scene is BRIGHT without being daylit. Deleted kinds:
+`SET_SCENE_AMBIENT_ILLUMINATION` command; `resolveSceneDaylightAt` is `scene.daylight` and a resolved level whose
+System render class is `LIT` at the holder's square, so a torch-lit square on a non-daylit Scene is bright without
+being daylit. Deleted kinds:
 `CREATURE_SUNLIGHT_SENSITIVITY`, `CREATURE_CLOAKER_LIGHT_SENSITIVITY`. Limitations: the Wisdom (Perception) check
 disadvantage is authored but has no live consumer (no Creature Perception roll exists; Creature ability checks roll
 only in contests); there is no roof or indoor daylight model (see future-enhancements). The Vampire's disadvantage covers every ability. Its 20 radiant start-of-turn damage and the Cloaker Phantasms' bright-light dismissal ship as MANUAL_ADJUDICATION GM rulings (D187a; pieces in future-enhancements). Deleted kinds also include `CREATURE_VAMPIRE_SUNLIGHT_HYPERSENSITIVITY` and `CREATURE_CLOAKER_PHANTASMS`.
@@ -917,7 +924,8 @@ ends beyond the field still triggers the save and, on a failure, stops at the fi
 `movementKinds` to voluntary, forced and teleport movement, `activation` to `REPEATABLE` and `visibility` to
 `PUBLIC`. The compiled zone stores only the grant contribution the planner reads: the zone row's own
 `recurrence.endOnEvents` stays empty, and the creature's grant takes its end events from the grant template. The
-action opens no area occurrence (`placesZone` on the pending root): it commits the spend and a
+action opens no area occurrence (`placesZone` on the pending root; a summoning cast's `placesSummon` likewise
+catches nobody): it commits the spend and a
 `liveSessionPlacedSpatialEffect` per zone component (see the bands below) in the same transaction as every other
 area commit. The zone is
 built by `planEncounterPlacedZone` (FIXED, `SCENE_ABSOLUTE`, a cube as a polygon via `pointCubeOutline`), stored
@@ -1911,7 +1919,10 @@ A spell grant may also name the slot pool that pays its cast (`slotCost.poolCode
 `PACT`, listed by the dnd5e vocabulary as `spellSlotPool` and checked against it by `characterSpellRuleFacts`; SPELLS-31.T5p, D175). The candidate then carries `slotPoolCode`, the decision ladder
 requires a slot of that pool (`SPELL_SLOT_REMAINING`, `SPELL_SLOT_EXHAUSTED`, `NO_ELIGIBLE_SPELL_SLOT`) in addition
 to the grant's own pool (`RESOURCE_EXHAUSTED`), and the cast spends both: the slot through the ordinary
-`spellConsumption.slotKey`, the pool through `resourceBinding`. A grant with `access: CLASS_LIST_ONLY` and
+`spellConsumption.slotKey`, the pool through `resourceBinding`. The rule output lists each slot pool the
+Character casts from in `spellSlots.slotPools` (pool code, source class, level, slots, uses; RULES-2.T9g, D193):
+dnd5e yields zero or one `PACT` entry, and the neutral readers (Sheet projection, cast slot lookup, on-hit slot
+choices, policy adapter) work per pool, with no pool code of their own. A grant with `access: CLASS_LIST_ONLY` and
 `classListIds` gives no access; `spellClassListAdditions.ts` is the one merge that adds its spells to those class
 lists for the Sheet's preparation catalog and the Builder's merged catalog (the Builder owns the merged list for
 prepare and known choices; the Sheet only reads it). The compiler refuses `CLASS_LIST_ONLY` without `classListIds`.
@@ -1945,6 +1956,8 @@ A spell the Character may cast only as a ritual (a `RITUAL` spell grant the Shee
 The facet predicate `SOURCE_CREATURE_TYPE` (selectable `creatureTypeIds`, System vocabulary ids) limits a grant to sources of certain creature types: the attacker for `ATTACKS_AGAINST`, the effect's origin for `CONDITION_IMMUNITY`. The grant fold keeps it a deferred requirement. `holderStateSourceQualifier` checks the grant's holder conditions when the holder is prepared and leaves the source conditions as a `sourceQualifier`, which `sourceQualifierAdmits` decides where the source is known: `prepareEncounterActionMechanics` filters `attackAgainstContributors` by the attacker's type and adds `sourceConditionImmunities` that admit it (`conditionImmunityIdsAgainstSource`). The trait `SOURCE_TRAIT` (`MAGICAL`) is decided at the same point: `conditionImmunityIdsAgainstSource` takes the System of the spell a condition comes from and adds that System's `spellCastSourceTraits` (the D&D 5e profile names `MAGICAL`), so every effect of a spell cast is magical without each path tagging it (Freedom of Movement, SPELLS-4.T2m2). Action preparation passes the System when `preparedCastsSpell` holds; `executeTargetBoundActiveRuleEffect` resolves the holder's `sourceConditionImmunities` against the effect's origin, a spell when `originLevel` is set, so spatial (a zone's held condition, which a placed zone records with its cast level), turn and repeat-save effects apply them too. Those paths do not know the origin's creature types, so a creature-type immunity still holds only at action preparation.
 
 `SOURCE_TRAIT` (selectable `traits`: `MAGICAL`, `SILVERED`, `ADAMANTINE`; SPELLS-4.T2j2a) is the same deferred source restriction for the attack's traits: `prepareEncounterActionMechanics` passes a `GrantSource` (creature type ids plus the traits of the attack) to `sourceQualifierAdmits`. Holy Aura (attack disadvantage from any attacker on every attack domain, plus advantage on every saving throw, on chosen creatures) and Dispel Evil and Good (the same disadvantage from celestials, elementals, fey, fiends and undead) are authored from these grants; their `CLOSED_RULE` outcomes are removed, and the `HOLY_AURA` kind stays until T2j2b supplies the retaliation. The `DISPEL_EVIL_AND_GOOD` kind is deleted (T2lb2b1, D187a): Break Enchantment and Dismissal ship as `MANUAL_ADJUDICATION` GM rulings, and the `EYEBITE` kind is deleted the same way (its per-turn retarget is a GM ruling; see future-enhancements "Deferred rules pieces (D187a)"). Proofs: `encounterHolyAuraDispelEvilGrants.test.ts`, `sourceTraitAuthoringParity.test.ts`, and the room journey `apps/session-worker/test/nativeRoomHolyAuraDispelEvil.test.ts`.
+
+Saving throws against a source (current, SPELLS-33.T4j, SPELLS-32.T4j): a `SAVING_THROW_MODIFIER` grant with a source restriction and no `conditionTypeId` or `ruleDefinitionId` ("advantage on saves against magic") joins no save row when the holder is prepared; neither the Character fold nor `withCreatureActiveGrantSaves` applies it unconditionally. `encounterSourceSaves` collects such grants from the holder's active effects and own features (a Character's grant fold, a Creature's `featureModifiers`) into `MovementTarget.sourceSaves`, and `withSourceSaves` merges the ones the source admits into every save row of their ability, at the same two points as `sourceConditionImmunities`: action preparation (the attacker as source, a spell cast adding `spellCastSourceTraits`) and `executeTargetBoundActiveRuleEffect` (the effect's origin, magical when it is a spell). "Against poison" needs no source: it is the POISONED-scoped save row. Magic Resistance, Gnome Cunning, Duergar Resilience (POISONED, CHARMED and PARALYZED rows plus magic), Fey Ancestry (CHARMED rows plus a `MAGICAL` `CONDITION_IMMUNITY` to unconscious) and Dwarven Resilience are authored from these options with the data helpers `advantageGrants`/`magicResistanceGrants` (creatures) and `conditionSaveAdvantageGrants`/`magicSaveAdvantageGrants`/`magicConditionImmunityGrant` (`classes/mechanics.ts`); the angelic and hellish weapons are `magicWeaponsGrants`, and Turn Resistance is description-only. Their closed rule kinds are deleted. Proofs: `againstMagicSaveGrants.test.ts`, `againstMagicSaveAuthoringParity.test.ts`.
 
 `DAMAGE_RESISTANCE` and `DAMAGE_IMMUNITY` payloads take an optional `bypassedBy` (`MAGICAL`, `SILVERED`, `ADAMANTINE`): a Character's fold yields `qualifiedDefenses` on the policy output, a Creature's active grants merge into its stat block's, and `dnd5eAttackDamageDefenses` applies them only to attacks without a bypassing trait. Protection from Evil and Good (and Purity of Spirit), Stoneskin and Wind Walk are authored from these options and their closed rule kinds are deleted.
 
@@ -1985,14 +1998,16 @@ on the v4 `CHARACTER_ACTION` entry (`compileSummonPlacement` on the System adapt
 `{ summonOutcomeId, label, statBlock, entry }`. `entry` is a lasting carrier plan (no contribution, the same shape as a
 zone's lasting entry) that carries the duration in turns and the Concentration the cast opens, and `executionPlan` is
 its frozen graph. It is exclusive with `zonePlacement` and `choice`. A summon that authors `behaviors`, an
-attachment or shape, a lifecycle, no stat block or no bounded duration is refused and the action goes manual (Mage Hand
-until T2v2b authors its stat block, Spiritual Weapon until T2v2a3 models behaviors). Current (SPELLS-4.T2v2a2c1): the choice is a POINT cast target whose cube is the stat block's size in feet
+attachment or shape, a lifecycle, no stat block or no bounded duration is refused and the action goes manual. Current (SPELLS-4.T2v2a2c1): the choice is a POINT cast target whose cube is the stat block's size in feet
 (`sizeSpaceFeet`), and `evaluateEncounterSummonTarget` validates it on the server: range from the caster and sight
 are overridable warnings like an area origin; a free square is a hard refusal (`SPACE_OCCUPIED`) when the stat block
 `occupiesSpace`; a stat block with no modelled size is refused (`UNSUPPORTED_SUMMON`). The planner treats the cast as
 a zone placed at the point with nobody caught, and `buildEncounterSummon` makes the CUSTOM actor (`owner` = caster,
-no controllers of its own, hit points from `evaluateNumericExpr` against the caster's maximum when the Run holds it;
-a Character caster's maximum lives on the Sheet, so a `HIT_POINT_MAXIMUM` stat block is refused with `HIT_POINTS_UNKNOWN` until T2v2b feeds it).
+no controllers of its own, hit points from `summonHitPoints` against the caster's effective maximum: the caster's
+movement target's `effectiveMaximumHitPoints`, which is a Character's Sheet maximum and another actor's Run maximum,
+SPELLS-4.T2v2b).
+Current (T2v2b): a summoning cast that opens Concentration carries its `maintenanceTransition` on the area root beside
+the carrier `sourceGrantTransition`, with no placed zone.
 Current (a2c2): a revert of the cast removes the conjured creature (see persistence). Current (a2c3): the cast creates the carrier effect on the caster from the compiled summon entry (`prepareNativeSourceEffect`), with the summon's duration and Concentration (`prepareEncounterActionMaintenance` names the summon's policy), and `buildEncounterSummon` sets `owner.sourceEffectId` to it. Removal at every end is the persistence sweep.
 Current (a3c, D190a): `buildEncounterSummon` keeps the stat block's body in the actor snapshot (`body`:
 `damageabilityKind`, `occupiesSpace`; `summonBody` fills the defaults: damageable, no space). `encounterActorBody` is its
@@ -2010,13 +2025,16 @@ capability discovery and entry-point compile. The Encounter's movement targets a
 it. `sheetSpellCastSummonPlacement` picks the plan for the cast's spell and level. `buildSheetSpellSummon` and
 `buildEncounterSummon` share `summonHitPoints`. The Sheet entry is `state.spellSummons[]` (play state; see
 [persistence](persistence.md)). It stores only the stat block values the cast resolved against the caster at cast time:
-size, armor class, ability scores, speeds, passive Perception and maximum hit points, never the plan's expressions. The
+size, armor class, ability scores, speeds, passive Perception and maximum hit points, never the plan's expressions.
+A stat block with no hit points (Spiritual Weapon, Mage Hand) stores no hit point pool: the entry has neither
+`maximumHitPoints` nor `currentHitPoints`, the Extras item no `hitPoints`, the row no hit point control, and
+UPDATE_SHEET_EXTRA refuses hit points for it (SPELLS-4.T2v2b). The
 shared `CharacterSpellSummonState` owns the shape, and the schema is typed against it. The Sheet projects it as an Extras item of kind `SPELL_SUMMON`, and
 UPDATE/REMOVE_SHEET_EXTRA edit and dismiss it.
 
 - A summon whose plan maintains Concentration is the Sheet's Concentration. The overview shows it when no carried
   effect does. END_CONCENTRATION, a new Concentration cast and the caster dropping to 0 hit points each end it.
-- Any summon ends at 0 hit points or on a long rest.
+- A summon with a hit point pool ends at 0 hit points; any summon ends on a long rest.
 - A timed summon stays until it is dismissed or the caster takes a long rest.
 - Attacks are SPELLS-34.T2.
 
@@ -2596,6 +2614,7 @@ conditions from its frozen `relationship-state` graph, which is not part of the 
 Character target's `CHARACTER_MECHANICS_BATCH` binds each of those `CONDITION_APPLY` applications to the
 batch's own active-effect CREATE receipt (`frozenGraphNodeId`) and the TEST's result path rather than to a
 kernel trace.
+A hold ends on its own when its source can no longer act or its held creature stands beyond the reach it sealed (`encounterEndedRelationships`, D152), unless it carries a `SOURCE_INDEPENDENT_HOLD` module: that lifetime fact, authored on the relationship (a net, SPELLS-4.T2m2b), skips those two ends and nothing else, so only an escape or a rescue (or a separately authored end) releases it.
 
 **Gated holds and held-only actions (D93, ATTACK-7.T8).** An `ACTOR_RELATIONSHIP` outcome's optional `appliesWhen`
 (an attack-slot condition) gates the hold on the open Attack action: the planner evaluates it with
@@ -2969,6 +2988,22 @@ runtime share them. The resolution rules are D&D policy in `systems/dnd5e/combat
 (adapter interface in `combatPerceptionCapabilityRegistry.ts`, installed in `platformPolicyModules.ts` on the
 generic System capability registry), which fails closed on a System
 that provides no perception policy. The Rules Kernel holds no perception rules (ADR 0039 decision 5, RULES-2.T10).
+
+Illumination levels (current, RULES-2.T9d): the illumination codes (`BRIGHT`, `DIM`, `ORDINARY_DARKNESS`,
+`MAGICAL_DARKNESS`) stay a shared enum that Scenes store, but what each means is System data. The adapter's
+`illuminationLevels` lists the System's levels brightest first, each with its `label`, `renderClass`
+(`LIT`, `DIM` or `DARK`) and `suppressesLight`. A level's rank is its position, and rank 0 is bright light
+(D193): `resolveSceneLightAt` reports bright light and sunlight (bright light in a daylit Scene, D189) by rank,
+never by render class, which only draws the level. The shared resolvers take the levels as a parameter, since
+`shared` does not import `rules-runtime`: `resolveSceneIlluminationAt` darkens by list order, lets a light's bright
+and dim radii shed the `BRIGHT` and `DIM` levels they are named for (ranked and drawn as the System defines them),
+and lets a light-suppressing ambient or zone override lights;
+`requireSceneIlluminationLevel` fails closed on a code the System does not define. The Worker's holder light,
+the web renderer's overlays, darkness outlines, token concealment, sense effects and lighting labels read the
+levels from the Campaign's System (`combatPerceptionCapabilityRegistry.require(gameSystemId)`), never a code.
+The web reveals a token in darkness through sight only when the System ranks that darkness at or below the
+sense's access level, as the rules engine's access rank does.
+`systemVocabularyBoundary.test.ts` rejects an illumination code comparison outside `rules-runtime/src/systems/`.
 
 Token light (current, SPELLS-33.T6j): a Creature's passive Feature that authors a MANIFEST OBJECT `light`
 (the same SOURCE light shape equipment torches and lanterns and the Light and Continual Flame spells author)

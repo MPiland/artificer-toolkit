@@ -1,4 +1,5 @@
 import type { CharacterSheetActionsDto } from '@artificer-toolkit/schema/api/characterSheetSlices'
+import { formatEnumLabel } from '#components/AuthoredDetail'
 import {
   summarizeCharacterSheetMechanics,
   type CharacterSheetMechanic
@@ -161,7 +162,7 @@ function toPlayableActionFacts(
   const condition = mechanic.outcomes.find((outcome) => outcome.kind === 'CONDITION')
   const effect = mechanic.outcomes.find((outcome) => outcome.kind === 'EFFECT' && outcome.label)
   const activation = mechanic.activation
-    ? `${mechanic.activation.amount === 1 ? '' : `${mechanic.activation.amount} `}${formatCodeLabel(mechanic.activation.kind)}`
+    ? `${mechanic.activation.amount === 1 ? '' : `${mechanic.activation.amount} `}${formatEnumLabel(mechanic.activation.kind)}`
     : undefined
   const hitOrDc =
     mechanic.attackBonus == null
@@ -250,12 +251,4 @@ function decodeHtmlEntities(value: string): string {
     .replace(/&apos;/giu, "'")
     .replace(/&#x([0-9a-f]+);/giu, (_, code) => String.fromCharCode(Number.parseInt(code, 16)))
     .replace(/&#([0-9]+);/giu, (_, code) => String.fromCharCode(Number.parseInt(code, 10)))
-}
-
-function formatCodeLabel(value: string): string {
-  return value
-    .toLocaleLowerCase()
-    .split('_')
-    .map((part) => `${part.charAt(0).toLocaleUpperCase()}${part.slice(1)}`)
-    .join(' ')
 }

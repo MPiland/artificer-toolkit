@@ -2895,12 +2895,14 @@
             },
             {
               "text": "The shell and navigation are System-aware and capability-driven.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by AUTHORING-1.T1 (m427); see each task's proof."
+              ],
               "origin": [
                 "G3-SYSTEM-SHELL"
               ],
-              "note": "Original PARTIAL: no explicit shell/navigation criterion; needs verification.",
+              "note": "Original PARTIAL: no explicit shell/navigation criterion; needs verification. Closed 2026-10-24 by AUTHORING-1.T1.",
               "id": "AUTHORING-1.4"
             },
             {
@@ -2923,7 +2925,7 @@
           "tasks": [
             {
               "id": "AUTHORING-1.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "AUTHORING-1.4"
               ],
@@ -2934,7 +2936,9 @@
                 "size": 3
               },
               "text": "Verify and finish the System-aware, capability-driven shell and navigation; real-code proof of each part (workbook slice-authoring-1.md).",
-              "activeWorkbook": "docs/handoffs/slice-authoring-1.md"
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 550545714; reviewed: contentKinds cap from authoredSubjectKindSchema.options.length; merged in the m427 batch.",
+              "note": " Merged in m427."
             },
             {
               "id": "AUTHORING-1.T2",
@@ -4562,7 +4566,7 @@
             },
             {
               "id": "RULES-2.T9d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RULES-2.7"
               ],
@@ -4577,11 +4581,13 @@
                 ]
               },
               "text": "System vocabulary (split 2026-10-21): illumination: codes stay, the System supplies rank, suppressesLight and render class; sceneCombatPerception and vttSceneRenderer read the properties.",
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t9.md"
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 78ed08348; reviewed: System illumination levels (rank 0 is bright, D193), derived-statistic ability codes on the adapter, spellSlots.slotPools list with a second-System pool test; residuals carried on RULES-2.T9f3; merged in the m427 batch.",
+              "note": " Merged in m427."
             },
             {
               "id": "RULES-2.T9e",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RULES-2.7"
               ],
@@ -4595,15 +4601,16 @@
                 ]
               },
               "text": "System vocabulary (split 2026-10-21): delete the unused SRD enum copy in shared/vocabulary/authored; challenge rating order from the System in encounterFormChoice; DEXTERITY, CONSTITUTION and WALK literals behind adapters; web defaults from the System.",
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t9.md"
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 78ed08348; reviewed: System illumination levels (rank 0 is bright, D193), derived-statistic ability codes on the adapter, spellSlots.slotPools list with a second-System pool test; residuals carried on RULES-2.T9f3; merged in the m427 batch.",
+              "note": " Merged in m427."
             },
             {
               "id": "RULES-2.T9f1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RULES-2.7"
               ],
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
@@ -4613,7 +4620,10 @@
                   "RULES-2.T9b"
                 ]
               },
-              "text": "System vocabulary (D192 split of T9f): sizes become System core codes; rank and spaceFeet on the dnd5e adapter; no reseed."
+              "text": "System vocabulary (D192 split of T9f): sizes become System core codes; rank and spaceFeet on the dnd5e adapter; no reseed.",
+              "mergedAt": "2026-10-25T05:24:38Z",
+              "proof": "Tests 40164499480 and Live 40164499439 green on tip a878c3a59; reviewed: sizes as System core codes, every ingress refuses a size the System does not list, empty size when systemId is empty; merged in m432.",
+              "note": " Merged in m432."
             },
             {
               "id": "RULES-2.T9f2",
@@ -4626,12 +4636,13 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": [
                   "RULES-2.T9f1"
                 ]
               },
-              "text": "System vocabulary (D192 split of T9f): ability-score records keyed by ability definition id; labels and abbreviations from the System record; shared core/ability.ts deleted; reseed, golden flips enumerated."
+              "text": "System vocabulary (D192 as amended 2026-10-24): ability codes become System core codes like sizes in T9f1; persisted and authored ability keys stay codes owned by each System ability table and every ingress rejects a code the System does not list; labels and abbreviations from the System record; shared core/ability.ts deleted; no re-key, no reseed.",
+              "note": " Re-sized 5 to 8 (user ruling 2026-10-24, D192 amendment): the definition-id re-key measured about 21 points."
             },
             {
               "id": "RULES-2.T9f3",
@@ -4649,7 +4660,7 @@
                   "RULES-2.T9f2"
                 ]
               },
-              "text": "System vocabulary (D192 split of T9f): authored ability references (grants, effects, facets, charge, numericExpr, class) become abilityDefinitionId; reseed; one-off ts-morph codemod allowed (D192)."
+              "text": "System vocabulary (D192 as amended 2026-10-24): authored ability references (grants, effects, facets, charge, numericExpr, class) are checked against the System ability codes at every ingress; the class hitpoint.ability field is deleted (D193); excludesIntelligenceAtOrBelow becomes excludesAbilityAtOrBelow; BRIGHT/DIM literals in vttSceneRenderer and illuminationFromLight, the slotPools z.maxLength bound in characterRules.ts, and illumination level-table validation (empty, duplicate, misordered) from the RULES-2.T9 review. Size codes too (from the RULES-2.T9f1 review): facet sizes, manifest statBlock.size, maximumTargetSize and effect appliesWhen size conditions are refused at publication rather than cleared by node-map normalization."
             },
             {
               "id": "RULES-2.T10",
@@ -5187,7 +5198,7 @@
             },
             {
               "id": "RULES-2.T9g",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RULES-2.7"
               ],
@@ -5203,8 +5214,9 @@
                 ]
               },
               "text": "Pact Magic leaves the neutral character pipeline. The 'PACT' slot-key literals in sheetRest.ts (short-rest reset), characterSpellCastActions.ts, characterOnHitCosts.ts, characterRulePolicyFacts.ts and sheetProjection.ts become System slot-pool capabilities supplied by dnd5e: the pool's code, its label and its reset-on-rest kind. Neutral files read the pools through the gameSystemId registry. The Sheet journey and rest tests stay green.",
-              "note": "Found in the SPELLS-31.T5p review (2026-10-22): these literals predate the slice; D175 keeps the new slotCost.poolCode a System vocabulary code. Per the ADR 0039 amendment, slotCost.poolCode is a System core code, not vocabulary.",
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t9.md"
+              "note": "Found in the SPELLS-31.T5p review (2026-10-22): these literals predate the slice; D175 keeps the new slotCost.poolCode a System vocabulary code. Per the ADR 0039 amendment, slotCost.poolCode is a System core code, not vocabulary. Merged in m427.",
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 78ed08348; reviewed: System illumination levels (rank 0 is bright, D193), derived-statistic ability codes on the adapter, spellSlots.slotPools list with a second-System pool test; residuals carried on RULES-2.T9f3; merged in the m427 batch."
             },
             {
               "id": "RULES-2.T9h",
@@ -9612,7 +9624,7 @@
                   "SPELLS-33.T4i4b"
                 ]
               },
-              "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i."
+              "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i. Left by SPELLS-33.T6b2 (orchestrator ruling 2026-10-25): Wereboar Tusks stays on the allowlist as FOLLOW_UP_SAVE because its Charge needs a ruling before the immediate save, and immediateFollowUpSaveEntries accepts only DAMAGE ahead of an immediate save; covering it means widening that shape generically."
             }
           ]
         },
@@ -12981,7 +12993,7 @@
             },
             {
               "id": "SPELLS-4.T2lb2d",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -12994,7 +13006,8 @@
                   "SPELLS-4.T2lb2c"
                 ]
               },
-              "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable."
+              "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable.",
+              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -13221,7 +13234,7 @@
             },
             {
               "id": "SPELLS-4.T2m2b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -13235,8 +13248,9 @@
                 ]
               },
               "text": "Bug: the SRD Net attack does not compile (both actions REFUSED in srdEffectCompile.golden.txt, \"D&D test action outcome is not supported\"), so no room offers a Net. Make it compile from core options (attack, Restrained on a hit, the DC 10 Strength check or 5 slashing to free); proofs: a regression row, a parity proof, and a room proof that Freedom of Movement does not block a net (non-MAGICAL source).",
-              "note": "Registered 2026-10-24 under the D187 bug exception, found by SPELLS-4.T2m2.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Registered 2026-10-24 under the D187 bug exception, found by SPELLS-4.T2m2. Merged in m429.",
+              "mergedAt": "2026-10-25T04:12:04Z",
+              "proof": "Reviewed and approved; resynced onto the phase tip plus T4j and T4s3 without T4m/T4n; Tests and Live green on the chain tip e4f786f45 (ci/spells-4-t2v2b-r2); merged in the m429 batch."
             },
             {
               "id": "SPELLS-4.T2m3",
@@ -13722,7 +13736,7 @@
               "proof": "Tests and Live green on tip 4ffe12d71; Spiritual Weapon conjures an owned actor whose bonus-action spell attack repeats through the stored REPEAT_SOURCE_PATH offer with damage frozen at cast (D166); repeated Effects resolve through resolveDnd5eActionMechanic and never yield a cast action; the initiative cohort is the Run's unowned actors with one home in validateInitiativeCursor (D190a); fixes for area output scope over conjured creatures, sibling-effect cast level and stableActors order; proofs encounterInitiativeCursor.test.ts, initiativeCorrection.test.ts, encounterRepeatPathAction.test.ts, bonusActionWeaponAttackCompile.test.ts, characterSpellCastActions.test.ts, spellCastLevels.test.ts, coreOptionSpellAuthoringParity.test.ts, nativeRoomCoreOptionSpells.test.ts and authored-length-amount-bounds.test.ts."
             },
             {
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-4.1"
               ],
@@ -13737,8 +13751,9 @@
                 ]
               },
               "text": "D187b: convert Arcane Hand and Mage Hand to SUMMON actors on the T2v2a summon piece (stat block on the spell, owner control, removed when the spell ends), each with a parity proof and a room test. Riders with no automated equivalent stay GM rulings (D187a).",
-              "note": "Registered 2026-10-23 at the user's yes (D187b split).",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Registered 2026-10-23 at the user's yes (D187b split). Merged in m429.",
+              "mergedAt": "2026-10-25T04:12:04Z",
+              "proof": "Reviewed and approved; resynced onto the phase tip plus T4j and T4s3 without T4m/T4n; Tests and Live green on the chain tip e4f786f45 (ci/spells-4-t2v2b-r2); merged in the m429 batch."
             },
             {
               "status": "DONE",
@@ -17798,7 +17813,7 @@
             },
             {
               "id": "SPELLS-32.T4j",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-32.1"
               ],
@@ -17814,7 +17829,9 @@
                 ]
               },
               "text": "Fey Ancestry, Gnome Cunning (\"against magic\" qualifier, built with SPELLS-33.T4j) and Dwarven Resilience (\"against poison\": the POISONED condition or poison damage, the same qualifier family) (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-25T03:43:46Z",
+              "proof": "Tests and Live green on tip f05c58b71; reviewed: against-magic save grants as authored save scopes; damage-type and illusion save scopes deferred to future-enhancements (D187a); merged in the m428 batch.",
+              "note": " Merged in m428."
             },
             {
               "id": "SPELLS-32.T5",
@@ -18262,7 +18279,7 @@
             },
             {
               "id": "SPELLS-33.T4gh",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -18278,7 +18295,9 @@
                 ]
               },
               "text": "five Rejuvenations, Ghost and Night Hag Etherealness (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-25T01:51:34Z",
+              "proof": "Tests and Live green on tip 9438a4032; reviewed and approved; merged through the m424 batch run.",
+              "note": " Merged in m424."
             },
             {
               "id": "SPELLS-33.T4i1a",
@@ -18519,7 +18538,7 @@
             },
             {
               "id": "SPELLS-33.T4i4b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -18534,12 +18553,13 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry.",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m427.",
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 2501e035d; reviewed and approved; merged in the m427 batch."
             },
             {
               "id": "SPELLS-33.T4j",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -18556,7 +18576,9 @@
                 ]
               },
               "text": "Magic Resistance, Fey Ancestry, Gnome Cunning, Duergar Resilience, angelic and hellish weapons, Turn Resistance (9 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-25T03:43:46Z",
+              "proof": "Tests and Live green on tip f05c58b71; reviewed: against-magic save grants as authored save scopes; damage-type and illusion save scopes deferred to future-enhancements (D187a); merged in the m428 batch.",
+              "note": " Merged in m428."
             },
             {
               "id": "SPELLS-33.T4k",
@@ -18721,7 +18743,7 @@
             },
             {
               "id": "SPELLS-33.T4o",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -18736,8 +18758,9 @@
                 ]
               },
               "text": "Spider Climb, standing leaps, Ice Walk, Harpoon pull (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": " 2026-10-24: Adult and Ancient White Dragon CREATURE_ICE_WALK ships as the same GM ruling as Young White Dragon Ice Walk (T6d2).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": " 2026-10-24: Adult and Ancient White Dragon CREATURE_ICE_WALK ships as the same GM ruling as Young White Dragon Ice Walk (T6d2). Merged in m429.",
+              "mergedAt": "2026-10-25T04:12:04Z",
+              "proof": "Reviewed and approved; resynced onto the phase tip plus T4j and T4s3 without T4m/T4n; Tests and Live green on the chain tip e4f786f45 (ci/spells-4-t2v2b-r2); merged in the m429 batch."
             },
             {
               "id": "SPELLS-33.T4pr",
@@ -18802,7 +18825,7 @@
             },
             {
               "id": "SPELLS-33.T4s3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -18817,8 +18840,9 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Immutable Form x3, Duergar Enlarge, Mimic object-form adhesion and Mimic Grappler (6 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 2 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m428.",
+              "mergedAt": "2026-10-25T03:43:46Z",
+              "proof": "Tests and Live green on tip bfe43bbbf; reviewed and approved; merged in the m428 batch."
             },
             {
               "id": "SPELLS-33.T4w",
@@ -18980,7 +19004,7 @@
             },
             {
               "id": "SPELLS-33.T6a3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -18994,8 +19018,9 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: held-creature relationship options (damage to or from the held creature, auto-hit, attach drain, reel) (8 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m429.",
+              "mergedAt": "2026-10-25T04:12:04Z",
+              "proof": "Reviewed and approved; resynced onto the phase tip plus T4j and T4s3 without T4m/T4n; Tests and Live green on the chain tip e4f786f45 (ci/spells-4-t2v2b-r2); merged in the m429 batch."
             },
             {
               "id": "SPELLS-33.T6b1",
@@ -19021,7 +19046,7 @@
             },
             {
               "id": "SPELLS-33.T6b2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -19037,7 +19062,8 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: lycanthropy curse on a failed save (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md). Removes the SRD_CREATURE_ATTACK_UNSUPPORTED entries it makes run, with a room proof for each attack (ATTACK-5.T4 ruling).",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements."
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
               "id": "SPELLS-33.T6b3",
@@ -19607,7 +19633,7 @@
             },
             {
               "id": "SPELLS-33.T6m2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -19621,8 +19647,9 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: subtype and can-hear target filters, ordinal use variants, wake action, stacking recurring damage, tree size (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m426.",
+              "mergedAt": "2026-10-25T02:40:53Z",
+              "proof": "Tests and Live green on tip f87ad1ad2; reviewed and approved: lingering creature riders authored as core options with authoring-parity and runtime proofs."
             },
             {
               "id": "SPELLS-33.T7a",
@@ -21444,34 +21471,42 @@
             },
             {
               "text": "A new authored item's System comes from the route or the author's selection, and a spell's magic school from the author's choice; neither silently takes the first in the list, and a missing one is an explicit state.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-8.T2 (m431); see each task's proof."
+              ],
               "origin": [],
-              "note": "Nine resolveCreate<Subject>SystemId functions are `systems[0]?.id ?? null`; getSpellFormContext takes magicSchools[0]. Also characterBuilderAuthoringSession.ts:44 (systems[0]?.id on create), CharacterEquipmentStep.tsx:173-196 ([0] currency writing currencyId ''), formNormalization createFallbackCharacterFormValues placeholders ('pending-system', 'pending-character', 'server-owned'), stepNavigation.ts:64/73 `?? 'REVIEW'`, SocialListingFormPage.tsx:259 `?? 'ONGOING'`, socialModels `?? 'Recurring'`.",
+              "note": "Nine resolveCreate<Subject>SystemId functions are `systems[0]?.id ?? null`; getSpellFormContext takes magicSchools[0]. Also characterBuilderAuthoringSession.ts:44 (systems[0]?.id on create), CharacterEquipmentStep.tsx:173-196 ([0] currency writing currencyId ''), formNormalization createFallbackCharacterFormValues placeholders ('pending-system', 'pending-character', 'server-owned'), stepNavigation.ts:64/73 `?? 'REVIEW'`, SocialListingFormPage.tsx:259 `?? 'ONGOING'`, socialModels `?? 'Recurring'`. Out of scope (orchestrator ruling 2026-10-24): social ?? 'ONGOING' and ?? 'Recurring' are display defaults, not silent first-in-list selection. Closed 2026-10-24 by RELIABILITY-8.T2.",
               "id": "RELIABILITY-8.2"
             },
             {
               "text": "An empty label is a validation error at submit, not replaced with \"Untitled <Subject>\"; status and other defaults live once in the empty-form values, not in eight submit normalisers.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-8.T2 (m431); see each task's proof."
+              ],
               "origin": [],
-              "note": "19 `|| 'Untitled ...'` fallbacks and `status ?? 'DRAFT'` across the vehicles, backgrounds, classes, races, spells, feats, creatures and equipment normalisers.",
+              "note": "19 `|| 'Untitled ...'` fallbacks and `status ?? 'DRAFT'` across the vehicles, backgrounds, classes, races, spells, feats, creatures and equipment normalisers. Closed 2026-10-24 by RELIABILITY-8.T2.",
               "id": "RELIABILITY-8.3"
             },
             {
               "text": "Feature and feat authoring selects are typed against their enums (no deselect, no casts, no 'TRAIT' or 'LONG_REST' fallback), and the charge reset options and helpers are shared by both editors.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-8.T3 (m431); see each task's proof."
+              ],
               "origin": [],
-              "note": "GuidedFeatureAccordion.tsx:157-216 and GuidedFeatAuthoring.tsx:219-234 duplicate the reset-timing options, isSimpleCharge and createCharge.",
+              "note": "GuidedFeatureAccordion.tsx:157-216 and GuidedFeatAuthoring.tsx:219-234 duplicate the reset-timing options, isSimpleCharge and createCharge. Closed 2026-10-24 by RELIABILITY-8.T3.",
               "id": "RELIABILITY-8.4"
             },
             {
               "text": "Authoring node defaults are checked against the schema DTOs (`satisfies`, no casts to an untyped group record) and the default invocation is declared once.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-8.T3 (m431); see each task's proof."
+              ],
               "origin": [],
-              "note": "apps/web/src/forms/rendering/authoringNodeDefaults.ts: invocation default at 344-350, 355-360 and 639-644; createTargeting(...) as AuthoringGroupValues.",
+              "note": "apps/web/src/forms/rendering/authoringNodeDefaults.ts: invocation default at 344-350, 355-360 and 639-644; createTargeting(...) as AuthoringGroupValues. Closed 2026-10-24 by RELIABILITY-8.T3.",
               "id": "RELIABILITY-8.5"
             },
             {
@@ -21484,10 +21519,12 @@
             },
             {
               "text": "Shared web rules are written once: enum labels go through formatEnumLabel, ReferenceOption is one type, and the Campaign owner-and-active permission comes from a server capability flag rather than 12 inline `role === 'OWNER' && status === 'ACTIVE'` checks.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-8.T4 (m425); see each task's proof."
+              ],
               "origin": [],
-              "note": "Canonical formatter at apps/web/src/components/AuthoredDetail/detailFormatters.ts:10; about 15 local copies. Owner-and-active check counted at 12 non-test sites. ReferenceOption declared three times. Second pass: social admission lists (SocialInvitationsView, SocialApplicationsView, SocialListingInvitations, SocialListingApplications) repeat paginated pending/history queries and merge logic; local label formatters in socialModels.ts:133, DiceSettingsControls.tsx:55, characterSelectionOptions.ts:270, CharacterGrantedFeatures.tsx:275, startingEquipmentChoices.ts:382; Intl.DateTimeFormat inlined beside formatSocialTimestamp; username messages and form feedback state repeated across SignUpForm, ProfileSettingsPage and UpdatePasswordForm; SignInForm hand-rolls hydration instead of useHydrated; socialSearch.ts:18-33 restates socialModels enums; five single-use toSocialDiscoveryX finders; duplicated dice-roll dismiss effect in CharacterAbilitiesStep and CharacterStartingEquipmentChoices.",
+              "note": "Canonical formatter at apps/web/src/components/AuthoredDetail/detailFormatters.ts:10; about 15 local copies. Owner-and-active check counted at 12 non-test sites. ReferenceOption declared three times. Second pass: social admission lists (SocialInvitationsView, SocialApplicationsView, SocialListingInvitations, SocialListingApplications) repeat paginated pending/history queries and merge logic; local label formatters in socialModels.ts:133, DiceSettingsControls.tsx:55, characterSelectionOptions.ts:270, CharacterGrantedFeatures.tsx:275, startingEquipmentChoices.ts:382; Intl.DateTimeFormat inlined beside formatSocialTimestamp; username messages and form feedback state repeated across SignUpForm, ProfileSettingsPage and UpdatePasswordForm; SignInForm hand-rolls hydration instead of useHydrated; socialSearch.ts:18-33 restates socialModels enums; five single-use toSocialDiscoveryX finders; duplicated dice-roll dismiss effect in CharacterAbilitiesStep and CharacterStartingEquipmentChoices. Closed 2026-10-24 by RELIABILITY-8.T4.",
               "id": "RELIABILITY-8.7"
             }
           ],
@@ -21516,7 +21553,7 @@
             },
             {
               "id": "RELIABILITY-8.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-8.2",
                 "RELIABILITY-8.3"
@@ -21531,11 +21568,13 @@
                 ]
               },
               "text": "No silent first-in-list System or school, explicit missing state; empty label is a validation error; defaults once in empty values (workbook slice-reliability-8.md).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+              "mergedAt": "2026-10-25T04:48:12Z",
+              "proof": "Tests green on tip 89322d471 and Live green (run 40162765832); reviewed: no first-in-list System or school (SystemChoiceAlert, school gate), blank label is a draft-save field error and blocks activate, typed feature/feat selects with shared charge helpers, node defaults satisfy schema DTOs (165 of 170, zero casts); merged in m431.",
+              "note": " Merged in m431."
             },
             {
               "id": "RELIABILITY-8.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-8.4",
                 "RELIABILITY-8.5"
@@ -21550,11 +21589,13 @@
                 ]
               },
               "text": "Enum-typed feature and feat selects with shared charge reset helpers; node defaults satisfy schema DTOs, default invocation declared once (workbook slice-reliability-8.md).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+              "mergedAt": "2026-10-25T04:48:12Z",
+              "proof": "Tests green on tip 89322d471 and Live green (run 40162765832); reviewed: no first-in-list System or school (SystemChoiceAlert, school gate), blank label is a draft-save field error and blocks activate, typed feature/feat selects with shared charge helpers, node defaults satisfy schema DTOs (165 of 170, zero casts); merged in m431.",
+              "note": " Merged in m431."
             },
             {
               "id": "RELIABILITY-8.T4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-8.7"
               ],
@@ -21565,7 +21606,9 @@
                 "size": 3
               },
               "text": "Shared web rules once: formatEnumLabel, one ReferenceOption, Campaign owner-and-active capability flag from the server, shared social admission lists, auth form feedback and dice dismiss effect (workbook slice-reliability-8-t4.md).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-8-t4.md"
+              "mergedAt": "2026-10-25T02:17:19Z",
+              "proof": "Tests and Live green on tip 4d2a5ee67; reviewed: shared formatEnumLabel, ReferenceOption, server capabilities.manageActiveCampaign, shared admission lists, AuthFormFeedback, useDismissRollOnClick, each with real-code tests.",
+              "note": " Merged in m425."
             }
           ]
         },
@@ -21863,19 +21906,23 @@
           "acs": [
             {
               "id": "RELIABILITY-12.1",
-              "text": "Facet restrictions and effect paths (BASIC_ACTION) reach Convex as their real types: the intersection-built schemas in packages/shared facet.ts and effects/path.ts become flat unions, recursion included, so apps/apis/convex/_generated/api.d.ts has no any for them; the generatedApiTypes type test proves it and the authoring contract and publication tests pass unchanged.",
-              "status": "TODO",
-              "proof": [],
+              "text": "Facet restrictions and effect paths (BASIC_ACTION) reach the web as their real types: the four content/definitions.ts handlers declare the packages/schema workspace DTO type and the web adapter reads through a typed reference to it (pairing contract test); in the Convex validator only facet, path and follow-up outcomes are named v.any() leaves, still zod-parsed in the handler, and the generatedApiTypes type test proves any appears only at those leaves; the authoring contract and publication tests pass unchanged.",
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-12.T1 (m427); see each task's proof."
+              ],
               "origin": [],
-              "note": "Found 2026-10-14 by RELIABILITY-11 (workbook status log): same Convex intersection-to-any defect, spread across many intersections plus recursion. D194 (user ruling 2026-10-24): wire stays nested; staticApi stays on; only follow-up save/check outcomes keep a named v.any leaf; handlers and web adapter share the packages/schema type with a pairing contract test."
+              "note": "Found 2026-10-14 by RELIABILITY-11 (workbook status log): same Convex intersection-to-any defect, spread across many intersections plus recursion. D194 (user ruling 2026-10-24): wire stays nested; staticApi stays on; only follow-up save/check outcomes keep a named v.any leaf; handlers and web adapter share the packages/schema type with a pairing contract test. D194 amended (user ruling 2026-10-24, option B): the zod-to-Convex converter inlines every reuse, so flat unions measured about 54 MB per facet validator; facet and path became named validator leaves too (about 29,000 nodes). Closed 2026-10-24 by RELIABILITY-12.T1."
             },
             {
               "id": "RELIABILITY-12.2",
               "text": "An encounter stat block's speeds are typed from the stored creature speed shape instead of z.unknown(), so api.d.ts carries the real type; proved by the generatedApiTypes type test.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-12.T1 (m427); see each task's proof."
+              ],
               "origin": [],
-              "note": "Found 2026-10-14 by RELIABILITY-11: statBlock.speeds is z.array(z.unknown()). The stored shape is the authored creature speed; derive it, do not invent one."
+              "note": "Found 2026-10-14 by RELIABILITY-11: statBlock.speeds is z.array(z.unknown()). The stored shape is the authored creature speed; derive it, do not invent one. Closed 2026-10-24 by RELIABILITY-12.T1."
             }
           ],
           "wsjf": {
@@ -21887,7 +21934,7 @@
           "tasks": [
             {
               "id": "RELIABILITY-12.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-12.1",
                 "RELIABILITY-12.2"
@@ -21899,7 +21946,9 @@
                 "size": 5
               },
               "text": "Flatten intersection-built facet and effect-path schemas into unions so api.d.ts carries real types; type stat block speeds from the stored creature speed shape; generatedApiTypes type test proves both (workbook slice-reliability-12.md).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-12.md"
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 24c44da2a; reviewed: facet, path and follow-up outcomes as named v.any() leaves (D194 option B), typed definition references, generatedApiTypes leaf proof; merged in the m427 batch.",
+              "note": " Merged in m427."
             }
           ]
         },

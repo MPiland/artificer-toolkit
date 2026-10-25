@@ -39,6 +39,8 @@ export function escapeGrappleEffectDefinition(input: {
   dragged?: boolean
   /** The grappler holds the target by hand, which fills one of its hands (D152). */
   occupiesHand?: boolean
+  /** The hold stands whatever its source does or wherever it stands (a net). */
+  sourceIndependent?: boolean
 }): ActiveRuleEffectDefinitionDto {
   const definitionId = fixtureId(0)
   const entryId = fixtureId(1)
@@ -107,6 +109,9 @@ export function escapeGrappleEffectDefinition(input: {
             : []),
           ...(input.occupiesHand
             ? [{ id: fixtureId(7), order: 2, kind: 'SOURCE_OCCUPIES_HAND' as const }]
+            : []),
+          ...(input.sourceIndependent
+            ? [{ id: fixtureId(8), order: 3, kind: 'SOURCE_INDEPENDENT_HOLD' as const }]
             : [])
         ],
         conditionIds: [...input.conditionIds],

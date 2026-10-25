@@ -21,8 +21,7 @@ import {
   encounterOptionalCombatSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
-import { sizeRank } from '@artificer-toolkit/shared/core'
-import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { systemCoreCodeSchema } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -40,6 +39,7 @@ import type { EncounterActionEconomyConsumption } from './encounterActionEconomy
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { prepareEncounterContestPendingContext } from './encounterContestPendingContext.js'
+import { sizeRank } from './systemSizes.js'
 import {
   contestCheckCapabilityRegistry,
   optionalCombatPolicyCapabilityRegistry
@@ -85,8 +85,8 @@ function characterAbilityCheck(
     (definition) => definition.id === abilityDefinitionId
   )?.code
   if (code === undefined) return { modifier: undefined, evidence: undefined, rollMode: undefined }
-  // The System may spell an ability "STR" while the rules output keys it "STRENGTH": every lookup
-  // goes through the one canonical key.
+  // The System may spell an ability by its short alias while the rules output keys it by the full
+  // code: every lookup goes through the one canonical key.
   const canonicalKey = (ability: string) => resolveAbilityAlias(ability) ?? ability
   const canonical = canonicalKey(code)
   const byCanonical = <TValue>(record: Readonly<Record<string, TValue>>) => record[canonical]
@@ -245,7 +245,7 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
       contributors: granted.contributors,
       modifier: typeof modifier === 'number' && Number.isSafeInteger(modifier) ? modifier : null,
       rollMode: granted.rollMode,
-      size: sizeCodeSchema.parse(creature.snapshot.payload.size)
+      size: systemCoreCodeSchema.parse(creature.snapshot.payload.size)
     })
   }
   throw new Error('Movement passage Custom actors cannot contest passage.')
@@ -342,8 +342,8 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     option.ruleKind === 'OVERRUN'
       ? policy.prepareOverrunContest({
           ...common,
-          initiatorSizeRank: sizeRank(sourceSize),
-          targetSizeRank: sizeRank(blockerSize),
+          initiatorSizeRank: sizeRank(input.state.gameSystemId, sourceSize),
+          targetSizeRank: sizeRank(input.state.gameSystemId, blockerSize),
           qualifiedInitiatorContributors: []
         })
       : policy.prepareTumbleContest(common)
@@ -372,8 +372,8 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
           ruleKind: 'OVERRUN' as const,
           result: policy.prepareOverrunContest({
             ...common,
-            initiatorSizeRank: sizeRank(initiator.size),
-            targetSizeRank: sizeRank(defender.size),
+            initiatorSizeRank: sizeRank(input.state.gameSystemId, initiator.size),
+            targetSizeRank: sizeRank(input.state.gameSystemId, defender.size),
             qualifiedInitiatorContributors: initiator.contributors.map((contributor) => ({
               id: contributor.sourceId,
               influence: contributor.influence,

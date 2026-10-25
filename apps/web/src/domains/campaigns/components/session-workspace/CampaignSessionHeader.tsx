@@ -26,7 +26,7 @@ export function CampaignSessionHeader({
   const navigate = useNavigate()
   const convex = useConvex()
   const [title, setTitle] = useState(session.title ?? '')
-  const editable = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  const editable = campaign.capabilities.manageActiveCampaign
   const [syncedTitle, setSyncedTitle] = useState(session.title)
   if (syncedTitle !== session.title) {
     setSyncedTitle(session.title)

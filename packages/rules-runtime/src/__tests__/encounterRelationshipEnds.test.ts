@@ -32,12 +32,13 @@ const placed = (actorId: string, column: number, row = 0) => ({
 })
 
 /** The relationship effect `grapplerId` left on a held creature, sealed at the fixture's 5 feet. */
-const hold = (id: string, grapplerId = GRAPPLER) => ({
+const hold = (id: string, grapplerId = GRAPPLER, sourceIndependent = false) => ({
   id,
   definition: escapeGrappleEffectDefinition({
     encounterId: ENCOUNTER,
     grapplerId,
-    conditionIds: []
+    conditionIds: [],
+    sourceIndependent
   })
 })
 
@@ -127,6 +128,16 @@ describe('a relationship ends on its own when its hold breaks (D152)', () => {
     ])
     const unplaced = await ended({ effects: [[HELD, [bond('bond')]]], tokens: null })
     expect(unplaced.ends).toEqual([])
+  })
+
+  it('keeps a source-independent hold whose source is unable and far away, and asks nothing', async () => {
+    const { ends, asked } = await ended({
+      effects: [[HELD, [hold('net', GRAPPLER, true)]]],
+      tokens: [placed(GRAPPLER, 0), placed(HELD, 9)],
+      unable: [GRAPPLER]
+    })
+    expect(ends).toEqual([])
+    expect(asked).toEqual([])
   })
 
   it('ends only the broken hold of a source holding two creatures', async () => {

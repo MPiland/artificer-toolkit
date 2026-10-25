@@ -1227,6 +1227,16 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
   gameSystemId: DND5E_SYSTEM_ID,
   contractVersion: 1,
   authoredRootKinds: ['effect'],
+  contentKinds: [
+    'SPELL',
+    'BACKGROUND',
+    'FEAT',
+    'RACE',
+    'CLASS',
+    'EQUIPMENT',
+    'CREATURE',
+    'VEHICLE'
+  ],
   definitionFamilyKeys: [
     DND5E_EFFECT_ACTION_FAMILY_KEY,
     SENSE_DEFINITION_FAMILY_KEY,

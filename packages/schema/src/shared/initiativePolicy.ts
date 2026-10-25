@@ -1,7 +1,8 @@
 import { z, lazySchema } from '../zod.js'
 
 import { ruleCapabilityKeyDtoSchema, ruleGraphPortNameDtoSchema } from '../api/rulesRuntime.js'
-import { equipmentPropertyCodeSchema, sizeCodeSchema } from './enums.js'
+import { equipmentPropertyCodeSchema } from './enums.js'
+import { systemCoreCodeSchema } from './systemCoreCode.js'
 import { postgresUuidSchema } from './postgresUuid.js'
 
 const serverUuidIdentityDtoSchema = lazySchema(() =>
@@ -108,7 +109,7 @@ function uniqueBy<T>(key: (value: T) => string, message: string) {
 export const initiativeDeclarationModifiersDtoSchema = lazySchema(() =>
   z.strictObject({
     sizes: z
-      .array(z.strictObject({ size: sizeCodeSchema, modifier: declarationModifierSchema }))
+      .array(z.strictObject({ size: systemCoreCodeSchema, modifier: declarationModifierSchema }))
       .check(z.minLength(1))
       .check(z.maxLength(16))
       .check(uniqueBy(({ size }) => size, 'Declared initiative sizes must be unique.')),

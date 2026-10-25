@@ -1,5 +1,5 @@
 import type { LiveSessionEncounterRulesRequest } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { systemCoreCodeSchema } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
@@ -79,7 +79,7 @@ export async function evaluateNativeLiveActionEconomy(input: {
     throw new Error('The selected action activation is not normalized.')
   const featureId =
     prepared.source.kind === 'CREATURE' ? prepared.source.capability.ownerFeatureId : undefined
-  const targetSize = sizeCodeSchema.safeParse(input.targetSize)
+  const targetSize = systemCoreCodeSchema.safeParse(input.targetSize)
   const evaluated = await evaluateEncounterAttackAction({
     triggerCode: invocation.triggerCode,
     replacesAttack:

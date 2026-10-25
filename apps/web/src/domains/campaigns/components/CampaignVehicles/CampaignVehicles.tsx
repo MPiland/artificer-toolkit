@@ -82,7 +82,7 @@ export function CampaignVehicles({ campaign }: { campaign: CampaignDetailDto }) 
       setSelectedVehicle(null)
     }
   })
-  const editable = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  const editable = campaign.capabilities.manageActiveCampaign
   const pickerReady =
     definitionOptions.status === 'Exhausted' && sharedVehicles.status === 'Exhausted'
 

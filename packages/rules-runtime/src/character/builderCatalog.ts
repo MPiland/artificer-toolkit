@@ -5,7 +5,6 @@ import {
   MEASUREMENT_UNIT_REGISTRY,
   PROFICIENCY_KIND,
   RACE_CATEGORY_CODE,
-  SIZE_OPTIONS,
   type EquipmentCategoryCode,
   type EquipmentPropertyCode
 } from '@artificer-toolkit/shared/core'
@@ -18,6 +17,8 @@ import type {
 } from '@artificer-toolkit/shared/subjects/compilers'
 import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 
 type RaceIndexEntry = ContentSnapshotIndexEntry<'RACE'>
 type BaseRaceIndexEntry = Extract<RaceIndexEntry, { category: 'BASE' }>
@@ -214,6 +215,7 @@ export function createCharacterBuilderCatalog({
   const equipmentById = new Map(
     equipment.map((item) => [item.id, { label: item.label, category: item.category ?? null }])
   )
+  const sizes = system ? systemCoreCodeRegistry.entries(system.id, 'size') : []
   return {
     races: races.flatMap((race) => {
       return [
@@ -225,7 +227,7 @@ export function createCharacterBuilderCatalog({
             race.category === RACE_CATEGORY_CODE.SUBRACE ? race.parentRaceId : undefined,
           description: race.description,
           selectionMode: race.category === RACE_CATEGORY_CODE.BASE ? race.selectionMode : undefined,
-          sizeLabel: SIZE_OPTIONS.find((size) => size.code === race.size)?.label,
+          sizeLabel: sizes.find(({ code }) => code === race.size)?.label,
           speedLabels: (race.speeds ?? []).map((speed) => {
             const speedLabel = system?.speeds.find(
               (candidate) => candidate.id === speed.speedId

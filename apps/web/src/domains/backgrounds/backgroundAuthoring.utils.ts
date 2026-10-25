@@ -36,18 +36,14 @@ export function normalizeBackgroundForSubmit(
 ): BackgroundAuthoringInputDto {
   return {
     ...background,
-    label: background.label.trim() || 'Untitled Background',
+    label: background.label.trim(),
     description: background.description ?? '',
-    status: background.status ?? 'DRAFT',
+    status: background.status,
     details: background.details ?? [],
     proficiencies: background.proficiencies ?? [],
     features: background.features ?? [],
     startingEquipment: background.startingEquipment ?? createEmptyStartingEquipment()
   }
-}
-
-export function resolveCreateBackgroundSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
 }
 
 export function createEmptyDetail(order: number): DetailDto {

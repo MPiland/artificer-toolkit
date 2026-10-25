@@ -5,7 +5,6 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { rollVisibilityDtoSchema } from './rolls.js'
 import { movementReactionChoiceSelectionDtoSchema } from '../shared/reaction.js'
 import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecutionProtocol.js'
-import { sizeCodeSchema } from '../shared/enums.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
@@ -24,7 +23,7 @@ export const initiativeDeclarationSelectionDtoSchema = lazySchema(() =>
       .strictObject({
         kind: z.literal('GM_ADJUDICATED'),
         optionId: z.literal('GM_ADJUDICATED'),
-        actorSize: sizeCodeSchema,
+        actorSize: systemCoreCodeSchema,
         factorIds: z.array(uuidSchema).check(z.maxLength(32)),
         spellLevel: z.nullable(z.number().check(z.int()).check(z.gte(0)).check(z.lte(99)))
       })

@@ -5,6 +5,7 @@ import { createAuthoredFormRouteContext } from '#forms/layout/authoredFormRouteC
 
 export const Route = createFileRoute('/_authed/spells/new')({
   context: () => createAuthoredFormRouteContext('spell', 'create'),
-  loader: ({ context }) => loadAuthoredCreateRouteData(context.queryClient),
+  loaderDeps: ({ search }) => ({ systemId: search.system }),
+  loader: ({ context, deps }) => loadAuthoredCreateRouteData(context.queryClient, deps.systemId),
   component: AuthoringLayout
 })

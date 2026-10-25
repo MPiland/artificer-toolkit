@@ -40,6 +40,12 @@ export const actorRelationshipModuleDtoSchema = lazySchema(() =>
       influence: systemCoreCodeSchema
     }),
     z.object({ ...moduleBase(), kind: z.literal('SOURCE_FOLLOWS_TARGET') }),
+    /**
+     * The hold stands whatever its source does or wherever it stands: it does not end when the
+     * source can no longer act or the held creature is beyond the reach it sealed. Only an escape
+     * or a rescue ends it (a net).
+     */
+    z.object({ ...moduleBase(), kind: z.literal('SOURCE_INDEPENDENT_HOLD') }),
     /** Each creature held this way fills one of the source's free hands (D152). */
     z.object({ ...moduleBase(), kind: z.literal('SOURCE_OCCUPIES_HAND') }),
     /**

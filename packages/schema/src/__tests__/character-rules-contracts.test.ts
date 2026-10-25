@@ -577,7 +577,7 @@ describe('Character rule contracts', () => {
         calculationId: 'spell-slots',
         sourceClassIds: [],
         maxByLevel: [],
-        pactMagic: null,
+        slotPools: [],
         fusionStrategy: 'NONE'
       },
       chargeMaximums: [],
@@ -687,7 +687,7 @@ describe('Character rule contracts', () => {
         companionMechanicsFacts: {
           ...inputWithClosedCodes.companionMechanicsFacts,
           companions: [
-            { ...inputWithClosedCodes.companionMechanicsFacts.companions[0]!, size: 'AVERAGE' }
+            { ...inputWithClosedCodes.companionMechanicsFacts.companions[0]!, size: 'average' }
           ]
         }
       }).success
@@ -700,7 +700,7 @@ describe('Character rule contracts', () => {
           adjustments: [
             {
               ...inputWithClosedCodes.companionMechanicsFacts.adjustments[0]!,
-              value: 'AVERAGE'
+              value: 'average'
             }
           ]
         }
@@ -901,7 +901,7 @@ describe('Character rule contracts', () => {
     expect(
       characterRulePolicyOutputSchema.safeParse({
         ...outputWithClosedCodes,
-        companions: [{ ...outputWithClosedCodes.companions[0]!, size: 'AVERAGE' }]
+        companions: [{ ...outputWithClosedCodes.companions[0]!, size: 'average' }]
       }).success
     ).toBe(false)
     expect(
@@ -912,7 +912,7 @@ describe('Character rule contracts', () => {
             ...outputWithClosedCodes.companions[0]!,
             calculations: {
               ...outputWithClosedCodes.companions[0]!.calculations,
-              size: { base: 'MEDIUM', effective: 'AVERAGE', contributions: [], override: null }
+              size: { base: 'MEDIUM', effective: 'average', contributions: [], override: null }
             }
           }
         ]

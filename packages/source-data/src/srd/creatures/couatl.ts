@@ -1,6 +1,7 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const couatl: CreatureAuthored = {
@@ -170,8 +171,11 @@ export const couatl: CreatureAuthored = {
                         },
                         {
                           id: S.actionId(71, 224),
-                          effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                          ruleKind: S.CLOSED_RULE_KIND.CREATURE_COUATL_BITE_POISON
+                          effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                          label: 'Couatl poison',
+                          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                          instructions:
+                            'The poison lasts 24 hours, and the target is unconscious until it ends. Another creature can use an action to shake the target awake; the GM ends the unconscious condition then and the poisoned condition after 24 hours.'
                         }
                       ]
                     }

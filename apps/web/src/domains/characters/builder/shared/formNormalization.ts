@@ -22,9 +22,7 @@ import {
 
 const characterDraftSchema = z.omit(characterAuthoredDtoSchema, { primaryRulesCatalogueId: true })
 
-export function createFallbackCharacterFormValues(
-  systemId = 'pending-system'
-): CharacterFormValues {
+export function createFallbackCharacterFormValues(systemId: string): CharacterFormValues {
   return {
     id: 'pending-character',
     label: '',
@@ -63,6 +61,13 @@ export function createFallbackCharacterFormValues(
     userId: 'server-owned'
   }
 }
+
+/**
+ * Type carrier for `withForm({ defaultValues })` in the step components. The live form is always
+ * built from a server draft via `toCharacterFormValues`, so no step ever renders these values; the
+ * empty `systemId` is the same explicit "no System" state the other authored forms use.
+ */
+export const EMPTY_CHARACTER_FORM_VALUES = createFallbackCharacterFormValues('')
 
 /** Form values from a Builder payload or a stored draft payload. */
 export function toCharacterFormValues(

@@ -57,13 +57,8 @@ export function readSpellCastSlot(
   spellSlots: SpellPolicyOutput['spellSlots'],
   slotKey: string
 ): { level: number; used: number } | null {
-  if (spellSlots.pactMagic && slotKey === spellSlots.pactMagic.poolCode)
-    return (
-      spellSlots.pactMagic && {
-        level: spellSlots.pactMagic.level,
-        used: spellSlots.pactMagic.rawUsed
-      }
-    )
+  const pool = spellSlots.slotPools.find((entry) => entry.poolCode === slotKey)
+  if (pool) return { level: pool.level, used: pool.rawUsed }
   const slot = spellSlots.maxByLevel.find((entry) => `STANDARD:${entry.spellLevel}` === slotKey)
   return slot ? { level: slot.spellLevel, used: slot.rawUsed } : null
 }

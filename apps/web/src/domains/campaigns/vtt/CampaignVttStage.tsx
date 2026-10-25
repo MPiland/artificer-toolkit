@@ -894,7 +894,7 @@ export function CampaignVttStage({
     const host = rendererHost.current
     if (!host || !scene) return
     let disposed = false
-    void createVttSceneRenderer(host, {
+    void createVttSceneRenderer(host, campaign.gameSystemId, {
       onAreaAimCancel: () => {
         setAimingArea(false)
         setActionsOpened(true)
@@ -1020,7 +1020,7 @@ export function CampaignVttStage({
       renderer.current?.destroy()
       renderer.current = null
     }
-  }, [campaign.role, currentUserId, scene?.id])
+  }, [campaign.gameSystemId, campaign.role, currentUserId, scene?.id])
 
   useEffect(() => {
     const latestUpdate = rendererUpdateRef.current

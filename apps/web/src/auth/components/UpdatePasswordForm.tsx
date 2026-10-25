@@ -16,16 +16,15 @@ import {
   authButton,
   authFooterRow,
   authForm,
-  authFormMessage,
-  authFormMessageError,
-  authFormMessageSuccess,
   inlineLink,
   inlineLinkIcon,
   inlineLinkIconGlyph,
   textInput
 } from '../auth.css'
+import { usernameFormatMessage, usernameRuleDescription } from '../usernameMessages'
 import { AuthDivider } from './AuthDivider'
-import { AuthFormProps } from './authForm.types'
+import { AuthFormFeedback } from './AuthFormFeedback'
+import type { AuthFeedback, AuthFormProps } from './authForm.types'
 import IArrowLeft from '#assets/icons/IArrowLeft'
 import { PasswordMatchFeedback } from './PasswordMatchFeedback'
 
@@ -49,9 +48,7 @@ export function UpdatePasswordForm({
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
-    null
-  )
+  const [feedback, setFeedback] = useState<AuthFeedback | null>(null)
 
   useEffect(() => {
     if (!formRef.current) return
@@ -87,9 +84,7 @@ export function UpdatePasswordForm({
 
     const parsedUsername = invitation ? usernameInputSchema.safeParse(username) : null
     if (parsedUsername && !parsedUsername.success) {
-      setUsernameError(
-        'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
-      )
+      setUsernameError(usernameFormatMessage)
       return
     }
 
@@ -150,7 +145,7 @@ export function UpdatePasswordForm({
       {invitation && (
         <TextInput
           label='Username'
-          description='Use 3–30 letters, numbers, and single underscores between words.'
+          description={usernameRuleDescription}
           classNames={{ input: textInput }}
           autoComplete='username'
           error={usernameError}
@@ -208,17 +203,7 @@ export function UpdatePasswordForm({
       >
         {invitation ? 'Complete registration' : 'Update password'}
       </Button>
-      {feedback && (
-        <div
-          className={`${authFormMessage} ${
-            feedback.tone === 'error' ? authFormMessageError : authFormMessageSuccess
-          }`}
-          role={feedback.tone === 'error' ? 'alert' : 'status'}
-          aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
-        >
-          {feedback.message}
-        </div>
-      )}
+      <AuthFormFeedback feedback={feedback} />
       <AuthDivider />
       <div className={authFooterRow}>
         <Anchor className={inlineLink} href='/sign-in' onClick={handleBackToSignIn}>

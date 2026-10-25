@@ -13,11 +13,11 @@ import {
   RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
-  SIZE_CODE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import {
   SRD_HALFLING_HERITAGE_ID,
   SRD_LANGUAGES,
@@ -25,6 +25,7 @@ import {
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
+import { conditionSaveAdvantageGrants } from '../classes/mechanics.js'
 import { conditionTypeId } from '../spells/shared.js'
 import { raceClosedRuleEffect } from './closed-rule-effect.js'
 
@@ -135,18 +136,10 @@ export const halfling: RaceAuthored = {
       availableAtLevel: 1,
       order: 2,
       grants: {
-        // Frightening effects call for saves of any ability, so each ability gets the advantage.
-        modifiers: Object.values(ABILITY_CODE).map((ability, index) => ({
-          id: raceFeatureId(3, 3, 2 + index),
-          grantKind: GRANT_KIND.MODIFIER_GRANT,
-          valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
-          domain: { ability, conditionTypeId: conditionTypeId('FRIGHTENED') },
-          modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
-          payload: { influence: 'ADVANTAGE' },
-          scope: MODIFIER_SCOPE_KIND.GLOBAL,
-          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-          order: index
-        }))
+        modifiers: conditionSaveAdvantageGrants(
+          (entry) => raceFeatureId(3, 3, 2 + entry),
+          conditionTypeId('FRIGHTENED')
+        )
       }
     },
     {

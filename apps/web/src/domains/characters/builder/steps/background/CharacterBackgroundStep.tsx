@@ -3,7 +3,7 @@ import { Button, Text } from '@mantine/core'
 import { withForm } from '#forms/app-form/AppForm'
 import { stripHtml } from '#components/AuthoredDetail/detailFormatters'
 import { renderSanitizedRichHtml } from '#lib/richText'
-import { createFallbackCharacterFormValues } from '../../shared/formNormalization'
+import { EMPTY_CHARACTER_FORM_VALUES } from '../../shared/formNormalization'
 import { clearBackgroundDependents } from '../../shared/dependencyClearing'
 import { getAllChosenGrantChoices, isChoiceOptionDisabled } from '../../choices/choiceOptions'
 import * as sharedStyles from '../../shared/builderShared.css'
@@ -16,7 +16,7 @@ import { CharacterGrantedFeatures } from '../../choices/CharacterGrantedFeatures
 import type { CharacterBuilderStepProps } from '../../core/CharacterBuilderStep.types'
 
 export const CharacterBackgroundStep = withForm({
-  defaultValues: createFallbackCharacterFormValues(),
+  defaultValues: EMPTY_CHARACTER_FORM_VALUES,
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterBackground({ form, payload, readOnly }) {
     const [chooserOpened, setChooserOpened] = useState(false)
