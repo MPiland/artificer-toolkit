@@ -676,7 +676,14 @@ describe('an area action executed as one occurrence', () => {
       grants: {
         modifiers: [
           {
-            ...evasionGrant('00000000-0000-4000-8000-0000000f0e04'),
+            id: '00000000-0000-4000-8000-0000000f0e04',
+            grantKind: 'MODIFIER_GRANT',
+            valueDomainCode: 'INCOMING_DAMAGE',
+            domain: {},
+            modifierKind: 'ENABLE',
+            scope: 'GLOBAL',
+            selectionKind: 'GRANTED',
+            order: 0,
             payload: {
               incomingDamageKind: 'SAVE_FOR_HALF',
               saveAbilities: ['CONSTITUTION'],
