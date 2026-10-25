@@ -45,7 +45,7 @@ export type EncounterProjectionInitiativeRoundStateInput = {
 
 export type EncounterProjectionInput = Omit<
   EncounterGmProjectionDto,
-  'actors' | 'initiativePolicy' | 'optionalCombatRules'
+  'actors' | 'initiativePolicy' | 'optionalCombatRules' | 'facingStepDegrees'
 > & {
   actors: ReadonlyArray<EncounterProjectionActorInput>
   initiativePolicySnapshot?: EncounterInitiativePolicySnapshotDto | null

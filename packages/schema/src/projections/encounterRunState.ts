@@ -277,7 +277,8 @@ export const encounterRunStateSchema = lazySchema(() =>
     z.omit(encounterGmProjectionDtoSchema, {
       actors: true,
       initiativePolicy: true,
-      optionalCombatRules: true
+      optionalCombatRules: true,
+      facingStepDegrees: true
     }),
     {
       actorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
