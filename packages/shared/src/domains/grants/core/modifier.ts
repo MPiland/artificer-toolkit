@@ -652,8 +652,8 @@ export type ModifierDamageInterceptionAuthored = {
   /**
    * The holder must pass this save to be intercepted (Undead Fortitude): the DC is `base`, plus the
    * damage taken when `plusDamageTaken`, plus `plusPerChargeUsed` for each charge of the holding
-   * feature already used (Relentless Rage). A failed save lets the damage land and spends no use,
-   * unless `spendsUseOnFailure` counts every attempt as a use.
+   * feature already used (Relentless Rage). A pass always spends a use; a failed save lets the
+   * damage land, and `spendsUseOnFailure` means it spends a use too.
    */
   save?: {
     ability: string

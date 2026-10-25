@@ -299,6 +299,7 @@ export type DamageInterceptionPayloadDto = {
   save?: {
     ability: z.infer<typeof systemCoreCodeSchema>
     dc: { base: number; plusDamageTaken: boolean; plusPerChargeUsed: number }
+    /** A pass always spends a use; when set, a failed save spends one too. */
     spendsUseOnFailure: boolean
   }
   excludes?: { damageTypeIds: string[]; critical: boolean }
