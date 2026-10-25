@@ -28,6 +28,7 @@ import {
   type EncounterHolderLight,
   type GrantSource,
   sourceQualifierAdmits,
+  withSourceSaves,
   withSourceSightSave
 } from './encounterActiveGrants.js'
 import { type EncounterAttackDecoy, withAttackDecoyArmorClass } from './encounterAttackDecoys.js'
@@ -627,6 +628,10 @@ export async function prepareEncounterActionMechanics<
       present ? [trait.toUpperCase()] : []
     )
   }
+  // The traits a spell cast gives its effects (magical) decide the target's source-qualified grants.
+  const spellCastSystemId = preparedCastsSpell({ source, characterActionState, state })
+    ? state.gameSystemId
+    : null
   const attacksAgainst = targetFacts.attackAgainstContributors.filter(
     (entry) =>
       entry.attackDomain === attackDomain &&
@@ -867,14 +872,20 @@ export async function prepareEncounterActionMechanics<
       targetActorId: target.id,
       targetDerivedFacts: attackDecoy
         ? withAttackDecoyArmorClass(targetFacts.targetDerivedFacts, attackDecoy.armorClass)
-        : attackSight && attackKind === null && compilerSource?.savingThrowAbilityDefinitionId
-          ? withSourceSightSave(
-              state.gameSystemId,
-              targetFacts.targetDerivedFacts,
-              compilerSource.savingThrowAbilityDefinitionId,
-              attackSight.trueSight
-            )
-          : targetFacts.targetDerivedFacts,
+        : withSourceSaves(
+            state.gameSystemId,
+            attackSight && attackKind === null && compilerSource?.savingThrowAbilityDefinitionId
+              ? withSourceSightSave(
+                  state.gameSystemId,
+                  targetFacts.targetDerivedFacts,
+                  compilerSource.savingThrowAbilityDefinitionId,
+                  attackSight.trueSight
+                )
+              : targetFacts.targetDerivedFacts,
+            targetFacts.sourceSaves,
+            attackSource,
+            spellCastSystemId
+          ),
       ...(attackDecoy ? { absorbedByDecoy: true } : {}),
       targetConditionIds: heldConditionIds(targetFacts),
       conditionOutcomeRules: {
@@ -902,7 +913,7 @@ export async function prepareEncounterActionMechanics<
         targetFacts.conditionImmunityIds,
         targetFacts.sourceConditionImmunities,
         attackSource,
-        preparedCastsSpell({ source, characterActionState, state }) ? state.gameSystemId : null
+        spellCastSystemId
       ),
       targetDamageTypesTaken: damageTypeIdsTaken(targetFacts.actor)
     }

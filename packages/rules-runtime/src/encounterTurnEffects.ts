@@ -153,6 +153,7 @@ export function activeEffectTargetFacts(
     | 'defenses'
     | 'conditionImmunityIds'
     | 'sourceConditionImmunities'
+    | 'sourceSaves'
     | 'conditionMechanics'
   >,
   state: ReturnType<typeof executionState> = executionState(target)
@@ -168,6 +169,7 @@ export function activeEffectTargetFacts(
     defenses: target.defenses,
     conditionImmunityIds: target.conditionImmunityIds,
     sourceConditionImmunities: target.sourceConditionImmunities,
+    sourceSaves: target.sourceSaves,
     conditionOutcomeRules: {
       hitIsCritical: false,
       saveAutoFailAbilityIds: encounterConditionSaveAutoFailAbilityIds(target.conditionMechanics)

@@ -21,6 +21,7 @@ import {
 import {
   type EncounterAttackAgainstContributor,
   type EncounterSourceConditionImmunity,
+  type EncounterSourceSave,
   type EncounterHolderState,
   type EncounterSourceSightSave,
   withActiveGrantSpeeds,
@@ -168,6 +169,12 @@ export type MovementTarget<
    * it. `prepareEncounterActionMechanics` adds those that admit the acting source.
    */
   sourceConditionImmunities: readonly EncounterSourceConditionImmunity[]
+  /**
+   * The saving-throw grants the actor has only against some sources (Magic Resistance), set by
+   * `withEncounterHolderDefense`; empty until a flow applies it. Each save adds those its
+   * effect's source admits.
+   */
+  sourceSaves: readonly EncounterSourceSave[]
   /**
    * What the actor could do when `withEncounterHolderDefense` applied its grants, which a rebuilt
    * turn target re-applies them with; absent when it had none.
@@ -541,6 +548,7 @@ export function buildMovementTarget<
       attackAgainstContributors: [],
       sourceSightSaves: [],
       sourceConditionImmunities: [],
+      sourceSaves: [],
       conditionDefinitions: [],
       conditionMechanics: []
     }
@@ -641,6 +649,7 @@ export function buildMovementTarget<
     attackAgainstContributors: [],
     sourceSightSaves: [],
     sourceConditionImmunities: [],
+    sourceSaves: [],
     conditionDefinitions: [],
     conditionMechanics: []
   }

@@ -50,18 +50,7 @@ export const pseudodragon: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The pseudodragon has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(226, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(226, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(226, 501),
       order: 2
     },
     {

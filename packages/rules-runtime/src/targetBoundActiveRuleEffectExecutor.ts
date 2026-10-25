@@ -28,7 +28,9 @@ import type {
 } from './characterRuleActionSystemAdapter.js'
 import {
   conditionImmunityIdsAgainstSource,
-  type EncounterSourceConditionImmunity
+  withSourceSaves,
+  type EncounterSourceConditionImmunity,
+  type EncounterSourceSave
 } from './encounterActiveGrants.js'
 import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
@@ -91,6 +93,8 @@ export interface TargetBoundActiveRuleEffectExecutionInput {
   conditionImmunityIds?: readonly string[]
   /** The target's immunities that hold only against some sources; the effect's origin admits them. */
   sourceConditionImmunities?: readonly EncounterSourceConditionImmunity[]
+  /** The target's saving-throw grants that hold only against some sources; the effect's origin admits them. */
+  sourceSaves?: readonly EncounterSourceSave[]
   /** Outcome rules the target's condition mechanics apply to its saves (D94). */
   conditionOutcomeRules?: CharacterRuleActionConditionOutcomeRules | null
   /**
@@ -366,13 +370,22 @@ function prepare(input: TargetBoundActiveRuleEffectExecutionInput) {
     )
   }
   // An effect knows its source only as its origin: from a spell cast (a level) or not.
+  const { gameSystemId } = definition.frozenGraph.source
+  const spellCastSystemId = definition.originLevel === null ? null : gameSystemId
   const target = normalizedTargetState({
     ...input,
+    targetDerivedFacts: withSourceSaves(
+      gameSystemId,
+      input.targetDerivedFacts,
+      input.sourceSaves ?? [],
+      { creatureTypeIds: [] },
+      spellCastSystemId
+    ),
     conditionImmunityIds: conditionImmunityIdsAgainstSource(
       input.conditionImmunityIds ?? [],
       input.sourceConditionImmunities ?? [],
       { creatureTypeIds: [] },
-      definition.originLevel === null ? null : definition.frozenGraph.source.gameSystemId
+      spellCastSystemId
     )
   })
   adapter.preflightActiveEffectTargetProtection?.({
