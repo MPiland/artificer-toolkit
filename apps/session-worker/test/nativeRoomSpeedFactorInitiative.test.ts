@@ -217,7 +217,7 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
 
     const rayOfFrostId = (await room.actionChoices(CASTER_ACTOR_ID)).actions.find(
       ({ label }) => label === rayOfFrost.label
-    )?.actionId
+    )?.id
     if (!rayOfFrostId) throw new Error('The room offers the caster no Ray of Frost.')
     const refused = await room.startAction(
       WOLF_ID,
