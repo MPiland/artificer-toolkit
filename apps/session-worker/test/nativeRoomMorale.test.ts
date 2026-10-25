@@ -86,7 +86,7 @@ function projected(answer: Awaited<ReturnType<Room['send']>>, actorId: string) {
   if (answer.type !== 'COMMAND_COMMITTED' || answer.delta?.scope !== 'ENCOUNTER')
     throw new Error('Missing the GM’s Encounter answer.')
   const actor = answer.delta.result.projection.actors.find(({ id }) => id === actorId)
-  if (!actor) throw new Error('The projection lacks the actor.')
+  if (!actor || !('moraleOffers' in actor)) throw new Error('The GM projection lacks the actor.')
   return actor
 }
 
