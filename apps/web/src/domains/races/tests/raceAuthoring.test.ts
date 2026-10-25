@@ -1,9 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  createEmptyBaseRace,
-  normalizeRaceForSubmit,
-  resolveCreateRaceSystemId
-} from '../raceAuthoring.utils'
+import { createEmptyBaseRace, normalizeRaceForSubmit } from '../raceAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
 
@@ -24,11 +20,6 @@ describe('race authoring helpers', () => {
       size: 'MEDIUM',
       systemId: 'dnd-5e-srd'
     })
-  })
-
-  it('uses only real system list data when creating races', () => {
-    expect(resolveCreateRaceSystemId([])).toBeNull()
-    expect(resolveCreateRaceSystemId([{ id: 'dnd-5e-srd' }])).toBe('dnd-5e-srd')
   })
 
   it('normalizes category-specific payloads before save', () => {
@@ -53,7 +44,7 @@ describe('race authoring helpers', () => {
         category: 'BASE'
       })
     ).toMatchObject({
-      label: 'Untitled Race',
+      label: '',
       category: 'BASE',
       selectionMode: 'DIRECT',
       size: 'MEDIUM',

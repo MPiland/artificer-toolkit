@@ -45,6 +45,9 @@ export function GuidedAuthoring({
     )
   }
 
+  const { system } = session
+  if (!system) return null
+
   switch (session.domain) {
     case 'background':
       return (
@@ -53,6 +56,7 @@ export function GuidedAuthoring({
           onAdvanced={onAdvanced}
           onStateChange={onStateChange}
           session={session}
+          system={system}
         />
       )
     case 'class':
@@ -62,6 +66,7 @@ export function GuidedAuthoring({
           onAdvanced={onAdvanced}
           onStateChange={onStateChange}
           session={session}
+          system={system}
         />
       )
     case 'creature':
@@ -71,6 +76,7 @@ export function GuidedAuthoring({
           onAdvanced={onAdvanced}
           onStateChange={onStateChange}
           session={session}
+          system={system}
         />
       )
     case 'equipment':
@@ -80,6 +86,7 @@ export function GuidedAuthoring({
           onAdvanced={onAdvanced}
           onStateChange={onStateChange}
           session={session}
+          system={system}
         />
       )
     case 'feat':
@@ -89,6 +96,7 @@ export function GuidedAuthoring({
           onAdvanced={onAdvanced}
           onStateChange={onStateChange}
           session={session}
+          system={system}
         />
       )
     case 'race':
@@ -98,17 +106,17 @@ export function GuidedAuthoring({
           onAdvanced={onAdvanced}
           onStateChange={onStateChange}
           session={session}
+          system={system}
         />
       )
     case 'spell':
-      if (!session.system) return null
       return (
         <GuidedSpellAuthoring
           form={form}
           isExistingDraft={session.mode === 'edit'}
           onAdvanced={onAdvanced}
           onStateChange={onStateChange}
-          system={session.system}
+          system={system}
         />
       )
     case 'vehicle':
@@ -118,6 +126,7 @@ export function GuidedAuthoring({
           onAdvanced={onAdvanced}
           onStateChange={onStateChange}
           session={session}
+          system={system}
         />
       )
   }

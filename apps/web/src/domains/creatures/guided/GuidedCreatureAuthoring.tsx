@@ -3,29 +3,28 @@ import { Alert, Stack, Text } from '@mantine/core'
 import { useSelector } from '@tanstack/react-form'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { withForm } from '#forms/app-form/AppForm'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
-import { toFeatures } from '#forms/guided/guidedValues'
+import { EMPTY_GUIDED_FORM_VALUES, toFeatures, toSelectOption } from '#forms/guided/guidedValues'
 import { isRecord } from '#forms/utils/valueGuards'
 
-type GuidedCreatureAuthoringProps = {
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-  session: AuthoredFormSession
-}
-
 export const GuidedCreatureAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as GuidedCreatureAuthoringProps,
-  render: function RenderGuidedCreatureAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedCreatureAuthoring({
+    form,
+    onAdvanced,
+    onStateChange,
+    session,
+    system
+  }) {
     const [step, setStep] = useState(0)
     const values = useSelector(form.store, (state) => readCreatureValues(state.values))
-    const system = session.system
     const categoryLocked = session.mode === 'edit'
 
     useEffect(() => {
@@ -81,7 +80,7 @@ export const GuidedCreatureAuthoring = withForm({
               >
                 {(field) => (
                   <field.SelectField
-                    data={(system?.creatureTypes ?? []).map(optionFor)}
+                    data={system.creatureTypes.map(toSelectOption)}
                     label='Creature type'
                     required
                   />
@@ -93,7 +92,7 @@ export const GuidedCreatureAuthoring = withForm({
               <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['alignmentId'])}>
                 {(field) => (
                   <field.SelectField
-                    data={(system?.alignments ?? []).map(optionFor)}
+                    data={system.alignments.map(toSelectOption)}
                     label='Alignment'
                   />
                 )}
@@ -121,7 +120,7 @@ export const GuidedCreatureAuthoring = withForm({
             >
               {(field) => (
                 <field.SelectField
-                  data={(system?.challengeRatings ?? []).map(optionFor)}
+                  data={system.challengeRatings.map(toSelectOption)}
                   label='Challenge rating'
                 />
               )}
@@ -155,7 +154,7 @@ export const GuidedCreatureAuthoring = withForm({
             >
               {(field) => (
                 <field.MultiSelectField
-                  data={(system?.damageTypes ?? []).map(optionFor)}
+                  data={system.damageTypes.map(toSelectOption)}
                   label='Damage vulnerabilities'
                 />
               )}
@@ -165,7 +164,7 @@ export const GuidedCreatureAuthoring = withForm({
             >
               {(field) => (
                 <field.MultiSelectField
-                  data={(system?.damageTypes ?? []).map(optionFor)}
+                  data={system.damageTypes.map(toSelectOption)}
                   label='Damage resistances'
                 />
               )}
@@ -175,7 +174,7 @@ export const GuidedCreatureAuthoring = withForm({
             >
               {(field) => (
                 <field.MultiSelectField
-                  data={(system?.damageTypes ?? []).map(optionFor)}
+                  data={system.damageTypes.map(toSelectOption)}
                   label='Damage immunities'
                 />
               )}
@@ -185,7 +184,7 @@ export const GuidedCreatureAuthoring = withForm({
             >
               {(field) => (
                 <field.MultiSelectField
-                  data={(system?.conditionTypes ?? []).map(optionFor)}
+                  data={system.conditionTypes.map(toSelectOption)}
                   label='Condition immunities'
                 />
               )}
@@ -203,7 +202,7 @@ export const GuidedCreatureAuthoring = withForm({
             <GuidedFeatureAccordion
               features={values.features}
               label='Features and actions'
-              system={session.system!}
+              system={system}
               onChange={setFeatures}
             />
           </Stack>
@@ -211,13 +210,16 @@ export const GuidedCreatureAuthoring = withForm({
         {step === 5 ? (
           <Stack gap='md'>
             <dl className={styles.summary}>
-              <Summary label='Name' value={values.label || 'Untitled Creature'} />
-              <Summary
+              <GuidedSummaryRow label='Name' value={values.label || 'Untitled Creature'} />
+              <GuidedSummaryRow
                 label='Natural armor bonus'
                 value={String(values.naturalArmorBonus ?? '—')}
               />
-              <Summary label='Hit Points' value={String(values.hitPoints ?? '—')} />
-              <Summary label='Features and actions' value={String(values.features.length)} />
+              <GuidedSummaryRow label='Hit Points' value={String(values.hitPoints ?? '—')} />
+              <GuidedSummaryRow
+                label='Features and actions'
+                value={String(values.features.length)}
+              />
             </dl>
           </Stack>
         ) : null}
@@ -225,19 +227,6 @@ export const GuidedCreatureAuthoring = withForm({
     )
   }
 })
-
-function Summary({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={styles.summaryRow}>
-      <dt className={styles.summaryLabel}>{label}</dt>
-      <dd className={styles.summaryValue}>{value}</dd>
-    </div>
-  )
-}
-
-function optionFor(item: { id: string; label: string }) {
-  return { label: item.label, value: item.id }
-}
 
 function readCreatureValues(values: object) {
   const record: Record<string, unknown> = isRecord(values) ? values : {}

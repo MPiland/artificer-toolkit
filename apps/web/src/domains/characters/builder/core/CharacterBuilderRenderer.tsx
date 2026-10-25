@@ -3,10 +3,7 @@ import { Alert, Text } from '@mantine/core'
 import { useSelector } from '@tanstack/react-form'
 import { withForm } from '#forms/app-form/AppForm'
 import { useAuthoringForm } from '#forms/layout/AuthoringFormContext'
-import {
-  createFallbackCharacterFormValues,
-  toCharacterFormValues
-} from '../shared/formNormalization'
+import { EMPTY_CHARACTER_FORM_VALUES, toCharacterFormValues } from '../shared/formNormalization'
 import {
   getCharacterBuilderDeferredResolutionFingerprint,
   getCharacterBuilderImmediateResolutionFingerprint
@@ -35,7 +32,7 @@ import { CharacterEquipmentStep } from '../steps/equipment/CharacterEquipmentSte
 import { CharacterReviewStep } from '../steps/review/CharacterReviewStep'
 
 export const CharacterBuilderRenderer = withForm({
-  defaultValues: createFallbackCharacterFormValues(),
+  defaultValues: EMPTY_CHARACTER_FORM_VALUES,
   props: {} as CharacterBuilderRendererProps,
   render: function RenderCharacterBuilder({ form, onResolve, payload, resolveDebounceMs = 150 }) {
     const authoring = useAuthoringForm()

@@ -2,6 +2,7 @@ import type {
   CharacterCreateAuthoringData,
   CharacterEditAuthoringData
 } from '#app/routes/-routeLoaderData'
+import type { SystemListResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type { CharacterBuilderRouteMode } from '#forms/layout/authoredFormRouteContext'
 import { isRecord } from '#app/forms/utils/valueGuards'
 import type { CharacterFormValues } from '../core/characterBuilder.types'
@@ -23,6 +24,7 @@ export type CharacterBuilderAuthoringSession = {
   subjectLabel: string
   systemId?: string
   systemRequired: boolean
+  systems: SystemListResponseDto
 }
 
 export type ReadyCharacterBuilderAuthoringSession = CharacterBuilderAuthoringSession & {
@@ -51,7 +53,7 @@ function isCharacterEditAuthoringData(data: unknown): data is CharacterEditAutho
 function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringSession {
   if (!isCharacterCreateAuthoringData(data)) throw new Error('Character create data is invalid.')
   const loaderData = data
-  const systemId = loaderData.systems[0]?.id
+  const { systemId } = loaderData
 
   return {
     draft: null,
@@ -66,7 +68,8 @@ function createCharacterCreateSession(data: unknown): CharacterBuilderAuthoringS
     subjectKindLabel: 'Character',
     subjectLabel: 'Untitled Character',
     systemId,
-    systemRequired: !systemId
+    systemRequired: !systemId,
+    systems: loaderData.systems
   }
 }
 
@@ -91,6 +94,7 @@ function createCharacterEditSession(data: unknown): CharacterBuilderAuthoringSes
     subjectKindLabel: 'Character',
     subjectLabel: character?.label || loaderData.breadcrumbLabel || 'Untitled Character',
     systemId: character?.systemId,
-    systemRequired: false
+    systemRequired: false,
+    systems: []
   }
 }

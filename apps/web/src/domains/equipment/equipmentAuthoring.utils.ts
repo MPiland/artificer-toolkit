@@ -121,9 +121,9 @@ export function normalizeEquipmentForSubmit(
   const common = {
     kind: 'EQUIPMENT' as const,
     id: equipment.id,
-    label: equipment.label.trim() || 'Untitled Equipment',
+    label: equipment.label.trim(),
     description: equipment.description ?? '',
-    status: equipment.status ?? 'DRAFT',
+    status: equipment.status,
     quote: equipment.quote ?? '',
     rarityId: equipment.rarityId,
     systemId: equipment.systemId,
@@ -157,8 +157,4 @@ export function normalizeEquipmentForSubmit(
     contains: equipment.contains ?? [],
     properties: equipment.properties ?? []
   } satisfies BaseEquipmentDto
-}
-
-export function resolveCreateEquipmentSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
 }

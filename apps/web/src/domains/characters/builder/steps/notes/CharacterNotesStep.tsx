@@ -1,10 +1,10 @@
 import { withForm } from '#forms/app-form/AppForm'
-import { createFallbackCharacterFormValues } from '../../shared/formNormalization'
+import { EMPTY_CHARACTER_FORM_VALUES } from '../../shared/formNormalization'
 import * as styles from '../../shared/builderShared.css'
 import type { CharacterBuilderStepProps } from '../../core/CharacterBuilderStep.types'
 
 export const CharacterNotesStep = withForm({
-  defaultValues: createFallbackCharacterFormValues(),
+  defaultValues: EMPTY_CHARACTER_FORM_VALUES,
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterNotes({ form, readOnly }) {
     return (

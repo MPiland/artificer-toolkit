@@ -1,9 +1,5 @@
 import { describe, expect, it, vi, afterEach } from 'vitest'
-import {
-  createEmptyBaseEquipment,
-  normalizeEquipmentForSubmit,
-  resolveCreateEquipmentSystemId
-} from '../equipmentAuthoring.utils'
+import { createEmptyBaseEquipment, normalizeEquipmentForSubmit } from '../equipmentAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
 
@@ -38,7 +34,7 @@ describe('equipment authoring helpers', () => {
     })
 
     expect(normalized).toMatchObject({
-      label: 'Untitled Equipment',
+      label: '',
       category: 'ADVENTURING_GEAR',
       properties: [],
       weight: {
@@ -78,10 +74,5 @@ describe('equipment authoring helpers', () => {
     expect(normalized).not.toHaveProperty('weight')
     // Magic bonuses are authored +N modifiers; the retired maximum-bonus field is never submitted.
     expect(normalized).not.toHaveProperty('maxBonus')
-  })
-
-  it('uses only real system list data when creating equipment', () => {
-    expect(resolveCreateEquipmentSystemId([])).toBeNull()
-    expect(resolveCreateEquipmentSystemId([{ id: 'dnd-5e-srd' }])).toBe('dnd-5e-srd')
   })
 })

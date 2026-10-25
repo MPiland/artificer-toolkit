@@ -9,7 +9,6 @@ import { CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
 import { getEquipmentOptions } from '#app/data/equipment/options'
 import { getNodeRuntimeResolve } from '#app/data/nodeRuntime/queries'
 import { withForm } from '#forms/app-form/AppForm'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
@@ -17,7 +16,8 @@ import {
   createGuidedStartingEquipmentItem,
   isGuidedStartingEquipmentItem
 } from '#forms/guided/guidedStartingEquipment'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import {
   createEmptyStartingEquipment,
   getStartingEquipmentItems,
@@ -26,19 +26,19 @@ import {
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import { createEmptySpellcasting } from '../classAuthoring.utils'
-import { toFeatures } from '#forms/guided/guidedValues'
+import { EMPTY_GUIDED_FORM_VALUES, toFeatures, toSelectOption } from '#forms/guided/guidedValues'
 import { isRecord } from '#forms/utils/valueGuards'
 
-type GuidedClassAuthoringProps = {
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-  session: AuthoredFormSession
-}
-
 export const GuidedClassAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as GuidedClassAuthoringProps,
-  render: function RenderGuidedClassAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedClassAuthoring({
+    form,
+    onAdvanced,
+    onStateChange,
+    session,
+    system
+  }) {
     const [step, setStep] = useState(0)
     const values = useSelector(form.store, (state) => readClassValues(state.values))
     const isSubclass = values.category === CLASS_CATEGORY.SUBCLASS
@@ -217,7 +217,7 @@ export const GuidedClassAuthoring = withForm({
             ) : null}
             <Select
               clearable
-              data={(session.system?.skills ?? []).map(optionFor)}
+              data={system.skills.map(toSelectOption)}
               label='Skill proficiency'
               placeholder='Add one common skill proficiency'
               searchable
@@ -268,7 +268,7 @@ export const GuidedClassAuthoring = withForm({
           <GuidedFeatureAccordion
             features={values.features}
             showAvailableLevel
-            system={session.system!}
+            system={system}
             onChange={setFeatures}
           />
         ) : null}
@@ -328,11 +328,14 @@ export const GuidedClassAuthoring = withForm({
         {step === steps.length - 1 ? (
           <Stack gap='md'>
             <dl className={styles.summary}>
-              <Summary label='Name' value={values.label || 'Untitled Class'} />
-              <Summary label='Type' value={isSubclass ? 'Subclass' : 'Base class'} />
-              <Summary label='Features' value={String(values.features.length)} />
+              <GuidedSummaryRow label='Name' value={values.label || 'Untitled Class'} />
+              <GuidedSummaryRow label='Type' value={isSubclass ? 'Subclass' : 'Base class'} />
+              <GuidedSummaryRow label='Features' value={String(values.features.length)} />
               {!isSubclass ? (
-                <Summary label='Spellcasting' value={values.hasSpellcasting ? 'Yes' : 'No'} />
+                <GuidedSummaryRow
+                  label='Spellcasting'
+                  value={values.hasSpellcasting ? 'Yes' : 'No'}
+                />
               ) : null}
             </dl>
           </Stack>
@@ -341,19 +344,6 @@ export const GuidedClassAuthoring = withForm({
     )
   }
 })
-
-function Summary({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={styles.summaryRow}>
-      <dt className={styles.summaryLabel}>{label}</dt>
-      <dd className={styles.summaryValue}>{value}</dd>
-    </div>
-  )
-}
-
-function optionFor(item: { id: string; label: string }) {
-  return { label: item.label, value: item.id }
-}
 
 function readClassValues(values: object) {
   const record: Record<string, unknown> = isRecord(values) ? values : {}
