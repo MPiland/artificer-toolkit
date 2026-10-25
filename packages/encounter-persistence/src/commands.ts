@@ -55,6 +55,7 @@ import { reinforceEncounterActors } from './actorReinforcementCommand.js'
 import { setConcealmentObservers } from './concealmentObserverCommand.js'
 import { restEncounterCreatures } from './creatureRestCommand.js'
 import { recordMoraleCommand } from './moraleCommands.js'
+import { recordConsequenceRollCommand } from './consequenceRollCommands.js'
 import { revertLastEncounterAction } from './actionRevert.js'
 import { enemyActionRollLabel, readNativeEncounterCommandReplay } from './commandReplay.js'
 import { rejectDomain } from './domainRejections.js'
@@ -123,6 +124,8 @@ export async function recordEncounterCommand(
   if (command.type === 'CREATURE_REST') return restEncounterCreatures(ctx, command, userId)
   if (command.type === 'MORALE_SAVE' || command.type === 'CONFIRM_MORALE')
     return recordMoraleCommand(ctx, command, userId, nextInt)
+  if (command.type === 'RESOLVE_CONSEQUENCE_ROLL_OFFER')
+    return recordConsequenceRollCommand(ctx, command, userId, nextInt)
   if (
     command.type !== 'UPSERT_REMINDER' &&
     command.type !== 'REMOVE_REMINDER' &&

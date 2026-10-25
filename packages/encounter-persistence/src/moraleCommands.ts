@@ -2,20 +2,14 @@ import type {
   ConfirmMoraleInputDto,
   MoraleSaveInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import {
-  encounterCommandResultDtoSchema,
-  type EncounterCommandResultDto
-} from '@artificer-toolkit/schema/api/encounters'
+import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
 import {
   encounterRunActorStateSchema,
-  encounterRunStateSchema,
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import type { EncounterActorMoraleDto } from '@artificer-toolkit/schema/shared/encounterMorale'
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import {
@@ -27,14 +21,12 @@ import { basicActionCheckRollRecord } from '@artificer-toolkit/rules-runtime/enc
 import { optionalCombatPolicyCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformEncounterPolicy'
 import { campaignDefinitions } from './actionPreparationReads.js'
 import { rejectDomain } from './domainRejections.js'
-import { readRunActors, readRunState, replaceRunActor } from './documents.js'
+import { readRunActors } from './documents.js'
 import { listActiveRuleEffects } from './effectStore.js'
-import { readEncounterGmProjection } from './nativeProjection.js'
+import { admitGmEncounterCommand, commitGmEncounterCommand } from './gmEncounterCommands.js'
 import type { EncounterWriteTransaction } from './ports.js'
-import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
 import type { EncounterDocument } from './store.js'
-import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 
 type MoraleChange = { before: EncounterRunActorState; after: EncounterRunActorState }
 type MoraleSettlement = {
@@ -237,41 +229,9 @@ export async function recordMoraleCommand(
     command.type === 'MORALE_SAVE'
       ? { ...command, ...ids, leaderActorId: command.leaderActorId && lower(command.leaderActorId) }
       : { ...command, ...ids }
-  const run = await ctx.db
-    .query('encounterRuns')
-    .withIndex('by_publicId', (q) => q.eq('id', input.encounterId))
-    .unique()
-  if (!run) throw new Error('Encounter is unavailable.')
-  const { campaign, membership } = await ctx.ports.requireCampaignAuthority(run.campaignId, userId)
-  if (membership.role !== 'OWNER') rejectDomain('GM_ONLY')
-  if (campaign.status !== 'ACTIVE') rejectDomain('CAMPAIGN_NOT_ACTIVE')
-  await requireUnusedEvidenceCommandId(ctx, campaign.id, input.commandId)
-  const fingerprint = checksumCanonicalJson(input)
-  const prior = await ctx.db
-    .query('encounterRunCommands')
-    .withIndex('by_campaignId_commandId', (q) =>
-      q.eq('campaignId', campaign.id).eq('commandId', input.commandId)
-    )
-    .unique()
-  if (prior) {
-    if (
-      prior.commandType !== input.type ||
-      prior.encounterId !== run.id ||
-      prior.actorUserId !== userId ||
-      prior.commandFingerprint !== fingerprint
-    )
-      rejectDomain('COMMAND_ID_REUSED')
-    return replayEncounterCommandResult(ctx, readRunState(run), prior)
-  }
-  if (run.version !== input.expectedVersion) rejectDomain('VERSION_STALE')
-  const state = readRunState(run)
-  if (state.status !== 'ACTIVE') rejectDomain('ENCOUNTER_NOT_ACTIVE')
-  const pending = await ctx.db
-    .query('encounterRuleOccurrences')
-    .withIndex('by_encounterId_state', (q) => q.eq('encounterId', run.id).eq('state', 'PENDING'))
-    .first()
-  if (pending) rejectDomain('PENDING_DECISION')
-
+  const admitted = await admitGmEncounterCommand(ctx, input, userId)
+  if (admitted.replay) return admitted.replay
+  const { campaign, state } = admitted
   const actors = await readRunActors(ctx, state)
   const now = new Date().toISOString()
   const { changes, roll, rollIsPrivate } =
@@ -286,44 +246,19 @@ export async function recordMoraleCommand(
           now
         })
       : confirmMorale(input, actors, now)
-  for (const { before, after } of changes) await replaceRunActor(ctx, before, after)
-  const version = run.version + 1
-  const nextState = encounterRunStateSchema.parse({ ...state, version, updatedAt: now })
-  await ctx.db.patch(run._id, {
-    version,
-    updatedAt: now,
-    stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState)
-  })
-  const result = encounterCommandResultDtoSchema.parse({
-    projection: await readEncounterGmProjection(ctx, nextState),
+  return commitGmEncounterCommand(ctx, admitted, {
+    input,
+    userId,
+    now,
+    changes,
     roll,
-    occurrence: null
+    rollIsPrivate,
+    receipt: {
+      actors: changes.map(({ before, after }) => ({
+        actorId: after.id,
+        before: before.morale ?? null,
+        after: after.morale
+      }))
+    }
   })
-  await insertRunCommand(
-    ctx,
-    encounterStoredRunCommandSchema.parse({
-      id: crypto.randomUUID(),
-      campaignId: campaign.id,
-      encounterId: run.id,
-      commandId: input.commandId,
-      commandType: input.type,
-      // A private morale roll stays off the table's timeline, like any private GM roll (D62).
-      ...(rollIsPrivate ? { visibility: 'PRIVATE' as const } : {}),
-      receipt: {
-        actors: changes.map(({ before, after }) => ({
-          actorId: after.id,
-          before: before.morale ?? null,
-          after: after.morale
-        }))
-      },
-      commandFingerprint: fingerprint,
-      actorUserId: userId,
-      version,
-      commandJson: JSON.stringify(input),
-      ...encounterReplayReceipt(result),
-      createdAt: now
-    })
-  )
-  return result
 }

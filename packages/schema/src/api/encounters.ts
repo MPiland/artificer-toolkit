@@ -20,6 +20,7 @@ import {
   moveHeldEffectInputDtoSchema,
   releaseRelationshipInputDtoSchema,
   removeAreaTargetInputDtoSchema,
+  resolveConsequenceRollOfferInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema,
@@ -40,6 +41,7 @@ export {
   optionalCombatActionIntentDtoSchema,
   releaseRelationshipInputDtoSchema,
   removeAreaTargetInputDtoSchema,
+  resolveConsequenceRollOfferInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema,
@@ -58,6 +60,7 @@ export type {
   InitiativeDeclarationSelectionDto,
   OptionalCombatActionIntentDto,
   ReleaseRelationshipInputDto,
+  ResolveConsequenceRollOfferInputDto,
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto,
   RevertLastEncounterActionInputDto,
@@ -347,7 +350,8 @@ export const encounterCommandInputDtoSchema = lazySchema(() =>
     revertLastEncounterActionInputDtoSchema,
     rollRuleEvidenceInputDtoSchema,
     moraleSaveInputDtoSchema,
-    confirmMoraleInputDtoSchema
+    confirmMoraleInputDtoSchema,
+    resolveConsequenceRollOfferInputDtoSchema
   ])
 )
 

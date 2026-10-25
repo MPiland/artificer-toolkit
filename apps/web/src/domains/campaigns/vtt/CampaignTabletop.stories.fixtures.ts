@@ -304,6 +304,7 @@ export const tabletopGmEncounter = {
     concealment: null,
     morale: null,
     moraleOffers: [],
+    consequenceRollOffers: [],
     currentHitPoints: index === 0 ? 36 : 47,
     features: [],
     gmNotes: null,

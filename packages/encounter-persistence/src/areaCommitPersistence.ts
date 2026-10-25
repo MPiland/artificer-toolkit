@@ -23,6 +23,7 @@ import {
   encounterChosenActorsChecksum
 } from '@artificer-toolkit/rules-runtime/encounterAreaPending'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { consequenceRollDamageFacts } from '@artificer-toolkit/rules-runtime/encounterConsequenceRolls'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
@@ -78,6 +79,7 @@ import type {
   bindEncounterConcentrationApplications,
   persistEncounterConcentrationChildren
 } from './concentrationChildrenPersistence.js'
+import { persistConsequenceRollOffers } from './consequenceRollCommands.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import { insertRunActor, readRunActors } from './documents.js'
 import { idleTurnMarkChanges } from './idleTurnMark.js'
@@ -877,15 +879,20 @@ export async function persistEncounterAreaCommit(
       occurredAt: input.occurredAt
     })
   // One Concentration check per damaged creature, against the damage the root recorded.
-  const damage = nativeConcentrationDamageApplications(
-    children.map(({ actor, batch }) => ({
-      targetActorId: actor.id,
-      applications: batch.applications
-    })),
-    false
-  )
+  const damageBatches = children.map(({ actor, batch }) => ({
+    targetActorId: actor.id,
+    applications: batch.applications
+  }))
+  const damage = nativeConcentrationDamageApplications(damageBatches, false)
   if (checksumCanonicalJson(damage) !== checksumCanonicalJson(root.damage))
     throw new Error('Live Session area damage envelope mismatch.')
+  nextActors = await persistConsequenceRollOffers(ctx, {
+    state: nextState,
+    actors: nextActors,
+    facts: consequenceRollDamageFacts(damageBatches),
+    sourceCommandId: command.commandId,
+    occurredAt: input.occurredAt
+  })
   const settledChildren = await callbacks.persistConcentrationChildren({
     state: nextState,
     actors: nextActors,

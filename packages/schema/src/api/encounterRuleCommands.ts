@@ -629,6 +629,21 @@ export const confirmMoraleInputDtoSchema = lazySchema(() =>
     disposition: moraleDispositionDtoSchema
   })
 )
+/**
+ * GM-only: accepts a consequence-table roll offer (ATTACK-15), which the server rolls, or declines
+ * it. The offer is the actor's one its source command made on that table. An accepted roll posts with
+ * `visibility`.
+ */
+export const resolveConsequenceRollOfferInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('RESOLVE_CONSEQUENCE_ROLL_OFFER'),
+    actorId: uuidSchema,
+    sourceCommandId: uuidSchema,
+    definitionId: uuidSchema,
+    decision: z.enum(['ACCEPT', 'DECLINE']),
+    visibility: rollVisibilityDtoSchema
+  })
+)
 /** GM-only exact undo of the Run's last committed action and its committed children. */
 export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
@@ -647,6 +662,9 @@ export type SetConcealmentObserversInputDto = z.infer<typeof setConcealmentObser
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>
 export type ConfirmMoraleInputDto = z.infer<typeof confirmMoraleInputDtoSchema>
+export type ResolveConsequenceRollOfferInputDto = z.infer<
+  typeof resolveConsequenceRollOfferInputDtoSchema
+>
 export type RevertLastEncounterActionInputDto = z.infer<
   typeof revertLastEncounterActionInputDtoSchema
 >

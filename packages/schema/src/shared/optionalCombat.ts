@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import type { AutomationModeDto } from '../api/campaignSettings.js'
 import { ruleCapabilityKeyDtoSchema } from '../api/rulesRuntime.js'
+import { consequenceRollTriggersDtoSchema } from './consequenceRolls.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUuid.js'
 import { dnd5eOptionalCombatRuleKindDtoSchema } from './reusableDefinitionIdentity.js'
 export { dnd5eOptionalCombatRuleKindDtoSchema }
@@ -395,10 +396,7 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('INJURIES'),
-      triggerKinds: z
-        .array(z.enum(['CRITICAL_HIT', 'DROP_TO_ZERO', 'FAIL_DEATH_SAVE_BY_FIVE_OR_MORE']))
-        .check(z.minLength(1))
-        .check(z.maxLength(3)),
+      triggers: consequenceRollTriggersDtoSchema,
       bands: dnd5eOptionalCombatBandsDtoSchema
     }),
     z.strictObject({

@@ -23,6 +23,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterCleavingFacts'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
 import { nativeConcentrationDamageApplications } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
+import { consequenceRollDamageFacts } from '@artificer-toolkit/rules-runtime/encounterConsequenceRolls'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { writePendingSnapshot } from './pendingSnapshots.js'
 import { readCleavingResponseAdmission } from './cleavingResponseAdmission.js'
@@ -38,6 +39,7 @@ import type {
   bindEncounterConcentrationApplications,
   persistEncounterConcentrationChildren
 } from './concentrationChildrenPersistence.js'
+import { persistConsequenceRollOffers } from './consequenceRollCommands.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -192,20 +194,20 @@ export async function persistEncounterCleavingResponse(
     version: state.version + 1,
     updatedAt: occurredAt
   })
-  const applications = mechanics
-    ? nativeConcentrationDamageApplications(
-        [
-          {
-            targetActorId: mechanics.updatedActor.id,
-            applications: mechanics.receiptApplications
-          }
-        ],
-        true
-      )
+  const damageBatches = mechanics
+    ? [{ targetActorId: mechanics.updatedActor.id, applications: mechanics.receiptApplications }]
     : []
-  const damagedActors = actors.map((actor) =>
-    actor.id === mechanics?.updatedActor.id ? mechanics.updatedActor : actor
-  )
+  const applications = nativeConcentrationDamageApplications(damageBatches, true)
+  const damagedActors = await persistConsequenceRollOffers(ctx, {
+    state: nextState,
+    actors: actors.map((actor) =>
+      actor.id === mechanics?.updatedActor.id ? mechanics.updatedActor : actor
+    ),
+    facts: consequenceRollDamageFacts(damageBatches),
+
+    sourceCommandId: occurrence.rootCommandId,
+    occurredAt
+  })
   const { actors: nextActors } = await callbacks.persistConcentrationChildren({
     state: nextState,
     actors: damagedActors,

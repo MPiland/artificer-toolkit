@@ -691,5 +691,6 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'SET_CONCEALMENT_OBSERVERS') return 'Concealment corrected by the GM'
   if (commandType === 'MORALE_SAVE') return 'Morale checked'
   if (commandType === 'CONFIRM_MORALE') return 'Morale outcome confirmed'
+  if (commandType === 'RESOLVE_CONSEQUENCE_ROLL_OFFER') return 'Table roll resolved'
   return commandType.toLowerCase().replaceAll('_', ' ')
 }

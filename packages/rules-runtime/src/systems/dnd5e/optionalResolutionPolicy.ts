@@ -10,6 +10,7 @@ import {
   optionalCombatPolicyPin
 } from './optionalCombatDefinition.js'
 import { offerDnd5eMoraleTriggers, prepareDnd5eMoraleSave } from './moralePolicy.js'
+import { dnd5eConsequenceRollTables } from './injuriesPolicy.js'
 import type {
   CleavingInput,
   CleavingProposal,
@@ -172,5 +173,6 @@ export const dnd5eOptionalCombatPolicyCapabilityAdapter = {
   prepareTumbleContest: prepareDnd5eTumbleContest,
   resolveCleaving: resolveDnd5eCleaving,
   offerMoraleTriggers: offerDnd5eMoraleTriggers,
-  prepareMoraleSave: prepareDnd5eMoraleSave
+  prepareMoraleSave: prepareDnd5eMoraleSave,
+  consequenceRollTables: dnd5eConsequenceRollTables
 } as const satisfies OptionalCombatPolicyCapabilityAdapter

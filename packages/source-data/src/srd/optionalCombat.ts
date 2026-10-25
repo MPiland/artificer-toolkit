@@ -300,7 +300,11 @@ const injuriesDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.
   module: { policyModuleKey: DND5E_INJURIES_OPERATION_KEY, contractVersion: 1 },
   parameters: {
     kind: 'INJURIES',
-    triggerKinds: ['CRITICAL_HIT', 'DROP_TO_ZERO', 'FAIL_DEATH_SAVE_BY_FIVE_OR_MORE'],
+    triggers: [
+      { event: 'DAMAGED', critical: true },
+      { event: 'HIT_POINTS_ZERO' },
+      { event: 'DEATH_SAVE_FAILED', byAtLeast: 5 }
+    ],
     bands: [
       {
         minimum: 1,

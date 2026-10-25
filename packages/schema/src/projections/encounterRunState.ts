@@ -10,6 +10,7 @@ import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
 import { encounterInitiativePolicySnapshotDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSnapshotDtoSchema } from '../shared/optionalCombat.js'
 import { encounterActorMoraleDtoSchema } from '../shared/encounterMorale.js'
+import { encounterConsequenceRollOffersDtoSchema } from '../shared/consequenceRolls.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { jsonValueSchema, projectionChecksumSchema } from './identity.js'
 
@@ -34,12 +35,15 @@ const encounterRunActorStateBaseSchema = lazySchema(() =>
       concealment: true,
       defeated: true,
       morale: true,
-      moraleOffers: true
+      moraleOffers: true,
+      consequenceRollOffers: true
     }),
     {
       sideId: postgresUuidSchema,
       /** The actor's latest morale check (ENCOUNTER-6.2), absent when none was made. */
       morale: z.optional(encounterActorMoraleDtoSchema),
+      /** The open consequence-table roll offers (ATTACK-15), absent when none. */
+      consequenceRollOffers: z.optional(encounterConsequenceRollOffersDtoSchema),
       snapshot: jsonValueSchema,
       resources: jsonValueSchema,
       createdAt: z.iso.datetime(),

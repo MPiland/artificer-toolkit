@@ -226,6 +226,7 @@ export function projectEncounterActorFacts(
     ...(actor.owner && { owner: actor.owner }),
     disposition: actor.disposition,
     ...(actor.morale && { morale: actor.morale }),
+    ...(actor.consequenceRollOffers && { consequenceRollOffers: actor.consequenceRollOffers }),
     initiative: actor.initiative,
     manualOrder: actor.manualOrder,
     healthDisplay: actor.healthDisplay,
@@ -468,7 +469,8 @@ function projectGmFacts(
         manualOrder: actor.manualOrder,
         healthBand: healthBand(current.current, current.maximum),
         morale: actor.morale ?? null,
-        moraleOffers: moraleOffers.get(actor.id) ?? []
+        moraleOffers: moraleOffers.get(actor.id) ?? [],
+        consequenceRollOffers: actor.consequenceRollOffers ?? []
       }
     }),
     reminders: encounter.reminders.map((reminder) => ({

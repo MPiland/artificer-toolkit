@@ -11,7 +11,7 @@ import type { TurnCoordinatorRootDto } from '@artificer-toolkit/schema/shared/ru
 import type { StagedTurnZonePlanDto } from '@artificer-toolkit/schema/shared/ruleExecutionTurnPhaseEvidence'
 import type { MeleeRetaliationEvidenceDto } from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 
-type DamageBatch = {
+export type DamageBatch = {
   targetActorId: string
   applications: readonly ReturnType<typeof characterMechanicsApplicationDtoSchema.parse>[]
   /** The spell, action or turn effect that dealt this batch's damage, when it has a name. */

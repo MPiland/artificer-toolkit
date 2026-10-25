@@ -26,6 +26,10 @@ import {
 } from './activeRuleEffectPersistence.js'
 import { rollModeKeepSchema, systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { encounterActorMoraleDtoSchema } from '../shared/encounterMorale.js'
+import {
+  consequenceRollResolutionDtoSchema,
+  encounterConsequenceRollOfferDtoSchema
+} from '../shared/consequenceRolls.js'
 
 // Keep the Convex table schema independent of recursive authored snapshots. Projections are built
 // on read from the Run state and its actors (ADR 0035 Amendment 12), so the Run stores neither.
@@ -602,6 +606,15 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
           )
           .check(z.minLength(1))
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('RESOLVE_CONSEQUENCE_ROLL_OFFER'),
+      /** The offer the GM resolved and the roll and row an accepted one landed on (ATTACK-15). */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        offer: encounterConsequenceRollOfferDtoSchema,
+        resolution: consequenceRollResolutionDtoSchema
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {

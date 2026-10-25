@@ -298,6 +298,30 @@ export function rechargeRollRecord(input: {
   })
 }
 
+/** The roll-log record of one roll on an authored table (ATTACK-15), labelled by its table. */
+export function tableRollRecord(input: {
+  occurrenceId: string
+  dieFaces: number
+  rawDie: number
+  tableLabel: string
+  rollerLabel: string
+  ruleset: RollRecordDto['ruleset']
+  createdAt: string
+}): RollRecordDto {
+  const evaluated = evaluateRollExpression(parseRollExpression(`1d${input.dieFaces}`), {
+    nextInt: () => input.rawDie - 1
+  })
+  return rollRecordDtoSchema.parse({
+    id: ruleCheckRollId(input.occurrenceId, 0),
+    ...evaluated,
+    characterId: null,
+    characterLabel: input.rollerLabel,
+    source: { kind: 'TABLE', label: input.tableLabel.slice(0, 80) },
+    ruleset: input.ruleset,
+    createdAt: input.createdAt
+  })
+}
+
 /** `1dN` plus a signed initiative modifier, as a roll expression. */
 export function initiativeRollExpression(sides: number, modifier: number) {
   return `1d${sides}${modifier === 0 ? '' : modifier > 0 ? `+${modifier}` : modifier}`

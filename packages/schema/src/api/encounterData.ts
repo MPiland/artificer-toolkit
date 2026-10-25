@@ -18,6 +18,7 @@ import {
   encounterActorMoraleDtoSchema,
   encounterMoraleOfferDtoSchema
 } from '../shared/encounterMorale.js'
+import { encounterConsequenceRollOffersDtoSchema } from '../shared/consequenceRolls.js'
 import {
   encounterRuleOccurrenceSummaryDtoSchema,
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
@@ -258,7 +259,9 @@ export const encounterGmActorDtoSchema = lazySchema(() =>
     /** The actor's latest morale check (ENCOUNTER-6.2); GM-only. Null when none was made. */
     morale: z._default(z.nullable(encounterActorMoraleDtoSchema), null),
     /** The morale triggers the GM may check for this actor now (ENCOUNTER-6.1). */
-    moraleOffers: z._default(z.array(encounterMoraleOfferDtoSchema).check(z.maxLength(8)), [])
+    moraleOffers: z._default(z.array(encounterMoraleOfferDtoSchema).check(z.maxLength(8)), []),
+    /** The consequence-table rolls the GM may accept or decline for this actor (ATTACK-15). */
+    consequenceRollOffers: z._default(encounterConsequenceRollOffersDtoSchema, [])
   })
 )
 

@@ -1,4 +1,5 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type { ConsequenceRollTriggerDto } from '@artificer-toolkit/schema/shared/consequenceRolls'
 import type {
   EncounterActorMoraleDto,
   EncounterMoraleOfferDto
@@ -215,6 +216,22 @@ export interface MoraleSaveProposal {
   readonly failureDisposition: MoraleDispositionDto
 }
 
+/**
+ * An authored table the GM may be offered a roll on (ATTACK-15): the events that offer it and the
+ * rows of its die. Rows are ordered and never overlap; a roll between rows lands on none.
+ */
+export interface ConsequenceRollTable {
+  readonly pin: OptionalCombatPolicyPin
+  readonly label: string
+  readonly triggers: readonly ConsequenceRollTriggerDto[]
+  readonly dieFaces: number
+  readonly rows: readonly {
+    readonly rowId: string
+    readonly minimum: number
+    readonly maximum: number
+  }[]
+}
+
 /** A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving and Morale. */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
@@ -233,4 +250,6 @@ export interface OptionalCombatPolicyCapabilityAdapter {
     input: MoraleOfferInput
   ): ReadonlyMap<string, readonly EncounterMoraleOfferDto[]>
   prepareMoraleSave(input: MoralePreparationInput): OptionalCombatResolution<MoraleSaveProposal>
+  /** The enabled consequence tables, empty when the rules that author them are off. */
+  consequenceRollTables(input: OptionalCombatPolicyInput): readonly ConsequenceRollTable[]
 }
