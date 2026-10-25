@@ -128,7 +128,8 @@ import type {
   SpellGrantAuthored,
   SummonStatBlockAuthored,
   TargetingAuthored,
-  TargetRequirementAuthored
+  TargetRequirementAuthored,
+  TelepathicLinkAbilityFloorAuthored
 } from '@artificer-toolkit/shared/authored'
 import type {
   NodeRuntimeArrayGroupNodeDto,
@@ -510,6 +511,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         base: 10,
         plusDamageTaken: false
       } satisfies NonNullable<ModifierDamageInterceptionAuthored['save']>['dc']
+    case 'telepathicLinkAbilityFloor':
+      return { ability: '', score: 0 } satisfies TelepathicLinkAbilityFloorAuthored
     case 'incomingGateSuccessImmunity':
       return {
         duration: { id: crypto.randomUUID(), durationKind: 'INSTANTANEOUS' }
