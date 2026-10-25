@@ -784,7 +784,7 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   }
   const frozenGraph = recurrence
     ? relationshipRecurrenceGraph({ action, relationship, recurrence, plan })
-    : relationshipStateGraph({ action, relationship })
+    : relationshipStateGraph({ action, relationshipId: relationship.id })
   return { ...plan, frozenGraph }
 }
 
@@ -1974,7 +1974,7 @@ type Dnd5eDirectOutcome =
           | 'FORCED_MOVEMENT'
       }
     >
-  | { kind: 'DIRECT_RELATIONSHIP' }
+  | { kind: 'DIRECT_RELATIONSHIP'; relationshipId: string }
 /** What a direct outcome reads from its action once `supported` has resolved its targets and plans. */
 type DirectOutcomeInput = Readonly<{
   action: Dnd5eCompiledEffectActionSource
@@ -2016,10 +2016,10 @@ const DND5E_DIRECT_OUTCOMES: {
 } = {
   // The action holds its target by its relationship alone (Engulf): the relationship's own graph
   // is the action's, and its active-effect plan stores the hold.
-  ACTOR_RELATIONSHIP: (_outcome, { action, onList }) => {
+  ACTOR_RELATIONSHIP: (outcome, { action, onList }) => {
     if (onList) unsupported('D&D chosen-creature action outcome cannot be a relationship.')
     relationshipPlan(action)
-    return { kind: 'DIRECT_RELATIONSHIP' }
+    return { kind: 'DIRECT_RELATIONSHIP', relationshipId: outcome.id }
   },
   CONDITION: (outcome, input) => {
     uuid(outcome.conditionId, 'D&D condition definition identity')
@@ -3521,9 +3521,9 @@ function compileEffectActionGraph(
       published: createDnd5eContestGraph(action.effectId)
     })
   if (outcome.kind === 'DIRECT_RELATIONSHIP') {
-    const plan = relationshipPlan(action)
-    if (!plan) unsupported('D&D direct relationship action has no relationship.')
-    return bindMovementInterruptionOutput({ action, published: plan.frozenGraph })
+    // Used, the action only holds; its stored effect rolls any recurrence on later turns.
+    const published = relationshipStateGraph({ action, relationshipId: outcome.relationshipId })
+    return bindMovementInterruptionOutput({ action, published })
   }
   if (outcome.kind === 'CHECK_OUTCOME')
     unsupported('D&D check outcome requires its check test phase.')

@@ -21,10 +21,13 @@ import { compileTestDefinition } from './effectActionTestPhase.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import { damageTypeIdentity } from './effectActionOutcomeNodes.js'
 
-/** The published graphs of an actor-relationship action: the bare state, and the one with a recurring damage roll. */
+/**
+ * The bare hold: the graph an action with no roll (Engulf) runs when used, and a hold with no
+ * recurrence stores.
+ */
 export function relationshipStateGraph(input: {
   action: Dnd5eCompiledEffectActionSource
-  relationship: ActorRelationshipAuthored
+  relationshipId: string
 }): ServerPublishedRuleDefinitionDto {
   const definition: RuleGraphDefinition = {
     schemaVersion: 1,
@@ -42,9 +45,9 @@ export function relationshipStateGraph(input: {
       }
     ],
     outputs: {
-      relationshipOutcomeId: { kind: 'LITERAL', value: input.relationship.id }
+      relationshipOutcomeId: { kind: 'LITERAL', value: input.relationshipId }
     },
-    sourceEntryBindings: [{ sourceEntryId: input.relationship.id, nodeId: 'relationship-state' }]
+    sourceEntryBindings: [{ sourceEntryId: input.relationshipId, nodeId: 'relationship-state' }]
   }
   return publishedGraph(definition)
 }
