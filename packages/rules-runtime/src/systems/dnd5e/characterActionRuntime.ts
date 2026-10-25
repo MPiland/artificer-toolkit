@@ -36,6 +36,7 @@ import {
   dnd5eTemporaryHitPointsProposalOperation,
   dnd5eMovementInterruptionAuthorizationOperation,
   dnd5eNestedSaveGateOperation,
+  dnd5eRollTableRowGateOperation,
   dnd5ePathGatedProposalOperations
 } from './effectActionOperationRegistry.js'
 import { dnd5eDamageDerivedHealProposalOperation } from './effectActionDamageDerivedHeal.js'
@@ -92,6 +93,7 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eAttackTestOperation,
     dnd5eSaveTestOperation,
     dnd5eNestedSaveGateOperation,
+    dnd5eRollTableRowGateOperation,
     dnd5eMovementInterruptionAuthorizationOperation,
     ...dnd5ePathGatedProposalOperations
   ] satisfies readonly RuleOperationContract[]

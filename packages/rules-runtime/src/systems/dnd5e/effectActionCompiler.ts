@@ -252,6 +252,13 @@ import {
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition
 } from './effectActionNestedSave.js'
+import { hitPointTierActions } from './effectActionNarrowing.js'
+import {
+  admitRollTablePaths,
+  rollTableOutcomeTemplate,
+  rollTablePath,
+  rollTableRowActions
+} from './effectActionRollTable.js'
 
 const DND5E_ORDINARY_SIGHT_DEFINITION_ID = '0b4d8603-8e15-4e5a-89a6-9e1a179c4371'
 const DND5E_ORDINARY_SIGHT_NAMESPACE = '6871f0d5-9ac4-45d4-84c0-30cbd4e7df0c'
@@ -2329,8 +2336,14 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     unsupported('D&D test action has an unsupported bounded shape.')
   }
   const paths = new Set<string>()
+  const tablePaths = admitRollTablePaths(
+    action,
+    kind === 'SAVE' ? allowedPaths : [],
+    timedActiveEffectPlan
+  )
   const conditionCounts = new Map<string, number>()
   for (const entry of action.compiledEffect.entries) {
+    if (tablePaths.has(entry.pathCode)) continue
     if (isActiveEffectPlanOutcome(entry, action)) continue
     // A SEQUENCE result block applies each of its outcomes in order; OUTCOME
     // specializes every outcome as its own group, exactly like separate paths.
@@ -2929,6 +2942,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
 }): Dnd5eEffectActionTemplate | null {
   if (!isCheckOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
   assertKnownTestResultPath(input.action, input.selectedPath)
+  const table = rollTableOutcomeTemplate(input.action, input.selectedPath)
+  if (table) return table
   if (
     (input.selectedPath === 'ON_HIT' || input.selectedPath === 'ON_CRIT') &&
     isExactImmediateFollowUpSaveAction(input.action)
@@ -3169,36 +3184,6 @@ function timedActiveEffectPlan(action: Dnd5eCompiledEffectActionSource) {
     actorLinkPlan(action) ??
     creatureFormPlan(action)
   )
-}
-
-/**
- * The action narrowed to each hit-point tier its entries author, with the entries no tier owns
- * (a success path's immunity) riding every tier; null for an action that authors no tier.
- */
-function hitPointTierActions(
-  action: Dnd5eCompiledEffectActionSource
-): { atMost: number; tierAction: Dnd5eCompiledEffectActionSource }[] | null {
-  const { entries } = action.compiledEffect
-  const tierOf = (entry: (typeof entries)[number]) =>
-    'hitPointTier' in entry ? entry.hitPointTier?.atMost : undefined
-  const atMosts = [...new Set(entries.flatMap((entry) => tierOf(entry) ?? []))]
-  if (atMosts.length === 0) return null
-  return atMosts.map((atMost) => ({
-    atMost,
-    tierAction: {
-      ...action,
-      compiledEffect: {
-        ...action.compiledEffect,
-        entries: entries
-          .filter((entry) => tierOf(entry) === undefined || tierOf(entry) === atMost)
-          .map((entry) => {
-            if (!('hitPointTier' in entry)) return entry
-            const { hitPointTier: _tier, ...untiered } = entry
-            return untiered
-          })
-      }
-    }
-  }))
 }
 
 function dnd5eActiveEffectPlans(
@@ -3657,36 +3642,26 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
     }
   }[]
   for (const pathCode of [...paths].sort((left, right) => left.localeCompare(right))) {
-    const groups = selectedOutcomeGroups(action, pathCode)
-    if (groups.length === 0) continue
-    if (
+    const table = rollTablePath(action, pathCode)
+    const groups = table ? [] : selectedOutcomeGroups(action, pathCode)
+    if (!table && groups.length === 0) continue
+    const followUpSave =
+      !table &&
       (pathCode === 'ON_HIT' || pathCode === 'ON_CRIT') &&
       isExactImmediateFollowUpSaveAction(action)
-    ) {
-      outcomes.push({
-        pathCode,
-        template: {
-          definitionId: action.effectId,
-          gameSystemId: DND5E_SYSTEM_ID,
-          definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-          checksum: checksumRuleDocument(action.compiledEffect.entries)
-        }
-      })
-      continue
-    }
     // Validate every reachable outcome at source compilation time. The
     // specialized graph itself is intentionally deferred until locked
     // runtime scaling facts are available.
-    for (const entries of groups) {
-      for (const entry of entries) specializedTestOutcome(entry)
-    }
+    if (!followUpSave) for (const entry of groups.flat()) specializedTestOutcome(entry)
     outcomes.push({
       pathCode,
       template: {
         definitionId: action.effectId,
         gameSystemId: DND5E_SYSTEM_ID,
         definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-        checksum: checksumRuleDocument(groups)
+        checksum: checksumRuleDocument(
+          table ? table.rows : followUpSave ? action.compiledEffect.entries : groups
+        )
       }
     })
   }
@@ -3838,6 +3813,17 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   },
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
+    const rows = rollTableRowActions(action)
+    if (rows && hitPointTierActions(action))
+      unsupported('D&D roll table cannot share an action with hit-point tiers.')
+    if (rows)
+      return rows.flatMap(({ rowId, row, rowAction }) =>
+        dnd5eActiveEffectPlans(rowAction, published).map((plan) =>
+          plan.compiledEntryId === rowId
+            ? { ...plan, rollTableRow: row }
+            : unsupported('D&D roll table row plan must hold its own row.')
+        )
+      )
     const tiers = hitPointTierActions(action)
     if (tiers)
       return tiers.flatMap(({ atMost, tierAction }) =>
