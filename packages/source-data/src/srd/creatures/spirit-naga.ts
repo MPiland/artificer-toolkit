@@ -47,7 +47,7 @@ export const spiritNaga: CreatureAuthored = {
       description:
         'Rejuvenation. If it dies, the naga returns to life in 1d6 days and regains all its hit points. Only a wish spell can prevent this trait from functioning.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(259, 200),
           invocation: {
             kind: 'PASSIVE',
@@ -55,7 +55,10 @@ export const spiritNaga: CreatureAuthored = {
             range: { id: S.actionId(259, 201), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIRIT_NAGA_REJUVENATION
+          label: 'Rejuvenation',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            'When the naga dies, it returns to life in 1d6 days with all its hit points. Only a wish spell prevents this.'
         })
       ],
       order: 1

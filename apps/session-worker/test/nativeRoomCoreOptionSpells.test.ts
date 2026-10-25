@@ -14,6 +14,8 @@ import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shar
 import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-hand.js'
 import { chainMail } from '@artificer-toolkit/source-data/srd/equipment/chain-mail.js'
 import { longsword } from '@artificer-toolkit/source-data/srd/equipment/longsword.js'
+import { arcaneSword } from '@artificer-toolkit/source-data/srd/spells/arcane-sword.js'
+import { faithfulHound } from '@artificer-toolkit/source-data/srd/spells/faithful-hound.js'
 import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
@@ -915,6 +917,52 @@ describe('room Arcane Hand (SPELLS-4.T2v2b)', () => {
 })
 
 /**
+ * SPELLS-8.T7 (D187a): Arcane Sword is cast like Spiritual Weapon: an owned sword is conjured, and
+ * the caster attacks through it once free on the cast turn. Moving it is a GM ruling.
+ */
+describe('room Arcane Sword (SPELLS-8.T7)', () => {
+  const swordRoom = () =>
+    actionRoom({
+      // The attack's d20, then its three d10.
+      rolls: [18, 0, 0, 0],
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel: 15 },
+      characterSpellcasting: { spells: [arcaneSword], prepared: [arcaneSword.id] },
+      characterAction: (action) => action.label.startsWith(arcaneSword.label)
+    })
+
+  it('conjures the sword, attacks free on the cast turn for 3d10 force, and goes when the cast is reverted', async () => {
+    const room = await swordRoom()
+    const cast = await room.startAreaAction({ x: 350, y: 150 })
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    const owned = async () =>
+      (await readRoomHistory(room.room.base.stub)).actors
+        .map((row) => readStoredRunActor(row))
+        .filter((actor) => actor.owner?.ownerActorId === CHARACTER_ACTOR_ID)
+    expect(await owned()).toMatchObject([{ label: 'Arcane Sword', kind: 'CUSTOM' }])
+
+    const [offer] = (await room.actionChoices()).effectOffers
+    expect(offer).toMatchObject({ kind: 'REPEAT_SOURCE_PATH', activation: 'FREE' })
+    if (offer?.kind !== 'REPEAT_SOURCE_PATH') throw new Error('Expected the repeat offer.')
+    const attack = await room.startAction(WOLF_ID, RANGE, null, null, offer.actionId)
+    expect(attack.answer.type, JSON.stringify(attack.answer)).toBe('COMMAND_COMMITTED')
+    await settlePendingAction(room)
+    expect(await appliedDamage(room, attack.command.commandId)).toEqual([
+      [3, damageTypeId('FORCE')]
+    ])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
+  }, 120000)
+})
+
+/**
  * SPELLS-4.T2v2b (D187b): Mage Hand conjures an owned, invulnerable hand that takes no space and
  * moves as any token does; it offers no attack, and goes when its minute ends. Using it is a GM ruling.
  */
@@ -953,6 +1001,43 @@ describe('room Mage Hand (SPELLS-4.T2v2b)', () => {
     expect(await conjured(room)).toHaveLength(1)
     await room.advanceTurn()
     await room.advanceTurn()
+    expect(await conjured(room)).toEqual([])
+  }, 120000)
+})
+
+/**
+ * SPELLS-4.T2w (D187a): Faithful Hound conjures an owned, invulnerable watchdog; its barking and
+ * its bite at the start of the caster's turns are a GM ruling beside the summon.
+ */
+describe('room Faithful Hound (SPELLS-4.T2w)', () => {
+  const houndRoom = () =>
+    actionRoom({
+      fallbackRoll: 0,
+      actors: [casterActor(), srdCreatureActor({ id: WOLF_ID, creature: biteWolf('ATTACK') })],
+      characterPlay: { classLevel: 9 },
+      characterSpellcasting: { spells: [faithfulHound], prepared: [faithfulHound.id] },
+      characterAction: (action) => action.label.startsWith(faithfulHound.label)
+    })
+
+  async function conjured(room: ActionRoom) {
+    return (await readRoomHistory(room.room.base.stub)).actors
+      .map((row) => readStoredRunActor(row))
+      .filter((actor) => actor.owner?.ownerActorId === CHARACTER_ACTOR_ID)
+  }
+
+  it('conjures the hound as an actor the caster owns, and takes it away when the cast is reverted', async () => {
+    const room = await houndRoom()
+    const cast = await room.startAreaAction({ x: 350, y: 150 })
+    expect(cast.answer.type, JSON.stringify(cast.answer)).toBe('COMMAND_COMMITTED')
+    expect(await conjured(room)).toMatchObject([{ label: 'Faithful Hound', kind: 'CUSTOM' }])
+
+    const undone = await room.send({
+      type: 'REVERT_LAST_ACTION',
+      encounterId: room.room.encounterId,
+      commandId: crypto.randomUUID(),
+      expectedVersion: await room.version()
+    })
+    expect(undone.type, JSON.stringify(undone)).toBe('COMMAND_COMMITTED')
     expect(await conjured(room)).toEqual([])
   }, 120000)
 })

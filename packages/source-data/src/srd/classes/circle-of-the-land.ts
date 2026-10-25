@@ -8,6 +8,7 @@ import {
   CLOSED_RULE_KIND,
   DURATION_KIND,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   RANGE_KIND,
@@ -24,7 +25,9 @@ import { CLASS_IDS, SPELL_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
 import { creatureTypeId } from '../spells/shared.js'
-import { closedRuleEffect } from './mechanics.js'
+import { againstCreatureTypes } from '../spells/protection-from-evil-and-good.js'
+import { conditionTypeId, damageTypeId } from '../equipment/shared.js'
+import { closedRuleEffect, gmRulingEffect, landsStrideRuling } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -287,15 +290,17 @@ export const circleOfTheLand: ClassAuthored = {
       availableAtLevel: 6,
       order: 3,
       effects: [
-        closedRuleEffect({
-          id: classRowId(D, 20, 2),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(D, 21, 2), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(D, 20, 2),
+            range: classRowId(D, 21, 2),
+            path: classRowId(D, 0xd0, 1),
+            result: classRowId(D, 0xd1, 1),
+            outcome: classRowId(D, 0xd2, 1)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_CIRCLE_OF_THE_LAND_LANDS_STRIDE
+          label: "Land's Stride",
+          instructions: landsStrideRuling,
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE
         })
       ]
     },
@@ -306,18 +311,43 @@ export const circleOfTheLand: ClassAuthored = {
         "When you reach 10th level, you can't be charmed or frightened by elementals or fey, and you are immune to poison and disease.",
       availableAtLevel: 10,
       order: 4,
-      effects: [
-        closedRuleEffect({
-          id: classRowId(D, 20, 3),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(D, 21, 3), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+      // Disease stays description: the engine has no disease model (Purity of Body precedent, D156).
+      grants: {
+        modifiers: [
+          ...againstCreatureTypes(
+            (part, entry) => classRowId(D, 0x90 + part, entry),
+            (['CHARMED', 'FRIGHTENED'] as const).map((condition) => ({
+              valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+              domain: {},
+              modifierKind: MODIFIER_KIND.ADD_OPTION,
+              payload: { conditionTypeId: conditionTypeId(condition) }
+            })),
+            ['ELEMENTAL', 'FEY']
+          ),
+          {
+            id: classRowId(D, 0x90, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_IMMUNITY,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { damageTypeId: damageTypeId('POISON') },
+            order: 3
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_CIRCLE_OF_THE_LAND_NATURES_WARD
-        })
-      ]
+          {
+            id: classRowId(D, 0x90, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { conditionTypeId: conditionTypeId('POISONED') },
+            order: 4
+          }
+        ]
+      }
     },
     {
       id: classRowId(D, 11, 6),

@@ -6,6 +6,8 @@ import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-han
 import { beaconOfHope } from '@artificer-toolkit/source-data/srd/spells/beacon-of-hope.js'
 import { blur } from '@artificer-toolkit/source-data/srd/spells/blur.js'
 import { enthrall } from '@artificer-toolkit/source-data/srd/spells/enthrall.js'
+import { arcaneSword } from '@artificer-toolkit/source-data/srd/spells/arcane-sword.js'
+import { faithfulHound } from '@artificer-toolkit/source-data/srd/spells/faithful-hound.js'
 import { flameBlade } from '@artificer-toolkit/source-data/srd/spells/flame-blade.js'
 import { guidingBolt } from '@artificer-toolkit/source-data/srd/spells/guiding-bolt.js'
 import { heatMetal } from '@artificer-toolkit/source-data/srd/spells/heat-metal.js'
@@ -34,7 +36,7 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
 
 /** D156 T2a3, T2a4, T2e, T2g1, T2k1, T2n1, T2v2a3d and T2v2b: spells converted from closed rules to core options (ADR 0038 parity). */
-describe('spells authored from core options through the effect node map (SPELLS-4.T2a3, T2a4, T2e, T2g1, T2k1, T2n1, T2v2a3d, T2v2b)', () => {
+describe('spells authored from core options through the effect node map (SPELLS-4.T2a3, T2a4, T2e, T2g1, T2k1, T2n1, T2v2a3d, T2v2b, T2w, SPELLS-8.T7)', () => {
   it.each([
     ['Beacon of Hope', beaconOfHope],
     ['Blur', blur],
@@ -58,7 +60,11 @@ describe('spells authored from core options through the effect node map (SPELLS-
     ['True Resurrection', trueResurrection],
     ['Spiritual Weapon', spiritualWeapon],
     ['Arcane Hand', arcaneHand],
-    ['Mage Hand', mageHand]
+    ['Mage Hand', mageHand],
+    // SPELLS-8.T7 (D187a): a summoned sword the caster attacks through, like Spiritual Weapon.
+    ['Arcane Sword', arcaneSword],
+    // SPELLS-4.T2w (D187a): a summon, with the bark and bite as a GM ruling.
+    ['Faithful Hound', faithfulHound]
   ])('keeps the SRD %s effect exactly as authored', async (_name, spell) => {
     const authored = { ...structuredClone(caltropsBagOf20), effects: spell.effects }
     const result = await normalizeNodeRuntimeValues(reader, {

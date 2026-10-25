@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { chargeEffect } from './chargeEffect.js'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 
 export const weretiger: CreatureAuthored = {
@@ -51,7 +52,7 @@ export const weretiger: CreatureAuthored = {
       description:
         "Shapechanger. The weretiger can use its action to polymorph into a tiger-humanoid hybrid or into a tiger, or back into its true form, which is humanoid. Its statistics, other than its size, are the same in each form. Any equipment it is wearing or carrying isn't transformed. It reverts to its true form if it dies.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(290, 200),
           invocation: {
             kind: 'ACTION',
@@ -60,7 +61,7 @@ export const weretiger: CreatureAuthored = {
             range: { id: S.actionId(290, 201), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WERETIGER_SHAPECHANGER
+          ...CHANGE_SHAPE_RULING.LYCANTHROPE_FORM
         })
       ],
       order: 1
