@@ -1,5 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
+import { lycanthropyCurseOutcome } from './lycanthropyCurse.js'
 import * as S from './shared.js'
 export const werewolf: CreatureAuthored = {
   id: S.CREATURE_IDS.WEREWOLF,
@@ -147,11 +148,7 @@ export const werewolf: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d8+2'
                   },
-                  {
-                    id: S.actionId(291, 209),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEREWOLF_BITE
-                  }
+                  lycanthropyCurseOutcome(S.actionId(291, 209), 'werewolf', 12)
                 ]
               }
             }
