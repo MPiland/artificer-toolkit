@@ -17,7 +17,6 @@ export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   Record<string, SrdCreatureAttackUnsupportedReason>
 > = {
   // OUTCOME_KIND
-  '00000000-0002-0001-0070-1f7000000000': 'OUTCOME_KIND', // Couatl: Bite
   '00000000-0002-00d0-0070-00a700000000': 'OUTCOME_KIND', // Horned Devil: Tail
   '00000000-0002-01f9-0070-00c400000000': 'OUTCOME_KIND', // Merrow: Harpoon
   '00000000-0002-0203-0070-00c400000000': 'OUTCOME_KIND', // Merrow: Harpoon

@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const dryad: CreatureAuthored = {
@@ -170,8 +171,11 @@ export const dryad: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(90, 223),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_DRYAD_TREE_STRIDE
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Step between trees',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      'Once on her turn, the dryad spends 10 feet of movement to enter a living tree within her reach and emerge in an unoccupied space within 5 feet of a second living tree within 60 feet of the first. Both trees must be Large or bigger; the GM confirms the trees and places her.'
                   }
                 ]
               }

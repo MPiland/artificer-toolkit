@@ -4,7 +4,10 @@ import {
   campaignSceneStateDtoSchema,
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
+import { combatPerceptionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
+  requireSceneIlluminationLevel,
   SceneBarrierIndex,
   sceneDistanceAsCoordinateLength,
   scenePointInPolygon,
@@ -12,6 +15,7 @@ import {
   sceneRangeOutline,
   spatialTokensInsideArea,
   type SceneGrid,
+  type SceneIlluminationLevel,
   type ScenePoint,
   type SpatialDirectedAreaSize
 } from '@artificer-toolkit/shared/vtt'
@@ -48,6 +52,7 @@ import {
   minimumFocusedTokenScreenSize,
   resolveVttTokenFocusScale,
   resolveVttZoomScale,
+  sceneIlluminationAreas,
   senseEffect,
   senseReachRadius,
   sceneTokenAppearanceKey,
@@ -56,11 +61,17 @@ import {
   stageOverlays,
   statusCategoryColours,
   visibleGridLinePositions,
+  wholeMapPolygon,
   type VttActionPreview,
   type VttSenseReach
 } from './vttSceneRenderer.model'
 import { countDarknessZones } from './vttDarknessZoneCounts.testUtils'
 import { validated } from '../../../test/validatedFixture'
+
+type IlluminationCode = CampaignSceneStateDto['ambientIllumination']
+
+const { illuminationLevels } = combatPerceptionCapabilityRegistry.require(SRD_SYSTEM_ID)
+const level = (code: IlluminationCode) => requireSceneIlluminationLevel(illuminationLevels, code)
 
 describe('VTT scene renderer model', () => {
   it('draws a radius area as a target circle and a cube as a target square centered on the point', () => {
@@ -958,7 +969,7 @@ describe('VTT view token and senses', () => {
     const sense = (
       channel: Parameters<typeof senseEffect>[0]['channel'],
       illuminationAccess: Parameters<typeof senseEffect>[0]['illuminationAccess']
-    ) => senseEffect({ channel, illuminationAccess })
+    ) => senseEffect({ channel, illuminationAccess }, illuminationLevels)
     expect(sense('VISUAL', 'ORDINARY_DARKNESS')).toBe('DARKVISION')
     expect(sense('VISUAL', 'MAGICAL_DARKNESS')).toBe('TRUESIGHT')
     expect(sense('NONVISUAL', 'IGNORE')).toBe('BLINDSIGHT')
@@ -1017,9 +1028,12 @@ describe('VTT view token and senses', () => {
     expect(
       isTokenRevealed({
         halfSize: 35,
-        illumination: 'ORDINARY_DARKNESS',
+        illumination: level('ORDINARY_DARKNESS'),
+        illuminationLevels,
         point: { x: 1_000, y: 1_000 },
-        reaches: [{ effect: 'DARKVISION', origin, polygon, radius }]
+        reaches: [
+          { access: level('ORDINARY_DARKNESS'), effect: 'DARKVISION', origin, polygon, radius }
+        ]
       })
     ).toBe(true)
   })
@@ -1031,20 +1045,24 @@ describe('VTT view token and senses', () => {
       x: 100 * Math.cos((step * Math.PI) / 4),
       y: 100 * Math.sin((step * Math.PI) / 4)
     }))
+    // The D&D darkness each sight sense reaches into.
+    const sightInto = { DARKVISION: 'ORDINARY_DARKNESS', TRUESIGHT: 'MAGICAL_DARKNESS' } as const
     const reach = (effect: VttSenseReach['effect']): VttSenseReach => ({
+      access: effect === 'DARKVISION' || effect === 'TRUESIGHT' ? level(sightInto[effect]) : null,
       effect,
       origin,
       polygon,
       radius: 100
     })
     const seen = (
-      illumination: Parameters<typeof isTokenRevealed>[0]['illumination'],
+      illumination: IlluminationCode,
       effects: VttSenseReach['effect'][],
       point = { x: 50, y: 0 }
     ) =>
       isTokenRevealed({
         halfSize: 35,
-        illumination,
+        illumination: level(illumination),
+        illuminationLevels,
         point,
         reaches: effects.map(reach)
       })
@@ -1074,11 +1092,18 @@ describe('VTT view token and senses', () => {
     })
 
     it('lets tremorsense feel a token through walls within range, measured to its edge', () => {
-      const behindWall: VttSenseReach = { effect: 'TREMORSENSE', origin, polygon: [], radius: 100 }
+      const behindWall: VttSenseReach = {
+        access: null,
+        effect: 'TREMORSENSE',
+        origin,
+        polygon: [],
+        radius: 100
+      }
       const feel = (x: number) =>
         isTokenRevealed({
           halfSize: 35,
-          illumination: 'ORDINARY_DARKNESS',
+          illumination: level('ORDINARY_DARKNESS'),
+          illuminationLevels,
           point: { x, y: 0 },
           reaches: [behindWall]
         })
@@ -1109,13 +1134,38 @@ describe('VTT lighting model', () => {
   ) => ({ mechanicalIllumination, mechanicalObscurement, opacity })
 
   it('encodes each illumination class as a distinct overlay alpha, bright clearest', () => {
-    expect(illuminationOverlayAlpha('BRIGHT')).toBe(0)
-    expect(illuminationOverlayAlpha('DIM')).toBe(dimOverlayAlpha)
+    const alpha = (code: IlluminationCode) => illuminationOverlayAlpha(level(code).renderClass)
+    expect(alpha('BRIGHT')).toBe(0)
+    expect(alpha('DIM')).toBe(dimOverlayAlpha)
     expect(dimOverlayAlpha).toBeGreaterThan(0)
-    expect(illuminationOverlayAlpha('ORDINARY_DARKNESS')).toBe(1)
-    expect(illuminationOverlayAlpha('MAGICAL_DARKNESS')).toBe(1)
+    expect(alpha('ORDINARY_DARKNESS')).toBe(1)
+    expect(alpha('MAGICAL_DARKNESS')).toBe(1)
     expect(gmDarknessCapAlpha).toBeGreaterThan(dimOverlayAlpha)
     expect(gmDarknessCapAlpha).toBeLessThan(1)
+  })
+
+  it('lists the ambient level over the whole map, then each zone that sets a level', () => {
+    const square = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 10 }
+    ]
+    const areas = sceneIlluminationAreas(
+      {
+        ambientIllumination: 'DIM',
+        darknessZones: [
+          { ...zone('MAGICAL_DARKNESS', null), id: 'magic', polygon: { points: square } },
+          { ...zone(null, 'HEAVY'), id: 'fog', polygon: { points: square } }
+        ],
+        map: { ...tabletopLiveScene.map, height: 200, width: 300 }
+      },
+      illuminationLevels
+    )
+    expect(areas).toEqual([
+      { level: level('DIM'), points: wholeMapPolygon({ height: 200, width: 300 }), zone: false },
+      { level: level('MAGICAL_DARKNESS'), points: square, zone: true }
+    ])
+    expect(areas[0]?.points).toContainEqual({ x: 300, y: 200 })
   })
 
   it('tints a light faintly, stronger for a more intense light', () => {
@@ -1159,16 +1209,18 @@ describe('VTT lighting model', () => {
   })
 
   it('gives magical darkness a dotted arcane outline and each obscurement a non-colour outline', () => {
-    const magical = darknessZoneStyle(zone('MAGICAL_DARKNESS', null))
-    const ordinary = darknessZoneStyle(zone('ORDINARY_DARKNESS', null))
+    const style = (...args: Parameters<typeof zone>) =>
+      darknessZoneStyle(zone(...args), illuminationLevels)
+    const magical = style('MAGICAL_DARKNESS', null)
+    const ordinary = style('ORDINARY_DARKNESS', null)
     expect(magical.illuminationOutline).not.toBeNull()
     expect(ordinary.illuminationOutline).toBeNull()
 
-    const lightObscured = darknessZoneStyle(zone(null, 'LIGHT')).obscurementOutline
-    const heavyObscured = darknessZoneStyle(zone(null, 'HEAVY')).obscurementOutline
+    const lightObscured = style(null, 'LIGHT').obscurementOutline
+    const heavyObscured = style(null, 'HEAVY').obscurementOutline
     expect(lightObscured?.dash).not.toBeNull()
     expect(heavyObscured?.dash).toBeNull()
-    expect(darknessZoneStyle(zone(null, null)).obscurementOutline).toBeNull()
+    expect(style(null, null).obscurementOutline).toBeNull()
   })
 
   it('walks a dashed outline around a closed polygon with the pattern continuing across corners', () => {
@@ -1192,17 +1244,21 @@ describe('VTT lighting model', () => {
   })
 
   it('describes darkness in words that do not depend on colour', () => {
-    expect(describeDarknessZone(zone('MAGICAL_DARKNESS', 'HEAVY'))).toBe(
-      'Magical darkness, heavily obscured'
-    )
-    expect(describeDarknessZone(zone('DIM', null))).toBe('Dim light')
-    expect(describeDarknessZone(zone(null, 'LIGHT'))).toBe('Lightly obscured')
-    expect(describeDarknessZone(zone(null, null))).toBe('Visual darkness')
+    const words = (...args: Parameters<typeof zone>) =>
+      describeDarknessZone(zone(...args), illuminationLevels)
+    expect(words('MAGICAL_DARKNESS', 'HEAVY')).toBe('Magical darkness, heavily obscured')
+    expect(words('DIM', null)).toBe('Dim light')
+    expect(words(null, 'LIGHT')).toBe('Lightly obscured')
+    expect(words(null, null)).toBe('Visual darkness')
   })
 
   it('summarizes the lighting only when it departs from bright light', () => {
     expect(
-      describeSceneLighting({ ambientIllumination: 'BRIGHT', darknessZones: [] }, [])
+      describeSceneLighting(
+        { ambientIllumination: 'BRIGHT', darknessZones: [] },
+        [],
+        illuminationLevels
+      )
     ).toBeNull()
     const summary = describeSceneLighting(
       {
@@ -1215,11 +1271,75 @@ describe('VTT lighting model', () => {
           }
         ]
       },
-      ['Ember']
+      ['Ember'],
+      illuminationLevels
     )
     expect(summary).toContain('Ambient: Dim light')
     expect(summary).toContain('Magical darkness, heavily obscured')
     expect(summary).toContain('Vision: Ember')
+  })
+
+  describe("a System's own illumination levels (RULES-2.T9d)", () => {
+    // A System whose every darkness dispels light, with its own words for each level.
+    const strictLevels: readonly SceneIlluminationLevel[] = [
+      { code: 'BRIGHT', label: 'Daylight', renderClass: 'LIT', suppressesLight: false },
+      { code: 'DIM', label: 'Twilight', renderClass: 'LIT', suppressesLight: false },
+      { code: 'ORDINARY_DARKNESS', label: 'Night', renderClass: 'DARK', suppressesLight: true },
+      { code: 'MAGICAL_DARKNESS', label: 'Abyss', renderClass: 'DARK', suppressesLight: true }
+    ]
+    const strict = (code: IlluminationCode) => requireSceneIlluminationLevel(strictLevels, code)
+    const origin = { x: 0, y: 0 }
+    const reach: VttSenseReach = {
+      access: strict('ORDINARY_DARKNESS'),
+      effect: 'DARKVISION',
+      origin,
+      polygon: [
+        { x: -100, y: -100 },
+        { x: 100, y: -100 },
+        { x: 100, y: 100 },
+        { x: -100, y: 100 }
+      ],
+      radius: 100
+    }
+
+    it("reads sight into darkness by the System's rank of its access level", () => {
+      const into = (illuminationAccess: Parameters<typeof senseEffect>[0]['illuminationAccess']) =>
+        ({ channel: 'VISUAL', illuminationAccess }) as const
+      expect(senseEffect(into('ORDINARY_DARKNESS'), illuminationLevels)).toBe('DARKVISION')
+      expect(senseEffect(into('ORDINARY_DARKNESS'), strictLevels)).toBe('DARKVISION')
+      expect(senseEffect(into('MAGICAL_DARKNESS'), strictLevels)).toBe('TRUESIGHT')
+    })
+
+    it('reveals by render class, and sight only into darkness no darker than its access', () => {
+      const revealed = (illumination: SceneIlluminationLevel) =>
+        isTokenRevealed({
+          halfSize: 35,
+          illumination,
+          illuminationLevels: strictLevels,
+          point: origin,
+          reaches: [reach]
+        })
+      expect(revealed(strict('ORDINARY_DARKNESS'))).toBe(true)
+      expect(revealed(strict('MAGICAL_DARKNESS'))).toBe(false)
+      expect(
+        isTokenRevealed({
+          halfSize: 35,
+          illumination: strict('DIM'),
+          illuminationLevels: strictLevels,
+          point: origin,
+          reaches: []
+        })
+      ).toBe(true)
+    })
+
+    it("outlines and words a zone by the System's level", () => {
+      const night = zone('ORDINARY_DARKNESS', null)
+      expect(darknessZoneStyle(night, strictLevels).illuminationOutline).not.toBeNull()
+      expect(describeDarknessZone(night, strictLevels)).toBe('Night')
+      expect(
+        describeSceneLighting({ ambientIllumination: 'DIM', darknessZones: [] }, [], strictLevels)
+      ).toBeNull()
+    })
   })
 
   it('counts zones by illumination and obscurement', () => {

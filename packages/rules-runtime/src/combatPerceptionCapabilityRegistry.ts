@@ -3,7 +3,8 @@ import type {
   CombatPerceptionContributionResult,
   CombatPerceptionContributionSource,
   CombatPerceptionEnvironment,
-  CombatPerceptionRequirement
+  CombatPerceptionRequirement,
+  SceneIlluminationLevel
 } from '@artificer-toolkit/shared/vtt'
 
 export interface CombatPerceptionResolutionInput {
@@ -21,6 +22,8 @@ export interface CombatPerceptionResolutionInput {
  */
 export interface CombatPerceptionCapabilityAdapter {
   gameSystemId: string
+  /** The System's illumination levels, brightest first: what Scene lighting resolves and draws. */
+  illuminationLevels: readonly SceneIlluminationLevel[]
   /** Pure: validates its input and throws on a malformed one. */
   resolveCombatPerceptionWithContributions(
     input: CombatPerceptionResolutionInput

@@ -1236,6 +1236,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - **Why:** the tracer System (T12, AUTHORING-1.T2) cannot exist without its own abilities, and rekeying before launch avoids a persisted-data migration later.
 - RULES-2.T12 follows T9f1 and T9f2. T9f3 may run beside T12.
 - **Codemod exception (this task only):** the session may run a one-off ts-morph AST codemod from its scratchpad for the mechanical rewrite. The diff is reviewed before commit. The Edit/Write-only rule still applies to all other work.
+- **Amended (user ruling, 2026-10-24): abilities use System core codes, the way T9f1 handles sizes, not definition ids.** The T9f2 inventory measured about 21 points (about 100 production files, about 330 SRD creature files, 7 persisted record shapes). So:
+  - Persisted and authored ability keys stay codes (`STRENGTH`). Each System's ability table owns them.
+  - Every ingress checks codes against that table, rejecting rather than clearing.
+  - Labels and abbreviations come from the System record. The shared `core/ability.ts` is deleted.
+  - The tracer System supplies its own codes. No record re-keys and no reseed.
+  - T9f2 is re-sized 5 → 8 (+3, user-approved). T9f3 applies the same rule to authored references: codes checked against the System, not `abilityDefinitionId`. The codemod exception lapses unless a mechanical rewrite still needs it.
 
 ### D193: bright light and slot pools (orchestrator ruling, 2026-10-24, RULES-2.T9d and T9g)
 

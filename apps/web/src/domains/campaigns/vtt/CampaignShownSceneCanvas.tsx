@@ -10,9 +10,11 @@ const noTokens: ReadonlyMap<string, boolean> = new Map()
 /** Renders a shown Scene read-only: the map and its fog, with every edit and live callback inert. */
 export function CampaignShownSceneCanvas({
   currentUserId,
+  gameSystemId,
   scene
 }: {
   currentUserId: string
+  gameSystemId: string
   scene: CampaignSceneStateDto
 }) {
   const host = useRef<HTMLDivElement>(null)
@@ -25,7 +27,7 @@ export function CampaignShownSceneCanvas({
     const element = host.current
     if (!element) return
     let disposed = false
-    void createVttSceneRenderer(element, {
+    void createVttSceneRenderer(element, gameSystemId, {
       onMapLoadStatus: mapDelivery.onMapLoadStatus,
       onCreateBarrier: () => undefined,
       onCreateDarkness: () => undefined,
@@ -48,7 +50,7 @@ export function CampaignShownSceneCanvas({
         return null
       })
     }
-  }, [])
+  }, [gameSystemId])
 
   useEffect(() => {
     renderer?.update({

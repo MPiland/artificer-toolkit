@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const seaHag: CreatureAuthored = {
@@ -173,8 +174,9 @@ export const seaHag: CreatureAuthored = {
       description:
         'Death Glare. The hag targets one frightened creature she can see within 30 feet of her. If the target can see the hag, it must succeed on a DC 11 Wisdom saving throw against this magic or drop to 0 hit points.',
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(248, 504),
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -193,12 +195,44 @@ export const seaHag: CreatureAuthored = {
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.HOSTILE
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              // A target that cannot see the hag is unaffected, so it is never a valid target.
+              targetRequirements: [
+                {
+                  kind: 'HAS_CONDITION',
+                  conditionIds: [conditionTypeId('FRIGHTENED')],
+                  source: 'ANY'
+                },
+                { kind: 'SIGHT', direction: 'ACTOR_SEES_TARGET' },
+                { kind: 'SIGHT', direction: 'TARGET_SEES_ACTOR' }
+              ]
             }
           },
-          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SEA_HAG_DEATH_GLARE
-        })
+          paths: [
+            {
+              id: S.actionId(248, 607),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: S.actionId(248, 608),
+                resultKind: 'SINGLE',
+                outcomes: [
+                  {
+                    id: S.actionId(248, 609),
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Drop to 0 hit points',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      'The target drops to 0 hit points; the GM reduces its hit points to 0.'
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 5
     }

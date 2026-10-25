@@ -24,7 +24,6 @@ import {
 import type { CampaignDetailDto } from '@artificer-toolkit/schema/api/campaignCore'
 import type { TableSafetyPracticeDto } from '@artificer-toolkit/schema/api/tableSafety'
 import { useMutation as useConvexMutation } from 'convex/react'
-import { isCampaignTableSettingsEditable } from '../../campaignAccess'
 import * as styles from './CampaignTableSettings.css'
 
 const practices: ReadonlyArray<{
@@ -71,7 +70,7 @@ function CampaignTableSettingsForm({
   settings: CampaignPlaySettingsDto
 }) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(settings))
-  const editable = isCampaignTableSettingsEditable(campaign)
+  const editable = campaign.capabilities.manageActiveCampaign
   const savePlaySettings = useConvexMutation(convexApi.campaigns.playSettings.save)
   const selectedInitiativePolicy = options.initiativePolicies.find(
     (policy) => policy.definitionId === draft.initiativePolicyDefinitionId

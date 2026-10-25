@@ -1,12 +1,8 @@
 import type { ProficiencyGrantDto } from '@artificer-toolkit/schema/grants/proficiency'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared/startingEquipment'
+import type { ReferenceOption } from '#app/data/contentReferences'
 import { formatEnumLabel } from './detailFormatters'
 import { isRecord } from '#app/forms/utils/valueGuards'
-
-type ReferenceOption = {
-  value: string
-  label: string
-}
 
 export type GrantDetailLine = {
   id: string
