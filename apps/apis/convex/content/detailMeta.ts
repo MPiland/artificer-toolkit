@@ -95,8 +95,17 @@ export async function readDetailMeta(
     .unique()
   if (!system) throw new Error('System not found.')
   const vocabulary = readSystem(system)
-  const meta: Record<string, { value: string; label: string }[]> = {}
+  const meta: Record<string, { value: string; label: string; short?: string }[]> = {}
   for (const key of keys) {
+    if (key === 'abilities') {
+      // A stat block shows every System ability, in System order.
+      meta.abilities = vocabulary.abilities.map(({ code, label, short }) => ({
+        value: code,
+        label,
+        short: short ?? label
+      }))
+      continue
+    }
     const ids = new Set(referenceIds(input.subjectKind, item, key))
     if (key === 'classes' || key === 'races' || key === 'equipment') {
       const kind = key === 'classes' ? 'CLASS' : key === 'races' ? 'RACE' : 'EQUIPMENT'

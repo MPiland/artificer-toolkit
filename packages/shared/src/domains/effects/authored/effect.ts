@@ -7,7 +7,7 @@ import type {
   ShapeAuthored,
   TargetingAuthored
 } from '#authored'
-import type { ACTIVATION_CODE, AbilityModifierReference, ActivationCode, Trigger } from '#core'
+import type { ACTIVATION_CODE, ActivationCode, Trigger } from '#core'
 import type { PathCode } from '../core/path.js'
 
 export const EFFECT_INVOCATION_KIND = {
@@ -66,7 +66,7 @@ export type ReactionAttackedSelfTriggerBindingAuthored = {
  * reaction's own level needs no check. The check is the reactor's, made with `ability` as its modifier.
  */
 export type ReactionHigherLevelCheckAuthored = {
-  ability: AbilityModifierReference
+  ability: string
   baseDc: number // int
 }
 

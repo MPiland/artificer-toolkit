@@ -1,5 +1,5 @@
 import type { NumericAtom, NumericExpr } from '#core'
-import { ABILITY_OPTIONS, NUMERIC_EXPR, NUMERIC_EXPR_CODE } from '#core'
+import { NUMERIC_EXPR, NUMERIC_EXPR_CODE } from '#core'
 import { buildNodeMap, type NodeMap, valuesOf } from '#utils'
 
 const NUMERIC_ATOM_OPTIONS = valuesOf(NUMERIC_EXPR).filter(
@@ -51,8 +51,8 @@ const NUMERIC_ATOM_NODE_MAP: NodeMap<NumericAtom> = numericAtom.define(
           ['ability'],
           'Ability',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
           },
           {
             requiredIf: true,
@@ -131,8 +131,8 @@ export const NUMERIC_EXPR_NODE_MAP: NodeMap<NumericExpr> = numericExpr.define(
           ['ability'],
           'Ability',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
           },
           {
             requiredIf: true,

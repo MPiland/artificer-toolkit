@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
@@ -26,7 +25,8 @@ import {
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
   SRD_USER_ID,
-  SRD_DARKVISION_SENSE_ID
+  SRD_DARKVISION_SENSE_ID,
+  ABILITY_CODE
 } from '../vocabulary.js'
 import { conditionSaveAdvantageGrants } from '../classes/mechanics.js'
 import { conditionTypeId } from '../spells/shared.js'

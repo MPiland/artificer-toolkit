@@ -582,6 +582,16 @@ describe('native Character Sheet extra commands', () => {
         })
       )
     ).rejects.toThrow('Size "AVERAGE" is not available.')
+    for (const adjustment of [
+      { family: 'ABILITY', ability: 'SANITY', field: 'OTHER_MODIFIER', value: 1 },
+      { family: 'SAVING_THROW', ability: 'SANITY', field: 'MISC_BONUS', value: 1 }
+    ] as const)
+      await expect(
+        owner.caller.mutation(
+          execute,
+          command(character.id, 8, { type: 'UPSERT_SHEET_ADJUSTMENT', adjustment })
+        )
+      ).rejects.toThrow('Ability "SANITY" is not available.')
     await owner.caller.mutation(
       execute,
       command(character.id, 8, {

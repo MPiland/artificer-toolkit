@@ -20,12 +20,54 @@ export const characterSheetMulticlassFixture = {
   overview: {
     ...characterSheetFixture.overview,
     abilities: [
-      { ability: 'STRENGTH', score: 10, modifier: 0, rollMode: 'NORMAL' },
-      { ability: 'DEXTERITY', score: 16, modifier: 3, rollMode: 'NORMAL' },
-      { ability: 'CONSTITUTION', score: 14, modifier: 2, rollMode: 'NORMAL' },
-      { ability: 'INTELLIGENCE', score: 10, modifier: 0, rollMode: 'NORMAL' },
-      { ability: 'WISDOM', score: 13, modifier: 1, rollMode: 'NORMAL' },
-      { ability: 'CHARISMA', score: 12, modifier: 1, rollMode: 'NORMAL' }
+      {
+        ability: 'STRENGTH',
+        label: 'Strength',
+        short: 'STR',
+        score: 10,
+        modifier: 0,
+        rollMode: 'NORMAL'
+      },
+      {
+        ability: 'DEXTERITY',
+        label: 'Dexterity',
+        short: 'DEX',
+        score: 16,
+        modifier: 3,
+        rollMode: 'NORMAL'
+      },
+      {
+        ability: 'CONSTITUTION',
+        label: 'Constitution',
+        short: 'CON',
+        score: 14,
+        modifier: 2,
+        rollMode: 'NORMAL'
+      },
+      {
+        ability: 'INTELLIGENCE',
+        label: 'Intelligence',
+        short: 'INT',
+        score: 10,
+        modifier: 0,
+        rollMode: 'NORMAL'
+      },
+      {
+        ability: 'WISDOM',
+        label: 'Wisdom',
+        short: 'WIS',
+        score: 13,
+        modifier: 1,
+        rollMode: 'NORMAL'
+      },
+      {
+        ability: 'CHARISMA',
+        label: 'Charisma',
+        short: 'CHA',
+        score: 12,
+        modifier: 1,
+        rollMode: 'NORMAL'
+      }
     ],
     facts: [
       { label: 'Speed', value: '30 feet' },
@@ -60,6 +102,7 @@ export const characterSheetMulticlassFixture = {
       {
         ability: 'STRENGTH',
         label: 'Strength',
+        short: 'STR',
         total: 2,
         proficiency: 'FULL',
         rollMode: 'NORMAL'
@@ -67,6 +110,7 @@ export const characterSheetMulticlassFixture = {
       {
         ability: 'DEXTERITY',
         label: 'Dexterity',
+        short: 'DEX',
         total: 3,
         proficiency: 'NONE',
         rollMode: 'NORMAL'
@@ -74,6 +118,7 @@ export const characterSheetMulticlassFixture = {
       {
         ability: 'CONSTITUTION',
         label: 'Constitution',
+        short: 'CON',
         total: 4,
         proficiency: 'FULL',
         rollMode: 'NORMAL'
@@ -81,6 +126,7 @@ export const characterSheetMulticlassFixture = {
       {
         ability: 'INTELLIGENCE',
         label: 'Intelligence',
+        short: 'INT',
         total: 0,
         proficiency: 'NONE',
         rollMode: 'NORMAL'
@@ -88,6 +134,7 @@ export const characterSheetMulticlassFixture = {
       {
         ability: 'WISDOM',
         label: 'Wisdom',
+        short: 'WIS',
         total: 1,
         proficiency: 'NONE',
         rollMode: 'NORMAL'
@@ -95,6 +142,7 @@ export const characterSheetMulticlassFixture = {
       {
         ability: 'CHARISMA',
         label: 'Charisma',
+        short: 'CHA',
         total: 1,
         proficiency: 'NONE',
         rollMode: 'NORMAL'
@@ -115,14 +163,17 @@ export const characterSheetMulticlassFixture = {
         ...skill,
         total:
           resolved?.total ??
-          {
-            STRENGTH: 0,
-            DEXTERITY: 3,
-            CONSTITUTION: 2,
-            INTELLIGENCE: 0,
-            WISDOM: 1,
-            CHARISMA: 1
-          }[skill.ability],
+          (
+            {
+              STRENGTH: 0,
+              DEXTERITY: 3,
+              CONSTITUTION: 2,
+              INTELLIGENCE: 0,
+              WISDOM: 1,
+              CHARISMA: 1
+            } as Record<string, number>
+          )[skill.ability] ??
+          0,
         proficiency: resolved?.proficiency ?? 'NONE'
       }
     })

@@ -1,9 +1,9 @@
 import { spellAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/spell'
-import { ABILITY_CODE, CLOSED_RULE_KIND } from '@artificer-toolkit/shared'
+import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared'
 import { describe, expect, it } from 'vitest'
 import { srdSpells } from './spells/index.js'
 import { conditionTypeId } from './spells/shared.js'
-import { SRD_DAMAGE_TYPES } from './vocabulary.js'
+import { SRD_DAMAGE_TYPES, ABILITY_CODE } from './vocabulary.js'
 
 const plainText = (html: string) => html.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ')
 

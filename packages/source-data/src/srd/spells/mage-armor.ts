@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   PATH_CODE,
@@ -23,6 +22,7 @@ import {
 import { equippedCategoryRestriction } from '../classes/mechanics.js'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { ABILITY_CODE } from '../vocabulary.js'
 export const mageArmor: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.MAGE_ARMOR,

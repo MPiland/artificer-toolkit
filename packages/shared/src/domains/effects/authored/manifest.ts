@@ -7,7 +7,6 @@ import type {
 import {
   EFFECT_KIND,
   MANIFEST_KIND,
-  type AbilityCode,
   type BreakpointScalingAuthored,
   type ManifestKind,
   type LengthUnitCode,
@@ -38,7 +37,7 @@ export const SUMMON_VISIBILITY_KIND = {
 
 export type SummonDamageabilityKind = keyof typeof SUMMON_DAMAGEABILITY_KIND
 export type SummonVisibilityKind = keyof typeof SUMMON_VISIBILITY_KIND
-export type SummonAbilityScoreCode = AbilityCode
+export type SummonAbilityScoreCode = string
 
 export const MANIFEST_BLOCKING_RULE = {
   NONMAGICAL_RANGED_ATTACKS: 'NONMAGICAL_RANGED_ATTACKS',
@@ -161,7 +160,7 @@ export type ManifestOccupantSaveBonusAuthored = {
   dispositionFilter: 'ALLIES_AND_SOURCE'
 } & (
   | { amountKind: 'FIXED'; amount: number }
-  | { amountKind: 'SOURCE_ABILITY_MODIFIER'; ability: AbilityCode; minimum?: number }
+  | { amountKind: 'SOURCE_ABILITY_MODIFIER'; ability: string; minimum?: number }
 )
 
 export type ManifestComponentAuthored = {

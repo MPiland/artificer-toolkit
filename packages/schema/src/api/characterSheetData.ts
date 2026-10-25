@@ -7,7 +7,6 @@ import {
 import { characterSheetConditionDtoSchema } from './characterSheetCondition.js'
 
 import {
-  abilityCodeSchema,
   activationCodeSchema,
   authoredRecordStatusSchema,
   equipmentPropertyCodeSchema,
@@ -95,9 +94,12 @@ export const characterSheetIdentityDtoSchema = lazySchema(() =>
   })
 )
 
+/** `label` and `short` come from the System record's ability. */
 export const characterSheetAbilityDtoSchema = lazySchema(() =>
   z.object({
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
+    label: stringSchema,
+    short: stringSchema,
     score: integerSchema,
     modifier: integerSchema,
     rollMode: systemCoreCodeSchema
@@ -182,8 +184,9 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
     concentration: z.nullable(concentrationListingDtoSchema),
     savingThrows: z.array(
       z.object({
-        ability: abilityCodeSchema,
+        ability: systemCoreCodeSchema,
         label: stringSchema,
+        short: stringSchema,
         total: integerSchema,
         rollMode: systemCoreCodeSchema,
         proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
@@ -194,7 +197,8 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
         skillId: stringSchema,
         code: stringSchema,
         label: stringSchema,
-        ability: abilityCodeSchema,
+        ability: systemCoreCodeSchema,
+        abilityShort: stringSchema,
         total: integerSchema,
         rollMode: systemCoreCodeSchema,
         proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
@@ -260,7 +264,7 @@ export const characterSheetMechanicDtoSchema = lazySchema(() =>
     attackRollMode: z.optional(systemCoreCodeSchema),
     save: z.optional(
       z.object({
-        ability: abilityCodeSchema,
+        ability: systemCoreCodeSchema,
         dc: z.optional(integerSchema)
       })
     ),
@@ -431,7 +435,7 @@ const characterSheetSpellSummonExtraDtoSchema = lazySchema(() =>
     /** Absent when the stat block gives the summon no hit points. */
     hitPoints: z.optional(characterSheetExtraCreatureHitPointsDtoSchema),
     size: z.optional(systemCoreCodeSchema),
-    abilityScores: z.optional(z.partialRecord(abilityCodeSchema, integerSchema)),
+    abilityScores: z.optional(z.record(systemCoreCodeSchema, integerSchema)),
     passivePerception: z.optional(integerSchema)
   })
 )

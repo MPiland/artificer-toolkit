@@ -17,6 +17,7 @@ import { authoredDetailSearchFor } from '#app/routing/authoredDetailSearch'
 import { buildCreatureRouteParams } from '#app/routing/authoredRouteParams'
 
 const creatureDetailMeta = [
+  'abilities',
   'challengeRatings',
   'conditionTypes',
   'creatureTypes',

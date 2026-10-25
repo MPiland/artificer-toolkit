@@ -1,4 +1,3 @@
-import type { AbilityCode } from '#core'
 import {
   CHARACTER_ABILITY_GENERATION_METHOD,
   ADVANCEMENT_METHOD_CODE,
@@ -191,14 +190,14 @@ export interface CharacterAbilityRollGroupRecord {
   id: string
   rolls: CharacterDieRollRecord[]
   kept: CharacterDieRollRecord[]
-  assignedAbility?: AbilityCode
+  assignedAbility?: string
   score: number
   applied?: boolean
   rolling?: boolean
 }
 
 export interface CharacterManualAbilityAssignment {
-  ability: AbilityCode
+  ability: string
   score: number
 }
 
@@ -209,12 +208,12 @@ export interface CharacterManualRolledAbilityRecord {
 }
 
 export interface CharacterStandardArrayAssignment {
-  ability: AbilityCode
+  ability: string
   option: StandardArrayScore
 }
 
 export interface CharacterPointBuyAssignment {
-  ability: AbilityCode
+  ability: string
   option: PointBuyScore
 }
 

@@ -227,6 +227,10 @@ describe('creature detail matches the shared ability modifier', () => {
         }
       },
       {
+        abilities: srdSystemRecord.abilities.map(({ code, short }) => ({
+          value: code,
+          short: short ?? code
+        })),
         challengeRatings: [],
         conditionTypes: [],
         creatureTypes: [],

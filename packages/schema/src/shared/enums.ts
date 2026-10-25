@@ -8,14 +8,6 @@ import {
 import { z, lazySchema } from '../zod.js'
 import { systemCoreCodeSchema } from './systemCoreCode.js'
 
-export const abilityCodeSchema = lazySchema(() =>
-  z.enum(['CHARISMA', 'CONSTITUTION', 'DEXTERITY', 'INTELLIGENCE', 'STRENGTH', 'WISDOM'])
-)
-
-export const abilityModifierReferenceSchema = lazySchema(() =>
-  z.union([abilityCodeSchema, z.literal('SPELLCASTING')])
-)
-
 export const activationCodeSchema = lazySchema(() =>
   z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'FREE'])
 )

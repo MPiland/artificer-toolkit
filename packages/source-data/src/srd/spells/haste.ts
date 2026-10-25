@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
@@ -24,6 +23,7 @@ import {
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { ABILITY_CODE } from '../vocabulary.js'
 
 const grant = {
   grantKind: GRANT_KIND.MODIFIER_GRANT,

@@ -1,5 +1,4 @@
 import type {
-  AbilityCode,
   ActivationCode,
   ChargeLimitKind,
   ChargeResetKind,
@@ -57,12 +56,12 @@ export type PredicatePayloadByCode = {
     optionIds: string[]
   }
   MAGIC_SCHOOL: Selectable<{ magicSchoolIds: string[] }>
-  SPELLCASTING_ABILITY: Selectable<{ abilities: AbilityCode[] }>
+  SPELLCASTING_ABILITY: Selectable<{ abilities: string[] }>
   SPELL_LEVEL: {
     min: number
     max?: number
   }
-  SAVING_THROW_ABILITY: Selectable<{ abilities: AbilityCode[] }>
+  SAVING_THROW_ABILITY: Selectable<{ abilities: string[] }>
   SAVING_THROW_DC: {
     min: number
     max?: number
@@ -76,7 +75,7 @@ export type PredicatePayloadByCode = {
   >
   SOLE_WIELDED_WEAPON: EmptyObject
   ATTACK_ABILITY: {
-    ability: AbilityCode
+    ability: string
   }
   /** The attack is made with this activation: the bonus action of an off-hand attack. */
   ATTACK_ACTIVATION: {
@@ -119,7 +118,7 @@ export type PredicatePayloadByCode = {
     { properties: EquipmentPropertyCode[] },
     { category?: EquipmentCategoryCode }
   >
-  SAVE_ABILITY_PROFICIENCY: Selectable<{ abilities: AbilityCode }, { level: ScalingAmountKind }>
+  SAVE_ABILITY_PROFICIENCY: Selectable<{ abilities: string }, { level: ScalingAmountKind }>
   LANGUAGE_PROFICIENCY: Selectable<{ languageIds: string[] }, { level: ScalingAmountKind }>
   EQUIPMENT_EQUIPPED: Selectable<
     { equipmentIds: string[] },
@@ -173,8 +172,8 @@ export type PredicatePayloadByCode = {
   }>
   SKILL_PROFICIENCY: Selectable<{ skillIds: string[] }, { level: ScalingAmountKind }>
   SKILL_SCORE: Selectable<{ skillIds: string[] }>
-  ABILITY_SCORE: Selectable<{ abilities: AbilityCode }, { min: number; max?: number }>
-  SAVING_THROW_ABILITY_BONUS: Selectable<{ abilities: AbilityCode }, { min: number; max?: number }>
+  ABILITY_SCORE: Selectable<{ abilities: string }, { min: number; max?: number }>
+  SAVING_THROW_ABILITY_BONUS: Selectable<{ abilities: string }, { min: number; max?: number }>
   WHILE_SOURCE_CARRIED: EmptyObject
   WHILE_SOURCE_EQUIPPED: EmptyObject
   WHILE_SOURCE_ATTUNED: EmptyObject

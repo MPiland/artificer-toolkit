@@ -11,11 +11,7 @@ import { modifierOperationSchema, senseOperationSchema } from '../api/characterG
 import { characterAuthoredDtoSchema, type CharacterAuthoredDto } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
-import {
-  abilityCodeSchema,
-  equipmentCategoryCodeSchema,
-  equipmentPropertyCodeSchema
-} from '../shared/enums.js'
+import { equipmentCategoryCodeSchema, equipmentPropertyCodeSchema } from '../shared/enums.js'
 import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
   SPATIAL_TURN_TRIGGERS,
@@ -75,6 +71,7 @@ import {
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { attackSlotConditionDtoSchema } from '../features/attackSlots.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const nonNegativeStreamVersionSchema = lazySchema(() => z.number().check(z.int()).check(z.gte(0)))
 const compiledActionResourceIdentitySchema = lazySchema(() =>
@@ -615,7 +612,7 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
           }),
           z.strictObject({
             kind: z.literal('SOURCE_ABILITY_MODIFIER'),
-            ability: abilityCodeSchema,
+            ability: systemCoreCodeSchema,
             minimum: z.nullable(z.number().check(z.int()).check(z.minimum(-5)).check(z.maximum(30)))
           })
         ])

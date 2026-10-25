@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
@@ -22,7 +21,7 @@ import {
   SPELL_COMPONENT
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID, ABILITY_CODE } from '../vocabulary.js'
 import { spellChildId } from './shared.js'
 import { attackDisadvantageAgainstHolder } from './protection-from-evil-and-good.js'
 

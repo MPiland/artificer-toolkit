@@ -1,17 +1,11 @@
 import { assertNever } from '#utils'
 
 import type { ChargeAuthored, ChargeBonusAuthored, OwnedChargeAuthored } from '#authored'
-import {
-  CHARGE_BONUS_KIND,
-  SCALING,
-  type AbilityCode,
-  type OwnedChargeLimitKind,
-  type ChargeResetKind
-} from '#core'
+import { CHARGE_BONUS_KIND, SCALING, type OwnedChargeLimitKind, type ChargeResetKind } from '#core'
 
 export type CompiledChargeLimitPayloadByKind = {
   ABILITY_MODIFIER: {
-    ability: AbilityCode
+    ability: string
     multiplier?: number
     min?: number
     max?: number
@@ -45,7 +39,7 @@ export type CompiledChargeLimitPayloadByKind = {
 export type CompiledChargeBonus =
   | {
       bonusKind: typeof CHARGE_BONUS_KIND.ABILITY_MODIFIER
-      ability: AbilityCode
+      ability: string
       min?: number
       max?: number
       multiplier?: number

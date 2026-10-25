@@ -14,6 +14,7 @@ import type { CreatureDetailLoaderData } from '#app/routes/-routeLoaderData'
 import { CreatureDetailPage } from '#domains/creatures/pages/CreatureDetailPage'
 
 const creatureDetailMeta = [
+  'abilities',
   'challengeRatings',
   'conditionTypes',
   'creatureTypes',

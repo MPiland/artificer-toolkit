@@ -93,14 +93,23 @@ describe('derived statistic abilities come from the System (RULES-2.T9e)', () =>
     })
   })
 
-  it('matches a short ability key to the code the System names', () => {
-    const character = { ...snapshot(SRD_SYSTEM_ID), abilities: { STR: 10, DEX: 14, CON: 12 } }
+  it('matches only the exact code the System names, never a short key', () => {
+    const shortKeys = { ...snapshot(SRD_SYSTEM_ID), abilities: { STR: 10, DEX: 14, CON: 12 } }
+    const codes = {
+      ...snapshot(SRD_SYSTEM_ID),
+      abilities: { STRENGTH: 10, DEXTERITY: 14, CONSTITUTION: 12 }
+    }
 
     expect(
-      buildCharacterArmorClassRuleFacts(character).armorClassFacts!.dexterityAbilityIndex
-    ).toBe(1)
-    expect(buildCharacterHitPointRuleFacts(character).hitPointFacts).toMatchObject({
-      constitutionAbilityId: 'CON',
+      buildCharacterArmorClassRuleFacts(shortKeys).armorClassFacts!.dexterityAbilityIndex
+    ).toBe(null)
+    expect(buildCharacterHitPointRuleFacts(shortKeys).hitPointFacts).toMatchObject({
+      constitutionAbilityId: 'CONSTITUTION',
+      constitutionAbilityIndex: null
+    })
+    expect(buildCharacterArmorClassRuleFacts(codes).armorClassFacts!.dexterityAbilityIndex).toBe(1)
+    expect(buildCharacterHitPointRuleFacts(codes).hitPointFacts).toMatchObject({
+      constitutionAbilityId: 'CONSTITUTION',
       constitutionAbilityIndex: 2
     })
   })

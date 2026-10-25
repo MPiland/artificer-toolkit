@@ -1,11 +1,10 @@
-import { ABILITIES } from '@artificer-toolkit/shared/core'
 import {
   buildSkillSubjectAliasMap,
-  resolveAbilityAlias,
   resolveSystemSkillAbilities
 } from '@artificer-toolkit/shared/character'
 import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 
 export const DND5E_2014_EXHAUSTION_PRESENTATION = {
   label: 'Exhaustion',
@@ -13,25 +12,10 @@ export const DND5E_2014_EXHAUSTION_PRESENTATION = {
     '<p>Each exhaustion level includes the effects of every lower level.</p><ol><li><strong>Level 1:</strong> Disadvantage on ability checks.</li><li><strong>Level 2:</strong> Speed is halved.</li><li><strong>Level 3:</strong> Disadvantage on attack rolls and saving throws.</li><li><strong>Level 4:</strong> Hit point maximum is halved.</li><li><strong>Level 5:</strong> Speed is reduced to 0.</li><li><strong>Level 6:</strong> Death.</li></ol>'
 } as const
 
-export const CHARACTER_ABILITY_ALIASES: Readonly<Record<string, string>> = {
-  STRENGTH: 'STR',
-  DEXTERITY: 'DEX',
-  CONSTITUTION: 'CON',
-  INTELLIGENCE: 'INT',
-  WISDOM: 'WIS',
-  CHARISMA: 'CHA'
-}
-
-export function isAbilityCode(value: string): value is keyof typeof ABILITIES {
-  return value in ABILITIES
-}
-
-function resolveAbilityCode(subjectId: string): keyof typeof ABILITIES | undefined {
-  const abilityCode = resolveAbilityAlias(subjectId)
-  return abilityCode && isAbilityCode(abilityCode) ? abilityCode : undefined
-}
-
-export function createSkillReference(system: CharacterAssemblyRegistry['system']) {
+export function createSkillReference(
+  system: CharacterAssemblyRegistry['system'],
+  systemId: string
+) {
   // One alias map with the rule facts, which refuses an alias two System skills share.
   const canonicalBySubject = buildSkillSubjectAliasMap(system)
   const metadataByCanonical = new Map<
@@ -40,23 +24,23 @@ export function createSkillReference(system: CharacterAssemblyRegistry['system']
       skillId: string
       code: string
       label: string
-      ability: keyof typeof ABILITIES
+      ability: string
     }
   >()
 
   if (!system) return { canonicalBySubject, metadataByCanonical }
+  const abilityCodes = systemCoreCodeRegistry.abilityCodes(systemId)
   for (const { skill, code, canonicalId, abilityCode } of resolveSystemSkillAbilities(system)) {
-    const ability = resolveAbilityCode(abilityCode)
-    if (!ability) {
+    if (!abilityCodes.includes(abilityCode)) {
       throw new Error(
-        `System check definition "${skill.id}" is governed by an ability the Sheet does not know.`
+        `System check definition "${skill.id}" is governed by an ability the Game System does not define.`
       )
     }
     metadataByCanonical.set(canonicalId, {
       skillId: skill.id,
       code,
       label: skill.label,
-      ability
+      ability: abilityCode
     })
   }
   return { canonicalBySubject, metadataByCanonical }
@@ -66,15 +50,7 @@ export function resolveCharacterSheetSkillKey(
   system: CharacterAssemblyRegistry['system'],
   skillId: string
 ): string {
-  return createSkillReference(system).canonicalBySubject.get(skillId) ?? skillId
-}
-
-export function getAbilityDerivedTotal(
-  values: Readonly<Record<string, number>>,
-  ability: keyof typeof ABILITIES
-): number {
-  const alias = CHARACTER_ABILITY_ALIASES[ability]
-  return values[ability] ?? (alias ? values[alias] : undefined) ?? 0
+  return buildSkillSubjectAliasMap(system).get(skillId) ?? skillId
 }
 
 type ClassSpellSelectionSource = {

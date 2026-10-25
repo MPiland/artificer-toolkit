@@ -182,14 +182,14 @@ function createDomainSections(
             labelForVocabularyId(system, 'challengeRatings', readString(values.challengeRatingId))
           ]
         ]),
-        createFactsSection('creature-abilities', 'Ability Scores', [
-          ['STR', readNumber(readRecord(values.abilityScores)?.STRENGTH)],
-          ['DEX', readNumber(readRecord(values.abilityScores)?.DEXTERITY)],
-          ['CON', readNumber(readRecord(values.abilityScores)?.CONSTITUTION)],
-          ['INT', readNumber(readRecord(values.abilityScores)?.INTELLIGENCE)],
-          ['WIS', readNumber(readRecord(values.abilityScores)?.WISDOM)],
-          ['CHA', readNumber(readRecord(values.abilityScores)?.CHARISMA)]
-        ]),
+        createFactsSection(
+          'creature-abilities',
+          'Ability Scores',
+          (system?.abilities ?? []).map(({ code, label, short }) => [
+            short ?? label,
+            readNumber(readRecord(values.abilityScores)?.[code])
+          ])
+        ),
         createRowsSection(
           'creature-speeds',
           'Speeds',

@@ -11,7 +11,6 @@ import {
   type ScopedFacetAuthored
 } from '#authored'
 import {
-  ABILITY_OPTIONS,
   ACTIVATION_OPTIONS,
   AUTHORING_CONSTRAINT_OPTIONS,
   AUTHORING_MODE_KIND_OPTIONS,
@@ -36,6 +35,8 @@ import {
   LOGIC_CONTEXT_AUTHORING,
   LOGIC_OPTION_AUTHORING
 } from './facetLogicAuthoring.js'
+
+const CODE_COLUMNS = ['id', 'label', 'description'] as const
 
 const facetBodyGroupNode = buildNodeMap<FacetBodyGroupAuthored>()
 
@@ -687,7 +688,7 @@ function createFacetPredicateNodeMap(
           'Sizes',
           {
             kind: 'DATA',
-            relationship: data.table('sizes', { selectColumns: ['id', 'label', 'description'] })
+            relationship: data.table('sizes', { selectColumns: CODE_COLUMNS })
           },
           {
             order: 3,
@@ -710,9 +711,7 @@ function createFacetPredicateNodeMap(
           'Creature Types',
           {
             kind: 'DATA',
-            relationship: table('creature_types', {
-              selectColumns: ['id', 'label', 'description']
-            })
+            relationship: table('creature_types', { selectColumns: CODE_COLUMNS })
           },
           {
             order: 3,
@@ -1135,7 +1134,7 @@ function createFacetPredicateNodeMap(
                 .mapValues('magic_schools', {
                   whereColumn: 'id',
                   valueColumn: 'id',
-                  selectColumns: ['id', 'label', 'description']
+                  selectColumns: CODE_COLUMNS
                 })
                 .end()
             )
@@ -1155,8 +1154,8 @@ function createFacetPredicateNodeMap(
           ['abilities'],
           'Abilities',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS,
+            kind: 'DATA',
+            relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }),
             filter: {
               kind: 'ALLOW',
               by: condition((c) =>
@@ -1331,7 +1330,7 @@ function createFacetPredicateNodeMap(
         selectSingle(
           ['ability'],
           'Attack Ability',
-          { kind: 'INLINE_OPTIONS', options: ABILITY_OPTIONS },
+          { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
           {
             order: 3,
             showIf: local.field(['predicateCode']).eq('ATTACK_ABILITY'),
@@ -1355,7 +1354,7 @@ function createFacetPredicateNodeMap(
           'Attack Roll Mode',
           {
             kind: 'DATA',
-            relationship: table('roll_modes', { selectColumns: ['id', 'label', 'description'] })
+            relationship: table('roll_modes', { selectColumns: CODE_COLUMNS })
           },
           { order: 3, showIf: attackRollMode, requiredIf: attackRollMode }
         )
@@ -2305,9 +2304,7 @@ function createFacetPredicateNodeMap(
           'Heritages',
           {
             kind: 'DATA',
-            relationship: table('heritages', {
-              selectColumns: ['id', 'label', 'description']
-            })
+            relationship: table('heritages', { selectColumns: CODE_COLUMNS })
           },
           {
             order: 3,

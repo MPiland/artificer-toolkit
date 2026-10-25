@@ -1,7 +1,5 @@
 import type { ModifierGrantAuthored } from '#authored'
 import {
-  ABILITY_MODIFIER_REFERENCE_OPTIONS,
-  ABILITY_OPTIONS,
   ATTACK_DOMAIN_OPTIONS,
   ATTACK_OCCASION_OPTIONS,
   AUTHORING_SELECTION_REGISTRY,
@@ -59,8 +57,8 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           ['ability'],
           'Ability',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
           },
           {
             showIf: or([
@@ -270,14 +268,14 @@ const attackDecoyArmorClass = buildNodeMap<AttackDecoyArmorClass>()
 
 const MODIFIER_ATTACK_DECOY_ARMOR_CLASS_NODE_MAP = attackDecoyArmorClass.define(
   'modifierAttackDecoyArmorClass',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     const { number, selectMulti } = nodes
 
     map.set('amount', number(['amount'], 'Amount')).set(
       'abilities',
       selectMulti(['abilities'], 'Abilities', {
-        kind: 'INLINE_OPTIONS',
-        options: ABILITY_OPTIONS
+        kind: 'DATA',
+        relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
       })
     )
   }
@@ -352,13 +350,13 @@ const DAMAGE_INTERCEPTION_SAVE_DC_NODE_MAP = buildNodeMap<
 
 const DAMAGE_INTERCEPTION_SAVE_NODE_MAP = damageInterceptionSave.define(
   'damageInterceptionSave',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     map
       .set(
         'ability',
         nodes.selectSingle(['ability'], 'Save Ability', {
-          kind: 'INLINE_OPTIONS',
-          options: ABILITY_OPTIONS
+          kind: 'DATA',
+          relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set(
@@ -448,8 +446,8 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           ['ability'],
           'Ability',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
           },
           {
             showIf: or([
@@ -795,8 +793,10 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           ['abilities'],
           'Abilities',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_MODIFIER_REFERENCE_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('ability_modifier_references', {
+              selectColumns: ['id', 'label', 'description']
+            })
           },
           {
             // An armor class formula adds each listed ability modifier to its amount; only the best-of

@@ -1,5 +1,4 @@
 import { CLASS_CATEGORY, HITPOINT_CALCULATION_METHOD_CODE } from '@artificer-toolkit/shared/core'
-import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CompiledClass } from '@artificer-toolkit/shared/subjects/compilers'
 import type {
@@ -92,14 +91,7 @@ export function prepareCharacterHitpointProgression(
     )
     const die = parseHitDie(authoredClass?.hitpoint?.dieConfig)
     const hitpointAbility = authoredClass?.hitpoint?.ability
-    const normalizedHitpointAbility = hitpointAbility
-      ? (resolveAbilityAlias(hitpointAbility) ?? hitpointAbility)
-      : null
-    const abilityIndex = normalizedHitpointAbility
-      ? abilityIds.findIndex(
-          (abilityId) => (resolveAbilityAlias(abilityId) ?? abilityId) === normalizedHitpointAbility
-        )
-      : -1
+    const abilityIndex = hitpointAbility ? abilityIds.indexOf(hitpointAbility) : -1
     const key = `${orderedLevel.classId}:${orderedLevel.classLevel}`
     const submitted = levelsByClass.get(key)
     const roll = submitted?.rolls?.[0]

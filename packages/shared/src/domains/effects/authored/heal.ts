@@ -1,4 +1,4 @@
-import type { AbilityModifierReference, SCALING } from '#core'
+import type { SCALING } from '#core'
 import {
   EFFECT_KIND,
   SCALABLE_SCALING_KIND,
@@ -11,7 +11,7 @@ export type HealBonusAuthored =
   | {
       id: string
       bonusKind: 'ABILITY_BONUS'
-      ability: AbilityModifierReference
+      ability: string
       min?: number
       max?: number
       multiplier?: number

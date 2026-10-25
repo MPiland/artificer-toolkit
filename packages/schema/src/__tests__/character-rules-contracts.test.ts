@@ -711,29 +711,16 @@ describe('Character rule contracts', () => {
         ...inputWithClosedCodes,
         spellAccessCandidates: inputWithClosedCodes.spellAccessCandidates.map((candidate) => ({
           ...candidate,
-          castingAbility: 'ARCANA'
+          castingAbility: 'arcana'
         }))
       }).success
     ).toBe(false)
 
+    // The System-neutral contract cannot name abilities, so it defaults to empty ability records.
     expect(output.rollContributorEvidence).toEqual({
       initiative: [],
-      abilityChecks: {
-        STRENGTH: [],
-        DEXTERITY: [],
-        CONSTITUTION: [],
-        INTELLIGENCE: [],
-        WISDOM: [],
-        CHARISMA: []
-      },
-      savingThrows: {
-        STRENGTH: [],
-        DEXTERITY: [],
-        CONSTITUTION: [],
-        INTELLIGENCE: [],
-        WISDOM: [],
-        CHARISMA: []
-      },
+      abilityChecks: {},
+      savingThrows: {},
       skillChecks: {},
       attacks: { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
     })
@@ -921,7 +908,7 @@ describe('Character rule contracts', () => {
     expect(
       characterRulePolicyOutputSchema.safeParse({
         ...outputWithClosedCodes,
-        spellAccess: [{ ...outputWithClosedCodes.spellAccess[0]!, castingAbility: 'ARCANA' }]
+        spellAccess: [{ ...outputWithClosedCodes.spellAccess[0]!, castingAbility: 'arcana' }]
       }).success
     ).toBe(false)
   })

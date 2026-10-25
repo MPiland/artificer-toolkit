@@ -53,12 +53,6 @@ const vocabularyCodes = new Set(
   Object.values(vocabularyDomains).flatMap((entries) => entries.map(({ code }) => code))
 )
 
-/**
- * Ability code lists (the `AbilityCode` enum, the class and creature pages) move with RULES-2.T9f, which
- * owns the ability literals across about 70 files. Ability code comparisons are guarded already.
- */
-const DEFERRED_LIST_DOMAIN = 'abilities'
-
 const codeBeforeLiteral = /[Cc]ode\s*[!=]==?\s*(['"`])([A-Z][A-Z0-9_]*)\1/g
 const literalBeforeCode = /(['"`])([A-Z][A-Z0-9_]*)\1\s*[!=]==?\s*[\w.?]*[Cc]ode\b/g
 const quotedList = /\[\s*(?:(['"])[A-Z][A-Z0-9_]*\1\s*,\s*){2,}(['"])[A-Z][A-Z0-9_]*\2\s*,?\s*\]/g
@@ -121,8 +115,7 @@ function violations(source: string, path = ''): string[] {
   }
   for (const [list] of source.matchAll(quotedList)) {
     const members = [...list.matchAll(/['"]([A-Z][A-Z0-9_]*)['"]/g)].map((member) => member[1]!)
-    const domain = Object.entries(vocabularyDomains).some(([key, entries]) => {
-      if (key === DEFERRED_LIST_DOMAIN) return false
+    const domain = Object.entries(vocabularyDomains).some(([, entries]) => {
       const codes = new Set(entries.map(({ code }) => code))
       return members.every((member) => codes.has(member))
     })
@@ -138,6 +131,7 @@ describe('System vocabulary boundary (RULES-2.T9o)', () => {
   it('detects a code comparison, a code list and a built code', () => {
     expect(violations("speed.code === 'WALK'")).toEqual(['compares code WALK'])
     expect(violations("['FIRE', 'COLD', 'ACID']")).toHaveLength(1)
+    expect(violations("['STRENGTH', 'DEXTERITY', 'CONSTITUTION']")).toHaveLength(1)
     expect(violations('`CR_${level}`')).toHaveLength(1)
     expect(violations("kind === 'SPELL_CAST'")).toEqual([])
   })
@@ -153,7 +147,7 @@ describe('System vocabulary boundary (RULES-2.T9o)', () => {
   })
 
   it('detects an ability or speed comparison outside a System module (RULES-2.T9e)', () => {
-    const comparison = "(resolveAbilityAlias(abilityId) ?? abilityId) === 'DEXTERITY'"
+    const comparison = "abilityId === 'DEXTERITY'"
     expect(violations(comparison)).toEqual(['compares DEXTERITY'])
     expect(violations("'CONSTITUTION' !== ability.ability")).toEqual(['compares CONSTITUTION'])
     expect(

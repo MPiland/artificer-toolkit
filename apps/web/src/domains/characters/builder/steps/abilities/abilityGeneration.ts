@@ -1,10 +1,8 @@
 import {
-  ABILITY_OPTIONS,
   CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS,
   CHARACTER_ABILITY_GENERATION_METHOD,
   POINT_BUY_SCORE_OPTIONS,
-  STANDARD_ARRAY_SCORE_OPTIONS,
-  type AbilityCode
+  STANDARD_ARRAY_SCORE_OPTIONS
 } from '@artificer-toolkit/shared/core'
 import type { CharacterAuthoredDto } from '@artificer-toolkit/schema/subjects/character'
 import type { CharacterBuilderIntentCacheDto } from '@artificer-toolkit/schema/api/characters'
@@ -25,24 +23,12 @@ type PointBuyAbilities = Extract<
   { method: typeof CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY }
 >
 type AbilityAssignment = (StandardArrayAbilities | PointBuyAbilities)['assignments'][number]
-type AbilityAssignmentCode = AbilityCode
 type CharacterAbilityFormAssignments = Array<AbilityAssignment>
 export type CharacterAbilityDraftSlot = {
-  ability?: AbilityCode
+  ability?: string
   option?: string
   score?: number
 }
-const abilityOptionDefinitions = ABILITY_OPTIONS.map((option) => ({
-  value: option.code,
-  label: option.label
-})) satisfies { value: AbilityAssignmentCode; label: string }[]
-
-export const abilityCodes = abilityOptionDefinitions.map((option) => option.value)
-
-export function isCharacterAbilityCode(value: string): value is AbilityAssignmentCode {
-  return findOption(abilityCodes, value) !== undefined
-}
-
 const abilityMethodOptions: SelectOption[] = CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS.map(
   (option) => ({ value: option.code, label: option.label })
 )
@@ -392,7 +378,7 @@ export function normalizeAbilityIntent(
 
 export function getAssignedAbilityCodes(
   abilities: CharacterFormValues['intent']['abilities']
-): AbilityCode[] {
+): string[] {
   if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY) {
     return abilities.assignments.map((assignment) => assignment.ability)
   }
@@ -406,7 +392,7 @@ export function getAssignedAbilityCodes(
 
 export function getAssignedAbilityScores(
   abilities: CharacterFormValues['intent']['abilities']
-): Partial<Record<AbilityCode, number>> {
+): Record<string, number> {
   if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) {
     return Object.fromEntries(
       abilities.state.assignments.map((assignment) => [assignment.ability, assignment.score])

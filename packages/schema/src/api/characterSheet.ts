@@ -1,7 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { validateCharacterHitDiceRollEvidence } from '@artificer-toolkit/shared/character/sheetRest'
 import { authoredLengthSchema } from '../shared/authoredLimits.js'
-import { abilityCodeSchema } from '../shared/enums.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
 
@@ -105,28 +104,28 @@ const adjustmentMembers = <Fields extends z.core.$ZodShape>(fields: Fields) => (
     z.object({
       ...fields,
       family: z.literal('ABILITY'),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       field: z.literal('OTHER_MODIFIER'),
       value: z.number().check(z.int())
     }),
     z.object({
       ...fields,
       family: z.literal('ABILITY'),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       field: z.literal('SCORE_OVERRIDE'),
       value: z.number().check(z.int()).check(z.nonnegative())
     }),
     z.object({
       ...fields,
       family: z.literal('SAVING_THROW'),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       field: z.enum(['MAGIC_BONUS', 'MISC_BONUS', 'TOTAL_OVERRIDE']),
       value: z.number().check(z.int())
     }),
     z.object({
       ...fields,
       family: z.literal('SAVING_THROW'),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       field: z.literal('PROFICIENCY_OVERRIDE'),
       value: characterProficiencyLevelDtoSchema
     }),
@@ -149,7 +148,7 @@ const adjustmentMembers = <Fields extends z.core.$ZodShape>(fields: Fields) => (
       family: z.literal('SKILL'),
       skillId: uuidSchema,
       field: z.literal('GOVERNING_ABILITY_OVERRIDE'),
-      value: abilityCodeSchema
+      value: systemCoreCodeSchema
     }),
     z.object({
       ...fields,

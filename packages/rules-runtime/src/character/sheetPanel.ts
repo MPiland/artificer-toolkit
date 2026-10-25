@@ -6,7 +6,6 @@ import {
   type CharacterSheetPanelTargetDto
 } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import {
-  ABILITIES,
   FEATURE_ATTRIBUTE,
   roundLengthForDisplay,
   type CharacterCalculation,
@@ -42,11 +41,6 @@ const PROFICIENCY_OPTIONS = [
   { value: 'FULL', label: 'Proficient' },
   { value: 'DOUBLE', label: 'Expertise' }
 ]
-
-const ABILITY_OPTIONS = Object.values(ABILITIES).map((ability) => ({
-  value: ability.code,
-  label: ability.label
-}))
 
 function formatCode(value: string): string {
   return value
@@ -280,12 +274,18 @@ function getProficiencyLabel(
   )
 }
 
+function requireSystemAbility(params: BuildCharacterSheetPanelParams, code: string) {
+  const ability = params.resolution.registry.system?.abilities.find((entry) => entry.code === code)
+  if (!ability) throw new Error(`Ability "${code}" is not available on this character sheet.`)
+  return ability
+}
+
 function buildAbilityPanel(
   params: BuildCharacterSheetPanelParams,
   ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'ABILITY' }>
 ): CharacterSheetPanelDto {
-  const ability = ABILITIES[target.ability]
+  const ability = requireSystemAbility(params, target.ability)
   const matching = params.adjustments.filter(
     (adjustment) => adjustment.family === 'ABILITY' && adjustment.ability === target.ability
   )
@@ -346,7 +346,7 @@ function buildSavingThrowPanel(
   ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'SAVING_THROW' }>
 ): CharacterSheetPanelDto {
-  const ability = ABILITIES[target.ability]
+  const ability = requireSystemAbility(params, target.ability)
   const getNumeric = (field: 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE') =>
     findAdjustment(
       params.adjustments,
@@ -481,7 +481,7 @@ function buildSkillPanel(
       label: 'Governing ability',
       value:
         governingAbility?.field === 'GOVERNING_ABILITY_OVERRIDE' ? governingAbility.value : null,
-      options: ABILITY_OPTIONS,
+      options: params.sheet.overview.abilities.map((a) => ({ value: a.ability, label: a.label })),
       commitIntent: 'IMMEDIATE',
       ...adjustmentEditorMetadata(governingAbility)
     }

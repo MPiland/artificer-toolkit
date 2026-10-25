@@ -1,6 +1,5 @@
 import { ChargeBonusAuthored, type ChargeAuthored, type ChargeLimitPayload } from '#authored'
 import {
-  ABILITY_OPTIONS,
   CHARGE_BONUS_OPTIONS,
   CHARGE_LIMIT_OPTIONS,
   CHARGE_RESET_OPTIONS,
@@ -40,8 +39,8 @@ const CHARGE_BONUS_NODE_MAP = chargeBonus.define('chargeBonus', ({ map, nodes, c
         ['ability'],
         'Ability',
         {
-          kind: 'INLINE_OPTIONS',
-          options: ABILITY_OPTIONS
+          kind: 'DATA',
+          relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
         },
         {
           order: 2,
@@ -120,7 +119,7 @@ type ChargeOwner = {
 
 const charges = buildNodeMap<ChargeAuthored<true>>()
 
-export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, cond }) => {
+export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, cond, data }) => {
   const { selectSingle, groupArray, number } = nodes
   const { or, and, not } = logic
   const local = cond.local()
@@ -198,8 +197,8 @@ export const CHARGE_NODE_MAP = charges.define('charges', ({ map, nodes, logic, c
         ['ability'],
         'Ability',
         {
-          kind: 'INLINE_OPTIONS',
-          options: ABILITY_OPTIONS
+          kind: 'DATA',
+          relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
         },
         {
           order: 3,

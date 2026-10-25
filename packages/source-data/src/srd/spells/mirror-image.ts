@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
@@ -20,7 +19,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
-import { SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID } from '../vocabulary.js'
+import { SRD_BLINDSIGHT_SENSE_ID, SRD_TRUESIGHT_SENSE_ID, ABILITY_CODE } from '../vocabulary.js'
 export const mirrorImage: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.MIRROR_IMAGE,

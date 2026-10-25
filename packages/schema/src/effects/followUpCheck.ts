@@ -1,12 +1,12 @@
 import { convexOpaqueSchema, z } from '../zod.js'
 
 import { activationDtoSchema } from './activation.js'
-import { abilityCodeSchema } from '../shared/enums.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 export function createFollowUpCheckDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
   const branchDtoSchema = z.discriminatedUnion('kind', [
@@ -25,7 +25,7 @@ export function createFollowUpCheckDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
     effectKind: z.literal('FOLLOW_UP_CHECK'),
     label: authoredShortTextSchema,
     activation: activationDtoSchema,
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     fixedDc: z.number().check(z.int()).check(z.positive()),
     skillId: z.optional(authoredIdentifierSchema),
     toolEquipmentId: z.optional(authoredIdentifierSchema),

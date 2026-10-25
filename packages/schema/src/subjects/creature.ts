@@ -108,15 +108,9 @@ export const creatureNpcProfileDtoSchema = lazySchema(() =>
 
 export type CreatureNpcProfileDto = z.infer<typeof creatureNpcProfileDtoSchema>
 
+/** Scores by System ability code; publication requires exactly the System's abilities. */
 export const creatureAbilityScoresDtoSchema = lazySchema(() =>
-  z.object({
-    STRENGTH: z.number(),
-    DEXTERITY: z.number(),
-    CONSTITUTION: z.number(),
-    INTELLIGENCE: z.number(),
-    WISDOM: z.number(),
-    CHARISMA: z.number()
-  })
+  z.record(systemCoreCodeSchema, z.number())
 )
 
 export const creatureEquipmentLoadoutEntryDtoSchema = lazySchema(() =>

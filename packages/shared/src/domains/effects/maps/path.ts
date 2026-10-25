@@ -63,7 +63,6 @@ import {
   MOVEMENT_RULE_KIND_OPTIONS,
   NON_MANIFEST_EFFECT_KIND_OPTIONS,
   SCALING_AMOUNT_OPTIONS,
-  ABILITY_OPTIONS,
   ACTION_ECONOMY_RULE_KIND_OPTIONS,
   CLOSED_RULE_KIND_OPTIONS,
   ACTIVATION_OPTIONS,
@@ -848,7 +847,7 @@ const MANIFEST_LIGHT_NODE_MAP: NodeMap<ManifestLightAuthored> = manifestLight.de
 )
 
 const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNode> =
-  manifestOccupantSaveBonus.define('manifestOccupantSaveBonus', ({ map, nodes, cond }) => {
+  manifestOccupantSaveBonus.define('manifestOccupantSaveBonus', ({ map, nodes, cond, data }) => {
     const { text, number, selectSingle } = nodes
     const local = cond.local()
     const isAbilityModifier = local.field(['amountKind']).eq('SOURCE_ABILITY_MODIFIER')
@@ -895,7 +894,7 @@ const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNo
         selectSingle(
           ['ability'],
           'Ability',
-          { kind: 'INLINE_OPTIONS', options: ABILITY_OPTIONS },
+          { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
           { requiredIf: true, showIf: isAbilityModifier }
         )
       )
@@ -2257,7 +2256,7 @@ function registerOutcomeFields(
       selectSingle(
         ['ability'],
         'Ability',
-        { kind: 'INLINE_OPTIONS', options: ABILITY_OPTIONS },
+        { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
         {
           requiredIf: true,
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)

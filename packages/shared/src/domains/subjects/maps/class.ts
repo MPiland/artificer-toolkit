@@ -1,5 +1,4 @@
 import {
-  ABILITY_OPTIONS,
   CLASS_ATTRIBUTE_OPTIONS,
   CLASS_CATEGORY,
   CLASS_CATEGORY_OPTIONS,
@@ -202,8 +201,8 @@ export const CLASS_SPELLCASTING_NODE_MAP = classSpellcastingNode.define(
       .set(
         'ability',
         selectSingle(['ability'], 'Spellcasting Ability', {
-          kind: 'INLINE_OPTIONS',
-          options: ABILITY_OPTIONS
+          kind: 'DATA',
+          relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set('maxSpellLevel', number(['maxSpellLevel'], 'Max Spell Level'))
@@ -250,19 +249,22 @@ export const CLASS_RESOURCE_NODE_MAP = classResourceNode.define(
 
 const classHitpointNode = buildNodeMap<ClassHitpointAuthored>()
 
-const CLASS_HITPOINT_NODE_MAP = classHitpointNode.define('classHitpoint', ({ map, nodes }) => {
-  const { selectSingle, text } = nodes
+const CLASS_HITPOINT_NODE_MAP = classHitpointNode.define(
+  'classHitpoint',
+  ({ map, nodes, data }) => {
+    const { selectSingle, text } = nodes
 
-  map
-    .set(
-      'ability',
-      selectSingle(['ability'], 'Ability', {
-        kind: 'INLINE_OPTIONS',
-        options: ABILITY_OPTIONS
-      })
-    )
-    .set('dieConfig', text(['dieConfig'], 'Die Config'))
-})
+    map
+      .set(
+        'ability',
+        selectSingle(['ability'], 'Ability', {
+          kind: 'DATA',
+          relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
+        })
+      )
+      .set('dieConfig', text(['dieConfig'], 'Die Config'))
+  }
+)
 
 const classStartingGoldNode = buildNodeMap<ClassStartingGoldAuthored>()
 
@@ -291,7 +293,7 @@ const classRequirementNode = buildNodeMap<ClassMulticlassRequirementAuthored>()
 
 const CLASS_MULTICLASS_REQUIREMENT_NODE_MAP = classRequirementNode.define(
   'classMulticlassRequirement',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     const { text, selectSingle, number } = nodes
 
     map
@@ -299,8 +301,8 @@ const CLASS_MULTICLASS_REQUIREMENT_NODE_MAP = classRequirementNode.define(
       .set(
         'ability',
         selectSingle(['ability'], 'Ability', {
-          kind: 'INLINE_OPTIONS',
-          options: ABILITY_OPTIONS
+          kind: 'DATA',
+          relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set('min', number(['min'], 'Minimum'))

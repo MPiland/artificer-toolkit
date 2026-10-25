@@ -71,3 +71,27 @@ describe('Creature rule facts read the System challenge rating', () => {
     ).toThrow('Creature challenge rating is unavailable for D&D proficiency.')
   })
 })
+
+describe('Creature ability facts follow the System ability order', () => {
+  it('keys scores in System order whatever order the stored record holds', () => {
+    const alphabetical = Object.fromEntries(
+      Object.entries(wolf.abilityScores).sort(([left], [right]) => left.localeCompare(right))
+    )
+    const facts = compileDnd5eCreatureRuleFacts({
+      creature: { ...wolf, abilityScores: alphabetical },
+      vocabulary: SRD_VOCABULARY
+    })
+    expect(Object.keys(facts.abilityScores)).toEqual(
+      SRD_VOCABULARY.document.abilities.map(({ id }) => id)
+    )
+  })
+
+  it('refuses a score for an ability the System does not list', () => {
+    expect(() =>
+      compileDnd5eCreatureRuleFacts({
+        creature: { ...wolf, abilityScores: { ...wolf.abilityScores, SANITY: 10 } },
+        vocabulary: SRD_VOCABULARY
+      })
+    ).toThrow('Creature ability facts are not normalized by the pinned System vocabulary.')
+  })
+})

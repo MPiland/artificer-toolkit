@@ -144,8 +144,8 @@ export const GuidedCreatureAuthoring = withForm({
         ) : null}
         {step === 2 ? (
           <div className={styles.fields}>
-            {ABILITY_FIELDS.map(([path, label]) => (
-              <form.AppField key={path} name={guidedField('creature', 'abilityScores', path)}>
+            {system.abilities.map(({ code, label }) => (
+              <form.AppField key={code} name={guidedField('creature', 'abilityScores', code)}>
                 {(field) => <field.NumberField label={label} minimum={1} maximum={30} required />}
               </form.AppField>
             ))}
@@ -249,11 +249,3 @@ const CREATURE_CATEGORIES = ['MONSTER', 'BEAST', 'NPC', 'COMPANION', 'SUMMON'].m
   label: value.charAt(0) + value.slice(1).toLowerCase(),
   value
 }))
-const ABILITY_FIELDS = [
-  ['STRENGTH', 'Strength'],
-  ['DEXTERITY', 'Dexterity'],
-  ['CONSTITUTION', 'Constitution'],
-  ['INTELLIGENCE', 'Intelligence'],
-  ['WISDOM', 'Wisdom'],
-  ['CHARISMA', 'Charisma']
-] as const

@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   ATTACK_DOMAIN_CODE,
   ATTACK_OCCASION_CODE,
@@ -21,7 +20,7 @@ import {
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
-import { SRD_CONDITION_TYPES, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_CONDITION_TYPES, SRD_SYSTEM_ID, SRD_USER_ID, ABILITY_CODE } from '../vocabulary.js'
 import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {

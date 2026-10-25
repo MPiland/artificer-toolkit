@@ -1,6 +1,6 @@
 export * from './trigger.js'
 export * from './operation.js'
-export * from './ability.js'
+export * from './abilityReference.js'
 export * from './activation.js'
 export * from './authoring.js'
 export * from './core.js'

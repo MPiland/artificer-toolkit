@@ -1,11 +1,11 @@
 import { PROFICIENCY_KIND, type ProficiencyKind, type RoundingCode } from '#core'
 import type { GrantBaseAuthored, GrantScalingNone } from '#authored'
-import type { AbilityCode, GRANT_KIND, NodeSubjectCode, SCALING_AMOUNT_KIND } from '#core'
+import type { GRANT_KIND, NodeSubjectCode, SCALING_AMOUNT_KIND } from '#core'
 import type { Selectable } from '#utils'
 
 export type ProficiencyKindPayload = {
   [PROFICIENCY_KIND.SKILL]: Selectable<{ skillIds: string[] }, ProficiencyScaling>
-  [PROFICIENCY_KIND.SAVE_ABILITY]: Selectable<{ abilities: AbilityCode[] }, ProficiencyScaling>
+  [PROFICIENCY_KIND.SAVE_ABILITY]: Selectable<{ abilities: string[] }, ProficiencyScaling>
   [PROFICIENCY_KIND.LANGUAGE]: Selectable<{ languageIds: string[] }, ProficiencyScaling>
   [PROFICIENCY_KIND.EQUIPMENT]: Selectable<
     { equipmentIds: string[] },

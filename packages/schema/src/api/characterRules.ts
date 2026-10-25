@@ -25,7 +25,6 @@ import {
   characterSpellReferenceMechanicsSchema
 } from './characterActionRules.js'
 import {
-  abilityCodeSchema,
   damageDefenseBypassCodeSchema,
   equipmentCategoryCodeSchema,
   lengthUnitCodeSchema,
@@ -1076,15 +1075,13 @@ const characterRuleSenseSchema = lazySchema(() =>
     range: characterRuleSenseRangeSchema
   })
 )
+/** Keyed by the System's ability codes. */
 const characterAbilityRollModesSchema = lazySchema(() =>
-  z.strictObject({
-    STRENGTH: systemCoreCodeSchema,
-    DEXTERITY: systemCoreCodeSchema,
-    CONSTITUTION: systemCoreCodeSchema,
-    INTELLIGENCE: systemCoreCodeSchema,
-    WISDOM: systemCoreCodeSchema,
-    CHARISMA: systemCoreCodeSchema
-  })
+  z.record(systemCoreCodeSchema, systemCoreCodeSchema).check(
+    z.refine((record) => Object.keys(record).length <= 64, {
+      message: 'Ability roll modes support at most 64 abilities.'
+    })
+  )
 )
 
 const characterRollContributorSchema = lazySchema(() =>
@@ -1130,25 +1127,20 @@ const characterRollContributorRecordSchema = lazySchema(() =>
   )
 )
 
+/** Keyed by the System's ability codes. */
+const characterAbilityRollContributorsSchema = lazySchema(() =>
+  z.record(systemCoreCodeSchema, characterRollContributorsSchema).check(
+    z.refine((record) => Object.keys(record).length <= 64, {
+      message: 'Ability roll contributors support at most 64 abilities.'
+    })
+  )
+)
+
 const characterRollContributorEvidenceSchema = lazySchema(() =>
   z.strictObject({
     initiative: characterRollContributorsSchema,
-    abilityChecks: z.strictObject({
-      STRENGTH: characterRollContributorsSchema,
-      DEXTERITY: characterRollContributorsSchema,
-      CONSTITUTION: characterRollContributorsSchema,
-      INTELLIGENCE: characterRollContributorsSchema,
-      WISDOM: characterRollContributorsSchema,
-      CHARISMA: characterRollContributorsSchema
-    }),
-    savingThrows: z.strictObject({
-      STRENGTH: characterRollContributorsSchema,
-      DEXTERITY: characterRollContributorsSchema,
-      CONSTITUTION: characterRollContributorsSchema,
-      INTELLIGENCE: characterRollContributorsSchema,
-      WISDOM: characterRollContributorsSchema,
-      CHARISMA: characterRollContributorsSchema
-    }),
+    abilityChecks: characterAbilityRollContributorsSchema,
+    savingThrows: characterAbilityRollContributorsSchema,
     skillChecks: characterRollContributorRecordSchema,
     attacks: z.strictObject({
       MELEE: characterRollContributorsSchema,
@@ -1161,22 +1153,8 @@ const characterRollContributorEvidenceSchema = lazySchema(() =>
 
 const emptyCharacterRollContributors = () => ({
   initiative: [],
-  abilityChecks: {
-    STRENGTH: [],
-    DEXTERITY: [],
-    CONSTITUTION: [],
-    INTELLIGENCE: [],
-    WISDOM: [],
-    CHARISMA: []
-  },
-  savingThrows: {
-    STRENGTH: [],
-    DEXTERITY: [],
-    CONSTITUTION: [],
-    INTELLIGENCE: [],
-    WISDOM: [],
-    CHARISMA: []
-  },
+  abilityChecks: {},
+  savingThrows: {},
   skillChecks: {},
   attacks: { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
 })
@@ -1369,7 +1347,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
           acquisition: z.enum(['KNOWN', 'ALWAYS_PREPARED', 'GRANTED']),
           castMode: z.enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']),
           castAtLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(9))),
-          castingAbility: z.nullable(abilityCodeSchema),
+          castingAbility: z.nullable(systemCoreCodeSchema),
           charge: characterSpellChargeDescriptorSchema,
           learned: booleanSchema,
           prepared: booleanSchema

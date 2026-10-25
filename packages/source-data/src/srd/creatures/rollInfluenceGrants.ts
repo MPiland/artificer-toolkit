@@ -1,16 +1,15 @@
 import {
-  ABILITY_CODE,
   ATTACK_DOMAIN_CODE,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   VALUE_DOMAIN_CODE,
-  type AbilityCode,
   type AttackDomainCode,
   type FeatureAuthored
 } from '@artificer-toolkit/shared'
 import { grantId } from './shared.js'
+import { ABILITY_CODE, type SrdAbilityCode } from '../vocabulary.js'
 
 /** An enemy of the target that can act stands within 5 feet of it (Pack Tactics). */
 export const ENEMY_WITHIN_5_FEET_OF_TARGET = {
@@ -40,7 +39,7 @@ type RollInfluenceGrantInput = { influence: 'ADVANTAGE' | 'DISADVANTAGE' } & (
     }
   | {
       valueDomainCode: typeof VALUE_DOMAIN_CODE.ABILITY_CHECK
-      domain: { ability: AbilityCode }
+      domain: { ability: SrdAbilityCode }
     }
 )
 
@@ -136,7 +135,7 @@ export function lightSensitivityGrants(
   creatureIndex: number,
   firstLocalIndex: number,
   requiresDaylight: boolean,
-  checkAbilities: readonly AbilityCode[] = [ABILITY_CODE.WISDOM]
+  checkAbilities: readonly SrdAbilityCode[] = [ABILITY_CODE.WISDOM]
 ): NonNullable<FeatureAuthored['grants']> {
   const inputs: RollInfluenceGrantInput[] = [
     ...ATTACK_ROLL_INPUTS('DISADVANTAGE'),

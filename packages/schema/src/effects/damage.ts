@@ -1,23 +1,19 @@
 import { z, lazySchema } from '../zod.js'
-import {
-  abilityModifierReferenceSchema,
-  scalingAmountKindSchema,
-  scalingKindSchema,
-  scalingSourceSchema
-} from '../shared/enums.js'
+import { scalingAmountKindSchema, scalingKindSchema, scalingSourceSchema } from '../shared/enums.js'
 import { levelScaledValueLevelDtoSchema } from '../shared/scaling.js'
 import {
   authoredIdentifierSchema,
   authoredNestedCollectionSchema,
   authoredNonnegativeNumberSchema
 } from '../shared/authoredLimits.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 export const damageBonusDtoSchema = lazySchema(() =>
   z.union([
     z.object({
       id: authoredIdentifierSchema,
       bonusKind: z.literal('ABILITY_BONUS'),
-      ability: abilityModifierReferenceSchema,
+      ability: systemCoreCodeSchema,
       min: z.optional(authoredNonnegativeNumberSchema),
       max: z.optional(authoredNonnegativeNumberSchema),
       multiplier: z.optional(authoredNonnegativeNumberSchema),

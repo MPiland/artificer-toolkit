@@ -1,9 +1,5 @@
 import { z, lazySchema } from '../zod.js'
-import {
-  abilityModifierReferenceSchema,
-  scalingKindSchema,
-  scalingSourceSchema
-} from '../shared/enums.js'
+import { scalingKindSchema, scalingSourceSchema } from '../shared/enums.js'
 import { levelScaledValueLevelDtoSchema } from '../shared/scaling.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import {
@@ -11,13 +7,14 @@ import {
   authoredNestedCollectionSchema,
   authoredNonnegativeNumberSchema
 } from '../shared/authoredLimits.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const healBonusDtoSchema = lazySchema(() =>
   z.discriminatedUnion('bonusKind', [
     z.object({
       id: authoredIdentifierSchema,
       bonusKind: z.literal('ABILITY_BONUS'),
-      ability: abilityModifierReferenceSchema,
+      ability: systemCoreCodeSchema,
       min: z.optional(authoredNonnegativeNumberSchema),
       max: z.optional(authoredNonnegativeNumberSchema),
       multiplier: z.optional(authoredNonnegativeNumberSchema),

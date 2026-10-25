@@ -36,6 +36,10 @@ export function validateSheetAdjustmentTarget(
   switch (input.family) {
     case 'ABILITY':
     case 'SAVING_THROW':
+      if (!systemCoreCodeRegistry.abilityCodes(character.systemId).includes(input.ability)) {
+        throw new CharacterSheetCommandError(`Ability "${input.ability}" is not available.`)
+      }
+      return
     case 'HIT_POINTS':
       return
     case 'SKILL':
@@ -107,6 +111,12 @@ export function validatePanelTarget(
   resolution: CharacterBuilderResolution,
   character: CharacterAuthored
 ): void {
+  if (
+    (target.kind === 'ABILITY' || target.kind === 'SAVING_THROW') &&
+    !systemCoreCodeRegistry.abilityCodes(character.systemId).includes(target.ability)
+  ) {
+    throw new CharacterSheetCommandError(`Ability "${target.ability}" is not available.`)
+  }
   if (
     target.kind === 'SKILL' &&
     !resolution.registry.system?.skills.some((skill) => skill.id === target.skillId)

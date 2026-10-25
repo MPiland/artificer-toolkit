@@ -4,7 +4,6 @@ import type { SelectOption } from '#forms/utils/formUtils'
 import { AppSelect } from '#ui/primitives/Select'
 import {
   isAbilityAssignmentOption,
-  isCharacterAbilityCode,
   type CharacterAbilityDraftSlot,
   type CharacterAbilityGenerationMethod
 } from './abilityGeneration'
@@ -167,7 +166,7 @@ export function CharacterAbilityAssignments({
                 aria-label={`Ability for assignment ${index + 1}`}
                 data={abilityOptions.map((option) => ({
                   ...option,
-                  disabled: isCharacterAbilityCode(option.value) && usedAbilities.has(option.value)
+                  disabled: usedAbilities.has(option.value)
                 }))}
                 value={slot.ability ?? null}
                 required
@@ -180,7 +179,7 @@ export function CharacterAbilityAssignments({
                       slotIndex === index
                         ? {
                             ...candidate,
-                            ability: value && isCharacterAbilityCode(value) ? value : undefined
+                            ability: abilityOptions.find((option) => option.value === value)?.value
                           }
                         : candidate
                     )

@@ -11,12 +11,12 @@ import {
 import { featureDtoSchema } from '../features/feature.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
 import {
-  abilityCodeSchema,
   measurementUnitCodeSchema,
   operationCodeSchema,
   roundingCodeSchema,
   scalingAmountKindSchema
 } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 export const classSpellSlotDtoSchema = lazySchema(() =>
   z.object({
@@ -68,7 +68,7 @@ export type ClassResourceDto = z.infer<typeof classResourceDtoSchema>
 
 export const classHitpointDtoSchema = lazySchema(() =>
   z.object({
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     dieConfig: authoredIdentifierSchema
   })
 )
@@ -86,7 +86,7 @@ export type ClassStartingGoldDto = z.infer<typeof classStartingGoldDtoSchema>
 export const classMulticlassRequirementDtoSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     min: z.number().check(z.int())
   })
 )
@@ -178,7 +178,7 @@ export const equipmentAbilityDtoSchema = lazySchema(() =>
     op: operationCodeSchema,
     abilities: authoredNestedCollectionSchema(
       z.object({
-        ability: abilityCodeSchema
+        ability: systemCoreCodeSchema
       })
     )
   })

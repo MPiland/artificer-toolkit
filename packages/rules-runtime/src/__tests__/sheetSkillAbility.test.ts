@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createSkillReference } from '../character/characterSheetVocabulary.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import {
   prepareFixtureBuilder,
   prepareFixtureSheet,
@@ -45,9 +46,9 @@ describe('Sheet skill governing ability', () => {
       governingAbilityDefinitionId: wisdom.id
     }
 
-    expect(() => createSkillReference({ ...system, skills: [...system.skills, juggling] })).toThrow(
-      'System check alias "ACROBATICS" is ambiguous.'
-    )
+    expect(() =>
+      createSkillReference({ ...system, skills: [...system.skills, juggling] }, DND5E_SYSTEM_ID)
+    ).toThrow('System check alias "ACROBATICS" is ambiguous.')
   })
 
   it('rejects a skill whose governing ability the System does not define, never defaulting it', async () => {

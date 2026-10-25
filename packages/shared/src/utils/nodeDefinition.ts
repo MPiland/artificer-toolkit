@@ -1221,6 +1221,8 @@ export type NodeDataSource = {
   kind: 'DATA'
   relationship: RelationshipPlan
   preserveUnknownOptions?: boolean
+  /** Narrows the table's options to the values another relationship allows or denies. */
+  filter?: InlineFilter
 }
 
 export type NodeLocalCollectionSource = {

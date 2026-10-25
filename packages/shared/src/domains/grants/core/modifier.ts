@@ -1,7 +1,5 @@
 import type { ChargeLimitPayload, DurationAuthored, SavingThrowAuthored } from '#authored'
 import type {
-  AbilityCode,
-  AbilityModifierReference,
   AttackDomainCode,
   ChargeResetKind,
   DurationKind,
@@ -505,7 +503,7 @@ export type ModifierScalarValueAuthored =
   | { valueKind: 'PROFICIENCY_BONUS'; multiplier?: number }
   | {
       valueKind: 'ABILITY_MODIFIER'
-      ability: AbilityCode
+      ability: string
       multiplier?: number
       min?: number
       max?: number
@@ -618,7 +616,7 @@ export type ModifierDomainFor<
   K extends ModifierKind
 > = K extends 'ADD_BONUS_DIE'
   ? V extends 'SAVING_THROW_MODIFIER'
-    ? { ability?: AbilityCode }
+    ? { ability?: string }
     : V extends 'DAMAGE'
       ? { attackDomain?: AttackDomainCode }
       : ValueDomainParam<V>
@@ -632,7 +630,7 @@ export type ModifierFractionAuthored = { numerator: number; denominator: number 
  * class formula, and the d20 roll an attack needs to target one while that many remain.
  */
 export type ModifierAttackDecoysAuthored = {
-  armorClass: { amount: number; abilities: AbilityCode[] }
+  armorClass: { amount: number; abilities: string[] }
   thresholds: { id: string; remaining: number; minimumRoll: number }[]
   exemptAttackerSenseDefinitionIds?: string[]
 }
@@ -649,7 +647,7 @@ export type ModifierDamageInterceptionAuthored = {
    * The holder must pass this save to be intercepted (Undead Fortitude): the DC is `base`, plus the
    * damage taken when `plusDamageTaken`. A failed save lets the damage land and spends no use.
    */
-  save?: { ability: AbilityCode; dc: { base: number; plusDamageTaken: boolean } }
+  save?: { ability: string; dc: { base: number; plusDamageTaken: boolean } }
   /** Damage this interception does not meet: of these types, or from a critical hit. */
   excludes?: { damageTypeIds: string[]; critical: boolean }
   /** Only damage of at most this many hit points is intercepted (Relentless: 14). */
@@ -694,11 +692,11 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
                   | { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>; amount: number }
               : V extends 'ARMOR_CLASS'
                 ? // An armor class formula: the amount plus each listed ability modifier.
-                  { amount: number; abilities: AbilityCode[] }
+                  { amount: number; abilities: string[] }
                 : { amount: number }
             : ModifierScalarValueAuthored
         : K extends 'ABILITY_MODIFIER_BONUS'
-          ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
+          ? { ability: string; multiplier?: number; min?: number; max?: number }
           : K extends 'MODIFY_CHARGE_LIMIT'
             ? ChargeLimitPayload
             : K extends 'MINIMUM_ROLL'
@@ -723,7 +721,7 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
                               ? undefined
                               : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
                                 ? {
-                                    abilities: AbilityModifierReference[]
+                                    abilities: string[]
                                     min?: number
                                     max?: number
                                   }

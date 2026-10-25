@@ -447,7 +447,7 @@ describe('effect schema parsing', () => {
 
     expect(withCheck({ ability: 'SPELLCASTING', baseDc: 10 }).success).toBe(true)
     expect(withCheck({ ability: 'WISDOM', baseDc: 0 }).success).toBe(true)
-    expect(withCheck({ ability: 'NONE', baseDc: 10 }).success).toBe(false)
+    expect(withCheck({ ability: 'none', baseDc: 10 }).success).toBe(false)
     expect(withCheck({ ability: 'SPELLCASTING', baseDc: -1 }).success).toBe(false)
     expect(withCheck({ ability: 'SPELLCASTING', baseDc: 10.5 }).success).toBe(false)
     expect(withCheck({ ability: 'SPELLCASTING' }).success).toBe(false)

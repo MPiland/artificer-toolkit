@@ -489,7 +489,12 @@ async function resolveOptions(
 ): Promise<NodeRuntimeOptionDto[]> {
   switch (source.kind) {
     case 'DATA':
-      return streamToOptions(await executeRelationshipPlan(db, source.relationship, scope))
+      return applyInlineFilter(
+        db,
+        streamToOptions(await executeRelationshipPlan(db, source.relationship, scope)),
+        source.filter,
+        scope
+      )
     case 'LOCAL_COLLECTION':
       return resolveLocalCollectionOptions(source, scope)
     case 'INLINE_OPTIONS':

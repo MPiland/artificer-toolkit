@@ -21,6 +21,14 @@ const ids = {
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useQuery: () => ({
+    abilities: [
+      { code: 'STRENGTH', label: 'Strength', short: 'STR' },
+      { code: 'DEXTERITY', label: 'Dexterity', short: 'DEX' },
+      { code: 'CONSTITUTION', label: 'Constitution', short: 'CON' },
+      { code: 'INTELLIGENCE', label: 'Intelligence', short: 'INT' },
+      { code: 'WISDOM', label: 'Wisdom', short: 'WIS' },
+      { code: 'CHARISMA', label: 'Charisma', short: 'CHA' }
+    ],
     damageTypes: [
       { id: ids.radiant, code: 'RADIANT', label: 'Radiant' },
       { id: ids.bludgeoning, code: 'BLUDGEONING', label: 'Bludgeoning' },
