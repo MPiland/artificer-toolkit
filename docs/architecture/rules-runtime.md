@@ -426,7 +426,7 @@ discovery and effect binding (`encounterFeatureActionCapabilityDiscovery.ts`);
 `legendaryActionEligibilityCapabilityRegistry` and `movementReactionEligibilityCapabilityRegistry`
 for eligibility and the capability definitions it requires; `sceneGridPolicyCapabilityRegistry`, an
 optional `find` capability through `resolveEncounterSceneGrid`, where a System without it plays on the
-Scene's own grid). The four `platform*` files are the only composition roots: no other neutral
+Scene's own grid). The five `platform*` files are the only composition roots: no other neutral
 module installs an adapter, and a `systems/dnd5e` adapter never value-imports a platform file, so
 `passiveMeleeRetaliationZone` takes the attack kind instead of reading the registry. A `MovementTarget`
 carries its actor's `movementPassage` and `grantedAttackTraits`, resolved once through these
@@ -442,6 +442,18 @@ the composition roots reach `systems/*` (active grants read the action-economy c
 `allowanceDefinitionIdByCountDomain`, which an active zero-count grant suppresses);
 the composition roots above are exempt by name
 ([CI validation](ci-validation.md)).
+Each composition root builds its registries from one installed-Systems list per load tier (D195,
+RULES-2.T12a), in `systems/installedGameSystems/`: `vocabulary` (`platformSystemCoreCodes`), `policy`
+(`platformPolicyModules`), `character` (`platformCharacterPolicy`), `encounter`
+(`platformEncounterPolicy`) and `runtime` (`platformRulesRuntime`). Each System exports one module object per
+tier (`GameSystem<Tier>Tier`, declared by its root). A System leaves out a capability it lacks, so `require`
+fails closed and `find` skips it. The tiers nest as the loads do: policy loads vocabulary, character and
+encounter each load policy but not each other, and runtime loads all five. `schemaBoundary.test.ts`
+asserts that nesting from esbuild closures, so a heavier tier never leaks into a lighter one. The tracer
+Vitest project (`tracer` in the root `vitest.config.ts`) aliases the vocabulary, policy, encounter and
+runtime lists to ones under `src/__tests__/tracer/` that also install a test-only Fate-like System, which
+never ships (ADR 0023). An Encounter actor policy may report no saving throws (`savingThrowDefinitions`
+absent); when it reports them, reconciliation still requires one per ability score.
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never

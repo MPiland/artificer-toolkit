@@ -17,107 +17,130 @@ import type { MovementReactionEligibilityAdapter } from './movementReactionEligi
 import type { OptionalCombatPolicyCapabilityAdapter } from './optionalCombatPolicyCapability.js'
 import type { EncounterSceneGridPolicyAdapter } from './sceneGridPolicy.js'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
-import { dnd5eAttackProfileCapabilityAdapter } from './systems/dnd5e/attackDamageDefenses.js'
-import { dnd5eArmorClassCapabilityAdapter } from './systems/dnd5e/characterVitals.js'
-import { dnd5eCharacterRuleActionSystemAdapter } from './systems/dnd5e/effectActionCompiler.js'
-import { dnd5eEncounterActorPolicyRegistration } from './systems/dnd5e/encounterActorPolicy.js'
-import { dnd5eEncounterFeatureActionCapabilityAdapter } from './systems/dnd5e/encounterFeatureActionCapabilityDiscovery.js'
-import {
-  dnd5eD20TestDefinitionCapabilityAdapter,
-  dnd5eLegendaryActionEligibilityAdapter
-} from './systems/dnd5e/encounterLifecyclePolicy.js'
-import { dnd5eExecutionOutcomeCapabilityAdapter } from './systems/dnd5e/executionOutcomes.js'
-import { dnd5eInitiativeFactAdapter } from './systems/dnd5e/initiativeFactAdapter.js'
-import { dnd5eModifierScopeCapabilityAdapter } from './systems/dnd5e/modifierApplicability.js'
-import { dnd5eContestCheckCapabilityAdapter } from './systems/dnd5e/optionalCombatContestGraph.js'
-import { dnd5eEncounterSceneGridPolicyAdapter } from './systems/dnd5e/optionalCombatPolicy.js'
-import { dnd5eOptionalCombatPolicyCapabilityAdapter } from './systems/dnd5e/optionalResolutionPolicy.js'
-import { dnd5eMovementReactionEligibilityAdapter } from './systems/dnd5e/reactionEligibilityPolicy.js'
+import { installedEncounterSystems } from './systems/installedGameSystems/encounter.js'
 
-const installedRuntimeModules = [dnd5eEncounterActorPolicyRegistration] as const
+/**
+ * One installed System's Encounter-only tier (D195), installed here rather than in the
+ * Sheet-reachable `platformPolicyModules`. A System leaves out a capability it does not have:
+ * `require` then fails closed and `find` skips it.
+ */
+export interface GameSystemEncounterTier {
+  readonly gameSystemId: string
+  readonly evaluateEncounterActors?: (facts: EncounterActorRuleInput) => EncounterActorRuleOutput
+  readonly armorClass?: ArmorClassCapabilityAdapter
+  readonly attackProfile?: AttackProfileCapabilityAdapter
+  readonly characterRuleAction?: CharacterRuleActionSystemAdapter
+  readonly contestCheck?: ContestCheckCapabilityAdapter
+  readonly d20TestDefinition?: D20TestDefinitionCapabilityAdapter
+  readonly encounterFeatureAction?: EncounterFeatureActionCapabilityAdapter
+  readonly executionOutcome?: ExecutionOutcomeCapabilityAdapter
+  readonly initiative?: InitiativeFactAdapter
+  readonly legendaryActionEligibility?: LegendaryActionEligibilityAdapter
+  readonly modifierScope?: ModifierScopeCapabilityAdapter
+  readonly movementReactionEligibility?: MovementReactionEligibilityAdapter
+  readonly optionalCombatPolicy?: OptionalCombatPolicyCapabilityAdapter
+  readonly sceneGridPolicy?: EncounterSceneGridPolicyAdapter
+}
 
-// Encounter-only capabilities, so they are installed here rather than in the Sheet-reachable
-// `platformPolicyModules`.
+function installed<
+  TCapability extends Exclude<
+    keyof GameSystemEncounterTier,
+    'gameSystemId' | 'evaluateEncounterActors'
+  >
+>(capability: TCapability) {
+  return installedEncounterSystems.flatMap((system) => system[capability] ?? [])
+}
+
 export const initiativeCapabilityRegistry = createSystemCapabilityRegistry<InitiativeFactAdapter>(
   'initiative',
-  [dnd5eInitiativeFactAdapter]
+  installed('initiative')
 )
 
 export const armorClassCapabilityRegistry =
-  createSystemCapabilityRegistry<ArmorClassCapabilityAdapter>('armor-class', [
-    dnd5eArmorClassCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<ArmorClassCapabilityAdapter>(
+    'armor-class',
+    installed('armorClass')
+  )
 
 export const d20TestDefinitionCapabilityRegistry =
-  createSystemCapabilityRegistry<D20TestDefinitionCapabilityAdapter>('d20-test-definition', [
-    dnd5eD20TestDefinitionCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<D20TestDefinitionCapabilityAdapter>(
+    'd20-test-definition',
+    installed('d20TestDefinition')
+  )
 
 export const contestCheckCapabilityRegistry =
-  createSystemCapabilityRegistry<ContestCheckCapabilityAdapter>('contest-check', [
-    dnd5eContestCheckCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<ContestCheckCapabilityAdapter>(
+    'contest-check',
+    installed('contestCheck')
+  )
 
 export const attackProfileCapabilityRegistry =
-  createSystemCapabilityRegistry<AttackProfileCapabilityAdapter>('attack-profile', [
-    dnd5eAttackProfileCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<AttackProfileCapabilityAdapter>(
+    'attack-profile',
+    installed('attackProfile')
+  )
 
 export const modifierScopeCapabilityRegistry =
-  createSystemCapabilityRegistry<ModifierScopeCapabilityAdapter>('modifier-scope', [
-    dnd5eModifierScopeCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<ModifierScopeCapabilityAdapter>(
+    'modifier-scope',
+    installed('modifierScope')
+  )
 
 export const characterRuleActionSystemAdapterRegistry =
-  createSystemCapabilityRegistry<CharacterRuleActionSystemAdapter>('character-rule-action', [
-    dnd5eCharacterRuleActionSystemAdapter
-  ])
+  createSystemCapabilityRegistry<CharacterRuleActionSystemAdapter>(
+    'character-rule-action',
+    installed('characterRuleAction')
+  )
 
 export const encounterFeatureActionCapabilityRegistry =
   createSystemCapabilityRegistry<EncounterFeatureActionCapabilityAdapter>(
     'encounter-feature-action',
-    [dnd5eEncounterFeatureActionCapabilityAdapter]
+    installed('encounterFeatureAction')
   )
 
 export const executionOutcomeCapabilityRegistry =
-  createSystemCapabilityRegistry<ExecutionOutcomeCapabilityAdapter>('execution-outcome', [
-    dnd5eExecutionOutcomeCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<ExecutionOutcomeCapabilityAdapter>(
+    'execution-outcome',
+    installed('executionOutcome')
+  )
 
 export const legendaryActionEligibilityCapabilityRegistry =
-  createSystemCapabilityRegistry<LegendaryActionEligibilityAdapter>('legendary-action', [
-    dnd5eLegendaryActionEligibilityAdapter
-  ])
+  createSystemCapabilityRegistry<LegendaryActionEligibilityAdapter>(
+    'legendary-action',
+    installed('legendaryActionEligibility')
+  )
 
 export const movementReactionEligibilityCapabilityRegistry =
-  createSystemCapabilityRegistry<MovementReactionEligibilityAdapter>('movement-reaction', [
-    dnd5eMovementReactionEligibilityAdapter
-  ])
+  createSystemCapabilityRegistry<MovementReactionEligibilityAdapter>(
+    'movement-reaction',
+    installed('movementReactionEligibility')
+  )
 
 /** A System's Scene-grid policy is optional: without one an Encounter plays on its Scene's grid. */
 export const sceneGridPolicyCapabilityRegistry =
-  createSystemCapabilityRegistry<EncounterSceneGridPolicyAdapter>('scene-grid', [
-    dnd5eEncounterSceneGridPolicyAdapter
-  ])
+  createSystemCapabilityRegistry<EncounterSceneGridPolicyAdapter>(
+    'scene-grid',
+    installed('sceneGridPolicy')
+  )
 
 /**
  * Optional combat rules are opt-in per Encounter: a System without them offers no Cleaving choice
  * (`find`), while a sealed passage choice requires the policy that proposed it (`require`).
  */
 export const optionalCombatPolicyCapabilityRegistry =
-  createSystemCapabilityRegistry<OptionalCombatPolicyCapabilityAdapter>('optional-combat', [
-    dnd5eOptionalCombatPolicyCapabilityAdapter
-  ])
-
+  createSystemCapabilityRegistry<OptionalCombatPolicyCapabilityAdapter>(
+    'optional-combat',
+    installed('optionalCombatPolicy')
+  )
 /** System-owned semantic preparation; generic Encounter application owns reconciliation. */
 export function evaluateInstalledEncounterActors(input: {
   gameSystemId: string
   facts: EncounterActorRuleInput
 }): EncounterActorRuleOutput {
-  const registration = installedRuntimeModules.find(
+  const registration = installedEncounterSystems.find(
     (module) => module.gameSystemId === input.gameSystemId
   )
-  if (!registration || !('evaluateEncounterActors' in registration)) {
+  if (!registration?.evaluateEncounterActors) {
     throw new Error(
       `No Encounter actor policy is registered for Game System "${input.gameSystemId}".`
     )
