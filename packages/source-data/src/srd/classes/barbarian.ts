@@ -916,7 +916,63 @@ export const barbarian: ClassAuthored = {
       label: 'Relentless Rage',
       description:
         "Starting at 11th level, your rage can keep you fighting despite grievous wounds. If you drop to 0 hit points while you're raging and don't die outright, you can make a DC 10 Constitution saving throw. If you succeed, you drop to 1 hit point instead. Each time you use this feature after the first, the DC increases by 5. When you finish a short or long rest, the DC resets to 10.",
-      effects: [selfClassRuleEffect(14, CLOSED_RULE_KIND.CLASS_BARBARIAN_RELENTLESS_RAGE)],
+      // Each use raises the DC by 5 until a rest returns the uses; six bound it past any roll.
+      charges: {
+        id: classRowId(B, 0xb0, 1),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'SHORT_REST',
+        amount: 6
+      },
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(B, 0xb0, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_INTERCEPTION,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ENABLE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: {
+              dropToHitPoints: 1,
+              negatesKill: false,
+              save: {
+                ability: 'CONSTITUTION',
+                dc: { base: 10, plusDamageTaken: false, plusPerChargeUsed: 5 },
+                spendsUseOnFailure: true
+              }
+            },
+            order: 0,
+            restrictions: {
+              id: classRowId(B, 0xb1, 0),
+              groups: [
+                {
+                  id: classRowId(B, 0xb1, 1),
+                  order: 0,
+                  contexts: [
+                    {
+                      id: classRowId(B, 0xb1, 2),
+                      order: 0,
+                      subject: 'CHARACTER',
+                      conditions: [
+                        {
+                          id: classRowId(B, 0xb1, 3),
+                          order: 0,
+                          kind: 'PREDICATE',
+                          constraint: 'INCLUDE',
+                          predicateCode: 'HOLDER_ACTIVE_EFFECT',
+                          effectIds: [RAGE_EFFECT_ID]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
       availableAtLevel: 11,
       order: 12
     },
@@ -949,7 +1005,22 @@ export const barbarian: ClassAuthored = {
       label: 'Persistent Rage',
       description:
         'Beginning at 15th level, your rage is so fierce that it ends early only if you fall unconscious or if you choose to end it.',
-      effects: [selfClassRuleEffect(17, CLOSED_RULE_KIND.CLASS_BARBARIAN_PERSISTENT_RAGE)],
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(B, 0xb2, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.END_EVENT_EXEMPTION,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ENABLE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            // Rage still ends when the holder falls unconscious or chooses to end it.
+            payload: { events: ['ON_IDLE_TURN'], effectIds: [RAGE_EFFECT_ID] },
+            order: 0
+          }
+        ]
+      },
       availableAtLevel: 15,
       order: 15
     },

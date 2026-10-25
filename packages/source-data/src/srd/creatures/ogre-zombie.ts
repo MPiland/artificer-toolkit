@@ -46,7 +46,11 @@ export const ogreZombie: CreatureAuthored = {
       grants: damageInterceptionGrants(S.actionId(210, 500), {
         dropToHitPoints: 1,
         negatesKill: false,
-        save: { ability: 'CONSTITUTION', dc: { base: 5, plusDamageTaken: true } },
+        save: {
+          ability: 'CONSTITUTION',
+          dc: { base: 5, plusDamageTaken: true, plusPerChargeUsed: 0 },
+          spendsUseOnFailure: false
+        },
         excludes: { damageTypeIds: [S.damageTypeId('RADIANT')], critical: true }
       }),
       order: 1

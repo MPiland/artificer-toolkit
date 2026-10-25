@@ -13,6 +13,7 @@ import {
   targetTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { nextEncounterActorDefeated } from '@artificer-toolkit/rules-runtime/encounterActorDefeat'
+import { interceptionChargesSpent } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
 import { creatureConditionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { rejectDomain } from './domainRejections.js'
 
@@ -136,23 +137,25 @@ export function invertTargetMechanics(
   }
 }
 
-/** Gives back, last spend first, the feature charges a target's held damage interceptions spent. */
+/**
+ * Gives back, last spend first, the feature charges a Run creature's held damage interceptions
+ * spent; a Character's spent its Sheet pools, which `restoreCharacter` gives back.
+ */
 export function returnInterceptionCharges(
   holder: EncounterRunActorState,
   applications: ActionBatch['applications']
 ) {
-  return applications.toReversed().reduce((actor, application) => {
-    if (
-      (application.kind !== 'DAMAGE' && application.kind !== 'KILL_NEGATED') ||
-      !application.interceptionCharge
-    )
-      return actor
-    const charge = application.interceptionCharge
-    if (featureChargeUsed(actor, charge.ownerFeatureId) !== charge.afterUsed)
-      revertUnavailable("The target's feature charges changed after this action; adjust manually.")
-    return encounterRunActorStateSchema.parse({
-      ...actor,
-      resources: withFeatureChargeUsed(actor, charge.ownerFeatureId, charge.beforeUsed)
-    })
-  }, holder)
+  if (holder.kind === 'CHARACTER') return holder
+  return interceptionChargesSpent(applications)
+    .toReversed()
+    .reduce<EncounterRunActorState>((actor, charge) => {
+      if (featureChargeUsed(actor, charge.ownerFeatureId) !== charge.afterUsed)
+        revertUnavailable(
+          "The target's feature charges changed after this action; adjust manually."
+        )
+      return encounterRunActorStateSchema.parse({
+        ...actor,
+        resources: withFeatureChargeUsed(actor, charge.ownerFeatureId, charge.beforeUsed)
+      })
+    }, holder)
 }

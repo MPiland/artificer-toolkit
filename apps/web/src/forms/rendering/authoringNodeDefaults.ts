@@ -504,12 +504,14 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
     case 'damageInterceptionSave':
       return {
         ability: '',
-        dc: { base: 10, plusDamageTaken: false }
+        dc: { base: 10, plusDamageTaken: false, plusPerChargeUsed: 0 },
+        spendsUseOnFailure: false
       } satisfies NonNullable<ModifierDamageInterceptionAuthored['save']>
     case 'damageInterceptionSaveDc':
       return {
         base: 10,
-        plusDamageTaken: false
+        plusDamageTaken: false,
+        plusPerChargeUsed: 0
       } satisfies NonNullable<ModifierDamageInterceptionAuthored['save']>['dc']
     case 'telepathicLinkAbilityFloor':
       return { ability: '', score: 0 } satisfies TelepathicLinkAbilityFloorAuthored

@@ -18611,7 +18611,7 @@
             },
             {
               "id": "SPELLS-31.T5f2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18625,7 +18625,9 @@
                 ]
               },
               "text": "Options bound to another active effect, part 2: Persistent Rage (generic END_EVENT_EXEMPTION holder grant read in planIdleTurnCheck), with an authoring-parity proof; deletes its kind. Frenzy moved to T5f4.",
-              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25). Frenzy split to T5f4 on 2026-10-25 (user ruling: build it now; Rage is very common)."
+              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25). Frenzy split to T5f4 on 2026-10-25 (user ruling: build it now; Rage is very common). Merged in m448.",
+              "mergedAt": "2026-10-25T20:21:14Z",
+              "proof": "Tests 40228843598 and Live 40228843597 green on ci/spells-31-t5f2@0da1aa7db (Persistent Rage via a generic END_EVENT_EXEMPTION holder grant, authoring parity; contains T5f3); merged in m448 (run 40230336623)."
             },
             {
               "id": "SPELLS-31.T5f4",
@@ -18647,7 +18649,7 @@
             },
             {
               "id": "SPELLS-31.T5f3",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18661,7 +18663,9 @@
                 ]
               },
               "text": "Character feature-held damage interception: Character features list damage interceptions gated by deferred holder state (HOLDER_ACTIVE_EFFECT), the room replays the recorded save rolls, and the charge spend persists on the Character stream with its revert. Converts Relentless Rage (CON DC 10 to drop to 1, generic save DC plusPerChargeUsed over a SHORT_REST charge, a use counted on every attempt). SPELLS-32.T5 Relentless Endurance reuses it. Authoring-parity proof; kind deleted.",
-              "note": "Split out of SPELLS-31.T5f1; +3 scope growth approved by the user 2026-10-25."
+              "note": "Split out of SPELLS-31.T5f1; +3 scope growth approved by the user 2026-10-25. Merged in m448.",
+              "mergedAt": "2026-10-25T20:21:14Z",
+              "proof": "Carried in ci/spells-31-t5f2@0da1aa7db (own green f96064a5b: Tests 40223924172, Live 40223924217); a revert whose charged pool entry is gone now refuses with adjust-manually (accepted); merged in m448."
             },
             {
               "id": "SPELLS-31.T5g",
