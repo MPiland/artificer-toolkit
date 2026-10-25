@@ -958,6 +958,7 @@ export async function prepareEncounterActionMechanics<
         attackSource,
         spellCastSystemId
       ),
+      incomingHalved: targetFacts.incomingDamage.halved,
       targetDamageTypesTaken: damageTypeIdsTaken(targetFacts.actor)
     }
   }

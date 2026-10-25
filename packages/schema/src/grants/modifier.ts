@@ -330,6 +330,37 @@ export const damageInterceptionPayloadDtoSchema: z.ZodMiniType<DamageInterceptio
   )
 
 /**
+ * How the holder takes damage. `HALVE` halves every damage application before its defenses,
+ * rounding down (Uncanny Dodge). `SAVE_FOR_HALF` replaces what an effect that deals half its damage
+ * on a successful save deals the holder on a save of one of `saveAbilities` (Evasion: none on a
+ * success, half on a failure); any other save is untouched.
+ */
+const incomingSaveForHalfPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    incomingDamageKind: z.literal('SAVE_FOR_HALF'),
+    saveAbilities: z.array(systemCoreCodeSchema).check(z.minLength(1)).check(z.maxLength(6)),
+    onSaveSuccess: z.enum(['NONE', 'HALF']),
+    onSaveFailure: z.enum(['HALF', 'FULL'])
+  })
+)
+export const incomingDamagePayloadDtoSchema = lazySchema(() =>
+  z.union([
+    z.strictObject({ incomingDamageKind: z.literal('HALVE') }),
+    incomingSaveForHalfPayloadDtoSchema
+  ])
+)
+export type IncomingDamagePayloadDto = z.infer<typeof incomingDamagePayloadDtoSchema>
+
+/** A holder's `INCOMING_DAMAGE` grants, folded: whether it halves damage, and its save-for-half replacements. */
+export const incomingDamageProfileDtoSchema = lazySchema(() =>
+  z.strictObject({
+    halved: z.boolean(),
+    saveForHalf: z.array(incomingSaveForHalfPayloadDtoSchema)
+  })
+)
+export type IncomingDamageProfileDto = z.infer<typeof incomingDamageProfileDtoSchema>
+
+/**
  * The save an attacker makes against the holder's source before a single-target attack or harmful spell lands.
  * `attackerCreatureTypeIds` narrows the ward to attackers of those Creature types; `successImmunity` frees an
  * attacker who passes from the ward for that long.
@@ -515,6 +546,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     armorClassFormulaPayloadDtoSchema,
     attackDecoysPayloadDtoSchema,
     damageInterceptionPayloadDtoSchema,
+    incomingDamagePayloadDtoSchema,
     incomingAttackGatePayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
@@ -803,6 +835,12 @@ const buildModifierGrantVariants = () =>
       damageInterceptionPayloadDtoSchema
     ),
     buildModifierGrantVariant('DAMAGE_MIRROR', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant(
+      'INCOMING_DAMAGE',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      incomingDamagePayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'INCOMING_ATTACK_GATE',
       'ENABLE',

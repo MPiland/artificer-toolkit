@@ -18470,7 +18470,7 @@
             },
             {
               "id": "SPELLS-31.T5a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -18484,7 +18484,9 @@
                 ]
               },
               "text": "New option (ruling at start): holder-side save-damage override and incoming halving; Evasion x3, Uncanny Dodge x2. Shares the damage-resolution step with SPELLS-4.T2p, not an option. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "mergedAt": "2026-10-25T19:21:31Z",
+              "proof": "Tests 40224100237 and Live 40224100169 green on ci/spells-31-t5a@9794fedcc (contains the phase tip); fast-path merge m445 (run 40225613668), full backstop on ci/merge-m445.",
+              "note": " Merged in m445."
             },
             {
               "id": "SPELLS-31.T5b",

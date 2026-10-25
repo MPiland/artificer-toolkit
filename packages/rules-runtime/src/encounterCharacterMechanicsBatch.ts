@@ -16,7 +16,7 @@ import {
   reviveRestoredHitPoints,
   type CharacterDeathSaves
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
-import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { resolveIncomingDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
 import {
   temporaryHitPointsAfterGrant,
@@ -562,10 +562,7 @@ export function foldCharacterMechanicsApplications<
           'The Character temporary hit-point application is invalid.'
         )
     } else if (application.kind === 'DAMAGE') {
-      const resolvedAmount = resolveDispositionDamage(
-        application.damageDisposition,
-        application.requestedAmount
-      )
+      const resolvedAmount = resolveIncomingDamage(application)
       const temporaryLost = Math.min(temporary, resolvedAmount)
       temporarySource = temporaryHitPointsAfterLoss(
         { amount: temporary, sourceEffectId: temporarySource },

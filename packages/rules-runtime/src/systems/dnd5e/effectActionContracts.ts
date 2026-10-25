@@ -114,6 +114,14 @@ export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
   ON_SAVE_SUCCESS: 'dnd5e.resolved-damage-expression.on-save-success',
   ON_CHECK_SUCCESS: 'dnd5e.resolved-damage-expression.on-check-success'
 } as const satisfies Record<SpecializedPath, string>
+/**
+ * The target's own multiplier on the damage of an effect it saves against for half (Evasion: none on
+ * a success, half on a failure), bound per save result from its incoming-damage profile.
+ */
+export const DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS = {
+  ON_SAVE_FAIL: 'dnd5e.save-damage-multiplier.on-save-fail',
+  ON_SAVE_SUCCESS: 'dnd5e.save-damage-multiplier.on-save-success'
+} as const
 export const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
 export const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'

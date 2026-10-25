@@ -49,6 +49,7 @@ export type DirectInterpretationInput = Pick<
   | 'maximumHitPoints'
   | 'defenses'
   | 'conditionImmunityIds'
+  | 'incomingHalved'
 > & {
   /** Set by a graph's loop once an earlier proposal has moved `currentHitPoints`; the facts keep the starting value. */
   startingHitPoints?: number

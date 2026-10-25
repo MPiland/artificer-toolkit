@@ -21,7 +21,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_CONDITION_TYPES, SRD_SYSTEM_ID, SRD_USER_ID, ABILITY_CODE } from '../vocabulary.js'
-import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
+import { closedRuleEffect, evasionGrant, gmRulingEffect, uncannyDodgeEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -327,18 +327,7 @@ export const hunterConclave: ClassAuthored = {
           description:
             "When you are subjected to an effect, such as a red dragon's fiery breath or a lightning bolt spell, that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail.",
           order: 0,
-          effects: [
-            closedRuleEffect({
-              id: classRowId(RA, 20, 8),
-              invocation: {
-                kind: 'PASSIVE',
-                triggerCode: TRIGGER.ACTIVATED,
-                range: { id: classRowId(RA, 21, 8), rangeKind: RANGE_KIND.SELF },
-                targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-              },
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_EVASION
-            })
-          ]
+          grants: { modifiers: [evasionGrant(classRowId(RA, 24, 5))] }
         },
         {
           id: classRowId(RA, 15, 2),
@@ -370,19 +359,13 @@ export const hunterConclave: ClassAuthored = {
             "When an attacker that you can see hits you with an attack, you can use your reaction to halve the attack's damage against you.",
           order: 2,
           effects: [
-            closedRuleEffect({
-              id: classRowId(RA, 20, 10),
-              invocation: {
-                kind: 'ACTION',
-                triggerCode: TRIGGER.ACTIVATED,
-                activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-                range: { id: classRowId(RA, 21, 10), rangeKind: RANGE_KIND.SIGHT },
-                targeting: {
-                  selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                  dispositionKind: 'ANY'
-                }
-              },
-              ruleKind: CLOSED_RULE_KIND.CLASS_HUNTER_UNCANNY_DODGE
+            uncannyDodgeEffect({
+              effect: classRowId(RA, 20, 10),
+              range: classRowId(RA, 21, 10),
+              path: classRowId(RA, 24, 1),
+              duration: classRowId(RA, 24, 2),
+              outcome: classRowId(RA, 24, 3),
+              grant: classRowId(RA, 24, 4)
             })
           ]
         }
