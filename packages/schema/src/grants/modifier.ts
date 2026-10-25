@@ -87,6 +87,17 @@ const optionalAbilityParamDtoSchema = lazySchema(() =>
   })
 )
 
+/**
+ * A d20 floor's ability checks: one ability's or every ability's, and only those adding the
+ * holder's full proficiency bonus or more when `proficientOnly` (Reliable Talent).
+ */
+const abilityCheckFloorParamDtoSchema = lazySchema(() =>
+  z.object({
+    ability: z.optional(systemCoreCodeSchema),
+    proficientOnly: z.optional(z.boolean())
+  })
+)
+
 const savingThrowParamDtoSchema = lazySchema(() =>
   z.object({
     ability: systemCoreCodeSchema,
@@ -509,6 +520,7 @@ export const modifierDomainParamsDtoSchema = lazySchema(() =>
       ...attacksAgainstParamDtoSchema.shape,
       ...attackRollRollModeParamDtoSchema.shape,
       ...attackTraitParamDtoSchema.shape,
+      ...abilityCheckFloorParamDtoSchema.shape,
       ...savingThrowParamDtoSchema.shape,
       ...skillParamDtoSchema.shape,
       ...speedParamDtoSchema.shape,
@@ -693,7 +705,7 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant(
       'ABILITY_CHECK',
       'MINIMUM_ROLL',
-      optionalAbilityParamDtoSchema,
+      abilityCheckFloorParamDtoSchema,
       minimumRollPayloadDtoSchema
     ),
     buildModifierGrantVariant(

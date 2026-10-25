@@ -188,6 +188,15 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         })
       )
       .set(
+        'proficientOnly',
+        toggle(['proficientOnly'], 'Only Checks Adding Proficiency', {
+          showIf: and([
+            parent.field(['valueDomainCode']).eq('ABILITY_CHECK'),
+            parent.field(['modifierKind']).eq('MINIMUM_ROLL')
+          ])
+        })
+      )
+      .set(
         'requiresHolderSeesSource',
         toggle(['requiresHolderSeesSource'], 'Only Effects Whose Source The Holder Can See', {
           showIf: and([

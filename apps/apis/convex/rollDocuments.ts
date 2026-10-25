@@ -58,7 +58,10 @@ export async function evaluateCharacterRoll(
       }
   // A carried die (Guidance, Resistance) joins a check or save and is spent with it, in the roll's transaction.
   const { addedDice, spent, minimumRoll } = sheet
-    ? carriedTestDice(resolved, sheet.activeEffects)
+    ? carriedTestDice(resolved, sheet.activeEffects, {
+        grantFold: sheet.ruleEvaluation.output.grantFold,
+        registry: sheet.ruleEvaluation.registry
+      })
     : { addedDice: [], spent: [], minimumRoll: null }
   const effectStore = createActiveRuleEffectStore({ db: createConvexEncounterStore(ctx) })
   for (const effect of spent)

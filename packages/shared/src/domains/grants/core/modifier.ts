@@ -611,7 +611,9 @@ export type ModifierDamageDieAuthored = Omit<ModifierRolledDieAuthored, 'sign' |
 /**
  * The domain a modifier kind is scoped by. A rolled die on saving throws may omit the ability, so
  * one grant covers every save, death saves included (D156); a rolled damage die may omit the attack
- * domain, so it joins every damage its recipient deals, spells included (Bestow Curse).
+ * domain, so it joins every damage its recipient deals, spells included (Bestow Curse). A d20 floor
+ * on ability checks may hold only for checks that add the holder's full proficiency bonus or more
+ * (`proficientOnly`, Reliable Talent); half proficiency does not count.
  */
 export type ModifierDomainFor<
   V extends ValueDomainCode,
@@ -622,7 +624,11 @@ export type ModifierDomainFor<
     : V extends 'DAMAGE'
       ? { attackDomain?: AttackDomainCode }
       : ValueDomainParam<V>
-  : ValueDomainParam<V>
+  : K extends 'MINIMUM_ROLL'
+    ? V extends 'ABILITY_CHECK'
+      ? ValueDomainParam<V> & { proficientOnly?: boolean }
+      : ValueDomainParam<V>
+    : ValueDomainParam<V>
 
 /** A fraction a value is multiplied by, rounded down (D94): "your speed is halved" is 1/2. */
 export type ModifierFractionAuthored = { numerator: number; denominator: number }
