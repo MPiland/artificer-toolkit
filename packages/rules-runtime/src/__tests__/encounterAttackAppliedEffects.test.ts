@@ -141,7 +141,8 @@ describe('the mark an attack gives its target (ATTACK-13.T1)', () => {
     const onAnotherTurn = triggers({ currentActorId: HOLDER_ID })[0]!.effect.lifecycle
       .remainingTicks
     // The attacker's current turn ends one tick; the mark is gone only once its next turn ends.
-    expect(onAttackerTurn).toBe(onAnotherTurn + 1)
+    expect(onAnotherTurn).toBeTypeOf('number')
+    expect(onAttackerTurn).toBe(onAnotherTurn! + 1)
   })
 
   it('moves the attacker’s one mark from its earlier target to the new one', () => {
@@ -180,16 +181,19 @@ describe('the mark an attack gives its target (ATTACK-13.T1)', () => {
       qualifyingAttackKind: 'ANY',
       effect: {
         ...parameters.effect,
-        paths: parameters.effect.paths.map((path) => ({
-          ...path,
-          resultBlock: {
-            ...path.resultBlock,
-            lifecycle: {
-              ...path.resultBlock.lifecycle,
-              turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }
+        paths: parameters.effect.paths.map((path) => {
+          if (path.selectionKind !== 'FIXED') return path
+          return {
+            ...path,
+            resultBlock: {
+              ...path.resultBlock,
+              lifecycle: {
+                ...path.resultBlock.lifecycle,
+                turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' }
+              }
             }
           }
-        }))
+        })
       }
     }))
     const marks = triggers({ rules })
