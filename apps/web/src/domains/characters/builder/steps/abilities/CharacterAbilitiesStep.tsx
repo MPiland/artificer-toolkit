@@ -17,7 +17,7 @@ import {
   setAbilityDraftSlots
 } from './abilityGeneration'
 import { selectOptions } from '../../selection/optionProjection'
-import { createFallbackCharacterFormValues } from '../../shared/formNormalization'
+import { EMPTY_CHARACTER_FORM_VALUES } from '../../shared/formNormalization'
 import * as sharedStyles from '../../shared/builderShared.css'
 import { syncHitpointLevels } from './characterAbilities'
 import { CharacterAbilityAssignments } from './CharacterAbilityAssignments'
@@ -38,7 +38,7 @@ function preloadAbilityDice(configuration: string) {
 }
 
 export const CharacterAbilitiesStep = withForm({
-  defaultValues: createFallbackCharacterFormValues(),
+  defaultValues: EMPTY_CHARACTER_FORM_VALUES,
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterAbilities({ form, payload, readOnly }) {
     const executeConfiguration = useExecuteDiceConfigurationMutation()

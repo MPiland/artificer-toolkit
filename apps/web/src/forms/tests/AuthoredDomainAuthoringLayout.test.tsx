@@ -260,6 +260,25 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Moon Blade' })).toBeInTheDocument()
   })
 
+  it('rejects a blank name when saving or activating instead of defaulting to "Untitled"', async () => {
+    const user = userEvent.setup()
+    useFixtureNodeRuntimeResolver()
+
+    render(
+      <TestRouterProvider user={createAdvancedAuthoringUser()}>
+        {renderCreateLayout('equipment')}
+      </TestRouterProvider>
+    )
+
+    expect(await screen.findByRole('textbox', { name: 'Name' })).toHaveValue('')
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+    expect((await screen.findAllByText('Name is required.')).length).toBeGreaterThan(0)
+
+    await user.click(screen.getByRole('button', { name: /^activate$/i }))
+    expect(convexMocks.mutation).not.toHaveBeenCalled()
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('')
+  })
+
   it('uses natural equipment language in the guided start choice', async () => {
     useFixtureNodeRuntimeResolver()
 
@@ -287,7 +306,9 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getByRole('combobox', { name: 'Level' })).toHaveValue('Cantrip')
 
     await user.type(screen.getByRole('textbox', { name: 'Spell name' }), 'Ember Thread')
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled()
     await chooseSpellSchool(user)
+    expect(screen.getByRole('button', { name: 'Next' })).toBeEnabled()
     expect(screen.getByRole('heading', { level: 1, name: 'Ember Thread' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Next' }))
     expect(await screen.findByRole('heading', { name: 'What does the spell do?' })).toHaveFocus()

@@ -35,9 +35,17 @@ Each AC note in the ledger lists the exact files.
 - AC 8.2: the create loader resolves the System from the route or a `?system=` search param (`resolveCreateSystemId`); it never takes `[0]`. With no choice the session has `systemRequired` and `AuthoringLayout` and the Character Builder show `SystemChoiceAlert` (a System picker that sets `?system=`). A spell's school is an author-chosen `SelectField` in Guided (Continue is gated on it); `normalizeSpellForSubmit` no longer injects a fallback school.
 - AC 8.3: the domain normalisers no longer substitute "Untitled X" or `'DRAFT'`. A blank label fails the form's own validation at submit, and a draft save with a blank label sets the same field error instead of saving. Defaults live once in the empty values. The character equipment currency select ignores a cleared value rather than writing `''`.
 - Test premise changes: the "Untitled X" normaliser assertions in `domains/*/tests/` now expect `''` (the old behavior is retired, not weakened). The fallback-school spell test is removed with the fallback. Create-session tests now assert the system comes from the loader's resolved `system`.
-- Not changed, by judgment: social `campaignFormat ?? 'ONGOING'` (a display default before a Campaign is chosen), `weekday ?? 'Recurring'` (label text only), and the Character Builder `'pending-system'` default in `createFallbackCharacterFormValues` (about ten callers use it as a pre-load placeholder; the session now carries the real `systemId`).
+- Not changed, by judgment: social `campaignFormat ?? 'ONGOING'` (a display default before a Campaign is chosen), `weekday ?? 'Recurring'` (label text only), and the identity placeholders `'pending-character'` and `'server-owned'` in `createFallbackCharacterFormValues` (neither is a System or school; the live form is always built from the server draft). The `'pending-system'` placeholder was removed in the review round below.
 
 ### T3 (ACs 8.4, 8.5) — 2026-10-24
 
 - AC 8.4: `GuidedChargeFields` and `guidedCharge.ts` (reset options, `createCharge`, `isSimpleCharge`) are the one limited-uses editor for features and feats. The usage and reset selects are typed against their enums with `allowDeselect={false}` and `findOption` narrowing; no casts or `'TRAIT'`/`'LONG_REST'` fallbacks (new features are created with `section: 'TRAIT'`).
 - AC 8.5: `createDefaultInvocation()` is declared once in `authoringNodeDefaults.ts` and used by the invocation, manifest-behavior and default-effect cases.
+
+### Review round — 2026-10-24
+
+- AC 8.2: `createFallbackCharacterFormValues(systemId)` has no default System. `EMPTY_CHARACTER_FORM_VALUES` (empty `systemId`) is the type carrier for `withForm({ defaultValues })`; the empty id is the same explicit "no System" state as the other authored forms. `stepNavigation` has no `?? 'REVIEW'` left.
+- AC 8.3: tests cover the blank-label draft save (`AuthoringLayout.test.tsx`) and the blank-label save and activate rejection through the real layout (`AuthoredDomainAuthoringLayout.test.tsx`).
+- ACs 8.2/8.4: tests added for `SystemChoiceAlert` (picker sets `?system=`), spell Continue gated on school, `manualCurrency` (cleared select ignored), `guidedCharge` and `GuidedChargeFields`.
+- AC 8.5: node defaults are typed against their schema DTOs with `satisfies`; `authoringNodeDefaults.ts` has no cast allowance left in `scripts/doubleCasts.mjs`.
+- AC 8.6: the layout form stays `object`-typed; see the T1 deviation note. A domain-generic `useAppForm` was assessed as a 35-50 file change with TS2589 risk.
