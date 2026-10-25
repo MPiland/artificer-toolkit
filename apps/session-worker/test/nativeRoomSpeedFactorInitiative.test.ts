@@ -37,6 +37,7 @@ type Room = Awaited<ReturnType<typeof speedFactorRoom>>
 type Answer = Awaited<ReturnType<Room['send']>>
 
 function speedFactorRoom(
+  ownerFeatureId = creatureFeature(goblin, 'Scimitar').id,
   actors = [
     srdCreatureActor({ id: GOBLIN_ID, creature: goblin }),
     srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
@@ -44,7 +45,7 @@ function speedFactorRoom(
 ) {
   return actionRoom({
     actors,
-    ownerFeatureId: creatureFeature(goblin, 'Scimitar').id,
+    ownerFeatureId,
     status: 'PREPARED',
     initiativePolicy: seededInitiativePolicySnapshot(
       SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID
@@ -153,7 +154,7 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
   it('settles a tied score by the higher Dexterity score, whatever the actor identities', async () => {
     // Both Medium Wolves roll a 19 and declare the same action, and Dexterity 14 and 15 both give +2.
     // The lower-Dexterity Wolf holds the lower identity, so only the authored tie rule puts the other first.
-    const room = await speedFactorRoom([
+    const room = await speedFactorRoom(creatureFeature(plainWolf, 'Bite').id, [
       srdCreatureActor({ id: LOW_DEXTERITY_WOLF_ID, creature: lowDexterityWolf }),
       srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
     ])
