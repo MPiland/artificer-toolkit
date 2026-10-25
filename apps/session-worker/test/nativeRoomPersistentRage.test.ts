@@ -57,6 +57,8 @@ async function ragingRoom(classLevel: number) {
         sourceActorId: CHARACTER_ACTOR_ID,
         holderActorId: CHARACTER_ACTOR_ID,
         lifecycle: { endOnEvents: ['ON_IDLE_TURN'] },
+        // Rage's minute: a one-round grant would expire at this turn's end whatever the idle check did.
+        rounds: 10,
         effect: rage,
         sourceLabel: 'Rage',
         keepAuthoredEffectId: true
