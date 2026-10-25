@@ -47,18 +47,12 @@ export const drider: CreatureAuthored = {
       label: 'Fey Ancestry',
       description:
         "Fey Ancestry. The drider has advantage on saving throws against being charmed, and magic can't put the drider to sleep.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(87, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
-            range: { id: S.actionId(87, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FEY_ANCESTRY
-        })
-      ],
+      grants: {
+        modifiers: [
+          ...S.advantageGrants(87, 201, { savesAgainst: ['CHARMED'] }).modifiers,
+          S.magicConditionImmunity(87, 207, 'UNCONSCIOUS', 6)
+        ]
+      },
       order: 1
     },
     {

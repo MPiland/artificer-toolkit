@@ -11,6 +11,7 @@ import {
   RANGE_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
+  type AbilityCode,
   type ActivationCode,
   type AuthoringConstraintCode,
   type DamageDefenseBypassCode,
@@ -243,6 +244,77 @@ export function sourceTraitRestriction(
         ]
       }
     ]
+  }
+}
+
+/**
+ * Advantage on saving throws against a condition (Brave, Fey Ancestry's charm). A condition's save
+ * can use any ability, so each ability gets one grant; grant `index` uses id `makeId(index)`.
+ */
+export function conditionSaveAdvantageGrants(
+  makeId: (entry: number) => string,
+  conditionTypeId: string,
+  firstOrder = 0
+): ModifierGrantAuthored[] {
+  return Object.values(ABILITY_CODE).map((ability, index) => ({
+    id: makeId(index),
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+    domain: { ability, conditionTypeId },
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'ADVANTAGE' },
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    order: firstOrder + index
+  }))
+}
+
+/**
+ * Advantage on saving throws of `abilities` against magic (Magic Resistance, Gnome Cunning): one
+ * grant per ability, limited to a magical source (D179). Grant `index` uses ids `makeId(index * 5)`
+ * to `makeId(index * 5 + 4)`.
+ */
+export function magicSaveAdvantageGrants(
+  makeId: (entry: number) => string,
+  abilities: readonly AbilityCode[],
+  firstOrder = 0
+): ModifierGrantAuthored[] {
+  return abilities.map((ability, index) => ({
+    id: makeId(index * 5),
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
+    domain: { ability },
+    modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
+    payload: { influence: 'ADVANTAGE' },
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    restrictions: sourceTraitRestriction((entry) => makeId(index * 5 + 1 + entry), 'INCLUDE', [
+      'MAGICAL'
+    ]),
+    order: firstOrder + index
+  }))
+}
+
+/**
+ * Immunity to a condition only when magic applies it (Fey Ancestry: magic can't put you to
+ * sleep), limited to a magical source (D179). Uses ids `makeId(0..4)`.
+ */
+export function magicConditionImmunityGrant(
+  makeId: (entry: number) => string,
+  conditionTypeId: string,
+  order: number
+): ModifierGrantAuthored {
+  return {
+    id: makeId(0),
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+    domain: {},
+    modifierKind: MODIFIER_KIND.ADD_OPTION,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: { conditionTypeId },
+    restrictions: sourceTraitRestriction((entry) => makeId(1 + entry), 'INCLUDE', ['MAGICAL']),
+    order
   }
 }
 
