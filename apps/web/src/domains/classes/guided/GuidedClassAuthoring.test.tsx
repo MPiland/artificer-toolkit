@@ -107,7 +107,9 @@ function Harness({
       createInitialSession({
         domain: 'class',
         mode: 'create',
-        data: { system: null, systems: systemId ? [{ id: systemId }] : [] }
+        data: systemId
+          ? { system: { id: systemId }, systems: [{ id: systemId }] }
+          : { system: null, systems: [] }
       }).authoredSession,
     [systemId]
   )

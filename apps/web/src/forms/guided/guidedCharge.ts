@@ -1,4 +1,4 @@
-import type { ChargeDto } from '@artificer-toolkit/schema/shared'
+import type { ChargeDto, ChargeUseDto } from '@artificer-toolkit/schema/shared'
 
 export type SimpleChargeDto = Extract<ChargeDto, { limitKind: 'FIXED_AMOUNT'; scalingKind: 'NONE' }>
 
@@ -18,6 +18,6 @@ export function createCharge(): SimpleChargeDto {
   }
 }
 
-export function isSimpleCharge(charge: ChargeDto): charge is SimpleChargeDto {
+export function isSimpleCharge(charge: ChargeUseDto): charge is SimpleChargeDto {
   return charge.limitKind === 'FIXED_AMOUNT' && charge.scalingKind === 'NONE'
 }

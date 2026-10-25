@@ -162,10 +162,6 @@ export const WEB_NARROWING_ALLOWED = {
     count: 1,
     reason: 'Object.entries widens the key of the default-kind map'
   },
-  'apps/web/src/forms/rendering/authoringNodeDefaults.ts': {
-    count: 1,
-    reason: 'the targeting default is one authored group value of the generic node-default shape'
-  },
   'apps/web/src/forms/utils/pathUtils.ts': {
     count: 3,
     reason: 'field-name strings are typed as TanStack Form DeepKeys of the generic form values'

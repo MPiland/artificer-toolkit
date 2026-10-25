@@ -1,7 +1,12 @@
 import { Alert, NumberInput, Select } from '@mantine/core'
-import type { ChargeDto } from '@artificer-toolkit/schema/shared'
+import type { ChargeUseDto } from '@artificer-toolkit/schema/shared'
 import { findOption } from '#forms/utils/valueGuards'
-import { CHARGE_RESET_OPTIONS, createCharge, isSimpleCharge } from './guidedCharge'
+import {
+  CHARGE_RESET_OPTIONS,
+  createCharge,
+  isSimpleCharge,
+  type SimpleChargeDto
+} from './guidedCharge'
 import * as styles from './guidedAuthoring.css'
 
 const RESET_VALUES = CHARGE_RESET_OPTIONS.map((option) => option.value)
@@ -12,8 +17,8 @@ export function GuidedChargeFields({
   onChange,
   subject
 }: {
-  charges: ChargeDto | undefined
-  onChange: (next: ChargeDto | undefined) => void
+  charges: ChargeUseDto | undefined
+  onChange: (next: SimpleChargeDto | undefined) => void
   subject: 'feat' | 'feature'
 }) {
   return (

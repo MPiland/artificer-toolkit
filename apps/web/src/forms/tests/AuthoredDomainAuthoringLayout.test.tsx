@@ -287,6 +287,7 @@ describe('non-character authored domain layout coverage', () => {
     expect(screen.getByRole('combobox', { name: 'Level' })).toHaveValue('Cantrip')
 
     await user.type(screen.getByRole('textbox', { name: 'Spell name' }), 'Ember Thread')
+    await chooseSpellSchool(user)
     expect(screen.getByRole('heading', { level: 1, name: 'Ember Thread' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Next' }))
     expect(await screen.findByRole('heading', { name: 'What does the spell do?' })).toHaveFocus()
@@ -410,6 +411,7 @@ describe('non-character authored domain layout coverage', () => {
     expect(await screen.findByRole('heading', { name: 'Start with the basics' })).toHaveFocus()
 
     await user.type(screen.getByRole('textbox', { name: 'Spell name' }), 'Ember Thread')
+    await chooseSpellSchool(user)
     await user.click(screen.getByRole('button', { name: 'Next' }))
     await user.click(await screen.findByRole('button', { name: /Damage/ }))
     await user.click(screen.getByRole('button', { name: 'Next' }))
@@ -432,6 +434,7 @@ describe('non-character authored domain layout coverage', () => {
 
     await user.click(await screen.findByRole('button', { name: /Start from scratch/i }))
     await user.type(await screen.findByRole('textbox', { name: 'Spell name' }), 'Ember Thread')
+    await chooseSpellSchool(user)
     await user.click(screen.getByRole('button', { name: 'Next' }))
     await user.click(await screen.findByRole('button', { name: /Damage/ }))
     await user.click(screen.getByRole('button', { name: 'Test reset form' }))
@@ -707,6 +710,11 @@ describe('non-character authored domain layout coverage', () => {
     })
   })
 })
+
+async function chooseSpellSchool(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('combobox', { name: /School of magic/ }))
+  await user.click(await screen.findByRole('option', { name: 'Evocation' }))
+}
 
 function useFixtureNodeRuntimeResolver() {
   convexMocks.nodeRuntimeResolve.mockImplementation(resolveNodeRuntimeQuery)
