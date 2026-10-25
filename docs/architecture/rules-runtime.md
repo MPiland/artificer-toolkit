@@ -458,7 +458,13 @@ never ships (ADR 0023). Its proofs (RULES-2.T12b) run an approach check through 
 the neutral d20 settlement, consume and end effects through its own event vocabulary (refusing D&D
 lifecycle codes), break and save a maintained stunt through its maintenance link, and show that the
 D&D-shaped capabilities it leaves out fail closed on `require` and are skipped by `find`. It provides the
-System-generic `modifierScope` and `d20TestDefinition` capabilities (without a death save). An Encounter actor policy may report no saving throws (`savingThrowDefinitions`
+System-generic `modifierScope` and `d20TestDefinition` capabilities (without a death save). The Convex
+`convex-tracer` project (`apps/apis/vitest.config.ts`, files named `*.tracer.test.ts`) applies the same
+aliases (`tracerTierAliases` in `scripts/vitestSource.mjs`) to the backend (AUTHORING-1.T2): the tracer is
+imported beside the SRD and travels the real System list, summary, document and capability reads, empty
+catalogue counts and reusable-definition create, draft, publish, get and list. Publication compiles its graph
+against the tracer's own fact and operation contracts, so a D&D fact is refused, and a family the tracer
+does not declare is refused at create. An Encounter actor policy may report no saving throws (`savingThrowDefinitions`
 absent); when it reports them, reconciliation still requires one per ability score.
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from

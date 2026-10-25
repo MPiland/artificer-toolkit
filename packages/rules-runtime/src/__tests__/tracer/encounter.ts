@@ -1,4 +1,3 @@
-import { ruleGraphDefinitionDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
 import {
   encounterRunActorStateSchema,
   encounterRunStateSchema,
@@ -14,6 +13,7 @@ import type { CurrentReusableDefinitionSource } from '../../ruleCapabilityStateS
 import { pinnedInitiativePolicySnapshot } from '../../testing/initiativePolicySnapshot.js'
 import { activeEffect } from '../encounterActiveEffectFixtures.js'
 import { TRACER_INITIATIVE_FACT_KEYS } from './encounterTier.js'
+import { add, fateDie, fourFateDice, nodeOutput, tracerGraph } from './graph.js'
 import {
   TRACER_ACTOR_ACTION_CAPABILITY_ID,
   TRACER_APPROACH_DEFINITION_IDS,
@@ -176,31 +176,6 @@ export function tracerEncounterState(input: {
   })
 }
 
-function tracerGraph(id: string, nodes: unknown[], outputs: Record<string, unknown>) {
-  return ruleGraphDefinitionDtoSchema.parse({
-    schemaVersion: 1,
-    id,
-    gameSystemId: TRACER_SYSTEM_ID,
-    definitionFamilyKey: 'rules-runtime-graph',
-    nodes,
-    outputs
-  })
-}
-
-const fateDie = (id: string) => ({
-  id,
-  operation: { key: 'evidence.integer-range', contractVersion: 1 },
-  inputs: { min: { kind: 'LITERAL', value: -1 }, max: { kind: 'LITERAL', value: 1 } }
-})
-
-const add = (id: string, left: unknown, right: unknown) => ({
-  id,
-  operation: { key: 'number.add', contractVersion: 1 },
-  inputs: { left, right }
-})
-
-const nodeOutput = (nodeId: string) => ({ kind: 'NODE_OUTPUT', nodeId, port: 'value' })
-
 /** Four Fate dice plus the initiative approach rating, highest first; one Fate die breaks ties. */
 export function tracerInitiativePolicy(input: { cadence: 'ENCOUNTER_START' | 'EACH_ROUND' }) {
   return pinnedInitiativePolicySnapshot({
@@ -212,13 +187,7 @@ export function tracerInitiativePolicy(input: { cadence: 'ENCOUNTER_START' | 'EA
       graph: tracerGraph(
         '00000000-0000-4000-8000-0000000fd001',
         [
-          fateDie('f1'),
-          fateDie('f2'),
-          fateDie('f3'),
-          fateDie('f4'),
-          add('f12', nodeOutput('f1'), nodeOutput('f2')),
-          add('f34', nodeOutput('f3'), nodeOutput('f4')),
-          add('dice', nodeOutput('f12'), nodeOutput('f34')),
+          ...fourFateDice,
           add('score', nodeOutput('dice'), {
             kind: 'FACT',
             factKey: TRACER_INITIATIVE_FACT_KEYS.rating
