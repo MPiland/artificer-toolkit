@@ -33,7 +33,7 @@ export function GuidedChargeFields({
         value={charges ? 'yes' : 'no'}
         onChange={(value) => {
           if (value === 'no' && charges && !isSimpleCharge(charges)) return
-          if (value === 'yes') onChange(charges ?? createCharge())
+          if (value === 'yes' && !charges) onChange(createCharge())
           else if (value === 'no') onChange(undefined)
         }}
       />
