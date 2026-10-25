@@ -4627,11 +4627,10 @@
             },
             {
               "id": "RULES-2.T9f2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RULES-2.7"
               ],
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
@@ -4642,7 +4641,9 @@
                 ]
               },
               "text": "System vocabulary (D192 as amended 2026-10-24): ability codes become System core codes like sizes in T9f1; persisted and authored ability keys stay codes owned by each System ability table and every ingress rejects a code the System does not list; labels and abbreviations from the System record; shared core/ability.ts deleted; no re-key, no reseed.",
-              "note": " Re-sized 5 to 8 (user ruling 2026-10-24, D192 amendment): the definition-id re-key measured about 21 points."
+              "note": " Re-sized 5 to 8 (user ruling 2026-10-24, D192 amendment): the definition-id re-key measured about 21 points. Merged in m435.",
+              "mergedAt": "2026-10-25T09:18:41Z",
+              "proof": "Tests 40179208825 and Live 40179208863 green on tip 6ac90ac8d; reviewed: ability codes as System core codes rejected at every ingress, labels and descriptions from the SRD System record (seed patch, no code-owned list), core/ability.ts deleted, creature ability facts in System order with regression tests; merged in the m435 batch."
             },
             {
               "id": "RULES-2.T9f3",
@@ -18727,7 +18728,7 @@
             },
             {
               "id": "SPELLS-33.T4m",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -18744,7 +18745,9 @@
                 ]
               },
               "text": "Horrifying Visage, Petrifying Gaze, Vrock Spores, Freedom of Movement (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-25T09:18:41Z",
+              "proof": "Tests and Live green on tip 36413ddfb; reviewed and approved (Vrock ordinal collision fixed); merged in the m435 batch.",
+              "note": " Merged in m435."
             },
             {
               "id": "SPELLS-33.T4n",
