@@ -1,6 +1,15 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
+import {
+  AUTHORING_SELECTION_KIND,
+  GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
+  VALUE_DOMAIN_CODE
+} from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { sourceTraitRestriction } from '../classes/mechanics.js'
+import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const kraken: CreatureAuthored = {
   id: S.CREATURE_IDS.KRAKEN,
@@ -68,8 +77,27 @@ export const kraken: CreatureAuthored = {
       label: 'Freedom of Movement',
       description:
         "Freedom of Movement. The kraken ignores difficult terrain, and magical effects can't reduce its speed or cause it to be restrained. It can spend 5 feet of movement to escape from nonmagical restraints or being grappled.",
+      // Magical effects can't cause it to be restrained: a source-trait condition immunity, as the spell's.
+      grants: {
+        modifiers: [
+          {
+            id: S.grantId(180, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ADD_OPTION,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { conditionTypeId: conditionTypeId('RESTRAINED') },
+            restrictions: sourceTraitRestriction((entry) => S.grantId(180, 10 + entry), 'INCLUDE', [
+              'MAGICAL'
+            ]),
+            order: 0
+          }
+        ]
+      },
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(180, 502),
           invocation: {
             kind: 'PASSIVE',
@@ -77,7 +105,10 @@ export const kraken: CreatureAuthored = {
             range: { id: S.actionId(180, 602), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_KRAKEN_FREEDOM_OF_MOVEMENT
+          label: 'Freedom of Movement',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            "The kraken ignores difficult terrain, and magical effects can't reduce its speed. It can spend 5 feet of movement to escape from nonmagical restraints or being grappled."
         })
       ],
       order: 2

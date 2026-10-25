@@ -139,6 +139,7 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
     qualifiedDefenses: [],
     conditionImmunityIds: [],
     sourceConditionImmunities: [],
+    sourceSaves: [],
     spellSchoolImmunityIds: [],
     characterCurrentness: null,
     attackAgainstContributors: [],
