@@ -187,6 +187,8 @@ export interface MovementRoomConfig {
   /** The Campaign's ammunition tracking option, frozen on the Run (ATTACK-19.4). */
   trackAmmunition?: boolean
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
+  /** The Run's sides; the SRD fixture's single side when omitted. */
+  sides?: readonly { id: string; label: string }[]
   /** Whose stored preference rolls dice automatically: the GM's, the Character player's, or the other player's. */
   autoRoll?: 'GAME_MASTER' | 'PLAYER' | 'BOTH' | 'EVERYONE'
   /** The actors the room's player controls, besides any Character assigned to them. */
@@ -319,7 +321,8 @@ export async function movementRoom(config: MovementRoomConfig) {
       }),
       automationMode: config.automationMode,
       trackAmmunition: config.trackAmmunition,
-      optionalCombatKinds: config.optionalCombatKinds
+      optionalCombatKinds: config.optionalCombatKinds,
+      sides: config.sides
     }),
     id: encounterId,
     campaignId

@@ -2,6 +2,7 @@ import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/act
 import {
   characterActor,
   creatureFeature,
+  SIDE_ID,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -37,6 +38,11 @@ function moraleRoom(options: { kinds?: readonly ('MORALE' | 'DISARM')[] } = {}) 
     ],
     ownerFeatureId: creatureFeature(bite, 'Bite').id,
     optionalCombatKinds: options.kinds ?? ['MORALE'],
+    sides: [
+      { id: SIDE_ID, label: 'Party' },
+      { id: ATTACKERS, label: 'Attackers' },
+      { id: DEFENDERS, label: 'Defenders' }
+    ],
     rolls: [0, 0, 0, 0]
   })
 }

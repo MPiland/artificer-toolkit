@@ -91,7 +91,7 @@ describe('Tabletop morale', () => {
       },
       leaders: [{ id: LEADER_ID, label: 'Hobgoblin captain' }]
     })
-    await userEvent.click(screen.getByRole('textbox', { name: 'Group leader for Goblin' }))
+    await userEvent.click(screen.getByRole('combobox', { name: 'Group leader for Goblin' }))
     await userEvent.click(await screen.findByText('Hobgoblin captain'))
     await userEvent.click(screen.getByRole('button', { name: 'Check morale for Goblin' }))
     expect(onCheck).toHaveBeenCalledWith(
