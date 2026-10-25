@@ -9,8 +9,9 @@ import {
   authoredNestedCollectionSchema,
   authoredPositiveLengthAmountSchema
 } from '../shared/authoredLimits.js'
-import { lengthUnitCodeSchema } from '../shared/enums.js'
+import { lengthUnitCodeSchema, pathLifecycleTurnAnchorDtoSchema } from '../shared/enums.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const moduleBase = lazySchemaParts(() => ({
@@ -100,8 +101,16 @@ export const actorRelationshipDtoSchema = lazySchema(() =>
         .check(z.minLength(1))
         .check(z.maxLength(32)),
       conditions: z.optional(authoredNestedCollectionSchema(conditionDtoSchema)),
+      /**
+       * Damage dealt at each counted turn boundary while the hold stands, to the held creature; with
+       * a saving throw, only when it fails that save. The hold stands either way.
+       */
       recurrence: z.optional(
-        z.object({ stage: z.literal('START_OF_TURN'), damage: damageDtoSchema })
+        z.object({
+          turnAnchor: pathLifecycleTurnAnchorDtoSchema,
+          savingThrow: z.optional(savingThrowDtoSchema),
+          damage: damageDtoSchema
+        })
       )
     })
     .check(

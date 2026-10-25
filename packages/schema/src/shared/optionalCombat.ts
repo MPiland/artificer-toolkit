@@ -358,7 +358,20 @@ const boundedCheckDefinitionChoicesSchema = lazySchema(() =>
 )
 
 const facingArcDtoSchema = lazySchema(() => z.enum(FACING_ARCS))
-
+/** A facing is a whole multiple of this step from north; it divides 360. */
+export const facingStepDegreesDtoSchema = lazySchema(() =>
+  z
+    .number()
+    .check(z.int())
+    .check(z.positive())
+    .check(z.lte(360))
+    .check(
+      z.superRefine((step, context) => {
+        if (360 % step !== 0)
+          context.addIssue({ code: 'custom', message: 'A facing step must divide 360 degrees.' })
+      })
+    )
+)
 function uniqueFacingArcs<T>(arcOf: (entry: T) => FacingArc) {
   return z.superRefine<T[]>((entries, context) => {
     if (new Set(entries.map(arcOf)).size !== entries.length)
@@ -424,21 +437,8 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
     z.strictObject({ kind: z.literal('ALTERNATING_DIAGONALS') }),
     z.strictObject({
       kind: z.literal('FACING'),
-      /** A facing is a whole multiple of this step from north; it divides 360. */
-      facingStepDegrees: z
-        .number()
-        .check(z.int())
-        .check(z.positive())
-        .check(z.lte(360))
-        .check(
-          z.superRefine((step, context) => {
-            if (360 % step !== 0)
-              context.addIssue({
-                code: 'custom',
-                message: 'A facing step must divide 360 degrees.'
-              })
-          })
-        ),
+      facingStepDegrees: facingStepDegreesDtoSchema,
+
       arcs: facingArcTableDtoSchema,
       attackerInTargetArc: z
         .array(z.strictObject({ arc: facingArcDtoSchema, influence: systemCoreCodeSchema }))

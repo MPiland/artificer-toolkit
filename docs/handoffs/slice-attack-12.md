@@ -65,3 +65,17 @@ Base: `origin/codex/phase-08-2-convex-cutover`. CI branch `ci/attack-12`.
 - `flankingContributor`, the compiler's `positionalFacts` and `CharacterRuleActionPositionalFacts` are deleted.
 - The Flanking contributor carries no `positional` field.
 - Proofs: `encounterPositionalContributors.test.ts` (opposite ally, ally not opposite, ranged, sight, Incapacitated, hostile or distant ally, rule off) and the room tests in `nativeRoomFacing.test.ts` (advantage with an ally opposite, normal without).
+
+## T3 shape (closes ATTACK-12.3)
+
+- FACING joins `INTEGRATED_OPTIONAL_COMBAT_RULE_MODULES`, so Campaign settings offer it.
+- Both Encounter projections gain an additive `facingStepDegrees` (null while the rule is off). It is read through `encounterFacingRule`, and its schema is `facingStepDegrees` from the FACING parameters, extracted for reuse.
+- Web:
+  - The renderer's `facing` flag is set for an Encounter creature only while the step is set.
+  - A walked Encounter move under the rule waits on `CampaignVttFacingChoice`, which offers the direction of travel first (`travelFacingDegrees`, using the shared `sceneBearingDegrees`). The choice is sent as `facingDegrees`. It follows the careful-move choice.
+  - A selected creature the member controls offers "Change facing (reaction)", which sends `CHANGE_FACING`.
+- Proofs:
+  - `playSettingsOptions.test.ts` and `playSettings.test.ts` cover settings;
+  - `commands.test.ts` covers the journey: Facing on projects the authored step, off projects null;
+  - `vttTokenPresentation.model.test.ts` covers the renderer gate;
+  - `vttFacing.model.test.ts` covers directions, the travel default and labels.

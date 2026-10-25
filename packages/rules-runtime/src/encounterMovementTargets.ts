@@ -254,6 +254,14 @@ function withFormArmorClass(
   }
 }
 
+/** The attack traits an actor's grants give its attacks; a System with no attack profile gives none. */
+function grantedAttackTraits(
+  gameSystemId: string,
+  modifiers: CharacterGrantFoldOutput['modifiers']
+): readonly DamageDefenseBypassCode[] {
+  return attackProfileCapabilityRegistry.find(gameSystemId)?.grantedAttackTraits(modifiers) ?? []
+}
+
 function nativeCharacterBatchInputs(
   characterFacts: CharacterMovementFacts,
   activeEffects: ActiveRuleEffectRecord[]
@@ -540,9 +548,10 @@ export function buildMovementTarget<
         actor,
         effectiveRulePolicyOutput
       ),
-      grantedAttackTraits: attackProfileCapabilityRegistry
-        .require(gameSystemId)
-        .grantedAttackTraits(effectiveRulePolicyOutput.grantFold.modifiers),
+      grantedAttackTraits: grantedAttackTraits(
+        gameSystemId,
+        effectiveRulePolicyOutput.grantFold.modifiers
+      ),
       innateConditionIds: innateConditionIds(effectiveRulePolicyOutput.grantFold.modifiers),
       featureModifiers: [],
       attackAgainstContributors: [],
@@ -640,9 +649,7 @@ export function buildMovementTarget<
     qualifiedDefenses: targetProtection.qualifiedDefenses,
     conditionImmunityIds: targetProtection.conditionImmunityIds,
     movementPassage: encounterActorMovementPassage(gameSystemId, actor, null),
-    grantedAttackTraits: attackProfileCapabilityRegistry
-      .require(gameSystemId)
-      .grantedAttackTraits(creatureFacts?.modifiers ?? []),
+    grantedAttackTraits: grantedAttackTraits(gameSystemId, creatureFacts?.modifiers ?? []),
     innateConditionIds: creatureInnateConditionIds(activeEffects, creatureFacts?.modifiers ?? []),
     featureModifiers: creatureFacts?.modifiers ?? [],
     spellSchoolImmunityIds: targetProtection.spellSchoolImmunityIds,

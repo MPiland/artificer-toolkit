@@ -291,6 +291,7 @@ describe('native action economy', () => {
           perceptionContributions: [],
           recurrence: {
             recurrenceStage: 'NONE',
+            anchor: 'HOLDER',
             consumeOnFirstEvents: [],
             endOnEvents: [],
             endOnTriggers: [],

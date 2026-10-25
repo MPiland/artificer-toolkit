@@ -41,8 +41,6 @@ import {
   PATH_ORIGIN_KIND_OPTIONS,
   PATH_USAGE_OPTIONS,
   PATH_LIFECYCLE_RECURRING_KIND_OPTIONS,
-  PATH_LIFECYCLE_TURN_ACTOR_OPTIONS,
-  PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS,
   PATH_LIFECYCLE_EXCLUSIVITY_OPTIONS,
   PATH_CODE_OPTIONS,
   PATH_GROUP_TYPE_OPTIONS,
@@ -98,6 +96,7 @@ import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { ATTACK_SLOT_CONDITION_NODE_MAP } from '../../features/maps/attackSlots.js'
 import { ACTOR_RELATIONSHIP_MODULE_NODE_MAP } from './actorRelationshipModule.js'
+import { PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP } from './pathLifecycleTurnAnchor.js'
 import {
   FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP,
   FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
@@ -225,7 +224,6 @@ const SUMMON_VISIBILITY_OPTIONS = [
 
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
-const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const pathLifecycleGrantedAction =
   buildNodeMap<NonNullable<PathLifecycleAuthored['grantedActions']>[number]>()
@@ -355,29 +353,6 @@ const FORCED_MOVEMENT_COLLISION_NODE_MAP: NodeMap<ForcedMovementCollisionAuthore
         )
       )
   })
-
-const PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP: NodeMap<
-  NonNullable<PathLifecycleAuthored['turnAnchor']>
-> = pathLifecycleTurnAnchor.define('pathLifecycleTurnAnchor', ({ map, nodes }) => {
-  const { selectSingle } = nodes
-
-  map
-    .set(
-      'actor',
-      selectSingle(['actor'], 'Counted On', inlineOptions(PATH_LIFECYCLE_TURN_ACTOR_OPTIONS), {
-        requiredIf: true
-      })
-    )
-    .set(
-      'boundary',
-      selectSingle(
-        ['boundary'],
-        'Counted At',
-        inlineOptions(PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS),
-        { requiredIf: true }
-      )
-    )
-})
 
 const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>> =
   pathLifecycleHolderEnd.define('pathLifecycleHolderEnd', ({ map, nodes }) => {
@@ -1198,13 +1173,19 @@ const TELEPATHIC_LINK_ABILITY_FLOOR_NODE_MAP = telepathicLinkAbilityFloor.define
 const ACTOR_RELATIONSHIP_RECURRENCE_NODE_MAP = actorRelationshipRecurrence.define(
   'actorRelationshipRecurrence',
   ({ map, nodes }) => {
-    const { selectSingle, groupObject } = nodes
+    const { groupObject } = nodes
     map
       .set(
-        'stage',
-        selectSingle(['stage'], 'Stage', {
-          kind: 'INLINE_OPTIONS',
-          options: [{ code: 'START_OF_TURN', label: 'Start of Turn' }]
+        'turnAnchor',
+        groupObject(['turnAnchor'], 'Turn Anchor', () => PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+      .set(
+        'savingThrow',
+        groupObject(['savingThrow'], 'Held Creature Save', () => SAVING_THROW_NODE_MAP, {
+          presentation: 'inline'
         })
       )
       .set(

@@ -34,10 +34,16 @@ export type PathEntryBase = {
 
 export type PathEntryWithMetadata = PathEntryBase & OutcomeRowMetadataAuthored
 
+/** The turn boundary an effect is counted or recurs at, on its target's or its source's turns. */
+export type PathLifecycleTurnAnchorAuthored = {
+  actor: PathLifecycleTurnActor
+  boundary: PathLifecycleTurnBoundary
+}
+
 export type PathLifecycleAuthored = {
   recurringKind?: PathLifecycleRecurringKind
   /** Whose turn boundary counts a timed effect down; absent means the target's end of turn. */
-  turnAnchor?: { actor: PathLifecycleTurnActor; boundary: PathLifecycleTurnBoundary }
+  turnAnchor?: PathLifecycleTurnAnchorAuthored
   /** System `effectConsumeEvent` codes. */
   consumeOnFirstEvents?: string[]
   /** System `effectEndEvent` codes. */

@@ -395,6 +395,7 @@ export async function seedTurnSaveEffect(
         perceptionContributions: [],
         recurrence: {
           recurrenceStage: input.stage,
+          anchor: 'HOLDER',
           consumeOnFirstEvents: [],
           endOnEvents: [],
           endOnTriggers: [],
@@ -404,8 +405,7 @@ export async function seedTurnSaveEffect(
           expiration: {
             kind: 'TICKS',
             initialRemaining: input.ticks,
-            decrementStage: input.stage,
-            anchor: 'HOLDER'
+            decrementStage: input.stage
           }
         }
       }),

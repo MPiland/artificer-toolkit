@@ -1,21 +1,13 @@
-import { fileURLToPath } from 'node:url'
 import { configDefaults, defineConfig } from 'vitest/config'
 
 import {
   inlineWorkspacePackages,
   sourceResolve,
+  tracerTierAliases,
   workspaceSourceAliases
 } from './scripts/vitestSource.mjs'
 
 const TRACER_TESTS = 'packages/rules-runtime/src/__tests__/tracer/**/*.test.ts'
-
-/** Swaps an installed-Systems tier list for the tracer's, which adds the test-only System (D195). */
-const tracerTier = (tier: string) => ({
-  find: new RegExp(`^.*/systems/installedGameSystems/${tier}\\.js$`),
-  replacement: fileURLToPath(
-    new URL(`./packages/rules-runtime/src/__tests__/tracer/installed/${tier}.ts`, import.meta.url)
-  )
-})
 
 export default defineConfig({
   ssr: sourceResolve.ssr,
@@ -53,7 +45,7 @@ export default defineConfig({
       {
         // The second-System tracer (ADR 0023): the installed lists also install a test-only System.
         extends: true,
-        resolve: { alias: ['vocabulary', 'policy', 'encounter', 'runtime'].map(tracerTier) },
+        resolve: { alias: tracerTierAliases },
         test: { name: 'tracer', include: [TRACER_TESTS] }
       }
     ]
