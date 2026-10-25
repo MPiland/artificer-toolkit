@@ -33,7 +33,7 @@ export async function restoreEncounterInitiativeTurnActors<
       Parameters<typeof prepareEncounterTurnEffects<TCharacterFacts>>[0],
       | 'state'
       | 'userId'
-      | 'autoRoll'
+      | 'autoRollByActorId'
       | 'root'
       | 'occurrenceId'
       | 'actors'
@@ -130,7 +130,7 @@ export async function restoreEncounterInitiativeTurnActors<
   const outgoing = await input.prepareEffects({
     state,
     userId: input.campaign.ownerUserId,
-    autoRoll: false,
+    autoRollByActorId: {},
     root: turnRoot,
     occurrenceId: input.occurrenceId,
     actors,

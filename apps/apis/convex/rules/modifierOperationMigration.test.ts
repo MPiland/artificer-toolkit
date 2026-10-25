@@ -110,6 +110,7 @@ function definition(
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],
@@ -117,7 +118,7 @@ function definition(
       holderEnd: null,
       lifetimeScope: encounter ? 'ENCOUNTER' : 'OWNER',
       expiration: encounter
-        ? { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN', anchor: 'HOLDER' }
+        ? { kind: 'TICKS', initialRemaining: 3, decrementStage: 'END_OF_TURN' }
         : { kind: 'INDEFINITE' }
     },
     stateContributions: [grantContribution]

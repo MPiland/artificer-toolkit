@@ -275,6 +275,11 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
     perceptionContributions: combatPerceptionContributionsDtoSchema,
     recurrence: z.strictObject({
       recurrenceStage: z.enum(['NONE', 'START_OF_TURN', 'END_OF_TURN']),
+      /**
+       * Whose turn boundaries count and run the effect: its holder's, or its Encounter source
+       * actor's. Authoring's `turnAnchor` maps here (`TARGET` is the holder).
+       */
+      anchor: z.enum(['HOLDER', 'SOURCE']),
       consumeOnFirstEvents: activeEffectConsumeEventsSchema,
       endOnEvents: activeEffectEndEventsSchema,
       endOnTriggers: z._default(activeEffectEndTriggersSchema, []),
@@ -314,9 +319,7 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
           initialRemaining: integerSchema
             .check(z.gte(1))
             .check(z.lte(MAX_ACTIVE_EFFECT_STORED_TICKS)),
-          decrementStage: z.enum(['START_OF_TURN', 'END_OF_TURN']),
-          /** Whose turn boundary ticks the effect: its holder's, or its Encounter source actor's. */
-          anchor: z.enum(['HOLDER', 'SOURCE'])
+          decrementStage: z.enum(['START_OF_TURN', 'END_OF_TURN'])
         })
       ])
     })
@@ -615,14 +618,13 @@ export const activeRuleEffectDefinitionDtoSchema = lazySchema(() =>
           })
         }
         if (
-          definition.recurrence.expiration.kind === 'TICKS' &&
-          definition.recurrence.expiration.anchor === 'SOURCE' &&
+          definition.recurrence.anchor === 'SOURCE' &&
           (definition.origin.kind !== 'ENCOUNTER' || definition.origin.sourceActorId === null)
         ) {
           context.addIssue({
             code: 'custom',
-            path: ['recurrence', 'expiration', 'anchor'],
-            message: 'Source-anchored expiration requires an Encounter origin with a source actor.'
+            path: ['recurrence', 'anchor'],
+            message: 'A source-anchored effect requires an Encounter origin with a source actor.'
           })
         }
         if (

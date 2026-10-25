@@ -79,6 +79,7 @@ function effectDefinition() {
     adapterFacts: {},
     recurrence: {
       recurrenceStage: 'NONE' as const,
+      anchor: 'HOLDER' as const,
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],

@@ -102,6 +102,7 @@ export interface VttTokenPresentation {
   artUrl: string | null
   /** The disposition ring's name, so the ring's colour is never the only cue. */
   dispositionLabel: string | null
+  /** Draws the token's facing: it is an Encounter creature while the Facing rule is active. */
   facing: boolean
   fillColor: number
   halo: { color: number; label: string } | null

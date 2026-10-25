@@ -642,6 +642,17 @@ function arcDistanceFromFront(range: FacingArcRange): number {
   return Math.min(middle, 360 - middle)
 }
 
+/**
+ * The facing that points from one Scene point to another, in degrees clockwise from the top of
+ * the map (a token's `rotationDegrees`); null when the points coincide.
+ */
+export function sceneBearingDegrees(from: ScenePoint, to: ScenePoint): number | null {
+  const dx = to.x - from.x
+  const dy = to.y - from.y
+  if (Math.abs(dx) <= EPSILON && Math.abs(dy) <= EPSILON) return null
+  return ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360
+}
+
 function classifyFacingArcAt(input: {
   readonly arcs: readonly FacingArcRange[]
   readonly orientationCenter: ScenePoint
@@ -651,10 +662,8 @@ function classifyFacingArcAt(input: {
   if (!isFinitePoint(input.orientationCenter) || !isFinitePoint(input.subject)) return null
   const rotation = normalizeDegrees(input.rotationDegrees)
   if (rotation === null) return null
-  const dx = input.subject.x - input.orientationCenter.x
-  const dy = input.subject.y - input.orientationCenter.y
-  if (Math.abs(dx) <= EPSILON && Math.abs(dy) <= EPSILON) return null
-  const direction = ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360
+  const direction = sceneBearingDegrees(input.orientationCenter, input.subject)
+  if (direction === null) return null
   const offset = (direction - rotation + 360) % 360
   // A direction on a shared edge belongs to the arc nearer the front.
   const matches = input.arcs.filter((range) => {
