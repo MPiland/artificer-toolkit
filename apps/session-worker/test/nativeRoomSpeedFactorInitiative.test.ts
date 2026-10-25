@@ -194,7 +194,6 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
         spells: [acidSplash, rayOfFrost],
         prepared: [acidSplash.id, rayOfFrost.id]
       },
-      characterAction: (action) => action.label === acidSplash.label,
       status: 'PREPARED',
       initiativePolicy: seededInitiativePolicySnapshot(
         SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID
@@ -215,21 +214,30 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
     )
       await room.advanceTurn()
 
-    const rayOfFrostId = (await room.actionChoices(CASTER_ACTOR_ID)).actions.find(
-      ({ label }) => label === rayOfFrost.label
-    )?.id
-    if (!rayOfFrostId) throw new Error('The room offers the caster no Ray of Frost.')
+    const choices = (await room.actionChoices(CASTER_ACTOR_ID)).actions
+    const choiceId = (label: string) => {
+      const id = choices.find((action) => action.label === label)?.id
+      if (!id) throw new Error(`The room offers the caster no ${label}.`)
+      return id
+    }
     const refused = await room.startAction(
       WOLF_ID,
       [],
       room.sceneContext(1),
       null,
-      rayOfFrostId,
+      choiceId(rayOfFrost.label),
       CASTER_ACTOR_ID
     )
     expect(refused.answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'UNDECLARED_ACTION' })
 
-    const declared = await room.startAction(WOLF_ID, [], room.sceneContext(1))
+    const declared = await room.startAction(
+      WOLF_ID,
+      [],
+      room.sceneContext(1),
+      null,
+      choiceId(acidSplash.label),
+      CASTER_ACTOR_ID
+    )
     expect(declared.answer.type, JSON.stringify(declared.answer)).toBe('COMMAND_COMMITTED')
   }, 120000)
 })
