@@ -40,7 +40,7 @@ describe('useStructuralChangeGuard', () => {
     'proficiencyGrant',
     'facetCondition'
   ] as const)('uses native normalization for %s', async (rootMapId) => {
-    mocks.nativeQuery.mockResolvedValue({ clearedPaths: [], values: {} })
+    mocks.nativeQuery.mockResolvedValue({ clearedPaths: [], refusedPaths: [], values: {} })
     const commit = vi.fn()
     const form = createForm()
     const { result } = renderHook(() =>
@@ -155,7 +155,7 @@ describe('useStructuralChangeGuard', () => {
 
   it('does not apply a stale native result after the form changes', async () => {
     let resolveNormalization:
-      | ((value: { clearedPaths: string[][]; values: object }) => void)
+      | ((value: { clearedPaths: string[][]; refusedPaths: string[][]; values: object }) => void)
       | undefined
     mocks.nativeQuery.mockReturnValue(
       new Promise((resolve) => {
@@ -181,7 +181,7 @@ describe('useStructuralChangeGuard', () => {
         nextValue: 'REQUIRES_SUBRACE'
       })
       form.state.values = { selectionMode: 'CHANGED_ELSEWHERE' }
-      resolveNormalization?.({ clearedPaths: [['selectionMode']], values: {} })
+      resolveNormalization?.({ clearedPaths: [['selectionMode']], refusedPaths: [], values: {} })
     })
 
     await waitFor(() => expect(mocks.notification).toHaveBeenCalledOnce())

@@ -1034,9 +1034,9 @@ describe('native Class publication', () => {
   it('rejects a Class publish when an observed source changes before commit', async () => {
     const { t, first } = await fixture()
     const draft = await copyDraft(first.caller, fighter.id)
-    const originalNormalize = nodeRuntime.normalizeNodeRuntimeValues
+    const originalNormalize = nodeRuntime.normalizeIngressValues
     const normalizeSpy = vi
-      .spyOn(nodeRuntime, 'normalizeNodeRuntimeValues')
+      .spyOn(nodeRuntime, 'normalizeIngressValues')
       .mockImplementation(async (...args) => {
         const normalized = await originalNormalize(...args)
         await t.run(async (ctx) => {

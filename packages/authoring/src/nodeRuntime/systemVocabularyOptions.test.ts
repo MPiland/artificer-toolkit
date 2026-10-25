@@ -1,12 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
 import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
+import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
+import { dwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
+import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { getRuntimeNodeMap, listRuntimeNodeMapIds } from './mapRegistry.js'
-import { normalizeNodeRuntimeValues, resolveNodeRuntime } from './nodeRuntimeService.js'
+import {
+  normalizeIngressValues,
+  normalizeNodeRuntimeValues,
+  resolveNodeRuntime
+} from './nodeRuntimeService.js'
 import { nodeRuntimeSourceManifest } from './nodeRuntimeSourceManifest.js'
-import { createNodeRuntimeSourceReader, systemCoreCodeRows } from './systemSourceRows.js'
+import {
+  createNodeRuntimeSourceReader,
+  systemCoreCodeRows,
+  systemCoreCodeTables
+} from './systemSourceRows.js'
 import {
   DND5E_SIZES,
   dnd5eCoreCodeAdapter
@@ -174,5 +185,103 @@ describe('System vocabulary option descriptions', () => {
         nodeRuntimeSourceManifest[plan.table as keyof typeof nodeRuntimeSourceManifest]
       for (const column of plan.selectColumns ?? []) expect(served, plan.table).toContain(column)
     }
+  })
+})
+
+/** Every DATA select source a node map declares, wherever the builder nested it. */
+function collectDataSources(value: unknown, seen = new WeakSet<object>()) {
+  const sources: { relationship: { kind: string } }[] = []
+  if (typeof value !== 'object' || value === null || seen.has(value)) return sources
+  seen.add(value)
+  const record = value as Record<string, unknown>
+  const source = record.source as { kind?: unknown; relationship?: { kind: string } } | undefined
+  if (source?.kind === 'DATA' && source.relationship)
+    sources.push({ relationship: source.relationship })
+  for (const child of Object.values(record)) sources.push(...collectDataSources(child, seen))
+  return sources
+}
+
+describe('System core codes at authoring ingress', () => {
+  const ingress = (mapId: string, values: Record<string, unknown>) =>
+    normalizeIngressValues(reader, { mapId, systemId: srdSystemRecord.id, values })
+  const refusal = (path: string, value: string) =>
+    `The Game System does not define "${value}" at ${path}.`
+
+  it('reads every core-code select from its table directly, so ingress refuses its unknown codes', () => {
+    const coreCodeSources = listRuntimeNodeMapIds()
+      .flatMap((mapId) => collectDataSources(getRuntimeNodeMap(mapId).nodes))
+      .filter(({ relationship }) =>
+        collectTablePlans(relationship).some(({ table }) =>
+          (systemCoreCodeTables as readonly string[]).includes(table)
+        )
+      )
+
+    expect(coreCodeSources.length).toBeGreaterThan(30)
+    for (const { relationship } of coreCodeSources) expect(relationship.kind).toBe('TABLE')
+  })
+
+  it('accepts the SRD sizes', async () => {
+    for (const [mapId, document] of [
+      ['creature', brownBear],
+      ['race', dwarf],
+      ['vehicle', cart]
+    ] as const)
+      expect((await ingress(mapId, { ...document })).refusedPaths).toEqual([])
+  })
+
+  it.each([
+    { mapId: 'creature', document: brownBear },
+    { mapId: 'race', document: dwarf },
+    { mapId: 'vehicle', document: cart }
+  ])('refuses a $mapId size the System does not list', async ({ mapId, document }) => {
+    await expect(ingress(mapId, { ...document, size: 'ENORMOUS' })).rejects.toThrow(
+      refusal('size', 'ENORMOUS')
+    )
+  })
+
+  it('refuses a nested attack-slot size condition the System does not list', async () => {
+    const [multiattack, ...rest] = brownBear.features
+    const features = [
+      {
+        ...multiattack,
+        attackSlots: {
+          alternatives: [
+            {
+              slots: [
+                {
+                  count: 1,
+                  fillers: [{ kind: 'ANY_ATTACK' }],
+                  condition: { kind: 'TARGET_SIZE_AT_MOST', size: 'ENORMOUS' }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      ...rest
+    ]
+    await expect(ingress('creature', { ...brownBear, features })).rejects.toThrow(
+      refusal('features.0.attackSlots.alternatives.0.slots.0.condition.size', 'ENORMOUS')
+    )
+  })
+
+  it('refuses an ability the System does not list, where an editor clears it', async () => {
+    const values = { ability: 'SANITY', min: 13 }
+    await expect(ingress('classMulticlassRequirement', values)).rejects.toThrow(
+      refusal('ability', 'SANITY')
+    )
+    const edited = await normalizeNodeRuntimeValues(reader, {
+      mapId: 'classMulticlassRequirement',
+      systemId: srdSystemRecord.id,
+      values
+    })
+    expect(edited.values).not.toHaveProperty('ability')
+    expect(edited.refusedPaths).toEqual([['ability']])
+  })
+
+  it('still clears a stale definition reference at ingress', async () => {
+    const normalized = await ingress('creature', { ...brownBear, alignmentId: 'STALE' })
+    expect(normalized.values).not.toHaveProperty('alignmentId')
+    expect(normalized.refusedPaths).toEqual([])
   })
 })

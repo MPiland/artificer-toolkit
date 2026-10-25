@@ -21,6 +21,7 @@ import { dnd5ePolicyModuleRegistration } from './systems/dnd5e/policyModuleRegis
 import { dnd5eRollModeCapabilityAdapter } from './systems/dnd5e/rollModePolicy.js'
 import { dnd5eSavingThrowCapabilityAdapter } from './systems/dnd5e/savingThrowPolicy.js'
 import { systemCoreCodeRegistry } from './platformSystemCoreCodes.js'
+import { requireSceneIlluminationLevels } from '@artificer-toolkit/shared/vtt'
 
 const installedRuntimeModules = [dnd5ePolicyModuleRegistration] as const
 
@@ -30,9 +31,11 @@ export const rollModeCapabilityRegistry = createRollModeCapabilityRegistry(
 )
 
 export const combatPerceptionCapabilityRegistry =
-  createSystemCapabilityRegistry<CombatPerceptionCapabilityAdapter>('combat-perception', [
-    dnd5eCombatPerceptionCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<CombatPerceptionCapabilityAdapter>(
+    'combat-perception',
+    [dnd5eCombatPerceptionCapabilityAdapter],
+    ({ illuminationLevels }) => requireSceneIlluminationLevels(illuminationLevels)
+  )
 
 export const actionEconomyCapabilityRegistry =
   createSystemCapabilityRegistry<ActionEconomyCapabilityAdapter>('action-economy', [

@@ -220,7 +220,7 @@ describe('native Creature publication', () => {
 
     await expect(
       first.caller.mutation(publish, creaturePublicationInput(enormous))
-    ).rejects.toThrow('The Game System does not define the size "ENORMOUS".')
+    ).rejects.toThrow('The Game System does not define "ENORMOUS" at size.')
   })
 
   it('publishes a Creature sense and refuses a sense the room could not run', async () => {

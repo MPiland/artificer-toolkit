@@ -6,7 +6,9 @@ import {
   measureSceneTokenFootprintDistance,
   resolveSceneCombatPerceptionEnvironment,
   resolveSceneIlluminationAt,
+  requireSceneIlluminationLevels,
   resolveSceneLightAt,
+  sceneLightLevels,
   sceneTokenLights,
   type SceneIlluminationLevel
 } from '../domains/vtt/sceneCombatPerception.js'
@@ -524,5 +526,53 @@ describe('Scene combat-perception environment', () => {
     it('is not sunlight where a daylit Scene resolves only DIM', () => {
       expect(daylightAt({ ambientIllumination: 'DIM' }, true)).toBe(false)
     })
+  })
+})
+
+describe('System illumination level tables', () => {
+  const [lit, gloom, dark, voidLevel] = levels as [
+    SceneIlluminationLevel,
+    SceneIlluminationLevel,
+    SceneIlluminationLevel,
+    SceneIlluminationLevel
+  ]
+
+  it('accepts a table brightest first with its light-suppressing levels last', () => {
+    expect(() => requireSceneIlluminationLevels(levels)).not.toThrow()
+  })
+
+  it('sheds the two brightest levels from a light, whatever the System calls them', () => {
+    expect(sceneLightLevels(levels)).toEqual({ bright: lit, dim: gloom })
+    const shifted = [
+      { ...gloom, renderClass: 'LIT' as const },
+      { ...dark, renderClass: 'DIM' as const },
+      voidLevel
+    ]
+    expect(sceneLightLevels(shifted)).toEqual({ bright: shifted[0], dim: shifted[1] })
+  })
+
+  it.each([
+    { name: 'an empty table', table: [] },
+    { name: 'a single level', table: [lit] }
+  ])('refuses $name, which sheds no dim light', ({ table }) => {
+    expect(() => requireSceneIlluminationLevels(table)).toThrow(
+      'The Game System lists fewer than the two illumination levels a light sheds.'
+    )
+  })
+
+  it('refuses a level listed twice', () => {
+    expect(() => requireSceneIlluminationLevels([lit, gloom, gloom])).toThrow(
+      'The Game System lists an illumination level twice.'
+    )
+  })
+
+  it.each([
+    { name: 'a darker render class first', table: [gloom, lit, dark] },
+    { name: 'a light-suppressing level before a plain one', table: [lit, gloom, voidLevel, dark] },
+    { name: 'a light-suppressing level a light sheds', table: [lit, voidLevel] }
+  ])('refuses $name', ({ table }) => {
+    expect(() => requireSceneIlluminationLevels(table)).toThrow(
+      'The Game System lists its illumination levels brightest first, light-suppressing levels last.'
+    )
   })
 })

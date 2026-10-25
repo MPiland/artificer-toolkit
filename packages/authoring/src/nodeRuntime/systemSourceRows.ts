@@ -20,6 +20,22 @@ export type NodeRuntimePolicyVocabulary = Readonly<
   >
 >
 
+/**
+ * The resolver tables whose row ids are System core codes. Authored data names these codes directly,
+ * so ingress refuses an unknown one rather than letting node-map normalization clear it.
+ */
+export const systemCoreCodeTables = [
+  'abilities',
+  'ability_modifier_references',
+  'roll_influences',
+  'roll_modes',
+  'spell_slot_pools',
+  'effect_consume_events',
+  'effect_end_events',
+  'action_traits',
+  'sizes'
+] as const satisfies readonly NodeRuntimeSourceTable[]
+
 const policyRows = (entries: NodeRuntimePolicyVocabulary['rollMode']) =>
   entries.map(({ code, label, description }) => ({
     id: code,

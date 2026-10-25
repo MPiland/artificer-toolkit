@@ -17,6 +17,7 @@ import {
   scenePointInPolygon,
   sceneRangeBand,
   sceneRangeOutline,
+  sceneLightLevels,
   type SceneGrid,
   type SceneIlluminationLevel,
   type SceneIlluminationRenderClass,
@@ -922,6 +923,15 @@ export const gmDarknessCapAlpha = 0.6
 export function illuminationOverlayAlpha(renderClass: SceneIlluminationRenderClass): number {
   if (renderClass === 'LIT') return 0
   return renderClass === 'DIM' ? dimOverlayAlpha : 1
+}
+
+/** The overlay alphas of a light's bright and dim bands: the System's two brightest levels. */
+export function lightBandAlphas(levels: readonly SceneIlluminationLevel[]) {
+  const { bright, dim } = sceneLightLevels(levels)
+  return {
+    bright: illuminationOverlayAlpha(bright.renderClass),
+    dim: illuminationOverlayAlpha(dim.renderClass)
+  }
 }
 
 export function wholeMapPolygon(
