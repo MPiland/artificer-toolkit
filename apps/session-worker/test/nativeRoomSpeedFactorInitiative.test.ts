@@ -204,7 +204,7 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
 
     await startDeclaring(room, (actorId, options) =>
       actorId === CASTER_ACTOR_ID
-        ? options.find(({ label }) => label === acidSplash.label)
+        ? options.find(({ label }) => label === rayOfFrost.label)
         : options[0]
     )
     for (
@@ -225,7 +225,7 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
       [],
       room.sceneContext(1),
       null,
-      choiceId(rayOfFrost.label),
+      choiceId(acidSplash.label),
       CASTER_ACTOR_ID
     )
     expect(refused.answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'UNDECLARED_ACTION' })
@@ -235,7 +235,7 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
       [],
       room.sceneContext(1),
       null,
-      choiceId(acidSplash.label),
+      choiceId(rayOfFrost.label),
       CASTER_ACTOR_ID
     )
     expect(declared.answer.type, JSON.stringify(declared.answer)).toBe('COMMAND_COMMITTED')
