@@ -1578,7 +1578,7 @@ async function restoreCharacter(
   // during settlement, then the action's own charge.
   const charges = [...(inverse.resource ? [inverse.resource] : []), ...inverse.interceptionCharges]
   for (const charge of charges.toReversed()) {
-    const base = restoredSheetState ?? sheetState
+    const base: typeof sheetState = restoredSheetState ?? sheetState
     const usage = base.resourceUsage.find(
       (entry) => createCharacterResourceOwnerKey(entry.owner) === charge.poolId
     )
