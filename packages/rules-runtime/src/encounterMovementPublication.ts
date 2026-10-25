@@ -14,7 +14,12 @@ import { spatialExecutionStopsMovement } from './encounterSpatialCandidateExecut
 
 type Point = { x: number; y: number }
 type MovementOutcome = SceneSpatialPreparation['outcome']
-type TokenMoved = { kind: 'TOKEN_MOVED'; tokenId: string; position: Point }
+type TokenMoved = {
+  kind: 'TOKEN_MOVED'
+  tokenId: string
+  position: Point
+  rotationDegrees?: number
+}
 
 function pathLength(path: readonly Point[]): number {
   return path
@@ -82,6 +87,7 @@ export function preparedMovementSceneDelta(input: {
   path: readonly Point[]
   outcome: MovementOutcome | null
   sceneVersion: number
+  facingDegrees?: number
   draggedTokens?: SceneSpatialPreparation['draggedTokens']
 }): TokenMoved | { kind: 'BATCH'; deltas: TokenMoved[] } | null {
   const moved = preparedMoverSceneDelta(input)
@@ -101,14 +107,19 @@ export function preparedMovementSceneDelta(input: {
   }
 }
 
-/** The mover's own token delta, before any drag. */
+/**
+ * The mover's own token delta, before any drag. A move that ends carries the facing it chose
+ * (ATTACK-12); a pause has not ended, so its intent keeps the token's facing.
+ */
 export function preparedMoverSceneDelta(input: {
   tokenId: string
   path: readonly Point[]
   outcome: MovementOutcome | null
   sceneVersion: number
+  facingDegrees?: number
 }): TokenMoved | null {
   const { outcome } = input
+  const facing = input.facingDegrees === undefined ? {} : { rotationDegrees: input.facingDegrees }
   if (outcome?.kind === 'TERMINAL') {
     const { result } = outcome
     if (
@@ -118,11 +129,16 @@ export function preparedMoverSceneDelta(input: {
       throw new EncounterValidationError('Spatial Scene version is inconsistent.')
     return result.sceneVersion === input.sceneVersion
       ? null
-      : { kind: 'TOKEN_MOVED', tokenId: result.tokenId, position: result.terminalPosition }
+      : {
+          kind: 'TOKEN_MOVED',
+          tokenId: result.tokenId,
+          position: result.terminalPosition,
+          ...facing
+        }
   }
   if (outcome?.kind === 'PENDING')
     return outcome.movementIntent ? { kind: 'TOKEN_MOVED', ...outcome.movementIntent } : null
-  return { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: input.path.at(-1)! }
+  return { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: input.path.at(-1)!, ...facing }
 }
 
 /**

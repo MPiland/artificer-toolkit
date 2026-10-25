@@ -2,6 +2,7 @@ import type { SceneGrid, ScenePoint, SceneToken } from './scene.js'
 import { canTokenFootprintMoveBetween, measureSceneDistance } from './geometry.js'
 import { measureSceneTokenFootprintDistance } from './sceneCombatPerception.js'
 import type { CampaignSceneState } from './scene.js'
+import type { FacingArc } from './facingArc.js'
 
 const EPSILON = 1e-9
 
@@ -49,11 +50,9 @@ export interface SquareGridFlankingPair {
   readonly attackerSector: SquareGridContactSector
 }
 
-type SquareGridFacingArc = 'FRONT' | 'LEFT_SIDE' | 'REAR' | 'RIGHT_SIDE'
-
 interface SquareGridFootprintFacingArcs {
-  readonly sourceToTarget: SquareGridFacingArc | null
-  readonly targetToSource: SquareGridFacingArc | null
+  readonly sourceToTarget: FacingArc | null
+  readonly targetToSource: FacingArc | null
 }
 
 interface SquareGridCoverIntervenor {
@@ -641,7 +640,7 @@ function classifyFacingArcAt(input: {
   readonly orientationCenter: ScenePoint
   readonly rotationDegrees: number
   readonly subject: ScenePoint
-}): SquareGridFacingArc | null {
+}): FacingArc | null {
   if (!isFinitePoint(input.orientationCenter) || !isFinitePoint(input.subject)) return null
   const rotation = normalizeDegrees(input.rotationDegrees)
   if (rotation === null) return null
@@ -696,7 +695,7 @@ function closestFootprintCells(input: {
 export function classifySquareGridFacingArc(input: {
   readonly subject: ScenePoint
   readonly target: Pick<SceneToken, 'height' | 'position' | 'rotationDegrees' | 'width'>
-}): SquareGridFacingArc | null {
+}): FacingArc | null {
   if (!validTokenFootprint(input.target) || !isFinitePoint(input.subject)) return null
   return classifyFacingArcAt({
     orientationCenter: input.target.position,

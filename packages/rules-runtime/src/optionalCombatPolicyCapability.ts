@@ -8,6 +8,7 @@ import type {
   MoraleTriggerKindDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import type { FacingArc } from '@artificer-toolkit/shared/vtt/facingArc'
 
 /** Exact optional-combat policy identity a proposal and its contest graph are sealed against. */
 export interface OptionalCombatPolicyPin {
@@ -215,7 +216,24 @@ export interface MoraleSaveProposal {
   readonly failureDisposition: MoraleDispositionDto
 }
 
-/** A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving and Morale. */
+/**
+ * The Encounter's Facing rule as its definition authors it (ATTACK-12): the steps a token may face
+ * in, the arc each offset from its facing falls in, the d20 influence an attacker in a target's arc
+ * gets, and the arcs of its own facing a creature cannot target into.
+ */
+export interface FacingRule {
+  readonly pin: OptionalCombatPolicyPin
+  readonly facingStepDegrees: number
+  readonly arcs: readonly {
+    readonly arc: FacingArc
+    readonly fromDegrees: number
+    readonly toDegrees: number
+  }[]
+  readonly attackerInTargetArc: readonly { readonly arc: FacingArc; readonly influence: string }[]
+  readonly sourceCannotTargetInOwnArcs: readonly FacingArc[]
+}
+
+/** A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale and Facing. */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
   prepareDisarmContest(
@@ -233,4 +251,6 @@ export interface OptionalCombatPolicyCapabilityAdapter {
     input: MoraleOfferInput
   ): ReadonlyMap<string, readonly EncounterMoraleOfferDto[]>
   prepareMoraleSave(input: MoralePreparationInput): OptionalCombatResolution<MoraleSaveProposal>
+  /** The Encounter's active Facing rule, or null when facing is off. */
+  facingRule(input: OptionalCombatPolicyInput): FacingRule | null
 }

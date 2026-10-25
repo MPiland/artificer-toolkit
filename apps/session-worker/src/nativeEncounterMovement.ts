@@ -52,6 +52,7 @@ import {
   prepareEncounterMovementPassageBoundary
 } from '@artificer-toolkit/rules-runtime/encounterMovementPassageBoundary'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { admitsEncounterFacing } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import { encounterMovementPassageFacts } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
@@ -89,6 +90,10 @@ export async function prepareNativeLiveMovement(
     captured
   if (save.input.type !== 'MOVE_SCENE_TOKEN' || save.input.expectedEncounterVersion === null)
     throw new Error('Movement requires an Encounter move.')
+  // A move ends in a facing only when the Encounter's Facing rule allows that step (ATTACK-12).
+  const { facingDegrees } = save.input
+  if (facingDegrees !== undefined && !admitsEncounterFacing(state, facingDegrees))
+    rejectDomain('FACING_UNAVAILABLE')
   const { random, scene } = input
   const { carefully } = save.input
   const userId = input.scope.expectedUserId
