@@ -7,18 +7,23 @@ import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/e
 import { lengthMeasurementInFeet, type LengthUnitCode } from '@artificer-toolkit/shared/core'
 import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
 import {
+  classifySquareGridFacingArc,
+  classifySquareGridFootprintFacingArcs,
+  enumerateSquareGridFootprint,
   lengthMeasurementInSceneUnits,
   measureSceneTokenFootprintDistance,
   sceneRangeBand,
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
-import { facingArcLabel } from '@artificer-toolkit/shared/vtt/facingArc'
-import { encounterFacingArcs } from './encounterFacing.js'
+import {
+  facingArcLabel,
+  type FacingArc,
+  type FacingArcRange
+} from '@artificer-toolkit/shared/vtt/facingArc'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import type { FacingRule } from './optionalCombatPolicyCapability.js'
 import {
-  ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
   ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
   encounterRuleContributorSource
 } from './encounterRollModeReasons.js'
@@ -37,6 +42,41 @@ export type EncounterActionSceneContext = {
   grid: SceneGrid
   sourceToken: SceneTokenGeometry
   targetToken: SceneTokenGeometry
+}
+
+/**
+ * The arc of each token's facing the other stands in. A square grid measures from the closest
+ * occupied cells, so a large token's contact point decides; elsewhere the token centres do.
+ */
+export function encounterFacingArcs(
+  arcs: readonly FacingArcRange[],
+  scene: EncounterActionSceneContext
+): { sourceToTarget: FacingArc | null; targetToSource: FacingArc | null } | null {
+  const { grid, sourceToken, targetToken } = scene
+  if (grid.kind === 'SQUARE') {
+    const source = enumerateSquareGridFootprint(grid, sourceToken)
+    const target = enumerateSquareGridFootprint(grid, targetToken)
+    return source && target
+      ? classifySquareGridFootprintFacingArcs({
+          arcs,
+          grid,
+          source: { footprint: source, rotationDegrees: sourceToken.rotationDegrees },
+          target: { footprint: target, rotationDegrees: targetToken.rotationDegrees }
+        })
+      : null
+  }
+  return {
+    sourceToTarget: classifySquareGridFacingArc({
+      arcs,
+      subject: targetToken.position,
+      target: sourceToken
+    }),
+    targetToSource: classifySquareGridFacingArc({
+      arcs,
+      subject: sourceToken.position,
+      target: targetToken
+    })
+  }
 }
 
 /** A single-target Touch action reaches an adjacent creature: a 5-foot range that only warns. */
@@ -265,29 +305,6 @@ export function encounterActionLongRangeContributor(input: {
         source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.LONG_RANGE)
       }
     : null
-}
-
-/**
- * The roll-mode contributors an attack takes from where its attacker stands relative to its target:
- * one per arc of the target's facing that the Facing rule gives an influence to (ATTACK-12), each
- * naming the arc. None without the rule or a Scene to measure on.
- */
-export function encounterActionPositionalContributors(input: {
-  facing: Pick<FacingRule, 'arcs' | 'attackerInTargetArc'> | null
-  sceneContext: EncounterActionSceneContext | null
-}): EncounterRelationshipD20Contributor[] {
-  if (!input.facing || !input.sceneContext) return []
-  const arc = encounterFacingArcs(input.facing.arcs, input.sceneContext)?.targetToSource
-  return input.facing.attackerInTargetArc
-    .filter((entry) => entry.arc === arc)
-    .map((entry) => ({
-      sourceId: ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
-      grantId: null,
-      domainKey: ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,
-      influence: entry.influence,
-      source: encounterRuleContributorSource(ROLL_MODE_RULE_SOURCE_IDS.FACING),
-      positional: { arc: entry.arc }
-    }))
 }
 
 /** A range in Scene units and the token footprints' measured distance. */

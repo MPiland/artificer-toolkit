@@ -6,7 +6,6 @@ import { sceneRangeBand, type SceneGrid } from '@artificer-toolkit/shared/vtt'
 
 import {
   encounterActionLongRangeContributor,
-  encounterActionPositionalContributors,
   encounterActorRelationship,
   encounterActionReachFeet,
   evaluateEncounterActionTargetPolicy,
@@ -20,6 +19,7 @@ import {
   labelEncounterRollModeReasons
 } from '../encounterRollModeReasons.js'
 import { encounterFacingRule } from '../encounterFacing.js'
+import { encounterActionPositionalContributors } from '../encounterPositionalContributors.js'
 import { srdEncounterState } from '../testing/dnd5eSrdEncounter.js'
 
 const DISPOSITIONS: readonly EncounterActorDispositionDto[] = ['FRIENDLY', 'NEUTRAL', 'HOSTILE']
@@ -322,7 +322,8 @@ describe('a creature’s own facing arcs (ATTACK-12)', () => {
         grid: FEET_GRID,
         sourceToken: scene.source,
         targetToken: scene.target
-      }
+      },
+      flanking: null
     })
   const fromArc = (arc: 'REAR' | 'LEFT_SIDE', influence: string) => ({
     sourceId: ENCOUNTER_FACING_CONTRIBUTOR_SOURCE_ID,

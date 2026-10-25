@@ -3,6 +3,10 @@ import {
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import {
+  DND5E_FLANKING_DEFINITION_ID,
+  DND5E_FLANKING_OPERATION_KEY
+} from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -23,6 +27,7 @@ import { parseReceiptExecution, readRoomHistory } from './roomHistoryReads.js'
 
 const MOVER_ID = testUuid(0xa12)
 const WATCHER_ID = testUuid(0xa13)
+const ALLY_ID = testUuid(0xa14)
 const MOVER_START: ScenePoint = { x: 150, y: 150 }
 
 afterEach(() => {
@@ -264,5 +269,54 @@ describe('attacks with Facing (ATTACK-12.T2)', () => {
     expect(answer.type).toBe('COMMAND_REJECTED')
     expect(JSON.stringify(answer)).toContain('TARGET_FACING_ARC')
     expect(await room.version()).toBe(before)
+  })
+})
+
+/** The Watcher bites the Mover from the south while an allied wolf stands at `allyAt`. */
+async function flankingRoom(allyAt: ScenePoint) {
+  const wolf = biteWolf('ATTACK')
+  return actionRoom({
+    autoRoll: 'BOTH',
+    rolls: Array.from({ length: 8 }, () => 14),
+    actors: [
+      srdCreatureActor({ id: WATCHER_ID, creature: wolf }),
+      srdCreatureActor({ id: MOVER_ID, creature: wolf, disposition: 'FRIENDLY' }),
+      srdCreatureActor({ id: ALLY_ID, creature: wolf })
+    ],
+    positions: {
+      [WATCHER_ID]: { x: MOVER_START.x, y: MOVER_START.y + 100 },
+      [MOVER_ID]: MOVER_START,
+      [ALLY_ID]: allyAt
+    },
+    optionalCombatKinds: ['FLANKING'],
+    ownerFeatureId: creatureFeature(wolf, 'Bite').id
+  })
+}
+
+describe('attacks with Flanking (ATTACK-12.T2f)', () => {
+  it('rolls a melee attack with advantage when an ally stands opposite the attacker', async () => {
+    const room = await flankingRoom({ x: MOVER_START.x, y: MOVER_START.y - 100 })
+    const { command, answer } = await room.startAction(MOVER_ID, [], room.sceneContext(1))
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const d20 = await biteD20(room, command.commandId)
+    expect(d20.rollMode).toBe('ADVANTAGE')
+    expect(d20.contributors).toEqual([
+      {
+        sourceId: DND5E_FLANKING_DEFINITION_ID,
+        grantId: null,
+        domainKey: DND5E_FLANKING_OPERATION_KEY,
+        influence: 'ADVANTAGE',
+        source: { kind: 'AUTHORED', id: DND5E_FLANKING_DEFINITION_ID, holderActorId: null }
+      }
+    ])
+  })
+
+  it('gives no advantage when the adjacent ally is not opposite the attacker', async () => {
+    const room = await flankingRoom({ x: MOVER_START.x + 100, y: MOVER_START.y })
+    const { command, answer } = await room.startAction(MOVER_ID, [], room.sceneContext(1))
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const d20 = await biteD20(room, command.commandId)
+    expect(d20.rollMode).toBe('NORMAL')
+    expect(d20.contributors).toEqual([])
   })
 })

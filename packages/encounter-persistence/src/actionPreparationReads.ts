@@ -15,6 +15,7 @@ import {
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
 import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
+import { loadEncounterFlankingFacts } from '@artificer-toolkit/rules-runtime/encounterPositionalContributors'
 import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import {
@@ -31,7 +32,10 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { readEncounterActionSceneInputs } from './actionSceneInputs.js'
+import {
+  readEncounterActionAreaSceneInputs,
+  readEncounterActionSceneInputs
+} from './actionSceneInputs.js'
 import { rejectDomain } from './domainRejections.js'
 import { refuseStaleCharacterAction } from './staleCharacterAction.js'
 import { listActiveRuleEffects } from './effectStore.js'
@@ -309,6 +313,8 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     loadAttackPerception?: Parameters<
       typeof prepareEncounterActionMechanics<TFacts>
     >[0]['loadAttackPerception']
+    /** Which observers see the subject, for a melee attack's Flanking facts on its Scene. */
+    observersSeeing?: Parameters<typeof loadEncounterFlankingFacts>[0]['observersSeeing']
   }
 ) {
   const { state, actor, target } = input
@@ -333,6 +339,44 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     movementTargets,
     sceneContext: input.sceneContext,
     loadAttackPerception: input.loadAttackPerception,
+    loadFlanking: async ({ sourceFacts, targetFacts, capabilityDefinitionId }) => {
+      const { sceneContext, observersSeeing } = input
+      if (!sceneContext || !observersSeeing) return null
+      const scene = await readEncounterActionAreaSceneInputs(
+        tx,
+        state,
+        {
+          actorId: actor.id,
+          sceneId: sceneContext.sceneId,
+          expectedSceneVersion: sceneContext.sceneVersion
+        },
+        tx.ports.sceneReaders
+      )
+      return loadEncounterFlankingFacts({
+        gameSystemId: state.gameSystemId,
+        actors: input.actors,
+        attacker: sourceFacts,
+        target: targetFacts,
+        grid: sceneContext.grid,
+        tokens: scene.tokens,
+        capabilityDefinitionId,
+        loadTarget: async (entry) => {
+          const loaded =
+            movementTargets.get(entry.id) ??
+            (
+              await loadMovementTargets(tx, {
+                state,
+                campaign: input.campaign,
+                targetActorIds: [entry.id]
+              })
+            ).get(entry.id)
+          if (!loaded) throw new Error('Encounter action facts are stale.')
+          return loaded
+        },
+        definitions: campaignDefinitions(tx, input.campaign),
+        observersSeeing
+      })
+    },
     loadSource: (sourceInput) => loadActionSource(tx, input.campaign, state, sourceInput),
     loadRelationshipFacts: (factsInput) => loadActionRelationshipFacts(tx, factsInput)
   }).catch(refuseStaleCharacterAction)

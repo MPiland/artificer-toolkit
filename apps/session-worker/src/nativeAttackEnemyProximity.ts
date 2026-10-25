@@ -112,7 +112,8 @@ type LiveAttackScene = {
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
 }
 
-async function captureActionSceneTokens(
+/** The Scene's tokens bound to the Run's actors, from the live Scene the action locked. */
+export async function captureActionSceneTokens(
   input: Pick<LiveAttackScene, 'attacker' | 'capture'>,
   sceneContext: { sceneId: string; sceneVersion: number }
 ) {

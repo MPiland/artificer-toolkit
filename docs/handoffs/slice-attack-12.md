@@ -36,7 +36,7 @@ Base: `origin/codex/phase-08-2-convex-cutover`. CI branch `ci/attack-12`.
   - `flankingContributor` reads compiler-only `positionalFacts` that no live path supplies, so it never applies at the table. The facing contributor therefore does not replace it.
   - Instead, `encounterActionPositionalContributors` (next to `encounterActionLongRangeContributor`) is the live merge's single home for positional contributors. It reads `encounterFacingRule(state)`, the Scene tokens' `rotationDegrees` and the rule's arc table, and its contributors carry `positional: { arc }`.
   - `flankingContributor` stays untouched in this slice.
-  - Live flanking is a separate bug (settings list the rule as integrated, but it never applies). Its fix moves flanking into the positional home and deletes the compiler-only path. The orchestrator registers it as its own task once the user approves.
+  - Live flanking is a separate bug (settings list the rule as integrated, but it never applies). Its fix moves flanking into the positional home and deletes the compiler-only path. The user approved it as T2f (see "T2f shape").
 
 ## Deferred edge cases
 
@@ -56,3 +56,12 @@ Base: `origin/codex/phase-08-2-convex-cutover`. CI branch `ci/attack-12`.
   - It adds one rules-owned contributor (`rule:facing`) for each `attackerInTargetArc` entry whose arc the attacker stands in.
   - The dnd5e compiler keeps `positional` when it copies the contributors into the d20 audit, so the receipt names the arc.
   - The roll reason reads "Facing (rear arc)".
+
+## T2f shape (live Flanking, closes ATTACK-12.4)
+
+- `encounterActionPositionalContributors` moved to `encounterPositionalContributors.ts` and adds the System's Flanking contributor through the registry (`resolveFlanking`). `encounterFacingArcs` moved into `encounterActionTargetPolicy.ts`, which no longer imports the registry. T2 had made it import the registry through `encounterFacing.ts`, and that created an import cycle with the dnd5e adapters, which import the target policy.
+- `loadEncounterFlankingFacts` loads only the attacker's allies that are in contact with the target and hostile to it. It resolves the participant capability for each creature and reads which creatures see the target through the site's `observersSeeing`.
+- All four preparation sites pass `loadFlanking`: the room's main attack plan and its root-action re-preparation (`nativeLiveAttackSceneLoaders`), the movement opportunity attack (tokens at the mover's contact point), and the Convex `prepareActionMechanics` (believed perception from the attacker's side).
+- `flankingContributor`, the compiler's `positionalFacts` and `CharacterRuleActionPositionalFacts` are deleted.
+- The Flanking contributor carries no `positional` field.
+- Proofs: `encounterPositionalContributors.test.ts` (opposite ally, ally not opposite, ranged, sight, Incapacitated, hostile or distant ally, rule off) and the room tests in `nativeRoomFacing.test.ts` (advantage with an ally opposite, normal without).

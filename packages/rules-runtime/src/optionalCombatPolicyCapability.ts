@@ -8,6 +8,8 @@ import type {
   MoraleTriggerKindDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import type { ResolvedRuleCapabilityAvailabilityDto } from '@artificer-toolkit/schema/shared/ruleState'
+import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt'
 import type { FacingArc } from '@artificer-toolkit/shared/vtt/facingArc'
 
 /** Exact optional-combat policy identity a proposal and its contest graph are sealed against. */
@@ -233,7 +235,33 @@ export interface FacingRule {
   readonly sourceCannotTargetInOwnArcs: readonly FacingArc[]
 }
 
-/** A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale and Facing. */
+type FlankingRelationship = 'ALLIED' | 'HOSTILE' | 'NEUTRAL'
+
+/** One creature of a flanking check: its token, its participant capability and its sight of the target. */
+export interface FlankingParticipant {
+  readonly actorId: string
+  readonly token: Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>
+  /** The actor's resolved participant capability; null when it has none (suppressed or absent). */
+  readonly participantCapability: ResolvedRuleCapabilityAvailabilityDto | null
+  readonly canSeeTarget: boolean
+}
+
+/** The facts a melee attack's flanking is decided on: the attacker, its target and its allies by the target. */
+export interface FlankingInput extends OptionalCombatPolicyInput {
+  readonly melee: boolean
+  readonly grid: SceneGrid
+  readonly attacker: FlankingParticipant & { readonly targetRelationship: FlankingRelationship }
+  readonly target: {
+    readonly actorId: string
+    readonly token: Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>
+  }
+  readonly alliedCandidates: readonly (FlankingParticipant & {
+    readonly attackerRelationship: FlankingRelationship
+    readonly targetRelationship: FlankingRelationship
+  })[]
+}
+
+/** A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale, Facing and Flanking. */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
   prepareDisarmContest(
@@ -253,4 +281,8 @@ export interface OptionalCombatPolicyCapabilityAdapter {
   prepareMoraleSave(input: MoralePreparationInput): OptionalCombatResolution<MoraleSaveProposal>
   /** The Encounter's active Facing rule, or null when facing is off. */
   facingRule(input: OptionalCombatPolicyInput): FacingRule | null
+  /** The capability an actor needs to flank, or null when flanking is off. */
+  flankingParticipantCapabilityDefinitionId(input: OptionalCombatPolicyInput): string | null
+  /** The attack's flanking contributor, or null when the attack is not flanked. */
+  resolveFlanking(input: FlankingInput): OptionalCombatD20Contributor | null
 }
