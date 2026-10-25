@@ -617,6 +617,7 @@ function damage(input: { ordinal: number; appliedAmount: number; nodeId?: string
     maximumHitPoints: 40,
     damageTypeId: SLASHING.id,
     damageDisposition: input.appliedAmount === 0 ? 'IMMUNE' : 'NORMAL',
+    incomingHalved: false,
     critical: false,
     sourceNodeId: input.nodeId ?? `damage_${input.ordinal}`,
     sourceOperationKey: 'effect.damage',

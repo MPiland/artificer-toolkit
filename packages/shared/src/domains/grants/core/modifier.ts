@@ -287,6 +287,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   DAMAGE_MIRROR: [MODIFIER_KIND.ENABLE],
 
+  INCOMING_DAMAGE: [MODIFIER_KIND.ENABLE],
+
   INCOMING_ATTACK_GATE: [MODIFIER_KIND.ENABLE],
 
   HEALING_RECEIVED: [MODIFIER_KIND.ENABLE],
@@ -666,6 +668,20 @@ export type ModifierIncomingAttackGateAuthored = {
   successImmunity?: { duration: DurationAuthored }
 }
 
+/**
+ * While held, `HALVE` halves every damage application the holder takes, before its resistances
+ * (Uncanny Dodge). `SAVE_FOR_HALF` replaces the bands of damage from an effect that allows one of
+ * `saveAbilities` saves for half damage (Evasion: a DEX success takes none, a failure takes half).
+ */
+export type ModifierIncomingDamageAuthored =
+  | { incomingDamageKind: 'HALVE' }
+  | {
+      incomingDamageKind: 'SAVE_FOR_HALF'
+      saveAbilities: string[]
+      onSaveSuccess: 'NONE' | 'HALF'
+      onSaveFailure: 'HALF' | 'FULL'
+    }
+
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
   K extends 'ENABLE'
@@ -675,7 +691,9 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
         ? ModifierDamageInterceptionAuthored
         : V extends 'INCOMING_ATTACK_GATE'
           ? ModifierIncomingAttackGateAuthored
-          : undefined
+          : V extends 'INCOMING_DAMAGE'
+            ? ModifierIncomingDamageAuthored
+            : undefined
     : K extends 'MULTIPLY'
       ? ModifierFractionAuthored
       : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'

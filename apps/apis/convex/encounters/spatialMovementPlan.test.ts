@@ -208,6 +208,7 @@ describe('planNativeSpatialMovementPrefix', () => {
             maximumHitPoints: target.effectiveMaximumHitPoints,
             damageTypeId: crypto.randomUUID(),
             damageDisposition: 'NORMAL' as const,
+            incomingHalved: false,
             critical: false
           },
           {

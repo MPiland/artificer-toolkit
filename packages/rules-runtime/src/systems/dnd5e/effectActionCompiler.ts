@@ -61,6 +61,7 @@ import {
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 import { entryOwed } from './effectActionEntryOwed.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
+import { saveDamageMultiplierFacts, withSaveDamageMultiplier } from './effectActionSaveDamage.js'
 import {
   relationshipRecurrenceGraph,
   relationshipStateGraph
@@ -3131,14 +3132,18 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
           })
         : unsupported('D&D fixed outcome path must compile to one direct result.')
   })
-  const definition = mergedOutcomeGraphDefinition({
+  const definition = withSaveDamageMultiplier({
     action: input.action,
-    definitions: withDamageAddedDice({
+    selectedPath: input.selectedPath,
+    definition: mergedOutcomeGraphDefinition({
       action: input.action,
-      selectedPath: input.selectedPath,
-      groups,
-      definitions,
-      dice: input.facts.damageAddedDice ?? []
+      definitions: withDamageAddedDice({
+        action: input.action,
+        selectedPath: input.selectedPath,
+        groups,
+        definitions,
+        dice: input.facts.damageAddedDice ?? []
+      })
     })
   })
   const published = publishedGraph(definition)
@@ -4163,6 +4168,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_HEALING_MAXIMIZED_FACT_KEY]: targetDerivedFacts.healingMaximized === true
       }
     }
+    const action = actionMechanic as {
+      attackBonus?: unknown
+      attackRollMode?: unknown
+      attackKind?: unknown
+      save?: { abilityDefinitionId?: unknown; dc?: unknown } | null
+    }
     const { spellCastLevel, classLevels, selectedOptionalRiderIds } = actionMechanic
     const damageAddedDice =
       sourceDerivedFacts.damageAddedDice === undefined
@@ -4182,6 +4193,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
       ...gateFacts(published.definition, { targetDamageTypesTaken }),
+      ...saveDamageMultiplierFacts(published.definition, {
+        abilityDefinitionId: action.save?.abilityDefinitionId,
+        incomingDamage: targetDerivedFacts.incomingDamage
+      }),
       ...resolvedDamageExpressionFacts,
       ...weaponDamageDieFacts,
       ...(Object.keys(resolvedDamageOutcomeExpressions).length > 0
@@ -4219,12 +4234,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...(damageAddedDice.length === 0
         ? {}
         : { [DND5E_DAMAGE_ADDED_DICE_FACT_KEY]: JSON.stringify(damageAddedDice) })
-    }
-    const action = actionMechanic as {
-      attackBonus?: unknown
-      attackRollMode?: unknown
-      attackKind?: unknown
-      save?: { abilityDefinitionId?: unknown; dc?: unknown } | null
     }
     const derivedStats = targetDerivedFacts.derivedStats as
       | { armorClass?: { effective?: unknown }; savingThrows?: unknown }
@@ -4512,7 +4521,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         scalarValues: targetScalarValues,
         conditionIds: targetConditionIds
       }),
-      ...conditionImmunityFacts(definition.frozenGraph, conditionImmunityIds)
+      ...conditionImmunityFacts(definition.frozenGraph, conditionImmunityIds),
+      ...saveDamageMultiplierFacts(definition.frozenGraph, {
+        abilityDefinitionId:
+          definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY],
+        incomingDamage: targetDerivedFacts.incomingDamage
+      })
     }
     const abilityDefinitionId =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]

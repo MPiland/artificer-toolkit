@@ -254,7 +254,8 @@ it('settles Character and Creature mechanics from native play with private recei
           afterTemporaryHitPoints: 0,
           maximumHitPoints: maximum,
           damageTypeId: uuid(0xb0b),
-          damageDisposition: 'NORMAL'
+          damageDisposition: 'NORMAL',
+          incomingHalved: false
         }
       ]
     }

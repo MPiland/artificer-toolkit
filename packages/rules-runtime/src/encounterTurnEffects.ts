@@ -152,6 +152,7 @@ export function activeEffectTargetFacts(
     | 'targetDerivedFacts'
     | 'defenses'
     | 'conditionImmunityIds'
+    | 'incomingDamage'
     | 'sourceConditionImmunities'
     | 'sourceSaves'
     | 'conditionMechanics'
@@ -168,6 +169,7 @@ export function activeEffectTargetFacts(
     targetDerivedFacts: target.targetDerivedFacts,
     defenses: target.defenses,
     conditionImmunityIds: target.conditionImmunityIds,
+    incomingHalved: target.incomingDamage.halved,
     sourceConditionImmunities: target.sourceConditionImmunities,
     sourceSaves: target.sourceSaves,
     conditionOutcomeRules: {

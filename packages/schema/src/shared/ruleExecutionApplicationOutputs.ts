@@ -23,7 +23,7 @@ import {
   characterMechanicsTargetTransitionDtoSchema,
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
-  resolveDispositionDamage,
+  resolveIncomingDamage,
   sourceApplicationsChangeState,
   sourceApplicationsDtoSchema,
   stateEffectCreateReceiptDtoSchema,
@@ -358,10 +358,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
                 message: 'Temporary hit-point receipt arithmetic is invalid.'
               })
           } else if (application.kind === 'DAMAGE') {
-            const expectedResolved = resolveDispositionDamage(
-              application.damageDisposition,
-              application.requestedAmount
-            )
+            const expectedResolved = resolveIncomingDamage(application)
             const temporaryLost = Math.min(application.beforeTemporaryHitPoints, expectedResolved)
             temporarySource = temporaryHitPointsAfterLoss(
               { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },

@@ -1,6 +1,7 @@
 import {
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
+  DURATION_KIND,
   EFFECT_KIND,
   GRANT_KIND,
   MODIFIER_KIND,
@@ -314,6 +315,95 @@ export function magicConditionImmunityGrant(
     payload: { conditionTypeId },
     restrictions: sourceTraitRestriction((entry) => makeId(1 + entry), 'INCLUDE', ['MAGICAL']),
     order
+  }
+}
+
+/**
+ * Evasion: against an effect that deals half its damage on a successful Dexterity save, the holder
+ * takes none on a success and half on a failure.
+ */
+export function evasionGrant(id: string): ModifierGrantAuthored {
+  return {
+    id,
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.INCOMING_DAMAGE,
+    domain: {},
+    modifierKind: MODIFIER_KIND.ENABLE,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: {
+      incomingDamageKind: 'SAVE_FOR_HALF',
+      saveAbilities: [ABILITY_CODE.DEXTERITY],
+      onSaveSuccess: 'NONE',
+      onSaveFailure: 'HALF'
+    },
+    order: 0
+  }
+}
+
+/**
+ * Uncanny Dodge: a reaction to a hit by an attacker the holder sees that halves that attack's
+ * damage against it (used up by the attack), on the same path as Parry. The caller supplies every id.
+ */
+export function uncannyDodgeEffect(ids: {
+  effect: string
+  range: string
+  path: string
+  duration: string
+  outcome: string
+  grant: string
+}): EffectAuthored {
+  return {
+    id: ids.effect,
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.ACTIVATED,
+      activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+      reactionTrigger: { kind: 'ATTACKED_SELF', requiresSight: true },
+      range: { id: ids.range, rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    },
+    paths: [
+      {
+        id: ids.path,
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: `${ids.path}__result`,
+          resultKind: 'SINGLE',
+          duration: { id: ids.duration, durationKind: DURATION_KIND.ROUND, amount: 1 },
+          lifecycle: {
+            turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+            consumeOnFirstEvents: ['ON_ATTACKED']
+          },
+          outcomes: [
+            {
+              id: ids.outcome,
+              effectKind: EFFECT_KIND.APPLY_GRANT,
+              grants: {
+                modifiers: [
+                  {
+                    id: ids.grant,
+                    grantKind: GRANT_KIND.MODIFIER_GRANT,
+                    valueDomainCode: VALUE_DOMAIN_CODE.INCOMING_DAMAGE,
+                    domain: {},
+                    modifierKind: MODIFIER_KIND.ENABLE,
+                    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    payload: { incomingDamageKind: 'HALVE' },
+                    order: 1
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
   }
 }
 

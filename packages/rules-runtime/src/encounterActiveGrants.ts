@@ -6,6 +6,10 @@ import type {
   CharacterGrantFoldSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
+import {
+  incomingDamagePayloadDtoSchema,
+  type IncomingDamageProfileDto
+} from '@artificer-toolkit/schema/grants/modifier'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
@@ -450,6 +454,32 @@ export function encounterGrantsEnabledDomain(
       (modifier) => modifier.valueDomainCode === domain && modifier.modifierKind === 'ENABLE'
     )
   )
+}
+
+/**
+ * How a holder takes damage, from its held modifiers (a Character's fold, or a Creature's features
+ * and active grants): any `INCOMING_DAMAGE` `HALVE` halves each damage application, and each
+ * `SAVE_FOR_HALF` replaces what a save-for-half effect deals it on a save of its abilities.
+ */
+export function incomingDamageProfile(
+  modifiers: readonly {
+    modifierKind: string
+    valueDomainCode: string
+    payload?: object | undefined
+  }[]
+): IncomingDamageProfileDto {
+  const payloads = modifiers
+    .filter(
+      ({ modifierKind, valueDomainCode }) =>
+        modifierKind === 'ENABLE' && valueDomainCode === 'INCOMING_DAMAGE'
+    )
+    .map(({ payload }) => incomingDamagePayloadDtoSchema.parse(payload))
+  return {
+    halved: payloads.some(({ incomingDamageKind }) => incomingDamageKind === 'HALVE'),
+    saveForHalf: payloads.flatMap((payload) =>
+      payload.incomingDamageKind === 'SAVE_FOR_HALF' ? [payload] : []
+    )
+  }
 }
 
 /** An `ATTACKS_AGAINST` grant the target holds, for attacks of one attack domain against it. */

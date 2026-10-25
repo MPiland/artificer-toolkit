@@ -245,7 +245,8 @@ export async function executeNativeActionGraphs(input: {
       temporaryHitPoints: input.binding.temporaryHitPoints,
       maximumHitPoints: input.binding.maximumHitPoints,
       defenses: input.binding.defenses,
-      conditionImmunityIds: input.binding.conditionImmunityIds
+      conditionImmunityIds: input.binding.conditionImmunityIds,
+      incomingHalved: input.binding.incomingHalved
     })
   }
 }
@@ -336,7 +337,8 @@ function actionComplete(input: {
       temporaryHitPoints: input.binding.temporaryHitPoints,
       maximumHitPoints: input.binding.maximumHitPoints,
       defenses: input.binding.defenses,
-      conditionImmunityIds: input.binding.conditionImmunityIds
+      conditionImmunityIds: input.binding.conditionImmunityIds,
+      incomingHalved: input.binding.incomingHalved
     })
   }
 }

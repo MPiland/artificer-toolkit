@@ -164,6 +164,7 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       effectiveRulePolicyOutput,
       targetDerivedFacts: { ...effectiveRulePolicyOutput },
       defenses: [],
+      incomingDamage: { halved: false, saveForHalf: [] },
       qualifiedDefenses: [],
       conditionImmunityIds: [],
       sourceConditionImmunities: [],

@@ -9,11 +9,14 @@ import {
 } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { adultBlackDragon } from '@artificer-toolkit/source-data/srd/creatures/adult-black-dragon.js'
+import { evasionGrant } from '@artificer-toolkit/source-data/srd/classes/mechanics.js'
+import { wolf } from '@artificer-toolkit/source-data/srd/creatures/wolf.js'
 import { srdSpells } from '@artificer-toolkit/source-data/srd/spells/index.js'
 import { characterMechanicsApplicationDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SpatialSceneToken } from '@artificer-toolkit/shared/vtt'
 
+import { DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS } from '../systems/dnd5e/effectActionContracts.js'
 import { createPlatformRulesRuntime } from '../platformRulesRuntime.js'
 import { nativeConcentrationDamageApplications } from '../encounterConcentrationDamage.js'
 import {
@@ -220,6 +223,18 @@ function areaActors(feature: CreatureFeature, resisted: string) {
   return { caster, ally, foe, wardedFoe }
 }
 
+/** A Wolf whose only feature is `feature`, its grants compiled into the Creature's rule facts. */
+function featureHolder(id: string, feature: CreatureFeature, damageResistanceIds: string[] = []) {
+  return creatureActor({
+    id,
+    label: feature.label,
+    statBlock: { ...wolf, features: [feature] },
+    features: [feature],
+    damageResistanceIds,
+    hitPoints: 100
+  })
+}
+
 /** Every caught creature prepared through the real action preparation, each against its own facts. */
 async function areaSource(
   caster: EncounterRunActorState,
@@ -337,6 +352,7 @@ function damageBatches(
               maximumHitPoints: 40,
               damageTypeId,
               damageDisposition: 'NORMAL',
+              incomingHalved: false,
               critical: false,
               sourceNodeId: application.sourceNodeId,
               sourceOperationKey: 'effect.damage',
@@ -600,6 +616,91 @@ describe('an area action executed as one occurrence', () => {
     expect(
       settled.every((entry) => entry.complete.applications.every((a) => 'targetActorId' in a))
     ).toBe(true)
+  })
+
+  it('gives an Evasion holder no damage on a success and half on a failure, before its resistance (SPELLS-31.T5a)', async () => {
+    const evasion: CreatureFeature = {
+      id: '00000000-0000-4000-8000-0000000f0e01',
+      label: 'Evasion',
+      description: 'A Dexterity save for half deals nothing on a success and half on a failure.',
+      order: 2,
+      grants: { modifiers: [evasionGrant('00000000-0000-4000-8000-0000000f0e02')] }
+    }
+    const { caster } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
+    const caught = [
+      featureHolder(ALLY_ID, evasion),
+      featureHolder(FOE_ID, evasion),
+      featureHolder(WARDED_FOE_ID, evasion, [FIRE])
+    ]
+    const source = await areaSource(caster, caught)
+    const tests = await answerSaves(source, { [ALLY_ID]: 11, [FOE_ID]: 10, [WARDED_FOE_ID]: 10 }, [
+      ALLY_ID,
+      FOE_ID,
+      WARDED_FOE_ID
+    ])
+    const settled = await settleEncounterAreaAction({
+      ...source,
+      tests,
+      random: scriptedRandom(EIGHT_D6).random
+    })
+
+    // 8d6 rolled 27: the success takes no damage at all, the failure half (13), and the resisting
+    // failure half again (6).
+    expect(applied(settled, ALLY_ID)).toEqual([])
+    expect(applied(settled, FOE_ID)).toEqual([13])
+    expect(applied(settled, WARDED_FOE_ID)).toEqual([6])
+    // The bound multiplier is evidence: the fact and the node that read it, in each trace.
+    const multipliers = Object.fromEntries(
+      settled.map(({ actorId, complete }) => {
+        const { facts, trace } = complete.execution.evidence
+        const node = trace.find(({ nodeId }) => nodeId.endsWith('-save-multiplied'))
+        return [actorId, { facts, multiplier: node?.inputs.multiplier }]
+      })
+    )
+    expect(multipliers[ALLY_ID]).toMatchObject({
+      facts: { [DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS.ON_SAVE_SUCCESS]: 0 },
+      multiplier: 0
+    })
+    expect(multipliers[FOE_ID]).toMatchObject({
+      facts: { [DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS.ON_SAVE_FAIL]: 0.5 },
+      multiplier: 0.5
+    })
+  })
+
+  it('leaves a save-for-half holder of another save ability its whole damage', async () => {
+    const constitutionWard: CreatureFeature = {
+      id: '00000000-0000-4000-8000-0000000f0e03',
+      label: 'Stalwart Frame',
+      description: 'A Constitution save for half deals nothing on a success.',
+      order: 2,
+      grants: {
+        modifiers: [
+          {
+            ...evasionGrant('00000000-0000-4000-8000-0000000f0e04'),
+            payload: {
+              incomingDamageKind: 'SAVE_FOR_HALF',
+              saveAbilities: ['CONSTITUTION'],
+              onSaveSuccess: 'NONE',
+              onSaveFailure: 'HALF'
+            }
+          }
+        ]
+      }
+    }
+    const { caster } = areaActors(srdSaveSpell('Fireball', 3), FIRE)
+    const source = await areaSource(caster, [
+      featureHolder(ALLY_ID, constitutionWard),
+      featureHolder(FOE_ID, constitutionWard)
+    ])
+    const tests = await answerSaves(source, { [ALLY_ID]: 11, [FOE_ID]: 10 }, [ALLY_ID, FOE_ID])
+    const settled = await settleEncounterAreaAction({
+      ...source,
+      tests,
+      random: scriptedRandom(EIGHT_D6).random
+    })
+
+    expect(applied(settled, ALLY_ID)).toEqual([13])
+    expect(applied(settled, FOE_ID)).toEqual([27])
   })
 
   it('gives a creature that makes its Thunderwave save half the thunder damage (SPELLS-7.2)', async () => {

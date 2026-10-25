@@ -48,6 +48,7 @@ exports[`Encounter store conformance: Convex and the in-memory store > applies a
         "critical": false,
         "damageDisposition": "NORMAL",
         "damageTypeId": "<uuid:0>",
+        "incomingHalved": false,
         "kind": "DAMAGE",
         "maximumHitPoints": 11,
         "ordinal": 0,
