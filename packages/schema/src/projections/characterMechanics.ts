@@ -314,7 +314,10 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
         z.strictObject({
           linkOutcomeId: serverUuidIdentityDtoSchema,
           linkKind: z.enum(['TELEPATHIC']),
-          excludesIntelligenceAtOrBelow: z.number().check(z.int()).check(z.gte(0))
+          excludesAbilityAtOrBelow: z.strictObject({
+            ability: systemCoreCodeSchema,
+            score: z.number().check(z.int()).check(z.gte(0))
+          })
         })
       ),
       null

@@ -14,7 +14,10 @@ import type {
   ResolvedEquipment,
   ResolvedRace
 } from '@artificer-toolkit/shared/subjects/compilers'
-import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
+import type {
+  ContentSnapshotAbilityScoreIncreaseFact,
+  ContentSnapshotIndexEntry
+} from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
@@ -233,7 +236,16 @@ export function createCharacterBuilderCatalog({
             )?.label
             return `${speedLabel ?? 'Speed'} ${speed.amount} ${MEASUREMENT_UNIT_REGISTRY[speed.unit].short}`
           }),
-          abilityScoreIncreaseFacts: race.abilityScoreIncreaseFacts
+          abilityScoreIncreaseFacts: race.abilityScoreIncreaseFacts.map((fact) =>
+            'ability' in fact
+              ? {
+                  label:
+                    system?.abilities.find(({ code }) => code === fact.ability)?.label ??
+                    fact.ability,
+                  value: fact.value
+                }
+              : fact
+          )
         }
       ]
     }),
@@ -310,8 +322,8 @@ type ClassProficiency = NonNullable<CharacterBuilderClassCatalogSource['proficie
 // Snapshot facts are built without the System record, so they label the ability code (RULES-2.T9f3).
 export function getRaceAbilityScoreIncreaseFacts(
   race: Pick<ResolvedRace, 'features' | 'systemId'> | undefined
-): Array<{ label: string; value: string }> {
-  const facts: Array<{ label: string; value: string }> = []
+): ContentSnapshotAbilityScoreIncreaseFact[] {
+  const facts: ContentSnapshotAbilityScoreIncreaseFact[] = []
 
   for (const feature of race?.features ?? []) {
     if (feature.label !== 'Ability Score Increase') continue
@@ -332,7 +344,7 @@ export function getRaceAbilityScoreIncreaseFacts(
     ) {
       facts.push({ label: 'All abilities', value: uniformValue })
     } else {
-      facts.push(...fixedFacts.map(({ label, value }) => ({ label, value })))
+      facts.push(...fixedFacts)
     }
 
     const optionAmounts = [
@@ -360,7 +372,7 @@ export function getRaceAbilityScoreIncreaseFacts(
 
 function getFixedAbilityScoreIncreaseFact(
   modifier: ModifierGrantAuthored
-): { ability: string; label: string; value: string } | null {
+): { ability: string; value: string } | null {
   if (modifier.valueDomainCode !== 'ABILITY_SCORE' || modifier.modifierKind !== 'BONUS') {
     return null
   }
@@ -377,7 +389,6 @@ function getFixedAbilityScoreIncreaseFact(
 
   return {
     ability: modifier.domain.ability,
-    label: formatCatalogLabel(modifier.domain.ability),
     value: `+${modifier.payload.amount}`
   }
 }

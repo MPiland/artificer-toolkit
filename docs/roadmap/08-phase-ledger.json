@@ -3797,7 +3797,7 @@
             },
             {
               "id": "RULES-2.T9f3b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RULES-2.7"],
               "wsjf": {
                 "bv": 5,
@@ -3807,8 +3807,9 @@
                 "after": ["RULES-2.T9f3a"]
               },
               "text": "System vocabulary D193 data changes: the class hitpoint.ability field is deleted and per-level rows read the System derivedStatisticAbilityCodes.hitPoints; excludesIntelligenceAtOrBelow becomes excludesAbilityAtOrBelow { ability, score } and the Worker INTELLIGENCE read is removed; authoringNodeDefaults ability defaults and race ASI snapshot facts come from the System; SRD data and fixtures migrated in the same change. Also SUMMON_ABILITY_SCORES_NODE_MAP in effects/maps/path.ts reads the System ability codes instead of six hard-coded D&D codes (found in the T9f3a review). A generic table-keyed object group in the node-map definition, expanded by the resolver for the request System into one child per System table row, replaces the hard-coded six-ability creature abilityScores map and SUMMON_ABILITY_SCORES_NODE_MAP; createAbilityScores is deleted; other ability select defaults start empty.",
-              "note": "Split from RULES-2.T9f3 (size 5 re-measured at 8; user ruling 2026-10-25 accepted the re-size, scope unchanged). Re-sized 3 to 5 (user ruling 2026-10-25): table-keyed node group added for the creature and summon ability maps.",
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md"
+              "note": "Split from RULES-2.T9f3 (size 5 re-measured at 8; user ruling 2026-10-25 accepted the re-size, scope unchanged). Re-sized 3 to 5 (user ruling 2026-10-25): table-keyed node group added for the creature and summon ability maps. Merged in m438.",
+              "mergedAt": "2026-10-25T14:03:46Z",
+              "proof": "Tests and Live green on tip 81857c3aa (contains m437); reviewed and approved; merged in m438."
             },
             {
               "id": "RULES-2.T10",
@@ -14386,19 +14387,47 @@
               "text": "New option (ruling at start): damage die rerolls; the three Great Weapon styles, Empowered Spell. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
             },
             {
-              "id": "SPELLS-31.T5f",
+              "id": "SPELLS-31.T5f1",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 5,
+                "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2l", "SPELLS-4.T2m1"]
               },
-              "text": "New option (ruling at start): options bound to another active effect; Persistent, Relentless and Mindless Rage, Frenzy, Reckless Attack. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "Split by the orchestrator: T5f1 (HOLDER_ACTIVE_EFFECT predicate, Mindless Rage, Reckless Attack), T5f3 (Character feature-held damage interceptions, Relentless Rage) and T5f2 (Persistent Rage, Frenzy). T5f1 deletes CLASS_BERSERKER_MINDLESS_RAGE and CLASS_BARBARIAN_RECKLESS_ATTACK.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "text": "Options bound to another active effect, part 1: the HOLDER_ACTIVE_EFFECT holder-state predicate; Mindless Rage (condition immunity gated on Rage; suspension clause a GM ruling), Reckless Attack (a GM ruling: the compiler refuses its two timed grants). Each conversion has an authoring-parity proof and deletes its kind.",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
+              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25)."
+            },
+            {
+              "id": "SPELLS-31.T5f2",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-31.T5f1"]
+              },
+              "text": "Options bound to another active effect, part 2: Persistent Rage (generic END_EVENT_EXEMPTION holder grant read in planIdleTurnCheck) and Frenzy (FREE self action while raging with a granted bonus-action weapon attack, endWithEffectIds through the T2l release seam, exhaustion on end via an existing outcome shape where one exists; melee-only limit a GM ruling). Each conversion has an authoring-parity proof and deletes its kind.",
+              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25)."
+            },
+            {
+              "id": "SPELLS-31.T5f3",
+              "status": "TODO",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 3,
+                "after": ["SPELLS-31.T5f1"]
+              },
+              "text": "Character feature-held damage interception: Character features list damage interceptions gated by deferred holder state (HOLDER_ACTIVE_EFFECT), the room replays the recorded save rolls, and the charge spend persists on the Character stream with its revert. Converts Relentless Rage (CON DC 10 to drop to 1, generic save DC plusPerChargeUsed over a SHORT_REST charge, a use counted on every attempt). SPELLS-32.T5 Relentless Endurance reuses it. Authoring-parity proof; kind deleted.",
+              "note": "Split out of SPELLS-31.T5f1; +3 scope growth approved by the user 2026-10-25."
             },
             {
               "id": "SPELLS-31.T5g",
@@ -14741,7 +14770,13 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-32.T1", "SPELLS-31.T5c", "SPELLS-31.T5d", "SPELLS-31.T5f"]
+                "after": [
+                  "SPELLS-32.T1",
+                  "SPELLS-31.T5c",
+                  "SPELLS-31.T5d",
+                  "SPELLS-31.T5f2",
+                  "SPELLS-31.T5f3"
+                ]
               },
               "text": "Halfling Lucky, Relentless Endurance, Savage Attacks (3 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-32.md)."
             },
@@ -15523,7 +15558,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 2,
-                "after": ["SPELLS-33.T1", "SPELLS-31.T5a", "SPELLS-31.T5f", "SPELLS-31.T5p"]
+                "after": ["SPELLS-33.T1", "SPELLS-31.T5a", "SPELLS-31.T5f2", "SPELLS-31.T5p"]
               },
               "text": "Evasion, Reckless, Roper Tendril, Divine Eminence (4 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md)."
             },
@@ -16154,18 +16189,46 @@
               "mergedAt": "2026-10-19T03:52:36Z"
             },
             {
-              "id": "SPELLS-33.T6n",
+              "id": "SPELLS-33.T6n1",
               "status": "IN_PROGRESS",
               "closes": ["SPELLS-33.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2
+                "size": 3
               },
-              "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: a recurring saving throw on a held relationship (found in ATTACK-7.T8, 2026-10-20). The Shambling Mound’s Engulf deals 2d8+4 bludgeoning on a failed DC 14 Constitution save at the start of each of the Mound’s turns while the target stays engulfed. A relationship recurrence that carries a save and its outcome, authorable from core options; reuse it for any other held-creature recurring damage. Authoring-parity proof and a room journey (workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "text": "Recurring saving throw on a held relationship, part 1: relationship recurrence uses the shared turnAnchor (the bespoke stage literal deleted; Chain Devil, Rug of Smothering and the path.ts node map migrated) and carries an optional savingThrow (damage only on a failure), compiled through the shared SAVE test branch. TARGET anchoring only in this task. Authoring-parity proof, compiler variant tests and a room journey on a TARGET-anchored save.",
+              "note": "Split from SPELLS-33.T6n; T6n2 is +8 scope growth approved by the user 2026-10-25 (build the holder-turn timing correctly and generically rather than approximate or defer it).",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+            },
+            {
+              "id": "SPELLS-33.T6n2",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 8,
+                "after": ["SPELLS-33.T6n1"]
+              },
+              "text": "Recurring effects on a held relationship, part 2: a generic holder-turn phase. At the start of the holder’s (SOURCE) turn, the held creatures’ SOURCE-anchored relationship recurrences fire, with saves prompted to each held creature’s controllers (the D144 zone START_OF_SOURCE_TURN pattern), one shared selection rule imported by Convex persistence and the room. The Shambling Mound’s Engulf moves to SOURCE timing (DC 14 Constitution, 2d8+4 bludgeoning on a failure). Room journey: the save fires on the Mound’s turn and nothing fires on the target’s own turn.",
+              "note": "Split from SPELLS-33.T6n; T6n2 is +8 scope growth approved by the user 2026-10-25 (build the holder-turn timing correctly and generically rather than approximate or defer it)."
+            },
+            {
+              "id": "SPELLS-33.T6n3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T6n2"]
+              },
+              "text": "Convert the holder-turn creatures onto the SPELLS-33.T6n2 phase, data only: the swallows (Purple Worm, Behir, Remorhaz, Tarrasque, Kraken, Giant Toad, Giant Frog), the Stirge blood drain, the Gelatinous Cube engulf and the Water Elemental whelm. Each replaces its MANUAL_ADJUDICATION start-of-holder-turn damage with a SOURCE-anchored relationship recurrence; riders outside the phase (regurgitation, detach thresholds) stay GM rulings under D187a. Authoring-parity proof per creature and one room journey on a swallow.",
+              "note": "+5 scope growth approved by the user 2026-10-25."
             },
             {
               "id": "SPELLS-33.T4i3d",

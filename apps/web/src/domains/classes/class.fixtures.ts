@@ -34,7 +34,6 @@ export const ownedClassResponseFixture = {
       sets: []
     },
     hitpoint: {
-      ability: 'CONSTITUTION',
       dieConfig: '1d10'
     },
     multiclass: {

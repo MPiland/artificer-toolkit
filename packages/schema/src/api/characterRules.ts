@@ -311,7 +311,6 @@ const characterHitPointFactsSchema = lazySchema(() =>
                 classId: boundedIdentitySchema,
                 classLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
                 die: z.nullable(integerSchema.check(z.positive())),
-                abilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
                 fallbackValue: integerSchema,
                 rollValue: z.nullable(integerSchema)
               })

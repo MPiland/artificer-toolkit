@@ -449,7 +449,6 @@ export const barbarian: ClassAuthored = {
   systemId: SRD_SYSTEM_ID,
 
   hitpoint: {
-    ability: ABILITY_CODE.CONSTITUTION,
     dieConfig: 'd12'
   },
 

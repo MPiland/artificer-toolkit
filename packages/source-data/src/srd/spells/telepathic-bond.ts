@@ -16,6 +16,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { ABILITY_CODE } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 
 export const telepathicBond: SpellAuthored = {
@@ -72,7 +73,7 @@ export const telepathicBond: SpellAuthored = {
                 id: spellChildId(SPELL_IDS.TELEPATHIC_BOND, 0x214, 1),
                 effectKind: EFFECT_KIND.TELEPATHIC_LINK,
                 maximumCreatures: 8,
-                excludesIntelligenceAtOrBelow: 2,
+                excludesAbilityAtOrBelow: { ability: ABILITY_CODE.INTELLIGENCE, score: 2 },
                 anyDistance: true,
                 crossesPlanes: false,
                 requiresSharedLanguage: false

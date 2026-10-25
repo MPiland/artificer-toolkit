@@ -18,7 +18,7 @@ const WOLF_IDS = [0x8b2, 0x8b3].map(testUuid)
 const DULL_ID = testUuid(0x8b4)
 const RANGE_UNCHECKED: EncounterRuleWarningCodeDto[] = ['TARGET_RANGE_UNCHECKED']
 const TOO_DULL: EncounterRuleWarningCodeDto[] = [
-  'TARGET_INTELLIGENCE_EXCLUDED',
+  'TARGET_ABILITY_EXCLUDED',
   'TARGET_RANGE_UNCHECKED'
 ]
 
@@ -92,7 +92,7 @@ describe('Telepathic Bond bonds the chosen creatures (SPELLS-28.1)', () => {
       reason: 'RULE_WARNINGS',
       // Both warnings, whichever the room evaluates first.
       warnings: expect.arrayContaining([
-        expect.objectContaining({ code: 'TARGET_INTELLIGENCE_EXCLUDED' }),
+        expect.objectContaining({ code: 'TARGET_ABILITY_EXCLUDED' }),
         expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })
       ])
     })

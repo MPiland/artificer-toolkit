@@ -274,7 +274,6 @@ export const characterBuilderPayloadFixture = {
         label: 'Wizard',
         category: 'BASE',
         hitpoint: {
-          ability: 'CONSTITUTION',
           dieConfig: '1d6'
         }
       },
@@ -283,7 +282,6 @@ export const characterBuilderPayloadFixture = {
         label: 'Fighter',
         category: 'BASE',
         hitpoint: {
-          ability: 'CONSTITUTION',
           dieConfig: '1d10'
         }
       },

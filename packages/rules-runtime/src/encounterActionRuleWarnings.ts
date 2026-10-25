@@ -60,17 +60,17 @@ type EncounterActionWarningInput = {
    */
   targetCreatureTypeId?: string | null
   /**
-   * The target's Intelligence when readable (a Creature's snapshot carries it; a Character's facts
-   * do not), judged against the Intelligence floor of an action that bonds its targets.
+   * The target's score in the ability a bonding action floors, when readable (a Creature's snapshot
+   * carries it; a Character's facts do not), judged against `linkAbilityFloor`.
    */
-  targetIntelligence?: number | null
+  targetLinkAbilityScore?: number | null
   /**
    * The actor's and the target's sizes when readable, judged against the action's `sizeLimit` on
    * their System's size list; either one unknown raises nothing.
    */
   sizes?: { gameSystemId: string; actor: string | null; target: string | null }
-  /** Set when the action bonds its targets (Telepathic Bond): Intelligence at or below it is excluded. */
-  linkIntelligenceFloor?: number | null
+  /** Set when the action bonds its targets: a score at or below it in the floored ability is excluded. */
+  linkAbilityFloor?: number | null
   /**
    * The target preconditions the action's outcomes declare (D173 Q1) and the loaded target judged
    * against them. Each one it fails warns in place of TARGET_DEFEATED, which a dying target is.
@@ -131,13 +131,13 @@ function encounterActionWarnings(input: EncounterActionWarningInput) {
           }
         ]
       : []),
-    ...(input.linkIntelligenceFloor != null &&
-    input.targetIntelligence != null &&
-    input.targetIntelligence <= input.linkIntelligenceFloor
+    ...(input.linkAbilityFloor != null &&
+    input.targetLinkAbilityScore != null &&
+    input.targetLinkAbilityScore <= input.linkAbilityFloor
       ? [
           {
-            code: 'TARGET_INTELLIGENCE_EXCLUDED' as const,
-            message: 'This creature has too little Intelligence to join the bond.'
+            code: 'TARGET_ABILITY_EXCLUDED' as const,
+            message: 'This creature’s ability score is too low to join the bond.'
           }
         ]
       : []),
@@ -175,13 +175,13 @@ export function evaluateEncounterActorsRuleWarnings(
     | 'target'
     | 'targetDefeated'
     | 'targetCreatureTypeId'
-    | 'targetIntelligence'
+    | 'targetLinkAbilityScore'
     | 'targetPreconditions'
     | 'sizes'
   > & {
     targets: readonly Pick<
       EncounterActionWarningInput,
-      'target' | 'targetDefeated' | 'targetCreatureTypeId' | 'targetIntelligence'
+      'target' | 'targetDefeated' | 'targetCreatureTypeId' | 'targetLinkAbilityScore'
     >[]
     areaWarnings: readonly EncounterRuleWarningDto[]
   }

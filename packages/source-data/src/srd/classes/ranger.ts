@@ -300,7 +300,6 @@ export const ranger: ClassAuthored = {
   systemId: SRD_SYSTEM_ID,
 
   hitpoint: {
-    ability: ABILITY_CODE.CONSTITUTION,
     dieConfig: 'd10'
   },
 

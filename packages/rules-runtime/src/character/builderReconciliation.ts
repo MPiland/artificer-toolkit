@@ -165,8 +165,7 @@ export async function reconcileCharacterBuilderCharacter(params: {
   const hitPointProgression = prepareCharacterHitpointProgression(
     nextCharacter,
     registry.classes,
-    existingCharacter,
-    Object.keys(finalRuleState.ruleEvaluation.snapshot.abilities)
+    existingCharacter
   )
   const hitPointRuleEvaluation = await params.evaluate(nextCharacter, {
     hitPointProgression: hitPointProgression.facts
