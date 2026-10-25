@@ -8256,7 +8256,7 @@
             },
             {
               "id": "ATTACK-6.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-6.1"],
               "wsjf": {
                 "bv": 5,
@@ -8265,7 +8265,8 @@
                 "size": 2
               },
               "text": "Move the Creature loadout pin DTO into packages/schema; the UUID-backed loadout contract (packages/schema/src/subjects/creature.ts) already exists and is shared by authoring and Encounters.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
+              "activeWorkbook": "docs/handoffs/slice-attack-6.md"
             },
             {
               "id": "ATTACK-6.T3",
@@ -9429,7 +9430,7 @@
           "tasks": [
             {
               "id": "ATTACK-13.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-13.1"],
               "wsjf": {
                 "bv": 2,
@@ -9438,7 +9439,8 @@
                 "size": 8
               },
               "text": "Melee attack applies a mark active effect, one per attacker, expiring at the end of the attacker's next turn: widen the MARK arm (or graph), one-mark-per-attacker rule and an after-attack hook.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
+              "activeWorkbook": "docs/handoffs/slice-attack-13.md"
             },
             {
               "id": "ATTACK-13.T2",
@@ -9571,7 +9573,7 @@
           "tasks": [
             {
               "id": "ATTACK-15.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-15.1"],
               "wsjf": {
                 "bv": 2,
@@ -9580,7 +9582,8 @@
                 "size": 8
               },
               "text": "Trigger detection (critical hit, 0 HP, death save failed by 5+) stores an event-backed GM roll offer on the actor (Run state, Convex validators, GM command, receipts) on the authored table with gap-tolerant bands.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
+              "activeWorkbook": "docs/handoffs/slice-attack-15.md"
             },
             {
               "id": "ATTACK-15.T2",
