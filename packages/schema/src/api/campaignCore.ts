@@ -107,6 +107,8 @@ export const campaignCapabilitiesDtoSchema = lazySchema(() =>
     invite: z.boolean(),
     manageMembers: z.boolean(),
     manageCharacters: z.boolean(),
+    /** The Campaign is ACTIVE and the caller is its owner: the gate for running sessions, encounters, clock and vehicles. */
+    manageActiveCampaign: z.boolean(),
     assignOwnCharacter: z.boolean(),
     manageSharedContent: z.boolean(),
     shareOwnedContent: z.boolean(),

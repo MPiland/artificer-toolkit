@@ -2895,12 +2895,14 @@
             },
             {
               "text": "The shell and navigation are System-aware and capability-driven.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by AUTHORING-1.T1 (m427); see each task's proof."
+              ],
               "origin": [
                 "G3-SYSTEM-SHELL"
               ],
-              "note": "Original PARTIAL: no explicit shell/navigation criterion; needs verification.",
+              "note": "Original PARTIAL: no explicit shell/navigation criterion; needs verification. Closed 2026-10-24 by AUTHORING-1.T1.",
               "id": "AUTHORING-1.4"
             },
             {
@@ -2923,7 +2925,7 @@
           "tasks": [
             {
               "id": "AUTHORING-1.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "AUTHORING-1.4"
               ],
@@ -2934,7 +2936,9 @@
                 "size": 3
               },
               "text": "Verify and finish the System-aware, capability-driven shell and navigation; real-code proof of each part (workbook slice-authoring-1.md).",
-              "activeWorkbook": "docs/handoffs/slice-authoring-1.md"
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 550545714; reviewed: contentKinds cap from authoredSubjectKindSchema.options.length; merged in the m427 batch.",
+              "note": " Merged in m427."
             },
             {
               "id": "AUTHORING-1.T2",
@@ -4562,7 +4566,7 @@
             },
             {
               "id": "RULES-2.T9d",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RULES-2.7"
               ],
@@ -4577,11 +4581,13 @@
                 ]
               },
               "text": "System vocabulary (split 2026-10-21): illumination: codes stay, the System supplies rank, suppressesLight and render class; sceneCombatPerception and vttSceneRenderer read the properties.",
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t9.md"
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 78ed08348; reviewed: System illumination levels (rank 0 is bright, D193), derived-statistic ability codes on the adapter, spellSlots.slotPools list with a second-System pool test; residuals carried on RULES-2.T9f3; merged in the m427 batch.",
+              "note": " Merged in m427."
             },
             {
               "id": "RULES-2.T9e",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RULES-2.7"
               ],
@@ -4595,7 +4601,9 @@
                 ]
               },
               "text": "System vocabulary (split 2026-10-21): delete the unused SRD enum copy in shared/vocabulary/authored; challenge rating order from the System in encounterFormChoice; DEXTERITY, CONSTITUTION and WALK literals behind adapters; web defaults from the System.",
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t9.md"
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 78ed08348; reviewed: System illumination levels (rank 0 is bright, D193), derived-statistic ability codes on the adapter, spellSlots.slotPools list with a second-System pool test; residuals carried on RULES-2.T9f3; merged in the m427 batch.",
+              "note": " Merged in m427."
             },
             {
               "id": "RULES-2.T9f1",
@@ -4626,12 +4634,13 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": [
                   "RULES-2.T9f1"
                 ]
               },
-              "text": "System vocabulary (D192 split of T9f): ability-score records keyed by ability definition id; labels and abbreviations from the System record; shared core/ability.ts deleted; reseed, golden flips enumerated."
+              "text": "System vocabulary (D192 as amended 2026-10-24): ability codes become System core codes like sizes in T9f1; persisted and authored ability keys stay codes owned by each System ability table and every ingress rejects a code the System does not list; labels and abbreviations from the System record; shared core/ability.ts deleted; no re-key, no reseed.",
+              "note": " Re-sized 5 to 8 (user ruling 2026-10-24, D192 amendment): the definition-id re-key measured about 21 points."
             },
             {
               "id": "RULES-2.T9f3",
@@ -4649,7 +4658,7 @@
                   "RULES-2.T9f2"
                 ]
               },
-              "text": "System vocabulary (D192 split of T9f): authored ability references (grants, effects, facets, charge, numericExpr, class) become abilityDefinitionId; reseed; one-off ts-morph codemod allowed (D192)."
+              "text": "System vocabulary (D192 as amended 2026-10-24): authored ability references (grants, effects, facets, charge, numericExpr, class) are checked against the System ability codes at every ingress; the class hitpoint.ability field is deleted (D193); excludesIntelligenceAtOrBelow becomes excludesAbilityAtOrBelow; BRIGHT/DIM literals in vttSceneRenderer and illuminationFromLight, the slotPools z.maxLength bound in characterRules.ts, and illumination level-table validation (empty, duplicate, misordered) from the RULES-2.T9 review."
             },
             {
               "id": "RULES-2.T10",
@@ -5187,7 +5196,7 @@
             },
             {
               "id": "RULES-2.T9g",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RULES-2.7"
               ],
@@ -5203,8 +5212,9 @@
                 ]
               },
               "text": "Pact Magic leaves the neutral character pipeline. The 'PACT' slot-key literals in sheetRest.ts (short-rest reset), characterSpellCastActions.ts, characterOnHitCosts.ts, characterRulePolicyFacts.ts and sheetProjection.ts become System slot-pool capabilities supplied by dnd5e: the pool's code, its label and its reset-on-rest kind. Neutral files read the pools through the gameSystemId registry. The Sheet journey and rest tests stay green.",
-              "note": "Found in the SPELLS-31.T5p review (2026-10-22): these literals predate the slice; D175 keeps the new slotCost.poolCode a System vocabulary code. Per the ADR 0039 amendment, slotCost.poolCode is a System core code, not vocabulary.",
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t9.md"
+              "note": "Found in the SPELLS-31.T5p review (2026-10-22): these literals predate the slice; D175 keeps the new slotCost.poolCode a System vocabulary code. Per the ADR 0039 amendment, slotCost.poolCode is a System core code, not vocabulary. Merged in m427.",
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 78ed08348; reviewed: System illumination levels (rank 0 is bright, D193), derived-statistic ability codes on the adapter, spellSlots.slotPools list with a second-System pool test; residuals carried on RULES-2.T9f3; merged in the m427 batch."
             },
             {
               "id": "RULES-2.T9h",
@@ -18521,7 +18531,7 @@
             },
             {
               "id": "SPELLS-33.T4i4b",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -18536,8 +18546,9 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Save-gated kill and reduce-to-0 (split 2026-10-20): the compiler and graph allow KILL after a saving throw; a new REDUCE_TO_ZERO_HIT_POINTS outcome routed through the damage-application 0-HP transition (Characters dying, interception such as Death Ward applies). Converts Sea Hag Death Glare and Will-o'-Wisp Consume Life with parity proofs and homebrew variants; deletes both kinds. Held behind RULES-2.T6c (ADR 0039, 2026-10-20): KILL after a save and REDUCE_TO_ZERO_HIT_POINTS land in the outcomes registry.",
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m427.",
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 2501e035d; reviewed and approved; merged in the m427 batch."
             },
             {
               "id": "SPELLS-33.T4j",
@@ -19609,7 +19620,7 @@
             },
             {
               "id": "SPELLS-33.T6m2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -19623,8 +19634,9 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: subtype and can-hear target filters, ordinal use variants, wake action, stacking recurring damage, tree size (5 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m426.",
+              "mergedAt": "2026-10-25T02:40:53Z",
+              "proof": "Tests and Live green on tip f87ad1ad2; reviewed and approved: lingering creature riders authored as core options with authoring-parity and runtime proofs."
             },
             {
               "id": "SPELLS-33.T7a",
@@ -21486,10 +21498,12 @@
             },
             {
               "text": "Shared web rules are written once: enum labels go through formatEnumLabel, ReferenceOption is one type, and the Campaign owner-and-active permission comes from a server capability flag rather than 12 inline `role === 'OWNER' && status === 'ACTIVE'` checks.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-8.T4 (m425); see each task's proof."
+              ],
               "origin": [],
-              "note": "Canonical formatter at apps/web/src/components/AuthoredDetail/detailFormatters.ts:10; about 15 local copies. Owner-and-active check counted at 12 non-test sites. ReferenceOption declared three times. Second pass: social admission lists (SocialInvitationsView, SocialApplicationsView, SocialListingInvitations, SocialListingApplications) repeat paginated pending/history queries and merge logic; local label formatters in socialModels.ts:133, DiceSettingsControls.tsx:55, characterSelectionOptions.ts:270, CharacterGrantedFeatures.tsx:275, startingEquipmentChoices.ts:382; Intl.DateTimeFormat inlined beside formatSocialTimestamp; username messages and form feedback state repeated across SignUpForm, ProfileSettingsPage and UpdatePasswordForm; SignInForm hand-rolls hydration instead of useHydrated; socialSearch.ts:18-33 restates socialModels enums; five single-use toSocialDiscoveryX finders; duplicated dice-roll dismiss effect in CharacterAbilitiesStep and CharacterStartingEquipmentChoices.",
+              "note": "Canonical formatter at apps/web/src/components/AuthoredDetail/detailFormatters.ts:10; about 15 local copies. Owner-and-active check counted at 12 non-test sites. ReferenceOption declared three times. Second pass: social admission lists (SocialInvitationsView, SocialApplicationsView, SocialListingInvitations, SocialListingApplications) repeat paginated pending/history queries and merge logic; local label formatters in socialModels.ts:133, DiceSettingsControls.tsx:55, characterSelectionOptions.ts:270, CharacterGrantedFeatures.tsx:275, startingEquipmentChoices.ts:382; Intl.DateTimeFormat inlined beside formatSocialTimestamp; username messages and form feedback state repeated across SignUpForm, ProfileSettingsPage and UpdatePasswordForm; SignInForm hand-rolls hydration instead of useHydrated; socialSearch.ts:18-33 restates socialModels enums; five single-use toSocialDiscoveryX finders; duplicated dice-roll dismiss effect in CharacterAbilitiesStep and CharacterStartingEquipmentChoices. Closed 2026-10-24 by RELIABILITY-8.T4.",
               "id": "RELIABILITY-8.7"
             }
           ],
@@ -21556,7 +21570,7 @@
             },
             {
               "id": "RELIABILITY-8.T4",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-8.7"
               ],
@@ -21567,7 +21581,9 @@
                 "size": 3
               },
               "text": "Shared web rules once: formatEnumLabel, one ReferenceOption, Campaign owner-and-active capability flag from the server, shared social admission lists, auth form feedback and dice dismiss effect (workbook slice-reliability-8-t4.md).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-8-t4.md"
+              "mergedAt": "2026-10-25T02:17:19Z",
+              "proof": "Tests and Live green on tip 4d2a5ee67; reviewed: shared formatEnumLabel, ReferenceOption, server capabilities.manageActiveCampaign, shared admission lists, AuthFormFeedback, useDismissRollOnClick, each with real-code tests.",
+              "note": " Merged in m425."
             }
           ]
         },
@@ -21866,18 +21882,22 @@
             {
               "id": "RELIABILITY-12.1",
               "text": "Facet restrictions and effect paths (BASIC_ACTION) reach the web as their real types: the four content/definitions.ts handlers declare the packages/schema workspace DTO type and the web adapter reads through a typed reference to it (pairing contract test); in the Convex validator only facet, path and follow-up outcomes are named v.any() leaves, still zod-parsed in the handler, and the generatedApiTypes type test proves any appears only at those leaves; the authoring contract and publication tests pass unchanged.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-12.T1 (m427); see each task's proof."
+              ],
               "origin": [],
-              "note": "Found 2026-10-14 by RELIABILITY-11 (workbook status log): same Convex intersection-to-any defect, spread across many intersections plus recursion. D194 (user ruling 2026-10-24): wire stays nested; staticApi stays on; only follow-up save/check outcomes keep a named v.any leaf; handlers and web adapter share the packages/schema type with a pairing contract test. D194 amended (user ruling 2026-10-24, option B): the zod-to-Convex converter inlines every reuse, so flat unions measured about 54 MB per facet validator; facet and path became named validator leaves too (about 29,000 nodes)."
+              "note": "Found 2026-10-14 by RELIABILITY-11 (workbook status log): same Convex intersection-to-any defect, spread across many intersections plus recursion. D194 (user ruling 2026-10-24): wire stays nested; staticApi stays on; only follow-up save/check outcomes keep a named v.any leaf; handlers and web adapter share the packages/schema type with a pairing contract test. D194 amended (user ruling 2026-10-24, option B): the zod-to-Convex converter inlines every reuse, so flat unions measured about 54 MB per facet validator; facet and path became named validator leaves too (about 29,000 nodes). Closed 2026-10-24 by RELIABILITY-12.T1."
             },
             {
               "id": "RELIABILITY-12.2",
               "text": "An encounter stat block's speeds are typed from the stored creature speed shape instead of z.unknown(), so api.d.ts carries the real type; proved by the generatedApiTypes type test.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-12.T1 (m427); see each task's proof."
+              ],
               "origin": [],
-              "note": "Found 2026-10-14 by RELIABILITY-11: statBlock.speeds is z.array(z.unknown()). The stored shape is the authored creature speed; derive it, do not invent one."
+              "note": "Found 2026-10-14 by RELIABILITY-11: statBlock.speeds is z.array(z.unknown()). The stored shape is the authored creature speed; derive it, do not invent one. Closed 2026-10-24 by RELIABILITY-12.T1."
             }
           ],
           "wsjf": {
@@ -21889,7 +21909,7 @@
           "tasks": [
             {
               "id": "RELIABILITY-12.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-12.1",
                 "RELIABILITY-12.2"
@@ -21901,7 +21921,9 @@
                 "size": 5
               },
               "text": "Flatten intersection-built facet and effect-path schemas into unions so api.d.ts carries real types; type stat block speeds from the stored creature speed shape; generatedApiTypes type test proves both (workbook slice-reliability-12.md).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-12.md"
+              "mergedAt": "2026-10-25T03:09:49Z",
+              "proof": "Tests and Live green on tip 24c44da2a; reviewed: facet, path and follow-up outcomes as named v.any() leaves (D194 option B), typed definition references, generatedApiTypes leaf proof; merged in the m427 batch.",
+              "note": " Merged in m427."
             }
           ]
         },

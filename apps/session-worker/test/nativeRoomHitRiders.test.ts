@@ -636,6 +636,22 @@ describe('seeded SRD Creature hit riders in the room', () => {
     )
   })
 
+  it('poisons the Character and knocks it unconscious when it fails its save against the Couatl’s Bite, beside the poison ruling (SPELLS-33.T6m2)', async () => {
+    // 1d6 + 5 piercing with the die rolling 1; the Character's save fails.
+    const room = await hitRiderRoom({
+      creature: 'Couatl',
+      feature: 'Bite',
+      playerAutoRoll: false,
+      rolls: [18, 0]
+    })
+    const batch = await settle(room, 1)
+    expect(batch.nestedD20).toMatchObject({ defenseOrDc: 13, resultPath: 'ON_SAVE_FAIL' })
+    expect(batch.damage).toEqual([[6, damageTypeId('PIERCING')]])
+    expect(batch.targetTransition.after.conditionIds).toEqual(
+      expect.arrayContaining([conditionId('POISONED'), conditionId('UNCONSCIOUS')])
+    )
+  })
+
   it('grapples and restrains a Creature with one hit of the Giant Toad’s Bite, held by one relationship effect', async () => {
     const toad = seededSrdCreature('Giant Toad')
     const room = await actionRoom({

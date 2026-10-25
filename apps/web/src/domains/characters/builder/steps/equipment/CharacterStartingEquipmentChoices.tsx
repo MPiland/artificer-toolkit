@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button, NumberInput, Stack, Text } from '@mantine/core'
 import type { RollResultDto } from '@artificer-toolkit/schema/api/rolls'
 import { useExecuteDiceConfigurationMutation } from '#app/data/rolls'
 import { AppSelect } from '#ui/primitives/Select'
 import type { CharacterStartingEquipmentDecision } from '../../core/characterBuilder.types'
 import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
+import { useDismissRollOnClick } from '#app/components/dice/useDismissRollOnClick'
 import { createStartingEquipmentDecision } from './startingEquipment'
 import * as sharedStyles from '../../shared/builderShared.css'
 import * as styles from './characterEquipment.css'
@@ -230,13 +231,8 @@ function StartingEquipmentGoldField({
     setGoldInput(totalGold)
   }
 
-  useEffect(() => {
-    if (!presentedRoll || rolling) return
-
-    const dismissRoll = () => setPresentedRoll(undefined)
-    document.addEventListener('click', dismissRoll, { capture: true })
-    return () => document.removeEventListener('click', dismissRoll, { capture: true })
-  }, [presentedRoll, rolling])
+  const dismissRoll = useCallback(() => setPresentedRoll(undefined), [])
+  useDismissRollOnClick(presentedRoll !== undefined && !rolling, dismissRoll)
 
   return (
     <Stack gap='xs'>

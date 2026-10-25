@@ -45,11 +45,12 @@ export function hasLifecycleOverride(entry: {
 
 export function boundedTestOutcome(entry: CompiledEffectGroup['entries'][number]): Outcome {
   if (!('outcome' in entry)) unsupported('D&D test actions require direct authored outcomes.')
-  // An instant kill is admitted only as a hit-point tier's result or behind a reduced-to-0 gate,
-  // never on a save alone.
+  // An instant kill is admitted as a hit-point tier's result, behind a reduced-to-0 gate, or on the
+  // action's own failed save ("succeed on a saving throw or die"); never on a hit alone.
   const killAdmitted = Boolean(
     ('hitPointTier' in entry && entry.hitPointTier) ||
-    ('gate' in entry && entry.gate?.kind === 'REDUCED_TO_ZERO_BY')
+    ('gate' in entry && entry.gate?.kind === 'REDUCED_TO_ZERO_BY') ||
+    entry.pathCode === 'ON_SAVE_FAIL'
   )
   return boundedOutcome(entry.outcome, killAdmitted)
 }

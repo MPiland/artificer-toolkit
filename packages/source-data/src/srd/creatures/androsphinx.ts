@@ -1,7 +1,11 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
+
+const ROAR_HEARING =
+  'Only creatures able to hear the roar are affected; the GM ends the effect on any that cannot.'
 
 export const androsphinx: CreatureAuthored = {
   id: S.CREATURE_IDS.ANDROSPHINX,
@@ -268,8 +272,10 @@ export const androsphinx: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(24, 120),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_ANDROSPHINX_ROAR
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'First roar',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions: `This is the sphinx's first roar since its last long rest. ${ROAR_HEARING}`
                   }
                 ]
               }
@@ -349,8 +355,10 @@ export const androsphinx: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(24, 131),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_ANDROSPHINX_ROAR
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Second roar',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions: `This is the sphinx's second roar since its last long rest, after the first. ${ROAR_HEARING}`
                   }
                 ]
               }
@@ -408,8 +416,10 @@ export const androsphinx: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(24, 138),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_ANDROSPHINX_ROAR
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Third roar',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions: `This is the sphinx's third roar since its last long rest, after the second. ${ROAR_HEARING}`
                   }
                 ]
               }

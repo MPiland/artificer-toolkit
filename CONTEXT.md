@@ -71,6 +71,13 @@ System capability contract declares its supported authored domains, reusable def
 authoring recipes, rule modules, state shapes, Campaign settings, and VTT capabilities. Users cannot
 create or install Game Systems or arbitrary rules plugins.
 
+The capability publishes `contentKinds`, the authored content kinds (Spell, Race, Creature and so
+on) the System offers, read through `content.systems.capability`. The app shell navigation is
+System-aware and capability-driven: its Content group is the union of `contentKinds` across the
+Systems the user can see, in a fixed presentation order (`apps/web/src/shell/navigation.ts`, keyed
+exhaustively by kind), with an explicit empty state when no System publishes any. No System is
+selected by default and no navigation entry is hardcoded to a System.
+
 ### Rules Catalogue
 
 A core rules lineage inside one Game System, such as D&D 2014 or D&D 2024. Catalogue identity is

@@ -98,6 +98,7 @@ export function resolveEncounterCombatPerception(
       pinnedSenseDefinitions: input.pinnedSenseDefinitions
     })
   ]
+  const adapter = combatPerceptionCapabilityRegistry.require(input.gameSystemId)
   const environment =
     input.environment ??
     resolveSceneCombatPerceptionEnvironment({
@@ -106,7 +107,8 @@ export function resolveEncounterCombatPerception(
       subject: input.subjectToken,
       sharedSurface: input.sharedSurface,
       invisibleChannels: input.invisibleChannels,
-      suppressedChannels: input.suppressedChannels
+      suppressedChannels: input.suppressedChannels,
+      illuminationLevels: adapter.illuminationLevels
     })
   const contributions = deriveCombatPerceptionContributionPartitions({
     sceneGrid: input.sceneGrid,
@@ -114,20 +116,18 @@ export function resolveEncounterCombatPerception(
     subjectEffects: input.subjectEffects,
     localAreaEffects: input.localAreaEffects
   })
-  return combatPerceptionCapabilityRegistry
-    .require(input.gameSystemId)
-    .resolveCombatPerceptionWithContributions({
-      requirement: input.requirement,
-      environment,
-      capabilities,
-      observerContributions: [
-        ...contributions.observerContributions,
-        ...(input.observerConditionContributions ?? [])
-      ],
-      subjectContributions: [
-        ...contributions.subjectContributions,
-        ...(input.subjectConditionContributions ?? [])
-      ],
-      localAreaContributions: contributions.localAreaContributions
-    })
+  return adapter.resolveCombatPerceptionWithContributions({
+    requirement: input.requirement,
+    environment,
+    capabilities,
+    observerContributions: [
+      ...contributions.observerContributions,
+      ...(input.observerConditionContributions ?? [])
+    ],
+    subjectContributions: [
+      ...contributions.subjectContributions,
+      ...(input.subjectConditionContributions ?? [])
+    ],
+    localAreaContributions: contributions.localAreaContributions
+  })
 }

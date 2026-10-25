@@ -8,17 +8,18 @@ import { readNativeLiveHasNotTakenTurn, readNativeLiveTurnUses } from './nativeT
 
 /** The room-store reads an attack's mechanics ask for about the turn and the holder's square. */
 export function nativeActionStateLoaders(input: {
-  campaignId: string
+  campaign: { campaignId: string; gameSystemId: string }
   actorId: string
   sceneContext: { sceneId: string; sceneVersion: number } | null
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
 }) {
-  const { campaignId, actorId, sceneContext, capture } = input
+  const { campaign, actorId, sceneContext, capture } = input
+  const { campaignId, gameSystemId } = campaign
   return {
     loadTurnUses: () => readNativeLiveTurnUses(capture, actorId),
     loadTargetHasNotTakenTurn: ({ targetFacts }: { targetFacts: MovementTarget }) =>
       readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),
     loadHolderLight: ({ sourceFacts }: { sourceFacts: MovementTarget }) =>
-      readNativeLiveHolderLight(campaignId, sourceFacts, sceneContext, capture)
+      readNativeLiveHolderLight(campaignId, gameSystemId, sourceFacts, sceneContext, capture)
   }
 }

@@ -20,6 +20,7 @@ import {
 
 import { createActorSensePinner } from './actorSenses.js'
 import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
+import { combatPerceptionCapabilityRegistry } from './platformPolicyModules.js'
 import { resolveEncounterCombatPerception } from './encounterCombatPerception.js'
 import { deriveConditionCombatPerceptionContributions } from './encounterCombatPerceptionContributions.js'
 import { buildMovementTarget, type MovementTarget } from './encounterMovementTargets.js'
@@ -114,7 +115,9 @@ export async function resolveEncounterActorPairPerception(input: {
             distance: 0,
             lineOfEffect: true,
             sharedSurface: true,
-            illumination: 'BRIGHT' as const,
+            // The System's brightest level: no Scene darkens a Scene-free pair.
+            illumination: combatPerceptionCapabilityRegistry.require(input.gameSystemId)
+              .illuminationLevels[0]!.code,
             obscurement: 'NONE' as const,
             invisibleChannels: [],
             suppressedChannels: []

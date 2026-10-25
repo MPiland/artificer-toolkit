@@ -1,5 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
-import { type CreatureAuthored } from '@artificer-toolkit/shared'
+import { DURATION_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 
@@ -287,8 +287,9 @@ export const vrock: CreatureAuthored = {
         amount: 1
       },
       effects: [
-        S.closedRuleEffect({
+        {
           id: S.actionId(281, 218),
+          order: 1,
           invocation: {
             kind: 'ACTION',
             triggerCode: S.TRIGGER.SAVING_THROW,
@@ -310,9 +311,43 @@ export const vrock: CreatureAuthored = {
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
-          pathCode: S.PATH_CODE.ON_SAVE_FAIL,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_VROCK_STUNNING_SCREECH
-        })
+          paths: [
+            {
+              id: S.actionId(281, 221),
+              order: 1,
+              pathCode: S.PATH_CODE.ON_SAVE_FAIL,
+              groupType: S.PATH_GROUP_TYPE.SEQUENTIAL,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              resultBlock: {
+                id: `${S.actionId(281, 221)}__result`,
+                resultKind: 'SEQUENCE',
+                duration: {
+                  id: S.actionId(281, 222),
+                  durationKind: DURATION_KIND.ROUND,
+                  amount: 1
+                },
+                // "Until the end of the vrock's next turn."
+                lifecycle: { turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } },
+                outcomes: [
+                  {
+                    id: S.actionId(281, 223),
+                    effectKind: S.EFFECT_KIND.CONDITION,
+                    conditionId: conditionTypeId('STUNNED')
+                  },
+                  {
+                    id: S.actionId(281, 224),
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Demons and creatures that cannot hear',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      "Demons and creatures that can't hear the screech are unaffected; the GM ends the stun on any of them."
+                  }
+                ]
+              }
+            }
+          ]
+        }
       ],
       order: 7
     }

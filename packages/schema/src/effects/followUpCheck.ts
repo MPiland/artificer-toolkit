@@ -1,4 +1,4 @@
-import { z } from '../zod.js'
+import { convexOpaqueSchema, z } from '../zod.js'
 
 import { activationDtoSchema } from './activation.js'
 import { abilityCodeSchema } from '../shared/enums.js'
@@ -16,7 +16,7 @@ export function createFollowUpCheckDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
       kind: z.literal('OUTCOMES'),
       endCurrent: z.boolean(),
       resultKind: z.enum(['SINGLE', 'SEQUENCE']),
-      outcomes: authoredNestedCollectionSchema(outcomeDtoSchema)
+      outcomes: authoredNestedCollectionSchema(convexOpaqueSchema(outcomeDtoSchema))
     })
   ])
 

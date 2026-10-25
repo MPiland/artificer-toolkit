@@ -577,7 +577,7 @@ describe('Character rule contracts', () => {
         calculationId: 'spell-slots',
         sourceClassIds: [],
         maxByLevel: [],
-        pactMagic: null,
+        slotPools: [],
         fusionStrategy: 'NONE'
       },
       chargeMaximums: [],

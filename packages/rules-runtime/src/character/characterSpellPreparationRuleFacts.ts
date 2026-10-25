@@ -1,8 +1,8 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
-import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
+import { abilityRecordIndex } from './characterDerivedRuleFacts.js'
 import type { CharacterRuleContext, CharacterRuleRegistry } from './characterRuleContext.js'
 
 type SpellPreparationRequest = NonNullable<CharacterRulePolicyInput['spellPreparationRequest']>
@@ -10,17 +10,6 @@ type ClassIntent = CharacterAuthored['intent']['classes'][number]
 
 function unique(values: readonly string[]): string[] {
   return [...new Set(values)]
-}
-
-function abilityRecordIndex(
-  abilities: CharacterBuildSnapshot['abilities'],
-  abilityId: string
-): number | null {
-  const canonical = resolveAbilityAlias(abilityId) ?? abilityId
-  const index = Object.keys(abilities).findIndex(
-    (candidate) => (resolveAbilityAlias(candidate) ?? candidate) === canonical
-  )
-  return index < 0 ? null : index
 }
 
 function getSubclassAliasLabels(
