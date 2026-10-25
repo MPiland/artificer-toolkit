@@ -19,7 +19,7 @@
 00000000-0000-0000-c001-140300000000 CHARACTER:classes Intimidating Presence | TEST_OUTCOME test=fcd90c010ef7a756ae34f44b478b980186d4f547c4870384e3f23b0a4a82fabf nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=e224546408360005b04444353c2504dd13ee537524e65a73b6d5f40361d25e19]
 00000000-0000-0000-c001-140400000000 CHARACTER:classes Retaliation | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c001-600100000000 CHARACTER:classes Rage | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
-00000000-0000-0000-c001-600400000000 CHARACTER:classes Reckless Attack | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c001-600400000000 CHARACTER:classes Reckless Attack | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-600700000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-600b00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-600e00000000 CHARACTER:classes Relentless Rage | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

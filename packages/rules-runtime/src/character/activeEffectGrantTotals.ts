@@ -341,17 +341,19 @@ export function abilityCheckMinimumRoll(input: {
         }))
     ),
     // The fold also carries the active effects' grants; those are read from the effects above.
-    ...(character?.grantFold.modifiers ?? []).flatMap((modifier) =>
-      modifier.source.kind === 'ACTIVE_EFFECT' || modifier.deferredRequirements.length > 0
-        ? []
-        : [
-            {
-              modifier,
-              sourceId: modifier.sourceId,
-              label: () => characterGrantSourceLabel(character!.registry, modifier.source)
-            }
-          ]
-    )
+    ...(character === null
+      ? []
+      : character.grantFold.modifiers.flatMap((modifier) =>
+          modifier.source.kind === 'ACTIVE_EFFECT' || modifier.deferredRequirements.length > 0
+            ? []
+            : [
+                {
+                  modifier,
+                  sourceId: modifier.sourceId,
+                  label: () => characterGrantSourceLabel(character.registry, modifier.source)
+                }
+              ]
+        ))
   ]
   let floor: D20MinimumRollDto | null = null
   for (const { modifier, sourceId, label } of candidates) {

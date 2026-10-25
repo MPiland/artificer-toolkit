@@ -3,9 +3,13 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
-import { dnd5eCharacterPolicyRegistration } from './systems/dnd5e/characterPolicy.js'
+import { installedCharacterSystems } from './systems/installedGameSystems/character.js'
 
-const installedCharacterPolicyModules = [dnd5eCharacterPolicyRegistration] as const
+/** One installed System's Character preparation tier (D195). */
+export interface GameSystemCharacterTier {
+  readonly gameSystemId: string
+  readonly evaluateCharacterPolicy?: (facts: CharacterRulePolicyInput) => CharacterRulePolicyOutput
+}
 
 export function evaluateInstalledCharacterPolicy(input: {
   gameSystemId: string
@@ -14,10 +18,10 @@ export function evaluateInstalledCharacterPolicy(input: {
   if (input.facts.grantFoldFacts.base.systemId !== input.gameSystemId) {
     throw new Error('Character policy facts and Game System identities do not match.')
   }
-  const registration = installedCharacterPolicyModules.find(
+  const registration = installedCharacterSystems.find(
     (module) => module.gameSystemId === input.gameSystemId
   )
-  if (!registration || !('evaluateCharacterPolicy' in registration)) {
+  if (!registration?.evaluateCharacterPolicy) {
     throw new Error(`No Character policy is registered for Game System "${input.gameSystemId}".`)
   }
   return registration.evaluateCharacterPolicy(input.facts)

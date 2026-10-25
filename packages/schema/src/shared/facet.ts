@@ -392,6 +392,10 @@ const predicatePayloadSchemas = lazySchemaParts(
         maxFeet: z.optional(z.number()),
         maxSpeedFraction: z.optional(z.number())
       }),
+      HOLDER_ACTIVE_EFFECT: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HOLDER_ACTIVE_EFFECT),
+        effectIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      }),
       ATTACK_ACTION_OTHER_WEAPON: z.intersection(
         z.object({
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ACTION_OTHER_WEAPON)

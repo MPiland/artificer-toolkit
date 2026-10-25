@@ -148,6 +148,13 @@ export type PredicatePayloadByCode = {
     maxSpeedFraction?: number
   }
   /**
+   * The holder carries a live active effect authored as one of `effectIds` (while it rages).
+   * Decided live in an Encounter.
+   */
+  HOLDER_ACTIVE_EFFECT: {
+    effectIds: string[]
+  }
+  /**
    * The holder took the Attack action this turn with a weapon that has every listed property
    * (any weapon when not selected), other than the item the requirement belongs to.
    */
@@ -464,6 +471,13 @@ export const PREDICATE_REGISTRY = {
     label: 'Turn Movement',
     description:
       'Requires the holder to have moved no more than a number of feet, or a fraction of its speed, this turn.',
+    subjects: ['CHARACTER', 'CREATURE']
+  },
+
+  HOLDER_ACTIVE_EFFECT: {
+    code: 'HOLDER_ACTIVE_EFFECT',
+    label: 'Holder Has Active Effect',
+    description: 'Requires the holder to have one of the selected effects active on it.',
     subjects: ['CHARACTER', 'CREATURE']
   },
 

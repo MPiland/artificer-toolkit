@@ -342,7 +342,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   startingEquipmentItem: ['startingEquipmentItem'],
   startingEquipmentOption: ['startingEquipmentOption'],
   startingEquipmentSet: ['startingEquipmentSet'],
-  string: ['actionEffectId', 'vehicleString', 'string', 'logisticsNote', 'regionalEffect', 'tag'],
+  string: ['effectId', 'vehicleString', 'string', 'logisticsNote', 'regionalEffect', 'tag'],
   summonStatBlock: ['summonStatBlock'],
   targetCount: ['targetCount'],
   targetRequirement: ['targetRequirement'],
