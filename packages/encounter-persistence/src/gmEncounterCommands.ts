@@ -19,7 +19,8 @@ import type { EncounterDocument } from './store.js'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 
 type GmCommandInput = {
-  type: string
+  /** A literal union, so a matching prior command narrows to the stored arms that keep a replay receipt. */
+  type: 'MORALE_SAVE' | 'CONFIRM_MORALE' | 'RESOLVE_CONSEQUENCE_ROLL_OFFER'
   encounterId: string
   commandId: string
   expectedVersion: number
