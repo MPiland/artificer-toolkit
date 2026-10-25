@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { initiativeDeclarationModifiersDtoSchema } from '@artificer-toolkit/schema/shared/initiativePolicy'
-import { initiativeDeclarationFactsDtoSchema } from '@artificer-toolkit/schema/shared/initiativeState'
+import {
+  initiativeDeclarationFactsDtoSchema,
+  type InitiativeDeclarationFactsDto
+} from '@artificer-toolkit/schema/shared/initiativeState'
 import { SRD_DND5E_SPEED_FACTOR_DECLARATION_MODIFIERS } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 
 import { encounterActionUndeclared } from '../encounterInitiativeDeclaredAction.js'
@@ -65,7 +68,7 @@ function adjudicated(factorIds: string[], spellLevel: number | null) {
 
 function declaration(
   actorSize: string,
-  primary: Parameters<typeof initiativeDeclarationFactsDtoSchema.parse>[0]['primary'],
+  primary: InitiativeDeclarationFactsDto['primary'],
   bonus: typeof primary | null = null
 ) {
   return initiativeDeclarationFactsDtoSchema.parse({ actorSize, primary, bonus })
@@ -116,9 +119,7 @@ describe('the seeded Speed Factor modifiers (ENCOUNTER-4.2)', () => {
   })
 
   it('applies the factors and spell level the GM adjudicated', () => {
-    expect(speedFactor(declaration('LARGE', adjudicated([HEAVY, LOADING], 4)))).toBe(
-      -2 - 2 - 5 - 4
-    )
+    expect(speedFactor(declaration('LARGE', adjudicated([HEAVY, LOADING], 4)))).toBe(-2 - 2 - 5 - 4)
     expect(speedFactor(declaration('MEDIUM', adjudicated([], null)))).toBe(0)
   })
 
@@ -159,8 +160,10 @@ describe('a declared-action round holds its actor to its declaration (ENCOUNTER-
     round: { procedure: 'DECLARED_ACTION_ROLL' as const },
     participants: [{ actorId: ACTOR_ID, declaration: value }]
   })
-  const undeclared = (round: Parameters<typeof encounterActionUndeclared>[0]['round'], actionId: string) =>
-    encounterActionUndeclared({ round, actorId: ACTOR_ID, actionId })
+  const undeclared = (
+    round: Parameters<typeof encounterActionUndeclared>[0]['round'],
+    actionId: string
+  ) => encounterActionUndeclared({ round, actorId: ACTOR_ID, actionId })
   const attackAndCast = declaration(
     'MEDIUM',
     weaponAttack('longsword', ['MELEE', 'VERSATILE']),

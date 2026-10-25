@@ -1123,7 +1123,10 @@ describe('encounter contracts', () => {
             kind: 'GM_ADJUDICATED',
             optionId: 'GM_ADJUDICATED',
             actorSize: 'TINY',
-            factorIds: ['00000000-0000-4000-8000-0000000004e4', '00000000-0000-4000-8000-0000000004e7'],
+            factorIds: [
+              '00000000-0000-4000-8000-0000000004e4',
+              '00000000-0000-4000-8000-0000000004e7'
+            ],
             spellLevel: 3
           },
           bonus: null
@@ -1147,7 +1150,10 @@ describe('encounter contracts', () => {
             kind: 'GM_ADJUDICATED',
             optionId: 'GM_ADJUDICATED',
             actorSize: 'TINY',
-            factorIds: ['00000000-0000-4000-8000-0000000004e4', '00000000-0000-4000-8000-0000000004e4'],
+            factorIds: [
+              '00000000-0000-4000-8000-0000000004e4',
+              '00000000-0000-4000-8000-0000000004e4'
+            ],
             spellLevel: 3
           },
           bonus: null

@@ -138,46 +138,47 @@ const dexterityTieGraph = graph({
 const scorePin = { scoreOutput: 'score', sortDirection: 'DESCENDING', automaticOutput: 'automatic' }
 
 /** The DMG Speed Factor table: size, weapon and spell-level modifiers to a declared initiative. */
-export const SRD_DND5E_SPEED_FACTOR_DECLARATION_MODIFIERS = initiativeDeclarationModifiersDtoSchema.parse({
-  sizes: [
-    { size: 'TINY', modifier: 5 },
-    { size: 'SMALL', modifier: 2 },
-    { size: 'MEDIUM', modifier: 0 },
-    { size: 'LARGE', modifier: -2 },
-    { size: 'HUGE', modifier: -5 },
-    { size: 'GARGANTUAN', modifier: -8 }
-  ],
-  factors: [
-    {
-      id: '00000000-0000-4000-8000-0000000004e4',
-      label: 'Melee, heavy weapon',
-      equipmentPropertySets: [['MELEE', 'HEAVY']],
-      modifier: -2
-    },
-    {
-      id: '00000000-0000-4000-8000-0000000004e5',
-      label: 'Melee, light or finesse weapon',
-      equipmentPropertySets: [
-        ['MELEE', 'LIGHT'],
-        ['MELEE', 'FINESSE']
-      ],
-      modifier: 2
-    },
-    {
-      id: '00000000-0000-4000-8000-0000000004e6',
-      label: 'Melee, two-handed weapon',
-      equipmentPropertySets: [['MELEE', 'TWO_HANDED']],
-      modifier: -2
-    },
-    {
-      id: '00000000-0000-4000-8000-0000000004e7',
-      label: 'Ranged, loading weapon',
-      equipmentPropertySets: [['RANGED', 'LOADING']],
-      modifier: -5
-    }
-  ],
-  spellLevel: { modifierPerLevel: -1 }
-})
+export const SRD_DND5E_SPEED_FACTOR_DECLARATION_MODIFIERS =
+  initiativeDeclarationModifiersDtoSchema.parse({
+    sizes: [
+      { size: 'TINY', modifier: 5 },
+      { size: 'SMALL', modifier: 2 },
+      { size: 'MEDIUM', modifier: 0 },
+      { size: 'LARGE', modifier: -2 },
+      { size: 'HUGE', modifier: -5 },
+      { size: 'GARGANTUAN', modifier: -8 }
+    ],
+    factors: [
+      {
+        id: '00000000-0000-4000-8000-0000000004e4',
+        label: 'Melee, heavy weapon',
+        equipmentPropertySets: [['MELEE', 'HEAVY']],
+        modifier: -2
+      },
+      {
+        id: '00000000-0000-4000-8000-0000000004e5',
+        label: 'Melee, light or finesse weapon',
+        equipmentPropertySets: [
+          ['MELEE', 'LIGHT'],
+          ['MELEE', 'FINESSE']
+        ],
+        modifier: 2
+      },
+      {
+        id: '00000000-0000-4000-8000-0000000004e6',
+        label: 'Melee, two-handed weapon',
+        equipmentPropertySets: [['MELEE', 'TWO_HANDED']],
+        modifier: -2
+      },
+      {
+        id: '00000000-0000-4000-8000-0000000004e7',
+        label: 'Ranged, loading weapon',
+        equipmentPropertySets: [['RANGED', 'LOADING']],
+        modifier: -5
+      }
+    ],
+    spellLevel: { modifierPerLevel: -1 }
+  })
 
 /** The DMG Speed Factor variant: actors declare their action each round, then roll. */
 const speedFactorPolicy = initiativePolicyReusableDefinitionDocumentDtoSchema.parse({

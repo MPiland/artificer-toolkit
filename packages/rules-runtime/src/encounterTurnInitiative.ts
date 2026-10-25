@@ -271,7 +271,11 @@ export async function prepareEncounterTurnInitiative(input: {
     }
   }
   if (resume && pendingContext?.kind === 'ENCOUNTER_INITIATIVE_DECLARATION') {
-    if (!pendingRoot || !declarationModifiers || resume.resolution.kind !== 'INITIATIVE_DECLARATION')
+    if (
+      !pendingRoot ||
+      !declarationModifiers ||
+      resume.resolution.kind !== 'INITIATIVE_DECLARATION'
+    )
       throw new Error('Encounter initiative declaration is unavailable.')
     const request = pendingContext.request
     const declarations = await input.loadDeclarations()
