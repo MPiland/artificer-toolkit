@@ -148,7 +148,7 @@ export function returnInterceptionCharges(
   if (holder.kind === 'CHARACTER') return holder
   return interceptionChargesSpent(applications)
     .toReversed()
-    .reduce((actor, charge) => {
+    .reduce<EncounterRunActorState>((actor, charge) => {
       if (featureChargeUsed(actor, charge.ownerFeatureId) !== charge.afterUsed)
         revertUnavailable(
           "The target's feature charges changed after this action; adjust manually."
