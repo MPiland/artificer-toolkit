@@ -175,7 +175,10 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
         if (!session) return
         const submittedValues = form.state.values
         if (isBlankLabel(submittedValues)) {
-          form.setErrorMap({ onSubmit: { fields: { label: 'Name is required.' } } })
+          form.setFieldMeta('label', (meta) => ({
+            ...meta,
+            errorMap: { ...meta.errorMap, onSubmit: 'Name is required.' }
+          }))
           return
         }
         const submittedSnapshot = JSON.stringify(submittedValues)

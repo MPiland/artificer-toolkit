@@ -24,7 +24,7 @@ describe('GuidedChargeFields', () => {
     const user = userEvent.setup()
     const onChange = renderFields(undefined)
 
-    await user.click(screen.getByRole('textbox', { name: 'Does it have limited uses?' }))
+    await user.click(screen.getByRole('combobox', { name: 'Does it have limited uses?' }))
     await user.click(await screen.findByRole('option', { name: /^Yes/ }))
 
     expect(onChange).toHaveBeenCalledWith(
@@ -36,7 +36,7 @@ describe('GuidedChargeFields', () => {
     const user = userEvent.setup()
     const onChange = renderFields(createCharge())
 
-    await user.click(screen.getByRole('textbox', { name: 'Does it have limited uses?' }))
+    await user.click(screen.getByRole('combobox', { name: 'Does it have limited uses?' }))
     await user.click(await screen.findByRole('option', { name: /^No/ }))
 
     expect(onChange).toHaveBeenCalledWith(undefined)
@@ -47,7 +47,7 @@ describe('GuidedChargeFields', () => {
     const charge = createCharge()
     const onChange = renderFields(charge)
 
-    await user.click(screen.getByRole('textbox', { name: 'Reset timing' }))
+    await user.click(screen.getByRole('combobox', { name: 'Reset timing' }))
     expect(await screen.findAllByRole('option')).toHaveLength(3)
     await user.click(screen.getByRole('option', { name: 'Dawn' }))
 
@@ -58,10 +58,10 @@ describe('GuidedChargeFields', () => {
     const user = userEvent.setup()
     renderFields(createCharge())
 
-    await user.click(screen.getByRole('textbox', { name: 'Reset timing' }))
+    await user.click(screen.getByRole('combobox', { name: 'Reset timing' }))
     await user.click(await screen.findByRole('option', { name: 'Long rest' }))
 
-    expect(screen.getByRole('textbox', { name: 'Reset timing' })).toHaveValue('Long rest')
+    expect(screen.getByRole('combobox', { name: 'Reset timing' })).toHaveValue('Long rest')
   })
 
   it('keeps an advanced charge intact and refuses to remove it', async () => {
@@ -69,8 +69,8 @@ describe('GuidedChargeFields', () => {
     const onChange = renderFields(advancedCharge())
 
     expect(screen.getByText('Advanced charge model preserved')).toBeInTheDocument()
-    expect(screen.queryByRole('textbox', { name: 'Reset timing' })).not.toBeInTheDocument()
-    await user.click(screen.getByRole('textbox', { name: 'Does it have limited uses?' }))
+    expect(screen.queryByRole('combobox', { name: 'Reset timing' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('combobox', { name: 'Does it have limited uses?' }))
     await user.click(await screen.findByRole('option', { name: /^No/ }))
 
     expect(onChange).not.toHaveBeenCalled()

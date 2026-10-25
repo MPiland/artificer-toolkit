@@ -270,13 +270,16 @@ describe('non-character authored domain layout coverage', () => {
       </TestRouterProvider>
     )
 
-    expect(await screen.findByRole('textbox', { name: 'Name' })).toHaveValue('')
-    await user.click(screen.getByRole('button', { name: 'Save Draft' }))
-    expect((await screen.findAllByText('Name is required.')).length).toBeGreaterThan(0)
+    const name = await screen.findByRole('textbox', { name: 'Name' })
+    expect(name).toHaveValue('')
+    expect(screen.getByRole('button', { name: /^activate$/i })).toBeDisabled()
 
-    await user.click(screen.getByRole('button', { name: /^activate$/i }))
+    await user.type(name, '   ')
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+    expect((await screen.findAllByText(/Name is required./)).length).toBeGreaterThan(0)
+
+    expect(screen.getByRole('button', { name: /^activate$/i })).toBeDisabled()
     expect(convexMocks.mutation).not.toHaveBeenCalled()
-    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('')
   })
 
   it('uses natural equipment language in the guided start choice', async () => {
