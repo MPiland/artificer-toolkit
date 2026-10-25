@@ -50,7 +50,7 @@ export const lemure: CreatureAuthored = {
       description:
         'Hellish Rejuvenation. A lemure that dies in the Nine Hells comes back to life with all its hit points in 1d10 days unless it is killed by a good-aligned creature with a bless spell cast on that creature or its remains are sprinkled with holy water.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(182, 501),
           invocation: {
             kind: 'PASSIVE',
@@ -58,7 +58,10 @@ export const lemure: CreatureAuthored = {
             range: { id: S.actionId(182, 601), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LEMURE_HELLISH_REJUVENATION
+          label: 'Hellish Rejuvenation',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            'A lemure that dies in the Nine Hells comes back to life with all its hit points in 1d10 days, unless a good-aligned creature with a bless spell cast on it killed the lemure or its remains are sprinkled with holy water.'
         })
       ],
       order: 2
