@@ -733,6 +733,13 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - Proof: `characterFormProficiencies.test.ts` (saves, held saves, a check, defenses, a missing holding effect, and the retaining case), `encounterAreaActionCompilation.test.ts` (Polymorph compiles `false`), room `nativeRoomConcentration.test.ts` "a Concentrating Character in a form that replaces its proficiencies", `nativeRoomDisarm.test.ts` "room Disarm of a Character in a form that replaces its proficiencies", and `nativeRoomPolymorph.test.ts` T4d now seeds its form effect (`characterFormFixture.ts`).
 - Not here (follow-ups): a retaining form (Wild Shape) still contests with the Character's own size; a Character in any form keeps its own granted attack traits, innate conditions and movement passage.
 
+## T2m2b (D187a, orchestrator ruling A): the SRD Net compiles and plays
+
+- Cause: the Net's hit path (`MANIFEST OBJECT` + `FOLLOW_UP_CHECK`) is refused by the D&D test-action compiler ("test action outcome is not supported"), so the Character action was MANUAL and never offered.
+- Now: one `ACTOR_RELATIONSHIP` on hit: `TARGET_SIZE_MAXIMUM` Large, `ESCAPE_CHECK` (action, Strength check, fixed DC 10, the target or a creature within reach, so rescues apply) and the new generic module `SOURCE_INDEPENDENT_HOLD`, holding the RESTRAINED condition. The module is a lifetime fact on the relationship (schema, shared authored type, node map): `encounterEndedRelationships` skips the source-can't-act and beyond-sealed-reach ends for it and nothing else (an escape or rescue still ends it).
+- Description-only (orchestrator OK; in future-enhancements "Destructible held objects"): the "destroyed by 5 slashing damage (AC 10)" clause and the formless exclusion.
+- Proof: `encounterRelationshipEnds.test.ts` "keeps a source-independent hold whose source is unable and far away" (red before the module); `equipmentNetAuthoringParity.test.ts` (the Net and a DC 15 variant pass the equipment node map as authored); room `nativeRoomFreedomOfMovement.test.ts` "a thrown Net" (a Character's Net hit restrains a Guard whether or not Freedom of Movement is on it).
+
 ## T2w (D187a): Faithful Hound as a summon
 
 - Status: implemented on `spells-4-t2w`; CI is the gate.

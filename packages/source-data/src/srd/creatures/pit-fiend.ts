@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 
 export const pitFiend: CreatureAuthored = {
@@ -85,18 +86,7 @@ export const pitFiend: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The pit fiend has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(219, 502),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(219, 603), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(219, 502),
       order: 2
     },
     {
@@ -225,8 +215,11 @@ export const pitFiend: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(219, 958),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_PIT_FIEND_BITE
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Poison and healing denial',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      "A creature hit by the bite makes a DC 21 Constitution saving throw or is poisoned. While poisoned this way, it can't regain hit points and takes 21 (6d6) poison damage at the start of each of its turns. It can repeat the saving throw at the end of each of its turns, ending the effect on itself on a success."
                   }
                 ]
               }

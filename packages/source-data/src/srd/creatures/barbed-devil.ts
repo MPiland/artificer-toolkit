@@ -56,50 +56,6 @@ export const barbedDevil: CreatureAuthored = {
       label: 'Barbed Hide',
       description:
         'Barbed Hide. At the start of each of its turns, the barbed devil deals 5 (1d10) piercing damage to any creature grappling it.',
-      effects: [
-        {
-          id: S.actionId(39, 101),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(39, 102), rangeKind: S.RANGE_KIND.SELF },
-            targeting: {
-              selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
-            }
-          },
-          paths: [
-            {
-              id: S.actionId(39, 103),
-              order: 1,
-              pathCode: S.PATH_CODE.ON_USE,
-              groupType: S.PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: `${S.actionId(39, 103)}__result`,
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: S.actionId(39, 104),
-                    effectKind: S.EFFECT_KIND.DAMAGE,
-                    damageTypeId: S.damageTypeId('PIERCING'),
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '1d10'
-                  },
-                  {
-                    id: S.actionId(39, 105),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_BARBED_HIDE
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ],
       order: 1
     },
     {
@@ -113,17 +69,7 @@ export const barbedDevil: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The devil has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(39, 106),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(39, 107), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(39, 106),
       order: 3
     },
     {
