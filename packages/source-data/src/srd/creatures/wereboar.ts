@@ -1,6 +1,7 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { damageInterceptionGrants } from './damageInterceptionGrants.js'
 import { chargeEffect } from './chargeEffect.js'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 export const wereboar: CreatureAuthored = {
   id: S.CREATURE_IDS.WEREBOAR,
@@ -51,7 +52,7 @@ export const wereboar: CreatureAuthored = {
       description:
         'Shapechanger. The wereboar can use its action to polymorph into a boar-humanoid hybrid or into a boar, or back into its true form, which is humanoid.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(288, 200),
           invocation: {
             kind: 'ACTION',
@@ -60,7 +61,7 @@ export const wereboar: CreatureAuthored = {
             range: { id: S.actionId(288, 201), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEREBOAR_SHAPECHANGER
+          ...CHANGE_SHAPE_RULING.LYCANTHROPE_FORM
         })
       ],
       order: 1
