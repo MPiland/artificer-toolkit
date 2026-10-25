@@ -82,7 +82,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
         Parameters<typeof prepareEncounterTurnEffects<TCharacterFacts>>[0],
         | 'state'
         | 'userId'
-        | 'autoRoll'
+        | 'autoRollByActorId'
         | 'root'
         | 'occurrenceId'
         | 'actors'
@@ -183,7 +183,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
       ? await stages.effects({
           state,
           userId: campaign.ownerUserId,
-          autoRoll: actorAutoRoll(state.currentActorId),
+          autoRollByActorId: input.autoRollByActorId,
           root,
           occurrenceId,
           actors: input.actors,
@@ -364,7 +364,7 @@ export async function prepareEncounterTurn<TCharacterFacts extends ProjectableCh
     : await stages.effects({
         state,
         userId: campaign.ownerUserId,
-        autoRoll: actorAutoRoll(actorId),
+        autoRollByActorId: input.autoRollByActorId,
         root,
         occurrenceId,
         actors: recharge.actors,

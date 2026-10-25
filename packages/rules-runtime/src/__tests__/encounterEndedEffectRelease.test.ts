@@ -469,13 +469,13 @@ describe('what an action ends on its target', () => {
           recurrence: {
             ...base.definition.recurrence,
             recurrenceStage: 'END_OF_TURN' as const,
+            anchor: 'SOURCE' as const,
             fromSourceOnly: true as const,
             activeOnlyOnFinalAnchorTurn: true as const,
             expiration: {
               kind: 'TICKS' as const,
               initialRemaining: 2,
-              decrementStage: 'END_OF_TURN' as const,
-              anchor: 'SOURCE' as const
+              decrementStage: 'END_OF_TURN' as const
             }
           }
         },

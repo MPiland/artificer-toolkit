@@ -33,6 +33,7 @@ export function turnEndGateChildEffect(
       perceptionContributions: [],
       recurrence: {
         recurrenceStage: 'START_OF_TURN',
+        anchor: 'HOLDER',
         consumeOnFirstEvents: [],
         endOnEvents: [],
         endOnTriggers: [],
@@ -42,8 +43,7 @@ export function turnEndGateChildEffect(
         expiration: {
           kind: 'TICKS',
           initialRemaining: 1,
-          decrementStage: 'START_OF_TURN',
-          anchor: 'HOLDER'
+          decrementStage: 'START_OF_TURN'
         }
       },
       stateContributions: [gate.child.playAbsence]

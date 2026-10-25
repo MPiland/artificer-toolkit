@@ -158,7 +158,7 @@ describe('holder-owned incoming attack gate', () => {
   it('keeps the immunity to the attacker for 24 hours, counted on the holder’s turns', () => {
     const { definition, lifecycle } = passedWard()
     expect(definition.recurrence.expiration).toEqual(
-      expect.objectContaining({ kind: 'TICKS', initialRemaining: 14_400, anchor: 'HOLDER' })
+      expect.objectContaining({ kind: 'TICKS', initialRemaining: 14_400 })
     )
     expect(lifecycle.remainingTicks).toBe(14_400)
   })

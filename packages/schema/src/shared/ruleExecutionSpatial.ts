@@ -68,20 +68,23 @@ export const spatialEffectCurrentnessPinDtoSchema = lazySchema(() =>
   })
 )
 
+/** The resolved d20 of a paused effect now answering its damage dice (a failed save). */
+export const resolvedD20StageDtoSchema = lazySchema(() =>
+  z.strictObject({
+    rollMode: systemCoreCodeSchema,
+    keep: rollModeKeepSchema,
+    rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
+    addedDice: d20RolledAddedDiceDtoSchema
+  })
+)
+
 /** What a spatial candidate pins besides its contact: the effect and target currentness and the d20 it waits on. */
 const spatialCandidateEvidenceFields = lazySchemaParts(() => ({
   effect: spatialEffectCurrentnessPinDtoSchema,
   target: spatialTargetCurrentnessPinDtoSchema,
   d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
   /** The resolved d20 of a candidate now answering its damage dice (a placed zone's failed entry save). */
-  diceStage: z.nullable(
-    z.strictObject({
-      rollMode: systemCoreCodeSchema,
-      keep: rollModeKeepSchema,
-      rawFaces: z.array(pendingD20FaceSchema).check(z.minLength(1)).check(z.maxLength(2)),
-      addedDice: d20RolledAddedDiceDtoSchema
-    })
-  )
+  diceStage: z.nullable(resolvedD20StageDtoSchema)
 }))
 
 const refineSpatialCandidateEffect = (
