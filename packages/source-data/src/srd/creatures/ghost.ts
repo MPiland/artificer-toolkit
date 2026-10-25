@@ -213,7 +213,7 @@ export const ghost: CreatureAuthored = {
       description:
         'Etherealness. The ghost enters the Ethereal Plane from the Material Plane, or vice versa. It is visible on the Material Plane while it is in the Border Ethereal, and vice versa, yet it can’t affect or be affected by anything on the other plane.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(111, 210),
           invocation: {
             kind: 'ACTION',
@@ -222,7 +222,10 @@ export const ghost: CreatureAuthored = {
             range: { id: S.actionId(111, 1210), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GHOST_ETHEREALNESS
+          label: 'Etherealness',
+          reasonCode: 'GM_CHOICE',
+          instructions:
+            'The ghost enters the Ethereal Plane from the Material Plane, or back. While in the Border Ethereal it is visible on the Material Plane, and creatures there are visible to it, but neither can affect or be affected by anything on the other plane.'
         })
       ],
       order: 5
