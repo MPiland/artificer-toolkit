@@ -133,18 +133,20 @@ export async function publishSceneUndo(
   const restores = [
     {
       tokenId: target.input.tokenId,
-      position: readMovementResolution(parent)?.root.currentPosition ?? target.input.path[0]!
+      position: readMovementResolution(parent)?.root.currentPosition ?? target.input.path[0]!,
+      // A move that chose a facing turns its token back to the one it replaced (ATTACK-12).
+      rotationDegrees: target.priorRotationDegrees
     },
-    ...dragged.map(({ tokenId, from }) => ({ tokenId, position: from }))
+    ...dragged.map(({ tokenId, from }) => ({ tokenId, position: from, rotationDegrees: undefined }))
   ]
   const tokens = []
-  for (const { tokenId, position } of restores) {
+  for (const { tokenId, position, rotationDegrees } of restores) {
     const tokenRow = await callbacks.readLiveToken(header.id, tokenId)
     if (!tokenRow) throw new Error('The latest token move can no longer be safely undone.')
     const token = parseSceneLiveEntity(tokenRow, header.version)
     if (token.version !== target.result.version || token.value?.collection !== 'tokens')
       throw new Error('The latest token move can no longer be safely undone.')
-    tokens.push({ token, value: token.value, position })
+    tokens.push({ token, value: token.value, position, rotationDegrees })
   }
 
   const state = advanceLiveState(header, live)
@@ -198,12 +200,19 @@ export async function publishSceneUndo(
     }
     restoredFogOwners.push(patch.ownerUserId)
   }
-  for (const { token, value, position } of tokens) {
+  for (const { token, value, position, rotationDegrees } of tokens) {
     const restoredToken = {
       sceneId: header.id,
       collection: token.collection,
       entityId: token.entityId,
-      value: { ...value, entity: { ...value.entity, position } },
+      value: {
+        ...value,
+        entity: {
+          ...value.entity,
+          position,
+          ...(rotationDegrees !== undefined && { rotationDegrees })
+        }
+      },
       doorState: token.doorState,
       ordinal: token.ordinal,
       version: state.version
@@ -213,10 +222,11 @@ export async function publishSceneUndo(
       checksum: checksumCanonicalJson(restoredToken)
     })
   }
-  const undone = restores.map(({ tokenId, position }) => ({
+  const undone = restores.map(({ tokenId, position, rotationDegrees }) => ({
     kind: 'TOKEN_MOVE_UNDONE' as const,
     tokenId,
     position,
+    ...(rotationDegrees !== undefined && { rotationDegrees }),
     undoneCommandId: target.commandId
   }))
   const result = sceneUndoCommandResultSchema.parse({

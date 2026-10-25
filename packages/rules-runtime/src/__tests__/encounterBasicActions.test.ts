@@ -384,7 +384,8 @@ describe('basic action mechanics (Q11)', () => {
         target,
         targetPolicy,
         sceneContext: null,
-        makesAttackRoll: false
+        makesAttackRoll: false,
+        facing: null
       })
     expect(targetPolicy.range.rangeKind).toBe('UNLIMITED')
     expect(warnings(rogue)).toEqual([])
@@ -410,7 +411,8 @@ describe('basic action mechanics (Q11)', () => {
         target,
         targetPolicy,
         sceneContext: null,
-        makesAttackRoll: false
+        makesAttackRoll: false,
+        facing: null
       })
     // Touch range cannot be checked without a Scene (D11); it only warns.
     expect(warnings(rogue)).toEqual([

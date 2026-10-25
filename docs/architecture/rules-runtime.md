@@ -2413,6 +2413,17 @@ measure, `measureSceneTokenFootprintDistance`. The SRD attack sweep allowlist
 (`__tests__/srdCreatureAttackSweepAllowlist.ts`) lists the attacks that remain unsupported, each with one
 reason, and may only shrink. Versatile grips author one effect per grip.
 
+Positional attack contributors (current, ATTACK-12.T2f): `encounterActionPositionalContributors`
+(`encounterPositionalContributors.ts`) is the single home for roll-mode contributors that come from where
+creatures stand. It returns the Facing arc contributors and the System's Flanking contributor, which it
+reaches through `optionalCombatPolicyCapabilityRegistry` (`resolveFlanking`). Flanking facts come from
+`loadEncounterFlankingFacts`: allies of the attacker in contact with the target, whether each holds the
+policy's participant capability (`flankingParticipantCapabilityDefinitionId`), and whether each sees the
+target. Each preparation site supplies its own tokens and perception through `loadFlanking`: the room's
+attack and root-action plans (`nativeLiveAttackSceneLoaders`), the movement opportunity attack measured
+at its contact point, and the Convex action preparation. `encounterActionTargetPolicy` stays free of
+registry imports, because the System adapters import it.
+
 **Hit point maximum reduction (SPELLS-33.T3a4).** A `HIT_POINT_MAXIMUM_REDUCTION` whose `DAMAGE_TAKEN`
 amount names a damage outcome of its own result path compiles on a direct test path too, not only in an
 immediate follow-up save's failure: each path's OUTCOME graph gets one reduction proposal bound to that
