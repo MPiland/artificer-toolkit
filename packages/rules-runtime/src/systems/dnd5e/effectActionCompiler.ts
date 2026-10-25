@@ -60,6 +60,7 @@ import {
 import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
 import { entryOwed } from './effectActionEntryOwed.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
+import { saveDamageMultiplierFacts, withSaveDamageMultiplier } from './effectActionSaveDamage.js'
 import {
   relationshipRecurrenceGraph,
   relationshipRecurrencePlan,
@@ -86,11 +87,11 @@ import {
   isRepeatCarrierEntry,
   repeatCarrierPlan
 } from './effectActionRepeatCarrier.js'
+import { compileTestDefinition, type TestPlan } from './effectActionTestPhase.js'
 import {
-  compileTestDefinition,
-  withMovementInterruption,
-  type TestPlan
-} from './effectActionTestPhase.js'
+  bindMovementInterruptionOutput,
+  bindMovementInterruptionTestOutput
+} from './effectActionMovementInterruption.js'
 import { compileDnd5eSummonPlacement } from './effectActionSummons.js'
 import { compileDnd5eZonePlacement } from './effectActionZones.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
@@ -3112,14 +3113,18 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
           })
         : unsupported('D&D fixed outcome path must compile to one direct result.')
   })
-  const definition = mergedOutcomeGraphDefinition({
+  const definition = withSaveDamageMultiplier({
     action: input.action,
-    definitions: withDamageAddedDice({
+    selectedPath: input.selectedPath,
+    definition: mergedOutcomeGraphDefinition({
       action: input.action,
-      selectedPath: input.selectedPath,
-      groups,
-      definitions,
-      dice: input.facts.damageAddedDice ?? []
+      definitions: withDamageAddedDice({
+        action: input.action,
+        selectedPath: input.selectedPath,
+        groups,
+        definitions,
+        dice: input.facts.damageAddedDice ?? []
+      })
     })
   })
   const published = publishedGraph(definition)
@@ -3131,73 +3136,6 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     // owed to this attack and their locked dice and rider specialization.
     templateChecksum: checksumRuleDocument(authoredGroups)
   }
-}
-
-/**
- * A movement interruption is an explicit authored reaction binding.  The
- * compiler projects it into the graph so execution never infers it from an
- * action label, outcome, or system-specific branch.
- */
-function movementInterruptionOf(action: Dnd5eCompiledEffectActionSource) {
-  const { invocation } = action.compiledEffect
-  const trigger = 'reactionTrigger' in invocation ? invocation.reactionTrigger : undefined
-  return trigger?.kind === 'MOVEMENT' ? trigger.movementInterruption : null
-}
-
-function bindMovementInterruptionTestOutput(input: {
-  action: Dnd5eCompiledEffectActionSource
-  published: ServerPublishedRuleDefinitionDto
-  kind: TestKind
-}): ServerPublishedRuleDefinitionDto {
-  const binding = movementInterruptionOf(input.action)
-  if (binding?.kind !== 'STOP') return input.published
-  const allowedPaths =
-    input.kind === 'ATTACK' ? ['ON_HIT', 'ON_MISS', 'ON_CRIT'] : ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-  if (
-    !allowedPaths.includes(binding.whenResultPath) ||
-    !input.action.compiledEffect.entries.some((entry) => entry.pathCode === binding.whenResultPath)
-  )
-    throw new Dnd5eEffectActionCompilerError(
-      'Movement interruption must bind one exact authored D&D test path.'
-    )
-  return withMovementInterruption(input.published, binding.whenResultPath)
-}
-
-function bindMovementInterruptionOutput(input: {
-  action: Dnd5eCompiledEffectActionSource
-  published: ServerPublishedRuleDefinitionDto
-}): ServerPublishedRuleDefinitionDto {
-  const binding = movementInterruptionOf(input.action)
-  if (binding?.kind !== 'STOP') return input.published
-
-  const proposalNodeId = `proposal-${binding.whenResultPath.toLowerCase()}`
-  const proposal = input.published.definition.nodes.find((node) => node.id === proposalNodeId)
-  if (
-    !proposal ||
-    proposal.inputs.authoredPath?.kind !== 'LITERAL' ||
-    proposal.inputs.authoredPath.value !== binding.whenResultPath
-  ) {
-    throw new Dnd5eEffectActionCompilerError(
-      'Movement interruption must bind one exact D&D test proposal path.'
-    )
-  }
-
-  const definition: RuleGraphDefinition = {
-    ...input.published.definition,
-    outputs: {
-      ...input.published.definition.outputs,
-      movementInterruption: {
-        kind: 'NODE_OUTPUT',
-        nodeId: proposalNodeId,
-        port: 'authorized'
-      }
-    }
-  }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    ...input.published,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
 }
 
 /** Whether the active-effect plan the action ends up with is held under a maintained effect. */
@@ -4044,6 +3982,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_HEALING_MAXIMIZED_FACT_KEY]: targetDerivedFacts.healingMaximized === true
       }
     }
+    const action = actionMechanic as {
+      attackBonus?: unknown
+      attackRollMode?: unknown
+      attackKind?: unknown
+      save?: { abilityDefinitionId?: unknown; dc?: unknown } | null
+    }
     const { spellCastLevel, classLevels, selectedOptionalRiderIds } = actionMechanic
     const damageAddedDice =
       sourceDerivedFacts.damageAddedDice === undefined
@@ -4063,6 +4007,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
       ...gateFacts(published.definition, { targetDamageTypesTaken }),
+      ...saveDamageMultiplierFacts(published.definition, {
+        abilityDefinitionId: action.save?.abilityDefinitionId,
+        incomingDamage: targetDerivedFacts.incomingDamage
+      }),
       ...resolvedDamageExpressionFacts,
       ...weaponDamageDieFacts,
       ...(Object.keys(resolvedDamageOutcomeExpressions).length > 0
@@ -4100,12 +4048,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...(damageAddedDice.length === 0
         ? {}
         : { [DND5E_DAMAGE_ADDED_DICE_FACT_KEY]: JSON.stringify(damageAddedDice) })
-    }
-    const action = actionMechanic as {
-      attackBonus?: unknown
-      attackRollMode?: unknown
-      attackKind?: unknown
-      save?: { abilityDefinitionId?: unknown; dc?: unknown } | null
     }
     const derivedStats = targetDerivedFacts.derivedStats as
       | { armorClass?: { effective?: unknown }; savingThrows?: unknown }
@@ -4388,7 +4330,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         scalarValues: targetScalarValues,
         conditionIds: targetConditionIds
       }),
-      ...conditionImmunityFacts(definition.frozenGraph, conditionImmunityIds)
+      ...conditionImmunityFacts(definition.frozenGraph, conditionImmunityIds),
+      ...saveDamageMultiplierFacts(definition.frozenGraph, {
+        abilityDefinitionId:
+          definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY],
+        incomingDamage: targetDerivedFacts.incomingDamage
+      })
     }
     const abilityDefinitionId =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]

@@ -799,6 +799,7 @@ function foldCharacterBatch(input: {
           {
             ...lastDamage,
             damageDisposition: 'NORMAL',
+            incomingHalved: false,
             critical: false,
             requestedAmount: excessDamage,
             resolvedAmount: excessDamage,

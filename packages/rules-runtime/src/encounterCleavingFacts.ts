@@ -108,6 +108,7 @@ export function cleavingDamageApplication(input: {
     afterTemporaryHitPoints: before.temporary - temporaryLost,
     maximumHitPoints: before.maximum,
     damageDisposition: 'NORMAL' as const,
+    incomingHalved: false,
     critical: false,
     authoredPath: null,
     resolvedPath: null

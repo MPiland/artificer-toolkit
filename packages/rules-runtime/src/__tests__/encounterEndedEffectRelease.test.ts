@@ -287,6 +287,7 @@ describe('what an action ends on its target', () => {
     kind: 'DAMAGE',
     damageTypeId,
     damageDisposition: 'NORMAL',
+    incomingHalved: false,
     critical: false,
     sourceNodeId: 'damage',
     sourceOperationKey: 'damage',
