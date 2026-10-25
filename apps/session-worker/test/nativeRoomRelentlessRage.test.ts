@@ -58,14 +58,14 @@ async function ragingRoom(face: number, raging = true) {
         holderActorId: CHARACTER_ACTOR_ID,
         lifecycle: {},
         effect: rage,
-        sourceLabel: 'Rage'
+        sourceLabel: 'Rage',
+        keepAuthoredEffectId: true
       })
       await effects.create({
         id: RAGE_ID,
         // The room fixture moves a Character actor's effects onto the Character, as a live Run holds them.
         owner: { kind: 'ENCOUNTER_ACTOR', encounterId, targetActorId: CHARACTER_ACTOR_ID },
-        // The fixture compiles under its own effect id; a live Rage keeps its authored one.
-        definition: { ...planned.definition, authoredEffectId: RAGE_EFFECT_ID },
+        definition: planned.definition,
         lifecycle: planned.lifecycle,
         occurredAt
       })
