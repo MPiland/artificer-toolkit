@@ -2,7 +2,10 @@ import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
 import { SRD_ABILITIES, SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+import {
+  abilityScoreCapabilityRegistry,
+  characterProgressionCapabilityRegistry
+} from '../platformPolicyModules.js'
 import { srdRegistry } from '../testing/dnd5eSrdCharacter.js'
 import { buildCharacterArmorClassRuleFacts } from './characterArmorClassRuleFacts.js'
 import { buildCharacterDerivedRuleFacts } from './characterDerivedRuleFacts.js'
@@ -10,14 +13,25 @@ import { buildCharacterHitPointRuleFacts } from './characterHitPointRuleFacts.js
 
 /** A second installed System whose derived statistics add other abilities than D&D's. */
 const STRICT_SYSTEM_ID = '00000000-0000-4000-8000-0000000000e5'
-const requireInstalled = abilityScoreCapabilityRegistry.require.bind(abilityScoreCapabilityRegistry)
+const requireAbilityScore = abilityScoreCapabilityRegistry.require.bind(
+  abilityScoreCapabilityRegistry
+)
+const requireProgression = characterProgressionCapabilityRegistry.require.bind(
+  characterProgressionCapabilityRegistry
+)
 
 function installStrictSystem() {
-  const dnd5e = requireInstalled(SRD_SYSTEM_ID)
+  const abilityScore = requireAbilityScore(SRD_SYSTEM_ID)
+  const progression = requireProgression(SRD_SYSTEM_ID)
   vi.spyOn(abilityScoreCapabilityRegistry, 'require').mockImplementation((gameSystemId) =>
     gameSystemId === STRICT_SYSTEM_ID
+      ? { ...abilityScore, gameSystemId: STRICT_SYSTEM_ID }
+      : requireAbilityScore(gameSystemId)
+  )
+  vi.spyOn(characterProgressionCapabilityRegistry, 'require').mockImplementation((gameSystemId) =>
+    gameSystemId === STRICT_SYSTEM_ID
       ? {
-          ...dnd5e,
+          ...progression,
           gameSystemId: STRICT_SYSTEM_ID,
           derivedStatisticAbilityCodes: {
             armorClass: 'WISDOM',
@@ -25,7 +39,7 @@ function installStrictSystem() {
             hitPoints: 'STRENGTH'
           }
         }
-      : requireInstalled(gameSystemId)
+      : requireProgression(gameSystemId)
   )
 }
 
@@ -74,8 +88,9 @@ describe('derived statistic abilities come from the System (RULES-2.T9e)', () =>
   })
 
   it("names only the System's own abilities", () => {
-    const { abilityDefinitionIdByCode, derivedStatisticAbilityCodes } =
-      abilityScoreCapabilityRegistry.require(SRD_SYSTEM_ID)
+    const { abilityDefinitionIdByCode } = abilityScoreCapabilityRegistry.require(SRD_SYSTEM_ID)
+    const { derivedStatisticAbilityCodes } =
+      characterProgressionCapabilityRegistry.require(SRD_SYSTEM_ID)
 
     for (const code of Object.values(derivedStatisticAbilityCodes))
       expect(abilityDefinitionIdByCode).toHaveProperty(code)

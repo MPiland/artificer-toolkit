@@ -10,7 +10,7 @@ import {
   resolveSystemSkillAbilities
 } from '@artificer-toolkit/shared/character'
 
-import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+import { characterProgressionCapabilityRegistry } from '../platformPolicyModules.js'
 
 type DerivedFacts = CharacterRulePolicyInput['derivedBaseFacts']
 type NumericBonus = DerivedFacts['abilities'][number]['bonuses'][number]
@@ -243,7 +243,7 @@ export function buildCharacterDerivedRuleFacts(
     const abilityId = registry.classes[classId]?.spellcasting?.ability
     return abilityId ? [abilityId] : []
   })[0]
-  const { initiative } = abilityScoreCapabilityRegistry.require(
+  const { initiative } = characterProgressionCapabilityRegistry.require(
     snapshot.systemId
   ).derivedStatisticAbilityCodes
 

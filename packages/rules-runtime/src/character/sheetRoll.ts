@@ -6,7 +6,7 @@ import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 import { savingThrowSpentEffects } from '../encounterEndedEffectRelease.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
-import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+import { characterProgressionCapabilityRegistry } from '../platformPolicyModules.js'
 import {
   abilityCheckMinimumRoll,
   activeAbilityCheckDice,
@@ -129,7 +129,7 @@ function resolveHitDieRoll(input: ExecuteRollInputDto, sheet: CharacterSheetResp
   )
     return undefined
 
-  const { hitPoints } = abilityScoreCapabilityRegistry.require(
+  const { hitPoints } = characterProgressionCapabilityRegistry.require(
     sheet.meta.systemId
   ).derivedStatisticAbilityCodes
   const constitution = sheet.overview.abilities.find((ability) => ability.ability === hitPoints)

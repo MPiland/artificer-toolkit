@@ -1,7 +1,7 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
 
-import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+import { characterProgressionCapabilityRegistry } from '../platformPolicyModules.js'
 import { abilityRecordIndex } from './characterDerivedRuleFacts.js'
 
 type ArmorClassFacts = NonNullable<CharacterRulePolicyInput['armorClassFacts']>
@@ -9,7 +9,7 @@ type ArmorClassFacts = NonNullable<CharacterRulePolicyInput['armorClassFacts']>
 export function buildCharacterArmorClassRuleFacts(
   snapshot: CharacterBuildSnapshot
 ): Pick<CharacterRulePolicyInput, 'armorClassFacts'> {
-  const { armorClass } = abilityScoreCapabilityRegistry.require(
+  const { armorClass } = characterProgressionCapabilityRegistry.require(
     snapshot.systemId
   ).derivedStatisticAbilityCodes
   const dexterityAbilityIndex = abilityRecordIndex(snapshot.abilities, armorClass)
