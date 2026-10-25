@@ -287,7 +287,7 @@ describe('non-character authored domain layout coverage', () => {
     useFixtureNodeRuntimeResolver()
     const advancedUser = createAdvancedAuthoringUser()
     const { authoringData } = authoredCreateRouteLoaderData
-    const createLayout = (system: typeof authoringData.system) => (
+    const createLayout = (system: typeof authoredRouteStorySystem | null) => (
       <TestRouterProvider user={advancedUser}>
         <AuthoringLayout data={{ ...authoringData, system }} domain='equipment' mode='create' />
       </TestRouterProvider>

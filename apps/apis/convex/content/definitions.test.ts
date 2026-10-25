@@ -554,17 +554,13 @@ describe('native reusable definitions', () => {
     const published = await publishDocument(a, 'basic-action', dodge.document)
 
     const workspace = await a.query(definitionReferences.get, { definitionId: published.id })
-    const document = workspace.current?.document
-    if (document?.kind !== 'BASIC_ACTION') throw new Error('Expected the published BASIC_ACTION.')
-    const [effect] = document.effects
-    expect(effect?.paths[0]).toMatchObject({ pathCode: 'ON_USE', selectionKind: 'FIXED' })
-    const outcome = effect?.paths[0]?.resultBlock.outcomes[0]
-    if (outcome?.effectKind !== 'APPLY_GRANT') throw new Error('Expected the Dodge grant.')
-    expect(outcome.grants?.modifiers?.[0]?.restrictions?.groups[0]?.contexts[0]).toMatchObject({
-      subject: 'CHARACTER',
-      conditions: [{ predicateCode: 'CAN_ACT' }, { predicateCode: 'SPEED_ABOVE_ZERO' }]
+    const expected = { ...dodge.document, id: published.id }
+    expect(workspace.current?.document).toEqual(expected)
+    expect(workspace.current?.document).toMatchObject({
+      kind: 'BASIC_ACTION',
+      effects: [{ paths: [{ pathCode: 'ON_USE', selectionKind: 'FIXED' }] }]
     })
-    expect(workspace.current?.checksum).toBe(checksumRuleDocument(document))
+    expect(workspace.current?.checksum).toBe(checksumRuleDocument(expected))
   })
 
   it('saves and publishes an initiative policy with installed D&D graphs and exact current pins', async () => {
