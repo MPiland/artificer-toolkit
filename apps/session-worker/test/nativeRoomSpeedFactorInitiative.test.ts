@@ -1,10 +1,13 @@
 import { runInDurableObject } from 'cloudflare:test'
 import {
+  characterActor,
   creatureFeature,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import { seededInitiativePolicySnapshot } from '@artificer-toolkit/rules-runtime/testing/initiativePolicySnapshot'
+import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splash.js'
+import { rayOfFrost } from '@artificer-toolkit/source-data/srd/spells/ray-of-frost.js'
 import { SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -25,6 +28,8 @@ const DIE = 18
 const GOBLIN_ID = testUuid(0x4e10)
 const WOLF_ID = testUuid(0x4e11)
 const LOW_DEXTERITY_WOLF_ID = testUuid(0x4e0f)
+const CASTER_ACTOR_ID = testUuid(0x4e13)
+const CASTER_ID = testUuid(0x4e14)
 const goblin = srdByLabel(SRD.creatures, 'Goblin')
 const lowDexterityWolf = {
   ...plainWolf,
@@ -62,11 +67,22 @@ function pendingOf(answer: Answer) {
     : undefined
 }
 
+type DeclarationOption = Extract<
+  NonNullable<ReturnType<typeof pendingOf>>,
+  { kind: 'INITIATIVE_DECLARATION' }
+>['primaryOptions'][number]
+
 /**
- * The GM starts the Run and answers each initiative prompt: the Goblin declares its Scimitar, the
- * Wolf its first offered action. Returns the actors the room asked to declare, in order.
+ * The GM starts the Run and answers each initiative prompt with the option `choose` picks for the
+ * actor (an actor's first offered action by default). Returns the actors the room asked to declare.
  */
-async function startDeclaringScimitar(room: Room) {
+async function startDeclaring(
+  room: Room,
+  choose: (
+    actorId: string,
+    options: readonly DeclarationOption[]
+  ) => DeclarationOption | undefined = (_actorId, options) => options[0]
+) {
   let pending = pendingOf(
     await room.send({
       type: 'START',
@@ -80,12 +96,8 @@ async function startDeclaringScimitar(room: Room) {
     if (pending.kind !== 'INITIATIVE_DECLARATION')
       throw new Error(`Unexpected initiative prompt ${pending.kind}.`)
     const actorId = pending.actorId
-    const option =
-      actorId === GOBLIN_ID
-        ? pending.primaryOptions.find(({ label }) => label === 'Scimitar')
-        : pending.primaryOptions[0]
-    if (!option || option.kind !== 'CREATURE_FEATURE_ACTION')
-      throw new Error('The room offers no Creature action to declare.')
+    const option = choose(actorId, pending.primaryOptions)
+    if (!option) throw new Error('The room offers no action to declare.')
     declared.push(actorId)
     pending = pendingOf(
       await room.send({
@@ -107,6 +119,11 @@ async function startDeclaringScimitar(room: Room) {
   }
   return declared
 }
+
+const startDeclaringScimitar = (room: Room) =>
+  startDeclaring(room, (actorId, options) =>
+    actorId === GOBLIN_ID ? options.find(({ label }) => label === 'Scimitar') : options[0]
+  )
 
 /** The current actor and each actor's settled initiative, as the room stores the Run. */
 function readTurnOrder(room: Room, actorIds: readonly string[]) {
@@ -165,5 +182,54 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
       currentActorId: WOLF_ID,
       initiatives: { [LOW_DEXTERITY_WOLF_ID]: 19 + 2, [WOLF_ID]: 19 + 2 }
     })
+  }, 120000)
+
+  it('holds a spellcaster to the spell it declared and refuses another cast', async () => {
+    const room = await actionRoom({
+      actors: [
+        characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+      ],
+      characterSpellcasting: {
+        spells: [acidSplash, rayOfFrost],
+        prepared: [acidSplash.id, rayOfFrost.id]
+      },
+      characterAction: (action) => action.label === acidSplash.label,
+      status: 'PREPARED',
+      initiativePolicy: seededInitiativePolicySnapshot(
+        SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID
+      ),
+      autoRoll: 'EVERYONE',
+      fallbackRoll: DIE
+    })
+
+    await startDeclaring(room, (actorId, options) =>
+      actorId === CASTER_ACTOR_ID
+        ? options.find(({ label }) => label === acidSplash.label)
+        : options[0]
+    )
+    for (
+      let turn = 0;
+      turn < 2 && (await readTurnOrder(room, [])).currentActorId !== CASTER_ACTOR_ID;
+      turn += 1
+    )
+      await room.advanceTurn()
+
+    const rayOfFrostId = (await room.actionChoices(CASTER_ACTOR_ID)).actions.find(
+      ({ label }) => label === rayOfFrost.label
+    )?.actionId
+    if (!rayOfFrostId) throw new Error('The room offers the caster no Ray of Frost.')
+    const refused = await room.startAction(
+      WOLF_ID,
+      [],
+      room.sceneContext(1),
+      null,
+      rayOfFrostId,
+      CASTER_ACTOR_ID
+    )
+    expect(refused.answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'UNDECLARED_ACTION' })
+
+    const declared = await room.startAction(WOLF_ID, [], room.sceneContext(1))
+    expect(declared.answer.type, JSON.stringify(declared.answer)).toBe('COMMAND_COMMITTED')
   }, 120000)
 })
