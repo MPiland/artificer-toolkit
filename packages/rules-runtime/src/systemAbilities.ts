@@ -4,7 +4,8 @@ import { systemCoreCodeRegistry } from './platformSystemCoreCodes.js'
 
 /**
  * Refuses an authored Creature whose ability scores are not keyed by exactly its System's ability
- * codes. Authoring ingress calls it before node-map normalization, which reads no record keys.
+ * codes. Authoring ingress calls it before node-map normalization, which also refuses an unlisted
+ * key but does not require a score for every System ability.
  */
 export function requireAuthoredAbilities(subject: AuthoredPublicationDocument) {
   if (subject.subjectKind !== 'CREATURE') return

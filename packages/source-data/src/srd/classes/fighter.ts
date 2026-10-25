@@ -98,7 +98,6 @@ export const fighter: ClassAuthored = {
   userId: SRD_USER_ID,
   systemId: SRD_SYSTEM_ID,
   hitpoint: {
-    ability: ABILITY_CODE.CONSTITUTION,
     dieConfig: 'd10'
   },
   startingGold: {

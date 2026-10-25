@@ -16,10 +16,7 @@ export interface AbilityScoreCapabilityAdapter {
   derivedStatisticAbilityCodes: {
     readonly armorClass: string
     readonly initiative: string
-    /**
-     * The Character-wide hit point modifier and each hit die spent on a rest. Each class level's
-     * hit point row adds its class's authored `hitpoint.ability` instead.
-     */
+    /** Every class level's hit point gain and each hit die spent on a rest (D193). */
     readonly hitPoints: string
   }
 }

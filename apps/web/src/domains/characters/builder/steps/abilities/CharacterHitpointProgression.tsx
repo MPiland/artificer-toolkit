@@ -1,5 +1,8 @@
 import { Group, NumberInput, Stack, Text } from '@mantine/core'
-import { characterProgressionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
+import {
+  abilityScoreCapabilityRegistry,
+  characterProgressionCapabilityRegistry
+} from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type {
   CharacterBuilderPayloadDto,
   CharacterBuilderReferencesDto
@@ -34,6 +37,10 @@ export function CharacterHitpointProgression({
 }) {
   const totalHitpoints = rows.reduce((total, row) => total + row.value, 0)
   const progression = characterProgressionCapabilityRegistry.require(character.systemId)
+  const hitpointAbility = abilityScoreCapabilityRegistry.require(character.systemId)
+    .derivedStatisticAbilityCodes.hitPoints
+  const abilityModifier = getHitpointAbilityModifier({ character, resolvedAbilityScores })
+  const abilityLabel = abilityOptions.find((option) => option.value === hitpointAbility)?.label
 
   return (
     <Stack gap='sm' className={`${sharedStyles.inlinePanel} ${styles.hitpointPanel}`}>
@@ -60,14 +67,6 @@ export function CharacterHitpointProgression({
             const classRows = rows.filter((row) => row.classId === classRow.classId)
             const classSubtotal = classRows.reduce((total, row) => total + row.value, 0)
             const dieSides = progression.hitDieSize(classReference?.hitpoint?.dieConfig)
-            const hitpointAbility = classReference?.hitpoint?.ability
-            const abilityModifier = hitpointAbility
-              ? getHitpointAbilityModifier({
-                  ability: hitpointAbility,
-                  character,
-                  resolvedAbilityScores
-                })
-              : 0
 
             return (
               <tbody key={`hp-class-${classRow.classId}`} className={styles.hitpointClassGroup}>
@@ -85,9 +84,6 @@ export function CharacterHitpointProgression({
                       ? dieSides
                       : progression.hitDieAverage(dieSides)
                     : null
-                  const abilityLabel = abilityOptions.find(
-                    (option) => option.value === hitpointAbility
-                  )?.label
 
                   return (
                     <tr key={`hp-${row.classId}-${row.classLevel}`} className={styles.hitpointRow}>
