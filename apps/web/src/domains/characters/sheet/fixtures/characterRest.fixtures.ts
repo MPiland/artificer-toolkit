@@ -163,14 +163,17 @@ export const characterSheetMulticlassFixture = {
         ...skill,
         total:
           resolved?.total ??
-          {
-            STRENGTH: 0,
-            DEXTERITY: 3,
-            CONSTITUTION: 2,
-            INTELLIGENCE: 0,
-            WISDOM: 1,
-            CHARISMA: 1
-          }[skill.ability],
+          (
+            {
+              STRENGTH: 0,
+              DEXTERITY: 3,
+              CONSTITUTION: 2,
+              INTELLIGENCE: 0,
+              WISDOM: 1,
+              CHARISMA: 1
+            } as Record<string, number>
+          )[skill.ability] ??
+          0,
         proficiency: resolved?.proficiency ?? 'NONE'
       }
     })
