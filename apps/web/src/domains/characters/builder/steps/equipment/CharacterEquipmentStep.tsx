@@ -12,18 +12,18 @@ import { IconTrash } from '@tabler/icons-react'
 import { withForm } from '#forms/app-form/AppForm'
 import { AppSelect } from '#ui/primitives/Select'
 import { choiceOptions } from '../../choices/choiceOptions'
-import { createFallbackCharacterFormValues } from '../../shared/formNormalization'
+import { EMPTY_CHARACTER_FORM_VALUES } from '../../shared/formNormalization'
 import type { CharacterFormValues } from '../../core/characterBuilder.types'
+import { createCurrencyGroup, selectCurrency, setCurrencyAmount } from './manualCurrency'
 import * as sharedStyles from '../../shared/builderShared.css'
 import * as styles from './characterEquipment.css'
 import { CharacterStartingEquipmentChoices } from './CharacterStartingEquipmentChoices'
 import type { CharacterBuilderStepProps } from '../../core/CharacterBuilderStep.types'
 
 type InventoryItem = CharacterFormValues['state']['equipment']['inventory'][number]
-type CurrencyGroup = CharacterFormValues['state']['currency'][number]
 
 export const CharacterEquipmentStep = withForm({
-  defaultValues: createFallbackCharacterFormValues(),
+  defaultValues: EMPTY_CHARACTER_FORM_VALUES,
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterEquipment({ form, payload, readOnly }) {
     const equipmentOptions = choiceOptions(payload.view.equipment.equipmentOptions)
@@ -173,14 +173,7 @@ export const CharacterEquipmentStep = withForm({
                         value={row.currencies[0]?.currencyId ?? null}
                         disabled={readOnly}
                         onChange={(value) => {
-                          field.replaceValue(
-                            index,
-                            setFirstCurrency(row, {
-                              kind: 'RULESET',
-                              currencyId: value ?? '',
-                              amount: row.currencies[0]?.amount ?? 0
-                            })
-                          )
+                          field.replaceValue(index, selectCurrency(row, value))
                         }}
                       />
                       <NumberInput
@@ -191,10 +184,7 @@ export const CharacterEquipmentStep = withForm({
                         onChange={(value) => {
                           field.replaceValue(
                             index,
-                            setFirstCurrency(row, {
-                              ...(row.currencies[0] ?? { kind: 'RULESET', currencyId: '' }),
-                              amount: typeof value === 'number' ? value : 0
-                            })
+                            setCurrencyAmount(row, typeof value === 'number' ? value : 0)
                           )
                         }}
                       />
@@ -228,28 +218,5 @@ function createInventoryItem(): InventoryItem {
     id: crypto.randomUUID(),
     equipmentId: '',
     quantity: 1
-  }
-}
-
-function createCurrencyGroup(): CurrencyGroup {
-  return {
-    id: crypto.randomUUID(),
-    currencies: [
-      {
-        kind: 'RULESET',
-        currencyId: '',
-        amount: 0
-      }
-    ]
-  }
-}
-
-function setFirstCurrency(
-  group: CurrencyGroup,
-  currency: CurrencyGroup['currencies'][number]
-): CurrencyGroup {
-  return {
-    ...group,
-    currencies: [currency]
   }
 }

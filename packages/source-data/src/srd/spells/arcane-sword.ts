@@ -9,7 +9,6 @@ import {
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SCALING,
-  SIZE_CODE,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -19,6 +18,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 const ATTACK_EFFECT_ID = spellChildId(SPELL_IDS.ARCANE_SWORD, 0x230, 1)
 

@@ -33,6 +33,16 @@ export function lazySchema<Schema extends { _zod: object }>(build: () => Schema)
 }
 
 /**
+ * Marks a schema as a named `v.any()` leaf of every Convex validator built from it (D194).
+ * `zodToConvex` inlines each use of a shared schema, because Convex validators have no references,
+ * so a deep authored tree (facets, effect paths, follow-up outcomes) would emit millions of nodes.
+ * The zod parse still validates the value in full, and handlers declare the DTO type they return.
+ */
+export function convexOpaqueSchema<Schema extends z.ZodMiniType>(schema: Schema) {
+  return z.pipe(z.unknown(), schema)
+}
+
+/**
  * Builds shared schema parts (a shape spread into several objects, or a variant list reused by
  * several unions) on first call and returns the same parts after, so every schema that uses them
  * shares one set of instances, as a module-level constant did.

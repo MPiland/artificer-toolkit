@@ -1,6 +1,5 @@
 import { Accordion, Badge, Button, MultiSelect, NumberInput, Switch, Text } from '@mantine/core'
 import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
-import { SIZE_REGISTRY, type SizeCode } from '@artificer-toolkit/shared/core'
 import type { CharacterSheet, SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetAdjustmentEditor } from './CharacterSheetAdjustmentEditor'
 import { getSheetAdjustmentMetadata, getSheetEditorKey } from './inspector.model'
@@ -17,10 +16,6 @@ type ExtraUpdate = {
   tempHitPoints?: number
   hitDice?: { die: number; total: number; used: number }[]
   equipmentItemIds?: string[]
-}
-
-function isSizeCode(value: string): value is SizeCode {
-  return value in SIZE_REGISTRY
 }
 
 function ExtraFacts({ facts }: { facts: ExtraPanel['facts'] }) {
@@ -366,21 +361,7 @@ export function CharacterSheetExtraPanel({
               onCommit={async (commit) => {
                 const metadata = getSheetAdjustmentMetadata(editor.adjustmentId, commit)
                 switch (editor.field) {
-                  case 'SIZE_OVERRIDE': {
-                    const value = String(commit.value)
-                    if (!isSizeCode(value)) return false
-                    return await submitCommand({
-                      type: 'UPSERT_SHEET_ADJUSTMENT',
-                      expectedVersion,
-                      adjustment: {
-                        ...metadata,
-                        family: 'COMPANION',
-                        companionInstanceId: panel.companionInstanceId,
-                        field: 'SIZE_OVERRIDE',
-                        value
-                      }
-                    })
-                  }
+                  case 'SIZE_OVERRIDE':
                   case 'ALIGNMENT_OVERRIDE':
                   case 'CREATURE_TYPE_OVERRIDE':
                     return await submitCommand({

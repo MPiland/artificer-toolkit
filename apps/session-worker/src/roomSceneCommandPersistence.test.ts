@@ -754,7 +754,7 @@ describe('room Scene command persistence', () => {
       const summoned = buildEncounterSummon({
         summon: { statBlock: {} },
         caster,
-        casterHitPointMaximum: null,
+        casterHitPointMaximum: 20,
         label: 'Summon',
         sourceEffectId: uuid(70),
         point: base.input.scene.tokens[0]!.position,

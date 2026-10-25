@@ -21,6 +21,7 @@ const capability: GameSystemRuleCapabilityContract = {
   gameSystemId: SYSTEM_ID,
   contractVersion: 1,
   authoredRootKinds: ['action'],
+  contentKinds: [],
   definitionFamilyKeys: ['test-resolution'],
   factContracts: [
     { key: 'actor.base', valueKind: 'NUMBER' },

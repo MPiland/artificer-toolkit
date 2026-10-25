@@ -67,6 +67,7 @@ export function discoverEncounterMovementPassage(input: {
         encounterActorBody(blocker).occupiesSpace &&
         encounterActorRelationship(source.disposition, blocker.disposition) === 'HOSTILE' &&
         !movementPassageAdmits(
+          input.state.gameSystemId,
           endsInside ? mover.endInCreatures : mover.throughCreatures,
           sizeOf(source.id),
           sizeOf(blocker.id)

@@ -2,8 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   createEmptyClass,
   createEmptyMulticlass,
-  normalizeClassForSubmit,
-  resolveCreateClassSystemId
+  normalizeClassForSubmit
 } from '../classAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
@@ -80,10 +79,5 @@ describe('class authoring utilities', () => {
       id: generatedId,
       requirementGroups: { groups: [] }
     })
-  })
-
-  it('requires a real system id for create mode', () => {
-    expect(resolveCreateClassSystemId([{ id: 'system-1' }])).toBe('system-1')
-    expect(resolveCreateClassSystemId([])).toBeNull()
   })
 })

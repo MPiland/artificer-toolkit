@@ -8,9 +8,9 @@ import {
   abilityCodeSchema,
   lengthUnitCodeSchema,
   manifestBlockingRuleSchema,
-  manifestRequiredSightSchema,
-  sizeCodeSchema
+  manifestRequiredSightSchema
 } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import {
   authoredIdentifierSchema,
   authoredLengthAmountSchema,
@@ -185,7 +185,7 @@ export const summonBodyDtoSchema = lazySchema(() =>
 
 export const summonStatBlockDtoSchema = lazySchema(() =>
   z.object({
-    size: z.optional(sizeCodeSchema),
+    size: z.optional(systemCoreCodeSchema),
     armorClass: z.optional(numericExprSchema),
     armorClassNote: z.optional(authoredPlainTextSchema),
     hitPoints: z.optional(numericExprSchema),
@@ -299,7 +299,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       placementMustBeUnoccupied: z.optional(z.boolean()),
       invalidPlacementConsumesInvocation: z.optional(z.boolean()),
       designatedCreatureImmunity: z.optional(z.boolean()),
-      maximumTargetSize: z.optional(sizeCodeSchema),
+      maximumTargetSize: z.optional(systemCoreCodeSchema),
       excludesFormlessTargets: z.optional(z.boolean()),
       proximityRule: z.optional(manifestProximityRuleDtoSchema),
       light: z.optional(manifestLightDtoSchema),

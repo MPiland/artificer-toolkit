@@ -54,7 +54,7 @@ export function CampaignEncounterWorkspace({
   encounter: EncounterGmProjectionDto
   onUpdated: (encounter: EncounterGmProjectionDto) => void
 }) {
-  const canManage = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  const canManage = campaign.capabilities.manageActiveCampaign
   const live = useCampaignLiveSession({
     campaignId: campaign.id,
     enabled: canManage && storedEncounter.status !== 'COMPLETED',

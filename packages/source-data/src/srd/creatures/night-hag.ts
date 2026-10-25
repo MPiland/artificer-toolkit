@@ -107,18 +107,7 @@ export const nightHag: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The hag has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(204, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(204, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(204, 501),
       order: 2
     },
     {
@@ -265,8 +254,11 @@ export const nightHag: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(4849, 10),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.NIGHT_HAG_ETHEREALNESS
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Etherealness',
+                    instructions:
+                      'The hag enters the Ethereal Plane from the Material Plane, or back, only while she has a heartstone in her possession.',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
                   }
                 ]
               }

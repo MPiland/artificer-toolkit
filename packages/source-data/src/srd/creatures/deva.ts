@@ -52,18 +52,7 @@ export const deva: CreatureAuthored = {
       label: 'Angelic Weapons',
       description:
         "Angelic Weapons. The deva's weapon attacks are magical. When the deva hits with any weapon, the weapon deals an extra 4d8 radiant damage (included in the attack).",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(80, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(80, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_DEVA_ANGELIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(80, 201),
       order: 1
     },
     {
@@ -111,18 +100,7 @@ export const deva: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The deva has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(80, 203),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
-            range: { id: S.actionId(80, 1203), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(80, 203),
       order: 3
     },
     {

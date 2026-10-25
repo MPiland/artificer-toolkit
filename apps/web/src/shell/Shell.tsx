@@ -107,6 +107,10 @@ export function Shell({
     ],
     [currentPath, libraryImportEnabled, navigation]
   )
+  const libraryNotes = useMemo(
+    () => navigation.flatMap((group) => (group.emptyLabel ? [group.emptyLabel] : [])),
+    [navigation]
+  )
   const createItems = useMemo(() => toCreateMenuItems(navigation), [navigation])
   const socialHubActive = currentPath === '/social' || currentPath.startsWith('/social/')
   const mobileFooterItems = useMemo(
@@ -131,6 +135,7 @@ export function Shell({
     <AppNavigationMenus
       createItems={createItems}
       libraryItems={libraryItems}
+      libraryNotes={libraryNotes}
       socialHubActive={socialHubActive}
     />
   ) : null
@@ -318,10 +323,12 @@ function MobileSearchDrawer({ onClose, opened }: { onClose: () => void; opened: 
 function AppNavigationMenus({
   createItems,
   libraryItems,
+  libraryNotes,
   socialHubActive
 }: {
   createItems: readonly NavigationMenuItem[]
   libraryItems: readonly NavigationMenuItem[]
+  libraryNotes: readonly string[]
   socialHubActive: boolean
 }) {
   return (
@@ -330,6 +337,7 @@ function AppNavigationMenus({
         icon={<BookOpen size={15} aria-hidden='true' />}
         items={libraryItems}
         label='Library'
+        notes={libraryNotes}
       />
       <NavigationMenu
         icon={<PlusCircle size={15} aria-hidden='true' />}
@@ -352,11 +360,13 @@ function AppNavigationMenus({
 function NavigationMenu({
   icon,
   items,
-  label
+  label,
+  notes = []
 }: {
   icon: ReactNode
   items: readonly NavigationMenuItem[]
   label: string
+  notes?: readonly string[]
 }) {
   return (
     <Menu position='bottom-start' trigger='click-hover' width={230} withinPortal>
@@ -380,6 +390,9 @@ function NavigationMenu({
               </span>
             </Menu.Item>
           </Fragment>
+        ))}
+        {notes.map((note) => (
+          <Menu.Label key={note}>{note}</Menu.Label>
         ))}
       </Menu.Dropdown>
     </Menu>

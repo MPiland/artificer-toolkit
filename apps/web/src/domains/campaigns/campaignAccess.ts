@@ -40,9 +40,3 @@ export function getSessionWorkspaceViews(
     ? ['PREPARE', 'RUN', 'CLOSEOUT']
     : [status === 'OPEN' ? 'RUN' : 'CLOSEOUT']
 }
-
-export function isCampaignTableSettingsEditable(
-  campaign: Pick<CampaignDetailDto, 'role' | 'status'>
-) {
-  return campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
-}

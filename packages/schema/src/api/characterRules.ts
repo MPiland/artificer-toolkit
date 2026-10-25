@@ -29,8 +29,7 @@ import {
   damageDefenseBypassCodeSchema,
   equipmentCategoryCodeSchema,
   lengthUnitCodeSchema,
-  measurementUnitCodeSchema,
-  sizeCodeSchema
+  measurementUnitCodeSchema
 } from '../shared/enums.js'
 import {
   characterSpellAccessCandidatesSchema,
@@ -740,7 +739,7 @@ const characterCompanionMechanicsCompanionSchema = lazySchema(() =>
     abilityScores: z.record(boundedIdentitySchema, finiteNumberSchema),
     armorClass: finiteNumberSchema,
     maxHitPoints: finiteNumberSchema,
-    size: z.nullable(sizeCodeSchema),
+    size: z.nullable(systemCoreCodeSchema),
     alignmentId: z.nullable(boundedIdentitySchema),
     creatureTypeId: z.nullable(boundedIdentitySchema)
   })
@@ -764,7 +763,7 @@ const characterCompanionMechanicsAdjustmentSchema = lazySchema(() =>
       id: boundedIdentitySchema,
       companionInstanceId: boundedIdentitySchema,
       field: z.literal('SIZE_OVERRIDE'),
-      value: sizeCodeSchema
+      value: systemCoreCodeSchema
     })
   ])
 )
@@ -1425,7 +1424,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
           abilityScores: z.record(boundedIdentitySchema, finiteNumberSchema),
           armorClass: finiteNumberSchema,
           maxHitPoints: finiteNumberSchema,
-          size: z.optional(sizeCodeSchema),
+          size: z.optional(systemCoreCodeSchema),
           alignmentId: z.optional(boundedIdentitySchema),
           creatureTypeId: z.optional(boundedIdentitySchema),
           calculations: z.strictObject({
@@ -1433,13 +1432,13 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
             maxHitPoints: characterDerivedNumericCalculationSchema,
             size: z.optional(
               z.extend(characterDerivedSelectionCalculationSchema, {
-                base: sizeCodeSchema,
-                effective: sizeCodeSchema,
+                base: systemCoreCodeSchema,
+                effective: systemCoreCodeSchema,
                 override: z.nullable(
                   z.strictObject({
                     sourceId: boundedIdentitySchema,
                     source: characterMechanicSourceSchema,
-                    value: sizeCodeSchema
+                    value: systemCoreCodeSchema
                   })
                 )
               })
@@ -1495,7 +1494,8 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
           remaining: integerSchema.check(z.gte(0))
         })
       ),
-      pactMagic: z.nullable(
+      /** One entry per System slot pool the Character casts from beside its standard slots. */
+      slotPools: z.array(
         z.strictObject({
           poolCode: boundedIdentitySchema,
           sourceClassId: boundedIdentitySchema,

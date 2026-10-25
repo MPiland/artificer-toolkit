@@ -5,7 +5,6 @@ import {
   CREATURE_INITIATIVE_MODE_CODE,
   DAMAGE_DEFENSE_BYPASS_OPTIONS,
   MEASUREMENT_UNIT_OPTIONS,
-  SIZE_OPTIONS,
   type DiceExpression
 } from '#core'
 import {
@@ -424,8 +423,8 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           ['size'],
           'Size',
           {
-            kind: 'INLINE_OPTIONS',
-            options: SIZE_OPTIONS
+            kind: 'DATA',
+            relationship: table('sizes', { selectColumns: ['id', 'label', 'description'] })
           },
           { section: CREATURE_SECTIONS.basics, order: 70 }
         )

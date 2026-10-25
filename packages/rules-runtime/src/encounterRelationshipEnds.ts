@@ -95,6 +95,7 @@ export async function encounterEndedRelationships(input: {
   for (const relationship of encounterRelationships(input.activeEffectsByActorId)) {
     const { sourceActorId, actorId: heldActorId, effect, contribution } = relationship
     if (ended.some((entry) => entry.activeEffectId === effect.id)) continue
+    if (contribution.modules.some(({ kind }) => kind === 'SOURCE_INDEPENDENT_HOLD')) continue
     const beyondReach =
       encounterActorsWithinReach(
         input.scene,

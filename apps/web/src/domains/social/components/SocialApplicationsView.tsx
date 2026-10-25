@@ -9,7 +9,10 @@ import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/reac
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { CatchBoundary } from '@tanstack/react-router'
 import { useEffect, useRef } from 'react'
-import { formatStatusLabel } from '../socialModels'
+import { formatEnumLabel } from '#components/AuthoredDetail'
+import { admissionPageSize, mergeAdmissionRows } from '../hooks/admissionLists'
+import { formatSocialDate } from '../socialModels'
+import { AdmissionListFooter } from './AdmissionListFooter'
 import { SocialBlocksPanel } from './SocialBlocksPanel'
 import { SocialEmptyState } from './SocialEmptyState'
 import { SocialReportDialog } from './SocialReportDialog'
@@ -33,12 +36,12 @@ function SocialApplicationsList({ applicationPublicId }: { applicationPublicId?:
   const pending = usePaginatedQuery(
     convexApi.social.admissionLists.listOwnApplications,
     { group: 'PENDING' },
-    { initialNumItems: 24 }
+    { initialNumItems: admissionPageSize }
   )
   const history = usePaginatedQuery(
     convexApi.social.admissionLists.listOwnApplications,
     { group: 'HISTORY' },
-    { initialNumItems: 24 }
+    { initialNumItems: admissionPageSize }
   )
   const direct = useQuery(
     convexQuery(
@@ -51,27 +54,22 @@ function SocialApplicationsList({ applicationPublicId }: { applicationPublicId?:
     mutationFn: (input: SocialApplicationVersionInput) => withdrawApplication(input)
   })
   const focusedApplicationPublicId = useRef<string | null>(null)
-  const pendingApplications =
-    direct.data?.status === 'SUBMITTED' ? [direct.data, ...pending.results] : pending.results
-  const historyApplications =
-    direct.data && direct.data.status !== 'SUBMITTED'
-      ? [direct.data, ...history.results]
-      : history.results
-  const mergedApplications = new Map<string, SocialApplicationDto>()
-  for (const application of [...pendingApplications, ...historyApplications]) {
-    mergedApplications.set(application.applicationPublicId, application)
-  }
-  const applications = [...mergedApplications.values()]
+  const {
+    rows: applications,
+    loadingFirstPage,
+    exhaustedEmpty
+  } = mergeAdmissionRows<SocialApplicationDto>({
+    pending,
+    history,
+    direct: direct.data,
+    isPending: (application) => application.status === 'SUBMITTED',
+    getKey: (application) => application.applicationPublicId
+  })
   const matchingApplicationPublicId = applications.some(
     (item) => item.applicationPublicId === applicationPublicId
   )
     ? applicationPublicId
     : null
-  const loadingFirstPage =
-    pending.status === 'LoadingFirstPage' || history.status === 'LoadingFirstPage'
-  const loadingMore = pending.status === 'LoadingMore' || history.status === 'LoadingMore'
-  const exhaustedEmpty =
-    pending.status === 'Exhausted' && history.status === 'Exhausted' && applications.length === 0
 
   useEffect(() => {
     if (
@@ -110,17 +108,7 @@ function SocialApplicationsList({ applicationPublicId }: { applicationPublicId?:
           ))}
         </div>
       )}
-      {pending.status === 'CanLoadMore' ? (
-        <Button variant='subtle' onClick={() => pending.loadMore(24)}>
-          Load more pending applications
-        </Button>
-      ) : null}
-      {history.status === 'CanLoadMore' ? (
-        <Button variant='subtle' onClick={() => history.loadMore(24)}>
-          Load more application history
-        </Button>
-      ) : null}
-      {loadingMore ? <Loader aria-label='Loading more applications' size='sm' /> : null}
+      <AdmissionListFooter noun='application' pending={pending} history={history} />
     </>
   )
 }
@@ -150,14 +138,11 @@ function SocialApplicationRow({
           <Title order={2} size='h3'>
             {application.listingTitle}
           </Title>
-          <Badge variant='light'>{formatStatusLabel(application.status)}</Badge>
+          <Badge variant='light'>{formatEnumLabel(application.status)}</Badge>
         </Group>
         <Text className={styles.prose}>{application.message}</Text>
         <Text c='dimmed' size='sm'>
-          Submitted{' '}
-          {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(
-            new Date(application.submittedAt)
-          )}
+          Submitted {formatSocialDate(application.submittedAt)}
         </Text>
       </div>
       <div className={styles.rowActions}>

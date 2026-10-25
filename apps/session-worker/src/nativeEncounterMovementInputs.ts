@@ -398,6 +398,7 @@ export async function readNativeLiveMovementInputs(input: {
     state.automationMode === 'MANUAL' || command.movementKind !== 'VOLUNTARY'
       ? null
       : encounterMovementDrag({
+          gameSystemId: state.gameSystemId,
           scene,
           mover: { tokenId: token.id, actorId: actorIdByTokenId.get(token.id)! },
           actorIdByTokenId,

@@ -17,11 +17,13 @@ import {
 } from '@artificer-toolkit/schema/api/account'
 import { MediaImageControl } from '#app/components/MediaImage'
 import { getUsernameStatus } from '#app/auth/usernameStatus'
+import {
+  usernameFormatMessage,
+  usernameNotAllowedMessage,
+  usernameTakenMessage
+} from '#app/auth/usernameMessages'
 import { ProfileVisibilitySetting } from './ProfileVisibilitySetting'
 import * as styles from './settings.css'
-
-const usernameFormatError =
-  'Use 3–30 letters, numbers, and single underscores between words. Capitalization is preserved.'
 
 export function ProfileSettingsPage({ userId }: { userId: string }) {
   const { isAuthenticated, isLoading } = useConvexAuth()
@@ -80,13 +82,13 @@ function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) 
         : 'checking'
   const availabilityError =
     usernameAvailability === 'taken'
-      ? 'That username is already taken.'
+      ? usernameTakenMessage
       : usernameAvailability === 'unavailable'
         ? 'Could not check that username. Try again.'
         : usernameAvailability === 'not_allowed'
           ? usernameToCheck
-            ? "That username isn't allowed."
-            : usernameFormatError
+            ? usernameNotAllowedMessage
+            : usernameFormatMessage
           : null
 
   useEffect(() => {
@@ -131,7 +133,7 @@ function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) 
 
     const parsedUsername = usernameInputSchema.safeParse(username)
     if (!parsedUsername.success) {
-      setUsernameError(usernameFormatError)
+      setUsernameError(usernameFormatMessage)
       return
     }
 
@@ -142,8 +144,8 @@ function ProfileForm({ initialProfile }: { initialProfile: AccountProfileDto }) 
           : usernameAvailability === 'unavailable'
             ? 'Could not check that username. Try again.'
             : usernameAvailability === 'taken'
-              ? 'That username is already taken.'
-              : "That username isn't allowed."
+              ? usernameTakenMessage
+              : usernameNotAllowedMessage
       )
       return
     }

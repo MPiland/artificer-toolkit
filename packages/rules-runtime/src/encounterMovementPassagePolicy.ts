@@ -2,10 +2,11 @@ import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/cha
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { sizeRank, type MovementPassageOption } from '@artificer-toolkit/shared/core'
+import type { MovementPassageOption } from '@artificer-toolkit/shared/core'
 
 import { encounterActorEffectiveSize } from './encounterActionEffects.js'
 import { modifierScopeCapabilityRegistry } from './platformEncounterPolicy.js'
+import { sizeRank } from './systemSizes.js'
 
 type PassageRelation = MovementPassageOption['creatures']
 
@@ -114,14 +115,15 @@ export function encounterActorMovementProvokesNoOpportunityAttacks(
 
 /** Whether a passage relation lets a mover of one size into a creature of another. */
 export function movementPassageAdmits(
+  gameSystemId: string,
   relation: PassageRelation,
   moverSize: string | null,
   blockerSize: string | null
 ): boolean {
   if (relation === 'ANY') return true
   if (relation === 'NONE') return false
-  const mover = sizeRank(moverSize)
-  const blocker = sizeRank(blockerSize)
+  const mover = sizeRank(gameSystemId, moverSize)
+  const blocker = sizeRank(gameSystemId, blockerSize)
   return mover !== null && blocker !== null && blocker > mover
 }
 

@@ -17,21 +17,22 @@ type Resources = CharacterRulePolicyOutput['resources']
 
 /**
  * Each slot level a Character can still pay an optional on-hit rider with, and the slot that pays it:
- * the level's own slot, or the Pact Magic slot when that is the only slot left at its level.
+ * the level's own slot, or the first slot pool at that level when no standard slot is left there.
  */
 export function onHitSlotChoices(
   spellSlots: SpellSlots
 ): readonly { level: number; slotKey: string }[] {
-  const standard = spellSlots.maxByLevel
-    .filter((slot) => slot.remaining > 0)
-    .map((slot) => ({ level: slot.spellLevel, slotKey: `STANDARD:${slot.spellLevel}` }))
-  const pact = spellSlots.pactMagic
-  return [
-    ...standard,
-    ...(pact && pact.remaining > 0 && !standard.some(({ level }) => level === pact.level)
-      ? [{ level: pact.level, slotKey: pact.poolCode }]
-      : [])
-  ].sort((left, right) => left.level - right.level)
+  const choices = [
+    ...spellSlots.maxByLevel
+      .filter((slot) => slot.remaining > 0)
+      .map((slot) => ({ level: slot.spellLevel, slotKey: `STANDARD:${slot.spellLevel}` })),
+    ...spellSlots.slotPools
+      .filter((pool) => pool.remaining > 0)
+      .map((pool) => ({ level: pool.level, slotKey: pool.poolCode }))
+  ]
+  return choices
+    .filter((choice, index) => choices.findIndex(({ level }) => level === choice.level) === index)
+    .sort((left, right) => left.level - right.level)
 }
 
 /**

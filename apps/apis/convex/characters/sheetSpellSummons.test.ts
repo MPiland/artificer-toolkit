@@ -11,6 +11,8 @@ import type {
 } from '@artificer-toolkit/schema/api/characterSheetData'
 import { wizard } from '@artificer-toolkit/source-data/srd/classes/wizard.js'
 import { arcaneHand } from '@artificer-toolkit/source-data/srd/spells/arcane-hand.js'
+import { spiritualWeapon } from '@artificer-toolkit/source-data/srd/spells/spiritual-weapon.js'
+import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { api } from '../_generated/api'
 import { readyCharacterFixture } from '../../tests/fixtures/readyCharacter'
@@ -27,8 +29,8 @@ const getSheet = makeFunctionReference<
   CharacterSheetResponseDto | null
 >('characters/sheet:get')
 
-/** A Wizard with Arcane Hand prepared and five 5th-level slots, cast outside any Encounter. */
-async function fixture() {
+/** A Wizard with `spell` prepared and five 5th-level slots, cast outside any Encounter. */
+async function fixture(spell: SpellAuthored = arcaneHand) {
   if (!wizard.spellcasting) throw new Error('Expected canonical Wizard spellcasting.')
   const base = await readyCharacterFixture({
     spellcasting: {
@@ -41,8 +43,8 @@ async function fixture() {
     subjects: [
       importedSubject({
         subjectKind: 'SPELL',
-        ...arcaneHand,
-        document: { ...arcaneHand, classIds: [base.baseClass.id] }
+        ...spell,
+        document: { ...spell, classIds: [base.baseClass.id] }
       })
     ]
   })
@@ -66,13 +68,13 @@ async function fixture() {
     return (await base.owner.caller.query(getSheet, { id: character.id }))!
   }
   for (const type of ['SET_KNOWN_SPELLS', 'SET_PREPARED_SPELLS'])
-    await run({ type, classId: base.baseClass.id, spellIds: [arcaneHand.id] })
+    await run({ type, classId: base.baseClass.id, spellIds: [spell.id] })
   const sheet = (await base.owner.caller.query(getSheet, { id: character.id }))!
   const source = sheet.spells.spells
-    .find((entry) => entry.id === arcaneHand.id)!
+    .find((entry) => entry.id === spell.id)!
     .sources!.find((entry) => entry.source.sourceKind === 'CLASS')!
   const cast = () =>
-    run({ type: 'CAST_SPELL', spellId: arcaneHand.id, sourceId: source.id, slotKey: 'STANDARD:5' })
+    run({ type: 'CAST_SPELL', spellId: spell.id, sourceId: source.id, slotKey: 'STANDARD:5' })
   const rest = async (restKind: 'SHORT' | 'LONG') => {
     const input = {
       restKind,
@@ -122,7 +124,7 @@ describe('a summon cast from the Sheet outside an Encounter (D190, SPELLS-34)', 
       type: 'UPDATE_SHEET_EXTRA',
       extra: { kind: 'SPELL_SUMMON', extraId: hand!.id, currentHitPoints: 3 }
     })
-    expect(summonsOf(damaged)[0]?.hitPoints.current).toBe(3)
+    expect(summonsOf(damaged)[0]?.hitPoints?.current).toBe(3)
 
     // A new Concentration cast replaces the summon that held it.
     const recast = await cast()
@@ -149,5 +151,29 @@ describe('a summon cast from the Sheet outside an Encounter (D190, SPELLS-34)', 
 
     await cast()
     expect(summonsOf(await rest('LONG'))).toEqual([])
+  })
+
+  it('tracks a summon whose stat block has no hit points, with no hit point pool, until it is dismissed (SPELLS-4.T2v2b)', async () => {
+    const { run, cast } = await fixture(spiritualWeapon)
+
+    const [weapon] = summonsOf(await cast())
+    expect(weapon).toMatchObject({
+      kind: 'SPELL_SUMMON',
+      spellId: spiritualWeapon.id,
+      displayName: 'Spiritual Weapon'
+    })
+    expect(weapon).not.toHaveProperty('hitPoints')
+
+    const renamed = await run({
+      type: 'UPDATE_SHEET_EXTRA',
+      extra: { kind: 'SPELL_SUMMON', extraId: weapon!.id, customName: 'Hammer' }
+    })
+    expect(summonsOf(renamed)[0]).toMatchObject({ displayName: 'Hammer' })
+
+    const dismissed = await run({
+      type: 'REMOVE_SHEET_EXTRA',
+      extra: { kind: 'SPELL_SUMMON', extraId: weapon!.id }
+    })
+    expect(summonsOf(dismissed)).toEqual([])
   })
 })

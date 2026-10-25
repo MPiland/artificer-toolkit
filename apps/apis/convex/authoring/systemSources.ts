@@ -33,7 +33,8 @@ export async function createSystemSourceReader(
       spellSlotPool: systemCoreCodeRegistry.entries(systemId, 'spellSlotPool'),
       effectConsumeEvent: systemCoreCodeRegistry.entries(systemId, 'effectConsumeEvent'),
       effectEndEvent: systemCoreCodeRegistry.entries(systemId, 'effectEndEvent'),
-      actionTrait: systemCoreCodeRegistry.entries(systemId, 'actionTrait')
+      actionTrait: systemCoreCodeRegistry.entries(systemId, 'actionTrait'),
+      size: systemCoreCodeRegistry.entries(systemId, 'size')
     },
     readAuthoredRows: async (table) => [
       ...(await authored(table)),

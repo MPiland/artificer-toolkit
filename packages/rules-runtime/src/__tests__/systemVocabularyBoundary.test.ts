@@ -2,7 +2,11 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative, sep } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+import { combatPerceptionIlluminationDtoSchema } from '@artificer-toolkit/schema/shared/combatPerception'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
+import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 /**
  * RULES-2.T9o (ADR 0038): a System's vocabulary is authored data. No production file outside
@@ -26,7 +30,7 @@ const SKIPPED_DIRECTORIES = new Set([
   '.storybook'
 ])
 const NON_PRODUCTION_FILE =
-  /(\.d\.ts|\.test\.tsx?|\.stories\.tsx?|\.fixtures?\.tsx?|\.fixture\.tsx?)$/
+  /(\.d\.ts|\.test\.tsx?|\.testUtils\.tsx?|\.stories\.tsx?|\.fixtures?\.tsx?|\.fixture\.tsx?)$/
 
 function productionFiles(directory: string): string[] {
   return readdirSync(directory).flatMap((name) => {
@@ -60,13 +64,61 @@ const literalBeforeCode = /(['"`])([A-Z][A-Z0-9_]*)\1\s*[!=]==?\s*[\w.?]*[Cc]ode
 const quotedList = /\[\s*(?:(['"])[A-Z][A-Z0-9_]*\1\s*,\s*){2,}(['"])[A-Z][A-Z0-9_]*\2\s*,?\s*\]/g
 const codeTemplate = /`[A-Z]+_\$\{/g
 
-function violations(source: string): string[] {
+/**
+ * RULES-2.T9d: the illumination codes stay a shared enum, but their rank, light suppression, render
+ * class and label belong to the System's `illuminationLevels`. Only a System module under
+ * `rules-runtime/src/systems/` reads an illumination code directly.
+ */
+const illuminationCodes = new Set<string>(combatPerceptionIlluminationDtoSchema.options)
+const illuminationBeforeLiteral = /[iI]llumination\s*[!=]==?\s*(['"`])([A-Z][A-Z_]*)\1/g
+const literalBeforeIllumination = /(['"`])([A-Z][A-Z_]*)\1\s*[!=]==?\s*[\w.?]*[iI]llumination\b/g
+const SYSTEM_MODULE = /packages[\\/]rules-runtime[\\/]src[\\/]systems[\\/]/
+
+/**
+ * RULES-2.T9e: which ability a derived statistic adds, and which speed is a creature's walk, are
+ * System data (`derivedStatisticAbilityCodes`, `defaults`). RULES-2.T9g: a spell slot pool's code,
+ * label and rest recovery are System core codes (`spellSlotPool`). Outside a System module, no value
+ * is compared to an ability, speed or spell slot pool code, whatever the compared variable is named.
+ */
+const systemOwnedCodes = new Set(
+  [
+    ...srdSystemRecord.abilities,
+    ...srdSystemRecord.speeds,
+    ...systemCoreCodeRegistry.entries(DND5E_SYSTEM_ID, 'spellSlotPool')
+  ].map(({ code }) => code)
+)
+const comparedBeforeLiteral = /[!=]==?\s*(['"`])([A-Z][A-Z0-9_]*)\1/g
+const literalBeforeCompared = /(['"`])([A-Z][A-Z0-9_]*)\1\s*[!=]==?/g
+/**
+ * The neutral rules pipeline (rules-runtime outside a System module, and Convex) names none of these
+ * codes at all: not as an argument, a fallback or a case either. The web, maps and shared ability
+ * literals move with RULES-2.T9f.
+ */
+const NEUTRAL_RULES_PIPELINE = /(packages[\\/]rules-runtime[\\/]src|apps[\\/]apis[\\/]convex)[\\/]/
+const quotedCode = /(['"`])([A-Z][A-Z0-9_]*)\1/g
+
+function violations(source: string, path = ''): string[] {
   const found: string[] = []
+  if (!SYSTEM_MODULE.test(path))
+    for (const match of [
+      ...source.matchAll(illuminationBeforeLiteral),
+      ...source.matchAll(literalBeforeIllumination)
+    ])
+      if (illuminationCodes.has(match[2]!)) found.push(`compares illumination ${match[2]}`)
   for (const match of [
     ...source.matchAll(codeBeforeLiteral),
     ...source.matchAll(literalBeforeCode)
   ])
     if (vocabularyCodes.has(match[2]!)) found.push(`compares code ${match[2]}`)
+  if (!SYSTEM_MODULE.test(path)) {
+    const pipeline = NEUTRAL_RULES_PIPELINE.test(path)
+    const matches = pipeline
+      ? source.matchAll(quotedCode)
+      : [...source.matchAll(comparedBeforeLiteral), ...source.matchAll(literalBeforeCompared)]
+    for (const match of matches)
+      if (systemOwnedCodes.has(match[2]!) && !found.includes(`compares code ${match[2]}`))
+        found.push(`${pipeline ? 'names' : 'compares'} ${match[2]}`)
+  }
   for (const [list] of source.matchAll(quotedList)) {
     const members = [...list.matchAll(/['"]([A-Z][A-Z0-9_]*)['"]/g)].map((member) => member[1]!)
     const domain = Object.entries(vocabularyDomains).some(([key, entries]) => {
@@ -90,10 +142,53 @@ describe('System vocabulary boundary (RULES-2.T9o)', () => {
     expect(violations("kind === 'SPELL_CAST'")).toEqual([])
   })
 
+  it('detects an illumination code comparison outside a System module (RULES-2.T9d)', () => {
+    const comparison = "if (zone.mechanicalIllumination === 'MAGICAL_DARKNESS') outline()"
+    expect(violations(comparison)).toEqual(['compares illumination MAGICAL_DARKNESS'])
+    expect(violations("'DIM' !== scene.ambientIllumination")).toEqual(['compares illumination DIM'])
+    expect(violations(comparison, 'packages/rules-runtime/src/systems/dnd5e/lighting.ts')).toEqual(
+      []
+    )
+    expect(violations("renderClass === 'DIM'")).toEqual([])
+  })
+
+  it('detects an ability or speed comparison outside a System module (RULES-2.T9e)', () => {
+    const comparison = "(resolveAbilityAlias(abilityId) ?? abilityId) === 'DEXTERITY'"
+    expect(violations(comparison)).toEqual(['compares DEXTERITY'])
+    expect(violations("'CONSTITUTION' !== ability.ability")).toEqual(['compares CONSTITUTION'])
+    expect(
+      violations(comparison, 'packages/rules-runtime/src/systems/dnd5e/armorClass.ts')
+    ).toEqual([])
+    expect(violations("kind === 'ARMOR'")).toEqual([])
+    expect(violations("movement.mode !== 'FLY'")).toEqual(['compares FLY'])
+  })
+
+  it('detects any ability or speed code the neutral rules pipeline names (RULES-2.T9e)', () => {
+    const argument = "abilityRecordKey(snapshot.abilities, 'DEXTERITY')"
+    expect(violations(argument, 'packages/rules-runtime/src/character/initiative.ts')).toEqual([
+      'names DEXTERITY'
+    ])
+    expect(violations("id ?? 'CONSTITUTION'", 'apps/apis/convex/characters/sheet.ts')).toEqual([
+      'names CONSTITUTION'
+    ])
+    expect(violations(argument, 'packages/rules-runtime/src/systems/dnd5e/initiative.ts')).toEqual(
+      []
+    )
+    expect(violations(argument, 'apps/web/src/domains/characters/sheet.ts')).toEqual([])
+  })
+
+  it('detects a spell slot pool comparison outside a System module (RULES-2.T9g)', () => {
+    const comparison = "if (slotKey === 'PACT') resetOnShortRest()"
+    expect(violations(comparison)).toEqual(['compares PACT'])
+    expect(
+      violations(comparison, 'packages/rules-runtime/src/systems/dnd5e/characterSpellSlots.ts')
+    ).toEqual([])
+  })
+
   it('keeps production files free of vocabulary lists and code comparisons', () => {
     const offenders = SCANNED_ROOTS.flatMap((root) => productionFiles(join(REPO, root)))
       .flatMap((path) =>
-        violations(readFileSync(path, 'utf8')).map(
+        violations(readFileSync(path, 'utf8'), path).map(
           (reason) => `${relative(REPO, path).split(sep).join('/')} ${reason}`
         )
       )

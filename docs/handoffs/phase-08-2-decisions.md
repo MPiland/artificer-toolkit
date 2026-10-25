@@ -1236,6 +1236,12 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - **Why:** the tracer System (T12, AUTHORING-1.T2) cannot exist without its own abilities, and rekeying before launch avoids a persisted-data migration later.
 - RULES-2.T12 follows T9f1 and T9f2. T9f3 may run beside T12.
 - **Codemod exception (this task only):** the session may run a one-off ts-morph AST codemod from its scratchpad for the mechanical rewrite. The diff is reviewed before commit. The Edit/Write-only rule still applies to all other work.
+- **Amended (user ruling, 2026-10-24): abilities use System core codes, the way T9f1 handles sizes, not definition ids.** The T9f2 inventory measured about 21 points (about 100 production files, about 330 SRD creature files, 7 persisted record shapes). So:
+  - Persisted and authored ability keys stay codes (`STRENGTH`). Each System's ability table owns them.
+  - Every ingress checks codes against that table, rejecting rather than clearing.
+  - Labels and abbreviations come from the System record. The shared `core/ability.ts` is deleted.
+  - The tracer System supplies its own codes. No record re-keys and no reseed.
+  - T9f2 is re-sized 5 → 8 (+3, user-approved). T9f3 applies the same rule to authored references: codes checked against the System, not `abilityDefinitionId`. The codemod exception lapses unless a mechanical rewrite still needs it.
 
 ### D193: bright light and slot pools (orchestrator ruling, 2026-10-24, RULES-2.T9d and T9g)
 
@@ -1252,6 +1258,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
 - **Intersections become flat unions** (AC 12.1 as written), so facet restrictions are fully typed. The facet `where` relation graph is acyclic, so it expands with no `any`; the slice verifies how the converter emits `z.lazy`.
 - **One named recursive leaf.** The only true recursion is follow-up save/check `outcomes` in effect paths. That validator leaf alone stays `v.any()`, named at its definition; every other field is validated at runtime.
 - **One shared TypeScript type.** The workspace DTO type in `packages/schema` is the type: the four `content/definitions.ts` handlers (`get`, `create`, `saveDraft`, `publish`) declare it as their return type, and the web data adapter reads results through a typed reference to the same type, with no client logic. A contract test proves each typed reference names the type its handler declares, and the `generatedApiTypes` test proves no `any` remains outside the named leaf.
+- **Amended (user ruling, 2026-10-24, option B): facet and path are named `v.any()` leaves too.** The slice measured that the zod-to-Convex converter inlines every `z.lazy` and every reuse, because Convex validators have no references. Flat unions with only the outcomes leaf opaque came to about 1e6 validator nodes (about 54 MB) per facet and about 9e10 for the workspace DTO, against 9,114 for today's whole BASIC_ACTION validator. Opaque facets alone still left about 8e6. With facet, path and follow-up outcomes as named `v.any()` validator leaves, it is about 29,000 nodes. The wire stays nested. The handler's zod parse validates those shapes at runtime, as before. The typed surface comes from the shared DTO type that handlers declare and the web reads, with the pairing contract test. The `generatedApiTypes` test proves `any` appears only at those three named leaves. Evidence: `reliability-12-d194-escalation.md` in the slice notes, and `local-validation/reliability-12/d194-measure.txt`.
 
 ## Approved implementation decisions
 

@@ -1,3 +1,4 @@
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 import * as R from './rollInfluenceGrants.js'
@@ -47,18 +48,12 @@ export const drider: CreatureAuthored = {
       label: 'Fey Ancestry',
       description:
         "Fey Ancestry. The drider has advantage on saving throws against being charmed, and magic can't put the drider to sleep.",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(87, 201),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
-            range: { id: S.actionId(87, 1201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FEY_ANCESTRY
-        })
-      ],
+      grants: {
+        modifiers: [
+          ...S.advantageGrants(87, 201, { savesAgainst: ['CHARMED'] }).modifiers,
+          S.magicConditionImmunity(87, 207, 'UNCONSCIOUS', 6)
+        ]
+      },
       order: 1
     },
     {
@@ -107,7 +102,7 @@ export const drider: CreatureAuthored = {
       description:
         'Spider Climb. The drider can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(87, 203),
           invocation: {
             kind: 'PASSIVE',
@@ -115,7 +110,10 @@ export const drider: CreatureAuthored = {
             range: { id: S.actionId(87, 1203), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+          label: 'Spider Climb',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
+          instructions:
+            'The drider can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.'
         })
       ],
       order: 3

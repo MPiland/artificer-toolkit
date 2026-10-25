@@ -5,7 +5,7 @@ import {
   useMatches,
   useRouterState
 } from '@tanstack/react-router'
-import { Shell, platformNavigation } from '#app/shell'
+import { Shell, useShellNavigation } from '#app/shell'
 import { authoringSearchSchema } from '#app/forms/layout/authoringSearch'
 import { hasPendingInvitationSetup } from '#app/auth/invitationStatus'
 import { NotificationsProvider } from '#app/notifications/NotificationsProvider'
@@ -35,6 +35,7 @@ function AuthedLayout() {
   const currentHref = useRouterState({
     select: (state) => (state.resolvedLocation ?? state.location).href
   })
+  const navigation = useShellNavigation()
   const isStandaloneTabletop = currentPath.startsWith('/tabletop/')
 
   return (
@@ -43,7 +44,7 @@ function AuthedLayout() {
         <Outlet />
       ) : (
         <Shell
-          navigation={platformNavigation}
+          navigation={navigation}
           currentHref={currentHref}
           currentPath={currentPath}
           isAuthenticated={Boolean(user)}

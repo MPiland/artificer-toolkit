@@ -19,6 +19,8 @@ export const startingEquipmentCurrencyDtoSchema = lazySchema(() =>
   })
 )
 
+export type StartingEquipmentCurrencyDto = z.infer<typeof startingEquipmentCurrencyDtoSchema>
+
 const startingEquipmentEquipmentItemBaseDtoSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
@@ -94,6 +96,8 @@ export const startingEquipmentOptionDtoSchema = lazySchema(() =>
   })
 )
 
+export type StartingEquipmentOptionDto = z.infer<typeof startingEquipmentOptionDtoSchema>
+
 export const startingEquipmentGroupDtoSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
@@ -102,6 +106,8 @@ export const startingEquipmentGroupDtoSchema = lazySchema(() =>
   })
 )
 
+export type StartingEquipmentGroupDto = z.infer<typeof startingEquipmentGroupDtoSchema>
+
 export const startingEquipmentSetDtoSchema = lazySchema(() =>
   z.object({
     id: authoredIdentifierSchema,
@@ -109,6 +115,8 @@ export const startingEquipmentSetDtoSchema = lazySchema(() =>
     groups: authoredNestedCollectionSchema(startingEquipmentGroupDtoSchema)
   })
 )
+
+export type StartingEquipmentSetDto = z.infer<typeof startingEquipmentSetDtoSchema>
 
 export const startingEquipmentDtoSchema = lazySchema(() =>
   z.object({

@@ -27,7 +27,7 @@ describe('authored closed-vocabulary contracts', () => {
         systemId: 'system-1',
         category: 'BASE',
         selectionMode: 'DIRECT',
-        size: 'NOT_A_SIZE',
+        size: 'not a size',
         speeds: []
       }
     ],
@@ -40,7 +40,7 @@ describe('authored closed-vocabulary contracts', () => {
         systemId: 'system-1',
         category: 'MONSTER',
         creatureTypeId: 'creature-type-1',
-        size: 'NOT_A_SIZE',
+        size: 'not a size',
         abilityScores,
         naturalArmorBonus: 0,
         hitPoints: 10,
@@ -55,10 +55,10 @@ describe('authored closed-vocabulary contracts', () => {
         userId: 'user-1',
         systemId: 'system-1',
         category: 'LAND',
-        size: 'NOT_A_SIZE'
+        size: 'not a size'
       }
     ]
-  ])('rejects invalid size codes', (schema, payload) => {
+  ])('rejects malformed size codes', (schema, payload) => {
     expect(schema.safeParse(payload).success).toBe(false)
   })
 

@@ -1,4 +1,3 @@
-import { SIZE_OPTIONS } from '@artificer-toolkit/shared/core'
 import {
   createCharacterSpellSourceKey,
   type CharacterSheetAdjustment
@@ -10,6 +9,7 @@ import type {
 import type { CharacterSheetAdjustmentCommandDto } from '@artificer-toolkit/schema/api/characterSheet'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import { CharacterSheetCommandError, formatCodeLabel } from './sheetCommandReducer.js'
 
@@ -92,7 +92,9 @@ export function validateSheetAdjustmentTarget(
       }
       if (
         input.field === 'SIZE_OVERRIDE' &&
-        !SIZE_OPTIONS.some((size) => size.code === input.value)
+        !systemCoreCodeRegistry
+          .entries(character.systemId, 'size')
+          .some(({ code }) => code === input.value)
       ) {
         throw new CharacterSheetCommandError(`Size "${input.value}" is not available.`)
       }

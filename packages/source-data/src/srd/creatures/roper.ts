@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 export const roper: CreatureAuthored = {
   id: S.CREATURE_IDS.ROPER,
@@ -60,7 +61,7 @@ export const roper: CreatureAuthored = {
       description:
         'Spider Climb. The roper can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(239, 503),
           invocation: {
             kind: 'PASSIVE',
@@ -68,7 +69,10 @@ export const roper: CreatureAuthored = {
             range: { id: S.actionId(239, 603), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+          label: 'Spider Climb',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
+          instructions:
+            'The roper can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.'
         })
       ],
       order: 3
@@ -263,8 +267,11 @@ export const roper: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(7072, 11),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: 'ROPER_REEL' as const
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Reel in grappled creatures',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      'The roper pulls each creature grappled by it up to 25 feet straight toward it; the GM moves each one.'
                   }
                 ]
               }

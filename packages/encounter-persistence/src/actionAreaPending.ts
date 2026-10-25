@@ -238,11 +238,14 @@ export async function requireAreaActionPendingRoot(
       casterToken?.position.y !== context.area?.origin.y)
   )
     throw new Error('Live Session pending area action Scene mismatch.')
-  // A point area catches everyone in it (a zone catches nobody unless its cast authors a save for
-  // when it appears: a creature in it is tested on entering), where a list of chosen creatures
-  // only needs each of them inside it.
+  // A point area catches everyone in it (a summon catches nobody, nor does a zone unless its cast
+  // authors a save for when it appears: a creature in it is tested on entering), where a list of
+  // chosen creatures only needs each of them inside it.
   const caught = new Set(
-    scene && context.area && (!context.placesZone || context.zoneAppearSave)
+    scene &&
+      context.area &&
+      !context.placesSummon &&
+      (!context.placesZone || context.zoneAppearSave)
       ? catchEncounterAreaActorIds({
           origin: context.area.origin,
           shape: context.area.shape,

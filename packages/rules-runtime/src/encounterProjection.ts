@@ -23,6 +23,7 @@ import {
   creatureQualifiedDamageDefenseDtoSchema,
   creatureSenseDtoSchema
 } from '@artificer-toolkit/schema/subjects/creature'
+import { speedDtoSchema } from '@artificer-toolkit/schema/shared/speed'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
@@ -136,8 +137,10 @@ export function snapshotStatBlock(actor: {
   return {
     armorClass: armorClass?.armorClass ?? null,
     abilityScores: abilities,
-    speeds: Array.isArray(payload.speeds) ? payload.speeds : [],
-    // A malformed sense fails the read rather than leaving the Creature without it.
+    // A malformed speed or sense fails the read rather than leaving the Creature without it.
+    speeds: Array.isArray(payload.speeds)
+      ? payload.speeds.map((entry) => speedDtoSchema.parse(entry))
+      : [],
     senses: Array.isArray(payload.senses)
       ? payload.senses.map((entry) => creatureSenseDtoSchema.parse(entry))
       : [],

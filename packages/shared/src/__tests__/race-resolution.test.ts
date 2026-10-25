@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { BaseRaceAuthored, SubraceAuthored } from '#authored'
-import { RACE_CATEGORY_CODE, RACE_SELECTION_MODE, SIZE_CODE } from '#core'
+import { RACE_CATEGORY_CODE, RACE_SELECTION_MODE } from '#core'
 import { resolveRaceAuthored } from '#compilers'
 
 describe('resolveRaceAuthored', () => {
@@ -12,7 +12,7 @@ describe('resolveRaceAuthored', () => {
       status: 'ACTIVE',
       category: RACE_CATEGORY_CODE.BASE,
       selectionMode: RACE_SELECTION_MODE.REQUIRES_SUBRACE,
-      size: SIZE_CODE.MEDIUM,
+      size: 'MEDIUM',
       speeds: [{ speedId: 'walking', amount: 30, unit: 'FEET' }],
       userId: 'user-1',
       systemId: 'system-1'
@@ -30,6 +30,6 @@ describe('resolveRaceAuthored', () => {
     const resolved = resolveRaceAuthored(subrace, (id) => (id === parent.id ? parent : null))
 
     expect(resolved.status).toBe('DRAFT')
-    expect(resolved.size).toBe(SIZE_CODE.MEDIUM)
+    expect(resolved.size).toBe('MEDIUM')
   })
 })

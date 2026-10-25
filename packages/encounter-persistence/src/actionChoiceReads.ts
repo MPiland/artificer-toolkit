@@ -48,6 +48,7 @@ import {
 import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterDragDoublesCost } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
+import { sizeSpaceFeet } from '@artificer-toolkit/rules-runtime/systemSizes'
 import { liveEffectOffers } from '@artificer-toolkit/rules-runtime/encounterEffectOffers'
 import {
   repeatOfferFreeUseKey,
@@ -371,8 +372,10 @@ export async function readEncounterActionChoices(
               ? entry.compilation.choice
               : undefined,
             Boolean(activeEffectPlan?.chosenItem),
-            entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
-              ? entry.compilation.summonPlacement
+            entry?.kind === 'CHARACTER_ACTION' &&
+              entry.schemaVersion === 4 &&
+              entry.compilation.summonPlacement
+              ? sizeSpaceFeet(state.gameSystemId, entry.compilation.summonPlacement.statBlock.size)
               : undefined
           ),
           warnings: [
@@ -713,7 +716,8 @@ export async function readEncounterActionChoices(
         ? {
             made: attackActionThisTurn.attacks.length,
             total: attackSlotTotal(attackActionThisTurn.alternatives),
-            complete: !encounterAttackActionStanding(attackActionThisTurn).incomplete,
+            complete: !encounterAttackActionStanding(state.gameSystemId, attackActionThisTurn)
+              .incomplete,
             lastActionId: lastAttack.actionId,
             lastTargetIds: lastAttack.targetIds
           }
@@ -845,7 +849,7 @@ export async function readEncounterHeldRelationships(
     ...hold,
     drag: drags
       ? {
-          doublesCost: encounterDragDoublesCost(sizeOf(hold.sourceActorId), [
+          doublesCost: encounterDragDoublesCost(state.gameSystemId, sizeOf(hold.sourceActorId), [
             sizeOf(hold.heldActorId)
           ])
         }

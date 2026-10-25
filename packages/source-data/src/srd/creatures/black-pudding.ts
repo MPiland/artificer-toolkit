@@ -1,3 +1,4 @@
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { MANIFEST_KIND, SHAPE_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
@@ -183,14 +184,17 @@ export const blackPudding: CreatureAuthored = {
       description:
         'Spider Climb. The pudding can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(47, 108),
           invocation: {
             kind: 'PASSIVE',
             triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(47, 109), rangeKind: S.RANGE_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+          label: 'Spider Climb',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
+          instructions:
+            'The pudding can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.'
         })
       ],
       order: 3

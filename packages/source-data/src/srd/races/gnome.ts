@@ -2,7 +2,6 @@ import {
   ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
-  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -14,11 +13,11 @@ import {
   RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
-  SIZE_CODE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import {
   SRD_GNOMISH_HERITAGE_ID,
   SRD_LANGUAGES,
@@ -27,7 +26,7 @@ import {
   SRD_USER_ID,
   SRD_DARKVISION_SENSE_ID
 } from '../vocabulary.js'
-import { raceClosedRuleEffect } from './closed-rule-effect.js'
+import { magicSaveAdvantageGrants } from '../classes/mechanics.js'
 
 function languageId(code: string): string {
   const entry = SRD_LANGUAGES.find((l) => l.code === code)
@@ -154,12 +153,12 @@ export const gnome: RaceAuthored = {
         'You have advantage on all Intelligence, Wisdom, and Charisma saving throws against magic.',
       availableAtLevel: 1,
       order: 2,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(6, 3, entry),
-          CLOSED_RULE_KIND.RACE_GNOME_CUNNING
+      grants: {
+        modifiers: magicSaveAdvantageGrants(
+          (entry) => raceFeatureId(6, 3, 2 + entry),
+          [ABILITY_CODE.INTELLIGENCE, ABILITY_CODE.WISDOM, ABILITY_CODE.CHARISMA]
         )
-      ]
+      }
     },
     {
       id: raceFeatureId(6, 4, 1),

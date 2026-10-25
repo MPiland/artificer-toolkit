@@ -12,9 +12,9 @@ import {
   creatureCategoryCodeSchema,
   equipmentCategoryCodeSchema,
   equipmentPropertyCodeSchema,
-  sizeCodeSchema,
   vehicleCategoryCodeSchema
 } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { speedDtoSchema } from '../shared/speed.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
@@ -99,7 +99,7 @@ export const contentSnapshotRaceIndexEntrySchema = lazySchema(() =>
       category: z.literal('BASE'),
       description: z.optional(authoredRichTextSchema),
       selectionMode: baseRaceAuthoredDtoSchema.shape.selectionMode,
-      size: sizeCodeSchema,
+      size: systemCoreCodeSchema,
       speeds: authoredNestedCollectionSchema(speedDtoSchema),
       abilityScoreIncreaseFacts: z.array(abilityScoreIncreaseFactSchema)
     }),

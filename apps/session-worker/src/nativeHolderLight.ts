@@ -4,11 +4,8 @@ import type {
 } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { EncounterHolderLight } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
-import {
-  resolveSceneDaylightAt,
-  resolveSceneIlluminationAt,
-  SceneBarrierIndex
-} from '@artificer-toolkit/shared/vtt'
+import { combatPerceptionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
+import { resolveSceneLightAt, SceneBarrierIndex } from '@artificer-toolkit/shared/vtt'
 import { readNativeLivePerceptionScene } from './nativeTurnEffectPerception.js'
 
 /**
@@ -18,6 +15,7 @@ import { readNativeLivePerceptionScene } from './nativeTurnEffectPerception.js'
  */
 export async function readNativeLiveHolderLight(
   campaignId: string,
+  gameSystemId: string,
   holder: MovementTarget,
   sceneContext: { sceneId: string; sceneVersion: number } | null,
   capture: (request: LiveSessionEncounterRulesRequest) => Promise<LiveSessionEncounterRulesResponse>
@@ -33,18 +31,20 @@ export async function readNativeLiveHolderLight(
     throw new Error('Encounter action facts are stale.')
   const token = loaded.scene.tokens.find(({ id }) => id === loaded.observerTokenId)
   if (!token) throw new Error('Encounter action facts are stale.')
-  return measureHolderLight(loaded.scene, token.position)
+  return measureHolderLight(gameSystemId, loaded.scene, token.position)
 }
 
-/** The light on one square of an already-read Scene: bright or not, and daylit or not. */
+/** The light on one square of an already-read Scene, by the Campaign System's illumination levels. */
 export function measureHolderLight(
-  scene: Parameters<typeof resolveSceneDaylightAt>[0],
-  position: Parameters<typeof resolveSceneDaylightAt>[1]
+  gameSystemId: string,
+  scene: Parameters<typeof resolveSceneLightAt>[0],
+  position: Parameters<typeof resolveSceneLightAt>[1]
 ): EncounterHolderLight {
-  const barrierIndex = new SceneBarrierIndex(scene.barriers)
-  return {
-    brightLight:
-      resolveSceneIlluminationAt(scene, position, barrierIndex).illumination === 'BRIGHT',
-    daylight: resolveSceneDaylightAt(scene, position, barrierIndex)
-  }
+  const { illuminationLevels } = combatPerceptionCapabilityRegistry.require(gameSystemId)
+  return resolveSceneLightAt(
+    scene,
+    position,
+    new SceneBarrierIndex(scene.barriers),
+    illuminationLevels
+  )
 }

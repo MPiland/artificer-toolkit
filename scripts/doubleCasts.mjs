@@ -134,12 +134,8 @@ export const WEB_NARROWING_ALLOWED = {
     count: 2,
     reason: 'validated Character DTOs use literal starting-equipment sources for the authored enum'
   },
-  'apps/web/src/forms/factories/authoredFormFactories.ts': {
-    count: 2,
-    reason: 'the generic factory narrows loader data it constrains by domain'
-  },
   'apps/web/src/forms/factories/authoredFormSessionFactory.ts': {
-    count: 6,
+    count: 4,
     reason: 'TanStack Form values and payloads are generic over the domain the factory serves'
   },
   'apps/web/src/forms/node-map/nodeFormUtils.ts': {
@@ -165,10 +161,6 @@ export const WEB_NARROWING_ALLOWED = {
   'apps/web/src/forms/rendering/authoringNodeDefaultRegistry.ts': {
     count: 1,
     reason: 'Object.entries widens the key of the default-kind map'
-  },
-  'apps/web/src/forms/rendering/authoringNodeDefaults.ts': {
-    count: 1,
-    reason: 'the targeting default is one authored group value of the generic node-default shape'
   },
   'apps/web/src/forms/utils/pathUtils.ts': {
     count: 3,

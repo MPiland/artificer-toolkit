@@ -1,7 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 
 import { authoredIdentifierSchema } from '../shared/authoredLimits.js'
-import { sizeCodeSchema } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 /** Most slots one alternative holds, most alternatives one set holds, and most attacks one slot counts. */
 export const MAX_ATTACK_SLOT_ALTERNATIVES = 8
@@ -21,7 +21,7 @@ export type AttackSlotFillerDto = z.infer<typeof attackSlotFillerDtoSchema>
 export const attackSlotConditionDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({ kind: z.literal('EARLIER_SLOTS_HIT_SAME_TARGET') }),
-    z.strictObject({ kind: z.literal('TARGET_SIZE_AT_MOST'), size: sizeCodeSchema })
+    z.strictObject({ kind: z.literal('TARGET_SIZE_AT_MOST'), size: systemCoreCodeSchema })
   ])
 )
 export type AttackSlotConditionDto = z.infer<typeof attackSlotConditionDtoSchema>

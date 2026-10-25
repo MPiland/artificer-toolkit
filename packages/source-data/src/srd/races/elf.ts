@@ -3,7 +3,6 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
-  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -15,12 +14,12 @@ import {
   RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
-  SIZE_CODE,
   SPELL_GRANT_ATTRIBUTE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, RACE_IDS, SUBRACE_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import {
   SRD_LANGUAGES,
   SRD_SPEEDS,
@@ -31,7 +30,8 @@ import {
   SRD_SKILLS
 } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
-import { raceClosedRuleEffect } from './closed-rule-effect.js'
+import { conditionSaveAdvantageGrants, magicConditionImmunityGrant } from '../classes/mechanics.js'
+import { conditionTypeId } from '../spells/shared.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -197,12 +197,19 @@ export const elf: RaceAuthored = {
         "You have advantage on saving throws against being charmed, and magic can't put you to sleep.",
       availableAtLevel: 1,
       order: 3,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(2, 3, entry),
-          CLOSED_RULE_KIND.RACE_FEY_ANCESTRY
-        )
-      ]
+      grants: {
+        modifiers: [
+          ...conditionSaveAdvantageGrants(
+            (entry) => raceFeatureId(2, 3, 2 + entry),
+            conditionTypeId('CHARMED')
+          ),
+          magicConditionImmunityGrant(
+            (entry) => raceFeatureId(2, 3, 8 + entry),
+            conditionTypeId('UNCONSCIOUS'),
+            6
+          )
+        ]
+      }
     },
     {
       id: raceFeatureId(2, 4, 1),
