@@ -36,8 +36,8 @@ afterEach(() => {
   closeTrackedSockets()
 })
 
-/** Every later die shows `face` (zero-based): the save's among them. */
-async function ragingRoom(face: number, raging = true) {
+/** The save die shows `saveFace` (zero-based); a raging holder's save is rolled before the blow lands. */
+async function ragingRoom(saveFace: number, raging = true) {
   if (!rage || rage.id !== RAGE_EFFECT_ID) throw new Error('The SRD Rage has no Rage effect.')
   return actionRoom({
     actors: [
@@ -46,8 +46,8 @@ async function ragingRoom(face: number, raging = true) {
     ],
     ownerFeatureId: creatureFeature(attacker, 'Bite').id,
     autoRoll: 'BOTH',
-    rolls: [HITS],
-    fallbackRoll: face,
+    rolls: raging ? [saveFace, HITS] : [HITS],
+    fallbackRoll: 0,
     characterClassFeatures: [srdByLabel(barbarian.features ?? [], 'Relentless Rage')],
     characterPlay: { characterClass: barbarian, classLevel: 11, currentHitPoints: 5 },
     seed: async ({ effects, encounterId, occurredAt }) => {
