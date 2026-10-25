@@ -1573,28 +1573,11 @@ async function restoreCharacter(
   const unequipped = inverse.unequipped
   if (unequipped) reequip(unequipped.itemInstanceId, unequipped.beforeStateChecksum)
   const sheetState = ctx.ports.readCharacterSheetState(row)
-  const resource = inverse.resource
-  const nextSheetState = resource
-    ? {
-        ...sheetState,
-        resourceUsage: sheetState.resourceUsage.map((usage) => {
-          if (createCharacterResourceOwnerKey(usage.owner) !== resource.poolId) return usage
-          if (usage.used !== resource.afterUsed)
-            revertUnavailable(
-              `${row.label}'s resources changed after this action; adjust manually.`
-            )
-          return {
-            ...usage,
-            used: resource.beforeUsed,
-            updatedBy: input.userId,
-            updatedAt: input.updatedAt
-          }
-        })
-      }
-    : null
-  let restoredSheetState = nextSheetState
-  // Latest spend first, so each charge finds the usage its own spend left.
-  for (const charge of inverse.interceptionCharges.toReversed()) {
+  let restoredSheetState: typeof sheetState | null = null
+  // Latest spend first, so each charge finds the usage its own spend left: the interceptions spent
+  // during settlement, then the action's own charge.
+  const charges = [...(inverse.resource ? [inverse.resource] : []), ...inverse.interceptionCharges]
+  for (const charge of charges.toReversed()) {
     const base = restoredSheetState ?? sheetState
     const usage = base.resourceUsage.find(
       (entry) => createCharacterResourceOwnerKey(entry.owner) === charge.poolId
