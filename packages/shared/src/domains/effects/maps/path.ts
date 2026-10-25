@@ -1360,13 +1360,19 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
 const ACTOR_RELATIONSHIP_RECURRENCE_NODE_MAP = actorRelationshipRecurrence.define(
   'actorRelationshipRecurrence',
   ({ map, nodes }) => {
-    const { selectSingle, groupObject } = nodes
+    const { groupObject } = nodes
     map
       .set(
-        'stage',
-        selectSingle(['stage'], 'Stage', {
-          kind: 'INLINE_OPTIONS',
-          options: [{ code: 'START_OF_TURN', label: 'Start of Turn' }]
+        'turnAnchor',
+        groupObject(['turnAnchor'], 'Turn Anchor', () => PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
+      )
+      .set(
+        'savingThrow',
+        groupObject(['savingThrow'], 'Held Creature Save', () => SAVING_THROW_NODE_MAP, {
+          presentation: 'inline'
         })
       )
       .set(

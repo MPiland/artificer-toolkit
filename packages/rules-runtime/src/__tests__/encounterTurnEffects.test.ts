@@ -134,7 +134,10 @@ function candidate(
     definitionChecksum: value.definitionChecksum,
     lifecycleChecksum: value.lifecycleChecksum,
     targetStateChecksum: stateChecksum,
-    d20Policy
+    sourceActorId:
+      value.definition.origin.kind === 'ENCOUNTER' ? value.definition.origin.sourceActorId : null,
+    d20Policy,
+    diceStage: null
   }
 }
 
@@ -186,7 +189,7 @@ function prepare(input: {
     },
     resolvePerception: async () => null,
     userId: GM_USER_ID,
-    autoRoll: input.autoRoll ?? true,
+    autoRollByActorId: { [actor.id]: input.autoRoll ?? true },
     root,
     occurrenceId: OCCURRENCE_ID,
     actors: [actor],

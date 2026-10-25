@@ -828,6 +828,13 @@ roll, a stop or any other outcome is refused. Both the turn and the movement pat
 `isDamageDieRequest` accepts a plain integer range, the executor resumes a damage die with `d20: null` when the
 effect has no policy, `awaitsSpatialDamageDice` routes those dice to the zone's source as roller, and a paused
 movement contact with no policy is summarized as `ACTION_OUTCOME_EVIDENCE`.
+Target-bound turn effects (`encounterTurnEffects`, SPELLS-33.T6n1) pause the same way: a turn-effect candidate pins
+`sourceActorId`, its `d20Policy` and, once its save resolved, that d20 as `diceStage`. The save goes to the held
+creature's controllers, the damage dice (after a failed save, or with no save) to the effect source's controllers
+(`spatialPendingRollerActorId`, ADR 0034 decision 3), each auto-rolled by its own roller's preference through
+`settleAutomaticSpatialEvidence`; a paused die is `ACTION_OUTCOME_EVIDENCE` and is answered through
+`resumeTargetBoundActiveRuleEffectWithAnswer`, as a zone's is. A held creature's relationship `recurrence` (Chain
+Devil's 2d6 piercing) is the first turn effect that rolls dice.
 The turn stage (`selectTurnZoneContacts`) gathers contacts over every bound token: the boundary creature's own
 zones at its boundary, and, at the start of its turn, each other creature standing in a zone it is the source of
 that acts at `START_OF_SOURCE_TURN`. Contacts run in canonical zone turn order (`followsInZoneTurnOrder`: target

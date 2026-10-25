@@ -2,7 +2,8 @@ import type { DamageAuthored } from './damage.js'
 import type { ConditionAuthored } from './condition.js'
 import type { ActivationAuthored } from './effect.js'
 import type { CheckChoiceAuthored, EscapeDcAuthored } from './check.js'
-import type { AttackSlotCondition } from '#authored'
+import type { PathLifecycleTurnAnchorAuthored } from './path.js'
+import type { AttackSlotCondition, SavingThrowAuthored } from '#authored'
 import { EFFECT_KIND, type LengthUnitCode } from '#core'
 
 export type ActorRelationshipModuleAuthored =
@@ -67,6 +68,13 @@ export type ActorRelationshipAuthored = {
   modules: ActorRelationshipModuleAuthored[]
   /** Existing condition documents owned by this target relationship. */
   conditions?: ConditionAuthored[]
-  /** A separate target-turn result block, never an immediate hit outcome. */
-  recurrence?: { stage: 'START_OF_TURN'; damage: DamageAuthored }
+  /**
+   * Damage dealt to the held creature at each counted turn boundary while the hold stands, never an
+   * immediate hit outcome; with a saving throw, only when it fails that save. The hold stands either way.
+   */
+  recurrence?: {
+    turnAnchor: PathLifecycleTurnAnchorAuthored
+    savingThrow?: SavingThrowAuthored
+    damage: DamageAuthored
+  }
 }

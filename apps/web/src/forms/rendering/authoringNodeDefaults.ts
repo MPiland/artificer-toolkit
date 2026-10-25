@@ -199,7 +199,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       } satisfies Extract<ActorRelationshipModuleAuthored, { kind: 'SOURCE_FOLLOWS_TARGET' }>
     case 'actorRelationshipRecurrence':
       return {
-        stage: 'START_OF_TURN',
+        turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
         damage: {
           id: crypto.randomUUID(),
           effectKind: 'DAMAGE',

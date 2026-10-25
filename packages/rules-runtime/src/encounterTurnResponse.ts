@@ -227,20 +227,20 @@ export function prepareEncounterTurnResponse(input: {
       if (resolution.kind !== 'ENTER_INTEGER' && resolution.kind !== 'SYSTEM_ROLL')
         throw new Error('Recharge integer evidence is required.')
       entry = { ...base, kind: resolution.kind, requestId: resolution.requestId }
-    } else if (
-      context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
-      context.kind === 'ENCOUNTER_TURN_DEATH_SAVE'
-    ) {
+    } else if (context.kind === 'ENCOUNTER_TURN_DEATH_SAVE') {
       if (resolution.kind !== 'ENTER_DICE' && resolution.kind !== 'SYSTEM_ROLL')
         throw new Error('Turn d20 evidence is required.')
       entry = { ...base, kind: resolution.kind, requestId: resolution.requestId }
-    } else if (context.kind === 'ENCOUNTER_TURN_ZONE_EFFECTS') {
-      // A zone pauses on the contacted creature's d20, then on one of its source's damage dice.
+    } else if (
+      context.kind === 'ENCOUNTER_TURN_ACTIVE_EFFECTS' ||
+      context.kind === 'ENCOUNTER_TURN_ZONE_EFFECTS'
+    ) {
+      // An effect pauses on its target's d20, then on one of its source's damage dice.
       if (
         resolution.kind ===
         (awaitsSpatialDamageDice(context.currentCandidate) ? 'ENTER_DICE' : 'ENTER_INTEGER')
       )
-        throw new Error('Turn zone evidence of this kind is required.')
+        throw new Error('Turn effect evidence of this kind is required.')
       entry = { ...base, kind: resolution.kind, requestId: resolution.requestId }
     } else {
       // A Legendary Action pauses on its d20 or on one of its damage dice.

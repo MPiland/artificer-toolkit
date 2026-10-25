@@ -50,8 +50,7 @@ import {
   pathLifecycleConsumeEventSchema,
   pathLifecycleEndEventSchema,
   pathLifecycleRecurringKindSchema,
-  pathLifecycleTurnActorSchema,
-  pathLifecycleTurnBoundarySchema,
+  pathLifecycleTurnAnchorDtoSchema,
   pathOriginKindSchema,
   pathRollTableKindSchema,
   pathUsageSchema
@@ -149,12 +148,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
 export const pathLifecycleDtoSchema = lazySchema(() =>
   z.object({
     recurringKind: z.optional(pathLifecycleRecurringKindSchema),
-    turnAnchor: z.optional(
-      z.strictObject({
-        actor: pathLifecycleTurnActorSchema,
-        boundary: pathLifecycleTurnBoundarySchema
-      })
-    ),
+    turnAnchor: z.optional(pathLifecycleTurnAnchorDtoSchema),
     consumeOnFirstEvents: z.optional(
       authoredReferenceCollectionSchema(pathLifecycleConsumeEventSchema)
     ),

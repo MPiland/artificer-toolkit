@@ -759,8 +759,7 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   const recurrence = relationship.recurrence
   if (
     recurrence &&
-    (recurrence.stage !== 'START_OF_TURN' ||
-      recurrence.damage.effectKind !== 'DAMAGE' ||
+    (recurrence.damage.effectKind !== 'DAMAGE' ||
       recurrence.damage.valueKind !== 'DICE' ||
       recurrence.damage.scalingKind !== 'NONE' ||
       recurrence.damage.bonuses?.length ||
@@ -768,21 +767,37 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
       !isUuid(recurrence.damage.damageTypeId) ||
       typeof recurrence.damage.diceConfig !== 'string')
   ) {
-    unsupported('D&D relationship recurrence must be one exact start-of-turn damage outcome.')
+    unsupported('D&D relationship recurrence must be one exact damage outcome.')
   }
-  const frozenGraph = recurrence
-    ? relationshipRecurrenceGraph({
-        action,
-        relationship,
-        modules,
-        recurrenceDamage: recurrence.damage
-      })
-    : relationshipStateGraph({ action, relationship })
-  return {
+  // The held creature's own turn starts reach it alone; the holder's turns wait for a phase that
+  // reaches every creature it holds.
+  if (
+    recurrence &&
+    (recurrence.turnAnchor.actor !== 'TARGET' || recurrence.turnAnchor.boundary !== 'START_OF_TURN')
+  )
+    unsupported(
+      'D&D relationship recurrence counts only at the start of the held creature’s turns.'
+    )
+  const savingThrow = recurrence?.savingThrow
+  // The hold's own roll is no saving throw, so it settles no caster's DC for the recurrence.
+  const recurrenceSave =
+    savingThrow?.dcMethod === 'FIXED_DC' && !savingThrow.bonuses?.length
+      ? dnd5eRepeatSave({
+          abilityDefinitionId: savingThrow.abilityDefinitionId,
+          savingThrow,
+          requestNodeId: 'd20'
+        })
+      : null
+  if (savingThrow && !recurrenceSave)
+    unsupported('D&D relationship recurrence saves against one fixed DC.')
+  const plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,
     compiledEntryId: relationship.id,
-    frozenGraphNodeId: recurrence ? 'relationship-recurrence' : 'relationship-state',
-    frozenGraph,
+    frozenGraphNodeId: recurrenceSave
+      ? 'proposal-on_save_fail'
+      : recurrence
+        ? 'relationship-recurrence'
+        : 'relationship-state',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: recurrence ? 'START_OF_TURN' : 'NONE',
     initialRemaining: null,
@@ -795,11 +810,45 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
       capabilitySuppressions
     },
     ...(entry.pathCode !== 'ON_USE' && { resultGate: dnd5eResultGate(entry.pathCode) }),
-    adapterFacts: { 'dnd5e.relationship-authored-path': entry.pathCode },
+    adapterFacts: {
+      ...recurrenceSave?.adapterFacts,
+      'dnd5e.relationship-authored-path': entry.pathCode
+    },
     perceptionContributions: [],
     maintenance: null,
     marginRiders: []
   }
+  // A failed save takes the damage and a made one none; the hold stands either way.
+  const frozenGraph =
+    recurrence && recurrenceSave
+      ? compileTestDefinition(
+          action,
+          {
+            kind: 'SAVE',
+            branches: new Map([
+              [
+                'ON_SAVE_FAIL',
+                {
+                  kind: 'ENTRY_DICE_DAMAGE',
+                  diceConfig: recurrence.damage.diceConfig!,
+                  damageTypeId: damageTypeIdentity(recurrence.damage.damageTypeId),
+                  entryId: relationship.id,
+                  multiplier: 1
+                }
+              ]
+            ])
+          },
+          plan
+        )
+      : recurrence
+        ? relationshipRecurrenceGraph({
+            action,
+            relationship,
+            modules,
+            recurrenceDamage: recurrence.damage
+          })
+        : relationshipStateGraph({ action, relationship })
+  return { ...plan, frozenGraph }
 }
 
 /**
@@ -3356,9 +3405,11 @@ function dnd5eActiveEffectPlans(
   const recurringOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : null
   const testOutcomeKind = test && recurringOutcome ? boundedTestOutcome(firstEntry!).kind : null
   const expectedOperation = relationship
-    ? relationship.recurrenceStage === 'START_OF_TURN'
-      ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-      : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
+    ? relationship.frozenGraphNodeId === 'proposal-on_save_fail'
+      ? DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
+      : relationship.recurrenceStage === 'START_OF_TURN'
+        ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
+        : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
     : savePlan
       ? DND5E_SAVE_TEST_OPERATION_KEY
       : timedPlan

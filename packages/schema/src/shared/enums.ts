@@ -354,6 +354,13 @@ export const pathLifecycleTurnActorSchema = lazySchema(() => z.enum(['TARGET', '
 export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
   z.enum(['START_OF_TURN', 'END_OF_TURN'])
 )
+/** The turn boundary an effect is counted or recurs at, on its target's or its source's turns. */
+export const pathLifecycleTurnAnchorDtoSchema = lazySchema(() =>
+  z.strictObject({
+    actor: pathLifecycleTurnActorSchema,
+    boundary: pathLifecycleTurnBoundarySchema
+  })
+)
 /**
  * A lifecycle code that uses an effect or timed grant up (consume) or ends it (end) is a System code
  * (ADR 0039): the wire checks its shape, and the System's `effectConsumeEvent` and `effectEndEvent`

@@ -148,7 +148,7 @@ export const chainDevil: CreatureAuthored = {
                     heldAtOnce: 1,
                     untilEnds: ['RESTRAINED'],
                     recurrence: {
-                      stage: 'START_OF_TURN',
+                      turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
                       damage: {
                         id: S.actionId(61, 112),
                         effectKind: S.EFFECT_KIND.DAMAGE,

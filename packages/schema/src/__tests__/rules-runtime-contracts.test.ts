@@ -324,7 +324,9 @@ function turnPendingContext() {
     definitionChecksum: 'c'.repeat(64),
     lifecycleChecksum: 'd'.repeat(64),
     targetStateChecksum: 'e'.repeat(64),
-    d20Policy: null
+    sourceActorId: null,
+    d20Policy: null,
+    diceStage: null
   })
   return {
     kind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS' as const,
