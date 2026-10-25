@@ -4,7 +4,6 @@ import {
   type CharacterRulePolicyInput,
   type CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
-import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 
 import { dnd5eAbilityScoreCapabilityAdapter } from './abilityModifier.js'
 import { evaluateDnd5e2014CharacterActions } from './characterActions.js'
@@ -216,7 +215,7 @@ export function evaluateDnd5e2014CharacterPolicy(
       hitDieConstitutionModifier:
         derived.abilities.find(
           (ability) =>
-            (resolveAbilityAlias(ability.abilityId) ?? ability.abilityId) ===
+            ability.abilityId ===
             dnd5eAbilityScoreCapabilityAdapter.derivedStatisticAbilityCodes.hitPoints
         )?.modifier.effective ?? 0,
       hitDiceRecoveredAfterLongRest: recoveredHitDice(input.rest.totalHitDice),

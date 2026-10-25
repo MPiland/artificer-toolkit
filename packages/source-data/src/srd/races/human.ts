@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
@@ -23,7 +22,8 @@ import {
   SRD_LANGUAGES,
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
-  SRD_USER_ID
+  SRD_USER_ID,
+  ABILITY_CODE
 } from '../vocabulary.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {

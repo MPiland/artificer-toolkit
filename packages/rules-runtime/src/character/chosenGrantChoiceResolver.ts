@@ -1,5 +1,4 @@
 import {
-  ABILITY_OPTIONS,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
@@ -509,14 +508,19 @@ function getProficiencyOptions(
         languages
       )
     }
-    case PROFICIENCY_KIND.SAVE_ABILITY:
+    case PROFICIENCY_KIND.SAVE_ABILITY: {
+      const abilities = (registry.system?.abilities ?? []).map(({ code, label }) => ({
+        id: code,
+        label
+      }))
       return labelIds(
         getTargetIds(
           candidateIds,
-          ABILITY_OPTIONS.map((ability) => ability.code)
+          abilities.map((ability) => ability.id)
         ),
-        ABILITY_OPTIONS.map((ability) => ({ id: ability.code, label: ability.label }))
+        abilities
       )
+    }
     case PROFICIENCY_KIND.EQUIPMENT: {
       const eligible = registry.equipment.filter(
         (item) =>

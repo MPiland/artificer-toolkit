@@ -1,5 +1,6 @@
 export { getRuntimeNodeMap, listRuntimeNodeMapIds, NodeRuntimeInputError } from './mapRegistry.js'
 export {
+  normalizeIngressValues,
   normalizeNodeRuntimeValues,
   resolveNestedRuntimeScopes,
   resolveNodeRuntime

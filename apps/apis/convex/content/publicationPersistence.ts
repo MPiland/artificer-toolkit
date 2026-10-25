@@ -10,7 +10,7 @@ import {
 import { ConvexError } from 'convex/values'
 import {
   authoredSourceFacts,
-  normalizeNodeRuntimeValues
+  normalizeIngressValues
 } from '@artificer-toolkit/authoring/nodeRuntime'
 import { canonicalizeRuleDocument, checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
@@ -34,7 +34,7 @@ import { ensureAuthoredRouteId } from './routeIds'
 import { replaceCurrentAuthoredVersion } from './authoredReplacement'
 import { promoteDraftImageSlot } from './imageSlots'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
-import { requireAuthoredSizes } from '@artificer-toolkit/rules-runtime/systemSizes'
+import { requireAuthoredAbilities } from '@artificer-toolkit/rules-runtime/systemAbilities'
 import type { ResolvedEquipment } from '@artificer-toolkit/shared/subjects/compilers'
 import { requireDefaultUserContentSource } from './sources'
 import { isImportRowVisible } from '../imports/visibility'
@@ -160,7 +160,7 @@ export async function normalizePublicationDocument(
     userId,
     status: 'ACTIVE'
   })
-  requireAuthoredSizes(authored)
+  requireAuthoredAbilities(authored)
   if (authored.subjectKind === 'CLASS' && authored.document.category === 'SUBCLASS')
     await requireClassParent(ctx, authored.document, userId)
   if (authored.subjectKind === 'RACE' && authored.document.category === 'SUBRACE')
@@ -174,7 +174,7 @@ export async function normalizePublicationDocument(
       checksum: checksumRuleDocument(authored.document)
     })
   )
-  const normalized = await normalizeNodeRuntimeValues(reader, {
+  const normalized = await normalizeIngressValues(reader, {
     mapId: input.subjectKind.toLowerCase(),
     systemId: draft.systemId,
     values: authored.document

@@ -1,4 +1,5 @@
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 import type { NodeRuntimeQueryRow, NodeRuntimeSourceReader } from './nodeRuntimeSourceContract.js'
 import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
 
@@ -19,6 +20,22 @@ export type NodeRuntimePolicyVocabulary = Readonly<
   >
 >
 
+/**
+ * The resolver tables whose row ids are System core codes. Authored data names these codes directly,
+ * so ingress refuses an unknown one rather than letting node-map normalization clear it.
+ */
+export const systemCoreCodeTables = [
+  'abilities',
+  'ability_modifier_references',
+  'roll_influences',
+  'roll_modes',
+  'spell_slot_pools',
+  'effect_consume_events',
+  'effect_end_events',
+  'action_traits',
+  'sizes'
+] as const satisfies readonly NodeRuntimeSourceTable[]
+
 const policyRows = (entries: NodeRuntimePolicyVocabulary['rollMode']) =>
   entries.map(({ code, label, description }) => ({
     id: code,
@@ -31,7 +48,23 @@ export function systemCoreCodeRows(
   system: SystemAuthoredDto,
   coreCodes: NodeRuntimePolicyVocabulary
 ): Readonly<Record<string, readonly NodeRuntimeQueryRow[]>> {
+  // Ability codes key authored ability scores and references; the System record owns their labels.
+  const abilities = system.abilities.map(({ code, label, description, short }) => ({
+    id: code,
+    label,
+    description: description ?? null,
+    short: short ?? null
+  }))
   return {
+    abilities,
+    ability_modifier_references: [
+      ...abilities,
+      {
+        id: SPELLCASTING_ABILITY_REFERENCE,
+        label: 'Spellcasting',
+        description: 'The spellcasting ability of the effect source.'
+      }
+    ],
     roll_influences: policyRows(coreCodes.rollInfluence),
     roll_modes: policyRows(coreCodes.rollMode),
     spell_slot_pools: policyRows(coreCodes.spellSlotPool),
@@ -39,7 +72,7 @@ export function systemCoreCodeRows(
     effect_end_events: policyRows(coreCodes.effectEndEvent),
     action_traits: policyRows(coreCodes.actionTrait),
     sizes: policyRows(coreCodes.size),
-    ability_definitions: 'abilities' in system ? system.abilities : [],
+    ability_definitions: system.abilities,
     alignments: system.alignments,
     challenge_ratings: system.challengeRatings,
     condition_types: system.conditionTypes,

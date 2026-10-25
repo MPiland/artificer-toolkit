@@ -1,6 +1,5 @@
 import type { ProficiencyGrantAuthored } from '#authored'
 import {
-  ABILITY_OPTIONS,
   AUTHORING_MODE_KIND_OPTIONS,
   AUTHORING_SELECTION_DUPLICATE_POLICY_OPTIONS,
   AUTHORING_SELECTION_OPTIONS,
@@ -138,8 +137,8 @@ export const PROFICIENCY_NODE_MAP = proficiencyNodeMap.define(
           ['abilities'],
           'Abilities',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
           },
           {
             requiredIf: true,

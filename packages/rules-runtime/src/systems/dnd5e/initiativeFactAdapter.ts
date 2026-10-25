@@ -3,7 +3,6 @@ import type { InitiativeFactAdapter } from '../../initiativeFactAdapter.js'
 import { snapshotAbilityScore } from '../../encounterActorState.js'
 import type { InitiativeActorFactSource } from '@artificer-toolkit/schema/shared/initiativeFactSources'
 import type { InitiativeDeclarationFactsDto } from '@artificer-toolkit/schema/shared/initiativeState'
-import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 import {
   RULE_VALUE_KIND,
   type GameSystemRuleCapabilityContract
@@ -85,9 +84,8 @@ function dexterityScore(source: InitiativeActorFactSource): number | null {
       return (
         (
           source.effectiveRulePolicyOutput ?? source.overlay.rulePolicyOutput
-        ).derivedStats.abilities.find(
-          (entry) => (resolveAbilityAlias(entry.abilityId) ?? entry.abilityId) === 'DEXTERITY'
-        )?.score.effective ?? null
+        ).derivedStats.abilities.find((entry) => entry.abilityId === 'DEXTERITY')?.score
+          .effective ?? null
       )
     case 'CREATURE':
       return snapshotAbilityScore(

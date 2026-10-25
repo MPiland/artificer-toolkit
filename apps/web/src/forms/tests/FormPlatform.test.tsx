@@ -37,7 +37,7 @@ const NESTED_EFFECT_EDITOR_TIMEOUT_MS = 20_000
 vi.mock('convex/react', async (importOriginal) => ({
   ...(await importOriginal<typeof import('convex/react')>()),
   useConvex: () => ({
-    query: vi.fn(async () => ({ values: {}, clearedPaths: [] }))
+    query: vi.fn(async () => ({ values: {}, clearedPaths: [], refusedPaths: [] }))
   })
 }))
 

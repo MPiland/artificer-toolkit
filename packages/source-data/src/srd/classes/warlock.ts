@@ -1,6 +1,5 @@
 import {
   ACTIVATION_CODE,
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
@@ -43,7 +42,8 @@ import {
   SRD_DEVILS_SIGHT_SENSE_ID,
   SRD_SKILLS,
   SRD_SYSTEM_ID,
-  SRD_USER_ID
+  SRD_USER_ID,
+  ABILITY_CODE
 } from '../vocabulary.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
 import {

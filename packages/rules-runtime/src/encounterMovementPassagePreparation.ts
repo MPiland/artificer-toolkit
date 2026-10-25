@@ -28,7 +28,6 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
-import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   characterCheckSkillId,
@@ -85,17 +84,11 @@ function characterAbilityCheck(
     (definition) => definition.id === abilityDefinitionId
   )?.code
   if (code === undefined) return { modifier: undefined, evidence: undefined, rollMode: undefined }
-  // The System may spell an ability by its short alias while the rules output keys it by the full
-  // code: every lookup goes through the one canonical key.
-  const canonicalKey = (ability: string) => resolveAbilityAlias(ability) ?? ability
-  const canonical = canonicalKey(code)
-  const byCanonical = <TValue>(record: Readonly<Record<string, TValue>>) => record[canonical]
   return {
-    modifier: policy.derivedStats.abilities.find(
-      (entry) => canonicalKey(entry.abilityId) === canonical
-    )?.modifier.effective,
-    evidence: byCanonical(policy.rollContributorEvidence.abilityChecks),
-    rollMode: byCanonical(policy.rollModes.abilityChecks)
+    modifier: policy.derivedStats.abilities.find((entry) => entry.abilityId === code)?.modifier
+      .effective,
+    evidence: policy.rollContributorEvidence.abilityChecks[code],
+    rollMode: policy.rollModes.abilityChecks[code]
   }
 }
 

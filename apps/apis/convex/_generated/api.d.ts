@@ -164,7 +164,11 @@ export declare const api: {
           systemId: string;
           values?: Record<string, any>;
         },
-        { clearedPaths: Array<Array<string | number>>; values: any }
+        {
+          clearedPaths: Array<Array<string | number>>;
+          refusedPaths: Array<Array<string | number>>;
+          values: any;
+        }
       >;
       resolve: FunctionReference<
         "query",
@@ -280,9 +284,9 @@ export declare const api: {
                         value: string;
                       }>;
                       path: Array<string | number>;
-                      preserveUnknownOptions?: boolean;
                       required: boolean;
                       type: "SELECT_SINGLE";
+                      unknownOptions?: "PRESERVE" | "REFUSE";
                       visible: boolean;
                     }
                   | {
@@ -306,9 +310,9 @@ export declare const api: {
                         value: string;
                       }>;
                       path: Array<string | number>;
-                      preserveUnknownOptions?: boolean;
                       required: boolean;
                       type: "SELECT_NUMBER";
+                      unknownOptions?: "PRESERVE" | "REFUSE";
                       visible: boolean;
                     }
                   | {
@@ -332,9 +336,9 @@ export declare const api: {
                         value: string;
                       }>;
                       path: Array<string | number>;
-                      preserveUnknownOptions?: boolean;
                       required: boolean;
                       type: "SELECT_MULTI";
+                      unknownOptions?: "PRESERVE" | "REFUSE";
                       visible: boolean;
                     }
                   | {
@@ -965,9 +969,9 @@ export declare const api: {
                       value: string;
                     }>;
                     path: Array<string | number>;
-                    preserveUnknownOptions?: boolean;
                     required: boolean;
                     type: "SELECT_SINGLE";
+                    unknownOptions?: "PRESERVE" | "REFUSE";
                     visible: boolean;
                   }
                 | {
@@ -991,9 +995,9 @@ export declare const api: {
                       value: string;
                     }>;
                     path: Array<string | number>;
-                    preserveUnknownOptions?: boolean;
                     required: boolean;
                     type: "SELECT_NUMBER";
+                    unknownOptions?: "PRESERVE" | "REFUSE";
                     visible: boolean;
                   }
                 | {
@@ -1017,9 +1021,9 @@ export declare const api: {
                       value: string;
                     }>;
                     path: Array<string | number>;
-                    preserveUnknownOptions?: boolean;
                     required: boolean;
                     type: "SELECT_MULTI";
+                    unknownOptions?: "PRESERVE" | "REFUSE";
                     visible: boolean;
                   }
                 | {
@@ -1740,13 +1744,7 @@ export declare const api: {
             | {
                 adjustment:
                   | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       family: "ABILITY";
                       field: "OTHER_MODIFIER";
                       id?: string;
@@ -1754,13 +1752,7 @@ export declare const api: {
                       value: number;
                     }
                   | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       family: "ABILITY";
                       field: "SCORE_OVERRIDE";
                       id?: string;
@@ -1768,13 +1760,7 @@ export declare const api: {
                       value: number;
                     }
                   | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       family: "SAVING_THROW";
                       field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
                       id?: string;
@@ -1782,13 +1768,7 @@ export declare const api: {
                       value: number;
                     }
                   | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       family: "SAVING_THROW";
                       field: "PROFICIENCY_OVERRIDE";
                       id?: string;
@@ -1817,13 +1797,7 @@ export declare const api: {
                       id?: string;
                       skillId: string;
                       sourceNote?: string;
-                      value:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      value: string;
                     }
                   | {
                       family: "PASSIVE";
@@ -1966,26 +1940,8 @@ export declare const api: {
                   | "DEFENSE"
                   | "PROFICIENCY";
                 target:
-                  | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      kind: "ABILITY";
-                    }
-                  | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      kind: "SAVING_THROW";
-                    }
+                  | { ability: string; kind: "ABILITY" }
+                  | { ability: string; kind: "SAVING_THROW" }
                   | { kind: "SKILL"; skillId: string }
                   | { kind: "SKILLS" }
                   | {
@@ -2184,26 +2140,8 @@ export declare const api: {
                 commandId: string;
                 expectedVersion: number;
                 target:
-                  | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      kind: "ABILITY";
-                    }
-                  | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      kind: "SAVING_THROW";
-                    }
+                  | { ability: string; kind: "ABILITY" }
+                  | { ability: string; kind: "SAVING_THROW" }
                   | { kind: "SKILL"; skillId: string }
                   | { kind: "SKILLS" }
                   | {
@@ -3321,16 +3259,7 @@ export declare const api: {
                     }
                 >;
                 rangeLabel?: string;
-                save?: {
-                  ability:
-                    | "CHARISMA"
-                    | "CONSTITUTION"
-                    | "DEXTERITY"
-                    | "INTELLIGENCE"
-                    | "STRENGTH"
-                    | "WISDOM";
-                  dc?: number;
-                };
+                save?: { ability: string; dc?: number };
                 targetCountLevels?: Array<number>;
                 trigger: string;
               };
@@ -3410,14 +3339,7 @@ export declare const api: {
                   vehicleId: string;
                 }
               | {
-                  abilityScores?: {
-                    CHARISMA?: number;
-                    CONSTITUTION?: number;
-                    DEXTERITY?: number;
-                    INTELLIGENCE?: number;
-                    STRENGTH?: number;
-                    WISDOM?: number;
-                  };
+                  abilityScores?: Record<string, number>;
                   actions: Array<{
                     description?: string;
                     id: string;
@@ -3654,16 +3576,12 @@ export declare const api: {
           };
           overview: {
             abilities: Array<{
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
+              ability: string;
+              label: string;
               modifier: number;
               rollMode: string;
               score: number;
+              short: string;
             }>;
             activeGrants: Array<{
               effectId: string;
@@ -3726,26 +3644,16 @@ export declare const api: {
               label: string;
             }>;
             savingThrows: Array<{
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
+              ability: string;
               label: string;
               proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
               rollMode: string;
+              short: string;
               total: number;
             }>;
             skills: Array<{
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
+              ability: string;
+              abilityShort: string;
               code: string;
               label: string;
               proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
@@ -4035,16 +3943,7 @@ export declare const api: {
                       }
                   >;
                   rangeLabel?: string;
-                  save?: {
-                    ability:
-                      | "CHARISMA"
-                      | "CONSTITUTION"
-                      | "DEXTERITY"
-                      | "INTELLIGENCE"
-                      | "STRENGTH"
-                      | "WISDOM";
-                    dc?: number;
-                  };
+                  save?: { ability: string; dc?: number };
                   targetCountLevels?: Array<number>;
                   trigger: string;
                 }>;
@@ -4157,16 +4056,7 @@ export declare const api: {
                     }
                 >;
                 rangeLabel?: string;
-                save?: {
-                  ability:
-                    | "CHARISMA"
-                    | "CONSTITUTION"
-                    | "DEXTERITY"
-                    | "INTELLIGENCE"
-                    | "STRENGTH"
-                    | "WISDOM";
-                  dc?: number;
-                };
+                save?: { ability: string; dc?: number };
                 targetCountLevels?: Array<number>;
                 trigger: string;
               }>;
@@ -4357,26 +4247,8 @@ export declare const api: {
           campaignId: string;
           characterId: string;
           target:
-            | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                kind: "ABILITY";
-              }
-            | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                kind: "SAVING_THROW";
-              }
+            | { ability: string; kind: "ABILITY" }
+            | { ability: string; kind: "SAVING_THROW" }
             | { kind: "SKILL"; skillId: string }
             | { kind: "SKILLS" }
             | {
@@ -4549,13 +4421,7 @@ export declare const api: {
             | { kind: "VEHICLE"; vehicleInstanceId: string };
         },
         | {
-            ability:
-              | "CHARISMA"
-              | "CONSTITUTION"
-              | "DEXTERITY"
-              | "INTELLIGENCE"
-              | "STRENGTH"
-              | "WISDOM";
+            ability: string;
             allowedCommands: Array<
               | "UPSERT_ADJUSTMENT"
               | "REMOVE_ADJUSTMENT"
@@ -4648,26 +4514,11 @@ export declare const api: {
               };
             };
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-            target: {
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
-              kind: "ABILITY";
-            };
+            target: { ability: string; kind: "ABILITY" };
             title: string;
           }
         | {
-            ability:
-              | "CHARISMA"
-              | "CONSTITUTION"
-              | "DEXTERITY"
-              | "INTELLIGENCE"
-              | "STRENGTH"
-              | "WISDOM";
+            ability: string;
             allowedCommands: Array<
               | "UPSERT_ADJUSTMENT"
               | "REMOVE_ADJUSTMENT"
@@ -4769,27 +4620,12 @@ export declare const api: {
               value: string | null;
             };
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-            target: {
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
-              kind: "SAVING_THROW";
-            };
+            target: { ability: string; kind: "SAVING_THROW" };
             title: string;
             total: number;
           }
         | {
-            ability:
-              | "CHARISMA"
-              | "CONSTITUTION"
-              | "DEXTERITY"
-              | "INTELLIGENCE"
-              | "STRENGTH"
-              | "WISDOM";
+            ability: string;
             abilityEditor: {
               adjustmentId?: string;
               commitIntent: "IMMEDIATE";
@@ -4937,13 +4773,7 @@ export declare const api: {
             kind: "SKILLS";
             panelId: string;
             skills: Array<{
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
+              ability: string;
               code: string;
               label: string;
               proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
@@ -8726,13 +8556,7 @@ export declare const api: {
         Array<{
           adjustment:
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "ABILITY";
                 field: "OTHER_MODIFIER";
                 id?: string;
@@ -8740,13 +8564,7 @@ export declare const api: {
                 value: number;
               }
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "ABILITY";
                 field: "SCORE_OVERRIDE";
                 id?: string;
@@ -8754,13 +8572,7 @@ export declare const api: {
                 value: number;
               }
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "SAVING_THROW";
                 field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
                 id?: string;
@@ -8768,13 +8580,7 @@ export declare const api: {
                 value: number;
               }
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "SAVING_THROW";
                 field: "PROFICIENCY_OVERRIDE";
                 id?: string;
@@ -8803,13 +8609,7 @@ export declare const api: {
                 id?: string;
                 skillId: string;
                 sourceNote?: string;
-                value:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                value: string;
               }
             | {
                 family: "PASSIVE";
@@ -9009,13 +8809,7 @@ export declare const api: {
         {
           adjustment:
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "ABILITY";
                 field: "OTHER_MODIFIER";
                 id?: string;
@@ -9023,13 +8817,7 @@ export declare const api: {
                 value: number;
               }
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "ABILITY";
                 field: "SCORE_OVERRIDE";
                 id?: string;
@@ -9037,13 +8825,7 @@ export declare const api: {
                 value: number;
               }
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "SAVING_THROW";
                 field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
                 id?: string;
@@ -9051,13 +8833,7 @@ export declare const api: {
                 value: number;
               }
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "SAVING_THROW";
                 field: "PROFICIENCY_OVERRIDE";
                 id?: string;
@@ -9086,13 +8862,7 @@ export declare const api: {
                 id?: string;
                 skillId: string;
                 sourceNote?: string;
-                value:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                value: string;
               }
             | {
                 family: "PASSIVE";
@@ -9245,13 +9015,7 @@ export declare const api: {
         {
           adjustment:
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "ABILITY";
                 field: "OTHER_MODIFIER";
                 id?: string;
@@ -9259,13 +9023,7 @@ export declare const api: {
                 value: number;
               }
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "ABILITY";
                 field: "SCORE_OVERRIDE";
                 id?: string;
@@ -9273,13 +9031,7 @@ export declare const api: {
                 value: number;
               }
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "SAVING_THROW";
                 field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
                 id?: string;
@@ -9287,13 +9039,7 @@ export declare const api: {
                 value: number;
               }
             | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                ability: string;
                 family: "SAVING_THROW";
                 field: "PROFICIENCY_OVERRIDE";
                 id?: string;
@@ -9322,13 +9068,7 @@ export declare const api: {
                 id?: string;
                 skillId: string;
                 sourceNote?: string;
-                value:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
+                value: string;
               }
             | {
                 family: "PASSIVE";
@@ -11595,26 +11335,14 @@ export declare const api: {
             abilities:
               | {
                   assignments: Array<{
-                    ability:
-                      | "CHARISMA"
-                      | "CONSTITUTION"
-                      | "DEXTERITY"
-                      | "INTELLIGENCE"
-                      | "STRENGTH"
-                      | "WISDOM";
+                    ability: string;
                     option: "8" | "10" | "12" | "13" | "14" | "15";
                   }>;
                   method: "STANDARD_ARRAY";
                 }
               | {
                   assignments: Array<{
-                    ability:
-                      | "CHARISMA"
-                      | "CONSTITUTION"
-                      | "DEXTERITY"
-                      | "INTELLIGENCE"
-                      | "STRENGTH"
-                      | "WISDOM";
+                    ability: string;
                     option: "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                   }>;
                   method: "POINT_BUY";
@@ -11622,26 +11350,11 @@ export declare const api: {
               | {
                   method: "MANUAL_ROLLED";
                   state: {
-                    assignments: Array<{
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      score: number;
-                    }>;
+                    assignments: Array<{ ability: string; score: number }>;
                     configuration?: string;
                     rollGroups?: Array<{
                       applied?: boolean;
-                      assignedAbility?:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      assignedAbility?: string;
                       id: string;
                       kept: Array<{ die: number; value: number }>;
                       rolling?: boolean;
@@ -11903,14 +11616,7 @@ export declare const api: {
             resources?: Array<{ resourceGrantId: string; used: number }>;
             spellSlots?: Array<{ slotKey: string; used: number }>;
             spellSummons?: Array<{
-              abilityScores?: {
-                CHARISMA?: number;
-                CONSTITUTION?: number;
-                DEXTERITY?: number;
-                INTELLIGENCE?: number;
-                STRENGTH?: number;
-                WISDOM?: number;
-              };
+              abilityScores?: Record<string, number>;
               armorClass: number | null;
               castAt: string;
               concentration: boolean;
@@ -11962,26 +11668,14 @@ export declare const api: {
               abilities:
                 | {
                     assignments: Array<{
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       option: "8" | "10" | "12" | "13" | "14" | "15";
                     }>;
                     method: "STANDARD_ARRAY";
                   }
                 | {
                     assignments: Array<{
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       option:
                         "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                     }>;
@@ -11990,26 +11684,11 @@ export declare const api: {
                 | {
                     method: "MANUAL_ROLLED";
                     state: {
-                      assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
-                        score: number;
-                      }>;
+                      assignments: Array<{ ability: string; score: number }>;
                       configuration?: string;
                       rollGroups?: Array<{
                         applied?: boolean;
-                        assignedAbility?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        assignedAbility?: string;
                         id: string;
                         kept: Array<{ die: number; value: number }>;
                         rolling?: boolean;
@@ -12314,14 +11993,7 @@ export declare const api: {
               resources?: Array<{ resourceGrantId: string; used: number }>;
               spellSlots?: Array<{ slotKey: string; used: number }>;
               spellSummons?: Array<{
-                abilityScores?: {
-                  CHARISMA?: number;
-                  CONSTITUTION?: number;
-                  DEXTERITY?: number;
-                  INTELLIGENCE?: number;
-                  STRENGTH?: number;
-                  WISDOM?: number;
-                };
+                abilityScores?: Record<string, number>;
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
@@ -12371,26 +12043,14 @@ export declare const api: {
               abilities:
                 | {
                     assignments: Array<{
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       option: "8" | "10" | "12" | "13" | "14" | "15";
                     }>;
                     method: "STANDARD_ARRAY";
                   }
                 | {
                     assignments: Array<{
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       option:
                         "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                     }>;
@@ -12399,26 +12059,11 @@ export declare const api: {
                 | {
                     method: "MANUAL_ROLLED";
                     state: {
-                      assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
-                        score: number;
-                      }>;
+                      assignments: Array<{ ability: string; score: number }>;
                       configuration?: string;
                       rollGroups?: Array<{
                         applied?: boolean;
-                        assignedAbility?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        assignedAbility?: string;
                         id: string;
                         kept: Array<{ die: number; value: number }>;
                         rolling?: boolean;
@@ -12724,14 +12369,7 @@ export declare const api: {
               resources?: Array<{ resourceGrantId: string; used: number }>;
               spellSlots?: Array<{ slotKey: string; used: number }>;
               spellSummons?: Array<{
-                abilityScores?: {
-                  CHARISMA?: number;
-                  CONSTITUTION?: number;
-                  DEXTERITY?: number;
-                  INTELLIGENCE?: number;
-                  STRENGTH?: number;
-                  WISDOM?: number;
-                };
+                abilityScores?: Record<string, number>;
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
@@ -12796,150 +12434,75 @@ export declare const api: {
                     | {
                         method: "STANDARD_ARRAY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "POINT_BUY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "MANUAL_ROLLED";
-                        slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score?: number;
-                        }>;
+                        slots: Array<{ ability?: string; score?: number }>;
                       };
                   POINT_BUY?:
                     | {
                         method: "STANDARD_ARRAY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "POINT_BUY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "MANUAL_ROLLED";
-                        slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score?: number;
-                        }>;
+                        slots: Array<{ ability?: string; score?: number }>;
                       };
                   STANDARD_ARRAY?:
                     | {
                         method: "STANDARD_ARRAY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "POINT_BUY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "MANUAL_ROLLED";
-                        slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score?: number;
-                        }>;
+                        slots: Array<{ ability?: string; score?: number }>;
                       };
                 };
                 methods: {
                   MANUAL_ROLLED?:
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                         method: "STANDARD_ARRAY";
                       }
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
@@ -12949,25 +12512,13 @@ export declare const api: {
                         method: "MANUAL_ROLLED";
                         state: {
                           assignments: Array<{
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            ability: string;
                             score: number;
                           }>;
                           configuration?: string;
                           rollGroups?: Array<{
                             applied?: boolean;
-                            assignedAbility?:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            assignedAbility?: string;
                             id: string;
                             kept: Array<{ die: number; value: number }>;
                             rolling?: boolean;
@@ -12979,26 +12530,14 @@ export declare const api: {
                   POINT_BUY?:
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                         method: "STANDARD_ARRAY";
                       }
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
@@ -13008,25 +12547,13 @@ export declare const api: {
                         method: "MANUAL_ROLLED";
                         state: {
                           assignments: Array<{
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            ability: string;
                             score: number;
                           }>;
                           configuration?: string;
                           rollGroups?: Array<{
                             applied?: boolean;
-                            assignedAbility?:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            assignedAbility?: string;
                             id: string;
                             kept: Array<{ die: number; value: number }>;
                             rolling?: boolean;
@@ -13038,26 +12565,14 @@ export declare const api: {
                   STANDARD_ARRAY?:
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                         method: "STANDARD_ARRAY";
                       }
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
@@ -13067,25 +12582,13 @@ export declare const api: {
                         method: "MANUAL_ROLLED";
                         state: {
                           assignments: Array<{
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            ability: string;
                             score: number;
                           }>;
                           configuration?: string;
                           rollGroups?: Array<{
                             applied?: boolean;
-                            assignedAbility?:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            assignedAbility?: string;
                             id: string;
                             kept: Array<{ die: number; value: number }>;
                             rolling?: boolean;
@@ -13104,26 +12607,14 @@ export declare const api: {
                 abilities:
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option: "8" | "10" | "12" | "13" | "14" | "15";
                       }>;
                       method: "STANDARD_ARRAY";
                     }
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option:
                           "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                       }>;
@@ -13132,26 +12623,11 @@ export declare const api: {
                   | {
                       method: "MANUAL_ROLLED";
                       state: {
-                        assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score: number;
-                        }>;
+                        assignments: Array<{ ability: string; score: number }>;
                         configuration?: string;
                         rollGroups?: Array<{
                           applied?: boolean;
-                          assignedAbility?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          assignedAbility?: string;
                           id: string;
                           kept: Array<{ die: number; value: number }>;
                           rolling?: boolean;
@@ -13460,14 +12936,7 @@ export declare const api: {
                 resources?: Array<{ resourceGrantId: string; used: number }>;
                 spellSlots?: Array<{ slotKey: string; used: number }>;
                 spellSummons?: Array<{
-                  abilityScores?: {
-                    CHARISMA?: number;
-                    CONSTITUTION?: number;
-                    DEXTERITY?: number;
-                    INTELLIGENCE?: number;
-                    STRENGTH?: number;
-                    WISDOM?: number;
-                  };
+                  abilityScores?: Record<string, number>;
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
@@ -13540,150 +13009,75 @@ export declare const api: {
                     | {
                         method: "STANDARD_ARRAY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "POINT_BUY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "MANUAL_ROLLED";
-                        slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score?: number;
-                        }>;
+                        slots: Array<{ ability?: string; score?: number }>;
                       };
                   POINT_BUY?:
                     | {
                         method: "STANDARD_ARRAY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "POINT_BUY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "MANUAL_ROLLED";
-                        slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score?: number;
-                        }>;
+                        slots: Array<{ ability?: string; score?: number }>;
                       };
                   STANDARD_ARRAY?:
                     | {
                         method: "STANDARD_ARRAY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "POINT_BUY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "MANUAL_ROLLED";
-                        slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score?: number;
-                        }>;
+                        slots: Array<{ ability?: string; score?: number }>;
                       };
                 };
                 methods: {
                   MANUAL_ROLLED?:
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                         method: "STANDARD_ARRAY";
                       }
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
@@ -13693,25 +13087,13 @@ export declare const api: {
                         method: "MANUAL_ROLLED";
                         state: {
                           assignments: Array<{
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            ability: string;
                             score: number;
                           }>;
                           configuration?: string;
                           rollGroups?: Array<{
                             applied?: boolean;
-                            assignedAbility?:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            assignedAbility?: string;
                             id: string;
                             kept: Array<{ die: number; value: number }>;
                             rolling?: boolean;
@@ -13723,26 +13105,14 @@ export declare const api: {
                   POINT_BUY?:
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                         method: "STANDARD_ARRAY";
                       }
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
@@ -13752,25 +13122,13 @@ export declare const api: {
                         method: "MANUAL_ROLLED";
                         state: {
                           assignments: Array<{
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            ability: string;
                             score: number;
                           }>;
                           configuration?: string;
                           rollGroups?: Array<{
                             applied?: boolean;
-                            assignedAbility?:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            assignedAbility?: string;
                             id: string;
                             kept: Array<{ die: number; value: number }>;
                             rolling?: boolean;
@@ -13782,26 +13140,14 @@ export declare const api: {
                   STANDARD_ARRAY?:
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                         method: "STANDARD_ARRAY";
                       }
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
@@ -13811,25 +13157,13 @@ export declare const api: {
                         method: "MANUAL_ROLLED";
                         state: {
                           assignments: Array<{
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            ability: string;
                             score: number;
                           }>;
                           configuration?: string;
                           rollGroups?: Array<{
                             applied?: boolean;
-                            assignedAbility?:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            assignedAbility?: string;
                             id: string;
                             kept: Array<{ die: number; value: number }>;
                             rolling?: boolean;
@@ -13848,26 +13182,14 @@ export declare const api: {
                 abilities:
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option: "8" | "10" | "12" | "13" | "14" | "15";
                       }>;
                       method: "STANDARD_ARRAY";
                     }
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option:
                           "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                       }>;
@@ -13876,26 +13198,11 @@ export declare const api: {
                   | {
                       method: "MANUAL_ROLLED";
                       state: {
-                        assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score: number;
-                        }>;
+                        assignments: Array<{ ability: string; score: number }>;
                         configuration?: string;
                         rollGroups?: Array<{
                           applied?: boolean;
-                          assignedAbility?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          assignedAbility?: string;
                           id: string;
                           kept: Array<{ die: number; value: number }>;
                           rolling?: boolean;
@@ -14204,14 +13511,7 @@ export declare const api: {
                 resources?: Array<{ resourceGrantId: string; used: number }>;
                 spellSlots?: Array<{ slotKey: string; used: number }>;
                 spellSummons?: Array<{
-                  abilityScores?: {
-                    CHARISMA?: number;
-                    CONSTITUTION?: number;
-                    DEXTERITY?: number;
-                    INTELLIGENCE?: number;
-                    STRENGTH?: number;
-                    WISDOM?: number;
-                  };
+                  abilityScores?: Record<string, number>;
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
@@ -14300,150 +13600,75 @@ export declare const api: {
                   | {
                       method: "STANDARD_ARRAY";
                       slots: Array<{
-                        ability?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability?: string;
                         option?: "8" | "10" | "12" | "13" | "14" | "15";
                       }>;
                     }
                   | {
                       method: "POINT_BUY";
                       slots: Array<{
-                        ability?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability?: string;
                         option?:
                           "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                       }>;
                     }
                   | {
                       method: "MANUAL_ROLLED";
-                      slots: Array<{
-                        ability?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
-                        score?: number;
-                      }>;
+                      slots: Array<{ ability?: string; score?: number }>;
                     };
                 POINT_BUY?:
                   | {
                       method: "STANDARD_ARRAY";
                       slots: Array<{
-                        ability?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability?: string;
                         option?: "8" | "10" | "12" | "13" | "14" | "15";
                       }>;
                     }
                   | {
                       method: "POINT_BUY";
                       slots: Array<{
-                        ability?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability?: string;
                         option?:
                           "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                       }>;
                     }
                   | {
                       method: "MANUAL_ROLLED";
-                      slots: Array<{
-                        ability?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
-                        score?: number;
-                      }>;
+                      slots: Array<{ ability?: string; score?: number }>;
                     };
                 STANDARD_ARRAY?:
                   | {
                       method: "STANDARD_ARRAY";
                       slots: Array<{
-                        ability?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability?: string;
                         option?: "8" | "10" | "12" | "13" | "14" | "15";
                       }>;
                     }
                   | {
                       method: "POINT_BUY";
                       slots: Array<{
-                        ability?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability?: string;
                         option?:
                           "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                       }>;
                     }
                   | {
                       method: "MANUAL_ROLLED";
-                      slots: Array<{
-                        ability?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
-                        score?: number;
-                      }>;
+                      slots: Array<{ ability?: string; score?: number }>;
                     };
               };
               methods: {
                 MANUAL_ROLLED?:
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option: "8" | "10" | "12" | "13" | "14" | "15";
                       }>;
                       method: "STANDARD_ARRAY";
                     }
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option:
                           "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                       }>;
@@ -14452,26 +13677,11 @@ export declare const api: {
                   | {
                       method: "MANUAL_ROLLED";
                       state: {
-                        assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score: number;
-                        }>;
+                        assignments: Array<{ ability: string; score: number }>;
                         configuration?: string;
                         rollGroups?: Array<{
                           applied?: boolean;
-                          assignedAbility?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          assignedAbility?: string;
                           id: string;
                           kept: Array<{ die: number; value: number }>;
                           rolling?: boolean;
@@ -14483,26 +13693,14 @@ export declare const api: {
                 POINT_BUY?:
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option: "8" | "10" | "12" | "13" | "14" | "15";
                       }>;
                       method: "STANDARD_ARRAY";
                     }
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option:
                           "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                       }>;
@@ -14511,26 +13709,11 @@ export declare const api: {
                   | {
                       method: "MANUAL_ROLLED";
                       state: {
-                        assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score: number;
-                        }>;
+                        assignments: Array<{ ability: string; score: number }>;
                         configuration?: string;
                         rollGroups?: Array<{
                           applied?: boolean;
-                          assignedAbility?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          assignedAbility?: string;
                           id: string;
                           kept: Array<{ die: number; value: number }>;
                           rolling?: boolean;
@@ -14542,26 +13725,14 @@ export declare const api: {
                 STANDARD_ARRAY?:
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option: "8" | "10" | "12" | "13" | "14" | "15";
                       }>;
                       method: "STANDARD_ARRAY";
                     }
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option:
                           "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                       }>;
@@ -14570,26 +13741,11 @@ export declare const api: {
                   | {
                       method: "MANUAL_ROLLED";
                       state: {
-                        assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score: number;
-                        }>;
+                        assignments: Array<{ ability: string; score: number }>;
                         configuration?: string;
                         rollGroups?: Array<{
                           applied?: boolean;
-                          assignedAbility?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          assignedAbility?: string;
                           id: string;
                           kept: Array<{ die: number; value: number }>;
                           rolling?: boolean;
@@ -14608,26 +13764,14 @@ export declare const api: {
               abilities:
                 | {
                     assignments: Array<{
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       option: "8" | "10" | "12" | "13" | "14" | "15";
                     }>;
                     method: "STANDARD_ARRAY";
                   }
                 | {
                     assignments: Array<{
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       option:
                         "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                     }>;
@@ -14636,26 +13780,11 @@ export declare const api: {
                 | {
                     method: "MANUAL_ROLLED";
                     state: {
-                      assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
-                        score: number;
-                      }>;
+                      assignments: Array<{ ability: string; score: number }>;
                       configuration?: string;
                       rollGroups?: Array<{
                         applied?: boolean;
-                        assignedAbility?:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        assignedAbility?: string;
                         id: string;
                         kept: Array<{ die: number; value: number }>;
                         rolling?: boolean;
@@ -14960,14 +14089,7 @@ export declare const api: {
               resources?: Array<{ resourceGrantId: string; used: number }>;
               spellSlots?: Array<{ slotKey: string; used: number }>;
               spellSummons?: Array<{
-                abilityScores?: {
-                  CHARISMA?: number;
-                  CONSTITUTION?: number;
-                  DEXTERITY?: number;
-                  INTELLIGENCE?: number;
-                  STRENGTH?: number;
-                  WISDOM?: number;
-                };
+                abilityScores?: Record<string, number>;
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
@@ -15026,150 +14148,75 @@ export declare const api: {
                     | {
                         method: "STANDARD_ARRAY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "POINT_BUY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "MANUAL_ROLLED";
-                        slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score?: number;
-                        }>;
+                        slots: Array<{ ability?: string; score?: number }>;
                       };
                   POINT_BUY?:
                     | {
                         method: "STANDARD_ARRAY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "POINT_BUY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "MANUAL_ROLLED";
-                        slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score?: number;
-                        }>;
+                        slots: Array<{ ability?: string; score?: number }>;
                       };
                   STANDARD_ARRAY?:
                     | {
                         method: "STANDARD_ARRAY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "POINT_BUY";
                         slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability?: string;
                           option?:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
                       }
                     | {
                         method: "MANUAL_ROLLED";
-                        slots: Array<{
-                          ability?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score?: number;
-                        }>;
+                        slots: Array<{ ability?: string; score?: number }>;
                       };
                 };
                 methods: {
                   MANUAL_ROLLED?:
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                         method: "STANDARD_ARRAY";
                       }
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
@@ -15179,25 +14226,13 @@ export declare const api: {
                         method: "MANUAL_ROLLED";
                         state: {
                           assignments: Array<{
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            ability: string;
                             score: number;
                           }>;
                           configuration?: string;
                           rollGroups?: Array<{
                             applied?: boolean;
-                            assignedAbility?:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            assignedAbility?: string;
                             id: string;
                             kept: Array<{ die: number; value: number }>;
                             rolling?: boolean;
@@ -15209,26 +14244,14 @@ export declare const api: {
                   POINT_BUY?:
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                         method: "STANDARD_ARRAY";
                       }
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
@@ -15238,25 +14261,13 @@ export declare const api: {
                         method: "MANUAL_ROLLED";
                         state: {
                           assignments: Array<{
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            ability: string;
                             score: number;
                           }>;
                           configuration?: string;
                           rollGroups?: Array<{
                             applied?: boolean;
-                            assignedAbility?:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            assignedAbility?: string;
                             id: string;
                             kept: Array<{ die: number; value: number }>;
                             rolling?: boolean;
@@ -15268,26 +14279,14 @@ export declare const api: {
                   STANDARD_ARRAY?:
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option: "8" | "10" | "12" | "13" | "14" | "15";
                         }>;
                         method: "STANDARD_ARRAY";
                       }
                     | {
                         assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          ability: string;
                           option:
                             "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                         }>;
@@ -15297,25 +14296,13 @@ export declare const api: {
                         method: "MANUAL_ROLLED";
                         state: {
                           assignments: Array<{
-                            ability:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            ability: string;
                             score: number;
                           }>;
                           configuration?: string;
                           rollGroups?: Array<{
                             applied?: boolean;
-                            assignedAbility?:
-                              | "CHARISMA"
-                              | "CONSTITUTION"
-                              | "DEXTERITY"
-                              | "INTELLIGENCE"
-                              | "STRENGTH"
-                              | "WISDOM";
+                            assignedAbility?: string;
                             id: string;
                             kept: Array<{ die: number; value: number }>;
                             rolling?: boolean;
@@ -15334,26 +14321,14 @@ export declare const api: {
                 abilities:
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option: "8" | "10" | "12" | "13" | "14" | "15";
                       }>;
                       method: "STANDARD_ARRAY";
                     }
                   | {
                       assignments: Array<{
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
+                        ability: string;
                         option:
                           "8" | "9" | "10" | "11" | "12" | "13" | "14" | "15";
                       }>;
@@ -15362,26 +14337,11 @@ export declare const api: {
                   | {
                       method: "MANUAL_ROLLED";
                       state: {
-                        assignments: Array<{
-                          ability:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
-                          score: number;
-                        }>;
+                        assignments: Array<{ ability: string; score: number }>;
                         configuration?: string;
                         rollGroups?: Array<{
                           applied?: boolean;
-                          assignedAbility?:
-                            | "CHARISMA"
-                            | "CONSTITUTION"
-                            | "DEXTERITY"
-                            | "INTELLIGENCE"
-                            | "STRENGTH"
-                            | "WISDOM";
+                          assignedAbility?: string;
                           id: string;
                           kept: Array<{ die: number; value: number }>;
                           rolling?: boolean;
@@ -15690,14 +14650,7 @@ export declare const api: {
                 resources?: Array<{ resourceGrantId: string; used: number }>;
                 spellSlots?: Array<{ slotKey: string; used: number }>;
                 spellSummons?: Array<{
-                  abilityScores?: {
-                    CHARISMA?: number;
-                    CONSTITUTION?: number;
-                    DEXTERITY?: number;
-                    INTELLIGENCE?: number;
-                    STRENGTH?: number;
-                    WISDOM?: number;
-                  };
+                  abilityScores?: Record<string, number>;
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
@@ -15823,26 +14776,8 @@ export declare const api: {
         {
           id: string;
           target:
-            | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                kind: "ABILITY";
-              }
-            | {
-                ability:
-                  | "CHARISMA"
-                  | "CONSTITUTION"
-                  | "DEXTERITY"
-                  | "INTELLIGENCE"
-                  | "STRENGTH"
-                  | "WISDOM";
-                kind: "SAVING_THROW";
-              }
+            | { ability: string; kind: "ABILITY" }
+            | { ability: string; kind: "SAVING_THROW" }
             | { kind: "SKILL"; skillId: string }
             | { kind: "SKILLS" }
             | {
@@ -16015,13 +14950,7 @@ export declare const api: {
             | { kind: "VEHICLE"; vehicleInstanceId: string };
         },
         | {
-            ability:
-              | "CHARISMA"
-              | "CONSTITUTION"
-              | "DEXTERITY"
-              | "INTELLIGENCE"
-              | "STRENGTH"
-              | "WISDOM";
+            ability: string;
             allowedCommands: Array<
               | "UPSERT_ADJUSTMENT"
               | "REMOVE_ADJUSTMENT"
@@ -16114,26 +15043,11 @@ export declare const api: {
               };
             };
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-            target: {
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
-              kind: "ABILITY";
-            };
+            target: { ability: string; kind: "ABILITY" };
             title: string;
           }
         | {
-            ability:
-              | "CHARISMA"
-              | "CONSTITUTION"
-              | "DEXTERITY"
-              | "INTELLIGENCE"
-              | "STRENGTH"
-              | "WISDOM";
+            ability: string;
             allowedCommands: Array<
               | "UPSERT_ADJUSTMENT"
               | "REMOVE_ADJUSTMENT"
@@ -16235,27 +15149,12 @@ export declare const api: {
               value: string | null;
             };
             state: "DEFAULT" | "ADJUSTED" | "OVERRIDDEN";
-            target: {
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
-              kind: "SAVING_THROW";
-            };
+            target: { ability: string; kind: "SAVING_THROW" };
             title: string;
             total: number;
           }
         | {
-            ability:
-              | "CHARISMA"
-              | "CONSTITUTION"
-              | "DEXTERITY"
-              | "INTELLIGENCE"
-              | "STRENGTH"
-              | "WISDOM";
+            ability: string;
             abilityEditor: {
               adjustmentId?: string;
               commitIntent: "IMMEDIATE";
@@ -16403,13 +15302,7 @@ export declare const api: {
             kind: "SKILLS";
             panelId: string;
             skills: Array<{
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
+              ability: string;
               code: string;
               label: string;
               proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
@@ -18790,16 +17683,7 @@ export declare const api: {
                     }
                 >;
                 rangeLabel?: string;
-                save?: {
-                  ability:
-                    | "CHARISMA"
-                    | "CONSTITUTION"
-                    | "DEXTERITY"
-                    | "INTELLIGENCE"
-                    | "STRENGTH"
-                    | "WISDOM";
-                  dc?: number;
-                };
+                save?: { ability: string; dc?: number };
                 targetCountLevels?: Array<number>;
                 trigger: string;
               };
@@ -18879,14 +17763,7 @@ export declare const api: {
                   vehicleId: string;
                 }
               | {
-                  abilityScores?: {
-                    CHARISMA?: number;
-                    CONSTITUTION?: number;
-                    DEXTERITY?: number;
-                    INTELLIGENCE?: number;
-                    STRENGTH?: number;
-                    WISDOM?: number;
-                  };
+                  abilityScores?: Record<string, number>;
                   actions: Array<{
                     description?: string;
                     id: string;
@@ -19123,16 +18000,12 @@ export declare const api: {
           };
           overview: {
             abilities: Array<{
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
+              ability: string;
+              label: string;
               modifier: number;
               rollMode: string;
               score: number;
+              short: string;
             }>;
             activeGrants: Array<{
               effectId: string;
@@ -19195,26 +18068,16 @@ export declare const api: {
               label: string;
             }>;
             savingThrows: Array<{
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
+              ability: string;
               label: string;
               proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
               rollMode: string;
+              short: string;
               total: number;
             }>;
             skills: Array<{
-              ability:
-                | "CHARISMA"
-                | "CONSTITUTION"
-                | "DEXTERITY"
-                | "INTELLIGENCE"
-                | "STRENGTH"
-                | "WISDOM";
+              ability: string;
+              abilityShort: string;
               code: string;
               label: string;
               proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
@@ -19504,16 +18367,7 @@ export declare const api: {
                       }
                   >;
                   rangeLabel?: string;
-                  save?: {
-                    ability:
-                      | "CHARISMA"
-                      | "CONSTITUTION"
-                      | "DEXTERITY"
-                      | "INTELLIGENCE"
-                      | "STRENGTH"
-                      | "WISDOM";
-                    dc?: number;
-                  };
+                  save?: { ability: string; dc?: number };
                   targetCountLevels?: Array<number>;
                   trigger: string;
                 }>;
@@ -19626,16 +18480,7 @@ export declare const api: {
                     }
                 >;
                 rangeLabel?: string;
-                save?: {
-                  ability:
-                    | "CHARISMA"
-                    | "CONSTITUTION"
-                    | "DEXTERITY"
-                    | "INTELLIGENCE"
-                    | "STRENGTH"
-                    | "WISDOM";
-                  dc?: number;
-                };
+                save?: { ability: string; dc?: number };
                 targetCountLevels?: Array<number>;
                 trigger: string;
               }>;
@@ -19829,13 +18674,7 @@ export declare const api: {
             | {
                 adjustment:
                   | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       family: "ABILITY";
                       field: "OTHER_MODIFIER";
                       id?: string;
@@ -19843,13 +18682,7 @@ export declare const api: {
                       value: number;
                     }
                   | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       family: "ABILITY";
                       field: "SCORE_OVERRIDE";
                       id?: string;
@@ -19857,13 +18690,7 @@ export declare const api: {
                       value: number;
                     }
                   | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       family: "SAVING_THROW";
                       field: "MAGIC_BONUS" | "MISC_BONUS" | "TOTAL_OVERRIDE";
                       id?: string;
@@ -19871,13 +18698,7 @@ export declare const api: {
                       value: number;
                     }
                   | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      ability: string;
                       family: "SAVING_THROW";
                       field: "PROFICIENCY_OVERRIDE";
                       id?: string;
@@ -19906,13 +18727,7 @@ export declare const api: {
                       id?: string;
                       skillId: string;
                       sourceNote?: string;
-                      value:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
+                      value: string;
                     }
                   | {
                       family: "PASSIVE";
@@ -20055,26 +18870,8 @@ export declare const api: {
                   | "DEFENSE"
                   | "PROFICIENCY";
                 target:
-                  | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      kind: "ABILITY";
-                    }
-                  | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      kind: "SAVING_THROW";
-                    }
+                  | { ability: string; kind: "ABILITY" }
+                  | { ability: string; kind: "SAVING_THROW" }
                   | { kind: "SKILL"; skillId: string }
                   | { kind: "SKILLS" }
                   | {
@@ -20273,26 +19070,8 @@ export declare const api: {
                 commandId: string;
                 expectedVersion: number;
                 target:
-                  | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      kind: "ABILITY";
-                    }
-                  | {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      kind: "SAVING_THROW";
-                    }
+                  | { ability: string; kind: "ABILITY" }
+                  | { ability: string; kind: "SAVING_THROW" }
                   | { kind: "SKILL"; skillId: string }
                   | { kind: "SKILLS" }
                   | {
@@ -21318,16 +20097,12 @@ export declare const api: {
               };
               overview: {
                 abilities: Array<{
-                  ability:
-                    | "CHARISMA"
-                    | "CONSTITUTION"
-                    | "DEXTERITY"
-                    | "INTELLIGENCE"
-                    | "STRENGTH"
-                    | "WISDOM";
+                  ability: string;
+                  label: string;
                   modifier: number;
                   rollMode: string;
                   score: number;
+                  short: string;
                 }>;
                 activeGrants: Array<{
                   effectId: string;
@@ -21392,26 +20167,16 @@ export declare const api: {
                   label: string;
                 }>;
                 savingThrows: Array<{
-                  ability:
-                    | "CHARISMA"
-                    | "CONSTITUTION"
-                    | "DEXTERITY"
-                    | "INTELLIGENCE"
-                    | "STRENGTH"
-                    | "WISDOM";
+                  ability: string;
                   label: string;
                   proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
                   rollMode: string;
+                  short: string;
                   total: number;
                 }>;
                 skills: Array<{
-                  ability:
-                    | "CHARISMA"
-                    | "CONSTITUTION"
-                    | "DEXTERITY"
-                    | "INTELLIGENCE"
-                    | "STRENGTH"
-                    | "WISDOM";
+                  ability: string;
+                  abilityShort: string;
                   code: string;
                   label: string;
                   proficiency: "NONE" | "HALF" | "FULL" | "DOUBLE";
@@ -21510,16 +20275,7 @@ export declare const api: {
                         }
                     >;
                     rangeLabel?: string;
-                    save?: {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      dc?: number;
-                    };
+                    save?: { ability: string; dc?: number };
                     targetCountLevels?: Array<number>;
                     trigger: string;
                   };
@@ -21767,16 +20523,7 @@ export declare const api: {
                           }
                       >;
                       rangeLabel?: string;
-                      save?: {
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
-                        dc?: number;
-                      };
+                      save?: { ability: string; dc?: number };
                       targetCountLevels?: Array<number>;
                       trigger: string;
                     }>;
@@ -21878,16 +20625,7 @@ export declare const api: {
                         }
                     >;
                     rangeLabel?: string;
-                    save?: {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      dc?: number;
-                    };
+                    save?: { ability: string; dc?: number };
                     targetCountLevels?: Array<number>;
                     trigger: string;
                   }>;
@@ -22159,16 +20897,7 @@ export declare const api: {
                           }
                       >;
                       rangeLabel?: string;
-                      save?: {
-                        ability:
-                          | "CHARISMA"
-                          | "CONSTITUTION"
-                          | "DEXTERITY"
-                          | "INTELLIGENCE"
-                          | "STRENGTH"
-                          | "WISDOM";
-                        dc?: number;
-                      };
+                      save?: { ability: string; dc?: number };
                       targetCountLevels?: Array<number>;
                       trigger: string;
                     }>;
@@ -22287,16 +21016,7 @@ export declare const api: {
                         }
                     >;
                     rangeLabel?: string;
-                    save?: {
-                      ability:
-                        | "CHARISMA"
-                        | "CONSTITUTION"
-                        | "DEXTERITY"
-                        | "INTELLIGENCE"
-                        | "STRENGTH"
-                        | "WISDOM";
-                      dc?: number;
-                    };
+                    save?: { ability: string; dc?: number };
                     targetCountLevels?: Array<number>;
                     trigger: string;
                   }>;
@@ -22905,14 +21625,7 @@ export declare const api: {
                       vehicleId: string;
                     }
                   | {
-                      abilityScores?: {
-                        CHARISMA?: number;
-                        CONSTITUTION?: number;
-                        DEXTERITY?: number;
-                        INTELLIGENCE?: number;
-                        STRENGTH?: number;
-                        WISDOM?: number;
-                      };
+                      abilityScores?: Record<string, number>;
                       actions: Array<{
                         description?: string;
                         id: string;
@@ -29862,14 +28575,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -33427,14 +32133,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -41090,14 +39789,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -44655,14 +43347,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -52327,14 +51012,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -55892,14 +54570,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -63555,14 +62226,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -67120,14 +65784,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -74818,14 +73475,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -78383,14 +77033,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -86046,14 +84689,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -89611,14 +88247,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -97181,14 +95810,7 @@ export declare const api: {
                             }
                           | {
                               higherLevelCheck?: {
-                                ability:
-                                  | "CHARISMA"
-                                  | "CONSTITUTION"
-                                  | "DEXTERITY"
-                                  | "INTELLIGENCE"
-                                  | "STRENGTH"
-                                  | "WISDOM"
-                                  | "SPELLCASTING";
+                                ability: string;
                                 baseDc: number;
                               };
                               kind: "SPELL_CAST";
@@ -100697,14 +99319,7 @@ export declare const api: {
                             }
                           | {
                               higherLevelCheck?: {
-                                ability:
-                                  | "CHARISMA"
-                                  | "CONSTITUTION"
-                                  | "DEXTERITY"
-                                  | "INTELLIGENCE"
-                                  | "STRENGTH"
-                                  | "WISDOM"
-                                  | "SPELLCASTING";
+                                ability: string;
                                 baseDc: number;
                               };
                               kind: "SPELL_CAST";
@@ -108354,14 +106969,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -111919,14 +110527,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -119582,14 +118183,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -123147,14 +121741,7 @@ export declare const api: {
                               }
                             | {
                                 higherLevelCheck?: {
-                                  ability:
-                                    | "CHARISMA"
-                                    | "CONSTITUTION"
-                                    | "DEXTERITY"
-                                    | "INTELLIGENCE"
-                                    | "STRENGTH"
-                                    | "WISDOM"
-                                    | "SPELLCASTING";
+                                  ability: string;
                                   baseDc: number;
                                 };
                                 kind: "SPELL_CAST";
@@ -129208,6 +127795,82 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  morale?: {
+                    commandId: string;
+                    definitionId: string;
+                    disposition: "CONTINUE" | "FLEE" | "SURRENDER" | null;
+                    firedTriggerKinds: Array<
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER"
+                    >;
+                    groupLeaderActorId: string | null;
+                    proposed: "CONTINUE" | "FLEE" | "SURRENDER";
+                    rollerActorId: string;
+                    save: {
+                      addedDice?: Array<{
+                        count: number;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        rolledFaces: Array<number>;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
+                      contributorChecksum: string;
+                      contributors: Array<{
+                        domainKey: string | null;
+                        grantId: string | null;
+                        influence: string;
+                        source: {
+                          holderActorId: string | null;
+                          id: string;
+                          kind:
+                            "ACTIVE_EFFECT" | "CONDITION" | "AUTHORED" | "RULE";
+                        };
+                        sourceId: string;
+                      }>;
+                      dc: number;
+                      derivedRollMode: string;
+                      keep: "FIRST" | "HIGHER" | "LOWER";
+                      minimumRoll?: {
+                        amount: number;
+                        label: string;
+                        sourceEffectId: string;
+                      };
+                      modifier: number;
+                      rawFaces: Array<number>;
+                      requestId: string;
+                      rollMode: string;
+                      selectedNatural: number;
+                      total: number;
+                    } | null;
+                    scope: "SUBJECT" | "GROUP";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  } | null;
+                  moraleOffers?: Array<{
+                    origin: "RUN_STATE" | "GM_DECLARED";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  }>;
                   owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   resources:
@@ -130342,6 +129005,82 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  morale?: {
+                    commandId: string;
+                    definitionId: string;
+                    disposition: "CONTINUE" | "FLEE" | "SURRENDER" | null;
+                    firedTriggerKinds: Array<
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER"
+                    >;
+                    groupLeaderActorId: string | null;
+                    proposed: "CONTINUE" | "FLEE" | "SURRENDER";
+                    rollerActorId: string;
+                    save: {
+                      addedDice?: Array<{
+                        count: number;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        rolledFaces: Array<number>;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
+                      contributorChecksum: string;
+                      contributors: Array<{
+                        domainKey: string | null;
+                        grantId: string | null;
+                        influence: string;
+                        source: {
+                          holderActorId: string | null;
+                          id: string;
+                          kind:
+                            "ACTIVE_EFFECT" | "CONDITION" | "AUTHORED" | "RULE";
+                        };
+                        sourceId: string;
+                      }>;
+                      dc: number;
+                      derivedRollMode: string;
+                      keep: "FIRST" | "HIGHER" | "LOWER";
+                      minimumRoll?: {
+                        amount: number;
+                        label: string;
+                        sourceEffectId: string;
+                      };
+                      modifier: number;
+                      rawFaces: Array<number>;
+                      requestId: string;
+                      rollMode: string;
+                      selectedNatural: number;
+                      total: number;
+                    } | null;
+                    scope: "SUBJECT" | "GROUP";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  } | null;
+                  moraleOffers?: Array<{
+                    origin: "RUN_STATE" | "GM_DECLARED";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  }>;
                   owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   resources:
@@ -131321,6 +130060,81 @@ export declare const api: {
               label: string;
               manualOrder: number | null;
               maxHitPoints: number;
+              morale?: {
+                commandId: string;
+                definitionId: string;
+                disposition: "CONTINUE" | "FLEE" | "SURRENDER" | null;
+                firedTriggerKinds: Array<
+                  | "INDIVIDUAL_SURPRISED"
+                  | "INDIVIDUAL_REDUCED_TO_HALF"
+                  | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                  | "GROUP_SURPRISED"
+                  | "GROUP_HALF_REMOVED"
+                  | "GROUP_LEADER_REMOVED"
+                  | "GROUP_LEADER_INCAPACITATED"
+                  | "GROUP_LEADER_TAKEN_PRISONER"
+                >;
+                groupLeaderActorId: string | null;
+                proposed: "CONTINUE" | "FLEE" | "SURRENDER";
+                rollerActorId: string;
+                save: {
+                  addedDice?: Array<{
+                    count: number;
+                    faces: 4 | 6 | 8 | 10 | 12;
+                    label: string;
+                    rolledFaces: Array<number>;
+                    sign: "ADD" | "SUBTRACT";
+                  }>;
+                  contributorChecksum: string;
+                  contributors: Array<{
+                    domainKey: string | null;
+                    grantId: string | null;
+                    influence: string;
+                    source: {
+                      holderActorId: string | null;
+                      id: string;
+                      kind: "ACTIVE_EFFECT" | "CONDITION" | "AUTHORED" | "RULE";
+                    };
+                    sourceId: string;
+                  }>;
+                  dc: number;
+                  derivedRollMode: string;
+                  keep: "FIRST" | "HIGHER" | "LOWER";
+                  minimumRoll?: {
+                    amount: number;
+                    label: string;
+                    sourceEffectId: string;
+                  };
+                  modifier: number;
+                  rawFaces: Array<number>;
+                  requestId: string;
+                  rollMode: string;
+                  selectedNatural: number;
+                  total: number;
+                } | null;
+                scope: "SUBJECT" | "GROUP";
+                triggerKind:
+                  | "INDIVIDUAL_SURPRISED"
+                  | "INDIVIDUAL_REDUCED_TO_HALF"
+                  | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                  | "GROUP_SURPRISED"
+                  | "GROUP_HALF_REMOVED"
+                  | "GROUP_LEADER_REMOVED"
+                  | "GROUP_LEADER_INCAPACITATED"
+                  | "GROUP_LEADER_TAKEN_PRISONER";
+              } | null;
+              moraleOffers?: Array<{
+                origin: "RUN_STATE" | "GM_DECLARED";
+                triggerKind:
+                  | "INDIVIDUAL_SURPRISED"
+                  | "INDIVIDUAL_REDUCED_TO_HALF"
+                  | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                  | "GROUP_SURPRISED"
+                  | "GROUP_HALF_REMOVED"
+                  | "GROUP_LEADER_REMOVED"
+                  | "GROUP_LEADER_INCAPACITATED"
+                  | "GROUP_LEADER_TAKEN_PRISONER";
+              }>;
               owner?: { ownerActorId: string; sourceEffectId?: string };
               public: boolean;
               resources:
@@ -131634,6 +130448,82 @@ export declare const api: {
                   label: string;
                   manualOrder: number | null;
                   maxHitPoints: number;
+                  morale?: {
+                    commandId: string;
+                    definitionId: string;
+                    disposition: "CONTINUE" | "FLEE" | "SURRENDER" | null;
+                    firedTriggerKinds: Array<
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER"
+                    >;
+                    groupLeaderActorId: string | null;
+                    proposed: "CONTINUE" | "FLEE" | "SURRENDER";
+                    rollerActorId: string;
+                    save: {
+                      addedDice?: Array<{
+                        count: number;
+                        faces: 4 | 6 | 8 | 10 | 12;
+                        label: string;
+                        rolledFaces: Array<number>;
+                        sign: "ADD" | "SUBTRACT";
+                      }>;
+                      contributorChecksum: string;
+                      contributors: Array<{
+                        domainKey: string | null;
+                        grantId: string | null;
+                        influence: string;
+                        source: {
+                          holderActorId: string | null;
+                          id: string;
+                          kind:
+                            "ACTIVE_EFFECT" | "CONDITION" | "AUTHORED" | "RULE";
+                        };
+                        sourceId: string;
+                      }>;
+                      dc: number;
+                      derivedRollMode: string;
+                      keep: "FIRST" | "HIGHER" | "LOWER";
+                      minimumRoll?: {
+                        amount: number;
+                        label: string;
+                        sourceEffectId: string;
+                      };
+                      modifier: number;
+                      rawFaces: Array<number>;
+                      requestId: string;
+                      rollMode: string;
+                      selectedNatural: number;
+                      total: number;
+                    } | null;
+                    scope: "SUBJECT" | "GROUP";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  } | null;
+                  moraleOffers?: Array<{
+                    origin: "RUN_STATE" | "GM_DECLARED";
+                    triggerKind:
+                      | "INDIVIDUAL_SURPRISED"
+                      | "INDIVIDUAL_REDUCED_TO_HALF"
+                      | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                      | "GROUP_SURPRISED"
+                      | "GROUP_HALF_REMOVED"
+                      | "GROUP_LEADER_REMOVED"
+                      | "GROUP_LEADER_INCAPACITATED"
+                      | "GROUP_LEADER_TAKEN_PRISONER";
+                  }>;
                   owner?: { ownerActorId: string; sourceEffectId?: string };
                   public: boolean;
                   resources:
@@ -132281,6 +131171,81 @@ export declare const api: {
             label: string;
             manualOrder: number | null;
             maxHitPoints: number;
+            morale?: {
+              commandId: string;
+              definitionId: string;
+              disposition: "CONTINUE" | "FLEE" | "SURRENDER" | null;
+              firedTriggerKinds: Array<
+                | "INDIVIDUAL_SURPRISED"
+                | "INDIVIDUAL_REDUCED_TO_HALF"
+                | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                | "GROUP_SURPRISED"
+                | "GROUP_HALF_REMOVED"
+                | "GROUP_LEADER_REMOVED"
+                | "GROUP_LEADER_INCAPACITATED"
+                | "GROUP_LEADER_TAKEN_PRISONER"
+              >;
+              groupLeaderActorId: string | null;
+              proposed: "CONTINUE" | "FLEE" | "SURRENDER";
+              rollerActorId: string;
+              save: {
+                addedDice?: Array<{
+                  count: number;
+                  faces: 4 | 6 | 8 | 10 | 12;
+                  label: string;
+                  rolledFaces: Array<number>;
+                  sign: "ADD" | "SUBTRACT";
+                }>;
+                contributorChecksum: string;
+                contributors: Array<{
+                  domainKey: string | null;
+                  grantId: string | null;
+                  influence: string;
+                  source: {
+                    holderActorId: string | null;
+                    id: string;
+                    kind: "ACTIVE_EFFECT" | "CONDITION" | "AUTHORED" | "RULE";
+                  };
+                  sourceId: string;
+                }>;
+                dc: number;
+                derivedRollMode: string;
+                keep: "FIRST" | "HIGHER" | "LOWER";
+                minimumRoll?: {
+                  amount: number;
+                  label: string;
+                  sourceEffectId: string;
+                };
+                modifier: number;
+                rawFaces: Array<number>;
+                requestId: string;
+                rollMode: string;
+                selectedNatural: number;
+                total: number;
+              } | null;
+              scope: "SUBJECT" | "GROUP";
+              triggerKind:
+                | "INDIVIDUAL_SURPRISED"
+                | "INDIVIDUAL_REDUCED_TO_HALF"
+                | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                | "GROUP_SURPRISED"
+                | "GROUP_HALF_REMOVED"
+                | "GROUP_LEADER_REMOVED"
+                | "GROUP_LEADER_INCAPACITATED"
+                | "GROUP_LEADER_TAKEN_PRISONER";
+            } | null;
+            moraleOffers?: Array<{
+              origin: "RUN_STATE" | "GM_DECLARED";
+              triggerKind:
+                | "INDIVIDUAL_SURPRISED"
+                | "INDIVIDUAL_REDUCED_TO_HALF"
+                | "INDIVIDUAL_CANNOT_HARM_OPPOSITION"
+                | "GROUP_SURPRISED"
+                | "GROUP_HALF_REMOVED"
+                | "GROUP_LEADER_REMOVED"
+                | "GROUP_LEADER_INCAPACITATED"
+                | "GROUP_LEADER_TAKEN_PRISONER";
+            }>;
             owner?: { ownerActorId: string; sourceEffectId?: string };
             public: boolean;
             resources:
@@ -138933,7 +137898,13 @@ export declare const internal: {
             checksum: string;
             factsVersion?: number;
             rows: {
+              abilities?: Array<
+                Record<string, string | number | boolean | null>
+              >;
               ability_definitions?: Array<
+                Record<string, string | number | boolean | null>
+              >;
+              ability_modifier_references?: Array<
                 Record<string, string | number | boolean | null>
               >;
               action_traits?: Array<
@@ -139114,7 +138085,9 @@ export declare const internal: {
           documentJson: string;
           expectedDraftUpdatedAt: string;
           sourceChecksums: {
+            abilities?: string;
             ability_definitions?: string;
+            ability_modifier_references?: string;
             action_traits?: string;
             alignments?: string;
             background_features?: string;

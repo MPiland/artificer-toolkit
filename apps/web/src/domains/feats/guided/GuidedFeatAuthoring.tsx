@@ -14,11 +14,15 @@ import { createCharge, isSimpleCharge } from '#forms/guided/guidedCharge'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import { GuidedSimpleEffectComposer } from '#forms/guided/GuidedSimpleEffectComposer'
-import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
-import { EMPTY_GUIDED_FORM_VALUES, readField, readString } from '#forms/guided/guidedValues'
-import { isRecord } from '#forms/utils/valueGuards'
+import {
+  EMPTY_GUIDED_FORM_VALUES,
+  guidedField,
+  readGuidedValues,
+  toDetails,
+  toFeatures
+} from '#forms/guided/guidedValues'
 
 const STEPS = ['Basics', 'Core outcome', 'Features', 'Review'] as const
 const TITLES = [
@@ -40,11 +44,12 @@ export const GuidedFeatAuthoring = withForm({
   render: function RenderGuidedFeatAuthoring({ form, onAdvanced, onStateChange, session, system }) {
     const [screen, setScreen] = useState(0)
     const values = useSelector(form.store, (state) => state.values)
-    const label = readString(values, 'label')
-    const details = readDetails(values)
-    const features = readFeatures(values)
-    const effects = readEffects(values)
-    const charges = readCharge(values)
+    const draft = readGuidedValues('feat', values)
+    const label = draft.label ?? ''
+    const details = toDetails(draft.details)
+    const features = toFeatures(draft.features)
+    const effects = draft.effects ?? []
+    const charges = draft.charges ? { ...createCharge(), ...draft.charges } : undefined
 
     useEffect(() => {
       onStateChange({ isReview: screen === 3, showPreview: screen > 0 || Boolean(label) })
@@ -52,13 +57,13 @@ export const GuidedFeatAuthoring = withForm({
 
     const canContinue = screen === 0 ? Boolean(label.trim()) : true
     const setDetails = (next: DetailDto[]) =>
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['details']), next)
+      form.setFieldValue(guidedField('feat', 'details'), next)
     const setFeatures = (next: FeatureDto[]) =>
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['features']), next)
+      form.setFieldValue(guidedField('feat', 'features'), next)
     const setCharges = (next: ChargeDto | undefined) =>
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['charges']), next)
+      form.setFieldValue(guidedField('feat', 'charges'), next)
     const setEffects = (next: EffectDto[]) =>
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['effects']), next)
+      form.setFieldValue(guidedField('feat', 'effects'), next)
 
     return (
       <GuidedAuthoringFrame
@@ -78,14 +83,14 @@ export const GuidedFeatAuthoring = withForm({
       >
         {screen === 0 ? (
           <Stack gap='lg'>
-            {session.mode === 'edit' && (effects.length > 1 || readGrants(values)) ? (
+            {session.mode === 'edit' && (effects.length > 1 || hasGrants(draft.grants)) ? (
               <Alert color='blue' title='Some details require Advanced'>
                 This feat contains advanced effects or grants. Guided keeps them intact while you
                 edit the common fields.
               </Alert>
             ) : null}
             <div className={styles.identityRow}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+              <form.AppField name={guidedField('feat', 'label')}>
                 {(field) => (
                   <field.TextField
                     label='Feat name'
@@ -96,7 +101,7 @@ export const GuidedFeatAuthoring = withForm({
               </form.AppField>
               <AuthoringArtworkControl />
             </div>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+            <form.AppField name={guidedField('feat', 'description')}>
               {(field) => (
                 <field.RichTextField
                   label='Description'
@@ -193,45 +198,8 @@ function formatCharge(charge: ChargeDto | undefined): string {
   return `${charge.amount} per ${formatReset(charge.resetKind)}`
 }
 
-function readDetails(values: object): DetailDto[] {
-  const value = readField(values, 'details')
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is DetailDto =>
-          typeof item === 'object' && item !== null && 'id' in item && 'description' in item
-      )
-    : []
-}
-
-function readFeatures(values: object): FeatureDto[] {
-  const value = readField(values, 'features')
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is FeatureDto =>
-          typeof item === 'object' && item !== null && 'id' in item && 'order' in item
-      )
-    : []
-}
-
-function readEffects(values: object): unknown[] {
-  const value = readField(values, 'effects')
-  return Array.isArray(value) ? value : []
-}
-
-function readCharge(values: object): ChargeDto | undefined {
-  const value = readField(values, 'charges')
-  return isRecord(value) && 'id' in value && 'resetKind' in value
-    ? { ...createCharge(), ...value }
-    : undefined
-}
-
-function readGrants(values: object): boolean {
-  const value = readField(values, 'grants')
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    Object.values(value).some((item) => Array.isArray(item) && item.length > 0)
-  )
+function hasGrants(grants: object | undefined): boolean {
+  return Object.values(grants ?? {}).some((item) => Array.isArray(item) && item.length > 0)
 }
 
 function formatReset(value: ChargeDto['resetKind']): string {

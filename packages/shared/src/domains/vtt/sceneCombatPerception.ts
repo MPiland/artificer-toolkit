@@ -40,6 +40,42 @@ export function requireSceneIlluminationLevel(
   return level
 }
 
+const renderClassRank: Readonly<Record<SceneIlluminationRenderClass, number>> = {
+  LIT: 0,
+  DIM: 1,
+  DARK: 2
+}
+
+/**
+ * Refuses an illumination table a Scene cannot rank: at least the two levels a light sheds, each
+ * code once, brightest first by render class, and the light-suppressing levels last.
+ */
+export function requireSceneIlluminationLevels(levels: readonly SceneIlluminationLevel[]) {
+  const { bright, dim } = sceneLightLevels(levels)
+  if (new Set(levels.map(({ code }) => code)).size !== levels.length)
+    throw new Error('The Game System lists an illumination level twice.')
+  const misordered = levels.some((level, index) => {
+    const brighter = levels[index - 1]
+    return (
+      brighter !== undefined &&
+      (renderClassRank[level.renderClass] < renderClassRank[brighter.renderClass] ||
+        (brighter.suppressesLight && !level.suppressesLight))
+    )
+  })
+  if (misordered || bright.suppressesLight || dim.suppressesLight)
+    throw new Error(
+      'The Game System lists its illumination levels brightest first, light-suppressing levels last.'
+    )
+}
+
+/** The levels a light's bright and dim radii shed: the System's two brightest. */
+export function sceneLightLevels(levels: readonly SceneIlluminationLevel[]) {
+  const [bright, dim] = levels
+  if (!bright || !dim)
+    throw new Error('The Game System lists fewer than the two illumination levels a light sheds.')
+  return { bright, dim }
+}
+
 const obscurementRank: Readonly<Record<CombatPerceptionObscurement, number>> = {
   NONE: 0,
   LIGHT: 1,
@@ -157,15 +193,17 @@ function withinLightCone(light: SceneLight, point: ScenePoint): boolean {
   return Math.abs(offset) <= (light.angleDegrees * Math.PI) / 360
 }
 
-/** A light's radii shed the levels they are named for; the System ranks and draws them. */
+/** A light's bright and dim radii shed the System's two brightest levels. */
 function illuminationFromLight(
+  levels: readonly SceneIlluminationLevel[],
   light: SceneLight,
   point: ScenePoint
 ): CombatPerceptionIllumination | null {
   if (!withinLightCone(light, point)) return null
   const distance = Math.hypot(point.x - light.position.x, point.y - light.position.y)
-  if (distance <= light.brightRadius) return 'BRIGHT'
-  if (distance <= light.dimRadius) return 'DIM'
+  const { bright, dim } = sceneLightLevels(levels)
+  if (distance <= light.brightRadius) return bright.code
+  if (distance <= light.dimRadius) return dim.code
   return null
 }
 
@@ -258,7 +296,7 @@ export function resolveSceneIlluminationAt(
   }
   for (const light of [...scene.lights, ...sceneTokenLights(scene)]) {
     if (!canLightPassBetween(scene, light.position, point, barrierIndex)) continue
-    const candidate = illuminationFromLight(light, point)
+    const candidate = illuminationFromLight(illuminationLevels, light, point)
     if (candidate) illumination = brighterIllumination(illuminationLevels, illumination, candidate)
   }
   const suppressing = [

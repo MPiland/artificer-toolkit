@@ -20,6 +20,21 @@ const boundedD20Schema = lazySchema(() =>
 const boundedPositiveIntegerSchema = lazySchema(() =>
   z.number().check(z.int()).check(z.positive()).check(z.lte(1_000_000))
 )
+export const moraleTriggerKindDtoSchema = lazySchema(() =>
+  z.enum([
+    'INDIVIDUAL_SURPRISED',
+    'INDIVIDUAL_REDUCED_TO_HALF',
+    'INDIVIDUAL_CANNOT_HARM_OPPOSITION',
+    'GROUP_SURPRISED',
+    'GROUP_HALF_REMOVED',
+    'GROUP_LEADER_REMOVED',
+    'GROUP_LEADER_INCAPACITATED',
+    'GROUP_LEADER_TAKEN_PRISONER'
+  ])
+)
+export const moraleDispositionDtoSchema = lazySchema(() =>
+  z.enum(['CONTINUE', 'FLEE', 'SURRENDER'])
+)
 
 /** Code-owned operation contract used by the D&D adapter; source documents only pin it. */
 export const DND5E_ALTERNATING_DIAGONALS_OPERATION_KEY =
@@ -64,7 +79,9 @@ export const optionalCombatModulePinDtoSchema = lazySchema(() =>
   })
 )
 
-const dnd5eOptionalCombatOperationTargetDtoSchema = lazySchema(() => z.enum(['SUBJECT', 'GROUP']))
+export const dnd5eOptionalCombatOperationTargetDtoSchema = lazySchema(() =>
+  z.enum(['SUBJECT', 'GROUP'])
+)
 const dnd5eOptionalCombatOperationDurationDtoSchema = lazySchema(() =>
   z.enum(['PERMANENT', 'UNTIL_END_OF_NEXT_TURN', 'UNTIL_CLEARED'])
 )
@@ -191,7 +208,7 @@ export const dnd5eOptionalCombatOperationDtoSchema = lazySchema(() =>
       id: serverUuidIdentityDtoSchema,
       primitive: z.literal('SET_MORALE_DISPOSITION'),
       target: dnd5eOptionalCombatOperationTargetDtoSchema,
-      disposition: z.enum(['CONTINUE', 'FLEE', 'SURRENDER']),
+      disposition: moraleDispositionDtoSchema,
       duration: z.null()
     })
   ])
@@ -396,21 +413,7 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('MORALE'),
-      triggerKinds: z
-        .array(
-          z.enum([
-            'INDIVIDUAL_SURPRISED',
-            'INDIVIDUAL_REDUCED_TO_HALF',
-            'INDIVIDUAL_CANNOT_HARM_OPPOSITION',
-            'GROUP_SURPRISED',
-            'GROUP_HALF_REMOVED',
-            'GROUP_LEADER_REMOVED',
-            'GROUP_LEADER_INCAPACITATED',
-            'GROUP_LEADER_TAKEN_PRISONER'
-          ])
-        )
-        .check(z.minLength(1))
-        .check(z.maxLength(9)),
+      triggerKinds: z.array(moraleTriggerKindDtoSchema).check(z.minLength(1)).check(z.maxLength(9)),
       savingThrowAbilityDefinitionId: serverUuidIdentityDtoSchema,
       savingThrowDifficultyClass: boundedPositiveIntegerSchema.check(z.lte(100)),
       requiresGroupLeaderOrFallback: z.literal(true),
@@ -559,6 +562,8 @@ export function activeOptionalCombatDefinitions(input: {
 }
 
 export type Dnd5eOptionalCombatRuleKindDto = z.infer<typeof dnd5eOptionalCombatRuleKindDtoSchema>
+export type MoraleTriggerKindDto = z.infer<typeof moraleTriggerKindDtoSchema>
+export type MoraleDispositionDto = z.infer<typeof moraleDispositionDtoSchema>
 export type Dnd5eOptionalCombatOperationDto = z.infer<typeof dnd5eOptionalCombatOperationDtoSchema>
 export type Dnd5eOptionalCombatOutcomeDescriptorDto = z.infer<
   typeof dnd5eOptionalCombatOutcomeDescriptorDtoSchema

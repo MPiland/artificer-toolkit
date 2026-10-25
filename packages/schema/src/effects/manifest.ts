@@ -5,7 +5,6 @@ import { speedDtoSchema } from '../shared/speed.js'
 import { numericExprSchema } from '../shared/numericExpr.js'
 import { createBreakpointScalingDtoSchema } from '../shared/scaling.js'
 import {
-  abilityCodeSchema,
   lengthUnitCodeSchema,
   manifestBlockingRuleSchema,
   manifestRequiredSightSchema
@@ -80,7 +79,7 @@ const manifestOccupantSaveBonusDtoSchema = lazySchema(() => {
     z.object({
       ...shared,
       amountKind: z.literal('SOURCE_ABILITY_MODIFIER'),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       minimum: z.optional(z.number().check(z.int()))
     })
   ])
@@ -157,14 +156,7 @@ const manifestProximityRuleDtoSchema = lazySchema(() =>
 )
 
 const summonAbilityScoresDtoSchema = lazySchema(() =>
-  z.object({
-    STRENGTH: z.optional(numericExprSchema),
-    DEXTERITY: z.optional(numericExprSchema),
-    CONSTITUTION: z.optional(numericExprSchema),
-    INTELLIGENCE: z.optional(numericExprSchema),
-    WISDOM: z.optional(numericExprSchema),
-    CHARISMA: z.optional(numericExprSchema)
-  })
+  z.record(systemCoreCodeSchema, numericExprSchema)
 )
 
 const summonDamageabilityKindSchema = lazySchema(() =>

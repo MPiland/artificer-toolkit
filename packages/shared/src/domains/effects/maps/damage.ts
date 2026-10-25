@@ -4,11 +4,7 @@ import {
   type DamageDicePayload,
   type DamageFixedPayload
 } from '#authored'
-import {
-  ABILITY_MODIFIER_REFERENCE_OPTIONS,
-  DAMAGE_BONUS_OPTIONS,
-  DAMAGE_VALUE_OPTIONS
-} from '#core'
+import { DAMAGE_BONUS_OPTIONS, DAMAGE_VALUE_OPTIONS } from '#core'
 import { buildNodeMap } from '#utils'
 import { type AllUnionFields } from 'type-fest'
 
@@ -54,8 +50,10 @@ export const DAMAGE_BONUS_NODE_MAP = damageBonus.define(
           ['ability'],
           'Ability',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_MODIFIER_REFERENCE_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('ability_modifier_references', {
+              selectColumns: ['id', 'label', 'description']
+            })
           },
           {
             order: 2,

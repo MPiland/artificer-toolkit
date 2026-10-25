@@ -1,6 +1,5 @@
 import { z, lazySchema } from '../zod.js'
 
-import { abilityCodeSchema } from '../shared/enums.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -65,7 +64,7 @@ const characterSpellAccessCandidateSchema = lazySchema(() =>
     classLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(20))),
     attributes: z.array(characterSpellGrantAttributeSchema).check(z.maxLength(16)),
     castAtLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(9))),
-    castingAbility: z.nullable(abilityCodeSchema),
+    castingAbility: z.nullable(systemCoreCodeSchema),
     charge: characterSpellChargeDescriptorSchema,
     /** The creature types the grant narrows its casts to (D156); empty for none. */
     allowedCreatureTypeIds: z._default(z.array(boundedIdentitySchema).check(z.maxLength(100)), []),

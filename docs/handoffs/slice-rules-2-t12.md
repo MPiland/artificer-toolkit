@@ -65,3 +65,45 @@ Merge risk: the sibling T9e lane may also edit `fileSizeBudget.json` and `native
 - **Web defaults.** A System marks one size `isDefault` (D&D 5e: MEDIUM). `defaultSize(systemId)` feeds `createEmptyCreature`, `createEmptyBaseRace` and `normalizeRaceForSubmit`. The guided Creature and Race size lists come from `sceneSizes(systemId)`, the System's sizes that fill a Scene space, through `guidedSizeOptions`.
 - **Proofs:** `systemSizes.test.ts` (authored refusals, default, scene sizes), `encounterAttackSlots.test.ts` (fail closed), `characterCompanionMechanicsRuleFacts.test.ts` (new), `creaturePublication.test.ts` (publish refuses `ENORMOUS`), `systemVocabularyOptions.test.ts` (normalization clears an unlisted size on the creature, race, vehicle and attackSlotCondition maps), `guidedValues.test.ts`. Web fixtures that used unregistered System ids (`dnd-5e-srd`, `system-1`, a random UUID) now use `DND5E_SYSTEM_ID`, since the default size needs a registered System.
 - **Residual size paths not covered by `requireAuthoredSizes`:** facet `sizes`, manifest `statBlock.size` and `maximumTargetSize`, and effect `appliesWhen` size conditions. Node-map normalization still clears unlisted codes there.
+
+### 2026-10-25: T9f2, abilities are System core codes (ruling option B)
+
+- **One home for ability labels.** The SRD System record's abilities carry `short` and `description` through a normal seed patch (`SRD_ABILITIES`). No code-owned label list remains; the shared `core/ability.ts` and its alias layer are deleted. Matching is exact on the code.
+- **Ingress.** Builder assignments, Sheet adjustment and panel targets, and node-map ability selects check `systemCoreCodeRegistry.abilityCodes(systemId)`. Node-map ability selects read the `abilities` and `ability_modifier_references` source tables (`systemCoreCodeRows`), so normalization clears an unlisted code.
+- **Readers.** Rules-runtime and web labels, Sheet and stat block abbreviations come from the System record. Creature detail gets them from a new `abilities` detail meta key (`creatureDetailMetaDtoSchema`). New stat blocks use `defaultAbilityScores(systemId)` (`rules-runtime/systemAbilities.ts`), from the new `defaultScore` on the ability score capability (D&D 5e: 10). The new class hit point ability is the capability's `derivedStatisticAbilityCodes.hitPoints`.
+- **Test change, not a weakened assertion.** `encounterEscapeCheck.test.ts` asserted that a System spelling STRENGTH as `STR` still resolved through an alias. T9f2 removes aliasing, so the test now proves the exact-code refusal.
+- **Boundary scan.** `systemVocabularyBoundary.test.ts` no longer defers the `abilities` list domain; a quoted ability-code list in production code fails it.
+- **Proofs:** `systemVocabularyOptions.test.ts` (System abilities in order with descriptions, unlisted ability cleared, ability modifier references end with the spellcasting reference), `builderEligibility.test.ts`, `creatureAuthoring.test.ts`, `AuthoredDomainDetailPages.test.tsx`, `EncounterEnemyStatBlock.test.tsx`.
+- **Left for T9f3:** `authoringNodeDefaults.ts` (`createAbilityScores` and an `ability: 'STRENGTH'` default have no System in reach), and race ability score increase snapshot facts, which label the code because snapshots are built without the System record.
+- **CI-found fixes before merge (m435):**
+  - Roll modes are keyed over the System's ability list (`characterRollModes.ts`), not a fixed set.
+  - Creature ability facts follow System order (`creatureRuleFacts.ts`). `z.record` keeps input key order, while stored canonical JSON comes back alphabetical, so facts built from the raw record differed between reads and broke order-sensitive comparisons in the room. `creatureRuleFacts.test.ts` proves an alphabetical record yields System-order facts and that an unlisted ability throws.
+  - The schema default for ability evidence is now `{}` (`character-rules-contracts.test.ts`). This is an intended contract change.
+  - `derivedStatisticAbilities.test.ts` now proves exact-code matching.
+
+### 2026-10-25: T9f3a, System core codes refused at ingress; illumination tables
+
+Split proposed to the orchestrator. T9f3a is below. T9f3b covers deleting class `hitpoint.ability`, renaming `excludesAbilityAtOrBelow`, the `authoringNodeDefaults` ability defaults and the race ASI snapshot facts.
+
+- **One generic ingress refusal.** `systemCoreCodeTables` (`authoring/nodeRuntime/systemSourceRows.ts`) lists the resolver tables whose row ids are System core codes: abilities, ability modifier references, roll influences and modes, spell slot pools, effect consume and end events, action traits and sizes.
+  - A resolved select drawing directly on one of them carries `unknownOptions: 'REFUSE'`. This field replaces the DTO's `preserveUnknownOptions` boolean with `'PRESERVE'`.
+  - Normalization still clears an unknown value, so editors behave as before. It also reports the path in the new `refusedPaths` field of the normalize response.
+  - `normalizeIngressValues` throws `The Game System does not define "<value>" at <path>.` Its three callers are publication (`normalizePublicationDocument`), import staging (`stageCustomAuthored.prepareActive`) and class publication (`classPublicationActions`).
+  - This covers every authored ability and size select in grants, effects, facets, charge, numericExpr, class and the T9f1 residuals (facet sizes, summon `statBlock.size`, `maximumTargetSize`, `appliesWhen`).
+  - Definition-id tables (damage types, alignments and so on) keep clearing a stale reference.
+  - `requireAuthoredSizes` is deleted, because the generic check replaces it. Its refusal cases moved to `systemVocabularyOptions.test.ts`. `requireAuthoredAbilities` stays: it checks Creature ability-score record keys, which are not selects.
+- **Lights shed the System's two brightest levels.** `sceneLightLevels(levels)` (`shared/vtt/sceneCombatPerception.ts`) feeds `illuminationFromLight` and the renderer's bright and dim bands. No `'BRIGHT'` or `'DIM'` literal remains there.
+- **Illumination tables are validated at registration.** `requireSceneIlluminationLevels` refuses an illumination table that:
+  - has fewer than two levels;
+  - lists a code twice;
+  - is misordered: its render class gets brighter down the list, or a light-suppressing level comes before a plain one;
+  - lets a light shed a light-suppressing level.
+    `createSystemCapabilityRegistry` takes an optional `validate`, and the combat-perception registry passes this check to it.
+- **`slotPools` bounded** at 20 entries, the same bound as `sourceClassIds` (`characterRules.ts`).
+- **Proofs:**
+  - `systemVocabularyOptions.test.ts`: every core-code select reads its table directly; SRD sizes accepted; creature, race and vehicle sizes, a nested attack-slot size and an ability are refused at ingress, while the editor clears them; a stale alignment is still cleared.
+  - `vtt-scene-combat-perception.test.ts`: the level tables.
+  - `systemCapabilityRegistry.test.ts`: `validate`.
+  - `character-rules-contracts.test.ts`: the `slotPools` bound.
+  - `creaturePublication.test.ts`: the message.
+- **Residual, reported:** summon `abilityScores` (`effects/maps/path.ts` `SUMMON_ABILITY_SCORES_NODE_MAP`) is keyed by six hard-coded D&D ability codes in a shared map, and the schema accepts any core-code key. It is not a select, so the generic refusal does not reach it.

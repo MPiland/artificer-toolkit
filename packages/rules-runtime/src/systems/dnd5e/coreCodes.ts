@@ -4,7 +4,7 @@ import {
   DND5E_EFFECT_CONSUME_EVENTS,
   DND5E_EFFECT_END_EVENTS
 } from './lifecycleVocabulary.js'
-import { DND5E_SYSTEM_ID } from './identity.js'
+import { DND5E_ABILITY_DEFINITION_ID_BY_CODE, DND5E_SYSTEM_ID } from './identity.js'
 
 export const DND5E_ROLL_INFLUENCES = [
   { code: 'ADVANTAGE', label: 'Advantage', description: 'Roll two d20s and use the higher.' },
@@ -57,5 +57,6 @@ export const dnd5eCoreCodeAdapter: SystemCoreCodeAdapter = {
     effectEndEvent: DND5E_EFFECT_END_EVENTS,
     actionTrait: DND5E_ACTION_TRAITS,
     size: DND5E_SIZES
-  }
+  },
+  abilities: Object.keys(DND5E_ABILITY_DEFINITION_ID_BY_CODE)
 }

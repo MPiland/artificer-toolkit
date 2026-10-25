@@ -302,6 +302,8 @@ export const tabletopGmEncounter = {
   actors: actorBases.map((actor, index) => ({
     ...actor,
     concealment: null,
+    morale: null,
+    moraleOffers: [],
     currentHitPoints: index === 0 ? 36 : 47,
     features: [],
     gmNotes: null,

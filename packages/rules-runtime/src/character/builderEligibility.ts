@@ -1,10 +1,8 @@
 import {
-  ABILITY_CODE,
   CLASS_CATEGORY,
   CHARACTER_ABILITY_GENERATION_METHOD,
   POINT_BUY_SCORE_REGISTRY,
-  POINT_BUY_TOTAL_POINTS,
-  type AbilityCode
+  POINT_BUY_TOTAL_POINTS
 } from '@artificer-toolkit/shared/core'
 import type {
   CharacterRulePolicyInput,
@@ -33,6 +31,7 @@ import type {
   CharacterBuilderClassCatalogRecord,
   CharacterBuilderCatalog
 } from './builderCatalog.js'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import type { CharacterBuilderRegistry, CharacterBuilderValidation } from './builderTypes.js'
 import { compileCharacterEligibilityRuleFacts } from './characterEligibilityRuleFacts.js'
 import {
@@ -43,15 +42,6 @@ import {
   type GrantedFeatureRecord,
   type ResolvedClassSelection
 } from './characterBuilderSelections.js'
-
-export const abilityOrder: AbilityCode[] = [
-  ABILITY_CODE.STRENGTH,
-  ABILITY_CODE.DEXTERITY,
-  ABILITY_CODE.CONSTITUTION,
-  ABILITY_CODE.INTELLIGENCE,
-  ABILITY_CODE.WISDOM,
-  ABILITY_CODE.CHARISMA
-]
 
 type CharacterBuilderGrantedFeatureLookup = readonly {
   feature: { id: string }
@@ -67,11 +57,19 @@ export function appendAbilityIntentValidationIssues(
       ? abilities.state.assignments
       : abilities.assignments
   const assignedAbilities = assignments.map((assignment) => assignment.ability)
+  const systemAbilities = systemCoreCodeRegistry.abilityCodes(character.systemId)
+  const unlisted = assignedAbilities.filter((ability) => !systemAbilities.includes(ability))
 
-  if (
-    assignments.length > abilityOrder.length ||
-    new Set(assignedAbilities).size !== assignedAbilities.length
-  ) {
+  if (unlisted.length > 0) {
+    validations.push({
+      code: 'UNKNOWN_ABILITY_ASSIGNMENT',
+      severity: 'blocking',
+      sectionId: 'ABILITIES',
+      message: `The Game System does not define the ability "${unlisted[0]}".`
+    })
+  }
+
+  if (new Set(assignedAbilities).size !== assignedAbilities.length) {
     validations.push({
       code: 'MALFORMED_ABILITY_ASSIGNMENTS',
       severity: 'blocking',
@@ -134,7 +132,7 @@ export function getAvailableSubclassesForClass(params: {
 
 export function validateMulticlass(
   classSelections: ResolvedClassSelection[],
-  abilityScores: Partial<Record<AbilityCode, number>>
+  abilityScores: Record<string, number>
 ): CharacterBuilderValidation[] {
   if (classSelections.length <= 1) return []
 

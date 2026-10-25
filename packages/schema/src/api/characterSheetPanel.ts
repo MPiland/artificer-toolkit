@@ -2,7 +2,7 @@ import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 import { z, lazySchema } from '../zod.js'
 
 import { authoredLengthSchema } from '../shared/authoredLimits.js'
-import { abilityCodeSchema, lengthUnitCodeSchema } from '../shared/enums.js'
+import { lengthUnitCodeSchema } from '../shared/enums.js'
 import {
   characterMechanicSourceRefDtoSchema,
   characterMovementDisplayPreferenceDtoSchema,
@@ -14,6 +14,7 @@ import {
   characterSheetSourceNoteDtoSchema,
   characterSpellSourceRefDtoSchema
 } from './characterSheet.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 // PostgreSQL accepts UUID-shaped deterministic SRD IDs whose version bits are zero.
 const uuidSchema = lazySchema(() => z.guid())
@@ -37,8 +38,8 @@ const sensesPanelTargetDtoSchema = lazySchema(() =>
 
 export const characterSheetPanelTargetDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('ABILITY'), ability: abilityCodeSchema }),
-    z.object({ kind: z.literal('SAVING_THROW'), ability: abilityCodeSchema }),
+    z.object({ kind: z.literal('ABILITY'), ability: systemCoreCodeSchema }),
+    z.object({ kind: z.literal('SAVING_THROW'), ability: systemCoreCodeSchema }),
     z.object({ kind: z.literal('SKILL'), skillId: uuidSchema }),
     z.object({ kind: z.literal('SKILLS') }),
     sensesPanelTargetDtoSchema,
@@ -209,8 +210,8 @@ const characterSheetPanelCommonDtoSchema = lazySchema(() =>
 const abilityPanelDtoSchema = lazySchema(() =>
   z.extend(characterSheetPanelCommonDtoSchema, {
     kind: z.literal('ABILITY'),
-    target: z.object({ kind: z.literal('ABILITY'), ability: abilityCodeSchema }),
-    ability: abilityCodeSchema,
+    target: z.object({ kind: z.literal('ABILITY'), ability: systemCoreCodeSchema }),
+    ability: systemCoreCodeSchema,
     score: integerSchema,
     modifier: integerSchema,
     scoreCalculation: characterSheetPanelNumericCalculationDtoSchema,
@@ -225,8 +226,8 @@ const abilityPanelDtoSchema = lazySchema(() =>
 const savingThrowPanelDtoSchema = lazySchema(() =>
   z.extend(characterSheetPanelCommonDtoSchema, {
     kind: z.literal('SAVING_THROW'),
-    target: z.object({ kind: z.literal('SAVING_THROW'), ability: abilityCodeSchema }),
-    ability: abilityCodeSchema,
+    target: z.object({ kind: z.literal('SAVING_THROW'), ability: systemCoreCodeSchema }),
+    ability: systemCoreCodeSchema,
     total: integerSchema,
     proficiency: characterProficiencyLevelDtoSchema,
     calculation: characterSheetPanelNumericCalculationDtoSchema,
@@ -247,7 +248,7 @@ const skillPanelDtoSchema = lazySchema(() =>
     target: z.object({ kind: z.literal('SKILL'), skillId: uuidSchema }),
     skillId: uuidSchema,
     code: stringSchema.check(z.minLength(1)),
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     total: integerSchema,
     proficiency: characterProficiencyLevelDtoSchema,
     calculation: characterSheetPanelNumericCalculationDtoSchema,
@@ -275,7 +276,7 @@ const skillsPanelDtoSchema = lazySchema(() =>
         skillId: uuidSchema,
         code: stringSchema.check(z.minLength(1)),
         label: stringSchema.check(z.minLength(1)),
-        ability: abilityCodeSchema,
+        ability: systemCoreCodeSchema,
         total: integerSchema,
         proficiency: characterProficiencyLevelDtoSchema,
         state: characterSheetAdjustmentStateDtoSchema

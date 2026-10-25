@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   ATTACK_DOMAIN_CODE,
   AUTHORING_SELECTION_KIND,
@@ -25,7 +24,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import { SRD_MAGIC_SCHOOLS, SRD_SYSTEM_ID, SRD_USER_ID, ABILITY_CODE } from '../vocabulary.js'
 import { spellChildId } from './shared.js'
 function schoolId(code: string): string {
   const entry = SRD_MAGIC_SCHOOLS.find((s) => s.code === code)

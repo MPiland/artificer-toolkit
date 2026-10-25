@@ -1,4 +1,4 @@
-import type { AbilityCode, CreatureAuthored } from '@artificer-toolkit/shared'
+import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { printCreatureSenses } from '@artificer-toolkit/shared/subjects/core'
 import { describe, expect, it } from 'vitest'
 import { SRD_CREATURE_DESCRIPTION_ONLY_ACTIONS } from './creatureDescriptionOnlyActions.js'
@@ -16,7 +16,8 @@ import {
   SRD_DAMAGE_TYPES,
   SRD_LANGUAGES,
   SRD_SKILLS,
-  SRD_SPEEDS
+  SRD_SPEEDS,
+  type SrdAbilityCode
 } from './vocabulary.js'
 
 const codeById = new Map(
@@ -35,7 +36,7 @@ const codes = (ids: readonly string[] | undefined) =>
   (ids ?? []).map((id) => codeById.get(id) ?? id).sort()
 const sorted = (values: readonly string[] | undefined) => [...(values ?? [])].sort()
 const abilityByDefinitionId = new Map(
-  Object.entries(SRD_ABILITY_DEFINITION_IDS).map(([ability, id]) => [id, ability as AbilityCode])
+  Object.entries(SRD_ABILITY_DEFINITION_IDS).map(([ability, id]) => [id, ability as SrdAbilityCode])
 )
 const skillAbility = new Map(
   SRD_SKILLS.map((skill) => [
@@ -150,7 +151,7 @@ function statBlockFields(creature: CreatureAuthored, block: SrdCreatureStatBlock
       Object.fromEntries(
         Object.keys(printedSaves).map((ability) => [
           ability,
-          modifier(creature.abilityScores[ability as AbilityCode]) + bonus
+          modifier(creature.abilityScores[ability as SrdAbilityCode]) + bonus
         ])
       )
     ],

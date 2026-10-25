@@ -83,6 +83,15 @@ describe('System capability registry', () => {
       'Sample System identity must be a PostgreSQL UUID.'
     )
   })
+
+  it('refuses at registration an adapter its validator refuses', () => {
+    const refuse = () => {
+      throw new Error('Unusable sample data.')
+    }
+    expect(() => createSystemCapabilityRegistry('sample', [adapter], refuse)).toThrow(
+      'Unusable sample data.'
+    )
+  })
 })
 
 describe('installed D&D capability adapters', () => {

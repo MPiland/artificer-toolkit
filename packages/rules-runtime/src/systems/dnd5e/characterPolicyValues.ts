@@ -11,16 +11,3 @@ export function characterPolicyNumber(value: unknown): number {
   }
   return value
 }
-
-export function canonicalCharacterAbility(value: unknown): string | null {
-  if (typeof value !== 'string') return null
-  const aliases: Record<string, string> = {
-    STR: 'STRENGTH',
-    DEX: 'DEXTERITY',
-    CON: 'CONSTITUTION',
-    INT: 'INTELLIGENCE',
-    WIS: 'WISDOM',
-    CHA: 'CHARISMA'
-  }
-  return Object.hasOwn(aliases, value) ? aliases[value]! : value
-}

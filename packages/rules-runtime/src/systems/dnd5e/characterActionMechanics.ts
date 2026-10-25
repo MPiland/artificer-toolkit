@@ -25,7 +25,6 @@ type OutcomeValue = DamageOrHealOutcome['values'][number]
 type ResolvedMechanic = CharacterActionModelOutput['actionDecisions'][number]['mechanic']
 type ResolvedOutcome = ResolvedMechanic['outcomes'][number]
 type OutcomeScaling = Extract<ResolvedOutcome, { readonly kind: 'DAMAGE' }>['scaling']
-type AbilityCode = NonNullable<ResolvedMechanic['save']>['ability']
 type SpellcastingMechanics = {
   readonly attackBonus: number | null
   readonly saveDc: number | null
@@ -42,21 +41,6 @@ type MechanicContext = {
 }
 type ModifierContribution =
   CharacterActionModelInput['modifierGroups'][number]['contributions'][number]
-
-const ABILITY_ALIASES: Readonly<Record<string, AbilityCode>> = {
-  STR: 'STRENGTH',
-  STRENGTH: 'STRENGTH',
-  DEX: 'DEXTERITY',
-  DEXTERITY: 'DEXTERITY',
-  CON: 'CONSTITUTION',
-  CONSTITUTION: 'CONSTITUTION',
-  INT: 'INTELLIGENCE',
-  INTELLIGENCE: 'INTELLIGENCE',
-  WIS: 'WISDOM',
-  WISDOM: 'WISDOM',
-  CHA: 'CHARISMA',
-  CHARISMA: 'CHARISMA'
-}
 
 function clamp(value: number, minimum: number | null, maximum: number | null): number {
   return Math.min(
@@ -88,8 +72,9 @@ function applyDamageAmountMetadata(
   throw new Error(`Action damage amount factor ${factor} has no roll expression.`)
 }
 
-function canonicalAbility(value: string): AbilityCode | null {
-  return ABILITY_ALIASES[value] ?? null
+/** The code when the Character has that ability; null for any other reference. */
+function characterAbilityCode(input: CharacterActionModelInput, value: string): string | null {
+  return input.abilities.some((ability) => ability.abilityId === value) ? value : null
 }
 
 function abilityFromDefinitionId(input: CharacterActionModelInput, abilityDefinitionId: string) {
@@ -97,7 +82,9 @@ function abilityFromDefinitionId(input: CharacterActionModelInput, abilityDefini
     (definition) => definition.id === abilityDefinitionId
   )
   const match = matches[0]
-  return matches.length === 1 && match !== undefined ? canonicalAbility(match.code) : null
+  return matches.length === 1 && match !== undefined
+    ? characterAbilityCode(input, match.code)
+    : null
 }
 
 function abilityModifier(
@@ -110,9 +97,7 @@ function abilityModifier(
       ? null
       : spellcasting.attackBonus - input.proficiencyBonus
   }
-  const canonical = canonicalAbility(value)
-  const match = input.abilities.find((ability) => canonicalAbility(ability.abilityId) === canonical)
-  return canonical === null || match === undefined ? null : match.modifier
+  return input.abilities.find((ability) => ability.abilityId === value)?.modifier ?? null
 }
 
 function skillTotal(input: CharacterActionModelInput, skillId: string): number | null {
@@ -510,7 +495,8 @@ export function resolveDnd5eActionMechanic(
         : null,
     rangeLabel: rangeLabel(invocation.range),
     attackKind,
-    attackAbility: target.attackAbility === null ? null : canonicalAbility(target.attackAbility),
+    attackAbility:
+      target.attackAbility === null ? null : characterAbilityCode(input, target.attackAbility),
     attackBonus: resolveAttackBonus(),
     attackRollMode: resolveAttackRollMode(),
     save: resolveSave(),

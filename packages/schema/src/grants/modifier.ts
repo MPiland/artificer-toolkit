@@ -22,8 +22,6 @@ import {
   durationKindSchema,
   attackDomainCodeSchema,
   attackOccasionCodeSchema,
-  abilityCodeSchema,
-  abilityModifierReferenceSchema,
   modifierKindSchema,
   modifierScopeKindSchema,
   modifierValueKindSchema,
@@ -51,7 +49,7 @@ const optionalAttackDomainParamDtoSchema = lazySchema(() =>
 const attackRollRollModeParamDtoSchema = lazySchema(() =>
   z.object({
     attackDomain: attackDomainCodeSchema,
-    ability: z.optional(abilityCodeSchema),
+    ability: z.optional(systemCoreCodeSchema),
     /** Only attacks against the source of the effect holding the grant (Bestow Curse). */
     againstEffectSource: z.optional(z.boolean())
   })
@@ -78,20 +76,20 @@ const attackTraitParamDtoSchema = lazySchema(() =>
 
 const abilityParamDtoSchema = lazySchema(() =>
   z.object({
-    ability: abilityCodeSchema
+    ability: systemCoreCodeSchema
   })
 )
 
 /** One ability's tests, or every ability's when absent (a rolled die on every save covers death saves). */
 const optionalAbilityParamDtoSchema = lazySchema(() =>
   z.object({
-    ability: z.optional(abilityCodeSchema)
+    ability: z.optional(systemCoreCodeSchema)
   })
 )
 
 const savingThrowParamDtoSchema = lazySchema(() =>
   z.object({
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     conditionTypeId: z.optional(authoredIdentifierSchema),
     ruleDefinitionId: z.optional(postgresUuidSchema),
     requiresHolderSeesSource: z.optional(z.boolean())
@@ -169,7 +167,7 @@ const modifierScalarValueDtoSchema = lazySchema(() =>
 
 const abilityModifierBonusPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     multiplier: z.optional(z.number()),
     min: z.optional(z.number()),
     max: z.optional(z.number())
@@ -179,7 +177,7 @@ const abilityModifierBonusPayloadDtoSchema = lazySchema(() =>
 /** The best of several ability modifiers; `SPELLCASTING` is the holder's spellcasting ability. */
 const optionalAbilityModifierBonusPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
-    abilities: authoredReferenceCollectionSchema(abilityModifierReferenceSchema),
+    abilities: authoredReferenceCollectionSchema(systemCoreCodeSchema),
     min: z.optional(z.number()),
     max: z.optional(z.number())
   })
@@ -223,7 +221,7 @@ const modifyChargeLimitPayloadDtoSchema = lazySchema(() =>
     z.object({
       limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.ABILITY_MODIFIER),
       scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       multiplier: z.optional(z.number()),
       min: z.optional(z.number()),
       max: z.optional(z.number())
@@ -259,7 +257,7 @@ const weaponDamageDiePayloadDtoSchema = lazySchema(() =>
 const armorClassFormulaPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
     amount: z.number(),
-    abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
+    abilities: authoredReferenceCollectionSchema(systemCoreCodeSchema)
   })
 )
 
@@ -288,7 +286,7 @@ export type DamageInterceptionPayloadDto = {
   dropToHitPoints: number
   negatesKill: boolean
   save?: {
-    ability: z.infer<typeof abilityCodeSchema>
+    ability: z.infer<typeof systemCoreCodeSchema>
     dc: { base: number; plusDamageTaken: boolean }
   }
   excludes?: { damageTypeIds: string[]; critical: boolean }
@@ -303,7 +301,7 @@ export const damageInterceptionPayloadDtoSchema: z.ZodMiniType<DamageInterceptio
       negatesKill: z.boolean(),
       save: z.optional(
         z.strictObject({
-          ability: abilityCodeSchema,
+          ability: systemCoreCodeSchema,
           dc: z.strictObject({
             base: z.number().check(z.int()).check(z.gte(0)).check(z.lte(100)),
             plusDamageTaken: z.boolean()

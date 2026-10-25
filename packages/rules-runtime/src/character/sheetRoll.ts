@@ -21,15 +21,6 @@ type ResolvedRoll = {
   abilityCode?: string
 }
 
-const ABILITY_LABELS = {
-  STRENGTH: 'Strength',
-  DEXTERITY: 'Dexterity',
-  CONSTITUTION: 'Constitution',
-  INTELLIGENCE: 'Intelligence',
-  WISDOM: 'Wisdom',
-  CHARISMA: 'Charisma'
-} as const
-
 function withModifier(expression: string, modifier: number) {
   return modifier === 0
     ? expression
@@ -79,7 +70,7 @@ function structuredRolls(sheet: CharacterSheetResponseDto): ResolvedRoll[] {
       expression: withModifier('1d20', ability.modifier),
       rollMode: ability.rollMode,
       abilityCode: ability.ability,
-      source: { kind: 'ABILITY_CHECK' as const, label: `${ABILITY_LABELS[ability.ability]} check` }
+      source: { kind: 'ABILITY_CHECK' as const, label: `${ability.label} check` }
     })),
     ...sheet.overview.savingThrows.map((save) => ({
       expression: withModifier('1d20', save.total),

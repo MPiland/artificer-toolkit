@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
@@ -25,7 +24,8 @@ import {
   SRD_MAGIC_SCHOOLS,
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
-  SRD_USER_ID
+  SRD_USER_ID,
+  ABILITY_CODE
 } from '../vocabulary.js'
 import { nonmagicalResistanceGrants, spellChildId } from './shared.js'
 function schoolId(code: string): string {

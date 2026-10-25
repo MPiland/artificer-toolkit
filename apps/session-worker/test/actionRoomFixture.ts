@@ -435,6 +435,7 @@ export interface ActionRoomConfig extends Pick<
   | 'spatialEffects'
   | 'sceneGrid'
   | 'optionalCombatKinds'
+  | 'sides'
   | 'rolls'
   | 'fallbackRoll'
   | 'concentration'

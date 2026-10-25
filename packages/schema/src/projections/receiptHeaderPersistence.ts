@@ -45,6 +45,8 @@ export const encounterRunCommandHeaderSchema = lazySchema(() =>
         'RESOLVE_ACTION',
         'ESCAPE',
         'SET_CONCEALMENT_OBSERVERS',
+        'MORALE_SAVE',
+        'CONFIRM_MORALE',
         'END_HELD_GRANT',
         'MOVE_HELD_EFFECT',
         'RELEASE_RELATIONSHIP',

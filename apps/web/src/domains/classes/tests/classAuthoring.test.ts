@@ -1,4 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
+
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
+
 import {
   createEmptyClass,
   createEmptyMulticlass,
@@ -25,7 +28,7 @@ describe('class authoring utilities', () => {
 
   it('normalizes base and subclass activation payloads from the same form values', () => {
     const baseClass = normalizeClassForSubmit({
-      ...createEmptyClass({ systemId: 'system-1' }),
+      ...createEmptyClass({ systemId: DND5E_SYSTEM_ID }),
       label: ' Fighter ',
       category: 'BASE',
       subclassSelectionLevel: 3

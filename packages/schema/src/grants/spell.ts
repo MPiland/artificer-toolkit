@@ -6,7 +6,6 @@ import {
   authoredReferenceCollectionSchema
 } from '../shared/authoredLimits.js'
 import {
-  abilityCodeSchema,
   authoringModeKindSchema,
   spellGrantAccessSchema,
   spellGrantAttributeSchema
@@ -32,7 +31,7 @@ export const spellGrantDtoSchema = lazySchema(() =>
     z.extend(staticGrantBaseDtoSchema, {
       grantKind: z.literal('SPELL_GRANT'),
       castAtLevel: z.optional(z.number().check(z.int()).check(z.positive())),
-      castingAbility: z.optional(abilityCodeSchema),
+      castingAbility: z.optional(systemCoreCodeSchema),
       attributes: z.optional(authoredReferenceCollectionSchema(spellGrantAttributeSchema)),
       filters: z.optional(spellFacetDtoSchema),
       charges: z.optional(chargeUseDtoSchema),

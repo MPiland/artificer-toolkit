@@ -1,5 +1,4 @@
 import type {
-  AbilityCode,
   AuthoredRecordStatus,
   CreatureCategoryCode,
   DamageDefenseBypassCode,
@@ -95,7 +94,7 @@ export interface CreatureAuthored extends CreatureBaseAuthored {
   creatureTypeId: string
   size: string
 
-  abilityScores: Record<AbilityCode, number>
+  abilityScores: Record<string, number>
   /** Armor class added to the loadout's armor formula; the Creature's armor class is computed. */
   naturalArmorBonus: number
   hitPoints: number

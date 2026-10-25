@@ -20,7 +20,6 @@ import { chargeDtoSchema } from '../shared/charge.js'
 import { detailDtoSchema } from '../shared/detail.js'
 import { startingEquipmentDtoSchema } from '../shared/startingEquipment.js'
 import {
-  abilityCodeSchema,
   authoredRecordStatusSchema,
   classAttributeSchema,
   spellcastingAttributeSchema,
@@ -28,6 +27,7 @@ import {
 } from '../shared/enums.js'
 import { featureDtoSchema } from '../features/feature.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const classBaseDtoSchema = lazySchema(() =>
   z.object({
@@ -45,7 +45,7 @@ const classBaseDtoSchema = lazySchema(() =>
         details: z.optional(authoredNestedCollectionSchema(detailDtoSchema)),
         magicName: z.optional(authoredShortTextSchema),
         availableSpellIds: z.optional(authoredReferenceCollectionSchema(authoredIdentifierSchema)),
-        ability: z.optional(abilityCodeSchema),
+        ability: z.optional(systemCoreCodeSchema),
         maxSpellLevel: z.number().check(z.int()),
         attributes: z.optional(authoredReferenceCollectionSchema(spellcastingAttributeSchema)),
         charges: chargeDtoSchema,

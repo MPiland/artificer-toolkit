@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import {
-  createDefaultAbilityScores,
   createEmptyCreature,
   normalizeCreatureForSubmit,
   toCreatureFormValues
@@ -30,7 +29,14 @@ describe('creature authoring helpers', () => {
       size: 'MEDIUM',
       systemId: DND5E_SYSTEM_ID,
       equipmentLoadout: [],
-      abilityScores: createDefaultAbilityScores()
+      abilityScores: {
+        STRENGTH: 10,
+        DEXTERITY: 10,
+        CONSTITUTION: 10,
+        INTELLIGENCE: 10,
+        WISDOM: 10,
+        CHARISMA: 10
+      }
     })
   })
 

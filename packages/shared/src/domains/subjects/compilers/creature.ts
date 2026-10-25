@@ -6,12 +6,7 @@ import type {
   CreatureNpcProfile,
   SpeedAuthored
 } from '#authored'
-import {
-  EQUIPMENT_SLOT_CODES,
-  HAND_CONFLICT_MESSAGE,
-  resolveHandOccupancy,
-  type AbilityCode
-} from '#core'
+import { EQUIPMENT_SLOT_CODES, HAND_CONFLICT_MESSAGE, resolveHandOccupancy } from '#core'
 import {
   compileFeature,
   compileProficiencyGrant,
@@ -59,7 +54,7 @@ export interface CompiledCreatureBase {
 export interface CompiledCreature extends CompiledCreatureBase {
   creatureTypeId: string
   size: string
-  abilityScores: Record<AbilityCode, number>
+  abilityScores: Record<string, number>
   naturalArmorBonus: number
   hitPoints: number
   hitDice?: CreatureAuthored['hitDice']

@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
-import { abilityCodeSchema } from './enums.js'
 import { authoredIdentifierSchema, authoredNestedCollectionSchema } from './authoredLimits.js'
+import { systemCoreCodeSchema } from './systemCoreCode.js'
 
 const numericExprCodeSchema = lazySchema(() =>
   z.enum([
@@ -29,7 +29,7 @@ const numericAtomSchema = lazySchema(() =>
     }),
     z.object({
       kind: z.literal('ABILITY_MODIFIER'),
-      ability: abilityCodeSchema
+      ability: systemCoreCodeSchema
     }),
     z.object({
       kind: z.literal('SKILL_BONUS'),

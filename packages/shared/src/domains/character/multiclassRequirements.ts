@@ -1,8 +1,6 @@
-import type { AbilityCode } from '../core/ability.js'
-
 export type MulticlassRequirementGroup = {
   requirements: readonly {
-    ability: AbilityCode
+    ability: string
     min: number
   }[]
 }
@@ -14,7 +12,7 @@ export type MulticlassRequirementEvaluation = {
 
 export function evaluateMulticlassRequirements(
   requirementGroups: { groups: readonly MulticlassRequirementGroup[] },
-  abilityScores: Partial<Record<AbilityCode, number>>
+  abilityScores: Record<string, number>
 ): MulticlassRequirementEvaluation {
   const unmetRequirementGroups = requirementGroups.groups.filter((group) =>
     group.requirements.some(

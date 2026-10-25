@@ -345,6 +345,8 @@ export const spellDetailMetaDtoSchema = lazySchema(() =>
 
 export const creatureDetailMetaDtoSchema = lazySchema(() =>
   z.object({
+    /** Every System ability in System order, with the abbreviation the stat block shows. */
+    abilities: z.optional(z.array(z.extend(detailReferenceOptionDtoSchema, { short: z.string() }))),
     challengeRatings: z.optional(z.array(detailReferenceOptionDtoSchema)),
     conditionTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),
     creatureTypes: z.optional(z.array(detailReferenceOptionDtoSchema)),

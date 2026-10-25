@@ -36,13 +36,56 @@ const D = {
 // ─── Abilities ───────────────────────────────────────────────────────────────
 
 export const SRD_ABILITIES = [
-  { id: vocabId(D.ability, 1), code: 'STRENGTH', label: 'Strength' },
-  { id: vocabId(D.ability, 2), code: 'DEXTERITY', label: 'Dexterity' },
-  { id: vocabId(D.ability, 3), code: 'CONSTITUTION', label: 'Constitution' },
-  { id: vocabId(D.ability, 4), code: 'INTELLIGENCE', label: 'Intelligence' },
-  { id: vocabId(D.ability, 5), code: 'WISDOM', label: 'Wisdom' },
-  { id: vocabId(D.ability, 6), code: 'CHARISMA', label: 'Charisma' }
+  {
+    id: vocabId(D.ability, 1),
+    code: 'STRENGTH',
+    label: 'Strength',
+    short: 'STR',
+    description: 'Strength measures physical power, bodily force, and the ability to exert muscle.'
+  },
+  {
+    id: vocabId(D.ability, 2),
+    code: 'DEXTERITY',
+    label: 'Dexterity',
+    short: 'DEX',
+    description: 'Dexterity measures agility, reflexes, balance, and precise control of movement.'
+  },
+  {
+    id: vocabId(D.ability, 3),
+    code: 'CONSTITUTION',
+    label: 'Constitution',
+    short: 'CON',
+    description: 'Constitution measures endurance, stamina, and overall bodily health.'
+  },
+  {
+    id: vocabId(D.ability, 4),
+    code: 'INTELLIGENCE',
+    label: 'Intelligence',
+    short: 'INT',
+    description: 'Intelligence measures reasoning ability, memory, and analytical thinking.'
+  },
+  {
+    id: vocabId(D.ability, 5),
+    code: 'WISDOM',
+    label: 'Wisdom',
+    short: 'WIS',
+    description: 'Wisdom measures perception, intuition, awareness, and insight.'
+  },
+  {
+    id: vocabId(D.ability, 6),
+    code: 'CHARISMA',
+    label: 'Charisma',
+    short: 'CHA',
+    description: 'Charisma measures confidence, presence, and the ability to influence others.'
+  }
 ] as const
+
+export type SrdAbilityCode = (typeof SRD_ABILITIES)[number]['code']
+
+/** The SRD's ability codes, the keys its ability-score records and references use. */
+export const ABILITY_CODE = Object.fromEntries(SRD_ABILITIES.map(({ code }) => [code, code])) as {
+  readonly [Code in SrdAbilityCode]: Code
+}
 
 /** Stable UUID references used by authored mechanics; codes remain catalogue keys only. */
 export const SRD_ABILITY_DEFINITION_IDS = {

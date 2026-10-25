@@ -38,7 +38,7 @@ import { loadMovementTargets } from './movementTargetReads.js'
 import { readRunActors } from './documents.js'
 import { readEncounterSpellPins } from './spellPins.js'
 import { readTurnMovedFeet, readTurnUses } from './turnMovement.js'
-import type { EncounterTurnReadTransaction } from './ports.js'
+import type { EncounterReadPorts, EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
 type Campaign = EncounterDocument<'campaigns'>
@@ -67,7 +67,10 @@ export async function readActionSceneContext(
 }
 
 /** The current published definitions as the Campaign's owner reads them. */
-function campaignDefinitions(tx: EncounterTurnReadTransaction, campaign: Campaign) {
+export function campaignDefinitions(
+  tx: { readonly ports: Pick<EncounterReadPorts, 'readCurrentDefinition'> },
+  campaign: Campaign
+) {
   return {
     requireCurrent: async (definitionId: string) => {
       const current = await tx.ports.readCurrentDefinition(definitionId, campaign.ownerUserId)

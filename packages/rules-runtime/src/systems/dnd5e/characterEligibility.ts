@@ -4,8 +4,6 @@ import type {
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
-import { canonicalCharacterAbility } from './characterPolicyValues.js'
-
 export type CharacterResolvedProficiency = Omit<
   CharacterGrantFoldOutput['proficiencies'][number],
   'grantId'
@@ -24,8 +22,7 @@ export function evaluateDnd5eCharacterEligibility(
       const inRange = (value: number) =>
         (condition.min === null || value >= condition.min) &&
         (condition.max === null || value <= condition.max)
-      const abilityMatches = (ability: string) =>
-        canonicalCharacterAbility(ability) === canonicalCharacterAbility(condition.abilityId)
+      const abilityMatches = (ability: string) => ability === condition.abilityId
       const selected = (values: string[], requiredIds = condition.requiredIds) =>
         condition.authoringMode === 'ALL'
           ? values.length > 0
