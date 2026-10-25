@@ -693,3 +693,14 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - GM rulings (`MANUAL_ADJUDICATION`): Marilith Tail auto-hit (the hold also restricts the Tail to the held target), Roper Reel's 25-foot pull, and the Stirge drain. The drain stays a ruling because the recurrence runs on the target's turn as typed damage, while the drain is hit point loss on the stirge's turn, ending after 10 points or on an action with no check.
 - Passive riders with no action stay in the description: Barbed Hide, Cloaker Damage Transfer, Mimic Adhesive (the Pseudopod adhesion is T4s3's).
 - The eight closed kinds are deleted; Chain Devil Chain, Marilith Tail and Stirge Blood Drain leave the attack allowlist. Proof: `creatureHeldRelationshipAuthoringParity.test.ts`, the attack sweep, the grapple-rider check (the Stirge attach is the 32nd relationship, printed with no escape DC), four room tests in `nativeRoomHitRiders.test.ts` and the `srdEffectCompile` golden. Deferred pieces are in future-enhancements ("Held-creature riders").
+
+## T4gh: Rejuvenation and Etherealness as GM rulings (D187a; `ci/spells-33-t4gh`)
+
+- Status: implemented; CI is the gate. Guardian and Spirit Naga, Lemure, Lich and Mummy Lord Rejuvenation, and Ghost and Night Hag Etherealness are each one `MANUAL_ADJUDICATION` ruling with the description kept. `REVIVE` is an immediate revival and there is no days-long return timer or plane-crossing state, so neither is built (the spell Etherealness keeps its `REMOVE_FROM_PLAY`, which does not fit a toggle visible on both planes).
+- The seven closed-rule kinds are deleted. Proof: `creatureRejuvenationEtherealnessRulingAuthoringParity.test.ts` (one ruling per trait, creature node map round trip, kinds gone).
+
+## T4s2: lycanthrope and vampire shapechanging, Misty Escape as GM rulings (D187a; `ci/spells-33-t4s2`)
+
+- Status: implemented; CI is the gate. Werebear, Wereboar, Wererat, Weretiger, Werewolf and Vampire Shapechanger stay ACTION/SELF effects whose single outcome is a `MANUAL_ADJUDICATION` / `GM_CHOICE` ruling from `creatures/changeShapeRuling.ts` (new wordings `LYCANTHROPE_FORM` and `VAMPIRE_FORM`). Vampire Misty Escape stays a PASSIVE effect with the `MISTY_ESCAPE` ruling. Same reason as T4s1: a form swap would replace hit points, and the 0-hit-point replacement, 2-hour deadline and resting-place recovery have no engine piece (rare, D187a). No engine piece built.
+- The seven closed-rule kinds (`CREATURE_{WEREBEAR,WEREBOAR,WERERAT,WERETIGER,WEREWOLF,VAMPIRE}_SHAPECHANGER`, `CREATURE_VAMPIRE_MISTY_ESCAPE`) are deleted from `closedRuleKind.ts`.
+- Proof: `creatureChangeShapeRulingAuthoringParity.test.ts` extended (action shape, Misty Escape passive ruling, creature node map round trip, kinds gone).
