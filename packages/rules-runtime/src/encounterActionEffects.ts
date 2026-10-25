@@ -177,16 +177,16 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   published: CompleteExecution['published'],
   outputs?: CompleteExecution['execution']['outputs']
 ) {
-  const character = prepared.source.kind === 'CHARACTER_ACTION' ? prepared.source.entry : null
-  const plans: readonly CharacterRuleActionActiveEffectPlan[] = character
-    ? [
-        ...(character.compilation.hitPointTierPlans ?? []),
-        ...(character.compilation.rollTableRowPlans ?? [])
-      ]
-    : (prepared.adapter.activeEffectPlans?.({
-        action: prepared.source.capability,
-        published
-      }) ?? [])
+  const plans: readonly CharacterRuleActionActiveEffectPlan[] =
+    prepared.source.kind === 'CHARACTER_ACTION'
+      ? [
+          ...(prepared.source.entry.compilation.hitPointTierPlans ?? []),
+          ...(prepared.source.entry.compilation.rollTableRowPlans ?? [])
+        ]
+      : (prepared.adapter.activeEffectPlans?.({
+          action: prepared.source.capability,
+          published
+        }) ?? [])
   if (plans.some((plan) => plan.rollTableRow)) {
     if (!outputs) throw new Error('Encounter action roll-table plans need the settled roll.')
     const roll = outputs.rollTableRoll
