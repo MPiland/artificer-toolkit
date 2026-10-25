@@ -124128,6 +124128,16 @@ export declare const api: {
         { id: string },
         {
           authoredRootKinds: Array<string>;
+          contentKinds: Array<
+            | "BACKGROUND"
+            | "CLASS"
+            | "CREATURE"
+            | "EQUIPMENT"
+            | "FEAT"
+            | "RACE"
+            | "SPELL"
+            | "VEHICLE"
+          >;
           contractVersion: number;
           definitionFamilyKeys: Array<string>;
           factContracts: Array<{
