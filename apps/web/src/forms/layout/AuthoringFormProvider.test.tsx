@@ -1,3 +1,4 @@
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { useEffect, useState, type ReactNode } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -12,7 +13,7 @@ import type { AuthoringNavigationTarget } from './authoringNavigation'
 import { ShellReturnHrefContext } from '#app/shell/returnLocation'
 
 const RACE_CREATE_REGISTRATION = {
-  data: { systems: [{ id: 'system-1' }] },
+  data: { systems: [{ id: DND5E_SYSTEM_ID }] },
   domain: 'race',
   mode: 'create'
 } as const
@@ -57,9 +58,9 @@ describe('AuthoringFormProvider domain registration', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByTestId('session-key').textContent).toBe('race:create:system-1')
+      expect(screen.getByTestId('session-key').textContent).toBe(`race:create:${DND5E_SYSTEM_ID}`)
     })
-    expect(screen.getByTestId('system-id').textContent).toBe('system-1')
+    expect(screen.getByTestId('system-id').textContent).toBe(DND5E_SYSTEM_ID)
 
     const sessionId = screen.getByTestId('session-id').textContent
     await user.click(screen.getByRole('button', { name: 'Register again' }))
@@ -126,7 +127,11 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
+        <AuthoringFormProvider
+          data={{ systems: [{ id: DND5E_SYSTEM_ID }] }}
+          domain='race'
+          mode='create'
+        >
           <CancelProbe hasChanges />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -190,7 +195,11 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
+        <AuthoringFormProvider
+          data={{ systems: [{ id: DND5E_SYSTEM_ID }] }}
+          domain='race'
+          mode='create'
+        >
           <UnsavedNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -220,7 +229,11 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
+        <AuthoringFormProvider
+          data={{ systems: [{ id: DND5E_SYSTEM_ID }] }}
+          domain='race'
+          mode='create'
+        >
           <UnsavedNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -315,7 +328,11 @@ describe('AuthoringFormProvider URL navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds?source=owned&step=step%3Arace%3Aroot%3Abasics'>
-        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
+        <AuthoringFormProvider
+          data={{ systems: [{ id: DND5E_SYSTEM_ID }] }}
+          domain='race'
+          mode='create'
+        >
           <AuthoredUrlNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>
