@@ -6,12 +6,8 @@ import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { SocialApplicationDialog } from './components/SocialApplicationDialog'
 import { SocialDetailField } from './components/SocialDetailField'
 import { SocialReportDialog } from './components/SocialReportDialog'
-import {
-  formatListingLocation,
-  formatSocialSchedule,
-  formatStatusLabel,
-  safetyPracticeOptions
-} from './socialModels'
+import { formatEnumLabel } from '#components/AuthoredDetail'
+import { formatListingLocation, formatSocialSchedule, safetyPracticeOptions } from './socialModels'
 import * as styles from './SocialListingDetailPage.css'
 
 export function SocialListingDetailPage({ listingPublicId }: { listingPublicId: string }) {
@@ -38,8 +34,8 @@ export function SocialListingDetailPage({ listingPublicId }: { listingPublicId: 
             <Title id='social-listing-title' order={1}>
               {data.title}
             </Title>
-            <Badge variant='light'>{formatStatusLabel(data.format)}</Badge>
-            <Badge variant='light'>{formatStatusLabel(data.contentMaturity)}</Badge>
+            <Badge variant='light'>{formatEnumLabel(data.format)}</Badge>
+            <Badge variant='light'>{formatEnumLabel(data.contentMaturity)}</Badge>
             <Badge variant='light'>{formatListingLocation(data)}</Badge>
           </Group>
           <Text className={styles.prose}>{data.summary}</Text>
@@ -59,7 +55,7 @@ export function SocialListingDetailPage({ listingPublicId }: { listingPublicId: 
           <Title order={2}>What to expect</Title>
           <SocialDetailField
             label='Tone'
-            value={[data.toneTags.map(formatStatusLabel).join(', '), data.toneDetails]
+            value={[data.toneTags.map(formatEnumLabel).join(', '), data.toneDetails]
               .filter(Boolean)
               .join(' — ')}
           />

@@ -1632,6 +1632,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -8076,6 +8077,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -8164,6 +8166,7 @@ export declare const api: {
               delete: boolean;
               edit: boolean;
               invite: boolean;
+              manageActiveCampaign: boolean;
               manageCharacters: boolean;
               manageMembers: boolean;
               manageNotes: boolean;
@@ -8252,6 +8255,7 @@ export declare const api: {
               delete: boolean;
               edit: boolean;
               invite: boolean;
+              manageActiveCampaign: boolean;
               manageCharacters: boolean;
               manageMembers: boolean;
               manageNotes: boolean;
@@ -8350,6 +8354,7 @@ export declare const api: {
                 delete: boolean;
                 edit: boolean;
                 invite: boolean;
+                manageActiveCampaign: boolean;
                 manageCharacters: boolean;
                 manageMembers: boolean;
                 manageNotes: boolean;
@@ -8442,6 +8447,7 @@ export declare const api: {
               delete: boolean;
               edit: boolean;
               invite: boolean;
+              manageActiveCampaign: boolean;
               manageCharacters: boolean;
               manageMembers: boolean;
               manageNotes: boolean;
@@ -8547,6 +8553,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -9829,6 +9836,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -10253,6 +10261,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -10339,6 +10348,7 @@ export declare const api: {
               delete: boolean;
               edit: boolean;
               invite: boolean;
+              manageActiveCampaign: boolean;
               manageCharacters: boolean;
               manageMembers: boolean;
               manageNotes: boolean;
@@ -10410,6 +10420,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -11313,6 +11324,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -135362,6 +135374,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;

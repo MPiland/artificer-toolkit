@@ -13,3 +13,12 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Stay out of the authored-form factory, the Guided<Subject>Authoring files and `authoringNodeDefaults.ts`. Those belong to RELIABILITY-8.T1–T3 ([slice-reliability-8.md](slice-reliability-8.md)), which runs at the same time.
 
 ## Log
+
+- 2026-10-24: Implemented RELIABILITY-8.7 on `ci/reliability-8-t4`.
+  - `capabilities.manageActiveCampaign` (shared `getCampaignCapabilities`, `campaignCapabilitiesDtoSchema`) replaces the 12 inline owner-and-active checks and `isCampaignTableSettingsEditable`. Server enforcement is unchanged.
+  - Enum labels use `formatEnumLabel`; `ReferenceOption` is one type (`data/contentReferences.ts`).
+  - The four Social admission lists share `hooks/admissionLists.ts` (`admissionPageSize`, `mergeAdmissionRows`) and `AdmissionListFooter`; `formatSocialDate` and `formatSocialTimestamp` replace inline `Intl.DateTimeFormat`.
+  - Auth: `AuthFormFeedback` and `AuthFeedback` are shared by SignIn, SignUp, ResetPassword and UpdatePassword; `auth/usernameMessages.ts` is shared by SignUp, UpdatePassword and ProfileSettings. SignInForm already used `useHydrated`.
+  - Dice: `useDismissRollOnClick` replaces the duplicated dismiss effect.
+  - Not done, left in place on purpose: `socialSearch.ts` enum restatement (schemas are `lazySchema`, not safe without a compile) and the `forms/*` label copies (owned by T1–T3).
+  - Proof tests: `packages/shared/src/__tests__/campaign-capabilities.test.ts`, `apps/web/src/domains/social/hooks/admissionLists.test.ts`, `apps/web/src/components/dice/useDismissRollOnClick.test.ts`.

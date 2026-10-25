@@ -14,16 +14,20 @@ import {
   authButton,
   authFooterRow,
   authForm,
-  authFormMessage,
-  authFormMessageError,
-  authFormMessageSuccess,
   inlineLink,
   inlineLinkIcon,
   inlineLinkIconGlyph,
   textInput
 } from '../auth.css'
-import { AuthFormProps } from './authForm.types'
+import {
+  usernameFormatMessage,
+  usernameNotAllowedMessage,
+  usernameRuleDescription,
+  usernameTakenMessage
+} from '../usernameMessages'
+import type { AuthFeedback, AuthFormProps } from './authForm.types'
 import { AuthDivider } from './AuthDivider'
+import { AuthFormFeedback } from './AuthFormFeedback'
 import { PasswordMatchFeedback } from './PasswordMatchFeedback'
 
 export function SignUpForm({
@@ -39,18 +43,14 @@ export function SignUpForm({
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
-    null
-  )
+  const [feedback, setFeedback] = useState<AuthFeedback | null>(null)
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
 
     const parsedUsername = usernameInputSchema.safeParse(username)
     if (!parsedUsername.success) {
-      setUsernameError(
-        'Use 3 to 30 letters or numbers, with single underscores between them. Capitalization is preserved.'
-      )
+      setUsernameError(usernameFormatMessage)
       return
     }
 
@@ -76,9 +76,7 @@ export function SignUpForm({
       const usernameStatus = await getUsernameStatus(parsedUsername.data)
       if (usernameStatus.status !== 'available') {
         setUsernameError(
-          usernameStatus.status === 'taken'
-            ? 'That username is already taken.'
-            : "That username isn't allowed."
+          usernameStatus.status === 'taken' ? usernameTakenMessage : usernameNotAllowedMessage
         )
         return
       }
@@ -124,7 +122,7 @@ export function SignUpForm({
       />
       <TextInput
         label='Username'
-        description='Use 3 to 30 letters or numbers, with single underscores between them.'
+        description={usernameRuleDescription}
         classNames={{
           input: textInput
         }}
@@ -176,17 +174,7 @@ export function SignUpForm({
       <Button className={authButton} type='submit' loading={isSubmitting}>
         Create account
       </Button>
-      {feedback && (
-        <div
-          className={`${authFormMessage} ${
-            feedback.tone === 'error' ? authFormMessageError : authFormMessageSuccess
-          }`}
-          role={feedback.tone === 'error' ? 'alert' : 'status'}
-          aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
-        >
-          {feedback.message}
-        </div>
-      )}
+      <AuthFormFeedback feedback={feedback} />
       <AuthDivider />
       <div className={authFooterRow}>
         <span>Already have an account?</span>

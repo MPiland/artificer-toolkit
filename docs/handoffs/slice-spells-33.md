@@ -697,3 +697,13 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - Status: implemented; CI is the gate. Werebear, Wereboar, Wererat, Weretiger, Werewolf and Vampire Shapechanger stay ACTION/SELF effects whose single outcome is a `MANUAL_ADJUDICATION` / `GM_CHOICE` ruling from `creatures/changeShapeRuling.ts` (new wordings `LYCANTHROPE_FORM` and `VAMPIRE_FORM`). Vampire Misty Escape stays a PASSIVE effect with the `MISTY_ESCAPE` ruling. Same reason as T4s1: a form swap would replace hit points, and the 0-hit-point replacement, 2-hour deadline and resting-place recovery have no engine piece (rare, D187a). No engine piece built.
 - The seven closed-rule kinds (`CREATURE_{WEREBEAR,WEREBOAR,WERERAT,WERETIGER,WEREWOLF,VAMPIRE}_SHAPECHANGER`, `CREATURE_VAMPIRE_MISTY_ESCAPE`) are deleted from `closedRuleKind.ts`.
 - Proof: `creatureChangeShapeRulingAuthoringParity.test.ts` extended (action shape, Misty Escape passive ruling, creature node map round trip, kinds gone).
+
+## T6m2: lingering creature riders (D187a; `ci/spells-33-t6m2`)
+
+- Deletes `CREATURE_ANDROSPHINX_ROAR`, `CREATURE_COUATL_BITE_POISON`, `CREATURE_DRYAD_TREE_STRIDE`, `CREATURE_HORNED_DEVIL_INFERNAL_WOUND` and `CREATURE_VROCK_STUNNING_SCREECH`, and the Couatl Bite allowlist entry.
+- Androsphinx Roar: each roar keeps its automated save, conditions and damage; a GM ruling names its order since the last long rest and the hearing gate.
+- Couatl Bite: the failed save poisons and knocks out the target; the 24-hour clock and the wake action are a GM ruling (Death Dog precedent).
+- Horned Devil Tail: the failed save keeps the stanch check; the stacking wound and its healing end are a GM ruling. The stanch check (`FOLLOW_UP_CHECK`) has no executor under a save path, so the Tail stays allowlisted (`OUTCOME_KIND`).
+- Vrock Stunning Screech: the failed save stuns until the end of the vrock's next turn (ROUND 1, SOURCE END_OF_TURN anchor); the demon and hearing exemptions are a GM ruling.
+- Dryad Tree Stride: the placeholder TELEPORT stays; the trees and their size are a GM ruling.
+- Filters, ordinal variants, wake, stacking damage and absolute tree size are in future-enhancements under "Lingering creature riders". Proofs: `creatureLingeringRiderAuthoringParity.test.ts`, the attack sweep and the Couatl room test in `nativeRoomHitRiders.test.ts`.
