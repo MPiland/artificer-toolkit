@@ -113,14 +113,16 @@ function readTurnOrder(room: Room, actorIds: readonly string[]) {
     const store = new RoomEncounterStore(context.storage)
     const [run] = store.documents('encounterRuns')
     if (!run) throw new Error('The room holds no Run.')
-    const initiativeOf = (actorId: string): unknown => {
-      const row = store.documents('encounterRunActors').find(({ id }) => id === actorId)
-      if (!row) throw new Error('The Run holds no such actor.')
-      return JSON.parse(row.stateJson).initiative
+    const scoreOf = (actorId: string): unknown => {
+      const row = store
+        .documents('encounterInitiativeParticipants')
+        .find((participant) => participant.actorId === actorId)
+      if (!row) throw new Error('The Run holds no such participant.')
+      return row.initiativeScore
     }
     return {
       currentActorId: JSON.parse(run.stateJson).currentActorId,
-      initiatives: Object.fromEntries(actorIds.map((id) => [id, initiativeOf(id)]))
+      initiatives: Object.fromEntries(actorIds.map((id) => [id, scoreOf(id)]))
     }
   })
 }
