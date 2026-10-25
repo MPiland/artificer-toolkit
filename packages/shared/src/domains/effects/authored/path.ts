@@ -17,6 +17,7 @@ import type {
   EquipmentPropertyCode,
   PathCodesByTrigger,
   PathGroupType,
+  PathLifecycleExclusivity,
   PathLifecycleRecurringKind,
   PathLifecycleTurnActor,
   PathLifecycleTurnBoundary,
@@ -75,6 +76,8 @@ export type PathLifecycleAuthored = {
    * it, only when the source is the attacker.
    */
   fromSourceOnly?: boolean
+  /** `PER_SOURCE`: a source keeps one such effect; a new one ends its earlier one on any holder. */
+  exclusivity?: PathLifecycleExclusivity
   /**
    * The effect ends after this many uses; a modifier domain spends them (Mirror Image's
    * duplicates). The runtime counts them down in `remainingUses`.

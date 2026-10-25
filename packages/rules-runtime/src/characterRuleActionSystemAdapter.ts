@@ -92,6 +92,8 @@ export interface CharacterRuleActionActiveEffectPlan {
   initialRemaining: number | null
   /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
   hitPointTier?: { atMost: number }
+  /** Set on a plan of a roll-table row: it holds only when the table's roll lands in these faces. */
+  rollTableRow?: { min: number; max: number }
   /**
    * Whose turn boundary counts the effect down: its holder's (the default) or its source's. The
    * grant tick planner counts a source-anchored effect on the source's turns.
@@ -142,6 +144,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     holderEnd: ActiveGrantHolderEnd | null
     /** Only the effect's source meets its attacker grants and attack consume. */
     fromSourceOnly?: true
+    /** `PER_SOURCE`: the grant ends its source's earlier one from the same Effect, on any holder. */
+    exclusivity?: 'PER_SOURCE'
     /** The grant is active only during its tick anchor's turn while one tick remains. */
     activeOnlyOnFinalAnchorTurn?: true
     /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */

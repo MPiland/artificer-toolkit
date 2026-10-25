@@ -33,6 +33,7 @@ import {
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
 import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
+import { isMeleeAttackSource } from './encounterActionSources.js'
 import {
   actionEndedEffects,
   actsAgainstEnemy,
@@ -350,6 +351,9 @@ export async function prepareTurnLegendaryActions<
     // An attack roll or a spell cast uses up the owner's grants; an ending effect releases its condition.
     // Damage the target takes ends the effects it holds that end on damage, with their conditions.
     const makesAttackRoll = typeof prepared.binding.actionMechanic.attackBonus === 'number'
+    const attack = makesAttackRoll
+      ? { melee: isMeleeAttackSource(prepared.state.gameSystemId, prepared.source) }
+      : null
     const castsSpell = preparedCastsSpell(prepared)
     const dispositions = new Map(actors.map((entry) => [entry.id, entry.disposition]))
     const ownerEnded = actionEndedEffects({
@@ -368,7 +372,7 @@ export async function prepareTurnLegendaryActions<
       held: prepared.targetFacts.activeEffects.filter(
         ({ id }) => !ownerEnded.consumedGrants.some((ended) => ended.id === id)
       ),
-      attacked: makesAttackRoll,
+      attack,
       testEvidence: [result.d20, result.nestedD20],
       turnActorId: prepared.state.currentActorId,
       applications: result.applications,
@@ -545,7 +549,7 @@ export async function prepareTurnLegendaryActions<
         kind: 'EXECUTED',
         selectedOptionId: selection.optionId,
         targetActorId: target.id,
-        attackRoll: makesAttackRoll,
+        attack,
         castsSpell,
         ...(prepared.attackDecoy ? { decoyEffectId: prepared.attackDecoy.effect.id } : {}),
         execution: result.execution,

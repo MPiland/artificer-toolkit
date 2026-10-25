@@ -11,7 +11,11 @@ import { modifierOperationSchema, senseOperationSchema } from '../api/characterG
 import { characterAuthoredDtoSchema, type CharacterAuthoredDto } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
-import { equipmentCategoryCodeSchema, equipmentPropertyCodeSchema } from '../shared/enums.js'
+import {
+  equipmentCategoryCodeSchema,
+  equipmentPropertyCodeSchema,
+  pathLifecycleExclusivitySchema
+} from '../shared/enums.js'
 import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
   SPATIAL_TURN_TRIGGERS,
@@ -196,6 +200,13 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
     tickAnchor: z._default(z.enum(['HOLDER', 'SOURCE']), 'HOLDER'),
     /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
     hitPointTier: z.optional(z.strictObject({ atMost: z.number().check(z.int()).check(z.gte(1)) })),
+    /** Set on a plan of a roll-table row: it holds only when the table's roll lands in these faces. */
+    rollTableRow: z.optional(
+      z.strictObject({
+        min: z.number().check(z.int()).check(z.gte(1)),
+        max: z.number().check(z.int()).check(z.gte(1))
+      })
+    ),
     /** Set on a repeat-save plan that counts saves: frozen into the effect's recurrence. */
     saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
     /**
@@ -263,6 +274,7 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             endOnConditionIds: activeGrantEndConditionIdsSchema,
             holderEnd: z.nullable(activeGrantHolderEndSchema),
             fromSourceOnly: z.optional(z.literal(true)),
+            exclusivity: z.optional(pathLifecycleExclusivitySchema),
             activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
             uses: z.optional(activeEffectUsesSchema),
             onEnd: z.optional(activeEffectOnEndSchema),
@@ -831,6 +843,14 @@ const compiledActionHitPointTiersSchema = lazySchema(() =>
   )
 )
 
+/**
+ * The plans of an action whose result is a roll table: one per row that holds an effect, the
+ * table's roll choosing among them. Absent when `activeEffectPlan` serves every roll.
+ */
+const compiledActionRollTableRowPlansSchema = lazySchema(() =>
+  z.optional(z.array(compiledActionActiveEffectPlanSchema).check(z.maxLength(20)))
+)
+
 const compiledActionEntryPointSchema = lazySchema(() =>
   z.union([
     z.strictObject({
@@ -866,6 +886,7 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
         hitPointTierPlans: compiledActionHitPointTierPlansSchema,
         hitPointTiers: compiledActionHitPointTiersSchema,
+        rollTableRowPlans: compiledActionRollTableRowPlansSchema,
         executionPlan: compiledActionExecutionPlanSchema
       })
     }),
@@ -881,6 +902,7 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
         hitPointTierPlans: compiledActionHitPointTierPlansSchema,
         hitPointTiers: compiledActionHitPointTiersSchema,
+        rollTableRowPlans: compiledActionRollTableRowPlansSchema,
         /**
          * Set for an action that places a zone; its `executionPlan` then runs only as the save each
          * creature in the zone's area makes as it appears (a TEST_OUTCOME, D154), else never.

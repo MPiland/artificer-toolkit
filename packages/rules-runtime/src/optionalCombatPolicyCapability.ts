@@ -9,6 +9,7 @@ import type {
   MoraleTriggerKindDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
 import type { ResolvedRuleCapabilityAvailabilityDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt'
 import type { FacingArc } from '@artificer-toolkit/shared/vtt/facingArc'
@@ -219,6 +220,15 @@ export interface MoraleSaveProposal {
   readonly failureDisposition: MoraleDispositionDto
 }
 
+/** An effect an enabled optional rule has a qualifying attack give its target, sourced by the attacker. */
+export interface AttackAppliedEffect {
+  readonly effectId: string
+  readonly label: string
+  /** Only a melee attack qualifies; otherwise any attack roll does. */
+  readonly meleeOnly: boolean
+  readonly plan: CharacterRuleActionActiveEffectPlan
+}
+
 /**
  * An authored table the GM may be offered a roll on (ATTACK-15): the events that offer it and the
  * rows of its die. Rows are ordered and never overlap; a roll between rows lands on none.
@@ -278,7 +288,10 @@ export interface FlankingInput extends OptionalCombatPolicyInput {
   })[]
 }
 
-/** A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale, Facing, Flanking and consequence tables. */
+/**
+ * A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale,
+ * Facing, Flanking, attack-applied effects and consequence tables.
+ */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
   prepareDisarmContest(
@@ -298,6 +311,8 @@ export interface OptionalCombatPolicyCapabilityAdapter {
   prepareMoraleSave(input: MoralePreparationInput): OptionalCombatResolution<MoraleSaveProposal>
   /** The enabled consequence tables, empty when the rules that author them are off. */
   consequenceRollTables(input: OptionalCombatPolicyInput): readonly ConsequenceRollTable[]
+  /** The effects the Encounter's enabled rules have an attack give its target; none when off. */
+  attackAppliedEffects(input: OptionalCombatPolicyInput): readonly AttackAppliedEffect[]
   /** The Encounter's active Facing rule, or null when facing is off. */
   facingRule(input: OptionalCombatPolicyInput): FacingRule | null
   /** The capability an actor needs to flank, or null when flanking is off. */

@@ -19,12 +19,16 @@ import type {
 export type EncounterEvent =
   /** The holder takes an action, which may make an attack roll or cast a spell, aimed at an enemy or not. */
   | { kind: 'ACTION'; attackRoll: boolean; spellCast: boolean; againstEnemy: boolean }
-  /** An attack roll is made against the holder, by `attackerActorId` on `turnActorId`'s turn. */
+  /**
+   * An attack roll is made against the holder, by `attackerActorId` on `turnActorId`'s turn. `melee`
+   * is the attack's classification (a melee weapon or melee spell attack), never its distance.
+   */
   | {
       kind: 'ATTACKED'
       holderActorId: string
       attackerActorId: string | null
       turnActorId: string | null
+      melee: boolean
     }
   /** The holder's attack hits. */
   | { kind: 'HIT' }

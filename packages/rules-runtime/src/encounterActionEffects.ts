@@ -12,7 +12,7 @@ import { encounterAttackActionAttacks } from './encounterAttackAction.js'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
-import type { IncomingDamageGrantTrigger } from './encounterEndedEffectRelease.js'
+import type { EncounterGrantTrigger } from './encounterEndedEffectRelease.js'
 import {
   discoverEncounterFeatureActions,
   type EncounterPassiveWeaponHit
@@ -50,7 +50,7 @@ type CompleteExecution = Extract<
 >
 
 /** The facts an effect plan reads from the creature that will hold the effect. */
-function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
+export function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
   return {
     actorId: target.actor.id,
     conditionIds: target.characterFacts
@@ -123,7 +123,7 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
   /** Tells apart the settlements of one occurrence that damage the same creature (Legendary Actions). */
   ordinal?: number | string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
-}): IncomingDamageGrantTrigger[] {
+}): EncounterGrantTrigger[] {
   const { holder } = input
   if (holder.kind !== 'CREATURE') return []
   return discoverEncounterFeatureActions({
@@ -159,7 +159,7 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
         INCOMING_DAMAGE_GRANT_NAMESPACE
       ),
       authoredEffectId: capability.effectId,
-      damageTypeIds,
+      subscription: { event: 'DAMAGED', damageTypeIds },
       effect
     }
   })
@@ -168,18 +168,35 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
 /**
  * The active-effect plan an action's capability carries, selected by the definition that ran. An
  * action tiered on hit points carries one plan per tier; the target's current hit points pick it.
+ * An action whose result is a roll table carries one plan per row that holds an effect; the
+ * table's roll, an output of the settled execution, picks it. Read before the execution settles
+ * (`outputs` omitted), a row plan cannot be picked.
  */
 export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActionMovementFacts>(
   prepared: PreparedMechanics<TCharacterFacts>,
-  published: CompleteExecution['published']
+  published: CompleteExecution['published'],
+  outputs?: CompleteExecution['execution']['outputs']
 ) {
   const plans: readonly CharacterRuleActionActiveEffectPlan[] =
     prepared.source.kind === 'CHARACTER_ACTION'
-      ? (prepared.source.entry.compilation.hitPointTierPlans ?? [])
+      ? [
+          ...(prepared.source.entry.compilation.hitPointTierPlans ?? []),
+          ...(prepared.source.entry.compilation.rollTableRowPlans ?? [])
+        ]
       : (prepared.adapter.activeEffectPlans?.({
           action: prepared.source.capability,
           published
         }) ?? [])
+  if (plans.some((plan) => plan.rollTableRow)) {
+    if (!outputs) throw new Error('Encounter action roll-table plans need the settled roll.')
+    const roll = outputs.rollTableRoll
+    return (
+      plans.find(
+        ({ rollTableRow: row }) =>
+          row && typeof roll === 'number' && roll >= row.min && roll <= row.max
+      ) ?? null
+    )
+  }
   const tiers =
     prepared.source.kind === 'CHARACTER_ACTION'
       ? (prepared.source.entry.compilation.hitPointTiers ?? [])
@@ -254,7 +271,8 @@ export function prepareNativeActionEffectsPlan<
   const { prepared, execution } = input
   const plan: CharacterRuleActionActiveEffectPlan | null = encounterActiveEffectPlan(
     prepared,
-    execution.published
+    execution.published,
+    execution.execution.outputs
   )
   const target = prepared.movementTargets.get(prepared.target.id)
   if (!target || checksumCanonicalJson(target.actor) !== checksumCanonicalJson(prepared.target))

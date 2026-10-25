@@ -339,8 +339,11 @@ export const turnLegendaryActionEvidenceDtoSchema = lazySchema(() =>
           kind: z.literal('EXECUTED'),
           selectedOptionId: checksumSchema,
           targetActorId: uuidSchema,
-          /** Whether the owner rolled an attack, which uses up its one-roll grants at commit. */
-          attackRoll: z.boolean(),
+          /**
+           * The attack the owner rolled, which uses up its one-roll grants at commit, classified as
+           * melee or not by its trigger; null when it rolled none.
+           */
+          attack: z.nullable(z.strictObject({ melee: z.boolean() })),
           /** Whether the owner cast a spell (a spell attack), which ends its cast-ended effects at commit. */
           castsSpell: z.boolean(),
           /** The target's decoy effect the attack was rolled against (Mirror Image); a hit destroys the decoy at commit. */

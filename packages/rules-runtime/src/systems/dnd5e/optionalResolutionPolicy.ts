@@ -16,6 +16,7 @@ import {
 } from './optionalCombatDefinition.js'
 import { offerDnd5eMoraleTriggers, prepareDnd5eMoraleSave } from './moralePolicy.js'
 import { dnd5eConsequenceRollTables } from './injuriesPolicy.js'
+import { dnd5eAttackAppliedEffects } from './optionalMarkPolicy.js'
 import type {
   CleavingInput,
   CleavingProposal,
@@ -180,6 +181,7 @@ export const dnd5eOptionalCombatPolicyCapabilityAdapter = {
   offerMoraleTriggers: offerDnd5eMoraleTriggers,
   prepareMoraleSave: prepareDnd5eMoraleSave,
   consequenceRollTables: dnd5eConsequenceRollTables,
+  attackAppliedEffects: dnd5eAttackAppliedEffects,
   facingRule: dnd5eFacingRule,
   flankingParticipantCapabilityDefinitionId: dnd5eFlankingParticipantCapabilityDefinitionId,
   resolveFlanking: resolveDnd5eFlankingContributor

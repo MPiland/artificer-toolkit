@@ -13,7 +13,10 @@ import { endedMaintenanceConditions } from './encounterActionMaintenance.js'
 import { snapshotCreatureTypeId } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import type { prepareRecurringActiveEffect } from './encounterActionEffectPlans.js'
-import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
+import {
+  discoverEncounterEventHooks,
+  type EncounterGrantSubscription
+} from './events/encounterEventHooks.js'
 import type { EncounterEvent } from './events/encounterEventTable.js'
 
 /**
@@ -108,29 +111,42 @@ export function savingThrowSpentEffects(
 }
 
 /**
- * A timed grant a damaged creature's passive feature gives itself: the effect it would hold, made
- * ahead of the damage, and the damage types that set it off.
+ * A timed grant an event on a creature gives it: the effect it would hold, made ahead of the event,
+ * and the subscription that sets it off. A passive feature's damage trigger gives its holder one; an
+ * attack-applied effect (see `encounterAttackAppliedEffects`) gives the attack's target one, sourced
+ * by the attacker.
  */
-export interface IncomingDamageGrantTrigger {
-  /** The id the effect takes if the damage sets it off. */
+export interface EncounterGrantTrigger {
+  /** The id the effect takes if the event sets it off. */
   id: string
-  /** The passive feature's Effect; a grant it gave before is refreshed, never stacked. */
+  /** The grant's Effect; one the same source gave the holder before is refreshed, never stacked. */
   authoredEffectId: string
-  damageTypeIds: readonly string[]
+  subscription: EncounterGrantSubscription
   effect: NonNullable<ReturnType<typeof prepareRecurringActiveEffect>>
+  /** What the grant ends on other holders: the source's earlier `PER_SOURCE` effects. */
+  replaces?: readonly ActiveRuleEffectRecord[]
 }
 
+type GrantedDefinition = Pick<ActiveRuleEffectRecord['definition'], 'authoredEffectId' | 'origin'>
+
+const definitionSourceActorId = ({ origin }: GrantedDefinition) =>
+  origin.kind === 'ENCOUNTER' ? origin.sourceActorId : null
+
 /**
- * The held effects a refreshed damage-trigger grant replaces: those the same passive feature gave
- * before, keyed by `authoredEffectId`. A root that persists the grants from its receipt, where the
- * triggers are no longer at hand, ends exactly what `targetEndedEffects` ended.
+ * The held effects a refreshed grant replaces: those the same source gave from the same Effect
+ * before. A root that persists the grants from its receipt, where the triggers are no longer at
+ * hand, ends exactly what `targetEndedEffects` ended.
  */
 export function effectsReplacedByGrants(
   held: readonly ActiveRuleEffectRecord[],
-  grants: readonly Pick<ActiveRuleEffectRecord['definition'], 'authoredEffectId'>[]
+  grants: readonly GrantedDefinition[]
 ) {
   return held.filter(({ definition }) =>
-    grants.some(({ authoredEffectId }) => authoredEffectId === definition.authoredEffectId)
+    grants.some(
+      (grant) =>
+        grant.authoredEffectId === definition.authoredEffectId &&
+        definitionSourceActorId(grant) === definitionSourceActorId(definition)
+    )
   )
 }
 
@@ -165,15 +181,16 @@ export function incomingDamageGrantRecords(input: {
  * (`ON_ATTACKED`, after their modifiers applied to that roll), those whose `DAMAGE_TAKEN` end
  * trigger the outcome meets (damage that survives the holder's defenses, of a type the trigger
  * names, by someone the trigger allows), and the conditions only they held. The holder's own
- * mechanics batch applies the releases in the same transaction as the effects' deletion. Damage of a
- * type a passive grantTriggers entry names then gives its grant, replacing the one the same feature
- * gave before; it joins after the ended effects are released, so a grant from this hit stays.
+ * mechanics batch applies the releases in the same transaction as the effects' deletion. An event a
+ * grantTriggers entry subscribes to then gives its grant, replacing the one the same source gave
+ * from the same Effect before; it joins after the ended effects are released, so a grant from this
+ * hit stays. `replacedEffects` are what the met grants end on other holders.
  */
 export function targetEndedEffects(input: {
   holderActorId: string
   held: readonly ActiveRuleEffectRecord[]
-  /** Whether the action made an attack roll against the holder. */
-  attacked: boolean
+  /** The attack roll the action made against the holder; null when it made none. */
+  attack: { melee: boolean } | null
   /** The d20 evidence the action settled for the holder, whose saving throws spend their dice. */
   testEvidence: readonly (ServerRuleExecutionD20EvidenceDto | null | undefined)[]
   /** The actor whose turn it is, which an effect active only on one turn compares. */
@@ -184,8 +201,8 @@ export function targetEndedEffects(input: {
   damagerActorId: string | null
   /** Every Encounter actor's disposition, to tell the effect source's side from the rest. */
   dispositions: ReadonlyMap<string, EncounterActorDispositionDto>
-  /** The grants the holder's passive features give when it takes damage; none when omitted. */
-  grantTriggers?: readonly IncomingDamageGrantTrigger[]
+  /** The grants this action's events may give the holder; none when omitted. */
+  grantTriggers?: readonly EncounterGrantTrigger[]
 }) {
   const dealt = input.applications.flatMap((application) =>
     application.kind === 'DAMAGE' &&
@@ -196,13 +213,14 @@ export function targetEndedEffects(input: {
   )
   const events: EncounterEvent[] = [
     // An attack consumes only the effects whose event scope admits the attacker on this turn.
-    ...(input.attacked
+    ...(input.attack
       ? [
           {
             kind: 'ATTACKED',
             holderActorId: input.holderActorId,
             attackerActorId: input.damagerActorId,
-            turnActorId: input.turnActorId
+            turnActorId: input.turnActorId,
+            melee: input.attack.melee
           } as const
         ]
       : []),
@@ -229,7 +247,10 @@ export function targetEndedEffects(input: {
     events,
     grantSubscriptions: input.grantTriggers ?? []
   })
-  const replaced = effectsReplacedByGrants(input.held, hooks.grants)
+  const replaced = effectsReplacedByGrants(
+    input.held,
+    hooks.grants.map(({ effect }) => effect.definition)
+  )
   const endedEffects = input.held.filter(
     (effect) => replaced.includes(effect) || hooks.ended.includes(effect)
   )
@@ -240,7 +261,12 @@ export function targetEndedEffects(input: {
       held: input.held,
       ended: endedEffects
     }),
-    grants: hooks.grants.map(({ id, effect }) => ({ id, effect }))
+    grants: hooks.grants.map(({ id, effect }) => ({ id, effect })),
+    replacedEffects: [
+      ...new Map(
+        hooks.grants.flatMap(({ replaces = [] }) => replaces.map((effect) => [effect.id, effect]))
+      ).values()
+    ]
   }
 }
 

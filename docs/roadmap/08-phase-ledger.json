@@ -11562,12 +11562,14 @@
           "acs": [
             {
               "text": "With Marking enabled, a melee attack marks its target until the end of the attacker's next turn, as an active effect (one mark per attacker).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by ATTACK-13.T1 (m447); see each task's proof."
+              ],
               "origin": [
                 "G2-OPTIONAL-COMBAT"
               ],
-              "note": "2014 DMG variant, approved for Phase 8. Marks use the active-effect lifecycle (docs/architecture/dnd5e-optional-combat.md). The removed proposal resolvers are in 437b2dd15 (optionalActionPolicy.ts). Presentation is VTT_UI-1.3.",
+              "note": "2014 DMG variant, approved for Phase 8. Marks use the active-effect lifecycle (docs/architecture/dnd5e-optional-combat.md). The removed proposal resolvers are in 437b2dd15 (optionalActionPolicy.ts). Presentation is VTT_UI-1.3. Closed 2026-10-24 by ATTACK-13.T1.",
               "id": "ATTACK-13.1"
             },
             {
@@ -11598,7 +11600,7 @@
           "tasks": [
             {
               "id": "ATTACK-13.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ATTACK-13.1"
               ],
@@ -11609,8 +11611,9 @@
                 "size": 8
               },
               "text": "Melee attack applies a mark active effect, one per attacker, expiring at the end of the attacker's next turn: widen the MARK arm (or graph), one-mark-per-attacker rule and an after-attack hook.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
-              "activeWorkbook": "docs/handoffs/slice-attack-13.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling). Merged in m447.",
+              "mergedAt": "2026-10-25T19:47:52Z",
+              "proof": "Tests 40226054105 and Live 40226054035 green on ci/attack-13-t1@3cdd5b740 (contains m445; homebrew-parity test reads recurrence.anchor after T6n2, assertion unchanged); merged in m447 (run 40227699163)."
             },
             {
               "id": "ATTACK-13.T2",
@@ -11788,6 +11791,24 @@
               "activeWorkbook": "docs/handoffs/slice-attack-15.md"
             },
             {
+              "id": "ATTACK-15.T1g",
+              "status": "TODO",
+              "closes": [
+                "ATTACK-15.1"
+              ],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 2,
+                "after": [
+                  "ATTACK-15.T1"
+                ]
+              },
+              "text": "Move the consequence-roll offer write into the shared mechanics batch seam (applyRoomEncounterMechanicsBatch / persistEncounterMechanicsBatchPlan), deleting the per-path call sites, so voluntary zone entry, forced-movement zone damage, melee retaliation during movement, contest/basic-action outcomes and damage mirrors offer too. Room tests for zone entry and forced movement. Manual Sheet HP adjustments do not offer (user ruling 2026-10-25: automation only).",
+              "note": "Registered 2026-10-25 (user ruling, D187 growth +2): T1 audit found 5 HP-lowering paths outside its call sites; all write through the mechanics batch seam."
+            },
+            {
               "id": "ATTACK-15.T2",
               "status": "TODO",
               "closes": [
@@ -11864,11 +11885,10 @@
           "tasks": [
             {
               "id": "ATTACK-16.T1a",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ATTACK-16.1"
               ],
-              "activeWorkbook": "docs/handoffs/slice-attack-16.md",
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
@@ -11877,11 +11897,13 @@
                 "after": []
               },
               "text": "Kernel roll-table execution: the effect compiler accepts an authored ROLL_TABLE path rolled server-side in the OUTCOME phase (receipt keeps the roll) with a generic row-gate op (nested-save band pattern), each row an ordinary compiled outcome graph of path-gatable kinds, the roll and selected row in trace and replay; publication refuses gaps, overlaps and out-of-die ranges. REPEAT_TABLE rows refused. Generic; authoring-parity proof with a homebrew table.",
-              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
+              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray). Merged in m446.",
+              "mergedAt": "2026-10-25T19:46:55Z",
+              "proof": "Carried in ci/attack-16-t1a2@05b465df8 (Tests 40225999688, Live 40225999714, contains m445); fast-path merge m446 (run 40227624049)."
             },
             {
               "id": "ATTACK-16.T1a2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ATTACK-16.1"
               ],
@@ -11895,8 +11917,9 @@
                 ]
               },
               "text": "Row-scoped lasting plans: a roll-table row can carry its own timed CONDITION and APPLY_GRANT plans (lasting plans chosen per selected row, not once per action), with proofs. Repeat saves inside rows stay with SPELLS-4.T2ps.",
-              "note": "Registered 2026-10-25 (T1a measured 11 against 8; user ruling accepted +3). Re-sized 3 to 5 on 2026-10-25 (user ruling): one plan per row via the hit-point-tier pattern, adding optional rollTableRow and rollTableRowPlans contract fields.",
-              "activeWorkbook": "docs/handoffs/slice-attack-16.md"
+              "note": "Registered 2026-10-25 (T1a measured 11 against 8; user ruling accepted +3). Re-sized 3 to 5 on 2026-10-25 (user ruling): one plan per row via the hit-point-tier pattern, adding optional rollTableRow and rollTableRowPlans contract fields. Merged in m446.",
+              "mergedAt": "2026-10-25T19:46:55Z",
+              "proof": "Tests 40225999688 and Live 40225999714 green on ci/attack-16-t1a2@05b465df8; D62.2 timed-condition expiry binding (ruleExecutionTurnResults.ts) reviewed and accepted; fast-path merge m446."
             },
             {
               "id": "ATTACK-16.T1b",

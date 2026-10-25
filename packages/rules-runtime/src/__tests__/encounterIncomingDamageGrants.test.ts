@@ -66,7 +66,7 @@ function hit(
   return targetEndedEffects({
     holderActorId: HOLDER_ID,
     held,
-    attacked: false,
+    attack: null,
     testEvidence: [],
     turnActorId: ATTACKER_ID,
     applications,
