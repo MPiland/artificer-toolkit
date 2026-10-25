@@ -970,7 +970,6 @@ export const barbarian: ClassAuthored = {
       label: 'Indomitable Might',
       description:
         'Beginning at 18th level, if your total for a Strength check is less than your Strength score, you can use that score in place of the total.',
-      effects: [selfClassRuleEffect(19, CLOSED_RULE_KIND.CLASS_BARBARIAN_INDOMITABLE_MIGHT)],
       availableAtLevel: 18,
       order: 17
     },

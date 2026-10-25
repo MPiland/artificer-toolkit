@@ -72,24 +72,36 @@ export function selfActionEffect(input: {
 }
 
 /**
- * A passive class feature whose whole rule is a ruling the GM makes at the table (D187a). The
- * caller supplies every id so each feature keeps its own.
+ * A class feature whose whole rule is a ruling the GM makes at the table (D187a): passive, or,
+ * with `resourceUse`, a free action that spends the feature's charge and hands its effect to the
+ * table (Indomitable's reroll). The caller supplies every id so each feature keeps its own.
  */
 export function gmRulingEffect(input: {
   ids: { effect: string; range: string; path: string; result: string; outcome: string }
   label: string
   instructions: string
   reasonCode: ManualAdjudicationReason
+  resourceUse?: { chargeId: string; cost: number }
 }): EffectAuthored {
+  const range = { id: input.ids.range, rangeKind: RANGE_KIND.SELF } as const
   return {
     id: input.ids.effect,
     order: 1,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.ACTIVATED,
-      range: { id: input.ids.range, rangeKind: RANGE_KIND.SELF },
-      targeting: { selectionKind: 'SELF' }
-    },
+    invocation: input.resourceUse
+      ? {
+          kind: 'ACTION',
+          triggerCode: TRIGGER.ACTIVATED,
+          resourceUse: input.resourceUse,
+          activation: { code: ACTIVATION_CODE.FREE },
+          range,
+          targeting: { selectionKind: 'SELF' }
+        }
+      : {
+          kind: 'PASSIVE',
+          triggerCode: TRIGGER.ACTIVATED,
+          range,
+          targeting: { selectionKind: 'SELF' }
+        },
     paths: [
       {
         id: input.ids.path,
