@@ -1913,7 +1913,10 @@ A spell grant may also name the slot pool that pays its cast (`slotCost.poolCode
 `PACT`, listed by the dnd5e vocabulary as `spellSlotPool` and checked against it by `characterSpellRuleFacts`; SPELLS-31.T5p, D175). The candidate then carries `slotPoolCode`, the decision ladder
 requires a slot of that pool (`SPELL_SLOT_REMAINING`, `SPELL_SLOT_EXHAUSTED`, `NO_ELIGIBLE_SPELL_SLOT`) in addition
 to the grant's own pool (`RESOURCE_EXHAUSTED`), and the cast spends both: the slot through the ordinary
-`spellConsumption.slotKey`, the pool through `resourceBinding`. A grant with `access: CLASS_LIST_ONLY` and
+`spellConsumption.slotKey`, the pool through `resourceBinding`. The rule output lists each slot pool the
+Character casts from in `spellSlots.slotPools` (pool code, source class, level, slots, uses; RULES-2.T9g, D193):
+dnd5e yields zero or one `PACT` entry, and the neutral readers (Sheet projection, cast slot lookup, on-hit slot
+choices, policy adapter) work per pool, with no pool code of their own. A grant with `access: CLASS_LIST_ONLY` and
 `classListIds` gives no access; `spellClassListAdditions.ts` is the one merge that adds its spells to those class
 lists for the Sheet's preparation catalog and the Builder's merged catalog (the Builder owns the merged list for
 prepare and known choices; the Sheet only reads it). The compiler refuses `CLASS_LIST_ONLY` without `classListIds`.

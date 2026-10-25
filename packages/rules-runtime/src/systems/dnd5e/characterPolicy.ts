@@ -79,17 +79,13 @@ export function evaluateDnd5e2014CharacterPolicy(
         max: slot.slotCount,
         remaining: slot.remaining
       })),
-      ...(spellSlots.pactMagic === null
-        ? []
-        : [
-            {
-              slotKey: spellSlots.pactMagic.poolCode,
-              label: 'PACT',
-              level: spellSlots.pactMagic.level,
-              max: spellSlots.pactMagic.slots,
-              remaining: spellSlots.pactMagic.remaining
-            }
-          ])
+      ...spellSlots.slotPools.map((pool) => ({
+        slotKey: pool.poolCode,
+        label: pool.poolCode,
+        level: pool.level,
+        max: pool.slots,
+        remaining: pool.remaining
+      }))
     ],
     spellEffects: input.spellActionFacts,
     spellcastingLocked: modifierGroups.some(
