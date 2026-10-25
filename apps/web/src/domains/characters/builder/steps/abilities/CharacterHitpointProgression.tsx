@@ -1,8 +1,5 @@
 import { Group, NumberInput, Stack, Text } from '@mantine/core'
-import {
-  abilityScoreCapabilityRegistry,
-  characterProgressionCapabilityRegistry
-} from '@artificer-toolkit/rules-runtime/platformPolicyModules'
+import { characterProgressionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type {
   CharacterBuilderPayloadDto,
   CharacterBuilderReferencesDto
@@ -37,8 +34,7 @@ export function CharacterHitpointProgression({
 }) {
   const totalHitpoints = rows.reduce((total, row) => total + row.value, 0)
   const progression = characterProgressionCapabilityRegistry.require(character.systemId)
-  const hitpointAbility = abilityScoreCapabilityRegistry.require(character.systemId)
-    .derivedStatisticAbilityCodes.hitPoints
+  const hitpointAbility = progression.derivedStatisticAbilityCodes.hitPoints
   const abilityModifier = getHitpointAbilityModifier({ character, resolvedAbilityScores })
   const abilityLabel = abilityOptions.find((option) => option.value === hitpointAbility)?.label
 

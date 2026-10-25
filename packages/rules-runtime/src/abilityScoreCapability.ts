@@ -12,11 +12,4 @@ export interface AbilityScoreCapabilityAdapter {
   abilityDefinitionIdByCode: Readonly<Record<string, string>>
   /** The authored code of an ability definition id; an id outside the System throws. */
   abilityCode(abilityDefinitionId: string): string
-  /** The authored codes of the abilities whose modifiers the System's derived statistics add. */
-  derivedStatisticAbilityCodes: {
-    readonly armorClass: string
-    readonly initiative: string
-    /** Every class level's hit point gain and each hit die spent on a rest (D193). */
-    readonly hitPoints: string
-  }
 }

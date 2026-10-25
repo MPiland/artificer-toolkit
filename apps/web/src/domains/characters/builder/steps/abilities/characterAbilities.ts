@@ -157,7 +157,8 @@ export function getHitpointAbilityModifier({
   resolvedAbilityScores: Record<string, number>
 }): number {
   const abilityScores = abilityScoreCapabilityRegistry.require(character.systemId)
-  const ability = abilityScores.derivedStatisticAbilityCodes.hitPoints
+  const ability = characterProgressionCapabilityRegistry.require(character.systemId)
+    .derivedStatisticAbilityCodes.hitPoints
   const score = resolvedAbilityScores[ability] ?? getIntentAbilityScore(character, ability)
 
   return typeof score === 'number' && Number.isFinite(score)

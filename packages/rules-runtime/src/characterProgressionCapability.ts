@@ -15,4 +15,11 @@ export interface CharacterProgressionCapabilityAdapter {
   }): number
   /** The proficiency bonus at a total Character level. */
   proficiencyBonus(totalLevel: number): number
+  /** The authored codes of the abilities whose modifiers the Character's derived statistics add. */
+  derivedStatisticAbilityCodes: {
+    readonly armorClass: string
+    readonly initiative: string
+    /** Every class level's hit point gain and each hit die spent on a rest (D193). */
+    readonly hitPoints: string
+  }
 }
