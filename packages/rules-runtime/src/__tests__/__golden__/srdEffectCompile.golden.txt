@@ -22,9 +22,7 @@
 00000000-0000-0000-c001-600400000000 CHARACTER:classes Reckless Attack | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-600700000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-600b00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c001-600e00000000 CHARACTER:classes Relentless Rage | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-600f00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c001-601100000000 CHARACTER:classes Persistent Rage | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-601200000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-601400000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-601500000000 CHARACTER:classes Primal Champion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.

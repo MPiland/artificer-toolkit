@@ -23,13 +23,19 @@ import {
   ruleExecutionReceiptOrdinalSchema as receiptOrdinalSchema,
   ruleExecutionUuidSchema as uuidSchema
 } from './ruleExecutionPrimitives.js'
-/** A save a damage interception asked of its holder: the dice rolled, the DC they met and the result. */
+/**
+ * A save a damage interception asked of its holder: the dice rolled, the DC they met and the result.
+ * A failed save of an interception that counts every attempt (`spendsUseOnFailure`) is `spent`, with
+ * the feature charge it spent when the interception is feature-held.
+ */
 export type DamageInterceptionSaveDto = {
   effectId: string
   rawDie: number
   addedTotal: number
   dc: number
   passed: boolean
+  spent?: true
+  charge?: DamageInterceptionChargeDto
 }
 
 /** Typed explicitly so the receipts embedding it stay within the declaration size limit (TS7056). */
@@ -39,12 +45,19 @@ const damageInterceptionSaveDtoSchema: z.ZodMiniType<DamageInterceptionSaveDto> 
     rawDie: integerSchema.check(z.gte(1)),
     addedTotal: integerSchema,
     dc: integerSchema,
-    passed: z.boolean()
+    passed: z.boolean(),
+    spent: z.optional(z.literal(true)),
+    charge: z.optional(damageInterceptionChargeDtoSchema)
   })
 )
-/** The charge a feature-held damage interception spent: the holder's own feature resource and its before/after counts. */
+/**
+ * The charge a feature-held damage interception spent: the holder's own feature resource and its
+ * before/after counts. A Character's charge is its Sheet resource pool `poolId`; a Creature's lives
+ * on the actor's feature resources.
+ */
 export type DamageInterceptionChargeDto = {
   ownerFeatureId: string
+  poolId?: string
   chargeId: string
   cost: number
   beforeUsed: number
@@ -57,6 +70,7 @@ const damageInterceptionChargeDtoSchema: z.ZodMiniType<DamageInterceptionChargeD
   () =>
     z.strictObject({
       ownerFeatureId: authoredIdentifierSchema,
+      poolId: z.optional(characterResourcePoolIdentitySchema),
       chargeId: authoredIdentifierSchema,
       cost: integerSchema.check(z.gte(1)),
       beforeUsed: integerSchema.check(z.gte(0)),

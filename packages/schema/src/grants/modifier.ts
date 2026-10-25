@@ -25,6 +25,7 @@ import {
   modifierKindSchema,
   modifierScopeKindSchema,
   modifierValueKindSchema,
+  pathLifecycleEndEventSchema,
   rangeKindSchema,
   scalingKindSchema,
   shapeKindSchema
@@ -292,13 +293,23 @@ export const attackDecoysPayloadDtoSchema = lazySchema(() =>
   })
 )
 
+/** The holder's own active effects with these authored ids do not end on these lifecycle events. */
+export const endEventExemptionPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    events: z.array(pathLifecycleEndEventSchema).check(z.minLength(1)),
+    effectIds: z.array(postgresUuidSchema).check(z.minLength(1))
+  })
+)
+
 /** Damage that would drop the holder to 0 hit points leaves it at `dropToHitPoints` instead. */
 export type DamageInterceptionPayloadDto = {
   dropToHitPoints: number
   negatesKill: boolean
   save?: {
     ability: z.infer<typeof systemCoreCodeSchema>
-    dc: { base: number; plusDamageTaken: boolean }
+    dc: { base: number; plusDamageTaken: boolean; plusPerChargeUsed: number }
+    /** A pass always spends a use; when set, a failed save spends one too. */
+    spendsUseOnFailure: boolean
   }
   excludes?: { damageTypeIds: string[]; critical: boolean }
   maxDamageTaken?: number
@@ -315,8 +326,10 @@ export const damageInterceptionPayloadDtoSchema: z.ZodMiniType<DamageInterceptio
           ability: systemCoreCodeSchema,
           dc: z.strictObject({
             base: z.number().check(z.int()).check(z.gte(0)).check(z.lte(100)),
-            plusDamageTaken: z.boolean()
-          })
+            plusDamageTaken: z.boolean(),
+            plusPerChargeUsed: z.number().check(z.int()).check(z.gte(0)).check(z.lte(100))
+          }),
+          spendsUseOnFailure: z.boolean()
         })
       ),
       excludes: z.optional(
@@ -546,6 +559,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     armorClassFormulaPayloadDtoSchema,
     attackDecoysPayloadDtoSchema,
     damageInterceptionPayloadDtoSchema,
+    endEventExemptionPayloadDtoSchema,
     incomingDamagePayloadDtoSchema,
     incomingAttackGatePayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
@@ -835,6 +849,12 @@ const buildModifierGrantVariants = () =>
       damageInterceptionPayloadDtoSchema
     ),
     buildModifierGrantVariant('DAMAGE_MIRROR', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant(
+      'END_EVENT_EXEMPTION',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      endEventExemptionPayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'INCOMING_DAMAGE',
       'ENABLE',

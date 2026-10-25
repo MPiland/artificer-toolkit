@@ -14,7 +14,7 @@ import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
-import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
+import { barbarian, RAGE_EFFECT_ID } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { conditionTypeId } from '@artificer-toolkit/source-data/srd/equipment/shared.js'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
@@ -83,6 +83,7 @@ import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
   DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID
 } from '../systems/dnd5e/identity.js'
+import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import {
   ENCOUNTER_ID,
   TIMESTAMP,
@@ -813,7 +814,12 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
 
   it('reads and ends nothing for an actor that holds no idle-bound grant', () => {
     expect(
-      planIdleTurnCheck({ encounterId: ENCOUNTER_ID, actor, effects: [antitoxinRecord, idle] })
+      planIdleTurnCheck({
+        encounterId: ENCOUNTER_ID,
+        actor,
+        effects: [antitoxinRecord, idle],
+        featureModifiers: []
+      })
     ).toEqual({ ended: [], nextMark: null })
   })
 
@@ -822,21 +828,81 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
       planIdleTurnCheck({
         encounterId: ENCOUNTER_ID,
         actor: armed,
-        effects: [antitoxinRecord, idle]
+        effects: [antitoxinRecord, idle],
+        featureModifiers: []
       })
     ).toEqual({ ended: [idle], nextMark: null })
   })
 
   it('keeps the grant of an engaged holder and arms it again', () => {
     expect(
-      planIdleTurnCheck({ encounterId: ENCOUNTER_ID, actor: engaged, effects: [idle] })
+      planIdleTurnCheck({
+        encounterId: ENCOUNTER_ID,
+        actor: engaged,
+        effects: [idle],
+        featureModifiers: []
+      })
     ).toEqual({ ended: [], nextMark: 'ARMED' })
   })
 
   it('stays armed while an idle-bound grant outside this encounter remains', () => {
     expect(
-      planIdleTurnCheck({ encounterId: testUuid(0xc377), actor: armed, effects: [idle] })
+      planIdleTurnCheck({
+        encounterId: testUuid(0xc377),
+        actor: armed,
+        effects: [idle],
+        featureModifiers: []
+      })
     ).toEqual({ ended: [], nextMark: 'ARMED' })
+  })
+
+  describe('with Persistent Rage (SPELLS-31.T5f2)', () => {
+    const rage = { ...idle, definition: { ...idle.definition, authoredEffectId: RAGE_EFFECT_ID } }
+    const barbarianModifiers = (level: number) =>
+      evaluateSrdCharacter({
+        classes: [{ label: 'Barbarian', level }],
+        features:
+          level >= 15
+            ? [
+                srdFeature({
+                  owner: 'CLASS',
+                  classLabel: 'Barbarian',
+                  featureLabel: 'Persistent Rage',
+                  level: 15
+                })
+              ]
+            : []
+      }).output.grantFold.modifiers
+
+    it('keeps the Rage of an armed level 15 Barbarian and stays armed', () => {
+      expect(
+        planIdleTurnCheck({
+          encounterId: ENCOUNTER_ID,
+          actor: armed,
+          effects: [rage],
+          featureModifiers: barbarianModifiers(15)
+        })
+      ).toEqual({ ended: [], nextMark: 'ARMED' })
+    })
+
+    it('still ends the Rage of a level 14 Barbarian and another idle-bound grant', () => {
+      expect(
+        planIdleTurnCheck({
+          encounterId: ENCOUNTER_ID,
+          actor: armed,
+          effects: [rage],
+          featureModifiers: barbarianModifiers(14)
+        })
+      ).toEqual({ ended: [rage], nextMark: null })
+      expect(
+        planIdleTurnCheck({
+          encounterId: ENCOUNTER_ID,
+          actor: armed,
+          effects: [rage, idle],
+          featureModifiers: barbarianModifiers(15)
+        })
+      ).toEqual({ ended: [idle], nextMark: 'ARMED' })
+    })
   })
 
   it('sets and clears the mark without touching the other resources', () => {

@@ -11,10 +11,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
 import { readCharacterMaximumHitPoints } from '@artificer-toolkit/encounter-persistence/characterMaximumHitPoints'
 import { listActiveRuleEffects } from '@artificer-toolkit/encounter-persistence/effectStore'
-import {
-  heldBatchInputs,
-  heldDamageInterceptions
-} from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
+import { heldBatchInputs } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
 import { buildMovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { withRecordedInterceptionSaveRolls } from '@artificer-toolkit/rules-runtime/encounterInterceptionSaveRolls'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
@@ -44,6 +41,7 @@ export async function applyRoomEncounterMechanicsBatch(input: {
     throw new Error('Room mechanics Campaign authority changed.')
   let character: EncounterCharacterRow | null = null
   let characterFacts: Parameters<typeof planEncounterMechanicsBatch>[0]['characterFacts']
+  let sheetFacts: Awaited<ReturnType<typeof prepareRoomLiveCharacterSheet>> | null = null
   if (read.actor.kind === 'CHARACTER') {
     const { assignment } = await ctx.ports.requireCampaignCharacterAuthority(
       campaignId,
@@ -76,6 +74,7 @@ export async function applyRoomEncounterMechanicsBatch(input: {
       character.status !== 'ACTIVE'
     )
       throw new Error('Room mechanics Character identity is stale.')
+    sheetFacts = facts
     characterFacts = {
       active: character,
       character: facts.character,
@@ -98,19 +97,16 @@ export async function applyRoomEncounterMechanicsBatch(input: {
           sheetMaximumHitPoints: await readCharacterMaximumHitPoints(ctx, character.play)
         }
       : {
-          damageInterceptions:
-            read.actor.kind === 'CREATURE'
-              ? withRecordedInterceptionSaveRolls(
-                  buildMovementTarget({
-                    actor: read.actor,
-                    activeEffects: heldEffects,
-                    gameSystemId: read.campaign.gameSystemId,
-                    campaignId,
-                    characterFacts: null
-                  }).damageInterceptions,
-                  batch.applications
-                )
-              : heldDamageInterceptions(heldEffects)
+          damageInterceptions: withRecordedInterceptionSaveRolls(
+            buildMovementTarget({
+              actor: read.actor,
+              activeEffects: heldEffects,
+              gameSystemId: read.campaign.gameSystemId,
+              campaignId,
+              characterFacts: sheetFacts
+            }).damageInterceptions,
+            batch.applications
+          )
         }
   const target = {
     ...read,

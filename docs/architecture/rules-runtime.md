@@ -1212,7 +1212,8 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   filter added to the subscription reaches both. The `BEFORE` `DAMAGED` event carries the whole blow (`damageTaken`,
   `damageTypeId`, `critical`), and a damage interception may filter on it (SPELLS-33.T4i2a): `excludes` (damage types
   and critical hits it does not meet) and `maxDamageTaken`. Its optional `save` (ability, DC `base` plus the damage
-  taken when `plusDamageTaken`) is spent only on a pass, with the die on the interception itself (`saveRoll`,
+  taken when `plusDamageTaken`, plus `plusPerChargeUsed` per charge already used) is spent on a pass, or on every
+  attempt when `spendsUseOnFailure` (SPELLS-31.T5f3; the receipt marks a spent failure `spent`), with the die on the interception itself (`saveRoll`,
   `{ rawDie, addedTotal }`): the Worker rolls it once per target before any blow lands (`withInterceptionSaveRolls`,
   the holder's saving throw and roll mode; a room commit replays the recorded one with
   `withRecordedInterceptionSaveRolls`). A failure lets the blow meet the next interception, and a missing die is an
@@ -1223,7 +1224,12 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   is held only while the charge has one left; the intercepted blow spends it (`interceptionCharge` on the DAMAGE or
   KILL_NEGATED application, recomputed by the fold), `withInterceptionChargesSpent` writes it on the plan's actor,
   rest recovery resets it through `planCreatureRest`, and `actionRevert` restores it. A feature with no charge (Undead
-  Fortitude) is held every time. Known limits: a condition that fails the save outright and added save dice are not read. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
+  Fortitude) is held every time. A Character's feature holds them the same way (SPELLS-31.T5f3, Relentless Rage):
+  `characterHeldDamageInterceptions` lists the policy output's authored `DAMAGE_INTERCEPTION` grants, gated by
+  `HOLDER_ACTIVE_EFFECT` on the Character's active effects, with the charge read from the feature's resolved Sheet
+  pool. The plan writes the spend to that pool's `resourceUsage` row (a derived id, refused when the pool moved
+  since listing), the receipt's `interceptionCharge.poolId` names the pool, and `actionRevert` restores the row's
+  uses. Known limits: a condition that fails the save outright and added save dice are not read. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
   meets a `HARMFUL_ACTION_AIMED` by an attacker of a listed type: `heldIncomingGate` lists the wards the attacker has not
   passed and asks discovery which one it meets. Counter and targeted-self windows are reactions to
   `SPELL_CAST_BY_OTHER` and `TARGETED_BY_CAST` above; a retarget stays the gate's failure pause.
@@ -1892,7 +1898,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   action commits, opportunity attacks, Disarm, Grapple and Shove, spell and area attack rolls, reaction attacks, the damage choke
   point, Sheet HP decreases and GM HP edits. `planIdleTurnCheck`, run by `persistEncounterIdleTurnCheck` at the end of the turn commit,
   after the outgoing turn's Legendary Action damage so that damage counts, ends the idle-bound grants of an `ARMED` holder and clears
-  its mark, and arms an `ENGAGED` one again. Skipped-turn ticks run no check for an actor that had no turn. GM undo restores the marks
+  its mark, and arms an `ENGAGED` one again. An `END_EVENT_EXEMPTION` feature grant (`ENABLE`, payload `{ events, effectIds }`;
+  SPELLS-31.T5f2, Persistent Rage) keeps the holder's own effects with those authored ids from ending on those events: the check reads
+  an `ARMED` holder's feature grants (a Character's rules, or a Creature's or creature form's folded grants through
+  `encounterActorGrantModifiers`), keeps the exempt grants (`endEventExemptAuthoredEffectIds`, which honors HOLDER_ACTIVE_EFFECT
+  restrictions) and leaves the holder armed. Only `ON_IDLE_TURN` reads the exemption today; other end conditions still apply. Skipped-turn ticks run no check for an actor that had no turn. GM undo restores the marks
   an action changed (`idleTurnMarkChanges` on the `RESOLVE_ACTION` root, diffed before and after the commit); Disarm, GM HP edits,
   Sheet HP changes and movement reactions are not undoable. A mark left by a grant that ended another way is reconciled at the next
   END_OF_TURN.

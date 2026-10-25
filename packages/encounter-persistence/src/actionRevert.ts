@@ -20,8 +20,10 @@ import {
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import {
   ENDED_EFFECT_RELEASE_OPERATION_KEY,
-  isEndedEffectRelease
+  isEndedEffectRelease,
+  type DamageInterceptionChargeDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { interceptionChargesSpent } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
 import { withCharacterTemporaryHitPoints } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
@@ -121,6 +123,8 @@ type CharacterInverse = {
   degradation: ActionBatch['sourceItemDegradation']
   /** Slot spends in the order they committed; one batch can carry several (the cast, then its counter). */
   spells: NonNullable<ActionBatch['spellCastConsumption']>[]
+  /** The Sheet pool charges the Character's feature-held damage interceptions spent, in spend order. */
+  interceptionCharges: DamageInterceptionChargeDto[]
   expectedStreamVersion: number
 }
 
@@ -148,6 +152,7 @@ function characterInverseAt(expectedStreamVersion: number): CharacterInverse {
     item: null,
     degradation: null,
     spells: [],
+    interceptionCharges: [],
     expectedStreamVersion
   }
 }
@@ -495,6 +500,7 @@ export async function revertLastEncounterAction(
         inverse.hitPoints = inverted.sheet.hitPoints
         inverse.removedConditionIds = inverted.sheet.removedConditionIds
         if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
+        inverse.interceptionCharges.push(...interceptionChargesSpent(action.applications))
         if (action.targetItemUseStateTransition)
           inverse.unequipped = action.targetItemUseStateTransition
         inverse.degradation = action.targetItemDegradation
@@ -1170,7 +1176,8 @@ async function revertCheckAction(
         inverse: {
           ...characterInverseAt(inverted.sheet.streamVersion),
           hitPoints: inverted.sheet.hitPoints,
-          removedConditionIds: inverted.sheet.removedConditionIds
+          removedConditionIds: inverted.sheet.removedConditionIds,
+          interceptionCharges: interceptionChargesSpent(mechanics.applications)
         },
         userId: input.userId,
         updatedAt,
@@ -1572,27 +1579,32 @@ async function restoreCharacter(
   const unequipped = inverse.unequipped
   if (unequipped) reequip(unequipped.itemInstanceId, unequipped.beforeStateChecksum)
   const sheetState = ctx.ports.readCharacterSheetState(row)
-  const resource = inverse.resource
-  const nextSheetState = resource
-    ? {
-        ...sheetState,
-        resourceUsage: sheetState.resourceUsage.map((usage) => {
-          if (createCharacterResourceOwnerKey(usage.owner) !== resource.poolId) return usage
-          if (usage.used !== resource.afterUsed)
-            revertUnavailable(
-              `${row.label}'s resources changed after this action; adjust manually.`
-            )
-          return {
-            ...usage,
-            used: resource.beforeUsed,
-            updatedBy: input.userId,
-            updatedAt: input.updatedAt
-          }
-        })
-      }
-    : null
+  let restoredSheetState: typeof sheetState | null = null
+  // Latest spend first, so each charge finds the usage its own spend left: the interceptions spent
+  // during settlement, then the action's own charge.
+  const charges = [...(inverse.resource ? [inverse.resource] : []), ...inverse.interceptionCharges]
+  for (const charge of charges.toReversed()) {
+    const base: typeof sheetState = restoredSheetState ?? sheetState
+    const usage = base.resourceUsage.find(
+      (entry) => createCharacterResourceOwnerKey(entry.owner) === charge.poolId
+    )
+    if (!usage || usage.used !== charge.afterUsed)
+      revertUnavailable(`${row.label}'s resources changed after this action; adjust manually.`)
+    restoredSheetState = {
+      ...base,
+      resourceUsage: base.resourceUsage.map((entry) =>
+        entry === usage
+          ? {
+              ...entry,
+              used: charge.beforeUsed,
+              updatedBy: input.userId,
+              updatedAt: input.updatedAt
+            }
+          : entry
+      )
+    }
+  }
   const item = inverse.item
-  let restoredSheetState = nextSheetState
   if (item) {
     const base = restoredSheetState ?? sheetState
     // The item is given back by lowering its usage; the stored row never left the Sheet.

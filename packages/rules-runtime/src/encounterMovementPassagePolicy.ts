@@ -72,9 +72,9 @@ export function movementPassageOfModifiers(
  * unless it wears a creature form, which, like its actions (SPELLS-28.T4d), comes from the form's
  * stat block; a Creature has its folded feature grants.
  */
-function encounterActorGrantModifiers(
+export function encounterActorGrantModifiers(
   actor: EncounterRunActorState,
-  characterPolicy: CharacterRulePolicyOutput | null
+  characterPolicy: Pick<CharacterRulePolicyOutput, 'grantFold'> | null
 ): readonly CharacterGrantFoldOutput['modifiers'][number][] {
   if (actor.kind === 'CHARACTER' && actor.form === null)
     return characterPolicy?.grantFold.modifiers ?? []

@@ -287,6 +287,7 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   DAMAGE_MIRROR: [MODIFIER_KIND.ENABLE],
 
+  END_EVENT_EXEMPTION: [MODIFIER_KIND.ENABLE],
   INCOMING_DAMAGE: [MODIFIER_KIND.ENABLE],
 
   INCOMING_ATTACK_GATE: [MODIFIER_KIND.ENABLE],
@@ -653,13 +654,28 @@ export type ModifierDamageInterceptionAuthored = {
   negatesKill: boolean
   /**
    * The holder must pass this save to be intercepted (Undead Fortitude): the DC is `base`, plus the
-   * damage taken when `plusDamageTaken`. A failed save lets the damage land and spends no use.
+   * damage taken when `plusDamageTaken`, plus `plusPerChargeUsed` for each charge of the holding
+   * feature already used (Relentless Rage). A pass always spends a use; a failed save lets the
+   * damage land, and `spendsUseOnFailure` means it spends a use too.
    */
-  save?: { ability: string; dc: { base: number; plusDamageTaken: boolean } }
+  save?: {
+    ability: string
+    dc: { base: number; plusDamageTaken: boolean; plusPerChargeUsed: number } // int, 0 to 100
+    spendsUseOnFailure: boolean
+  }
   /** Damage this interception does not meet: of these types, or from a critical hit. */
   excludes?: { damageTypeIds: string[]; critical: boolean }
   /** Only damage of at most this many hit points is intercepted (Relentless: 14). */
   maxDamageTaken?: number // int, at least 1
+}
+
+/**
+ * The holder's own active effects with these authored ids do not end on these lifecycle events
+ * (Persistent Rage: Rage no longer ends on `ON_IDLE_TURN`). Their other end conditions still apply.
+ */
+export type ModifierEndEventExemptionAuthored = {
+  events: string[]
+  effectIds: string[]
 }
 
 /**
@@ -695,11 +711,13 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
       ? ModifierAttackDecoysAuthored
       : V extends 'DAMAGE_INTERCEPTION'
         ? ModifierDamageInterceptionAuthored
-        : V extends 'INCOMING_ATTACK_GATE'
-          ? ModifierIncomingAttackGateAuthored
-          : V extends 'INCOMING_DAMAGE'
-            ? ModifierIncomingDamageAuthored
-            : undefined
+        : V extends 'END_EVENT_EXEMPTION'
+          ? ModifierEndEventExemptionAuthored
+          : V extends 'INCOMING_ATTACK_GATE'
+            ? ModifierIncomingAttackGateAuthored
+            : V extends 'INCOMING_DAMAGE'
+              ? ModifierIncomingDamageAuthored
+              : undefined
     : K extends 'MULTIPLY'
       ? ModifierFractionAuthored
       : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
