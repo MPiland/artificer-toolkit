@@ -87,7 +87,7 @@ export const gameSystemRuleCapabilityDtoSchema = lazySchema(() =>
     authoredRootKinds: z
       .array(ruleCapabilityKeyDtoSchema)
       .check(z.maxLength(RULE_GRAPH_LIMITS.AUTHORED_ROOT_KINDS)),
-    contentKinds: z.array(authoredSubjectKindSchema).check(z.maxLength(8)),
+    contentKinds: z.array(authoredSubjectKindSchema).check(z.maxLength(authoredSubjectKindSchema.options.length)),
     definitionFamilyKeys: z
       .array(ruleCapabilityKeyDtoSchema)
       .check(z.maxLength(RULE_GRAPH_LIMITS.DEFINITION_FAMILIES)),
