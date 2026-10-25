@@ -6,7 +6,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import { SRD, srdByLabel } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import { seededInitiativePolicySnapshot } from '@artificer-toolkit/rules-runtime/testing/initiativePolicySnapshot'
-import { acidSplash } from '@artificer-toolkit/source-data/srd/spells/acid-splash.js'
+import { fireBolt } from '@artificer-toolkit/source-data/srd/spells/fire-bolt.js'
 import { rayOfFrost } from '@artificer-toolkit/source-data/srd/spells/ray-of-frost.js'
 import { SRD_DND5E_SPEED_FACTOR_INITIATIVE_POLICY_DEFINITION_ID } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -191,8 +191,8 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
         srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
       ],
       characterSpellcasting: {
-        spells: [acidSplash, rayOfFrost],
-        prepared: [acidSplash.id, rayOfFrost.id]
+        spells: [fireBolt, rayOfFrost],
+        prepared: [fireBolt.id, rayOfFrost.id]
       },
       status: 'PREPARED',
       initiativePolicy: seededInitiativePolicySnapshot(
@@ -225,7 +225,7 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
       [],
       room.sceneContext(1),
       null,
-      choiceId(acidSplash.label),
+      choiceId(fireBolt.label),
       CASTER_ACTOR_ID
     )
     expect(refused.answer).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'UNDECLARED_ACTION' })
