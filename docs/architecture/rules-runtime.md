@@ -177,7 +177,9 @@ contribution kind, with no System import. It replaced the per-kind `grant-author
 facts; a relationship keeps `relationship-authored-path` only as its application trace's `authoredPath`. So a grant
 on a hit or a miss, and a link or a creature form on either save result, compile under a test. `CONCEAL` and
 `DETECT_CONCEALED` stay refused under an attack or a save, for a rule: they are settled from the holder's own check
-total, which neither test produces. `KILL` under a test stays limited to hit-point tiers, which is also a rule.
+total, which neither test produces. `KILL` under a test is limited to hit-point tiers, a reduced-to-0 gate and the
+action's own failed save (Will-o'-Wisp Consume Life, SPELLS-33.T4i4b), which is also a rule: a hit alone never kills.
+A nested follow-up save's band still needs a gate to kill.
 
 **Effect lifetime (current, RULES-2.T6d1).** An active-effect plan's lifetime is its neutral fields: the clock
 (`recurrenceStage`, `initialRemaining`, `tickAnchor`), the repeat (`saveThresholds`, `lifecycle.repeatTriggers`), the
