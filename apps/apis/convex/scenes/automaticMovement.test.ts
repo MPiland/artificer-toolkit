@@ -158,7 +158,7 @@ it('settles a spatial prefix between a used automatic reaction and later control
 
 afterEach(() => {
   try {
-    console.log('T9F2 PROBE', JSON.stringify(roomErrorLogs()).slice(0, 60000))
+    console.log('T9F2 PROBE', JSON.stringify(roomErrorLogs()).slice(0, 6000))
   } catch (error) {
     console.log('T9F2 PROBE none', String(error))
   }

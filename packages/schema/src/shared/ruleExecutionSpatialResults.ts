@@ -631,7 +631,7 @@ export const encounterSpatialMovementBatchRuleExecutionResultDtoSchema = lazySch
             context.addIssue({
               code: 'custom',
               path: ['reactionExecutions', event.index, 'application', 'targetTransition'],
-              message: `Reaction target transition must bridge the preceding spatial state exactly. PRIOR=${JSON.stringify(priorTargetState)} BEFORE=${JSON.stringify(application.targetTransition.before)}`
+              message: 'Reaction target transition must bridge the preceding spatial state exactly.'
             })
           currentStates.set(targetOwnerKey, application.targetTransition.after)
           const expectedTransitions = new Map<string, { before: number; after: number }>()
