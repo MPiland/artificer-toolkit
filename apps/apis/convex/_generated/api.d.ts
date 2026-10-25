@@ -3128,7 +3128,8 @@ export declare const api: {
               | "HEALING"
               | "HIT_DIE"
               | "DEATH_SAVE"
-              | "RECHARGE";
+              | "RECHARGE"
+              | "TABLE";
             label: string;
           };
         },
@@ -3197,7 +3198,8 @@ export declare const api: {
               | "HEALING"
               | "HIT_DIE"
               | "DEATH_SAVE"
-              | "RECHARGE";
+              | "RECHARGE"
+              | "TABLE";
             label: string;
           };
         }
@@ -7177,7 +7179,8 @@ export declare const api: {
                 | "HEALING"
                 | "HIT_DIE"
                 | "DEATH_SAVE"
-                | "RECHARGE";
+                | "RECHARGE"
+                | "TABLE";
               label: string;
             };
           } | null;
@@ -7275,7 +7278,8 @@ export declare const api: {
                   | "HEALING"
                   | "HIT_DIE"
                   | "DEATH_SAVE"
-                  | "RECHARGE";
+                  | "RECHARGE"
+                  | "TABLE";
                 label: string;
               };
             } | null;
@@ -7378,7 +7382,8 @@ export declare const api: {
                 | "HEALING"
                 | "HIT_DIE"
                 | "DEATH_SAVE"
-                | "RECHARGE";
+                | "RECHARGE"
+                | "TABLE";
               label: string;
             };
           } | null;
@@ -7469,7 +7474,8 @@ export declare const api: {
                 | "HEALING"
                 | "HIT_DIE"
                 | "DEATH_SAVE"
-                | "RECHARGE";
+                | "RECHARGE"
+                | "TABLE";
               label: string;
             };
           } | null;
@@ -10187,7 +10193,8 @@ export declare const api: {
                 | "HEALING"
                 | "HIT_DIE"
                 | "DEATH_SAVE"
-                | "RECHARGE";
+                | "RECHARGE"
+                | "TABLE";
               label: string;
             };
           };
@@ -10271,7 +10278,8 @@ export declare const api: {
                 | "HEALING"
                 | "HIT_DIE"
                 | "DEATH_SAVE"
-                | "RECHARGE";
+                | "RECHARGE"
+                | "TABLE";
               label: string;
             };
           } | null;
@@ -10301,7 +10309,8 @@ export declare const api: {
                 | "HEALING"
                 | "HIT_DIE"
                 | "DEATH_SAVE"
-                | "RECHARGE";
+                | "RECHARGE"
+                | "TABLE";
               label: string;
             };
           };
@@ -10377,7 +10386,8 @@ export declare const api: {
               | "HEALING"
               | "HIT_DIE"
               | "DEATH_SAVE"
-              | "RECHARGE";
+              | "RECHARGE"
+              | "TABLE";
             label: string;
           };
         }
@@ -10465,7 +10475,8 @@ export declare const api: {
                 | "HEALING"
                 | "HIT_DIE"
                 | "DEATH_SAVE"
-                | "RECHARGE";
+                | "RECHARGE"
+                | "TABLE";
               label: string;
             };
           } | null;
@@ -22758,10 +22769,10 @@ export declare const api: {
                             | null;
                         }>;
                         kind: "INJURIES";
-                        triggerKinds: Array<
-                          | "CRITICAL_HIT"
-                          | "DROP_TO_ZERO"
-                          | "FAIL_DEATH_SAVE_BY_FIVE_OR_MORE"
+                        triggers: Array<
+                          | { critical: boolean; event: "DAMAGED" }
+                          | { event: "HIT_POINTS_ZERO" }
+                          | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                         >;
                       }
                     | {
@@ -33972,10 +33983,10 @@ export declare const api: {
                             | null;
                         }>;
                         kind: "INJURIES";
-                        triggerKinds: Array<
-                          | "CRITICAL_HIT"
-                          | "DROP_TO_ZERO"
-                          | "FAIL_DEATH_SAVE_BY_FIVE_OR_MORE"
+                        triggers: Array<
+                          | { critical: boolean; event: "DAMAGED" }
+                          | { event: "HIT_POINTS_ZERO" }
+                          | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                         >;
                       }
                     | {
@@ -45195,10 +45206,10 @@ export declare const api: {
                             | null;
                         }>;
                         kind: "INJURIES";
-                        triggerKinds: Array<
-                          | "CRITICAL_HIT"
-                          | "DROP_TO_ZERO"
-                          | "FAIL_DEATH_SAVE_BY_FIVE_OR_MORE"
+                        triggers: Array<
+                          | { critical: boolean; event: "DAMAGED" }
+                          | { event: "HIT_POINTS_ZERO" }
+                          | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                         >;
                       }
                     | {
@@ -56409,10 +56420,10 @@ export declare const api: {
                             | null;
                         }>;
                         kind: "INJURIES";
-                        triggerKinds: Array<
-                          | "CRITICAL_HIT"
-                          | "DROP_TO_ZERO"
-                          | "FAIL_DEATH_SAVE_BY_FIVE_OR_MORE"
+                        triggers: Array<
+                          | { critical: boolean; event: "DAMAGED" }
+                          | { event: "HIT_POINTS_ZERO" }
+                          | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                         >;
                       }
                     | {
@@ -67658,10 +67669,10 @@ export declare const api: {
                             | null;
                         }>;
                         kind: "INJURIES";
-                        triggerKinds: Array<
-                          | "CRITICAL_HIT"
-                          | "DROP_TO_ZERO"
-                          | "FAIL_DEATH_SAVE_BY_FIVE_OR_MORE"
+                        triggers: Array<
+                          | { critical: boolean; event: "DAMAGED" }
+                          | { event: "HIT_POINTS_ZERO" }
+                          | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                         >;
                       }
                     | {
@@ -78872,10 +78883,10 @@ export declare const api: {
                             | null;
                         }>;
                         kind: "INJURIES";
-                        triggerKinds: Array<
-                          | "CRITICAL_HIT"
-                          | "DROP_TO_ZERO"
-                          | "FAIL_DEATH_SAVE_BY_FIVE_OR_MORE"
+                        triggers: Array<
+                          | { critical: boolean; event: "DAMAGED" }
+                          | { event: "HIT_POINTS_ZERO" }
+                          | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                         >;
                       }
                     | {
@@ -90083,10 +90094,10 @@ export declare const api: {
                           | null;
                       }>;
                       kind: "INJURIES";
-                      triggerKinds: Array<
-                        | "CRITICAL_HIT"
-                        | "DROP_TO_ZERO"
-                        | "FAIL_DEATH_SAVE_BY_FIVE_OR_MORE"
+                      triggers: Array<
+                        | { critical: boolean; event: "DAMAGED" }
+                        | { event: "HIT_POINTS_ZERO" }
+                        | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                       >;
                     }
                   | {
@@ -101152,10 +101163,10 @@ export declare const api: {
                             | null;
                         }>;
                         kind: "INJURIES";
-                        triggerKinds: Array<
-                          | "CRITICAL_HIT"
-                          | "DROP_TO_ZERO"
-                          | "FAIL_DEATH_SAVE_BY_FIVE_OR_MORE"
+                        triggers: Array<
+                          | { critical: boolean; event: "DAMAGED" }
+                          | { event: "HIT_POINTS_ZERO" }
+                          | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                         >;
                       }
                     | {
@@ -112366,10 +112377,10 @@ export declare const api: {
                             | null;
                         }>;
                         kind: "INJURIES";
-                        triggerKinds: Array<
-                          | "CRITICAL_HIT"
-                          | "DROP_TO_ZERO"
-                          | "FAIL_DEATH_SAVE_BY_FIVE_OR_MORE"
+                        triggers: Array<
+                          | { critical: boolean; event: "DAMAGED" }
+                          | { event: "HIT_POINTS_ZERO" }
+                          | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
                         >;
                       }
                     | {
@@ -127736,6 +127747,17 @@ export declare const api: {
                     innate?: true;
                     notes?: string;
                   }>;
+                  consequenceRollOffers?: Array<{
+                    definitionId: string;
+                    label: string;
+                    occurredAt: string;
+                    sourceCommandId: string;
+                    triggers: Array<
+                      | { critical: boolean; event: "DAMAGED" }
+                      | { event: "HIT_POINTS_ZERO" }
+                      | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
+                    >;
+                  }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -128946,6 +128968,17 @@ export declare const api: {
                     innate?: true;
                     notes?: string;
                   }>;
+                  consequenceRollOffers?: Array<{
+                    definitionId: string;
+                    label: string;
+                    occurredAt: string;
+                    sourceCommandId: string;
+                    triggers: Array<
+                      | { critical: boolean; event: "DAMAGED" }
+                      | { event: "HIT_POINTS_ZERO" }
+                      | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
+                    >;
+                  }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
                   defeated: boolean;
@@ -129350,7 +129383,8 @@ export declare const api: {
                 | "HEALING"
                 | "HIT_DIE"
                 | "DEATH_SAVE"
-                | "RECHARGE";
+                | "RECHARGE"
+                | "TABLE";
               label: string;
             };
           } | null;
@@ -129594,7 +129628,8 @@ export declare const api: {
                 | "HEALING"
                 | "HIT_DIE"
                 | "DEATH_SAVE"
-                | "RECHARGE";
+                | "RECHARGE"
+                | "TABLE";
               label: string;
             };
           } | null;
@@ -130006,6 +130041,17 @@ export declare const api: {
                 innate?: true;
                 notes?: string;
               }>;
+              consequenceRollOffers?: Array<{
+                definitionId: string;
+                label: string;
+                occurredAt: string;
+                sourceCommandId: string;
+                triggers: Array<
+                  | { critical: boolean; event: "DAMAGED" }
+                  | { event: "HIT_POINTS_ZERO" }
+                  | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
+                >;
+              }>;
               controllerUserIds: Array<string>;
               currentHitPoints: number;
               defeated: boolean;
@@ -130388,6 +130434,17 @@ export declare const api: {
                     conditionTypeId: string;
                     innate?: true;
                     notes?: string;
+                  }>;
+                  consequenceRollOffers?: Array<{
+                    definitionId: string;
+                    label: string;
+                    occurredAt: string;
+                    sourceCommandId: string;
+                    triggers: Array<
+                      | { critical: boolean; event: "DAMAGED" }
+                      | { event: "HIT_POINTS_ZERO" }
+                      | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
+                    >;
                   }>;
                   controllerUserIds: Array<string>;
                   currentHitPoints: number;
@@ -131116,6 +131173,17 @@ export declare const api: {
               conditionTypeId: string;
               innate?: true;
               notes?: string;
+            }>;
+            consequenceRollOffers?: Array<{
+              definitionId: string;
+              label: string;
+              occurredAt: string;
+              sourceCommandId: string;
+              triggers: Array<
+                | { critical: boolean; event: "DAMAGED" }
+                | { event: "HIT_POINTS_ZERO" }
+                | { byAtLeast: number; event: "DEATH_SAVE_FAILED" }
+              >;
             }>;
             controllerUserIds: Array<string>;
             currentHitPoints: number;
@@ -132617,7 +132685,8 @@ export declare const api: {
             | "HEALING"
             | "HIT_DIE"
             | "DEATH_SAVE"
-            | "RECHARGE";
+            | "RECHARGE"
+            | "TABLE";
           label: string;
         };
       },
@@ -132686,7 +132755,8 @@ export declare const api: {
             | "HEALING"
             | "HIT_DIE"
             | "DEATH_SAVE"
-            | "RECHARGE";
+            | "RECHARGE"
+            | "TABLE";
           label: string;
         };
       }
@@ -132799,7 +132869,8 @@ export declare const api: {
             | "HEALING"
             | "HIT_DIE"
             | "DEATH_SAVE"
-            | "RECHARGE";
+            | "RECHARGE"
+            | "TABLE";
           label: string;
         };
       }>
