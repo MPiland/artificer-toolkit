@@ -37,3 +37,9 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - 2026-10-24 review round (c2615cf46 approved with fixes): the GM-declared GROUP_LEADER_INCAPACITATED and GROUP_LEADER_TAKEN_PRISONER ruling is accepted. Added the room journey (half-hit-point offer from Run state, save, confirm, offer gone), group check, refusal, replay, COMMAND_ID_REUSED and private-roll tests, the drawer confirm and leader-picker tests, and fixed the `basicActionCheckRollRecord` doc comment.
 - 2026-10-24 CI round 3: the room test needs the Run's sides declared (`sides` on the movement room config, `SIDE_ID` exported from the SRD testing module); the leader picker is a combobox.
 - 2026-10-24 review round 2: Convex room tests for the Morale command (replay, restart replay, `COMMAND_ID_REUSED` against a Convex-created ID; `moraleCommands.test.ts`) and for the basic action check answer (`turnDeathSave.test.ts`, First Aid). The room's own journal refuses a reused ID with `INVALID_COMMAND` first, so Convex's `COMMAND_ID_REUSED` is reached only by an ID Convex created (the Run's create ID, exposed as `createCommandId` on the live-character fixture).
+
+## Journey (ENCOUNTER-6.T2, 2026-10-25)
+
+- `apps/session-worker/test/nativeRoomMorale.test.ts` is the PBI journey. It drives `MORALE_SAVE` and `CONFIRM_MORALE` through `room.send` and the player path (`sendAsPlayer`), reads the offer from the GM projection and the record from the stored actor. It covers ACs 6.1 and 6.2, and the "Morale rule off" refusal for 6.3's admission gate.
+- The user-visible half is `apps/web/src/domains/campaigns/vtt/CampaignTabletopMorale.test.tsx` (check, confirm, leader naming). No new test was needed.
+- Register both as `journeyTests`.

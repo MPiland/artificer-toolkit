@@ -44,6 +44,7 @@ import { components, internal } from '../_generated/api'
 import authSchema from '../betterAuth/schema'
 import schema from '../schema'
 import { encodeDefinitionDocument } from './definitionDocumentJson'
+import { definitionReferences } from './definitionReferences'
 
 process.env.SITE_URL = 'http://localhost:3000'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
@@ -545,6 +546,21 @@ describe('native reusable definitions', () => {
         document: sense(created.id)
       })
     ).rejects.toThrow()
+  })
+
+  it('round-trips a facet restriction and an effect path through the web adapter reference (RELIABILITY-12)', async () => {
+    const { a } = await fixture()
+    const dodge = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.DODGE)!
+    const published = await publishDocument(a, 'basic-action', dodge.document)
+
+    const workspace = await a.query(definitionReferences.get, { definitionId: published.id })
+    const expected = { ...dodge.document, id: published.id }
+    expect(workspace.current?.document).toEqual(expected)
+    expect(workspace.current?.document).toMatchObject({
+      kind: 'BASIC_ACTION',
+      effects: [{ paths: [{ pathCode: 'ON_USE', selectionKind: 'FIXED' }] }]
+    })
+    expect(workspace.current?.checksum).toBe(checksumRuleDocument(expected))
   })
 
   it('saves and publishes an initiative policy with installed D&D graphs and exact current pins', async () => {

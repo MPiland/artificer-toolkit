@@ -5,7 +5,6 @@ import {
   type EncounterActorRuleOutput
 } from '@artificer-toolkit/schema/api/encounterActorRules'
 import { abilityModifier } from './abilityModifier.js'
-import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 
 function clampInteger(
   value: number,
@@ -95,8 +94,3 @@ export function evaluateDnd5e2014EncounterActors(candidate: unknown): EncounterA
     }))
   })
 }
-
-export const dnd5eEncounterActorPolicyRegistration = {
-  gameSystemId: DND5E_SYSTEM_ID,
-  evaluateEncounterActors: evaluateDnd5e2014EncounterActors
-} as const

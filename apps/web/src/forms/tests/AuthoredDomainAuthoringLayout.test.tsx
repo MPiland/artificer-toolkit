@@ -282,6 +282,41 @@ describe('non-character authored domain layout coverage', () => {
     expect(convexMocks.mutation).not.toHaveBeenCalled()
   })
 
+  it('creates an item only after a System is chosen and a label is given (RELIABILITY-8 journey)', async () => {
+    const user = userEvent.setup()
+    useFixtureNodeRuntimeResolver()
+    const advancedUser = createAdvancedAuthoringUser()
+    const { authoringData } = authoredCreateRouteLoaderData
+    const createLayout = (system: typeof authoredRouteStorySystem | null) => (
+      <TestRouterProvider user={advancedUser}>
+        <AuthoringLayout data={{ ...authoringData, system }} domain='equipment' mode='create' />
+      </TestRouterProvider>
+    )
+
+    // No System on the route: an explicit choice, never the first System in the list.
+    const { rerender } = render(createLayout(null))
+    const systemChoice = await screen.findByRole('combobox', { name: /Choose the system/ })
+    expect(systemChoice).toHaveValue('')
+    expect(screen.queryByRole('textbox', { name: 'Name' })).not.toBeInTheDocument()
+    expect(convexMocks.mutation).not.toHaveBeenCalled()
+
+    // The route now carries the chosen System: a blank label is a field error, not "Untitled".
+    rerender(createLayout(authoredRouteStorySystem))
+    const name = await screen.findByRole('textbox', { name: 'Name' })
+    await user.type(name, '   ')
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+    expect((await screen.findAllByText(/Name is required./)).length).toBeGreaterThan(0)
+    expect(convexMocks.mutation).not.toHaveBeenCalled()
+
+    await user.clear(name)
+    await user.type(name, 'Moon Blade')
+    await user.click(screen.getByRole('button', { name: 'Save Draft' }))
+    await waitFor(() => expect(convexMocks.mutation).toHaveBeenCalledOnce())
+    expect(convexMocks.mutation.mock.calls[0]?.[1]).toMatchObject({
+      payload: { label: 'Moon Blade', systemId: authoredRouteStorySystem.id }
+    })
+  }, 20_000)
+
   it('uses natural equipment language in the guided start choice', async () => {
     useFixtureNodeRuntimeResolver()
 

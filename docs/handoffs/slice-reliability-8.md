@@ -58,3 +58,8 @@ Each AC note in the ledger lists the exact files.
 - `EMPTY_GUIDED_FORM_VALUES` is an un-annotated `{}` type carrier for `withForm`; no `{} as object`.
 - Retired with the readers: the class `proficiencies` grant-kind filter and the background `startingEquipment` shape check (the values are the domain's typed form values).
 - Deleted unused node defaults `creatureAction`, `creatureLairProfile`, `creatureLegendaryProfile` (referenced only by their own switch case and registry entry).
+
+## Journey (RELIABILITY-8.T5, 2026-10-25)
+
+- New test in `apps/web/src/forms/tests/AuthoredDomainAuthoringLayout.test.tsx`: "creates an item only after a System is chosen and a label is given (RELIABILITY-8 journey)". It renders the real `AuthoringLayout` for a new equipment item with no System (the System choice shows, empty, with no form), then with the chosen System (as the route loader carries it), submits a blank label (field error, no mutation), then a label (the submitted payload holds the label and the chosen `systemId`). Only Convex is faked.
+- The `?system=` navigation itself is covered by `SystemChoiceAlert.test.tsx` and `authoredFormFactories.test.ts`; the static test router does not reload loader data. Register it as `journeyTests`.
