@@ -2166,7 +2166,9 @@ function supported(
   const supportedActivation =
     invocation.kind === 'ACTION' &&
     (invocation.activation.code === 'FREE'
-      ? isChargedFreeActivation(invocation)
+      ? // A free action on its user alone (Frenzy) needs no charge: its use path's holder
+        // restrictions bound it.
+        isChargedFreeActivation(invocation) || supportsSelf
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION' ||
           // A reaction to being attacked, to taking damage, to being chosen as a target or to a spell

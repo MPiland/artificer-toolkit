@@ -7,7 +7,11 @@ import {
   type CharacterRulePolicyInput,
   type CharacterRulePolicyOutput
 } from '../api/characterRules.js'
-import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
+import {
+  characterGrantFoldRestrictionSchema,
+  modifierOperationSchema,
+  senseOperationSchema
+} from '../api/characterGrantFoldRules.js'
 import { characterAuthoredDtoSchema, type CharacterAuthoredDto } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
@@ -194,6 +198,8 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
     ),
     tickAnchor: z._default(z.enum(['HOLDER', 'SOURCE']), 'HOLDER'),
+    /** The authored Effect its target holds that this effect ends with (D172), as Frenzy with Rage. */
+    endsWithHeldEffectId: z.optional(serverUuidIdentityDtoSchema),
     /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
     hitPointTier: z.optional(z.strictObject({ atMost: z.number().check(z.int()).check(z.gte(1)) })),
     /** Set on a repeat-save plan that counts saves: frozen into the effect's recurrence. */
@@ -875,6 +881,13 @@ const compiledActionEntryPointSchema = lazySchema(() =>
       actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
       effectId: serverUuidIdentityDtoSchema,
       targetPolicy: z.optional(compiledActionTargetPolicySchema),
+      /**
+       * The holder conditions its use path names, one list per restricted entry: the action is
+       * offered to and taken by an actor only while every one holds (Frenzy only while raging).
+       */
+      holderRestrictions: z.optional(
+        z.array(characterGrantFoldRestrictionSchema).check(z.maxLength(100))
+      ),
       compilation: z.strictObject({
         kind: z.literal('COMPILED'),
         resourceBinding: z.nullable(compiledActionResourceBindingSchema),

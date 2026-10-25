@@ -167,6 +167,8 @@ function storedGrant(input: {
   holderId?: string
   effect?: AuthoredEffect
   lifetimeScope?: 'OWNER' | 'ENCOUNTER'
+  /** The effects the holder already holds; none by default. */
+  activeEffects?: ActiveRuleEffectRecord[]
 }) {
   const action = characterActionDescriptor(
     compileEffect({
@@ -191,7 +193,7 @@ function storedGrant(input: {
       conditionIds: [],
       effectiveSize: 'MEDIUM',
       lifetimeScope: input.lifetimeScope ?? 'ENCOUNTER',
-      activeEffects: []
+      activeEffects: input.activeEffects ?? []
     },
     activeEffectsByActorId: new Map(),
     activeEffectPlan: activeEffectPlan ?? null,
@@ -612,6 +614,49 @@ describe('planEncounterGrantTicks', () => {
     ])
     expect(result.map(({ effect }) => effect.id)).toEqual([earlier.id, later.id])
   })
+
+  it('expires a grant linked to an expiring one with it, whatever it has left (D172, Frenzy)', () => {
+    const rage = grant(
+      {},
+      { id: 0xc339, holderId: TARGET_ID, remainingTicks: 1, createdOrdinal: 1 }
+    )
+    const frenzy = grant(
+      {},
+      { id: 0xc33a, holderId: TARGET_ID, remainingTicks: 4, createdOrdinal: 2 }
+    )
+    const linked = { ...frenzy, definition: { ...frenzy.definition, linkedEffectId: rage.id } }
+    expect(
+      plan('END_OF_TURN', TARGET_ID, [{ actor: holder(TARGET_ID).actor, effects: [rage, linked] }])
+    ).toMatchObject([
+      { kind: 'EXPIRE', effect: { id: rage.id } },
+      { kind: 'EXPIRE', effect: { id: linked.id } }
+    ])
+  })
+})
+
+describe('a grant that ends with a held effect (D172, Frenzy, SPELLS-31.T5f4)', () => {
+  const rageRecord = (() => {
+    const record = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc33b,
+      holderId: TARGET_ID
+    })
+    return { ...record, definition: { ...record.definition, authoredEffectId: RAGE_EFFECT_ID } }
+  })()
+
+  it('links the grant to the held effect it ends with', () => {
+    const stored = storedGrant({
+      lifecycle: { endsWithHeldEffectId: RAGE_EFFECT_ID },
+      currentActorId: null,
+      activeEffects: [rageRecord]
+    })
+    expect(stored.definition.linkedEffectId).toBe(rageRecord.id)
+  })
+
+  it('refuses a grant whose target does not hold that effect', () => {
+    expect(() =>
+      storedGrant({ lifecycle: { endsWithHeldEffectId: RAGE_EFFECT_ID }, currentActorId: null })
+    ).toThrow('The effect ends with an effect its target does not hold.')
+  })
 })
 
 describe('a Help made on the helper’s own turn', () => {
@@ -857,7 +902,11 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
   })
 
   describe('with Persistent Rage (SPELLS-31.T5f2)', () => {
-    const rage = { ...idle, definition: { ...idle.definition, authoredEffectId: RAGE_EFFECT_ID } }
+    const rage = {
+      ...idle,
+      id: testUuid(0xc379),
+      definition: { ...idle.definition, authoredEffectId: RAGE_EFFECT_ID }
+    }
     const barbarianModifiers = (level: number) =>
       evaluateSrdCharacter({
         classes: [{ label: 'Barbarian', level }],
@@ -902,6 +951,38 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
           featureModifiers: barbarianModifiers(15)
         })
       ).toEqual({ ended: [idle], nextMark: 'ARMED' })
+    })
+
+    // A grant linked to the Rage (D172, Frenzy, SPELLS-31.T5f4) ends with it and is kept with it.
+    const frenzy = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc378,
+      holderId: TARGET_ID
+    })
+    const linkedFrenzy = {
+      ...frenzy,
+      definition: { ...frenzy.definition, linkedEffectId: rage.id }
+    }
+
+    it('ends the grant linked to the Rage of a level 14 Barbarian with it', () => {
+      expect(
+        planIdleTurnCheck({
+          encounterId: ENCOUNTER_ID,
+          actor: armed,
+          effects: [rage, linkedFrenzy],
+          featureModifiers: barbarianModifiers(14)
+        })
+      ).toEqual({ ended: [rage, linkedFrenzy], nextMark: null })
+    })
+
+    it('keeps the grant linked to the Rage Persistent Rage keeps', () => {
+      expect(
+        planIdleTurnCheck({
+          encounterId: ENCOUNTER_ID,
+          actor: armed,
+          effects: [rage, linkedFrenzy],
+          featureModifiers: barbarianModifiers(15)
+        })
+      ).toMatchObject({ ended: [], nextMark: 'ARMED' })
     })
   })
 

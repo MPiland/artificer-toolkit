@@ -90,6 +90,11 @@ export interface CharacterRuleActionActiveEffectPlan {
   resultGate?: { paths: readonly string[] }
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
+  /**
+   * The authored Effect the target already holds that this effect ends with (D172); the planner
+   * links the held effect at creation.
+   */
+  endsWithHeldEffectId?: string
   /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
   hitPointTier?: { atMost: number }
   /**

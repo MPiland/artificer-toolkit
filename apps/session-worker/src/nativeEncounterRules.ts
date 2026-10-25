@@ -160,7 +160,7 @@ import {
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
   interpretForcedMovements,
-  refuseUnmetBasicActionRestrictions,
+  refuseUnmetActionRestrictions,
   refuseUnmetItemActionRequirements
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
@@ -641,7 +641,7 @@ export async function planNativeLiveEncounterAction(
       reason: 'TARGET_UNAVAILABLE',
       message: 'Immune to spells of this school'
     })
-  await refuseUnmetBasicActionRestrictions(
+  await refuseUnmetActionRestrictions(
     { source: prepared.source, acceptedWieldConflict: command.acceptedWieldConflict },
     {
       target: actorTarget,
@@ -691,6 +691,8 @@ export async function planNativeLiveEncounterAction(
   const turnUsesSpent =
     weaponAttackHolds.length > 0 ? await readNativeLiveTurnUses(capture, prepared.actor.id) : []
   const weaponAttackUseKey = firstGrantedActionUseKey(weaponAttackHolds, turnUsesSpent)
+  // A FREE offer's use comes first; otherwise an offer charged to an allowance (Frenzy's Bonus Action).
+  const allowanceOffer = weaponAttackHolds.find(({ offer }) => offer.activation !== 'FREE')
   const { activationCode, economy, suppressed, attackAction, grantedUseKey } =
     await evaluateNativeLiveActionEconomy({
       prepared,
@@ -700,7 +702,11 @@ export async function planNativeLiveEncounterAction(
       targetIds: [prepared.target.id],
       targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
       capture,
-      weaponAttackOffer: weaponAttackUseKey ? { useKey: weaponAttackUseKey } : null
+      weaponAttackOffer: weaponAttackUseKey
+        ? { useKey: weaponAttackUseKey }
+        : allowanceOffer
+          ? { activation: { code: allowanceOffer.offer.activation, amount: 1 } }
+          : null
     })
   const mechanicFacts =
     prepared.source.kind === 'CHARACTER_ACTION'

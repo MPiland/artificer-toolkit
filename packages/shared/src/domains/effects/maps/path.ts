@@ -410,7 +410,7 @@ const PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP: NodeMap<
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
   ({ map, nodes, data }) => {
-    const { selectSingle, selectMulti, groupObject, groupArray, toggle, number } = nodes
+    const { selectSingle, selectMulti, groupObject, groupArray, toggle, number, text } = nodes
     const { table } = data
 
     map
@@ -462,6 +462,7 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
           presentation: 'inline'
         })
       )
+      .set('endsWithHeldEffectId', text(['endsWithHeldEffectId'], 'Ends With Held Effect ID'))
       .set('fromSourceOnly', toggle(['fromSourceOnly'], 'From Source Only'))
       .set(
         'uses',
