@@ -101,7 +101,6 @@ describe('Morale offers (ENCOUNTER-6.1)', () => {
       .map(({ triggerKind }) => triggerKind)
     expect(kinds).toEqual([
       'INDIVIDUAL_CANNOT_HARM_OPPOSITION',
-      'GROUP_SURPRISED',
       'GROUP_LEADER_INCAPACITATED',
       'GROUP_LEADER_TAKEN_PRISONER'
     ])

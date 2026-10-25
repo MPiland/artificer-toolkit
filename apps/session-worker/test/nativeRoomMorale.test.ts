@@ -44,7 +44,6 @@ async function moraleSave(room: Awaited<ReturnType<typeof moraleRoom>>) {
     encounterId: room.room.encounterId,
     commandId: crypto.randomUUID(),
     expectedVersion: await room.version(),
-    correlationId: null,
     actorId: OGRE_ID,
     triggerKind: 'INDIVIDUAL_SURPRISED',
     leaderActorId: null,
@@ -75,7 +74,6 @@ describe('Morale in the native room (ENCOUNTER-6.1, 6.2)', () => {
       encounterId: room.room.encounterId,
       commandId: crypto.randomUUID(),
       expectedVersion: await room.version(),
-      correlationId: null,
       actorId: OGRE_ID,
       disposition: 'SURRENDER'
     })

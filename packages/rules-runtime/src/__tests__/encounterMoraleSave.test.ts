@@ -5,14 +5,15 @@ import { encounterMoraleRollers, rollEncounterMoraleSave } from '../encounterMor
 import type { MoraleSaveProposal } from '../optionalCombatPolicyCapability.js'
 import {
   SRD_SYSTEM_ID,
-  creatureActor,
+  srdCreatureActor,
   srdCreatureTarget,
   srdDefinitions,
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
+import { GOBLIN } from './encounterActiveEffectFixtures.js'
 
 const WISDOM = SRD_ABILITY_DEFINITION_IDS.WISDOM
-const goblin = creatureActor({ id: testUuid(0x71), snapshot: {} })
+const goblin = srdCreatureActor({ id: testUuid(0x71), creature: GOBLIN })
 const target = srdCreatureTarget(goblin)
 
 const proposal: MoraleSaveProposal = {
