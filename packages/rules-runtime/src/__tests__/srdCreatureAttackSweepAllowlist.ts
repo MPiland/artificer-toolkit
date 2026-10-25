@@ -23,6 +23,7 @@ export const SRD_CREATURE_ATTACK_UNSUPPORTED: Readonly<
   '00000000-0002-00d0-0070-011600000000': 'OUTCOME_KIND', // Vampire Spawn: Bite
   '00000000-0002-00e6-0070-011500000000': 'OUTCOME_KIND', // Vampire: Bite
   // Wereboar: Tusks (Boar or Hybrid Form Only): its curse ruling (T6b2) sits ahead of the merged
-  // Charge save (T5n2), and the immediate save takes only damage before it.
+  // Charge save (T5n2); `immediateFollowUpSaveEntries` admits only DAMAGE before an immediate save,
+  // so the missing piece is a ruling entry ahead of it (ATTACK-5.T4).
   '00000000-0002-0001-0070-1b1100000000': 'FOLLOW_UP_SAVE'
 }
