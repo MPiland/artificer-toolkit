@@ -49,7 +49,10 @@ function defaultPathCode(triggerCode: EffectAuthored['invocation']['triggerCode'
   }
 }
 
-type ManualAdjudicationEffectConfig = Pick<ClosedRuleEffectConfig, 'id' | 'invocation'> & {
+type ManualAdjudicationEffectConfig = Pick<
+  ClosedRuleEffectConfig,
+  'id' | 'invocation' | 'order'
+> & {
   label: string
   reasonCode: ManualAdjudicationReason
   instructions: string
@@ -59,13 +62,14 @@ type ManualAdjudicationEffectConfig = Pick<ClosedRuleEffectConfig, 'id' | 'invoc
 export function manualAdjudicationEffect({
   id,
   invocation,
+  order = 1,
   label,
   reasonCode,
   instructions
 }: ManualAdjudicationEffectConfig): EffectAuthored {
   return {
     id,
-    order: 1,
+    order,
     invocation,
     paths: [
       {

@@ -62,7 +62,11 @@ vi.mock('#app/data/media', () => ({
 // The canvas renderer is the platform: it receives the Stage's view and reports token selection.
 vi.mock('./vttSceneRenderer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./vttSceneRenderer')>()),
-  createVttSceneRenderer: (_host: HTMLElement, handlers: RendererHandlers) => {
+  createVttSceneRenderer: (
+    _host: HTMLElement,
+    _gameSystemId: string,
+    handlers: RendererHandlers
+  ) => {
     mocks.handlers = handlers
     return Promise.resolve({
       applyTransient: vi.fn(),

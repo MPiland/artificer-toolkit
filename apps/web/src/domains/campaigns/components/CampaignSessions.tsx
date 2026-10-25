@@ -70,7 +70,7 @@ export function CampaignSessions({
       setScheduledEndAt('')
     }
   })
-  const editable = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  const editable = campaign.capabilities.manageActiveCampaign
   const scheduleIncomplete = Boolean(scheduledStartAt) !== Boolean(scheduledEndAt)
 
   return (

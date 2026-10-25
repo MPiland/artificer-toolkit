@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 import { indefiniteInvisibilityEffect } from './indefiniteInvisibility.js'
 export const willOWisp: CreatureAuthored = {
@@ -77,7 +78,11 @@ export const willOWisp: CreatureAuthored = {
             },
             targeting: {
               selectionKind: S.TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
+              dispositionKind: S.TARGET_DISPOSITION_KIND.ANY,
+              targetRequirements: [
+                { kind: 'AT_ZERO_HIT_POINTS' },
+                { kind: 'SIGHT', direction: 'ACTOR_SEES_TARGET' }
+              ]
             }
           },
           paths: [
@@ -92,17 +97,14 @@ export const willOWisp: CreatureAuthored = {
                 id: S.actionId(294, 204),
                 resultKind: 'SEQUENCE',
                 outcomes: [
-                  {
-                    id: S.actionId(294, 205),
-                    effectKind: S.EFFECT_KIND.HEAL,
-                    valueKind: S.DAMAGE_VALUE_KIND.DICE,
-                    scalingKind: S.SCALING.NONE,
-                    diceConfig: '3d6'
-                  },
+                  { id: S.actionId(294, 205), effectKind: S.EFFECT_KIND.KILL },
                   {
                     id: S.actionId(294, 206),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WILL_O_WISP_CONSUME_LIFE
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Regain hit points',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      "If the target dies, the will-o'-wisp regains 10 (3d6) hit points; the GM applies the healing to the will-o'-wisp."
                   }
                 ]
               }

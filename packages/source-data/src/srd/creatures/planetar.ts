@@ -45,19 +45,7 @@ export const planetar: CreatureAuthored = {
       label: 'Angelic Weapons',
       description:
         "Angelic Weapons. The planetar's weapon attacks are magical. When the planetar hits with any weapon, the weapon deals an extra 5d8 radiant damage (included in the attack).",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(220, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: S.actionId(220, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_PLANETAR_ANGELIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(220, 501),
       order: 1
     },
     {
@@ -145,18 +133,7 @@ export const planetar: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The planetar has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(220, 503),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(220, 603), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(220, 503),
       order: 4
     },
     {

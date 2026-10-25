@@ -1,6 +1,7 @@
 import { Badge, Button, Group, Text, Title } from '@mantine/core'
 import type { SocialModerationQueueItemDto } from '@artificer-toolkit/schema/api/socialHub'
-import { formatStatusLabel } from '../socialModels'
+import { formatEnumLabel } from '#components/AuthoredDetail'
+import { formatSocialTimestamp } from '../socialModels'
 import * as styles from './SocialModerationQueueRow.css'
 
 export function SocialModerationQueueRow({
@@ -18,17 +19,14 @@ export function SocialModerationQueueRow({
     <article className={styles.row} data-report-id={item.reportPublicId}>
       <div className={styles.rowBody}>
         <Group gap='xs'>
-          <Badge variant='light'>{formatStatusLabel(item.targetKind)}</Badge>
-          <Badge variant='outline'>{formatStatusLabel(item.status)}</Badge>
+          <Badge variant='light'>{formatEnumLabel(item.targetKind)}</Badge>
+          <Badge variant='outline'>{formatEnumLabel(item.status)}</Badge>
         </Group>
         <Title order={2} size='h4'>
-          {formatStatusLabel(item.reason)}
+          {formatEnumLabel(item.reason)}
         </Title>
         <Text c='dimmed' size='sm'>
-          Submitted{' '}
-          {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
-            new Date(item.createdAt)
-          )}
+          Submitted {formatSocialTimestamp(item.createdAt)}
         </Text>
       </div>
       <div className={styles.rowActions}>
