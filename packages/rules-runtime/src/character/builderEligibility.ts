@@ -132,7 +132,7 @@ export function getAvailableSubclassesForClass(params: {
 
 export function validateMulticlass(
   classSelections: ResolvedClassSelection[],
-  abilityScores: Partial<Record<string, number>>
+  abilityScores: Record<string, number>
 ): CharacterBuilderValidation[] {
   if (classSelections.length <= 1) return []
 

@@ -12,7 +12,7 @@ export type MulticlassRequirementEvaluation = {
 
 export function evaluateMulticlassRequirements(
   requirementGroups: { groups: readonly MulticlassRequirementGroup[] },
-  abilityScores: Partial<Record<string, number>>
+  abilityScores: Record<string, number>
 ): MulticlassRequirementEvaluation {
   const unmetRequirementGroups = requirementGroups.groups.filter((group) =>
     group.requirements.some(
