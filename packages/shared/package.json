@@ -138,6 +138,11 @@
       "types": "./dist/domains/vtt/teleportAllowanceDestinationKind.d.ts",
       "default": "./dist/domains/vtt/teleportAllowanceDestinationKind.js"
     },
+    "./vtt/facingArc": {
+      "source": "./src/domains/vtt/facingArc.ts",
+      "types": "./dist/domains/vtt/facingArc.d.ts",
+      "default": "./dist/domains/vtt/facingArc.js"
+    },
     "./vtt/segments": {
       "source": "./src/domains/vtt/segments.ts",
       "types": "./dist/domains/vtt/segments.d.ts",

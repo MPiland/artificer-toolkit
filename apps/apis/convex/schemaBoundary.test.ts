@@ -139,7 +139,8 @@ const SYSTEM_VOCABULARY_SEAM = [
   'systemCapabilityRegistry.ts',
   'systems/dnd5e/coreCodes.ts',
   'systems/dnd5e/identity.ts',
-  'systems/dnd5e/lifecycleVocabulary.ts'
+  'systems/dnd5e/lifecycleVocabulary.ts',
+  'systems/installedGameSystems/vocabulary.ts'
 ].map((file) => `/packages/rules-runtime/src/${file}`)
 
 /** Rules-runtime and play-schema files a bundle loads outside the System vocabulary seam. */
@@ -204,3 +205,58 @@ it.each(['./characters/documents.ts', './content/deletion.ts'])(
     expect(responseImports).toEqual([])
   }
 )
+
+/** Each installed-Systems tier list (D195), lightest first, with the platform root that installs it. */
+const SYSTEM_TIERS = [
+  ['vocabulary', 'platformSystemCoreCodes'],
+  ['policy', 'platformPolicyModules'],
+  ['character', 'platformCharacterPolicy'],
+  ['encounter', 'platformEncounterPolicy'],
+  ['runtime', 'platformRulesRuntime']
+] as const
+
+/** The rules-runtime files a platform root loads, each with the files it imports. */
+function rulesRuntimeClosure(root: string) {
+  const { metafile } = buildSync({
+    entryPoints: [
+      fileURLToPath(new URL(`../../../packages/rules-runtime/src/${root}.ts`, import.meta.url))
+    ],
+    bundle: true,
+    platform: 'node',
+    packages: 'external',
+    write: false,
+    metafile: true,
+    logLevel: 'silent'
+  })
+  const slash = (path: string) => `/${path.replaceAll('\\', '/')}`
+  return new Map(
+    Object.entries(metafile!.inputs).map(([path, { imports }]) => [
+      slash(path),
+      imports.map((imported) => slash(imported.path))
+    ])
+  )
+}
+
+it('keeps each installed-System tier loading only its own and lighter tiers', () => {
+  const tiers = SYSTEM_TIERS.map(([tier]) => tier)
+  const closures = Object.fromEntries(
+    SYSTEM_TIERS.map(([tier, root]) => [tier, rulesRuntimeClosure(root)])
+  )
+  const isList = (path: string, tier: string) =>
+    path.endsWith(`/rules-runtime/src/systems/installedGameSystems/${tier}.ts`)
+  // A tier's System modules are the ones its list installs, so one reached by another path counts too.
+  const systemModules = Object.fromEntries(
+    tiers.map((tier) => [tier, [...closures.runtime!].find(([path]) => isList(path, tier))![1]])
+  )
+  const loadedTiers = (closure: Map<string, string[]>) =>
+    tiers.filter((tier) =>
+      [...closure.keys()].some((path) => isList(path, tier) || systemModules[tier]!.includes(path))
+    )
+  expect(Object.fromEntries(tiers.map((tier) => [tier, loadedTiers(closures[tier]!)]))).toEqual({
+    vocabulary: ['vocabulary'],
+    policy: ['vocabulary', 'policy'],
+    character: ['vocabulary', 'policy', 'character'],
+    encounter: ['vocabulary', 'policy', 'encounter'],
+    runtime: tiers
+  })
+})

@@ -246,6 +246,7 @@ export async function prepareStagedSceneCommit(input: {
       path: staged.path,
       outcome,
       sceneVersion: scene.version,
+      facingDegrees: staged.facingDegrees,
       draggedTokens
     })
   } else {

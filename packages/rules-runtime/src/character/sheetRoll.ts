@@ -1,3 +1,4 @@
+import { addsFullProficiency } from '@artificer-toolkit/schema/api/characterSheet'
 import type { CharacterSheetResponseDto } from '@artificer-toolkit/schema/api/characterSheetData'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { ExecuteRollInputDto, RollSourceDto } from '@artificer-toolkit/schema/api/rolls'
@@ -5,7 +6,7 @@ import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 
 import { savingThrowSpentEffects } from '../encounterEndedEffectRelease.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
-import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+import { characterProgressionCapabilityRegistry } from '../platformPolicyModules.js'
 import {
   abilityCheckMinimumRoll,
   activeAbilityCheckDice,
@@ -84,7 +85,7 @@ function structuredRolls(sheet: CharacterSheetResponseDto): ResolvedRoll[] {
       expression: withModifier('1d20', skill.total),
       rollMode: skill.rollMode,
       abilityCode: skill.ability,
-      proficient: skill.proficiency === 'FULL' || skill.proficiency === 'DOUBLE',
+      proficient: addsFullProficiency(skill.proficiency),
       source: { kind: 'SKILL_CHECK' as const, label: `${skill.label} check` }
     })),
     {
@@ -128,7 +129,7 @@ function resolveHitDieRoll(input: ExecuteRollInputDto, sheet: CharacterSheetResp
   )
     return undefined
 
-  const { hitPoints } = abilityScoreCapabilityRegistry.require(
+  const { hitPoints } = characterProgressionCapabilityRegistry.require(
     sheet.meta.systemId
   ).derivedStatisticAbilityCodes
   const constitution = sheet.overview.abilities.find((ability) => ability.ability === hitPoints)

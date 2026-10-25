@@ -5,7 +5,6 @@ import {
   type CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
 
-import { dnd5eAbilityScoreCapabilityAdapter } from './abilityModifier.js'
 import { evaluateDnd5e2014CharacterActions } from './characterActions.js'
 import { evaluateDnd5eCharacterCompanionMechanics } from './characterCompanionMechanics.js'
 import { evaluateDnd5eCharacterDefenses } from './characterDefenses.js'
@@ -26,6 +25,7 @@ import { evaluateDnd5eCharacterSpellMechanics } from './characterSpellMechanics.
 import { evaluateDnd5eCharacterSpellPreparation } from './characterSpellPreparation.js'
 import { evaluateDnd5eCharacterSpellSlots } from './characterSpellSlots.js'
 import { evaluateDnd5eCharacterVitals } from './characterVitals.js'
+import { dnd5eCharacterProgressionCapabilityAdapter } from './hitPointRules.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eFoldedModifierApplicability,
@@ -216,7 +216,7 @@ export function evaluateDnd5e2014CharacterPolicy(
         derived.abilities.find(
           (ability) =>
             ability.abilityId ===
-            dnd5eAbilityScoreCapabilityAdapter.derivedStatisticAbilityCodes.hitPoints
+            dnd5eCharacterProgressionCapabilityAdapter.derivedStatisticAbilityCodes.hitPoints
         )?.modifier.effective ?? 0,
       hitDiceRecoveredAfterLongRest: recoveredHitDice(input.rest.totalHitDice),
       currentExhaustion: input.rest.currentExhaustion,
@@ -234,7 +234,5 @@ export function evaluateDnd5e2014CharacterPolicy(
 
 export const dnd5eCharacterPolicyRegistration = {
   gameSystemId: DND5E_SYSTEM_ID,
-  evaluateCharacterActions: evaluateDnd5e2014CharacterActions,
-  evaluateCharacterGrantFold: evaluateDnd5e2014CharacterGrantFold,
   evaluateCharacterPolicy: evaluateDnd5e2014CharacterPolicy
 } as const

@@ -10,7 +10,6 @@ import type { CompiledEffectOffer } from '@artificer-toolkit/schema/effects/stor
 import type { GrantedAction } from '@artificer-toolkit/schema/effects/grantedAction'
 import type { AttackSlotConditionDto } from '@artificer-toolkit/schema/features/attackSlots'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
   CharacterGrantFoldModifier,
   CharacterGrantFoldSense
@@ -43,7 +42,6 @@ import type {
   ScenePoint
 } from '@artificer-toolkit/shared/vtt'
 import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
-import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type {
   DamageDispositionDto,
   DamageInterceptionChargeDto,
@@ -772,16 +770,6 @@ export interface CharacterRuleActionSystemAdapter {
     published: ServerPublishedRuleDefinitionDto
   }): void
   /**
-   * UUID-backed capability definitions needed to bind an optional positional
-   * policy. The Encounter owns locking and currentness; Systems select only
-   * the definitions their pinned policy understands.
-   */
-  positionalCapabilityDefinitionIds?(input: {
-    automationMode: AutomationModeDto
-    optionalCombatSnapshot: unknown
-    optionalCombatSnapshotChecksum: string | null
-  }): readonly string[]
-  /**
    * System policy may provide ordinary, non-authored perception capabilities.
    * The Encounter supplies only an exact observer identity; the returned
    * capability remains a sealed mechanical fact, not homebrew source data.
@@ -875,11 +863,6 @@ export interface CharacterRuleActionSystemAdapter {
       }
       grid: SceneGrid
     } | null
-    /**
-     * Server-derived facts for positional policies. This is intentionally a
-     * mechanical projection, never a Scene document or client assertion.
-     */
-    positionalFacts?: CharacterRuleActionPositionalFacts | null
   }): {
     facts: Readonly<Record<string, RuleValue>>
     /** The System-selected d20 evidence policy for a paused one-stage test. */
@@ -1013,49 +996,4 @@ export interface CharacterRuleActionSystemAdapter {
     /** Only a threshold-counted effect: its save tally once this turn's save is counted. */
     saveTally?: ActiveEffectSaveTally
   }
-}
-
-interface CharacterRuleActionPositionalTokenFact {
-  actorId: string
-  height: number
-  position: ScenePoint
-  rotationDegrees: number
-  tokenId: string
-  width: number
-}
-
-/**
- * One locked non-source/non-target actor candidate. Relationship and
- * perception are intentionally pair-specific rather than inferred by a
- * System adapter from labels, sides, or presentation state.
- */
-export interface CharacterRuleActionPositionalCandidateFact {
-  actorId: string
-  capabilityState: ResolvedRuleCapabilityStateDto
-  capabilityStateChecksum: string
-  canSeeTarget: boolean
-  perceptionChecksum: string
-  sourceRelationship: 'ALLIED' | 'HOSTILE' | 'NEUTRAL'
-  targetRelationship: 'ALLIED' | 'HOSTILE' | 'NEUTRAL'
-  token: CharacterRuleActionPositionalTokenFact
-}
-
-/**
- * Exact action-local positional facts. The dependency checksum is retained
- * with a paused action so resume can reject changed Scene, relationship,
- * capability, or perception state before any RNG or outcome mutation.
- */
-export interface CharacterRuleActionPositionalFacts {
-  automationMode: AutomationModeDto
-  candidates: readonly CharacterRuleActionPositionalCandidateFact[]
-  dependencyChecksum: string
-  optionalCombatSnapshot: unknown
-  optionalCombatSnapshotChecksum: string | null
-  sourceCapabilityState: ResolvedRuleCapabilityStateDto
-  sourceCapabilityStateChecksum: string
-  sourceCanSeeTarget: boolean
-  sourcePerceptionChecksum: string
-  sourceTargetRelationship: 'ALLIED' | 'HOSTILE' | 'NEUTRAL'
-  targetCapabilityState: ResolvedRuleCapabilityStateDto
-  targetCapabilityStateChecksum: string
 }
