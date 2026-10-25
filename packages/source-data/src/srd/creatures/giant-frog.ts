@@ -60,7 +60,7 @@ export const giantFrog: CreatureAuthored = {
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
           label: 'Standing Leap',
-          reasonCode: 'EXTERNAL_WORLD_STATE',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
           instructions:
             "The frog's long jump is up to 20 feet and its high jump is up to 10 feet, with or without a running start."
         })

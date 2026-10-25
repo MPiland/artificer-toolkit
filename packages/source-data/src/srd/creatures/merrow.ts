@@ -1,3 +1,4 @@
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 
 import * as S from './shared.js'
@@ -246,7 +247,7 @@ export const merrow: CreatureAuthored = {
                     label: 'Harpoon Pull',
                     instructions:
                       'If the target is Huge or smaller, it must succeed on a Strength contest against the merrow or be pulled up to 20 feet toward the merrow.',
-                    reasonCode: 'GM_CHOICE'
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
                   }
                 ]
               }
@@ -306,7 +307,7 @@ export const merrow: CreatureAuthored = {
                     label: 'Harpoon Pull',
                     instructions:
                       'If the target is Huge or smaller, it must succeed on a Strength contest against the merrow or be pulled up to 20 feet toward the merrow.',
-                    reasonCode: 'GM_CHOICE'
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
                   }
                 ]
               }

@@ -1,3 +1,4 @@
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 import * as R from './rollInfluenceGrants.js'
@@ -116,7 +117,7 @@ export const drider: CreatureAuthored = {
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
           label: 'Spider Climb',
-          reasonCode: 'EXTERNAL_WORLD_STATE',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
           instructions:
             'The drider can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.'
         })

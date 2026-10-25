@@ -692,3 +692,14 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - Status: implemented; CI is the gate. Spider Climb (six creatures), the Bulette, Giant Frog and Giant Toad standing leaps and the Adult and Ancient White Dragon Ice Walk (same ruling as the Young White Dragon, T6d2) are each one `MANUAL_ADJUDICATION` ruling with the description kept. No jump, elevation or terrain-type predicate is built (SPELLS-4.T2o stays out of scope).
 - The Merrow Harpoon's pull stays a ruling on both attacks: its Strength contest and Huge-or-smaller gate have no follow-up support (`FORCED_MOVEMENT` TOWARD_SOURCE exists, but would pull unconditionally).
 - The six closed-rule kinds are deleted. Proof: `creatureMovementTraitRulingAuthoringParity.test.ts`.
+
+## T4gh: Rejuvenation and Etherealness as GM rulings (D187a; `ci/spells-33-t4gh`)
+
+- Status: implemented; CI is the gate. Guardian and Spirit Naga, Lemure, Lich and Mummy Lord Rejuvenation, and Ghost and Night Hag Etherealness are each one `MANUAL_ADJUDICATION` ruling with the description kept. `REVIVE` is an immediate revival and there is no days-long return timer or plane-crossing state, so neither is built (the spell Etherealness keeps its `REMOVE_FROM_PLAY`, which does not fit a toggle visible on both planes).
+- The seven closed-rule kinds are deleted. Proof: `creatureRejuvenationEtherealnessRulingAuthoringParity.test.ts` (one ruling per trait, creature node map round trip, kinds gone).
+
+## T4s2: lycanthrope and vampire shapechanging, Misty Escape as GM rulings (D187a; `ci/spells-33-t4s2`)
+
+- Status: implemented; CI is the gate. Werebear, Wereboar, Wererat, Weretiger, Werewolf and Vampire Shapechanger stay ACTION/SELF effects whose single outcome is a `MANUAL_ADJUDICATION` / `GM_CHOICE` ruling from `creatures/changeShapeRuling.ts` (new wordings `LYCANTHROPE_FORM` and `VAMPIRE_FORM`). Vampire Misty Escape stays a PASSIVE effect with the `MISTY_ESCAPE` ruling. Same reason as T4s1: a form swap would replace hit points, and the 0-hit-point replacement, 2-hour deadline and resting-place recovery have no engine piece (rare, D187a). No engine piece built.
+- The seven closed-rule kinds (`CREATURE_{WEREBEAR,WEREBOAR,WERERAT,WERETIGER,WEREWOLF,VAMPIRE}_SHAPECHANGER`, `CREATURE_VAMPIRE_MISTY_ESCAPE`) are deleted from `closedRuleKind.ts`.
+- Proof: `creatureChangeShapeRulingAuthoringParity.test.ts` extended (action shape, Misty Escape passive ruling, creature node map round trip, kinds gone).

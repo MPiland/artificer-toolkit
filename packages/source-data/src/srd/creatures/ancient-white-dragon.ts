@@ -1,3 +1,4 @@
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
@@ -57,7 +58,7 @@ export const ancientWhiteDragon: CreatureAuthored = {
             range: { id: S.actionId(23, 102), rangeKind: S.RANGE_KIND.SELF }
           },
           label: 'Ice Walk',
-          reasonCode: 'EXTERNAL_WORLD_STATE',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
           instructions:
             "The dragon can move across and climb icy surfaces without needing to make an ability check, and difficult terrain composed of ice or snow doesn't cost it extra movement."
         })

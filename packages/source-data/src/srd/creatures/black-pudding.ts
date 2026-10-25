@@ -1,3 +1,4 @@
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { MANIFEST_KIND, SHAPE_KIND, type CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 
@@ -191,7 +192,7 @@ export const blackPudding: CreatureAuthored = {
             range: { id: S.actionId(47, 109), rangeKind: S.RANGE_KIND.SELF }
           },
           label: 'Spider Climb',
-          reasonCode: 'EXTERNAL_WORLD_STATE',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
           instructions:
             'The pudding can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.'
         })

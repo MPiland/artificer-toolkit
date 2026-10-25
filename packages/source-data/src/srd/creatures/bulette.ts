@@ -83,7 +83,7 @@ export const bulette: CreatureAuthored = {
             range: { id: S.actionId(57, 102), rangeKind: S.RANGE_KIND.SELF }
           },
           label: 'Standing Leap',
-          reasonCode: 'EXTERNAL_WORLD_STATE',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
           instructions:
             "The bulette's long jump is up to 30 feet and its high jump is up to 15 feet, with or without a running start."
         })
