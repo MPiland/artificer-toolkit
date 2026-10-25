@@ -24,19 +24,26 @@ import { closeTrackedSockets } from './liveRoomFixture.js'
 const DIE = 18
 const GOBLIN_ID = testUuid(0x4e10)
 const WOLF_ID = testUuid(0x4e11)
+const LOW_DEXTERITY_WOLF_ID = testUuid(0x4e0f)
 const goblin = srdByLabel(SRD.creatures, 'Goblin')
+const lowDexterityWolf = {
+  ...plainWolf,
+  abilityScores: { ...plainWolf.abilityScores, DEXTERITY: plainWolf.abilityScores.DEXTERITY - 1 }
+}
 
 afterEach(closeTrackedSockets)
 
 type Room = Awaited<ReturnType<typeof speedFactorRoom>>
 type Answer = Awaited<ReturnType<Room['send']>>
 
-function speedFactorRoom() {
+function speedFactorRoom(
+  actors = [
+    srdCreatureActor({ id: GOBLIN_ID, creature: goblin }),
+    srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+  ]
+) {
   return actionRoom({
-    actors: [
-      srdCreatureActor({ id: GOBLIN_ID, creature: goblin }),
-      srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
-    ],
+    actors,
     ownerFeatureId: creatureFeature(goblin, 'Scimitar').id,
     status: 'PREPARED',
     initiativePolicy: seededInitiativePolicySnapshot(
@@ -101,7 +108,7 @@ async function startDeclaringScimitar(room: Room) {
 }
 
 /** The current actor and each actor's settled initiative, as the room stores the Run. */
-function readTurnOrder(room: Room) {
+function readTurnOrder(room: Room, actorIds: readonly string[]) {
   return runInDurableObject(room.room.base.stub, (_instance, context) => {
     const store = new RoomEncounterStore(context.storage)
     const [run] = store.documents('encounterRuns')
@@ -113,8 +120,7 @@ function readTurnOrder(room: Room) {
     }
     return {
       currentActorId: JSON.parse(run.stateJson).currentActorId,
-      goblin: initiativeOf(GOBLIN_ID),
-      wolf: initiativeOf(WOLF_ID)
+      initiatives: Object.fromEntries(actorIds.map((id) => [id, initiativeOf(id)]))
     }
   })
 }
@@ -126,10 +132,9 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
     expect(new Set(await startDeclaringScimitar(room))).toEqual(new Set([GOBLIN_ID, WOLF_ID]))
 
     // Both roll a 19 with a +2 Dexterity modifier; the Small Goblin's +2 size modifier puts it first.
-    expect(await readTurnOrder(room)).toEqual({
+    expect(await readTurnOrder(room, [GOBLIN_ID, WOLF_ID])).toEqual({
       currentActorId: GOBLIN_ID,
-      goblin: 19 + 2 + 2,
-      wolf: 19 + 2
+      initiatives: { [GOBLIN_ID]: 19 + 2 + 2, [WOLF_ID]: 19 + 2 }
     })
 
     const shortbow = room.featureActionId(
@@ -141,5 +146,21 @@ describe('the Speed Factor initiative variant (ENCOUNTER-4.T1)', () => {
 
     const declared = await room.startAction(WOLF_ID, [], room.sceneContext(1))
     expect(declared.answer.type, JSON.stringify(declared.answer)).toBe('COMMAND_COMMITTED')
+  }, 120000)
+
+  it('settles a tied score by the higher Dexterity score, whatever the actor identities', async () => {
+    // Both Medium Wolves roll a 19 and declare the same action, and Dexterity 14 and 15 both give +2.
+    // The lower-Dexterity Wolf holds the lower identity, so only the authored tie rule puts the other first.
+    const room = await speedFactorRoom([
+      srdCreatureActor({ id: LOW_DEXTERITY_WOLF_ID, creature: lowDexterityWolf }),
+      srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+    ])
+
+    await startDeclaringScimitar(room)
+
+    expect(await readTurnOrder(room, [LOW_DEXTERITY_WOLF_ID, WOLF_ID])).toEqual({
+      currentActorId: WOLF_ID,
+      initiatives: { [LOW_DEXTERITY_WOLF_ID]: 19 + 2, [WOLF_ID]: 19 + 2 }
+    })
   }, 120000)
 })
