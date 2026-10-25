@@ -272,6 +272,10 @@ export async function revertLastEncounterAction(
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertMoveHeldEffect(ctx, { ...scope, root })
   }
+  if (root?.commandType === 'CHANGE_FACING') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertChangeFacing(ctx, { ...scope, root })
+  }
   if (root?.commandType !== 'RESOLVE_ACTION')
     revertUnavailable(
       root
@@ -870,6 +874,7 @@ type RevertScope = {
         | 'SET_CONCEALMENT_OBSERVERS'
         | 'CREATURE_REST'
         | 'MOVE_HELD_EFFECT'
+        | 'CHANGE_FACING'
     }
   >
 }
@@ -1401,6 +1406,36 @@ async function revertMoveHeldEffect(
     lifecycle: receipt.before.lifecycle,
     maintainedEffectStateId: receipt.before.maintainedEffectStateId,
     restoredFrom: receipt.before
+  })
+  const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
+    updatedAt: new Date().toISOString()
+  })
+}
+
+/**
+ * Undoes a Change facing reaction (ATTACK-12): the token turns back and the reaction returns, only
+ * while the token was not moved or turned since.
+ */
+async function revertChangeFacing(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'CHANGE_FACING' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  const { receipt } = root
+  const actors = await readRunActors(ctx, state)
+  const actor = actors.find((entry) => entry.id === receipt.actorId)
+  if (!actor) revertUnavailable('The actor left the Encounter; adjust manually.')
+  if (!ctx.ports.restoreActionFacing)
+    revertUnavailable('This action turned a token on the Scene; adjust manually.')
+  await ctx.ports.restoreActionFacing({
+    encounterId: state.id,
+    commandId: root.commandId,
+    sceneId: receipt.sceneId,
+    sceneCommandId: receipt.sceneCommandId
   })
   const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
   return commitRevert(ctx, {

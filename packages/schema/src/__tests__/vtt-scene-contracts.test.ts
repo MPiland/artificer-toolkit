@@ -603,6 +603,38 @@ describe('VTT scene contracts', () => {
     expect(sceneCommandInputDtoSchema.safeParse(move('FORCED', false)).success).toBe(true)
   })
 
+  it('lets only a voluntary Encounter move choose the facing it ends in (ATTACK-12)', () => {
+    const move = (movementKind: string, expectedEncounterVersion: number | null) => ({
+      commandId: ids.campaign,
+      correlationId: null,
+      expectedEncounterVersion,
+      expectedSceneVersion: 3,
+      movementKind,
+      path: [
+        { x: 1, y: 2 },
+        { x: 3, y: 4 }
+      ],
+      sceneId: ids.scene,
+      tokenId: ids.token,
+      type: 'MOVE_SCENE_TOKEN',
+      facingDegrees: 90
+    })
+    expect(sceneCommandInputDtoSchema.safeParse(move('VOLUNTARY', 4)).success).toBe(true)
+    expect(sceneCommandInputDtoSchema.safeParse(move('VOLUNTARY', null)).success).toBe(false)
+    expect(sceneCommandInputDtoSchema.safeParse(move('FORCED', 4)).success).toBe(false)
+    // The room alone turns a token for a facing reaction; no client Scene command does.
+    expect(
+      sceneCommandInputDtoSchema.safeParse({
+        commandId: ids.campaign,
+        expectedSceneVersion: 3,
+        sceneId: ids.scene,
+        tokenId: ids.token,
+        type: 'SET_SCENE_TOKEN_FACING',
+        rotationDegrees: 90
+      }).success
+    ).toBe(false)
+  })
+
   it('validates movement paths, GM undo commands, and exact fog replacement ownership', () => {
     expect(
       sceneCommandInputDtoSchema.safeParse({

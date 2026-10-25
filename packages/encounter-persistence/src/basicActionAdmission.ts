@@ -1,4 +1,5 @@
 import type {
+  ChangeFacingInputDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
@@ -22,6 +23,7 @@ type BasicActionRootCommand =
   | EscapeRelationshipInputDto
   | EndHeldGrantInputDto
   | MoveHeldEffectInputDto
+  | ChangeFacingInputDto
   | ReleaseRelationshipInputDto
 type BasicActionScopeInput = Omit<LiveSessionEncounterRulesInput, 'request'>
 
@@ -190,6 +192,23 @@ export async function readMoveHeldEffectAdmission(
         rejectDomain('TARGET_UNAVAILABLE', "A defeated actor can't take the effect.")
     }
   })
+}
+
+/**
+ * Admits a facing change (ATTACK-12) for the room: the caller controls the actor, which turns as a
+ * reaction on any turn.
+ */
+export async function readChangeFacingAdmission(
+  ctx: EncounterReadTransaction,
+  input: BasicActionScopeInput & { command: ChangeFacingInputDto }
+) {
+  const command: ChangeFacingInputDto = {
+    ...input.command,
+    encounterId: input.command.encounterId.toLowerCase(),
+    commandId: input.command.commandId.toLowerCase(),
+    actorId: input.command.actorId.toLowerCase()
+  }
+  return admitCurrentActorCommand(ctx, input, command, { anyTurn: true })
 }
 
 /**

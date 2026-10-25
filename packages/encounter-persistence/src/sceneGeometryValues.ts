@@ -48,6 +48,7 @@ export function normalizeGeometryInput(
     case 'SET_SCENE_DOOR_STATE':
       return { ...input, ...identity, barrierId: input.barrierId.toLowerCase() }
     case 'MOVE_SCENE_TOKEN':
+    case 'SET_SCENE_TOKEN_FACING':
       return { ...input, ...identity, tokenId: input.tokenId.toLowerCase() }
   }
 }
@@ -62,6 +63,7 @@ export function geometryTarget(input: SceneNativeGeometryCommandInput): {
         | 'TOKEN_UPSERTED'
         | 'TOKEN_REMOVED'
         | 'TOKEN_MOVED'
+        | 'TOKEN_FACING_SET'
         | 'BARRIER_UPSERTED'
         | 'BARRIER_REMOVED'
         | 'DOOR_STATE_SET'
@@ -85,7 +87,22 @@ export function geometryTarget(input: SceneNativeGeometryCommandInput): {
       return {
         collection: 'tokens',
         entityId: input.tokenId,
-        delta: { kind: 'TOKEN_MOVED', tokenId: input.tokenId, position: input.path.at(-1)! }
+        delta: {
+          kind: 'TOKEN_MOVED',
+          tokenId: input.tokenId,
+          position: input.path.at(-1)!,
+          ...(input.facingDegrees !== undefined && { rotationDegrees: input.facingDegrees })
+        }
+      }
+    case 'SET_SCENE_TOKEN_FACING':
+      return {
+        collection: 'tokens',
+        entityId: input.tokenId,
+        delta: {
+          kind: 'TOKEN_FACING_SET',
+          tokenId: input.tokenId,
+          rotationDegrees: input.rotationDegrees
+        }
       }
     case 'UPSERT_SCENE_BARRIER':
       return {

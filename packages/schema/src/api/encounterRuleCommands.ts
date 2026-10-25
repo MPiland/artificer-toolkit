@@ -10,6 +10,7 @@ import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterR
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { moraleDispositionDtoSchema, moraleTriggerKindDtoSchema } from '../shared/optionalCombat.js'
+import { sceneTokenFacingCommandInputDtoSchema } from './vttScenes.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -414,6 +415,20 @@ export const moveHeldEffectInputDtoSchema = lazySchema(() =>
 )
 
 /**
+ * A creature turns to face `rotationDegrees` as a reaction, on any turn, under the Encounter's
+ * Facing rule (ATTACK-12). Its bound token on the Encounter's Scene turns with it.
+ */
+export const changeFacingInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('CHANGE_FACING'),
+    actorId: uuidSchema,
+    rotationDegrees: sceneTokenFacingCommandInputDtoSchema.shape.rotationDegrees,
+    /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
+    acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), [])
+  })
+)
+
+/**
  * The source of an Encounter relationship lets go of the creature it holds (D152): free, and
  * whenever it likes. `activeEffectId` names the relationship effect `heldActorId` carries.
  */
@@ -654,6 +669,7 @@ export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActi
 export type EscapeRelationshipInputDto = z.infer<typeof escapeRelationshipInputDtoSchema>
 export type EndHeldGrantInputDto = z.infer<typeof endHeldGrantInputDtoSchema>
 export type MoveHeldEffectInputDto = z.infer<typeof moveHeldEffectInputDtoSchema>
+export type ChangeFacingInputDto = z.infer<typeof changeFacingInputDtoSchema>
 export type ReleaseRelationshipInputDto = z.infer<typeof releaseRelationshipInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>

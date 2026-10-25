@@ -7,6 +7,7 @@ import {
 } from '@artificer-toolkit/shared/rules/contributors'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules/checksum'
 import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
+import { FACING_ARCS } from '@artificer-toolkit/shared/vtt/facingArc'
 
 import {
   ruleExecutionChecksumSchema as checksumSchema,
@@ -76,7 +77,8 @@ export const receiptD20ContributorSchema = lazySchema(() =>
     grantId: z.nullable(identifierSchema),
     domainKey: z.nullable(identifierSchema),
     influence: systemCoreCodeSchema,
-    source: rollModeContributorSourceDtoSchema
+    source: rollModeContributorSourceDtoSchema,
+    positional: z.optional(z.strictObject({ arc: z.enum(FACING_ARCS) }))
   })
 )
 

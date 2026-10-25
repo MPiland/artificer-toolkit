@@ -667,6 +667,20 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('CHANGE_FACING'),
+      /** The timeline label: plain "Change facing". */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      ruleOverrides: encounterRuleWarningsDtoSchema,
+      /** The reaction it spent and the Scene command that turned the token, so undo turns it back. */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+        sceneId: postgresUuidSchema,
+        tokenId: postgresUuidSchema,
+        sceneCommandId: postgresUuidSchema
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('RELEASE_RELATIONSHIP'),
       /** The timeline label: plain "Release", which never names a held creature a player cannot see. */
       label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),

@@ -180,7 +180,18 @@ const facingDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.pa
     policyModuleKey: DND5E_FACING_OPERATION_KEY,
     contractVersion: 1
   },
-  parameters: { kind: 'FACING' },
+  parameters: {
+    kind: 'FACING',
+    facingStepDegrees: 90,
+    arcs: [
+      { arc: 'FRONT', fromDegrees: -45, toDegrees: 45 },
+      { arc: 'RIGHT_SIDE', fromDegrees: 45, toDegrees: 135 },
+      { arc: 'REAR', fromDegrees: 135, toDegrees: 225 },
+      { arc: 'LEFT_SIDE', fromDegrees: 225, toDegrees: 315 }
+    ],
+    attackerInTargetArc: [{ arc: 'REAR', influence: 'ADVANTAGE' }],
+    sourceCannotTargetInOwnArcs: ['REAR']
+  },
   mutuallyExclusiveGroup: null
 })
 

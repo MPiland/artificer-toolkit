@@ -47,6 +47,7 @@ import {
   evaluateEncounterZoneTarget
 } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
+import type { FacingRule } from '@artificer-toolkit/rules-runtime/optionalCombatPolicyCapability'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import { chosenZonePlacement } from '@artificer-toolkit/rules-runtime/encounterZonePlacement'
 import type { EncounterForcedMovementLanding } from '@artificer-toolkit/encounter-persistence/actionCommitRecords'
@@ -797,6 +798,7 @@ export function reachRuleOverrides(input: {
   areaWarnings: readonly EncounterRuleWarningDto[]
   targets: readonly Pick<ReachTarget, 'prepared' | 'sceneContext'>[]
   movementTargets: ReadonlyMap<string, MovementTargets>
+  facing: FacingRule | null
 }): EncounterRuleWarningDto[] {
   const { activationCode, economy, suppressed } = input.evaluation
   const caster = input.movementTargets.get(input.lead.actor.id)
@@ -829,7 +831,8 @@ export function reachRuleOverrides(input: {
               target: prepared.target,
               targetPolicy: prepared.targetPolicy,
               makesAttackRoll: prepared.makesAttackRoll,
-              sceneContext
+              sceneContext,
+              facing: input.facing
             },
             targetDefeated: isEncounterActorDefeated(prepared.target, deadCharacterIds),
             targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
