@@ -308,6 +308,20 @@ const PARITY: Record<CommandType, Entry> = {
       disposition: 'FLEE'
     })
   },
+  RESOLVE_CONSEQUENCE_ROLL_OFFER: {
+    access: 'TABLE',
+    rule: table('ATTACK-15.1: the GM rolls or declines a consequence table offer'),
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'RESOLVE_CONSEQUENCE_ROLL_OFFER',
+      actorId: probe.actorId,
+      sourceCommandId: SOME_ID,
+      definitionId: SOME_ID,
+      decision: 'DECLINE',
+      visibility: 'PUBLIC'
+    })
+  },
   UPDATE_ACTOR: {
     access: 'TABLE',
     rule: table(
