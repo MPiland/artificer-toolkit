@@ -334,7 +334,12 @@ export function applySceneGeometryDelta<
     case 'TOKEN_MOVE_UNDONE':
     case 'TOKEN_FACING_SET': {
       if (!state.tokens.some((token) => token.id === delta.tokenId)) {
-        throw new Error('Cannot change a token that is not in the scene.')
+        const change = {
+          TOKEN_MOVED: 'move',
+          TOKEN_MOVE_UNDONE: 'undo movement for',
+          TOKEN_FACING_SET: 'turn'
+        }[delta.kind]
+        throw new Error(`Cannot ${change} a token that is not in the scene.`)
       }
       const patch = {
         ...(delta.kind !== 'TOKEN_FACING_SET' && { position: delta.position }),

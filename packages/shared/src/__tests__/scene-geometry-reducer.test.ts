@@ -180,6 +180,13 @@ describe('applySceneGeometryDelta', () => {
     ).toThrow('Cannot undo movement for a token that is not in the scene.')
     expect(() =>
       applySceneGeometryDelta(narrowState(), {
+        kind: 'TOKEN_FACING_SET',
+        rotationDegrees: 90,
+        tokenId: 'missing'
+      })
+    ).toThrow('Cannot turn a token that is not in the scene.')
+    expect(() =>
+      applySceneGeometryDelta(narrowState(), {
         barrierId: wall.id,
         kind: 'DOOR_STATE_SET',
         state: 'OPEN'
