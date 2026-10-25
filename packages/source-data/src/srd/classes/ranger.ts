@@ -12,6 +12,7 @@ import {
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
@@ -39,6 +40,8 @@ import {
   attacksPerAttackActionGrant,
   closedRuleEffect,
   duelingRestriction,
+  gmRulingEffect,
+  landsStrideRuling,
   selfActionEffect,
   twoWeaponFightingGrants
 } from './mechanics.js'
@@ -862,7 +865,20 @@ export const ranger: ClassAuthored = {
       label: "Land's Stride",
       description:
         'Starting at 8th level, moving through nonmagical difficult terrain costs you no extra movement. You can also pass through nonmagical plants without being slowed by them and without taking damage from them if they have thorns, spines, or a similar hazard. In addition, you have advantage on saving throws against plants that are magically created or manipulated to impede movement, such those created by the entangle spell.',
-      effects: [selfClassRuleEffect(23, CLOSED_RULE_KIND.CLASS_RANGER_LANDS_STRIDE)],
+      effects: [
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(RA, 0x60, 23),
+            range: classRowId(RA, 0x69, 23),
+            path: classRowId(RA, 0xd0, 2),
+            result: classRowId(RA, 0xd1, 2),
+            outcome: classRowId(RA, 0xd2, 2)
+          },
+          label: "Land's Stride",
+          instructions: landsStrideRuling,
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE
+        })
+      ],
       availableAtLevel: 8,
       order: 12
     },
