@@ -256,10 +256,12 @@ import {
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition
 } from './effectActionNestedSave.js'
+import { hitPointTierActions } from './effectActionNarrowing.js'
 import {
   admitRollTablePaths,
   rollTableOutcomeTemplate,
-  rollTablePath
+  rollTablePath,
+  rollTableRowActions
 } from './effectActionRollTable.js'
 
 const DND5E_ORDINARY_SIGHT_DEFINITION_ID = '0b4d8603-8e15-4e5a-89a6-9e1a179c4371'
@@ -2352,7 +2354,11 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     unsupported('D&D test action has an unsupported bounded shape.')
   }
   const paths = new Set<string>()
-  const tablePaths = admitRollTablePaths(action, kind === 'SAVE' ? allowedPaths : [])
+  const tablePaths = admitRollTablePaths(
+    action,
+    kind === 'SAVE' ? allowedPaths : [],
+    timedActiveEffectPlan
+  )
   const conditionCounts = new Map<string, number>()
   for (const entry of action.compiledEffect.entries) {
     if (tablePaths.has(entry.pathCode)) continue
@@ -3261,36 +3267,6 @@ function timedActiveEffectPlan(action: Dnd5eCompiledEffectActionSource) {
   )
 }
 
-/**
- * The action narrowed to each hit-point tier its entries author, with the entries no tier owns
- * (a success path's immunity) riding every tier; null for an action that authors no tier.
- */
-function hitPointTierActions(
-  action: Dnd5eCompiledEffectActionSource
-): { atMost: number; tierAction: Dnd5eCompiledEffectActionSource }[] | null {
-  const { entries } = action.compiledEffect
-  const tierOf = (entry: (typeof entries)[number]) =>
-    'hitPointTier' in entry ? entry.hitPointTier?.atMost : undefined
-  const atMosts = [...new Set(entries.flatMap((entry) => tierOf(entry) ?? []))]
-  if (atMosts.length === 0) return null
-  return atMosts.map((atMost) => ({
-    atMost,
-    tierAction: {
-      ...action,
-      compiledEffect: {
-        ...action.compiledEffect,
-        entries: entries
-          .filter((entry) => tierOf(entry) === undefined || tierOf(entry) === atMost)
-          .map((entry) => {
-            if (!('hitPointTier' in entry)) return entry
-            const { hitPointTier: _tier, ...untiered } = entry
-            return untiered
-          })
-      }
-    }
-  }))
-}
-
 function dnd5eActiveEffectPlans(
   action: Dnd5eCompiledEffectActionSource,
   published: ServerPublishedRuleDefinitionDto
@@ -4016,6 +3992,17 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
   },
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
+    const rows = rollTableRowActions(action)
+    if (rows && hitPointTierActions(action))
+      unsupported('D&D roll table cannot share an action with hit-point tiers.')
+    if (rows)
+      return rows.flatMap(({ rowId, row, rowAction }) =>
+        dnd5eActiveEffectPlans(rowAction, published).map((plan) =>
+          plan.compiledEntryId === rowId
+            ? { ...plan, rollTableRow: row }
+            : unsupported('D&D roll table row plan must hold its own row.')
+        )
+      )
     const tiers = hitPointTierActions(action)
     if (tiers)
       return tiers.flatMap(({ atMost, tierAction }) =>

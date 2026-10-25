@@ -1037,6 +1037,19 @@ lowest `atMost` the target satisfies wins, none means no tier); `encounterActive
 with it and the hit-point-gated proposal operations decide with it. Tier plans author no maintenance or source
 immunity, and a cast pick cannot also tier.
 
+A saving throw's `ROLL_TABLE` path (ATTACK-16.T1a, current) rolls its table die in the path's OUTCOME phase
+(`effectActionRollTable.ts`): one `dnd5e.roll-table-row-gate` per row authorizes only the rolled row's outcomes, and
+the OUTCOME graph's `rollTableRoll` output is the face rolled. A row whose outcome lasts (a timed condition or a grant,
+T1a2) compiles to `compilation.rollTableRowPlans` (at most 20): one active-effect plan per lasting row, each carrying
+`rollTableRow: { min, max }`, with `activeEffectPlan` null. The row's plan is planned from the action narrowed to that
+row (`narrowedActions` in `effectActionNarrowing.ts`, the one rule hit-point tiers also narrow by), its outcomes made
+direct results of the table's path, and must hold that row (`compiledEntryId` is the row's entry); a row no timed plan
+holds, a lasting row on an action with two tables, or rows beside hit-point tiers are refused. A row's grant is the
+plan's alone and leaves no OUTCOME node; its timed condition is applied by the OUTCOME graph and held by the plan.
+`encounterActiveEffectPlan` picks the row whose faces hold the settled `rollTableRoll` (no row plan when the save
+succeeds or the rolled row does not last), so it needs the settled OUTCOME outputs: a multi-creature action's lead plan
+(`leadActiveEffectPlan`) has none and refuses row plans, and a cast pick cannot also roll on a table.
+
 **Placed-zone damage dice (SPELLS-20 T1, D133, current).** A zone whose failed entry save deals authored dice
 (`valueKind: 'DICE'`, a plain `NdM`) compiles those dice into the zone's one frozen entry graph: `damage-enabled`
 (the movement-interruption authorization) gates one `evidence.optional-integer-range` node per die, sum nodes add

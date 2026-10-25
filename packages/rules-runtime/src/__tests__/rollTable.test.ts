@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import type { SpellAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import { divineWord } from '@artificer-toolkit/source-data/srd/spells/divine-word.js'
+import { viciousMockery } from '@artificer-toolkit/source-data/srd/spells/vicious-mockery.js'
 import {
   SRD_ABILITIES,
   SRD_CONDITION_TYPES,
@@ -115,6 +116,10 @@ function tableSpell(
 }
 
 function castPlan(spell: SpellAuthored) {
+  return castCompilation(spell).executionPlan
+}
+
+function castCompilation(spell: SpellAuthored) {
   return compiledTestSpellCast({
     spell,
     cast: {
@@ -130,7 +135,7 @@ function castPlan(spell: SpellAuthored) {
       slotPoolCode: null
     },
     decision: { status: 'AVAILABLE', reasonCode: 'SPELL_SLOT_REMAINING', slotKey: 'STANDARD:7' }
-  }).entry.compilation.executionPlan
+  }).entry.compilation
 }
 
 /** Compiles the spell's one Effect straight through the System adapter, for its refusals. */
@@ -322,11 +327,11 @@ describe('roll table outcomes (ATTACK-16.T1a)', () => {
       /roll table row outcome is not supported/
     ],
     [
-      'a row with a lasting condition',
+      'a row lasting longer than its timed plan can count',
       [
         row(1, [1, 5], [blinded]),
         row(2, [6, 6], [deafened], {
-          duration: { id: testUuid(0xa144), durationKind: 'ROUND', amount: 1 }
+          duration: { id: testUuid(0xa144), durationKind: 'DAY', amount: 2 }
         })
       ],
       /roll table row lasts/
@@ -344,5 +349,84 @@ describe('roll table outcomes (ATTACK-16.T1a)', () => {
         })
       )
     ).toThrow(/roll table die/)
+  })
+})
+
+const ONE_ROUND = { id: testUuid(0xa145), durationKind: 'ROUND', amount: 1 } as const
+const mockeryGrant: RowOutcome = {
+  ...viciousMockery
+    .effects!.flatMap(({ paths }) => paths)
+    .flatMap((path) => ('resultBlock' in path ? path.resultBlock.outcomes : []))
+    .find(({ effectKind }) => effectKind === 'APPLY_GRANT')!,
+  id: testUuid(0xa125)
+}
+
+/** 1-2 blinded for a round, 3-4 five fire, 5-6 the mockery's disadvantage for a round. */
+const LASTING_ROWS = [
+  row(1, [1, 2], [blinded], { duration: ONE_ROUND }),
+  row(2, [3, 4], [fixedFire]),
+  row(3, [5, 6], [mockeryGrant], { duration: ONE_ROUND })
+]
+
+describe('roll table rows that last (ATTACK-16.T1a2)', () => {
+  const compilation = castCompilation(tableSpell({ rows: LASTING_ROWS }))
+  const plans = compilation.rollTableRowPlans ?? []
+
+  it('plans each lasting row on its own faces, with no plan that serves every roll', () => {
+    expect(compilation.activeEffectPlan).toBeNull()
+    expect(
+      plans.map((plan) => [
+        plan.rollTableRow,
+        plan.compiledEntryId,
+        plan.initialRemaining,
+        plan.conditionContributions.map(({ conditionId }) => conditionId),
+        plan.modifierGrantContribution != null
+      ])
+    ).toEqual([
+      [{ min: 1, max: 2 }, LASTING_ROWS[0]!.id, 1, [BLINDED], false],
+      [{ min: 5, max: 6 }, LASTING_ROWS[2]!.id, 1, [], true]
+    ])
+  })
+
+  it('applies a timed row condition in the OUTCOME phase, for its plan to hold', async () => {
+    const result = await cast(tableSpell({ rows: LASTING_ROWS }), { tableRoll: 2 })
+    expect(result.applications).toMatchObject([{ kind: 'CONDITION_APPLY', conditionId: BLINDED }])
+    expect(result.execution.outputs.rollTableRoll).toBe(2)
+  })
+
+  it('leaves a granting row to its plan: the OUTCOME phase applies nothing', async () => {
+    const result = await cast(tableSpell({ rows: LASTING_ROWS }), { tableRoll: 6 })
+    expect(result.applications).toEqual([])
+    expect(result.execution.outputs.rollTableRoll).toBe(6)
+  })
+
+  it('refuses a lasting row when the action rolls a second table', () => {
+    const spell = tableSpell({ rows: LASTING_ROWS })
+    const [effect] = spell.effects!
+    const [table] = effect!.paths
+    expect(() =>
+      compileTable({
+        ...spell,
+        effects: [
+          {
+            ...effect!,
+            paths: [
+              table!,
+              {
+                ...table!,
+                id: testUuid(0xa146),
+                order: 2,
+                pathCode: 'ON_SAVE_SUCCESS',
+                rows: RANGE_ROWS.map((range, index) => ({
+                  ...range,
+                  id: testUuid(0xa170 + index),
+                  resultBlock: { ...range.resultBlock, id: testUuid(0xa180 + index) }
+                }))
+              } as TablePath
+            ]
+          }
+        ]
+      })
+    ).toThrow(/roll table rows last only on an action with one table/)
   })
 })

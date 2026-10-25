@@ -13,6 +13,7 @@ import {
   type Dnd5eCompiledEffectActionSource
 } from './effectActionContracts.js'
 import { dnd5eRollTableRowGateOperation } from './effectActionOperationRegistry.js'
+import { narrowedActions } from './effectActionNarrowing.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import {
   boundedOutcome,
@@ -32,25 +33,40 @@ import { hasLifecycleOverride } from './effectActionTestOutcomes.js'
 type Entry = CompiledEffectGroup['entries'][number]
 type RowEntry = Extract<Entry, { resolutionKind: 'ROLL_TABLE' }>
 
-/** A table path: its die, and each row's faces with the row's outcomes in authored order. */
+/**
+ * A table path: its die, and each row's faces with the row's outcomes in authored order. A row
+ * lasts when one of its outcomes outlives the OUTCOME phase: a timed outcome, or a grant, which
+ * only an active effect holds.
+ */
 export type RollTable = Readonly<{
   pathCode: string
   term: BoundedDiceTerm
-  rows: readonly Readonly<{ min: number; max: number; entries: readonly RowEntry[] }>[]
+  rows: readonly Readonly<{
+    min: number
+    max: number
+    lasts: boolean
+    entries: readonly RowEntry[]
+  }>[]
 }>
 
 function isRollTableEntry(entry: Entry): boolean {
   return entry.resolutionKind === 'ROLL_TABLE' || entry.resolutionKind === 'ROLL_TABLE_REPEAT'
 }
 
+function rowLasts(entry: RowEntry): boolean {
+  return hasLifecycleOverride(entry) || entry.outcome.effectKind === 'APPLY_GRANT'
+}
+
 /**
  * The result paths an action resolves through a table, each refused unless it is one of the
  * saving throw's `savePaths`: an attack's critical hit would fold its hit table into the critical
- * result. Every table is compiled here, so a table path holds only its rows.
+ * result. Every table is compiled here, so a table path holds only its rows. A row that lasts is
+ * refused unless the timed plan `rowPlan` makes of the row's action holds that row.
  */
 export function admitRollTablePaths(
   action: Dnd5eCompiledEffectActionSource,
-  savePaths: readonly string[]
+  savePaths: readonly string[],
+  rowPlan: (rowAction: Dnd5eCompiledEffectActionSource) => { compiledEntryId: string } | null
 ): ReadonlySet<string> {
   const paths = new Set(
     action.compiledEffect.entries.filter(isRollTableEntry).map(({ pathCode }) => pathCode)
@@ -60,7 +76,49 @@ export function admitRollTablePaths(
       unsupported('D&D roll table must resolve a saving throw result path.')
     rollTablePath(action, pathCode)
   }
+  for (const { rowId, lasts, rowAction } of rollTableRowActions(action) ?? [])
+    if (lasts && rowPlan(rowAction)?.compiledEntryId !== rowId)
+      unsupported('D&D roll table row lasts beyond its outcome phase without a timed plan.')
   return paths
+}
+
+/**
+ * The action narrowed to each row of its one table, the row's outcomes made direct results of the
+ * table's path, so a row that lasts is planned as any direct result of that path is; the OUTCOME
+ * phase's `rollTableRoll` then picks the row's plan. Null when no row lasts; a lasting row on an
+ * action with two tables is refused, since one roll output picks the row.
+ */
+export function rollTableRowActions(action: Dnd5eCompiledEffectActionSource) {
+  const paths = [
+    ...new Set(
+      action.compiledEffect.entries.filter(isRollTableEntry).map(({ pathCode }) => pathCode)
+    )
+  ]
+  const tables = paths.flatMap((pathCode) => rollTablePath(action, pathCode) ?? [])
+  if (!tables.some(({ rows }) => rows.some(({ lasts }) => lasts))) return null
+  const [table, ...others] = tables
+  if (!table || others.length > 0)
+    unsupported('D&D roll table rows last only on an action with one table.')
+  const narrowed = narrowedActions(
+    action,
+    (entry) => (entry.resolutionKind === 'ROLL_TABLE' ? entry.entryId : undefined),
+    (entry) => (entry.resolutionKind === 'ROLL_TABLE' ? directRowEntry(entry) : entry)
+  )
+  return table.rows.map(({ min, max, lasts, entries: [first] }) => {
+    const rowAction = narrowed?.find(({ key }) => key === first?.entryId)?.narrowed
+    if (!first || !rowAction) unsupported('D&D roll table row has no outcomes to narrow.')
+    return { rowId: first.entryId, row: { min, max }, lasts, rowAction }
+  })
+}
+
+/** A row's outcome as a direct result of the table's path. */
+function directRowEntry(entry: RowEntry): Entry {
+  if (entry.rollTableKind === 'RANGE') {
+    const { die: _die, rollTableKind: _kind, rollRange: _range, ...direct } = entry
+    return { ...direct, resolutionKind: 'DIRECT' }
+  }
+  const { die: _die, rollTableKind: _kind, rollValue: _value, ...direct } = entry
+  return { ...direct, resolutionKind: 'DIRECT' }
 }
 
 /** The OUTCOME template of a table path, or null when the path holds no table. */
@@ -80,8 +138,9 @@ export function rollTableOutcomeTemplate(
 
 /**
  * The roll table a result path resolves through, or null when the path holds none. A table's rows
- * are settled once in the path's OUTCOME phase, so a row holds only outcomes that end there: a row
- * that repeats the table, lasts, or carries a rider is refused here, before the TEST is rolled.
+ * are settled once in the path's OUTCOME phase: a row that repeats the table, lasts under a
+ * maintained effect, or carries a rider is refused here, before the TEST is rolled. A row that
+ * lasts otherwise is held by its own timed plan (see `admitRollTablePaths`).
  */
 export function rollTablePath(
   action: Dnd5eCompiledEffectActionSource,
@@ -105,10 +164,10 @@ export function rollTablePath(
   )
     unsupported('D&D roll table rows must share one die and one table kind.')
   const term = rollTableDie(first.die)
-  const rows = new Map<string, { min: number; max: number; entries: RowEntry[] }>()
+  const rows = new Map<string, { min: number; max: number; lasts: boolean; entries: RowEntry[] }>()
   for (const entry of rowEntries) {
-    if (hasLifecycleOverride(entry) || entry.maintenanceDefinitionId)
-      unsupported('D&D roll table row lasts beyond its outcome phase.')
+    if (entry.maintenanceDefinitionId)
+      unsupported('D&D roll table row lasts under a maintained effect.')
     if (
       entry.gate ||
       entry.hitPointTier ||
@@ -124,8 +183,10 @@ export function rollTablePath(
     const row = rows.get(entry.entryId)
     if (row && (row.min !== min || row.max !== max))
       unsupported('D&D roll table row has more than one face range.')
-    if (row) row.entries.push(entry)
-    else rows.set(entry.entryId, { min, max, entries: [entry] })
+    if (row) {
+      row.entries.push(entry)
+      row.lasts ||= rowLasts(entry)
+    } else rows.set(entry.entryId, { min, max, lasts: rowLasts(entry), entries: [entry] })
   }
   const ordered = [...rows.values()].sort((left, right) => left.min - right.min)
   // Publication refuses a gap or an overlap; the compiler refuses the table it cannot settle.
@@ -155,7 +216,8 @@ function rollTableDie(die: string): BoundedDiceTerm {
 
 /**
  * A table path's OUTCOME graph: the table die, then for each row a gate that hands the path to the
- * row's outcomes only when the roll lands in the row. A row's own dice are asked for only then.
+ * row's outcomes only when the roll lands in the row. A row's own dice are asked for only then. A
+ * row's grant is left to the row's plan, which alone holds it.
  */
 function rollTableGraphDefinition(
   action: Dnd5eCompiledEffectActionSource,
@@ -186,7 +248,8 @@ function rollTableGraphDefinition(
       }
     }
     let rowDice = 0
-    const outcomes = row.entries.map((entry, index) => {
+    const graphed = row.entries.filter(({ outcome }) => outcome.effectKind !== 'APPLY_GRANT')
+    const outcomes = graphed.map((entry, index) => {
       const id = `${gateId}-${index + 1}`
       const { outcome } = entry
       if (outcome.effectKind === 'DAMAGE' && outcome.valueKind === 'DICE') {
