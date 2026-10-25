@@ -130,7 +130,7 @@ const characterSpellSummonStateDtoSchemaRaw: z.ZodMiniType<CharacterSpellSummonS
         concentration: z.boolean(),
         size: z.optional(systemCoreCodeSchema),
         armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-        abilityScores: z.optional(z.partialRecord(systemCoreCodeSchema, z.number().check(z.int()))),
+        abilityScores: z.optional(z.record(systemCoreCodeSchema, z.number().check(z.int()))),
         speeds: z.optional(z.array(speedDtoSchema)),
         passivePerception: z.optional(z.number().check(z.int())),
         /** Absent with `currentHitPoints` when the stat block gives no hit points: no pool. */

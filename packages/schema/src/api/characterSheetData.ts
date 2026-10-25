@@ -435,7 +435,7 @@ const characterSheetSpellSummonExtraDtoSchema = lazySchema(() =>
     /** Absent when the stat block gives the summon no hit points. */
     hitPoints: z.optional(characterSheetExtraCreatureHitPointsDtoSchema),
     size: z.optional(systemCoreCodeSchema),
-    abilityScores: z.optional(z.partialRecord(systemCoreCodeSchema, integerSchema)),
+    abilityScores: z.optional(z.record(systemCoreCodeSchema, integerSchema)),
     passivePerception: z.optional(integerSchema)
   })
 )
