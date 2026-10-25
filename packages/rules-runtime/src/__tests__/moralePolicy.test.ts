@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { SRD_ABILITY_DEFINITION_IDS } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
-import type {
-  MoraleActorFacts,
-  MoralePreparationInput
-} from '../optionalCombatPolicyCapability.js'
+import type { MoraleActorFacts, MoralePreparationInput } from '../optionalCombatPolicyCapability.js'
 import { optionalCombatPolicyCapabilityRegistry } from '../platformEncounterPolicy.js'
 import { SRD_SYSTEM_ID, srdOptionalCombat, testUuid } from '../testing/dnd5eSrdEncounter.js'
 
@@ -53,14 +50,18 @@ function prepare(
     overwhelmingOpposition: false,
     escapePossible: true,
     rollers: new Map(
-      actors.map((actor) => [actor.actorId, { canAct: true, saveModifiers: new Map([[WISDOM, 0]]) }])
+      actors.map((actor) => [
+        actor.actorId,
+        { canAct: true, saveModifiers: new Map([[WISDOM, 0]]) }
+      ])
     ),
     ...input
   })
 }
 
 function proposal(resolution: ReturnType<typeof prepare>) {
-  if (resolution.kind !== 'PROPOSED') throw new Error(`Expected a proposal, got ${resolution.kind}.`)
+  if (resolution.kind !== 'PROPOSED')
+    throw new Error(`Expected a proposal, got ${resolution.kind}.`)
   return resolution.proposal
 }
 
@@ -143,9 +144,8 @@ describe('Morale save preparation (ENCOUNTER-6.1, 6.2)', () => {
       failureDisposition: 'FLEE'
     })
     expect(
-      proposal(
-        prepare([subject], { triggerKind: 'INDIVIDUAL_SURPRISED', escapePossible: false })
-      ).failureDisposition
+      proposal(prepare([subject], { triggerKind: 'INDIVIDUAL_SURPRISED', escapePossible: false }))
+        .failureDisposition
     ).toBe('SURRENDER')
   })
 
@@ -175,7 +175,10 @@ describe('Morale save preparation (ENCOUNTER-6.1, 6.2)', () => {
 
   it('falls back to the best able save without a leader, ties to the lower id', () => {
     const actors = [creature(4), creature(3), creature(2), creature(1)]
-    const save = (modifier: number) => ({ canAct: true, saveModifiers: new Map([[WISDOM, modifier]]) })
+    const save = (modifier: number) => ({
+      canAct: true,
+      saveModifiers: new Map([[WISDOM, modifier]])
+    })
     const rollers = new Map([
       [testUuid(1), { canAct: false, saveModifiers: new Map([[WISDOM, 9]]) }],
       [testUuid(2), save(3)],
@@ -200,7 +203,9 @@ describe('Morale save preparation (ENCOUNTER-6.1, 6.2)', () => {
       prepare([subject, leader], {
         triggerKind: 'GROUP_SURPRISED',
         leaderActorId: leader.actorId,
-        rollers: new Map([[leader.actorId, { canAct: false, saveModifiers: new Map([[WISDOM, 2]]) }]])
+        rollers: new Map([
+          [leader.actorId, { canAct: false, saveModifiers: new Map([[WISDOM, 2]]) }]
+        ])
       })
     ).toEqual({ kind: 'JUDGMENT_REQUIRED', reason: 'MORALE_ROLLER_UNAVAILABLE' })
     expect(prepare([subject], { triggerKind: 'INDIVIDUAL_REDUCED_TO_HALF' })).toEqual({

@@ -5,7 +5,10 @@ import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CLEAVING_POLICY_MODULE } from './policyModuleRegistration.js'
 import { prepareDnd5eDisarmContest } from './optionalActionPolicy.js'
 import { prepareDnd5eOverrunContest, prepareDnd5eTumbleContest } from './optionalMovementPolicy.js'
-import { exactOptionalCombatDefinition, optionalCombatPolicyPin } from './optionalCombatDefinition.js'
+import {
+  exactOptionalCombatDefinition,
+  optionalCombatPolicyPin
+} from './optionalCombatDefinition.js'
 import { offerDnd5eMoraleTriggers, prepareDnd5eMoraleSave } from './moralePolicy.js'
 import type {
   CleavingInput,

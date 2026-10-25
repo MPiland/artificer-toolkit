@@ -96,9 +96,7 @@ export function CampaignTabletopMorale({
                 disabled={disabled || morale.disposition === value}
                 key={value}
                 size='compact-xs'
-                variant={
-                  (morale.disposition ?? morale.proposed) === value ? 'filled' : 'default'
-                }
+                variant={(morale.disposition ?? morale.proposed) === value ? 'filled' : 'default'}
                 onClick={() => onConfirm(value)}
               >
                 {label}

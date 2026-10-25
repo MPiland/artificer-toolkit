@@ -14,7 +14,8 @@ import type {
 } from '../../optionalCombatPolicyCapability.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 
-export type OptionalCombatPolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
+export type OptionalCombatPolicyDefinition =
+  EncounterOptionalCombatSnapshotDto['definitions'][number]
 
 /**
  * The one active definition of an optional rule kind the Run's verified snapshot pins to this

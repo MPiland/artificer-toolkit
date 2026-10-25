@@ -133,7 +133,8 @@ function groupRoller(
   let best: { actorId: string; modifier: number } | null = null
   for (const actorId of memberActorIds) {
     const value = modifier(actorId)
-    if (value !== null && (best === null || value > best.modifier)) best = { actorId, modifier: value }
+    if (value !== null && (best === null || value > best.modifier))
+      best = { actorId, modifier: value }
   }
   return best?.actorId ?? null
 }

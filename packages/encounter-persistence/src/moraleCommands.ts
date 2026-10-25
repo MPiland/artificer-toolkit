@@ -37,7 +37,11 @@ import type { EncounterDocument } from './store.js'
 import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntries.js'
 
 type MoraleChange = { before: EncounterRunActorState; after: EncounterRunActorState }
-type MoraleSettlement = { changes: MoraleChange[]; roll: RollRecordDto | null; rollIsPrivate: boolean }
+type MoraleSettlement = {
+  changes: MoraleChange[]
+  roll: RollRecordDto | null
+  rollIsPrivate: boolean
+}
 
 const MORALE_REFUSALS: Readonly<Record<string, string>> = {
   INERT: 'Morale is not on for this Encounter.',
@@ -52,7 +56,10 @@ function withMorale(
   morale: EncounterActorMoraleDto,
   updatedAt: string
 ): MoraleChange {
-  return { before: actor, after: encounterRunActorStateSchema.parse({ ...actor, morale, updatedAt }) }
+  return {
+    before: actor,
+    after: encounterRunActorStateSchema.parse({ ...actor, morale, updatedAt })
+  }
 }
 
 /**
@@ -269,7 +276,15 @@ export async function recordMoraleCommand(
   const now = new Date().toISOString()
   const { changes, roll, rollIsPrivate } =
     input.type === 'MORALE_SAVE'
-      ? await settleMoraleSave(ctx, { command: input, campaign, state, actors, userId, nextInt, now })
+      ? await settleMoraleSave(ctx, {
+          command: input,
+          campaign,
+          state,
+          actors,
+          userId,
+          nextInt,
+          now
+        })
       : confirmMorale(input, actors, now)
   for (const { before, after } of changes) await replaceRunActor(ctx, before, after)
   const version = run.version + 1

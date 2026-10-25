@@ -413,10 +413,7 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('MORALE'),
-      triggerKinds: z
-        .array(moraleTriggerKindDtoSchema)
-        .check(z.minLength(1))
-        .check(z.maxLength(9)),
+      triggerKinds: z.array(moraleTriggerKindDtoSchema).check(z.minLength(1)).check(z.maxLength(9)),
       savingThrowAbilityDefinitionId: serverUuidIdentityDtoSchema,
       savingThrowDifficultyClass: boundedPositiveIntegerSchema.check(z.lte(100)),
       requiresGroupLeaderOrFallback: z.literal(true),
