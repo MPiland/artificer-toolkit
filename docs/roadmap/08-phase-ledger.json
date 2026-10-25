@@ -4646,7 +4646,7 @@
               "proof": "Tests 40179208825 and Live 40179208863 green on tip 6ac90ac8d; reviewed: ability codes as System core codes rejected at every ingress, labels and descriptions from the SRD System record (seed patch, no code-owned list), core/ability.ts deleted, creature ability facts in System order with regression tests; merged in the m435 batch."
             },
             {
-              "id": "RULES-2.T9f3",
+              "id": "RULES-2.T9f3a",
               "status": "IN_PROGRESS",
               "closes": [
                 "RULES-2.7"
@@ -4661,7 +4661,26 @@
                   "RULES-2.T9f2"
                 ]
               },
-              "text": "System vocabulary (D192 as amended 2026-10-24): authored ability references (grants, effects, facets, charge, numericExpr, class) are checked against the System ability codes at every ingress; the class hitpoint.ability field is deleted (D193); excludesIntelligenceAtOrBelow becomes excludesAbilityAtOrBelow; BRIGHT/DIM literals in vttSceneRenderer and illuminationFromLight, the slotPools z.maxLength bound in characterRules.ts, and illumination level-table validation (empty, duplicate, misordered) from the RULES-2.T9 review. Size codes too (from the RULES-2.T9f1 review): facet sizes, manifest statBlock.size, maximumTargetSize and effect appliesWhen size conditions are refused at publication rather than cleared by node-map normalization."
+              "text": "System vocabulary (D192 as amended 2026-10-24), ingress refusal: publication, import staging and class publication refuse a node-map select whose value comes from a System core-code table (abilities, ability modifier references, sizes, roll modes and influences, spell slot pools, effect events, action traits) through one generic check in node normalization, covering ability references in grants, effects, facets, charge, numericExpr and class and the size residuals (facet sizes, manifest statBlock.size, maximumTargetSize, effect appliesWhen); definition-id tables keep clear-on-stale. Also the BRIGHT/DIM literals in vttSceneRenderer and illuminationFromLight, the slotPools z.maxLength bound in characterRules.ts, and illumination level-table validation (empty, duplicate, misordered) from the RULES-2.T9 review.",
+              "note": "Split from RULES-2.T9f3 (size 5 re-measured at 8; user ruling 2026-10-25 accepted the re-size, scope unchanged)."
+            },
+            {
+              "id": "RULES-2.T9f3b",
+              "status": "TODO",
+              "closes": [
+                "RULES-2.7"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 3,
+                "after": [
+                  "RULES-2.T9f3a"
+                ]
+              },
+              "text": "System vocabulary D193 data changes: the class hitpoint.ability field is deleted and per-level rows read the System derivedStatisticAbilityCodes.hitPoints; excludesIntelligenceAtOrBelow becomes excludesAbilityAtOrBelow { ability, score } and the Worker INTELLIGENCE read is removed; authoringNodeDefaults ability defaults and race ASI snapshot facts come from the System; SRD data and fixtures migrated in the same change.",
+              "note": "Split from RULES-2.T9f3 (size 5 re-measured at 8; user ruling 2026-10-25 accepted the re-size, scope unchanged)."
             },
             {
               "id": "RULES-2.T10",
