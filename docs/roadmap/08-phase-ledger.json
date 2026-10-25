@@ -8249,10 +8249,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 1,
-                "size": 5
+                "size": 3
               },
               "text": "Verify 6.4 against the original scenario and add the two race tests (replacement first, action first).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-6.T2",
@@ -8262,10 +8262,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 1,
-                "size": 8
+                "size": 2
               },
-              "text": "UUID-backed Creature loadout contract in packages/schema shared by authoring and Encounters.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Move the Creature loadout pin DTO into packages/schema; the UUID-backed loadout contract (packages/schema/src/subjects/creature.ts) already exists and is shared by authoring and Encounters.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-6.T3",
@@ -8275,11 +8275,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 1,
-                "size": 3,
+                "size": 2,
                 "after": ["ATTACK-6.T2"]
               },
               "text": "Source audit loadout-specific checks.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-6.T4",
@@ -8289,11 +8289,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 1,
-                "size": 8,
+                "size": 13,
                 "after": ["ATTACK-6.T2"]
               },
-              "text": "One shared modular-equipment derivation for Creatures and Characters.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "One shared modular-equipment derivation for Creatures and Characters: Creatures use the Character restriction evaluator and the same armor class and attack paths, so magic weapons and armor apply to Creatures.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             }
           ]
         },
@@ -9435,10 +9435,10 @@
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 5
+                "size": 8
               },
-              "text": "Melee attack applies a mark active effect, one per attacker, expiring end of attacker's next turn.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Melee attack applies a mark active effect, one per attacker, expiring at the end of the attacker's next turn: widen the MARK arm (or graph), one-mark-per-attacker rule and an after-attack hook.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-13.T2",
@@ -9448,11 +9448,11 @@
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 5,
+                "size": 8,
                 "after": ["ATTACK-13.T1"]
               },
-              "text": "Marked opportunity attack: advantage, no reaction cost, once per turn, blocked without reactions.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Marked opportunity attack: advantage, no reaction cost (new once-per-turn free-reaction counter in the reaction economy), once per turn, blocked without reactions.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-13.T3",
@@ -9548,7 +9548,7 @@
               "id": "ATTACK-15.1"
             },
             {
-              "text": "An accepted injury is recorded on the Character, shows on the Sheet, and is removed by the healing the table names.",
+              "text": "An accepted injury is recorded on the Character, shows on the Sheet with the healing the table names, and the GM can remove it.",
               "status": "TODO",
               "proof": [],
               "origin": ["G2-OPTIONAL-COMBAT"],
@@ -9577,10 +9577,10 @@
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 5
+                "size": 8
               },
-              "text": "Trigger detection (critical hit, 0 HP, death save failed by 5+) and GM roll offer on the authored table.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Trigger detection (critical hit, 0 HP, death save failed by 5+) stores an event-backed GM roll offer on the actor (Run state, Convex validators, GM command, receipts) on the authored table with gap-tolerant bands.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-15.T2",
@@ -9593,8 +9593,8 @@
                 "size": 8,
                 "after": ["ATTACK-15.T1"]
               },
-              "text": "Accepted injury persisted on the Character, shown on the Sheet, removed by the named healing.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Accepted injury persisted on the Character and shown on the Sheet; the GM removes it (every SRD recovery is a judgment call), the table's named healing shown as guidance.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-15.T3",
