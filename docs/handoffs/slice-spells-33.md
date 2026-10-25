@@ -704,3 +704,13 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - Five closed-rule kinds deleted (`CREATURE_IMMUTABLE_FORM`, `CREATURE_IRON_GOLEM_IMMUTABLE_FORM`, `CREATURE_STONE_GOLEM_IMMUTABLE_FORM`, `DUERGAR_ENLARGE`, `CREATURE_MIMIC_PSEUDOPOD_ADHESIVE`). Mimic Grappler stays with T3a and Mimic Adhesive with T6a3 (not in this ledger row).
 - `manualAdjudicationEffect` gained an optional `order`, used by the Pseudopod effect.
 - Proof: `creatureFormRulingAuthoringParity.test.ts` (ruling shape per creature, creature node map round trip, kinds gone); SRD effect compile golden regenerated.
+
+## T6m2: lingering creature riders (D187a; `ci/spells-33-t6m2`)
+
+- Deletes `CREATURE_ANDROSPHINX_ROAR`, `CREATURE_COUATL_BITE_POISON`, `CREATURE_DRYAD_TREE_STRIDE`, `CREATURE_HORNED_DEVIL_INFERNAL_WOUND` and `CREATURE_VROCK_STUNNING_SCREECH`, and the Couatl Bite allowlist entry.
+- Androsphinx Roar: each roar keeps its automated save, conditions and damage; a GM ruling names its order since the last long rest and the hearing gate.
+- Couatl Bite: the failed save poisons and knocks out the target; the 24-hour clock and the wake action are a GM ruling (Death Dog precedent).
+- Horned Devil Tail: the failed save keeps the stanch check; the stacking wound and its healing end are a GM ruling. The stanch check (`FOLLOW_UP_CHECK`) has no executor under a save path, so the Tail stays allowlisted (`OUTCOME_KIND`).
+- Vrock Stunning Screech: the failed save stuns until the end of the vrock's next turn (ROUND 1, SOURCE END_OF_TURN anchor); the demon and hearing exemptions are a GM ruling.
+- Dryad Tree Stride: the placeholder TELEPORT stays; the trees and their size are a GM ruling.
+- Filters, ordinal variants, wake, stacking damage and absolute tree size are in future-enhancements under "Lingering creature riders". Proofs: `creatureLingeringRiderAuthoringParity.test.ts`, the attack sweep and the Couatl room test in `nativeRoomHitRiders.test.ts`.

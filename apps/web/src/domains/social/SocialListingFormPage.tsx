@@ -9,6 +9,7 @@ import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import type { SocialListingDto } from '@artificer-toolkit/schema/api/socialHub'
 import { type ComponentProps, type SubmitEvent, useState } from 'react'
 import { useSystemList } from '#app/data/systems/useSystemList'
+import { formatEnumLabel } from '#components/AuthoredDetail'
 import { SocialInviteDialog } from './components/SocialInviteDialog'
 import { SocialListingApplications } from './components/listing-editor/SocialListingApplications'
 import { SocialListingInvitations } from './components/listing-editor/SocialListingInvitations'
@@ -22,7 +23,6 @@ import {
   type SocialListingDraft
 } from './socialFormModel'
 import {
-  formatStatusLabel,
   socialListingManagementSectionLabels,
   socialListingManagementSections,
   type SocialListingManagementSection
@@ -159,7 +159,7 @@ function SocialListingEditor({
   }
 
   const ownedCampaigns = campaigns.results.filter(
-    (campaign) => campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+    (campaign) => campaign.capabilities.manageActiveCampaign
   )
   const selectedCampaign = listing.data
     ? {
@@ -182,7 +182,7 @@ function SocialListingEditor({
               {listing.data ? `Manage ${listing.data.title}` : 'Create a Social listing'}
             </Title>
             {listing.data ? (
-              <Badge variant='light'>{formatStatusLabel(listing.data.status)}</Badge>
+              <Badge variant='light'>{formatEnumLabel(listing.data.status)}</Badge>
             ) : null}
           </Group>
           <Text c='dimmed'>
