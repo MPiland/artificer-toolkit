@@ -8,13 +8,13 @@ import {
   MANIFEST_KIND,
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
-  SIZE_CODE,
   SUBJECT,
   TRIGGER,
   SPELL_COMPONENT,
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 import { SRD_SPEEDS } from '../vocabulary.js'
 
