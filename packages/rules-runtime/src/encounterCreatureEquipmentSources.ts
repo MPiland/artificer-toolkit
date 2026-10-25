@@ -1,7 +1,8 @@
+import type { AuthoredStoredCompilation } from '@artificer-toolkit/schema/api/authoredPublication'
 import {
-  authoredStoredCompilationSchema,
-  type AuthoredStoredCompilation
-} from '@artificer-toolkit/schema/api/authoredPublication'
+  encounterCreatureEquipmentSourceSchema,
+  type EncounterCreatureEquipmentSourceDto
+} from '@artificer-toolkit/schema/projections/encounterCreatureEquipment'
 import { creatureEquipmentLoadoutDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
 import type { CompiledEquipment } from '@artificer-toolkit/shared/subjects/compilers'
@@ -16,33 +17,7 @@ import { z } from 'zod'
 import { hydrateStoredCompilation } from './authoredPublicationHydrate.js'
 import { armorClassCapabilityRegistry } from './platformEncounterPolicy.js'
 
-const checksumSchema = z.string().regex(/^[a-f0-9]{64}$/)
-const positiveRevisionSchema = z.number().int().positive()
-
-/**
- * A Creature loadout entry's pinned Equipment: the stored compilation of the pinned version (the
- * resolved rules of a variant), as D163's retained rules pin theirs. Reads hydrate it; nothing compiles.
- */
-type SerializedEncounterCreatureEquipmentSource = {
-  loadoutEntryId: string
-  equipmentId: string
-  sourceRevision: number
-  sourceVersionId: string
-  sourceChecksum: string
-  compilation: AuthoredStoredCompilation
-}
-
-const equipmentSourceDtoSchema: z.ZodType<SerializedEncounterCreatureEquipmentSource> =
-  z.strictObject({
-    loadoutEntryId: postgresUuidSchema,
-    equipmentId: postgresUuidSchema,
-    sourceRevision: positiveRevisionSchema,
-    sourceVersionId: postgresUuidSchema,
-    sourceChecksum: checksumSchema,
-    compilation: authoredStoredCompilationSchema
-  })
-
-export type EncounterCreatureEquipmentSource = SerializedEncounterCreatureEquipmentSource & {
+export type EncounterCreatureEquipmentSource = EncounterCreatureEquipmentSourceDto & {
   compiled: CompiledEquipment
 }
 
@@ -61,7 +36,7 @@ function requireCanonicalUuid(value: string, label: string): string {
 }
 
 /** Fails closed on another compiler version, a compilation of another version or a corrupt one. */
-function hydrateEquipmentSource(source: SerializedEncounterCreatureEquipmentSource) {
+function hydrateEquipmentSource(source: EncounterCreatureEquipmentSourceDto) {
   return hydrateStoredCompilation(
     'EQUIPMENT',
     { id: source.equipmentId, checksum: source.sourceChecksum },
@@ -70,7 +45,7 @@ function hydrateEquipmentSource(source: SerializedEncounterCreatureEquipmentSour
 }
 
 function parseEquipmentSource(value: unknown): EncounterCreatureEquipmentSource {
-  const parsed = equipmentSourceDtoSchema.safeParse(value)
+  const parsed = encounterCreatureEquipmentSourceSchema.safeParse(value)
   if (!parsed.success) throw new Error('Creature Equipment source snapshot is invalid.')
   return { ...parsed.data, compiled: hydrateEquipmentSource(parsed.data) }
 }
@@ -158,7 +133,7 @@ export function snapshotCreatureEquipmentItems(actor: CreatureSnapshotActor): re
  */
 export function assertCreatureLoadoutHands(
   loadout: readonly { id: string; useState: EquipmentSlotCode }[],
-  sources: readonly SerializedEncounterCreatureEquipmentSource[]
+  sources: readonly EncounterCreatureEquipmentSourceDto[]
 ): void {
   const twoHandedEntryIds = new Set(
     sources
@@ -197,7 +172,7 @@ export function assertCreatureLoadoutArmorClass(
   gameSystemId: string,
   inputs: z.infer<typeof creatureArmorClassInputsSchema>,
   loadout: readonly { id: string; useState: EquipmentSlotCode }[],
-  sources: readonly SerializedEncounterCreatureEquipmentSource[]
+  sources: readonly EncounterCreatureEquipmentSourceDto[]
 ): void {
   const sourceByEntryId = new Map(sources.map((source) => [source.loadoutEntryId, source]))
   const result = armorClassCapabilityRegistry.require(gameSystemId).creatureArmorClass({
@@ -243,10 +218,10 @@ export function pinCreatureEquipmentSources(input: {
       compilation: AuthoredStoredCompilation
     }
   >
-}): readonly SerializedEncounterCreatureEquipmentSource[] {
+}): readonly EncounterCreatureEquipmentSourceDto[] {
   const loadout = input.creature.equipmentLoadout ?? []
   const seenLoadoutIds = new Set<string>()
-  const sources: SerializedEncounterCreatureEquipmentSource[] = []
+  const sources: EncounterCreatureEquipmentSourceDto[] = []
   for (const entry of loadout) {
     requireCanonicalUuid(entry.id, 'Creature Equipment loadout identity')
     requireCanonicalUuid(entry.equipmentId, 'Creature Equipment identity')
@@ -256,7 +231,7 @@ export function pinCreatureEquipmentSources(input: {
     seenLoadoutIds.add(entry.id)
     const record = input.equipment.get(entry.equipmentId)
     if (!record) throw new Error('Creature Equipment source is unavailable.')
-    const source = equipmentSourceDtoSchema.parse({
+    const source = encounterCreatureEquipmentSourceSchema.parse({
       loadoutEntryId: entry.id,
       equipmentId: entry.equipmentId,
       sourceRevision: record.version,

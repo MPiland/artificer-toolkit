@@ -11,6 +11,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterEffectOffers'
 import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 import {
@@ -104,7 +105,8 @@ export async function planNativeLiveMoveHeldEffect(
         sceneGrid: sceneInputs.sceneGrid
       })
     },
-    makesAttackRoll: false
+    makesAttackRoll: false,
+    facing: encounterFacingRule(state)
   })
   if (!rangeWarnings) throw refusal('TARGET_UNAVAILABLE', "That creature can't take the effect.")
   const { actionEconomy, warnings, spent } = await spendNativeHolderActivation({
