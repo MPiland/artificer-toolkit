@@ -1,6 +1,5 @@
 import type { AbilityCode } from '../core/ability.js'
 import type { LengthUnitCode } from '../core/measurement.js'
-import type { SizeCode } from '../core/size.js'
 import type { CharacterSpellSourceRef } from './sheetResource.js'
 
 export const CHARACTER_PROFICIENCY_LEVEL = {
@@ -177,7 +176,7 @@ type CompanionAdjustmentValue =
       family: 'COMPANION'
       companionInstanceId: string
       field: 'SIZE_OVERRIDE'
-      value: SizeCode
+      value: string
     }
 
 type AdditionAdjustmentValue =

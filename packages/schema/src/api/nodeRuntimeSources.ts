@@ -60,6 +60,7 @@ export const nodeRuntimeSourceManifest = {
   roll_influences: ['description', 'id', 'label'],
   roll_modes: ['description', 'id', 'label'],
   senses: ['description', 'id', 'label'],
+  sizes: ['description', 'id', 'label'],
   skills: ['description', 'id', 'label'],
   speeds: ['description', 'id', 'label'],
   spell_effects: ['effect_id', 'spell_id'],

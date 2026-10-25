@@ -10,7 +10,12 @@ import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.t
 import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
-import { EMPTY_GUIDED_FORM_VALUES, toFeatures, toSelectOption } from '#forms/guided/guidedValues'
+import {
+  EMPTY_GUIDED_FORM_VALUES,
+  guidedSizeOptions,
+  toFeatures,
+  toSelectOption
+} from '#forms/guided/guidedValues'
 import { isRecord } from '#forms/utils/valueGuards'
 
 export const GuidedCreatureAuthoring = withForm({
@@ -87,7 +92,13 @@ export const GuidedCreatureAuthoring = withForm({
                 )}
               </form.AppField>
               <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['size'])}>
-                {(field) => <field.SelectField data={SIZE_OPTIONS} label='Size' required />}
+                {(field) => (
+                  <field.SelectField
+                    data={guidedSizeOptions(session.systemId)}
+                    label='Size'
+                    required
+                  />
+                )}
               </form.AppField>
               <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['alignmentId'])}>
                 {(field) => (
@@ -266,10 +277,6 @@ const DESCRIPTIONS = [
   'Check the stat block essentials before saving or activating.'
 ] as const
 const CREATURE_CATEGORIES = ['MONSTER', 'BEAST', 'NPC', 'COMPANION', 'SUMMON'].map((value) => ({
-  label: value.charAt(0) + value.slice(1).toLowerCase(),
-  value
-}))
-const SIZE_OPTIONS = ['TINY', 'SMALL', 'MEDIUM', 'LARGE', 'HUGE', 'GARGANTUAN'].map((value) => ({
   label: value.charAt(0) + value.slice(1).toLowerCase(),
   value
 }))

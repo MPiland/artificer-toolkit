@@ -10,7 +10,6 @@ import {
   RANGE_KIND,
   SCALING,
   SCALING_SOURCE,
-  SIZE_CODE,
   SPELLCASTING_ABILITY_REFERENCE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -20,6 +19,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 import { SRD_SPEEDS } from '../vocabulary.js'
 

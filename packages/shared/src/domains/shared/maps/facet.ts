@@ -27,8 +27,7 @@ import {
   RANGE_OPTIONS,
   RELATION_CODES,
   SCALING_AMOUNT_OPTIONS,
-  SELECTABLE_PREDICATE_CODES,
-  SIZE_OPTIONS
+  SELECTABLE_PREDICATE_CODES
 } from '#core'
 import { createFacetConditionNodeMap } from './facetCondition.js'
 import { createFacetExistsNodeMap, type FacetExistMin } from './facetExists.js'
@@ -687,8 +686,8 @@ function createFacetPredicateNodeMap(
           ['sizes'],
           'Sizes',
           {
-            kind: 'INLINE_OPTIONS',
-            options: SIZE_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('sizes', { selectColumns: ['id', 'label', 'description'] })
           },
           {
             order: 3,

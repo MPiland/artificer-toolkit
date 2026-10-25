@@ -9,7 +9,6 @@ import {
   ABILITIES,
   FEATURE_ATTRIBUTE,
   roundLengthForDisplay,
-  SIZE_OPTIONS,
   type CharacterCalculation,
   type CharacterMechanicSourceRef
 } from '@artificer-toolkit/shared/core'
@@ -25,6 +24,7 @@ import {
 } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import { characterSourceActionIdPrefix } from './characterActionRuleFacts.js'
@@ -119,6 +119,10 @@ function findCompanionAdjustment(
       adjustment.companionInstanceId === companionInstanceId &&
       adjustment.field === field
   )
+}
+
+function vocabularyOptions(records: readonly { id: string; label: string }[] = []) {
+  return records.map(({ id, label }) => ({ value: id, label }))
 }
 
 function findSourceLabel(params: {
@@ -1561,7 +1565,9 @@ function buildCompanionPanel(
         field: 'SIZE_OVERRIDE',
         label: 'Override size',
         value: size?.field === 'SIZE_OVERRIDE' ? size.value : null,
-        options: SIZE_OPTIONS.map((option) => ({ value: option.code, label: option.label })),
+        options: systemCoreCodeRegistry
+          .entries(params.character.systemId, 'size')
+          .map(({ code, label }) => ({ value: code, label })),
         commitIntent: 'IMMEDIATE' as const,
         ...adjustmentEditorMetadata(size)
       },
@@ -1570,11 +1576,7 @@ function buildCompanionPanel(
         field: 'ALIGNMENT_OVERRIDE',
         label: 'Override alignment',
         value: alignment?.field === 'ALIGNMENT_OVERRIDE' ? alignment.value : null,
-        options:
-          params.resolution.registry.system?.alignments.map((option) => ({
-            value: option.id,
-            label: option.label
-          })) ?? [],
+        options: vocabularyOptions(params.resolution.registry.system?.alignments),
         commitIntent: 'IMMEDIATE' as const,
         ...adjustmentEditorMetadata(alignment)
       },
@@ -1583,11 +1585,7 @@ function buildCompanionPanel(
         field: 'CREATURE_TYPE_OVERRIDE',
         label: 'Override creature type',
         value: creatureType?.field === 'CREATURE_TYPE_OVERRIDE' ? creatureType.value : null,
-        options:
-          params.resolution.registry.system?.creatureTypes.map((option) => ({
-            value: option.id,
-            label: option.label
-          })) ?? [],
+        options: vocabularyOptions(params.resolution.registry.system?.creatureTypes),
         commitIntent: 'IMMEDIATE' as const,
         ...adjustmentEditorMetadata(creatureType)
       }

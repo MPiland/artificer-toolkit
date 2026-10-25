@@ -353,8 +353,11 @@ duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollMode
 the wire types a code as `systemCoreCodeSchema` (`schema/shared/systemCoreCode.ts`, shape
 only), and the one seam that decides membership is `systemCoreCodeRegistry.requireCode(gameSystemId,
 kind, code)` (`systemCoreCodeCapability.ts`, installed in `platformSystemCoreCodes.ts`; the D&D lists in
-`systems/dnd5e/coreCodes.ts`). Lists today: `rollInfluence`, `rollMode`, each code with its display
-label. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
+`systems/dnd5e/coreCodes.ts`). Lists today: `rollInfluence`, `rollMode` and `size` (RULES-2.T9f1),
+each code with its display label. The `size` list runs smallest first and gives each size its square's
+edge where one applies; neutral code reads a size's rank and space only through `sizeRank` and
+`sizeSpaceFeet(gameSystemId, size)` (`systemSizes.ts`), and authoring draws size selects from the `sizes`
+source. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
 settlement) validates through it; capability registries call it before an adapter sees a code. A
 rule-execution d20 DTO carries `keep` beside its `rollMode`, and `keep` is derived once, by the
 adapter's `keepFor` through `rollModeCapabilityRegistry.resolveRollMode` or `rollModeKeep`, when the

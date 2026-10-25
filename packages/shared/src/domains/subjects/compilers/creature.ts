@@ -10,8 +10,7 @@ import {
   EQUIPMENT_SLOT_CODES,
   HAND_CONFLICT_MESSAGE,
   resolveHandOccupancy,
-  type AbilityCode,
-  type SizeCode
+  type AbilityCode
 } from '#core'
 import {
   compileFeature,
@@ -46,7 +45,7 @@ export interface CompiledCreatureBase {
   id: string
   category: string
   creatureTypeId?: string
-  size?: SizeCode
+  size?: string
   alignmentId?: string
   tags?: string[]
   speeds: SpeedAuthored[]
@@ -59,7 +58,7 @@ export interface CompiledCreatureBase {
 
 export interface CompiledCreature extends CompiledCreatureBase {
   creatureTypeId: string
-  size: SizeCode
+  size: string
   abilityScores: Record<AbilityCode, number>
   naturalArmorBonus: number
   hitPoints: number

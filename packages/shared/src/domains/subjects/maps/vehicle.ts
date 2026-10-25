@@ -1,4 +1,4 @@
-import { SIZE_OPTIONS, VEHICLE_CATEGORY_OPTIONS } from '#core'
+import { VEHICLE_CATEGORY_OPTIONS } from '#core'
 import { COST_NODE_MAP, FEATURE_NODE_MAP, WEIGHT_NODE_MAP } from '#maps'
 import { AUTHORED_LIMITS, buildNodeMap } from '#utils'
 import type { DetailAuthored, VehicleAuthored } from '#authored'
@@ -35,7 +35,7 @@ export const VEHICLE_DETAIL_NODE_MAP = detailNode.define('vehicleDetail', ({ map
 
 const vehicleNode = buildNodeMap<VehicleAuthored>()
 
-export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) => {
+export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes, data }) => {
   const { text, richText, number, selectSingle, groupArray, groupObject } = nodes
 
   const stringNode = buildNodeMap<{ value: string }>().define(
@@ -83,8 +83,8 @@ export const VEHICLE_NODE_MAP = vehicleNode.define('vehicle', ({ map, nodes }) =
         ['size'],
         'Size',
         {
-          kind: 'INLINE_OPTIONS',
-          options: SIZE_OPTIONS
+          kind: 'DATA',
+          relationship: data.table('sizes', { selectColumns: ['id', 'label', 'description'] })
         },
         { section: VEHICLE_SECTIONS.stats, order: 10 }
       )

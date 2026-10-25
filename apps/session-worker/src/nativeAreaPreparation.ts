@@ -325,6 +325,7 @@ export async function prepareAreaScene(
   const summonArea =
     summonPlacement && target.kind === 'POINT'
       ? evaluateEncounterSummonTarget({
+          gameSystemId: state.gameSystemId,
           statBlock: summonPlacement.statBlock,
           range: targetPolicy.range,
           point: target.point,

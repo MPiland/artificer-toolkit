@@ -568,6 +568,20 @@ describe('native Character Sheet extra commands', () => {
     responseSheet = (await owner.caller.query(api.characters.sheet.get, {
       id: response.characterId
     }))!
+    await expect(
+      owner.caller.mutation(
+        execute,
+        command(character.id, 8, {
+          type: 'UPSERT_SHEET_ADJUSTMENT',
+          adjustment: {
+            family: 'COMPANION',
+            companionInstanceId: firstId,
+            field: 'SIZE_OVERRIDE',
+            value: 'AVERAGE'
+          }
+        })
+      )
+    ).rejects.toThrow('Size "AVERAGE" is not available.')
     await owner.caller.mutation(
       execute,
       command(character.id, 8, {

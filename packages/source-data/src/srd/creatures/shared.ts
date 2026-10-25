@@ -24,7 +24,6 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   SHAPE_KIND,
-  SIZE_CODE,
   SPELL_GRANT_ATTRIBUTE,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
@@ -42,13 +41,13 @@ import {
   type FeatureAuthored,
   type FollowUpSaveAuthored,
   type ModifierGrantAuthored,
-  type MovementPassageOption,
-  type SizeCode
+  type MovementPassageOption
 } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { magicConditionImmunityGrant, magicSaveAdvantageGrants } from '../classes/mechanics.js'
 import { CREATURE_IDS } from '../ids.js'
+import { SIZE_CODE, type SizeCode } from '../sizes.js'
 export { SPELL_IDS } from '../ids.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,

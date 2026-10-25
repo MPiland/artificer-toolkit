@@ -1,5 +1,4 @@
 import type { AttackSlot, AttackSlotCondition, AttackSlotFiller, AttackSlotSet } from '#authored'
-import { SIZE_OPTIONS } from '#core'
 import { AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
 
 const filler = buildNodeMap<AttackSlotFiller>()
@@ -49,7 +48,7 @@ const condition = buildNodeMap<AttackSlotCondition>()
 /** A predicate a slot holds only while true (D93). */
 export const ATTACK_SLOT_CONDITION_NODE_MAP = condition.define(
   'attackSlotCondition',
-  ({ map, nodes, cond }) => {
+  ({ map, nodes, cond, data }) => {
     const { selectSingle } = nodes
     map
       .set(
@@ -75,7 +74,10 @@ export const ATTACK_SLOT_CONDITION_NODE_MAP = condition.define(
         selectSingle(
           ['size'],
           'Size',
-          { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
+          {
+            kind: 'DATA',
+            relationship: data.table('sizes', { selectColumns: ['id', 'label', 'description'] })
+          },
           {
             order: 2,
             requiredIf: true,

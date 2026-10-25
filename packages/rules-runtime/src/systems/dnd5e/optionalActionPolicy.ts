@@ -6,11 +6,7 @@ import {
   type EncounterOptionalCombatSnapshotDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import {
-  EQUIPMENT_CATEGORY_CODE,
-  EQUIPMENT_PROPERTY_CODE,
-  sizeRank
-} from '@artificer-toolkit/shared/core'
+import { EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
 import {
   checksumRuleDocument,
   compareCanonicalD20Contributors
@@ -24,6 +20,7 @@ import type {
   OptionalCombatPolicyPin,
   OptionalCombatResolution
 } from '../../optionalCombatPolicyCapability.js'
+import { sizeRank } from '../../systemSizes.js'
 import { dnd5eAttackKind } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_DISARM_POLICY_MODULE } from './policyModuleRegistration.js'
@@ -132,8 +129,8 @@ export function prepareDnd5eDisarmContest(
   if (!definition) return { kind: 'INERT' }
   const parameters = definition.document.parameters
   if (parameters.kind !== 'DISARM') return { kind: 'INERT' }
-  const attackerSizeRank = sizeRank(input.attackerSize)
-  const targetSizeRank = sizeRank(input.targetSize)
+  const attackerSizeRank = sizeRank(DND5E_SYSTEM_ID, input.attackerSize)
+  const targetSizeRank = sizeRank(DND5E_SYSTEM_ID, input.targetSize)
   if (
     !exactUuid(input.attackerActorId) ||
     !exactUuid(input.targetActorId) ||
