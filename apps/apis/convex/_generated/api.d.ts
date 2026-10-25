@@ -125835,6 +125835,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_FACING_ARC"
                 | "TARGET_ABILITY_EXCLUDED"
                 | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
@@ -127592,6 +127593,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_FACING_ARC"
                 | "TARGET_ABILITY_EXCLUDED"
                 | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
@@ -127634,6 +127636,7 @@ export declare const api: {
                     | "TARGET_DEFEATED"
                     | "TARGET_CREATURE_TYPE_EXCLUDED"
                     | "TARGET_DISPOSITION"
+                    | "TARGET_FACING_ARC"
                     | "TARGET_ABILITY_EXCLUDED"
                     | "TARGET_NOT_DEAD"
                     | "TARGET_NOT_DYING"
@@ -127668,6 +127671,7 @@ export declare const api: {
                     | "TARGET_DEFEATED"
                     | "TARGET_CREATURE_TYPE_EXCLUDED"
                     | "TARGET_DISPOSITION"
+                    | "TARGET_FACING_ARC"
                     | "TARGET_ABILITY_EXCLUDED"
                     | "TARGET_NOT_DEAD"
                     | "TARGET_NOT_DYING"
@@ -127700,6 +127704,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_FACING_ARC"
                 | "TARGET_ABILITY_EXCLUDED"
                 | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
@@ -127726,6 +127731,7 @@ export declare const api: {
                 | "TARGET_DEFEATED"
                 | "TARGET_CREATURE_TYPE_EXCLUDED"
                 | "TARGET_DISPOSITION"
+                | "TARGET_FACING_ARC"
                 | "TARGET_ABILITY_EXCLUDED"
                 | "TARGET_NOT_DEAD"
                 | "TARGET_NOT_DYING"
@@ -127960,6 +127966,9 @@ export declare const api: {
                         domainKey: string | null;
                         grantId: string | null;
                         influence: string;
+                        positional?: {
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                        };
                         source: {
                           holderActorId: string | null;
                           id: string;
@@ -129170,6 +129179,9 @@ export declare const api: {
                         domainKey: string | null;
                         grantId: string | null;
                         influence: string;
+                        positional?: {
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                        };
                         source: {
                           holderActorId: string | null;
                           id: string;
@@ -130225,6 +130237,9 @@ export declare const api: {
                     domainKey: string | null;
                     grantId: string | null;
                     influence: string;
+                    positional?: {
+                      arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                    };
                     source: {
                       holderActorId: string | null;
                       id: string;
@@ -130613,6 +130628,9 @@ export declare const api: {
                         domainKey: string | null;
                         grantId: string | null;
                         influence: string;
+                        positional?: {
+                          arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                        };
                         source: {
                           holderActorId: string | null;
                           id: string;
@@ -131336,6 +131354,9 @@ export declare const api: {
                   domainKey: string | null;
                   grantId: string | null;
                   influence: string;
+                  positional?: {
+                    arc: "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE";
+                  };
                   source: {
                     holderActorId: string | null;
                     id: string;
