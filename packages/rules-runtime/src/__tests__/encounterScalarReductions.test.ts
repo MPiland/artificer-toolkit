@@ -296,6 +296,7 @@ describe('Creature movement target', () => {
       qualifiedDefenses: [],
       conditionImmunityIds: [poisoned],
       sourceConditionImmunities: [],
+      sourceSaves: [],
       spellSchoolImmunityIds: []
     })
   })

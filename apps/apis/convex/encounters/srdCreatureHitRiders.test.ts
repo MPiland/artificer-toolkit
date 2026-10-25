@@ -97,8 +97,9 @@ async function setup(input: {
         // A Creature's own reactions (Parry) are listed with its actions, priced by its reaction.
         definition.id === SRD_REACTION_ALLOWANCE_DEFINITION_ID ||
         conditionIds.includes(definition.id) ||
-        // A basic action's holder restrictions read whether the actor can act.
-        (input.basicActions === true && definition.id === SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID)
+        // A target holding a defensive grant (Magic Resistance, Dodge) and a basic action's holder
+        // restrictions read whether the actor can act.
+        definition.id === SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID
     )
   })
   await importSeededSrdCreatureSenses(base.t, creature)

@@ -192,6 +192,8 @@ export function withCreatureActiveGrantSaves(
       modifier.scope !== 'GLOBAL'
     )
       continue
+    // A grant that holds only against some sources (Magic Resistance) is decided per save.
+    if (hasSourceRestriction(restrictions)) continue
     const contributor = contributorOf(influence)
     if (conditionTypeId !== undefined) {
       const key = `${abilityDefinitionId}:${conditionTypeId}`
@@ -625,9 +627,9 @@ export type EncounterSourceConditionImmunity = {
 }
 
 /**
- * The condition immunities a holder's active effects and, for a Character, its own features give
- * only against sources of certain creature types (Protection from Evil and Good, Purity of
- * Spirit), whose holder restrictions hold now. Unqualified immunities fold as plain ones.
+ * The condition immunities a holder's active effects and own features (a Character's folded
+ * features, a Creature's feature modifiers) give only against some sources (Protection from Evil
+ * and Good, Purity of Spirit, Fey Ancestry's magical sleep), whose holder restrictions hold now. Unqualified immunities fold as plain ones.
  */
 export function encounterSourceConditionImmunities(input: {
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
@@ -662,10 +664,26 @@ export function encounterSourceConditionImmunities(input: {
 }
 
 /**
+ * An effect's source with the traits its System gives every effect of a spell cast when
+ * `spellCastSystemId` names the System of the spell it comes from. Condition immunities and saves
+ * against a source both read it, so a source trait has one home.
+ */
+function sourceWithSpellCastTraits(source: GrantSource, spellCastSystemId: string | null) {
+  return spellCastSystemId === null
+    ? source
+    : {
+        ...source,
+        traits: [
+          ...(source.traits ?? []),
+          ...attackProfileCapabilityRegistry.require(spellCastSystemId).spellCastSourceTraits
+        ]
+      }
+}
+
+/**
  * The condition immunities that hold against a condition's source: its creature types and traits,
- * plus the traits its System gives every effect of a spell cast (Freedom of Movement against a
- * magical restraint) when `spellCastSystemId` names the System of the spell it comes from. Every
- * path that applies a condition resolves its immunities here, so a source trait has one home.
+ * plus its spell-cast traits (Freedom of Movement against a magical restraint). Every path that
+ * applies a condition resolves its immunities here.
  */
 export function conditionImmunityIdsAgainstSource(
   conditionImmunityIds: readonly string[],
@@ -674,16 +692,7 @@ export function conditionImmunityIdsAgainstSource(
   spellCastSystemId: string | null
 ): readonly string[] {
   if (sourceConditionImmunities.length === 0) return conditionImmunityIds
-  const conditionSource =
-    spellCastSystemId === null
-      ? source
-      : {
-          ...source,
-          traits: [
-            ...(source.traits ?? []),
-            ...attackProfileCapabilityRegistry.require(spellCastSystemId).spellCastSourceTraits
-          ]
-        }
+  const conditionSource = sourceWithSpellCastTraits(source, spellCastSystemId)
   const admitted = sourceConditionImmunities.filter(({ sourceQualifier }) =>
     sourceQualifierAdmits(sourceQualifier, conditionSource)
   )
@@ -708,7 +717,7 @@ export function hasEffectSourceRestrictedGrants(
   )
 }
 
-/** Whether a Character's own features carry a grant that holds only against certain source creatures. */
+/** Whether a holder's own features carry a grant that holds only against some sources. */
 export function hasFeatureSourceRestrictedGrants(
   grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> | null
 ): boolean {
@@ -883,6 +892,117 @@ export function withSourceSightSave(
       new Map([[abilityDefinitionId, contributors]])
     )
   }
+}
+
+/**
+ * A saving-throw advantage or disadvantage that holds only against some sources (Magic
+ * Resistance's spells and magical effects, D179). Preparation decides it per save from the
+ * effect's source.
+ */
+export type EncounterSourceSave = EncounterSourceSightSave & {
+  sourceQualifier: SourceCreatureQualifier
+}
+
+/**
+ * The saving-throw grants a holder's active effects and own features (a Character's folded
+ * features, a Creature's feature modifiers) give only against some sources, whose holder
+ * restrictions hold now. A grant scoped to a condition or a rule is not one of them.
+ */
+export function encounterSourceSaves(input: {
+  gameSystemId: string
+  holderActorId: string
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+  featureGrants: Pick<CharacterGrantFoldOutput, 'modifiers'> | null
+  holderState: EncounterHolderState
+}): EncounterSourceSave[] {
+  const { abilityDefinitionIdByCode } = abilityScoreCapabilityRegistry.require(input.gameSystemId)
+  const scope = modifierScopeCapabilityRegistry.require(input.gameSystemId)
+  const grants = [
+    ...listActiveEffectGrants(input.effects).flatMap(({ effectId, modifiers }) =>
+      modifiers.flatMap((modifier) =>
+        modifier.scope === 'GLOBAL'
+          ? [
+              {
+                modifier,
+                restrictions: modifier.restrictions,
+                contributor: (influence: EncounterRelationshipD20Contributor['influence']) =>
+                  activeGrantContributor(effectId, input.holderActorId, modifier.grantId, influence)
+              }
+            ]
+          : []
+      )
+    ),
+    ...(input.featureGrants?.modifiers ?? []).flatMap((modifier) =>
+      modifier.source.kind === 'ACTIVE_EFFECT' || modifier.scope !== 'GLOBAL'
+        ? []
+        : [
+            {
+              modifier,
+              restrictions: modifier.deferredRequirements,
+              contributor: (influence: EncounterRelationshipD20Contributor['influence']) => ({
+                sourceId: modifier.sourceId,
+                grantId: modifier.grantId,
+                domainKey: modifier.domainKey,
+                influence,
+                source: rollModeContributorSourceOfMechanicSource(
+                  modifier.source,
+                  input.holderActorId
+                )
+              })
+            }
+          ]
+    )
+  ]
+  return grants.flatMap(({ modifier, restrictions, contributor }) => {
+    const abilityDefinitionId = abilityDefinitionIdByCode[String(modifier.domain.ability)]
+    const influence = modifierRollInfluence(modifier)
+    if (
+      influence === null ||
+      modifier.valueDomainCode !== 'SAVING_THROW_MODIFIER' ||
+      abilityDefinitionId === undefined ||
+      modifier.domain.conditionTypeId !== undefined ||
+      modifier.domain.ruleDefinitionId !== undefined ||
+      scope.saveRequiresSourceSight(modifier) ||
+      !hasSourceRestriction(restrictions)
+    )
+      return []
+    const sourceQualifier = holderStateSourceQualifier(restrictions, input.holderState)
+    return sourceQualifier
+      ? [{ abilityDefinitionId, sourceQualifier, contributor: contributor(influence) }]
+      : []
+  })
+}
+
+/**
+ * The target's facts with the source-qualified saving-throw grants its effect's source admits
+ * merged into the save rows of their abilities; the source gains its spell-cast traits when
+ * `spellCastSystemId` names the System of the spell it comes from.
+ */
+export function withSourceSaves(
+  gameSystemId: string,
+  targetDerivedFacts: Readonly<Record<string, unknown>>,
+  sourceSaves: readonly EncounterSourceSave[],
+  source: GrantSource,
+  spellCastSystemId: string | null
+): Readonly<Record<string, unknown>> {
+  const { savingThrowDefinitions } = targetDerivedFacts
+  if (!Array.isArray(savingThrowDefinitions) || sourceSaves.length === 0) return targetDerivedFacts
+  const saveSource = sourceWithSpellCastTraits(source, spellCastSystemId)
+  const byAbility = new Map<string, EncounterRelationshipD20Contributor[]>()
+  for (const { abilityDefinitionId, sourceQualifier, contributor } of sourceSaves) {
+    if (!sourceQualifierAdmits(sourceQualifier, saveSource)) continue
+    byAbility.set(abilityDefinitionId, [...(byAbility.get(abilityDefinitionId) ?? []), contributor])
+  }
+  return byAbility.size === 0
+    ? targetDerivedFacts
+    : {
+        ...targetDerivedFacts,
+        savingThrowDefinitions: withSaveRowContributors(
+          gameSystemId,
+          savingThrowDefinitions,
+          byAbility
+        )
+      }
 }
 
 /** The canonical contributors of a d20 with `added` merged in. */
