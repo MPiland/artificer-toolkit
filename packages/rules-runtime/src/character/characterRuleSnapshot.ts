@@ -272,11 +272,7 @@ export function assembleCharacterRuleSnapshot(
     throw new Error('Character rule source preparation context mismatch.')
   const registry = sources?.registry ?? createAssemblyRegistry(context)
   const grantedFeatures = assembleFeatures(character, context)
-  const assigned = deriveAbilityScores(character.intent.abilities)
-  const abilities: Record<string, number> = {}
-  for (const [ability, score] of Object.entries(assigned)) {
-    if (typeof score === 'number') abilities[ability] = score
-  }
+  const abilities = deriveAbilityScores(character.intent.abilities)
   const equippedSlots = new Map(
     character.state.equipment.equipped.map(({ itemId, slot }) => [itemId, slot])
   )

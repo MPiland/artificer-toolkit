@@ -129,17 +129,17 @@ export function collectCharacterBuilderFeatures(
 
 export function deriveAbilityScores(
   abilities: CharacterAbilityScoresIntent
-): Partial<Record<string, number>> {
+): Record<string, number> {
   switch (abilities.method) {
     case CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY:
     case CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY:
       return Object.fromEntries(
         abilities.assignments.map((assignment) => [assignment.ability, Number(assignment.option)])
-      ) as Partial<Record<string, number>>
+      )
     case CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED:
       return Object.fromEntries(
         abilities.state.assignments.map((assignment) => [assignment.ability, assignment.score])
-      ) as Partial<Record<string, number>>
+      )
     default:
       return {}
   }
