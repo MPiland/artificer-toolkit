@@ -42,7 +42,7 @@ import {
   SRD_SYSTEM_ID,
   SRD_USER_ID
 } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import { abilityScoreImprovementOptions, closedRuleEffect, gmRulingEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -95,39 +95,18 @@ function gmRulingClassEffect(
   instructions: string,
   reasonCode: ManualAdjudicationReason
 ): EffectAuthored {
-  return {
-    id: classRowId(D, 0x60, entry),
-    order: 1,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.ACTIVATED,
-      range: { id: classRowId(D, 0x69, entry), rangeKind: RANGE_KIND.SELF },
-      targeting: { selectionKind: 'SELF' }
+  return gmRulingEffect({
+    ids: {
+      effect: classRowId(D, 0x60, entry),
+      range: classRowId(D, 0x69, entry),
+      path: classRowId(D, 0x80, entry),
+      result: classRowId(D, 0x81, entry),
+      outcome: classRowId(D, 0x82, entry)
     },
-    paths: [
-      {
-        id: classRowId(D, 0x80, entry),
-        order: 1,
-        pathCode: PATH_CODE.ON_USE,
-        groupType: PATH_GROUP_TYPE.SINGLE,
-        originKind: 'SOURCE',
-        selectionKind: 'FIXED',
-        resultBlock: {
-          id: classRowId(D, 0x81, entry),
-          resultKind: 'SINGLE',
-          outcomes: [
-            {
-              id: classRowId(D, 0x82, entry),
-              effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
-              label,
-              reasonCode,
-              instructions
-            }
-          ]
-        }
-      }
-    ]
-  }
+    label,
+    instructions,
+    reasonCode
+  })
 }
 
 const beastShapeSpeedIds = (...codes: string[]) =>
