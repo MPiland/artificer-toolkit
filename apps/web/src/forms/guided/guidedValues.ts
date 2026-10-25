@@ -24,6 +24,12 @@ export type GuidedValues<TDomain extends GuidedDomain> = Partial<
   ReturnType<(typeof authoredFormFactories)[TDomain]['toFormValues']>
 >
 
+/**
+ * An unchecked narrowing: it only confirms `values` is a record and trusts the caller's `domain`.
+ * That is safe because the layout form is built from that domain's own factory
+ * (`createEmptyValues`/`toFormValues`), so its values already have that shape. It is the only place
+ * the layout form is narrowed; QUALITY-7 removes it by typing the layout form per domain.
+ */
 function isGuidedValues<TDomain extends GuidedDomain>(
   _domain: TDomain,
   values: object
