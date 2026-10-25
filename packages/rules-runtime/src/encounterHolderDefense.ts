@@ -13,6 +13,7 @@ import {
   hasEffectSourceRestrictedGrants,
   hasFeatureSourceRestrictedGrants,
   hasEncounterDefensiveGrants,
+  hasFeatureHolderStateConditionImmunities,
   hasFeatureHolderStateSkillGrants,
   hasFeatureAttacksAgainstGrants,
   holderStateRestrictionsHold,
@@ -72,6 +73,9 @@ export async function encounterHolderState(input: {
     speedAboveZero: !feet.length || feet.some((value) => value > 0),
     freeHand,
     turnMovement: { usedFeet: await input.readTurnMovedFeet(), speedFeet: Math.max(0, ...feet) },
+    activeAuthoredEffectIds: target.activeEffects.map(
+      ({ definition }) => definition.authoredEffectId
+    ),
     stowableHeldItemInstanceId: freeHand ? null : stowableHeldWeapon(target, items, holds)
   }
 }
@@ -162,6 +166,7 @@ function hasHolderDefenseGrants(gameSystemId: string, target: MovementTarget): b
     hasFeatureAttacksAgainstGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
     hasFeatureHolderStateSkillGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
     hasFeatureSourceRestrictedGrants(featureGrants(target)) ||
+    hasFeatureHolderStateConditionImmunities(featureGrants(target)) ||
     hasEffectSourceRestrictedGrants(target.activeEffects) ||
     sourceSightSaveGrants(gameSystemId, target).length > 0
   )
