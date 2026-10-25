@@ -32,6 +32,12 @@ export const characterSheetSourceNoteDtoSchema = lazySchema(() =>
 export const characterProficiencyLevelDtoSchema = lazySchema(() =>
   z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
 )
+export type CharacterProficiencyLevelDto = z.infer<typeof characterProficiencyLevelDtoSchema>
+
+/** Whether a proficiency level adds the full proficiency bonus or more; half proficiency does not. */
+export function addsFullProficiency(level: CharacterProficiencyLevelDto | undefined): boolean {
+  return level === 'FULL' || level === 'DOUBLE'
+}
 
 export const characterMechanicSourceRefDtoSchema = lazySchema(() =>
   z.union([
