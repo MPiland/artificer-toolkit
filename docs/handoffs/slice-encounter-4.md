@@ -29,3 +29,9 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - [ ] Enforcement guard in action and spell admission (pass and refuse).
 - [ ] Fixtures, existing tests, canonical doc.
 - [ ] CI green, red-proof run id, reviewer pass, phase-tip merge green.
+
+## Journey (ENCOUNTER-4.T2, 2026-10-25)
+
+- `apps/session-worker/test/nativeRoomSpeedFactorInitiative.test.ts` is the PBI journey. It starts the Run with the public `START` command of the real local room, answers each prompt with `RESOLVE_RULE_OCCURRENCE` (`INITIATIVE_DECLARATION`), reads the turn order and refuses an undeclared action. It covers ACs 4.1 to 4.4 and touches no internals.
+- The player-visible declaration step is `apps/web/src/domains/campaigns/vtt/CampaignTabletopDecisionDrawer.test.tsx` ("Declare actions" resolves `INITIATIVE_DECLARATION`), which already exists. No new test was needed.
+- Register both as `journeyTests` (orchestrator owns the ledger).

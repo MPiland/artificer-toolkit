@@ -3,14 +3,10 @@ import { LENGTH_UNIT_OPTIONS } from '#core'
 import { buildNodeMap } from '#utils'
 import type { AllUnionFields } from 'type-fest'
 import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
+import { EFFECT_ID_NODE_MAP } from '../../shared/maps/index.js'
 import { ACTIVATION_NODE_MAP } from './invocation.js'
 
 const actorRelationshipModule = buildNodeMap<AllUnionFields<ActorRelationshipModuleAuthored>>()
-const actionEffectId = buildNodeMap<{ value: string }>()
-
-const ACTION_EFFECT_ID_NODE_MAP = actionEffectId.define('actionEffectId', ({ map, nodes }) => {
-  map.set('value', nodes.text(['value'], 'Effect ID'))
-})
 
 export const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
   'actorRelationshipModule',
@@ -64,7 +60,7 @@ export const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define
       )
       .set(
         'actionEffectIds',
-        groupArray(['actionEffectIds'], 'Action Effects', () => ACTION_EFFECT_ID_NODE_MAP, {
+        groupArray(['actionEffectIds'], 'Action Effects', () => EFFECT_ID_NODE_MAP, {
           presentation: 'inline',
           showIf: isActionEffectModule
         })

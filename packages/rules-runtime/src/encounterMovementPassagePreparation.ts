@@ -28,6 +28,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { addsFullProficiency } from '@artificer-toolkit/schema/api/characterSheet'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   characterCheckSkillId,
@@ -214,7 +215,7 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
       },
       {
         character: { grantFold: policy.grantFold, registry: facts.ruleEvaluation.registry },
-        proficient: proficiency === 'FULL' || proficiency === 'DOUBLE'
+        proficient: addsFullProficiency(proficiency)
       }
     )
   }

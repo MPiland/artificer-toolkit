@@ -76,6 +76,8 @@ const restrictionConditionSchema = lazySchema(() =>
       'FREE_HAND',
       /** The holder moved at most `max` feet and/or `speedFraction` of its speed this turn (Encounter state). */
       'TURN_MOVEMENT',
+      /** The holder carries an active effect authored as one of `requiredIds` (Encounter state). */
+      'HOLDER_ACTIVE_EFFECT',
       /** An Attack-action weapon attack with `requiredProperties` was made this turn (Encounter state). */
       'ATTACK_ACTION_OTHER_WEAPON',
       /** An enemy of the attack's target that can act stands within `max` feet of it (Encounter state). */
