@@ -67,6 +67,7 @@ describe('native movement target scalar facts', () => {
       perceptionContributions: [],
       recurrence: {
         recurrenceStage: 'NONE',
+        anchor: 'HOLDER',
         consumeOnFirstEvents: [],
         endOnEvents: [],
         endOnTriggers: [],

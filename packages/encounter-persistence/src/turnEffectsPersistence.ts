@@ -1,7 +1,7 @@
 import {
   isSaveTallyStep,
-  isTurnEffectEligible,
   requireTurnMaintainedStates,
+  selectTurnEffectCandidates,
   turnEffectDamageEnded,
   turnEffectOwner,
   turnEffectRetainedConditions,
@@ -14,7 +14,14 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { turnEndGateChildEffect } from '@artificer-toolkit/rules-runtime/encounterEffectTurnEndGate'
 import type { CharacterRuleActionApplication } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
-import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type {
+  ActiveRuleEffectRecord,
+  EncounterMaintainedEffectStateRecord
+} from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import type {
+  turnEffectCharacterTransitionDtoSchema,
+  turnEffectEncounterActorTransitionDtoSchema
+} from '@artificer-toolkit/schema/shared/ruleExecutionEffectEvidence'
 import type {
   EncounterRunActorState,
   EncounterRunState
@@ -36,7 +43,7 @@ import { sourceActorIdOf } from '@artificer-toolkit/rules-runtime/events/encount
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import type { EncounterMechanicsBatchInput } from '@artificer-toolkit/rules-runtime/encounterMechanicsBatchPlan'
-import { readRunActor, readRunActors } from './documents.js'
+import { readRunActors } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import type { EncounterMechanicsBatchResult } from './mechanicsBatchPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
@@ -72,15 +79,24 @@ export async function persistEncounterTurnEffects(
     if (phase.kind !== 'NONE') throw new Error('Turn effect selection is stale.')
     return { result: null, actors: [] }
   }
-  const actor = await readRunActor(ctx, state, boundary.actorId)
+  const turnActorId = boundary.actorId
   const store = createActiveRuleEffectStore(ctx)
-  const owner = turnEffectOwner(actor, state.id)
-  const effects = await store.list(owner)
-  const candidates = effects
-    .filter((effect) => isTurnEffectEligible(effect, actor, state, boundary.stage))
-    .sort(
-      (left, right) => left.createdOrdinal - right.createdOrdinal || left.id.localeCompare(right.id)
-    )
+  const runActors = await readRunActors(ctx, state)
+  if (!runActors.some(({ id }) => id === turnActorId))
+    throw new Error('Turn effect actor is unavailable.')
+  const holders = await Promise.all(
+    runActors.map(async (actor) => ({
+      actor,
+      effects: await store.list(turnEffectOwner(actor, state.id))
+    }))
+  )
+  const effectsOf = new Map(holders.map(({ actor, effects }) => [actor.id, effects]))
+  const candidates = selectTurnEffectCandidates({
+    state,
+    stage: boundary.stage,
+    turnActorId,
+    holders
+  })
   if (phase.kind === 'NONE') {
     if (candidates.length) throw new Error('Turn effect selection is stale.')
     return { result: null, actors: [] }
@@ -88,13 +104,7 @@ export async function persistEncounterTurnEffects(
   if (!candidates.length || candidates.length > 128)
     throw new Error('Turn effect selection is unavailable.')
   const commandType = state.status === 'PREPARED' ? 'START' : 'ADVANCE_TURN'
-  const selectionChecksum = turnEffectSelectionChecksum(
-    commandType,
-    boundary,
-    actor,
-    state.id,
-    candidates
-  )
+  const selectionChecksum = turnEffectSelectionChecksum(commandType, boundary, state.id, candidates)
   if (phase.kind === 'MANUAL') {
     if (
       state.automationMode !== 'MANUAL' ||
@@ -116,24 +126,31 @@ export async function persistEncounterTurnEffects(
   const executions = phase.plan.executions
   if (executions.length !== candidates.length || executions.length > 128)
     throw new Error('Staged turn effect selection is stale.')
-  const maintainedStates = await requireTurnMaintainedStates(
-    state.id,
-    actor,
-    candidates,
-    (stateId) => store.findMaintainedStateById({ encounterId: state.id, stateId })
-  )
+  // Each holder settles as one mechanics batch, in the order its first execution ran.
+  const targetActors = [...new Map(candidates.map(({ holder }) => [holder.id, holder])).values()]
+  const findMaintainedState = (stateId: string) =>
+    store.findMaintainedStateById({ encounterId: state.id, stateId })
+  const maintainedStates = new Map<string, EncounterMaintainedEffectStateRecord>()
+  for (const actor of targetActors)
+    for (const [stateId, maintained] of await requireTurnMaintainedStates(
+      state.id,
+      actor,
+      candidates.flatMap(({ holder, effect }) => (holder.id === actor.id ? [effect] : [])),
+      findMaintainedState
+    ))
+      maintainedStates.set(stateId, maintained)
   const expired = new Set<string>()
   // Effects an earlier execution's damage ended; a candidate among them expires at its own turn.
-  const damageEnded = new Map<string, ActiveRuleEffectRecord>()
-  const dispositions = new Map(
-    executions.some(({ applications }) => applications.some(({ kind }) => kind === 'DAMAGE'))
-      ? (await readRunActors(ctx, state)).map(({ id, disposition }) => [id, disposition] as const)
-      : []
-  )
-  const applications: CharacterRuleActionApplication[] = []
-  let priorAfter: (typeof executions)[number]['targetTransition']['after'] | null = null
-  for (const [ordinal, effect] of candidates.entries()) {
+  const damageEnded = new Map<
+    string,
+    { effect: ActiveRuleEffectRecord; holder: EncounterRunActorState }
+  >()
+  const dispositions = new Map(runActors.map(({ id, disposition }) => [id, disposition] as const))
+  const applications = new Map<string, CharacterRuleActionApplication[]>()
+  const priorAfter = new Map<string, (typeof executions)[number]['targetTransition']['after']>()
+  for (const [ordinal, { holder: actor, effect }] of candidates.entries()) {
     const execution = executions[ordinal]!
+    const effects = effectsOf.get(actor.id)!
     const definition = effect.definition
     const recurrence = definition.recurrence
     const lifecycle = execution.lifecycle
@@ -202,7 +219,7 @@ export async function persistEncounterTurnEffects(
     const transition = execution.targetTransition
     if (
       transition.checksum !== targetTransitionChecksum(actor.id, transition.before) ||
-      (priorAfter !== null && !same(transition.before, priorAfter)) ||
+      (priorAfter.has(actor.id) && !same(transition.before, priorAfter.get(actor.id))) ||
       execution.applications.some(
         (application, index) =>
           application.ordinal !== index ||
@@ -229,7 +246,7 @@ export async function persistEncounterTurnEffects(
       held: effects,
       excluded: new Set([
         ...damageEnded.keys(),
-        ...candidates.slice(0, ordinal + 1).map(({ id }) => id)
+        ...candidates.slice(0, ordinal + 1).map(({ effect: { id } }) => id)
       ]),
       testEvidence: [execution.d20],
       applications: execution.applications.map((application) => ({
@@ -255,68 +272,100 @@ export async function persistEncounterTurnEffects(
       throw new Error('Staged turn effect damage release is stale.')
     if (damageEnded.has(effect.id) && lifecycle.kind !== 'EXPIRE')
       throw new Error('Staged turn effect damage expiry is stale.')
-    for (const endedEffect of ended.endedEffects) damageEnded.set(endedEffect.id, endedEffect)
-    priorAfter = transition.after
-    applications.push(
+    for (const endedEffect of ended.endedEffects)
+      damageEnded.set(endedEffect.id, { effect: endedEffect, holder: actor })
+    priorAfter.set(actor.id, transition.after)
+    applications.set(actor.id, [
+      ...(applications.get(actor.id) ?? []),
       ...execution.applications.map(({ ordinal: _ordinal, ...application }) => ({
         ...application,
         targetActorId: actor.id
       }))
-    )
+    ])
     if (lifecycle.kind === 'EXPIRE') expired.add(effect.id)
   }
-  const first = executions[0]!
-  const last = executions.at(-1)!
-  const retainedConditionIds = [
-    ...new Set(
-      candidates.flatMap((effect) => turnEffectRetainedConditions(effect, effects, expired))
+  const updatedActors: EncounterRunActorState[] = []
+  const characterTransitions: ReturnType<typeof turnEffectCharacterTransitionDtoSchema.parse>[] = []
+  const encounterActorTransitions: ReturnType<
+    typeof turnEffectEncounterActorTransitionDtoSchema.parse
+  >[] = []
+  for (const actor of targetActors) {
+    const own = executions.filter(({ targetActorId }) => targetActorId === actor.id)
+    const first = own[0]!
+    const last = own.at(-1)!
+    const retainedConditionIds = [
+      ...new Set(
+        candidates.flatMap(({ holder, effect }) =>
+          holder.id === actor.id
+            ? turnEffectRetainedConditions(effect, effectsOf.get(actor.id)!, expired)
+            : []
+        )
+      )
+    ].sort()
+    // The turn admission's revision fence pins this to the room's captured Character.
+    let beforeStreamVersion: number | null = null
+    if (actor.kind === 'CHARACTER') {
+      const row = await ctx.ports.readCharacterRow(actor.sourceId)
+      if (!row || row.status !== 'ACTIVE' || row.systemId !== state.gameSystemId)
+        throw new Error('Live Session Character changed.')
+      beforeStreamVersion = row.play.streamVersion
+    }
+    const applied = await applyMechanics({
+      encounterId: state.id,
+      targetActorId: actor.id,
+      expectedEncounterVersion: state.version,
+      occurrenceId: input.occurrenceId,
+      sourceCommandId: input.rootCommandId,
+      commandId:
+        actor.kind === 'CHARACTER'
+          ? deriveEncounterCharacterMechanicsEventCommandId({
+              occurrenceId: input.occurrenceId,
+              sourceCommandId: input.rootCommandId,
+              phase: 'TURN_EFFECT',
+              ordinal: boundary.ordinal,
+              targetCharacterId: actor.sourceId
+            })
+          : input.rootCommandId,
+      occurredAt: input.occurredAt,
+      applications: applications.get(actor.id)!,
+      effectiveMaximumHitPoints: first.targetTransition.before.maximumHitPoints,
+      effectiveScalarValues: first.targetTransition.before.scalarValues,
+      retainedConditionIds,
+      forceVersionAdvance: actor.kind === 'CHARACTER'
+    })
+    let applicationOrdinal = 0
+    const expectedApplications = own.flatMap((execution) =>
+      execution.applications.map((application) => ({
+        ...application,
+        ordinal: applicationOrdinal++
+      }))
     )
-  ].sort()
-  // The turn admission's revision fence pins this to the room's captured Character.
-  let beforeStreamVersion: number | null = null
-  if (actor.kind === 'CHARACTER') {
-    const row = await ctx.ports.readCharacterRow(actor.sourceId)
-    if (!row || row.status !== 'ACTIVE' || row.systemId !== state.gameSystemId)
-      throw new Error('Live Session Character changed.')
-    beforeStreamVersion = row.play.streamVersion
+    if (
+      !same(applied.targetTransition.before, first.targetTransition.before) ||
+      !same(applied.targetTransition.after, last.targetTransition.after) ||
+      !same(applied.receiptApplications, expectedApplications) ||
+      (beforeStreamVersion !== null && applied.characterStreamVersion !== beforeStreamVersion + 1)
+    )
+      throw new Error('Turn effect settlement differs from its plan.')
+    updatedActors.push(applied.updatedActor)
+    const transition = {
+      targetActorId: actor.id,
+      before: applied.targetTransition.before,
+      after: applied.targetTransition.after
+    }
+    if (actor.kind === 'CHARACTER')
+      characterTransitions.push({
+        characterId: actor.sourceId,
+        ...transition,
+        beforeStreamVersion: beforeStreamVersion!,
+        afterStreamVersion: applied.characterStreamVersion!
+      })
+    else encounterActorTransitions.push(transition)
   }
-  const applied = await applyMechanics({
-    encounterId: state.id,
-    targetActorId: actor.id,
-    expectedEncounterVersion: state.version,
-    occurrenceId: input.occurrenceId,
-    sourceCommandId: input.rootCommandId,
-    commandId:
-      actor.kind === 'CHARACTER'
-        ? deriveEncounterCharacterMechanicsEventCommandId({
-            occurrenceId: input.occurrenceId,
-            sourceCommandId: input.rootCommandId,
-            phase: 'TURN_EFFECT',
-            ordinal: boundary.ordinal,
-            targetCharacterId: actor.sourceId
-          })
-        : input.rootCommandId,
-    occurredAt: input.occurredAt,
-    applications,
-    effectiveMaximumHitPoints: first.targetTransition.before.maximumHitPoints,
-    effectiveScalarValues: first.targetTransition.before.scalarValues,
-    retainedConditionIds,
-    forceVersionAdvance: actor.kind === 'CHARACTER'
-  })
-  let applicationOrdinal = 0
-  const expectedApplications = executions.flatMap((execution) =>
-    execution.applications.map((application) => ({ ...application, ordinal: applicationOrdinal++ }))
-  )
-  if (
-    !same(applied.targetTransition.before, first.targetTransition.before) ||
-    !same(applied.targetTransition.after, last.targetTransition.after) ||
-    !same(applied.receiptApplications, expectedApplications) ||
-    (beforeStreamVersion !== null && applied.characterStreamVersion !== beforeStreamVersion + 1)
-  )
-    throw new Error('Turn effect settlement differs from its plan.')
   const terminalMaintainedStateIds = new Set<string>()
   for (const [ordinal, execution] of executions.entries()) {
-    const effect = candidates[ordinal]!
+    const { holder, effect } = candidates[ordinal]!
+    const owner = turnEffectOwner(holder, state.id)
     if (execution.lifecycle.kind === 'EXPIRE') {
       if (effect.maintainedEffectStateId !== null)
         terminalMaintainedStateIds.add(effect.maintainedEffectStateId)
@@ -346,27 +395,28 @@ export async function persistEncounterTurnEffects(
     }
   }
   // A candidate the damage ended has already expired with its own execution.
-  const candidateIds = new Set(candidates.map(({ id }) => id))
-  const damageDeleted = [...damageEnded.values()].filter(({ id }) => !candidateIds.has(id))
-  const endedMaintainedStates = await requireTurnMaintainedStates(
-    state.id,
-    actor,
-    damageDeleted,
-    (stateId) => store.findMaintainedStateById({ encounterId: state.id, stateId })
-  )
-  for (const endedEffect of damageDeleted) {
+  const candidateIds = new Set(candidates.map(({ effect }) => effect.id))
+  for (const { effect: endedEffect, holder } of damageEnded.values()) {
+    if (candidateIds.has(endedEffect.id)) continue
+    for (const [stateId, maintained] of await requireTurnMaintainedStates(
+      state.id,
+      holder,
+      [endedEffect],
+      findMaintainedState
+    ))
+      maintainedStates.set(stateId, maintained)
     if (endedEffect.maintainedEffectStateId !== null)
       terminalMaintainedStateIds.add(endedEffect.maintainedEffectStateId)
     await store.deleteCas({
       id: endedEffect.id,
-      owner,
+      owner: turnEffectOwner(holder, state.id),
       expectedVersion: endedEffect.version,
       removal: 'ENDED'
     })
   }
   const terminatedMaintainedStates = []
   for (const stateId of [...terminalMaintainedStateIds].sort()) {
-    const maintained = maintainedStates.get(stateId) ?? endedMaintainedStates.get(stateId)
+    const maintained = maintainedStates.get(stateId)
     if (!maintained) throw new Error('Maintained turn effect source binding is stale.')
     if (
       maintained.descriptor.emptyDependentPolicy !== 'TERMINATE_WHEN_EMPTY' ||
@@ -392,7 +442,7 @@ export async function persistEncounterTurnEffects(
     `${left.ownerActorId}:${left.id}`.localeCompare(`${right.ownerActorId}:${right.id}`)
   )
   return {
-    actors: [applied.updatedActor],
+    actors: updatedActors,
     result: storedRuleExecutionResultDtoSchema.parse({
       status: 'BATCH_COMPLETE',
       batchKind: 'ENCOUNTER_TURN_ACTIVE_EFFECTS',
@@ -403,29 +453,12 @@ export async function persistEncounterTurnEffects(
       commandType,
       ...(terminatedMaintainedStates.length ? { terminatedMaintainedStates } : {}),
       executions,
-      characterTransitions:
-        actor.kind === 'CHARACTER'
-          ? [
-              {
-                characterId: actor.sourceId,
-                targetActorId: actor.id,
-                beforeStreamVersion,
-                afterStreamVersion: applied.characterStreamVersion,
-                before: applied.targetTransition.before,
-                after: applied.targetTransition.after
-              }
-            ]
-          : [],
-      encounterActorTransitions:
-        actor.kind !== 'CHARACTER'
-          ? [
-              {
-                targetActorId: actor.id,
-                before: applied.targetTransition.before,
-                after: applied.targetTransition.after
-              }
-            ]
-          : []
+      characterTransitions: characterTransitions.sort((left, right) =>
+        left.characterId.localeCompare(right.characterId)
+      ),
+      encounterActorTransitions: encounterActorTransitions.sort((left, right) =>
+        left.targetActorId.localeCompare(right.targetActorId)
+      )
     })
   }
 }

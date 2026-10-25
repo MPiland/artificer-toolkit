@@ -5,6 +5,7 @@ import { encounterAreaTargetOccurrenceId } from '../encounterAreaPending.js'
 import {
   isTurnEffectEligible,
   requireTurnMaintainedStates,
+  selectTurnEffectCandidates,
   turnEffectRetainedConditions
 } from '../encounterTurnEffectState.js'
 import { DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID } from '../systems/dnd5e/concentrationIdentity.js'
@@ -25,6 +26,8 @@ import {
 } from './encounterActiveEffectFixtures.js'
 
 const GOBLIN_ID = testUuid(0x101)
+const HELD_A_ID = testUuid(0x104)
+const HELD_B_ID = testUuid(0x105)
 const CHARACTER_ACTOR_ID = testUuid(0x102)
 const CHARACTER_ID = testUuid(0x103)
 // Contribution order is deliberately the reverse of the sorted output.
@@ -34,6 +37,8 @@ const CONDITION_A = testUuid(0xc1)
 
 const goblin = srdCreatureActor({ id: GOBLIN_ID, creature: GOBLIN })
 const characterActor = runCharacterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+const heldA = srdCreatureActor({ id: HELD_A_ID, creature: GOBLIN })
+const heldB = srdCreatureActor({ id: HELD_B_ID, creature: GOBLIN })
 
 let runtime: RulesRuntimeService
 beforeAll(async () => {
@@ -268,5 +273,73 @@ describe('isTurnEffectEligible', () => {
     expect(isTurnEffectEligible(encounterScoped, characterActor, state, 'START_OF_TURN')).toBe(
       false
     )
+  })
+})
+
+describe('selectTurnEffectCandidates (SPELLS-33.T6n2)', () => {
+  const state = srdEncounterState({ actors: [goblin, heldA, heldB], currentActorId: GOBLIN_ID })
+  /** An indefinite effect held by `target`, created `createdOrdinal`-th, recurring on `anchor`'s turns. */
+  const held = async (
+    seed: number,
+    target: typeof goblin,
+    createdOrdinal: number,
+    anchor: 'HOLDER' | 'SOURCE' = 'SOURCE'
+  ) => ({
+    ...(await effect(seed, { target, ticks: null, anchor, sourceActorId: GOBLIN_ID })),
+    createdOrdinal
+  })
+  const select = (
+    turnActorId: string,
+    holders: Parameters<typeof selectTurnEffectCandidates>[0]['holders']
+  ) =>
+    selectTurnEffectCandidates({ state, stage: 'START_OF_TURN', turnActorId, holders }).map(
+      ({ holder, effect }) => [holder.id, effect.id]
+    )
+
+  it("selects the source's own effects and every held creature's source-anchored ones, by creation order", async () => {
+    const own = await held(1, goblin, 2, 'HOLDER')
+    const onA = await held(2, heldA, 3)
+    const onB = await held(3, heldB, 1)
+
+    expect(
+      select(GOBLIN_ID, [
+        { actor: goblin, effects: [own] },
+        { actor: heldA, effects: [onA] },
+        { actor: heldB, effects: [onB] }
+      ])
+    ).toEqual([
+      [HELD_B_ID, onB.id],
+      [GOBLIN_ID, own.id],
+      [HELD_A_ID, onA.id]
+    ])
+  })
+
+  it("skips a source-anchored effect on its holder's own turn", async () => {
+    const onA = await held(2, heldA, 1)
+    const holderAnchored = await held(3, heldA, 2, 'HOLDER')
+
+    expect(select(HELD_A_ID, [{ actor: heldA, effects: [onA, holderAnchored] }])).toEqual([
+      [HELD_A_ID, holderAnchored.id]
+    ])
+  })
+
+  it('leaves a source-anchored effect carried in from an earlier Run to its holder (D151)', async () => {
+    const carried = {
+      ...(await held(2, heldA, 1)),
+      sourceEncounterId: testUuid(0xe2)
+    }
+    const fromEarlierRun = {
+      ...carried,
+      definition: {
+        ...carried.definition,
+        origin: { ...carried.definition.origin, sourceAggregateId: testUuid(0xe2) },
+        recurrence: { ...carried.definition.recurrence, lifetimeScope: 'OWNER' as const }
+      }
+    }
+
+    expect(select(GOBLIN_ID, [{ actor: heldA, effects: [fromEarlierRun] }])).toEqual([])
+    expect(select(HELD_A_ID, [{ actor: heldA, effects: [fromEarlierRun] }])).toEqual([
+      [HELD_A_ID, fromEarlierRun.id]
+    ])
   })
 })

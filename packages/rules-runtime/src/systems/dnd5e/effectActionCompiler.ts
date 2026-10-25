@@ -63,6 +63,7 @@ import { publishedGraph } from './effectActionPublishedGraph.js'
 import { saveDamageMultiplierFacts, withSaveDamageMultiplier } from './effectActionSaveDamage.js'
 import {
   relationshipRecurrenceGraph,
+  relationshipRecurrencePlan,
   relationshipStateGraph
 } from './effectActionRelationshipGraphs.js'
 import {
@@ -177,7 +178,6 @@ import {
   type TestKind,
   type SpecializedPath,
   isSpecializedPath,
-  isUuid,
   uuid,
   unsupported,
   multipliedDamageAmount
@@ -188,7 +188,7 @@ import {
   marginRiderPlan,
   timedBandConditions
 } from './effectActionBandConditions.js'
-import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import { conditionDurationTurns, dnd5eRepeatSave, planTickAnchor } from './effectActionFollowUp.js'
 import { compiledCreatureFormFilter, formDuration } from './effectActionCreatureFormFilter.js'
 import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
 import { turnEndGateEvidenceBinding, turnEndGatePlan } from './effectActionTurnEndGate.js'
@@ -752,36 +752,15 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   )
   if (new Set(conditionIds).size !== conditionIds.length)
     unsupported('D&D relationship conditions must be unique.')
-  const recurrence = relationship.recurrence
-  if (
-    recurrence &&
-    (recurrence.stage !== 'START_OF_TURN' ||
-      recurrence.damage.effectKind !== 'DAMAGE' ||
-      recurrence.damage.valueKind !== 'DICE' ||
-      recurrence.damage.scalingKind !== 'NONE' ||
-      recurrence.damage.bonuses?.length ||
-      !UUID.test(recurrence.damage.id) ||
-      !isUuid(recurrence.damage.damageTypeId) ||
-      typeof recurrence.damage.diceConfig !== 'string')
-  ) {
-    unsupported('D&D relationship recurrence must be one exact start-of-turn damage outcome.')
-  }
-  const frozenGraph = recurrence
-    ? relationshipRecurrenceGraph({
-        action,
-        relationship,
-        modules,
-        recurrenceDamage: recurrence.damage
-      })
-    : relationshipStateGraph({ action, relationship })
-  return {
+  const recurrence = relationshipRecurrencePlan(relationship)
+  const plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,
     compiledEntryId: relationship.id,
-    frozenGraphNodeId: recurrence ? 'relationship-recurrence' : 'relationship-state',
-    frozenGraph,
+    frozenGraphNodeId: recurrence?.frozenGraphNodeId ?? 'relationship-state',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: recurrence ? 'START_OF_TURN' : 'NONE',
     initialRemaining: null,
+    tickAnchor: planTickAnchor(relationship.recurrence?.turnAnchor),
     actorRelationshipContribution: {
       relationshipOutcomeId: relationship.id,
       heldAtOnce: relationship.heldAtOnce,
@@ -791,11 +770,18 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
       capabilitySuppressions
     },
     ...(entry.pathCode !== 'ON_USE' && { resultGate: dnd5eResultGate(entry.pathCode) }),
-    adapterFacts: { 'dnd5e.relationship-authored-path': entry.pathCode },
+    adapterFacts: {
+      ...recurrence?.save?.adapterFacts,
+      'dnd5e.relationship-authored-path': entry.pathCode
+    },
     perceptionContributions: [],
     maintenance: null,
     marginRiders: []
   }
+  const frozenGraph = recurrence
+    ? relationshipRecurrenceGraph({ action, relationship, recurrence, plan })
+    : relationshipStateGraph({ action, relationshipId: relationship.id })
+  return { ...plan, frozenGraph }
 }
 
 /**
@@ -1083,7 +1069,7 @@ function timedConditionPlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: indefinite ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
-    tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
+    tickAnchor: planTickAnchor(turnAnchor),
     conditionContributions: conditionEntries.map(({ outcome }) => ({
       conditionId: outcome.conditionId,
       recordsSource: outcome.recordsSource,
@@ -1984,7 +1970,7 @@ type Dnd5eDirectOutcome =
           | 'FORCED_MOVEMENT'
       }
     >
-  | { kind: 'DIRECT_RELATIONSHIP' }
+  | { kind: 'DIRECT_RELATIONSHIP'; relationshipId: string }
 /** What a direct outcome reads from its action once `supported` has resolved its targets and plans. */
 type DirectOutcomeInput = Readonly<{
   action: Dnd5eCompiledEffectActionSource
@@ -2026,10 +2012,10 @@ const DND5E_DIRECT_OUTCOMES: {
 } = {
   // The action holds its target by its relationship alone (Engulf): the relationship's own graph
   // is the action's, and its active-effect plan stores the hold.
-  ACTOR_RELATIONSHIP: (_outcome, { action, onList }) => {
+  ACTOR_RELATIONSHIP: (outcome, { action, onList }) => {
     if (onList) unsupported('D&D chosen-creature action outcome cannot be a relationship.')
     relationshipPlan(action)
-    return { kind: 'DIRECT_RELATIONSHIP' }
+    return { kind: 'DIRECT_RELATIONSHIP', relationshipId: outcome.id }
   },
   CONDITION: (outcome, input) => {
     uuid(outcome.conditionId, 'D&D condition definition identity')
@@ -3289,9 +3275,11 @@ function dnd5eActiveEffectPlans(
   const recurringOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : null
   const testOutcomeKind = test && recurringOutcome ? boundedTestOutcome(firstEntry!).kind : null
   const expectedOperation = relationship
-    ? relationship.recurrenceStage === 'START_OF_TURN'
-      ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-      : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
+    ? relationship.frozenGraphNodeId === 'proposal-on_save_fail'
+      ? DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
+      : relationship.recurrenceStage === 'START_OF_TURN'
+        ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
+        : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
     : savePlan
       ? DND5E_SAVE_TEST_OPERATION_KEY
       : timedPlan
@@ -3466,9 +3454,9 @@ function compileEffectActionGraph(
       published: createDnd5eContestGraph(action.effectId)
     })
   if (outcome.kind === 'DIRECT_RELATIONSHIP') {
-    const plan = relationshipPlan(action)
-    if (!plan) unsupported('D&D direct relationship action has no relationship.')
-    return bindMovementInterruptionOutput({ action, published: plan.frozenGraph })
+    // Used, the action only holds; its stored effect rolls any recurrence on later turns.
+    const published = relationshipStateGraph({ action, relationshipId: outcome.relationshipId })
+    return bindMovementInterruptionOutput({ action, published })
   }
   if (outcome.kind === 'CHECK_OUTCOME')
     unsupported('D&D check outcome requires its check test phase.')

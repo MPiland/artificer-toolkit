@@ -589,7 +589,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Held-creature riders (SPELLS-33.T6a3, D187a):** the grapple, start-of-turn damage and held-only targeting are data; these ship as GM rulings or description:
   - **Auto-hit on a held target:** the Marilith Tail's automatic hit against the creature it grapples.
   - **Reel held creatures:** the Roper pulling each creature it grapples 25 feet toward it.
-  - **Source-turn hit point loss with a drained-total detach:** the Stirge Blood Drain loses hit points at the start of the stirge's turn and detaches after 10 drained or the target's death (relationship recurrence fires on the held target's turn as typed damage); any creature's action to detach it.
+  - **Hold end-after-N conditions (SPELLS-33.T6n2 ruling):** the Stirge detaches after draining 10 hit points, and the Purple Worm and Kraken regurgitate after taking 30 damage in one turn. These ship as `MANUAL_ADJUDICATION` riders. The source-turn recurrence (T6n2) and the hit point loss (T6n2b) automate; the counter that ends the hold does not. Any creature's action to detach the Stirge stays a ruling.
   - **Damage transfer to a held creature:** Cloaker Damage Transfer.
   - **Damage to a grappler and touch retaliation:** Barbed Devil Barbed Hide.
   - **Adhesion on contact:** Mimic Adhesive (Object Form Only).

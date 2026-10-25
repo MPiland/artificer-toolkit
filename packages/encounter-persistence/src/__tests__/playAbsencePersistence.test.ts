@@ -210,8 +210,7 @@ describe('the removal effect and the holder absence (SPELLS-4.T2h1, D178)', () =
       expect(child.definition.recurrence.expiration).toEqual({
         kind: 'TICKS',
         initialRemaining: 1,
-        decrementStage: 'START_OF_TURN',
-        anchor: 'HOLDER'
+        decrementStage: 'START_OF_TURN'
       })
       expect(await scene.absence()).toBe(null)
       const held = await scene.store.create({ ...child, occurredAt: OCCURRED_AT })

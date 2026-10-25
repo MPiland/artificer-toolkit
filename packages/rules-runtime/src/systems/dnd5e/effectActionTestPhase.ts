@@ -7,6 +7,7 @@ import {
   DND5E_TARGET_DEFENSE_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
   CONDITION_PROPOSAL_SUFFIX,
+  DND5E_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_EFFECT_ACTION_FAMILY_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_ATTACK_CRITICAL_THRESHOLD_FACT_KEY,
@@ -69,8 +70,9 @@ function proposalNode(
 
 /**
  * The nodes of an entry dice damage outcome and the amount it proposes: the dice are asked for only
- * when the test resolves to its path, and a share of the roll is dealt through the damage multiplier,
- * then, for a save the target makes for half, through the target's own save-damage multiplier.
+ * when the test resolves to its path, their total takes the authored modifier, and a share of it is
+ * dealt through the damage multiplier, then, for a save the target makes for half, through the
+ * target's own save-damage multiplier.
  */
 function entryDiceDamageGraph(
   pathCode: string,
@@ -79,12 +81,31 @@ function entryDiceDamageGraph(
 ) {
   const prefix = entryDamagePrefix(pathCode)
   const enabledNodeId = `${prefix}enabled`
-  const dice = rolledDiceNodes(boundedDiceTerm(outcome.diceConfig).term, prefix, {
+  const totalNodeId = `${prefix}total`
+  const { term, modifier } = boundedDiceTerm(outcome.diceConfig)
+  const dice = rolledDiceNodes(term, prefix, {
     kind: 'NODE_OUTPUT',
     nodeId: enabledNodeId,
     port: 'authorized'
   })
-  const multiplied = multipliedDamage(`${prefix}multiplied`, dice.subtotal, outcome.multiplier)
+  const totalNodes =
+    modifier === 0
+      ? []
+      : [
+          {
+            id: totalNodeId,
+            operation: { key: DND5E_DAMAGE_TOTAL_OPERATION_KEY, contractVersion: 1 },
+            inputs: {
+              subtotal: dice.subtotal,
+              modifier: { kind: 'LITERAL' as const, value: modifier }
+            }
+          }
+        ]
+  const total =
+    modifier === 0
+      ? dice.subtotal
+      : { kind: 'NODE_OUTPUT' as const, nodeId: totalNodeId, port: 'value' }
+  const multiplied = multipliedDamage(`${prefix}multiplied`, total, outcome.multiplier)
   const nodes: RuleGraphDefinition['nodes'] = [
     {
       id: enabledNodeId,
@@ -98,6 +119,7 @@ function entryDiceDamageGraph(
       }
     },
     ...dice.nodes,
+    ...totalNodes,
     ...multiplied.nodes
   ]
   if (!savesForHalf || (pathCode !== 'ON_SAVE_FAIL' && pathCode !== 'ON_SAVE_SUCCESS'))

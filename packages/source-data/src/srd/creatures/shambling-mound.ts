@@ -104,7 +104,25 @@ export const shamblingMound: CreatureAuthored = {
                     heldAtOnce: 1,
                     largestTarget: S.SIZE_CODE.MEDIUM,
                     omitGrappled: true,
-                    untilEnds: ['BLINDED', 'RESTRAINED']
+                    untilEnds: ['BLINDED', 'RESTRAINED'],
+                    // "at the start of each of the mound's turns": counted on the holder's turns.
+                    recurrence: {
+                      turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+                      savingThrow: {
+                        id: S.actionId(251, 902),
+                        dcMethod: 'FIXED_DC',
+                        abilityDefinitionId: S.SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                        baseDc: 14
+                      },
+                      damage: {
+                        id: S.actionId(251, 903),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '2d8+4'
+                      }
+                    }
                   })
                 ]
               }

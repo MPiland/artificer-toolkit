@@ -147,7 +147,7 @@ export function buildVttTokenPresentations(input: {
         .join('. '),
       artUrl: input.artUrls?.[token.id] ?? null,
       dispositionLabel,
-      facing: Boolean(actor),
+      facing: Boolean(actor) && input.encounter.facingStepDegrees !== null,
       fillColor: healthColour ?? deterministicTokenColour(actor?.id ?? token.id),
       halo:
         reactionAvailable || isCurrent
