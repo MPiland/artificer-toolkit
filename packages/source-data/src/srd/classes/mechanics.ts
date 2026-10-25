@@ -2,6 +2,7 @@ import {
   ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
+  EFFECT_KIND,
   GRANT_KIND,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
@@ -15,7 +16,8 @@ import {
   type AuthoringConstraintCode,
   type DamageDefenseBypassCode,
   type EquipmentCategoryCode,
-  type EquipmentPropertyCode
+  type EquipmentPropertyCode,
+  type ManualAdjudicationReason
 } from '@artificer-toolkit/shared/core'
 import type {
   EffectAuthored,
@@ -69,6 +71,58 @@ export function selfActionEffect(input: {
     ]
   }
 }
+
+/**
+ * A passive class feature whose whole rule is a ruling the GM makes at the table (D187a). The
+ * caller supplies every id so each feature keeps its own.
+ */
+export function gmRulingEffect(input: {
+  ids: { effect: string; range: string; path: string; result: string; outcome: string }
+  label: string
+  instructions: string
+  reasonCode: ManualAdjudicationReason
+}): EffectAuthored {
+  return {
+    id: input.ids.effect,
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: TRIGGER.ACTIVATED,
+      range: { id: input.ids.range, rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    },
+    paths: [
+      {
+        id: input.ids.path,
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: input.ids.result,
+          resultKind: 'SINGLE',
+          outcomes: [
+            {
+              id: input.ids.outcome,
+              effectKind: EFFECT_KIND.MANUAL_ADJUDICATION,
+              label: input.label,
+              reasonCode: input.reasonCode,
+              instructions: input.instructions
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
+/**
+ * Land's Stride (Circle of the Land, Ranger): the engine has no terrain-cost option or plant-source
+ * save qualifier, so the whole feature is a GM ruling (D187a).
+ */
+export const landsStrideRuling =
+  'Nonmagical difficult terrain costs you no extra movement, and nonmagical plants neither slow nor harm you. You have advantage on saving throws against plants magically created or manipulated to impede movement, such as those of entangle. The GM applies the movement and the advantage.'
 
 /** SRD equipment indexes of the artisan's tools (alchemist's supplies through woodcarver's tools). */
 export const ARTISAN_TOOL_EQUIPMENT_INDEXES = [

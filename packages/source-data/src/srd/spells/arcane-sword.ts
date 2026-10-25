@@ -9,6 +9,7 @@ import {
   MEASUREMENT_UNIT_CODE,
   RANGE_KIND,
   SCALING,
+  SIZE_CODE,
   SPELL_ATTRIBUTE,
   SUBJECT,
   TARGET_SELECTION_KIND,
@@ -19,6 +20,8 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { damageTypeId, schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+const ATTACK_EFFECT_ID = spellChildId(SPELL_IDS.ARCANE_SWORD, 0x230, 1)
+
 export const arcaneSword: SpellAuthored = {
   kind: SUBJECT.SPELL,
   id: SPELL_IDS.ARCANE_SWORD,
@@ -71,59 +74,84 @@ export const arcaneSword: SpellAuthored = {
               durationKind: DURATION_KIND.MINUTE,
               amount: 1
             },
+            // The caster attacks through the sword, measured from it: free once on the cast turn,
+            // then as a bonus action. Moving it with that bonus action is a GM ruling (D190a).
+            lifecycle: {
+              effectOffers: [
+                {
+                  kind: 'REPEAT_SOURCE_PATH' as const,
+                  offeredTo: 'SOURCE' as const,
+                  activation: ACTIVATION_CODE.BONUS_ACTION,
+                  effectId: ATTACK_EFFECT_ID,
+                  target: 'INVOCATION' as const,
+                  origin: 'CONJURED' as const,
+                  castTurnUse: 'FREE_ONCE' as const
+                }
+              ]
+            },
             outcomes: [
               {
-                id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x212, 1),
+                id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x214, 1),
                 effectKind: EFFECT_KIND.MANIFEST,
-                manifestKind: MANIFEST_KIND.WEAPON,
-                behaviors: [
-                  {
-                    id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x220, 1),
-                    order: 1,
-                    invocation: {
-                      kind: 'ACTION' as const,
-                      triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
-                      activation: {
-                        code: ACTIVATION_CODE.BONUS_ACTION,
-                        amount: 1
-                      },
-                      range: {
-                        id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x221, 1),
-                        rangeKind: RANGE_KIND.DISTANCE,
-                        amount: 5,
-                        unit: MEASUREMENT_UNIT_CODE.FEET
-                      },
-                      targeting: {
-                        selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-                        dispositionKind: TARGET_DISPOSITION_KIND.ANY
-                      }
-                    },
-                    paths: [
-                      {
-                        id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x222, 1),
-                        order: 1,
-                        pathCode: PATH_CODE.ON_HIT,
-                        groupType: PATH_GROUP_TYPE.SINGLE,
-                        originKind: 'SOURCE' as const,
-                        selectionKind: 'FIXED' as const,
-                        resultBlock: {
-                          id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x222, 1) + '__result',
-                          resultKind: 'SINGLE' as const,
-                          outcomes: [
-                            {
-                              id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x222, 1),
-                              effectKind: EFFECT_KIND.DAMAGE,
-                              damageTypeId: damageTypeId('FORCE'),
-                              valueKind: 'DICE',
-                              scalingKind: SCALING.NONE,
-                              diceConfig: '3d10'
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  }
-                ]
+                manifestKind: MANIFEST_KIND.SUMMON,
+                label: 'Arcane Sword',
+                statBlock: {
+                  // The SRD names no size; the sword is drawn in one 5-foot square and hovers.
+                  size: SIZE_CODE.MEDIUM,
+                  damageabilityKind: 'INVULNERABLE',
+                  occupiesSpace: false
+                }
+              },
+              {
+                id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x215, 1),
+                effectKind: EFFECT_KIND.APPLY_GRANT,
+                grants: {}
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      id: ATTACK_EFFECT_ID,
+      order: 2,
+      invocation: {
+        kind: 'ACTION' as const,
+        triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
+        activation: {
+          code: ACTIVATION_CODE.BONUS_ACTION,
+          amount: 1
+        },
+        range: {
+          id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x231, 1),
+          rangeKind: RANGE_KIND.DISTANCE,
+          amount: 5,
+          unit: MEASUREMENT_UNIT_CODE.FEET
+        },
+        targeting: {
+          selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
+          dispositionKind: TARGET_DISPOSITION_KIND.ANY
+        }
+      },
+      paths: [
+        {
+          id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x232, 1),
+          order: 1,
+          pathCode: PATH_CODE.ON_HIT,
+          groupType: PATH_GROUP_TYPE.SINGLE,
+          originKind: 'SOURCE' as const,
+          selectionKind: 'FIXED' as const,
+          resultBlock: {
+            id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x232, 1) + '__result',
+            resultKind: 'SINGLE' as const,
+            outcomes: [
+              {
+                id: spellChildId(SPELL_IDS.ARCANE_SWORD, 0x233, 1),
+                effectKind: EFFECT_KIND.DAMAGE,
+                damageTypeId: damageTypeId('FORCE'),
+                valueKind: 'DICE',
+                scalingKind: SCALING.NONE,
+                diceConfig: '3d10'
               }
             ]
           }
