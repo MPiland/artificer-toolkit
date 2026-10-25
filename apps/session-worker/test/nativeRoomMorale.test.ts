@@ -189,7 +189,10 @@ describe('Morale in the native room (ENCOUNTER-6.1, 6.2)', () => {
 
     expect(
       await room.send({ ...command, triggerKind: 'INDIVIDUAL_CANNOT_HARM_OPPOSITION' })
-    ).toMatchObject({ type: 'COMMAND_REJECTED', reason: 'COMMAND_ID_REUSED' })
+    ).toMatchObject({
+      code: 'INVALID_COMMAND',
+      message: 'The command ID was already used for different input.'
+    })
   })
 
   it('keeps a private morale roll off the table’s timeline', async () => {
