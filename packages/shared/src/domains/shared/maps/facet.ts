@@ -60,7 +60,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
     const { and } = logic
     const local = cond.local()
     const p = cond.parent<ExistsConditionAuthored>()
-    const selectedRelation = (relationCode: string) =>
+    const selectedRelation = (relationCode: NonNullable<ExistsConditionAuthored['relationCode']>) =>
       and([
         p.field(['relationCode']).eq(relationCode),
         local.field(['authoringModeKind']).eq('SELECTED')
