@@ -44,6 +44,7 @@ import { components, internal } from '../_generated/api'
 import authSchema from '../betterAuth/schema'
 import schema from '../schema'
 import { encodeDefinitionDocument } from './definitionDocumentJson'
+import { definitionReferences } from './definitionReferences'
 
 process.env.SITE_URL = 'http://localhost:3000'
 process.env.BETTER_AUTH_SECRET = 'test-secret-that-is-long-enough'
@@ -545,6 +546,25 @@ describe('native reusable definitions', () => {
         document: sense(created.id)
       })
     ).rejects.toThrow()
+  })
+
+  it('round-trips a facet restriction and an effect path through the web adapter reference (RELIABILITY-12)', async () => {
+    const { a } = await fixture()
+    const dodge = SRD_BASIC_ACTION_DEFINITIONS.find(({ id }) => id === SRD_BASIC_ACTION_IDS.DODGE)!
+    const published = await publishDocument(a, 'basic-action', dodge.document)
+
+    const workspace = await a.query(definitionReferences.get, { definitionId: published.id })
+    const document = workspace.current?.document
+    if (document?.kind !== 'BASIC_ACTION') throw new Error('Expected the published BASIC_ACTION.')
+    const [effect] = document.effects
+    expect(effect?.paths[0]).toMatchObject({ pathCode: 'ON_USE', selectionKind: 'FIXED' })
+    const outcome = effect?.paths[0]?.resultBlock.outcomes[0]
+    if (outcome?.effectKind !== 'APPLY_GRANT') throw new Error('Expected the Dodge grant.')
+    expect(outcome.grants?.modifiers?.[0]?.restrictions?.groups[0]?.contexts[0]).toMatchObject({
+      subject: 'CHARACTER',
+      conditions: [{ predicateCode: 'CAN_ACT' }, { predicateCode: 'SPEED_ABOVE_ZERO' }]
+    })
+    expect(workspace.current?.checksum).toBe(checksumRuleDocument(document))
   })
 
   it('saves and publishes an initiative policy with installed D&D graphs and exact current pins', async () => {
