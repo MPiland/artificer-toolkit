@@ -343,7 +343,7 @@ export function initiativeRollRecord(input: {
 /**
  * The roll-log record of a basic action's check (First Aid's Wisdom (Medicine), Hide's Dexterity
  * (Stealth)), or of a GM-declared save such as a morale save, from its recorded faces and the
- * roller's modifier. The card is the roller's own and names no DC.
+ * roller's modifier. The card is the roller's own; a check with a DC (a morale save) names it.
  */
 export function basicActionCheckRollRecord(input: {
   occurrenceId: string
