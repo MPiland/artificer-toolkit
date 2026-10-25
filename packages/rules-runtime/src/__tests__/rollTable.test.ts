@@ -91,11 +91,12 @@ const RANGE_ROWS = [
   row(3, [6, 6], [fixedFire, deafened])
 ]
 
-function tableSpell(
-  path: Partial<Pick<TablePath, 'dieConfig' | 'rollTableKind' | 'rows'>> = {}
-): SpellAuthored {
-  const [effect] = divineWord.effects!
-  const table: TablePath = {
+function tablePath(
+  path: Partial<
+    Pick<TablePath, 'id' | 'order' | 'pathCode' | 'dieConfig' | 'rollTableKind' | 'rows'>
+  > = {}
+): TablePath {
+  return {
     id: testUuid(0xa130),
     order: 1,
     pathCode: 'ON_SAVE_FAIL',
@@ -107,11 +108,18 @@ function tableSpell(
     rows: RANGE_ROWS,
     ...path
   }
+}
+
+function tableSpell(
+  path: Partial<Pick<TablePath, 'dieConfig' | 'rollTableKind' | 'rows'>> = {},
+  otherPaths: readonly TablePath[] = []
+): SpellAuthored {
+  const [effect] = divineWord.effects!
   return {
     ...divineWord,
     id: testUuid(0xa131),
     label: 'Homebrew System Shock',
-    effects: [{ ...effect!, paths: [table] }]
+    effects: [{ ...effect!, paths: [tablePath(path), ...otherPaths] }]
   }
 }
 
@@ -401,31 +409,17 @@ describe('roll table rows that last (ATTACK-16.T1a2)', () => {
   })
 
   it('refuses a lasting row when the action rolls a second table', () => {
-    const spell = tableSpell({ rows: LASTING_ROWS })
-    const [effect] = spell.effects!
-    const [table] = effect!.paths
-    expect(() =>
-      compileTable({
-        ...spell,
-        effects: [
-          {
-            ...effect!,
-            paths: [
-              table!,
-              {
-                ...table!,
-                id: testUuid(0xa146),
-                order: 2,
-                pathCode: 'ON_SAVE_SUCCESS',
-                rows: [
-                  row(11, [1, 3], [{ ...blinded, id: testUuid(0xa191) }]),
-                  row(12, [4, 6], [{ ...deafened, id: testUuid(0xa192) }])
-                ]
-              }
-            ]
-          }
-        ]
-      })
-    ).toThrow(/roll table rows last only on an action with one table/)
+    const success = tablePath({
+      id: testUuid(0xa146),
+      order: 2,
+      pathCode: 'ON_SAVE_SUCCESS',
+      rows: [
+        row(11, [1, 3], [{ ...blinded, id: testUuid(0xa191) }]),
+        row(12, [4, 6], [{ ...deafened, id: testUuid(0xa192) }])
+      ]
+    })
+    expect(() => compileTable(tableSpell({ rows: LASTING_ROWS }, [success]))).toThrow(
+      /roll table rows last only on an action with one table/
+    )
   })
 })
