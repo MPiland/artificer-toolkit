@@ -15,10 +15,11 @@ import {
 } from '@artificer-toolkit/schema/shared/initiativePolicy'
 import { jsonValueSchema } from '@artificer-toolkit/schema/projections/identity'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { DND5E_INITIATIVE_FACT_KEYS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
 import {
-  createDnd5eSpeedFactorInitiativeDefinition,
-  DND5E_INITIATIVE_FACT_KEYS
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
+  SRD_DND5E_SPEED_FACTOR_DECLARATION_MODIFIERS,
+  SRD_DND5E_SPEED_FACTOR_INITIATIVE_GRAPH
+} from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   createDnd5eReactionChoiceDefinition,
@@ -33,8 +34,8 @@ type InitiativePolicyInput = Pick<
 
 /**
  * The initiative policies' graphs. An actor or side roll runs the one-d20 fixture graph; a declared
- * action roll runs D&D's installed speed-factor graph, so declared initiative proves the real
- * definition (advantage and disadvantage included), not a stand-in.
+ * action roll runs the seeded Speed Factor graph and declaration modifiers, so declared initiative
+ * proves the real definition (advantage and disadvantage included), not a stand-in.
  */
 export function createEncounterInitiativeDefinitions(
   policies: ReadonlyArray<InitiativePolicyInput>
@@ -69,7 +70,7 @@ export function createEncounterInitiativeDefinitions(
   } satisfies z.input<typeof ruleGraphDefinitionDtoSchema>)
   const graphChecksum = checksumRuleDocument(graph)
   const declaredGraph = ruleGraphDefinitionDtoSchema.parse({
-    ...createDnd5eSpeedFactorInitiativeDefinition().definition,
+    ...SRD_DND5E_SPEED_FACTOR_INITIATIVE_GRAPH,
     id: crypto.randomUUID()
   })
   const declaredGraphChecksum = checksumRuleDocument(declaredGraph)
@@ -117,7 +118,10 @@ export function createEncounterInitiativeDefinitions(
         maximumIndexFact: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMaximumIndex
       },
       tieResolvers: [{ ...pin, repeatOnTie: false, maximumAttempts: 1 }],
-      defaultTieResolverDefinitionId: pin.definitionId
+      defaultTieResolverDefinitionId: pin.definitionId,
+      ...(policy.procedure === 'DECLARED_ACTION_ROLL'
+        ? { declarationModifiers: SRD_DND5E_SPEED_FACTOR_DECLARATION_MODIFIERS }
+        : {})
     })
   })
   const usesGraph = (declared: boolean) =>
@@ -141,7 +145,7 @@ export function createEncounterInitiativeDefinitions(
             id: declaredGraph.id,
             definitionFamilyKey: declaredGraph.definitionFamilyKey,
             label: 'V08 lifecycle declared D20 initiative',
-            description: 'The installed D&D declared initiative graph',
+            description: 'The seeded Speed Factor initiative graph',
             document: jsonValueSchema.parse(declaredGraph),
             checksum: declaredGraphChecksum
           }
@@ -184,7 +188,7 @@ export function declarationCommand(input: {
           kind: 'GM_ADJUDICATED',
           optionId: 'GM_ADJUDICATED',
           actorSize: 'MEDIUM',
-          actionFactors: [],
+          factorIds: [],
           spellLevel: null
         }
       : { kind: option.kind, optionId: option.optionId }

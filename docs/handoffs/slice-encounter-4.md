@@ -12,3 +12,20 @@ Workbook rules: [slice-workbook-rules.md](slice-workbook-rules.md).
 - Read the Encounter initiative cursor and staging owners first (`encounterInitiativeCursor`, `encounterInitiativeStaging`). Build Speed Factor through them, not beside them.
 
 ## Log
+
+- 2026-10-24: Explored on base `84a639064`. Declaration, the Speed Factor graph, the tie resolvers and the Campaign policy selection already exist. Three gaps remain: the modifiers are hard-coded in `systems/dnd5e/initiativeFactAdapter.ts` (and in the `GM_ADJUDICATED.actionFactors` enum), no Speed Factor policy is seeded, and no enforcement exists at resolution. A design packet went to the orchestrator: a `declarationModifiers` table on the INITIATIVE_POLICY document, a seeded SRD-catalogue policy, the tie resolver set, and the enforcement rule with the `UNDECLARED_ACTION` code. Waiting on the ruling before any persisted-contract work.
+- 2026-10-24: Orchestrator rulings received.
+  - A: `declarationModifiers` lives only on the `DECLARED_ACTION_ROLL` variant of a discriminated INITIATIVE_POLICY union. A neutral pure evaluator replaces the D&D switch. `GM_ADJUDICATED.actionFactors` becomes `factorIds` from the frozen policy. Reseed dev data, and update the initiative section of `docs/architecture/rules-runtime.md`.
+  - B: seed the policy like optional combat (`source-data/srd/catalogue.ts`).
+  - C: seed only the DMG text's tie rule as the default: higher Dexterity score (D&D fact `initiative.dexterity-score`, one attempt). Remaining ties go to the table's order choice.
+  - D: `UNDECLARED_ACTION`, no GM override, no new persisted state. Basic actions stay unenforced; the orchestrator recorded that exploit in future-enhancements.
+
+## Checklist
+
+- [ ] Schema: discriminated INITIATIVE_POLICY union; `factorIds`; `UNDECLARED_ACTION` code.
+- [ ] Neutral declaration-modifier evaluator, with homebrew parity; D&D tables deleted.
+- [ ] Declaration request and compiler read sizes and factors from the frozen policy.
+- [ ] D&D `initiative.dexterity-score` fact and seeded Speed Factor policy, graphs and tie resolver.
+- [ ] Enforcement guard in action and spell admission (pass and refuse).
+- [ ] Fixtures, existing tests, canonical doc.
+- [ ] CI green, red-proof run id, reviewer pass, phase-tip merge green.

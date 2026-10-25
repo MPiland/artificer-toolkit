@@ -452,6 +452,7 @@ export interface ActionRoomConfig extends Pick<
   | 'seed'
   | 'pinSpells'
   | 'status'
+  | 'initiativePolicy'
   | 'campaignClockMinute'
 > {
   /** The Run's actors, side by side 100 px apart from the first, which is the acting (current) actor. */
@@ -521,6 +522,9 @@ export async function actionRoom(config: ActionRoomConfig) {
   const actionId = await (async () => {
     if (config.ownerFeatureId)
       return featureActionId(source, config.ownerFeatureId, config.grip ?? null, config.effectId)
+    // A Run that has not started has no acting actor to read choices for; its tests pick an id from
+    // `actionChoices` on the actor's own turn.
+    if (config.status === 'PREPARED' && !config.characterAction) return ''
     if (!config.characterAction) throw new Error('The room needs an action source.')
     const choices = await actionChoices()
     const action = choices.actions.find(config.characterAction)

@@ -266,6 +266,8 @@ export interface MovementRoomConfig {
    * START command rolls initiative (d20 + modifier, once at the start) and opens the first turn.
    */
   status?: 'PREPARED'
+  /** The initiative policy a PREPARED Run freezes, where it is not d20 + modifier once at the start. */
+  initiativePolicy?: ReturnType<typeof initiativePolicySnapshot>
   /** The Campaign clock's absolute minute the room reads (D151); null when the Campaign has none. */
   campaignClockMinute?: number | null
 }
@@ -312,10 +314,9 @@ export async function movementRoom(config: MovementRoomConfig) {
         status: 'PREPARED' as const,
         round: 0,
         turnSequence: 0,
-        initiativePolicy: initiativePolicySnapshot({
-          procedure: 'ACTOR_ROLL',
-          cadence: 'ENCOUNTER_START'
-        })
+        initiativePolicy:
+          config.initiativePolicy ??
+          initiativePolicySnapshot({ procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' })
       }),
       automationMode: config.automationMode,
       trackAmmunition: config.trackAmmunition,
