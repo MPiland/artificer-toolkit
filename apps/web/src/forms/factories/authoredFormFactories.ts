@@ -99,10 +99,6 @@ type EquipmentFormContext = {
   parentEquipment?: EquipmentAuthoredDto
 }
 
-type SpellFormContext = {
-  magicSchoolId: string
-}
-
 type AuthoredFormDomainDataByDomain = {
   background: { edit: AuthoredFormEditData<BackgroundAuthoredDto> }
   class: { edit: AuthoredFormEditData<ClassAuthoredDto> }
@@ -129,12 +125,6 @@ export type AuthoredFormDomainRegistration =
         mode: 'edit' | 'view'
       }
     }[AuthoredFormDomain]
-
-function getSpellFormContext(data: Pick<AuthoredFormCreateData, 'system'>): SpellFormContext {
-  return {
-    magicSchoolId: data.system?.magicSchools[0]?.id ?? ''
-  }
-}
 
 export const authoredFormFactories = {
   background: defineAuthoredForm<
@@ -229,22 +219,16 @@ export const authoredFormFactories = {
   spell: defineAuthoredForm<
     SpellAuthoringInputDto | SpellAuthoredDto,
     SpellAuthoringInputDto,
-    SpellAuthoredDto,
-    AuthoredFormEditData<SpellAuthoredDto>,
-    SpellFormContext
+    SpellAuthoredDto
   >({
-    context: { fromCreate: getSpellFormContext, fromEdit: getSpellFormContext },
-    createEmptyValues: ({ systemId }, context) =>
-      createEmptySpell({ magicSchoolId: context.magicSchoolId, systemId }),
+    context: noAuthoredFormContext,
+    createEmptyValues: ({ systemId }) => createEmptySpell({ systemId }),
     createOperations: (client) => createAuthoredOperations('SPELL', client),
     domain: 'spell',
-    normalizeForSubmit: (values, context) => normalizeSpellForSubmit(values, context.magicSchoolId),
+    normalizeForSubmit: normalizeSpellForSubmit,
     queryKeys: globalQueryKeys.content.spells,
     schema: spellAuthoringInputDtoSchema,
-    toFormValues: (record, context) => ({
-      ...record,
-      magicSchoolId: record.magicSchoolId || context.magicSchoolId || ''
-    })
+    toFormValues: (record) => record
   }),
   vehicle: defineAuthoredForm<VehicleFormValues, VehicleAuthoringInputDto, VehicleAuthoredDto>({
     context: noAuthoredFormContext,

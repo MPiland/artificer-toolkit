@@ -53,7 +53,7 @@ describe('background authoring helpers', () => {
       startingEquipment: undefined
     })
 
-    expect(normalized.label).toBe('Untitled Background')
+    expect(normalized.label).toBe('')
     expect(normalized.description).toBe('')
     expect(normalized.details).toEqual([])
     expect(normalized.proficiencies).toEqual([])

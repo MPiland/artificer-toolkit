@@ -3,7 +3,10 @@ import type { ConvexReactClient } from 'convex/react'
 import type * as core from 'zod/v4/core'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import type { AuthoredContentProvenanceDto } from '@artificer-toolkit/schema/api/common'
-import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
+import type {
+  SystemListResponseDto,
+  SystemResponseDto
+} from '@artificer-toolkit/schema/api/systems'
 import { parseAuthoredDraftPayload } from '#app/data/authoredDrafts'
 import { queryKeys as globalQueryKeys } from '#app/lib/queryKeys'
 import type {
@@ -55,7 +58,7 @@ type AuthoredFormEditResponse<TAuthored extends object> = {
 
 export type AuthoredFormCreateData = {
   system?: SystemResponseDto | null
-  systems: readonly { id: string }[]
+  systems: SystemListResponseDto
 }
 
 export type AuthoredFormEditData<TAuthored extends object> = {
@@ -169,7 +172,7 @@ function createAuthoredCreateSession<
 ): AuthoredFormSession {
   const createData = isCreateData(data) ? data : EMPTY_CREATE_DATA
   const context = config.context.fromCreate(createData)
-  const systemId = createData.systems[0]?.id ?? ''
+  const systemId = createData.system?.id ?? ''
   const initialValues = config.createEmptyValues({ systemId }, context)
   const { subjectKindLabel } = authoredFormActionFactories[config.domain]
 
@@ -193,7 +196,8 @@ function createAuthoredCreateSession<
     subjectLabel: initialValues.label || `Untitled ${subjectKindLabel}`,
     system: createData.system ?? null,
     systemId,
-    systemRequired: !systemId
+    systemRequired: !systemId,
+    systems: createData.systems
   })
 }
 
@@ -256,7 +260,8 @@ function createAuthoredEditSession<
     subjectLabel: initialValues.label || `Untitled ${subjectKindLabel}`,
     system: editData.system ?? null,
     systemId: initialValues.systemId,
-    systemRequired: false
+    systemRequired: false,
+    systems: []
   })
 }
 
@@ -289,7 +294,8 @@ function createAuthoredSessionBase<
   subjectLabel,
   system,
   systemId,
-  systemRequired
+  systemRequired,
+  systems
 }: {
   activeRecord?: TAuthored | null
   canCopy: boolean
@@ -314,6 +320,7 @@ function createAuthoredSessionBase<
   system?: SystemResponseDto | null
   systemId?: string
   systemRequired: boolean
+  systems: SystemListResponseDto
 }): AuthoredFormSession {
   const { domain, queryKeys } = config
   const actionFactory = authoredFormActionFactories[domain]
@@ -406,6 +413,7 @@ function createAuthoredSessionBase<
     subjectLabel,
     system,
     systemId,
-    systemRequired
+    systemRequired,
+    systems
   }
 }

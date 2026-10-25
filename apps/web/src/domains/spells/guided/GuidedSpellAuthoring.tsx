@@ -19,7 +19,7 @@ import {
 } from '#forms/guided/guidedSimpleEffect.types'
 import { rehydrateGuidedSpell } from '#forms/guided/guidedSimpleEffect.rehydrate'
 import * as styles from '#forms/guided/guidedAuthoring.css'
-import { EMPTY_GUIDED_FORM_VALUES } from '#forms/guided/guidedValues'
+import { EMPTY_GUIDED_FORM_VALUES, readString, toSelectOption } from '#forms/guided/guidedValues'
 import { GuidedSpellIntentScreen } from './GuidedSpellIntentScreen'
 import { GuidedSpellMechanicsScreen } from './GuidedSpellMechanicsScreen'
 import { GuidedSpellReviewScreen } from './GuidedSpellReviewScreen'
@@ -55,6 +55,7 @@ export const GuidedSpellAuthoring = withForm({
     const [hadEffects, setHadEffects] = useState(hasEffects)
     const basics = useSelector(form.store, (state) => readSpellBasics(state.values))
     const { canFinalize } = useAuthoringForm()
+    const canContinueBasics = Boolean(basics.label && basics.magicSchoolId)
 
     useEffect(() => {
       onStateChange({ isReview: screen === 3, showPreview: isExistingDraft || screen >= 2 })
@@ -109,7 +110,7 @@ export const GuidedSpellAuthoring = withForm({
     }
 
     const next = () => {
-      if (screen === 0 && !basics.label) return
+      if (screen === 0 && !canContinueBasics) return
       if (screen === 1 && !draft) return
       if (screen === 2 && draft && !canContinueMechanics(draft)) return
       const nextScreen = Math.min(3, screen + 1)
@@ -123,7 +124,7 @@ export const GuidedSpellAuthoring = withForm({
     return (
       <GuidedAuthoringFrame
         canContinue={
-          (screen !== 0 || Boolean(basics.label)) &&
+          (screen !== 0 || canContinueBasics) &&
           (screen !== 1 || Boolean(draft)) &&
           (screen !== 2 || Boolean(draft && canContinueMechanics(draft)))
         }
@@ -159,6 +160,17 @@ export const GuidedSpellAuthoring = withForm({
                 <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['level'])}>
                   {(field) => (
                     <field.NumberSelectField data={SPELL_LEVEL_OPTIONS} label='Level' required />
+                  )}
+                </form.AppField>
+                <form.AppField
+                  name={toTypedAuthoringFieldName<object>(undefined, ['magicSchoolId'])}
+                >
+                  {(field) => (
+                    <field.SelectField
+                      label='School of magic'
+                      data={system.magicSchools.map(toSelectOption)}
+                      required
+                    />
                   )}
                 </form.AppField>
               </div>
@@ -263,6 +275,7 @@ function readSpellBasics(values: object): {
   description?: string
   label: string
   level?: number
+  magicSchoolId: string
 } {
   return {
     description:
@@ -270,7 +283,8 @@ function readSpellBasics(values: object): {
         ? values.description.trim()
         : undefined,
     label: 'label' in values && typeof values.label === 'string' ? values.label.trim() : '',
-    level: 'level' in values && typeof values.level === 'number' ? values.level : undefined
+    level: 'level' in values && typeof values.level === 'number' ? values.level : undefined,
+    magicSchoolId: readString(values, 'magicSchoolId')
   }
 }
 

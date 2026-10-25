@@ -25,10 +25,10 @@ export function normalizeFeatForSubmit(
 ): FeatAuthoringInputDto {
   return {
     ...feat,
-    label: feat.label.trim() || 'Untitled Feat',
+    label: feat.label.trim(),
     description: feat.description ?? '',
     details: feat.details ?? [],
-    status: feat.status ?? 'DRAFT',
+    status: feat.status,
     effects: feat.effects ?? [],
     features: feat.features ?? [],
     grants: normalizeFeatGrants(feat.grants)

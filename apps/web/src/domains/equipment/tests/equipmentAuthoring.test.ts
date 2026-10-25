@@ -34,7 +34,7 @@ describe('equipment authoring helpers', () => {
     })
 
     expect(normalized).toMatchObject({
-      label: 'Untitled Equipment',
+      label: '',
       category: 'ADVENTURING_GEAR',
       properties: [],
       weight: {

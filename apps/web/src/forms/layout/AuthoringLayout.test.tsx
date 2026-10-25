@@ -108,7 +108,8 @@ function setSession({ key, initialValues }: TestSession) {
       subjectKindLabel: 'Spell',
       system: { rulesetCode: 'dnd5e', rulesetVersion: '2014' },
       systemId: 'system-1',
-      systemRequired: false
+      systemRequired: false,
+      systems: []
     },
     clearValidationIssues: vi.fn(),
     hasActiveDraft: false,

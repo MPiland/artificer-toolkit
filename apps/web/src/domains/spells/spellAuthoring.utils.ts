@@ -3,13 +3,7 @@ import type {
   SpellAuthoredDto
 } from '@artificer-toolkit/schema/subjects/spell'
 
-export function createEmptySpell({
-  magicSchoolId,
-  systemId
-}: {
-  magicSchoolId?: string
-  systemId: string
-}): SpellAuthoringInputDto {
+export function createEmptySpell({ systemId }: { systemId: string }): SpellAuthoringInputDto {
   return {
     kind: 'SPELL',
     id: crypto.randomUUID(),
@@ -18,7 +12,7 @@ export function createEmptySpell({
     description: '',
     level: 0,
     classIds: [],
-    magicSchoolId: magicSchoolId ?? '',
+    magicSchoolId: '',
     castingTime: {
       amount: 1,
       unit: 'ROUND'
@@ -31,14 +25,13 @@ export function createEmptySpell({
 }
 
 export function normalizeSpellForSubmit(
-  spell: SpellAuthoringInputDto | SpellAuthoredDto,
-  fallbackMagicSchoolId = ''
+  spell: SpellAuthoringInputDto | SpellAuthoredDto
 ): SpellAuthoringInputDto {
   return {
     ...spell,
-    label: spell.label.trim() || 'Untitled Spell',
+    label: spell.label.trim(),
     description: spell.description ?? '',
-    magicSchoolId: spell.magicSchoolId || fallbackMagicSchoolId,
+    magicSchoolId: spell.magicSchoolId,
     systemId: spell.systemId,
     castingTime: {
       amount: Number(spell.castingTime?.amount ?? 1),

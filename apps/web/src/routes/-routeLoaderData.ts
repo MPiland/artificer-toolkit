@@ -142,6 +142,7 @@ export type VehicleEditLoaderData = AuthoredFormRouteLoaderData<
 >
 
 export interface CharacterCreateAuthoringData {
+  systemId?: string
   systems: SystemListResponseDto
 }
 

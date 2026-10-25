@@ -31,7 +31,7 @@ describe('vehicle authoring utils', () => {
 
     expect(payload).toMatchObject({
       id: ownedVehicleResponseFixture.item.id,
-      label: 'Untitled Vehicle',
+      label: '',
       properties: ['fast']
     })
     expect('userId' in payload).toBe(false)

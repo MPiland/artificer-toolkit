@@ -173,11 +173,12 @@ export const CharacterEquipmentStep = withForm({
                         value={row.currencies[0]?.currencyId ?? null}
                         disabled={readOnly}
                         onChange={(value) => {
+                          if (!value) return
                           field.replaceValue(
                             index,
                             setFirstCurrency(row, {
                               kind: 'RULESET',
-                              currencyId: value ?? '',
+                              currencyId: value,
                               amount: row.currencies[0]?.amount ?? 0
                             })
                           )

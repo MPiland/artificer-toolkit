@@ -36,9 +36,9 @@ export function normalizeBackgroundForSubmit(
 ): BackgroundAuthoringInputDto {
   return {
     ...background,
-    label: background.label.trim() || 'Untitled Background',
+    label: background.label.trim(),
     description: background.description ?? '',
-    status: background.status ?? 'DRAFT',
+    status: background.status,
     details: background.details ?? [],
     proficiencies: background.proficiencies ?? [],
     features: background.features ?? [],

@@ -44,7 +44,7 @@ describe('race authoring helpers', () => {
         category: 'BASE'
       })
     ).toMatchObject({
-      label: 'Untitled Race',
+      label: '',
       category: 'BASE',
       selectionMode: 'DIRECT',
       size: 'MEDIUM',

@@ -12,7 +12,7 @@ import type { AuthoringNavigationTarget } from './authoringNavigation'
 import { ShellReturnHrefContext } from '#app/shell/returnLocation'
 
 const RACE_CREATE_REGISTRATION = {
-  data: { systems: [{ id: 'system-1' }] },
+  data: { system: { id: 'system-1' }, systems: [{ id: 'system-1' }] },
   domain: 'race',
   mode: 'create'
 } as const
@@ -126,7 +126,11 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
+        <AuthoringFormProvider
+          data={{ system: { id: 'system-1' }, systems: [{ id: 'system-1' }] }}
+          domain='race'
+          mode='create'
+        >
           <CancelProbe hasChanges />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -190,7 +194,11 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
+        <AuthoringFormProvider
+          data={{ system: { id: 'system-1' }, systems: [{ id: 'system-1' }] }}
+          domain='race'
+          mode='create'
+        >
           <UnsavedNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -220,7 +228,11 @@ describe('AuthoringFormProvider unsaved navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds'>
-        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
+        <AuthoringFormProvider
+          data={{ system: { id: 'system-1' }, systems: [{ id: 'system-1' }] }}
+          domain='race'
+          mode='create'
+        >
           <UnsavedNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>
@@ -315,7 +327,11 @@ describe('AuthoringFormProvider URL navigation', () => {
 
     render(
       <TestRouterProvider initialPath='/backgrounds?source=owned&step=step%3Arace%3Aroot%3Abasics'>
-        <AuthoringFormProvider data={{ systems: [{ id: 'system-1' }] }} domain='race' mode='create'>
+        <AuthoringFormProvider
+          data={{ system: { id: 'system-1' }, systems: [{ id: 'system-1' }] }}
+          domain='race'
+          mode='create'
+        >
           <AuthoredUrlNavigationProbe />
         </AuthoringFormProvider>
       </TestRouterProvider>

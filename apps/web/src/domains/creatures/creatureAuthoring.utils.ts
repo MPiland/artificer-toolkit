@@ -76,10 +76,10 @@ export function normalizeCreatureForSubmit(
 ): CreatureAuthoringInputDto {
   return {
     ...creature,
-    label: creature.label.trim() || 'Untitled Creature',
+    label: creature.label.trim(),
     description: creature.description ?? '',
     quote: creature.quote ?? '',
-    status: creature.status ?? 'DRAFT',
+    status: creature.status,
     tags: normalizeStringFormValues(creature.tags),
     logisticsNotes: normalizeStringFormValues(creature.logisticsNotes),
     npcProfile: creature.npcProfile

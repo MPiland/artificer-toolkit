@@ -45,9 +45,9 @@ export function toVehicleFormValues(
 export function normalizeVehicleForSubmit(vehicle: VehicleFormValues): VehicleAuthoringInputDto {
   return {
     id: vehicle.id,
-    label: vehicle.label.trim() || 'Untitled Vehicle',
+    label: vehicle.label.trim(),
     description: vehicle.description ?? '',
-    status: vehicle.status ?? 'DRAFT',
+    status: vehicle.status,
     details: vehicle.details ?? [],
     systemId: vehicle.systemId,
     category: vehicle.category,

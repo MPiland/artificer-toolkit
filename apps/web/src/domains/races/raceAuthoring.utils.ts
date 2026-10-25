@@ -96,10 +96,10 @@ export function toRaceFormValues(
 export function normalizeRaceForSubmit(race: RaceFormValues): RaceAuthoringInputDto {
   const common = {
     id: race.id,
-    label: race.label.trim() || 'Untitled Race',
+    label: race.label.trim(),
     quote: race.quote ?? '',
     description: race.description ?? '',
-    status: race.status ?? 'DRAFT',
+    status: race.status,
     details: race.details ?? [],
     features: race.features ?? [],
     systemId: race.systemId,

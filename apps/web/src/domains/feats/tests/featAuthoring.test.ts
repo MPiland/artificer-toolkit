@@ -53,7 +53,7 @@ describe('feat authoring helpers', () => {
       }
     })
 
-    expect(normalized.label).toBe('Untitled Feat')
+    expect(normalized.label).toBe('')
     expect(normalized.description).toBe('')
     expect(normalized.details).toEqual([])
     expect(normalized.effects).toEqual([])

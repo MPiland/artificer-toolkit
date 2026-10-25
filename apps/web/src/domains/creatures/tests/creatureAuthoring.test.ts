@@ -42,7 +42,7 @@ describe('creature authoring helpers', () => {
     })
 
     expect(normalized).toMatchObject({
-      label: 'Untitled Creature',
+      label: '',
       description: '',
       category: 'MONSTER',
       speeds: []

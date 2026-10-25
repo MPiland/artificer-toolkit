@@ -32,6 +32,16 @@ const {
   vehicle: vehicleFormFactory
 } = authoredFormFactories
 
+const systemListItem = {
+  id: authoredRouteStorySystem.id,
+  label: authoredRouteStorySystem.label,
+  rulesetCode: authoredRouteStorySystem.rulesetCode,
+  rulesetVersion: authoredRouteStorySystem.rulesetVersion,
+  userId: 'user-1',
+  rulesCatalogues: []
+}
+const createData = { system: authoredRouteStorySystem, systems: [systemListItem] }
+
 describe('authoredFormFactories', () => {
   it('registers every authored form domain factory', () => {
     expect(Object.keys(authoredFormFactories).sort()).toEqual([
@@ -105,11 +115,25 @@ describe('authoredFormFactories', () => {
     ])
   })
 
-  it('resolves the create session system from the available systems', () => {
-    const data = { systems: [{ id: 'system-1' }] }
+  it('takes the create session system from the route-resolved system', () => {
+    for (const factory of Object.values(authoredFormFactories)) {
+      const session = factory.createSession({ data: createData, mode: 'create' })
+
+      expect(session.systemId).toBe(authoredRouteStorySystem.id)
+      expect(session.systemRequired).toBe(false)
+    }
+  })
+
+  it('requires an explicit system choice when several systems exist and none is resolved', () => {
+    const data = { systems: [systemListItem, { ...systemListItem, id: 'system-2' }] }
 
     for (const factory of Object.values(authoredFormFactories)) {
-      expect(factory.createSession({ data, mode: 'create' }).systemId).toBe('system-1')
+      const session = factory.createSession({ data, mode: 'create' })
+
+      expect(session.systemId).toBe('')
+      expect(session.systemRequired).toBe(true)
+      expect(session.canSaveDraft).toBe(false)
+      expect(session.systems).toEqual(data.systems)
     }
   })
 
@@ -123,10 +147,7 @@ describe('authoredFormFactories', () => {
   })
 
   it('caches saved draft JSON for the first navigation to its edit route', async () => {
-    const session = spellFormFactory.createSession?.({
-      data: { systems: [{ id: 'system-1' }] },
-      mode: 'create'
-    })
+    const session = spellFormFactory.createSession?.({ data: createData, mode: 'create' })
     if (!session) throw new Error('Expected a spell create session.')
 
     const queryClient = new QueryClient()
@@ -153,7 +174,7 @@ describe('authoredFormFactories', () => {
   })
 
   it('creates authoring sessions for every authored form domain', () => {
-    const systemData = { systems: [{ id: 'system-1' }] }
+    const systemData = createData
     const sessions = [
       ['background', backgroundFormFactory.createSession?.({ data: systemData, mode: 'create' })],
       ['class', classFormFactory.createSession?.({ data: systemData, mode: 'create' })],
@@ -177,7 +198,7 @@ describe('authoredFormFactories', () => {
       expect(session?.initialValues).toEqual(
         expect.objectContaining({
           label: '',
-          systemId: 'system-1'
+          systemId: authoredRouteStorySystem.id
         })
       )
     }
@@ -231,7 +252,7 @@ describe('authoredFormFactories', () => {
     const session = equipmentFormFactory.createSession?.({
       data: {
         system: authoredRouteStorySystem,
-        systems: [authoredRouteStorySystem]
+        systems: [systemListItem]
       },
       mode: 'create'
     })

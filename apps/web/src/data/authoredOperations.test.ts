@@ -26,7 +26,10 @@ const equipmentPayload = createEmptyEquipment({
 const vehiclePayload = createEmptyVehicle({ systemId: background.systemId })
 const racePayload = createEmptyRace({ systemId: background.systemId })
 const creaturePayload = createEmptyCreature({ systemId: background.systemId })
-const spellPayload = createEmptySpell({ magicSchoolId: 'school', systemId: background.systemId })
+const spellPayload = {
+  ...createEmptySpell({ systemId: background.systemId }),
+  magicSchoolId: 'school'
+}
 
 afterEach(() => vi.restoreAllMocks())
 

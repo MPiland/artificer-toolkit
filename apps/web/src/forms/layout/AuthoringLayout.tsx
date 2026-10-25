@@ -19,6 +19,7 @@ import { useAppForm } from '../app-form/AppForm'
 import { clearResolvedNodeFormPaths } from '../node-map/nodeFormUtils'
 import { FormRenderer } from '../rendering/FormRenderer'
 import { InvalidDraftAlert } from './Editor/SectionRow/InvalidDraftAlert'
+import { SystemChoiceAlert } from './SystemChoiceAlert'
 import type { AuthoredFormDomainRegistration } from '../factories/authoredFormFactories'
 import type {
   AuthoredFormDomain,
@@ -173,6 +174,10 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
       onSaveDraft: async () => {
         if (!session) return
         const submittedValues = form.state.values
+        if (isBlankLabel(submittedValues)) {
+          form.setErrorMap({ onSubmit: { fields: { label: 'Name is required.' } } })
+          return
+        }
         const submittedSnapshot = JSON.stringify(submittedValues)
         const saved = await saveDraftValues(submittedValues)
         if (saved && JSON.stringify(form.state.values) === submittedSnapshot) {
@@ -201,7 +206,7 @@ function AuthoringLayoutShell({ children }: { children?: ReactNode }) {
     if (session.systemRequired) {
       return (
         <Stack>
-          <Alert color='yellow'>{`A system is required before creating ${domainLabel}s.`}</Alert>
+          <SystemChoiceAlert subjectPlural={`${domainLabel}s`} systems={session.systems} />
           <Button onClick={() => void authoring.cancel()}>{`Back to ${domainLabel}s`}</Button>
         </Stack>
       )
@@ -455,6 +460,10 @@ function readPreviewLabel(values: object, fallbackLabel: string): string {
   if (!('label' in values) || typeof values.label !== 'string') return fallbackLabel
 
   return values.label.trim() || fallbackLabel
+}
+
+function isBlankLabel(values: object): boolean {
+  return 'label' in values && typeof values.label === 'string' && !values.label.trim()
 }
 
 function isGuidedSessionEligible(session: AuthoredFormSession) {
