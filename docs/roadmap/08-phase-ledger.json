@@ -16160,10 +16160,10 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2
+                "size": 3
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: new: a recurring saving throw on a held relationship (found in ATTACK-7.T8, 2026-10-20). The Shambling Mound’s Engulf deals 2d8+4 bludgeoning on a failed DC 14 Constitution save at the start of each of the Mound’s turns while the target stays engulfed. A relationship recurrence that carries a save and its outcome, authorable from core options; reuse it for any other held-creature recurring damage. Authoring-parity proof and a room journey (workbook slice-spells-33.md).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Re-sized 2 to 3 (user ruling 2026-10-25): a SOURCE-anchored relationship recurrence with an optional save needs source-turn selection of held creatures’ recurrences in Convex and the room.",
               "activeWorkbook": "docs/handoffs/slice-spells-33.md"
             },
             {
