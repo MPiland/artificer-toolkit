@@ -97,7 +97,6 @@
 00000000-0000-0000-c006-600700000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-600800000000 CHARACTER:classes Slow Fall | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-600a00000000 CHARACTER:classes Stunning Strike | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c006-600d00000000 CHARACTER:classes Evasion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-600e00000000 CHARACTER:classes Stillness of Mind | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-c006-600f00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-601000000000 CHARACTER:classes Unarmored Movement Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -139,9 +138,8 @@
 00000000-0000-0000-c008-140500000000 CHARACTER:classes Multiattack Defense | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-140600000000 CHARACTER:classes Volley | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-140700000000 CHARACTER:classes Whirlwind Attack | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c008-140800000000 CHARACTER:classes Evasion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c008-140900000000 CHARACTER:classes Stand Against the Tide | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c008-140a00000000 CHARACTER:classes Uncanny Dodge | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0000-0000-c008-140a00000000 CHARACTER:classes Uncanny Dodge | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c008-140b00000000 CHARACTER:classes Colossus Slayer | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-140c00000000 CHARACTER:classes Horde Breaker | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c008-600100000000 CHARACTER:classes Favored Enemy | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -168,8 +166,7 @@
 00000000-0000-0000-c009-140500000000 CHARACTER:classes Thief's Reflexes | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-600200000000 CHARACTER:classes Sneak Attack | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c009-600400000000 CHARACTER:classes Cunning Action | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
-00000000-0000-0000-c009-600700000000 CHARACTER:classes Uncanny Dodge | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c009-600900000000 CHARACTER:classes Evasion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
+00000000-0000-0000-c009-600700000000 CHARACTER:classes Uncanny Dodge | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c009-600d00000000 CHARACTER:classes Reliable Talent | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-601600000000 CHARACTER:classes Stroke of Luck | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c009-602800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
