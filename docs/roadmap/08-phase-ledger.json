@@ -16217,6 +16217,20 @@
               "note": "Split from SPELLS-33.T6n; T6n2 is +8 scope growth approved by the user 2026-10-25 (build the holder-turn timing correctly and generically rather than approximate or defer it)."
             },
             {
+              "id": "SPELLS-33.T6n3",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-33.T6n2"]
+              },
+              "text": "Convert the holder-turn creatures onto the SPELLS-33.T6n2 phase, data only: the swallows (Purple Worm, Behir, Remorhaz, Tarrasque, Kraken, Giant Toad, Giant Frog), the Stirge blood drain, the Gelatinous Cube engulf and the Water Elemental whelm. Each replaces its MANUAL_ADJUDICATION start-of-holder-turn damage with a SOURCE-anchored relationship recurrence; riders outside the phase (regurgitation, detach thresholds) stay GM rulings under D187a. Authoring-parity proof per creature and one room journey on a swallow.",
+              "note": "+5 scope growth approved by the user 2026-10-25."
+            },
+            {
               "id": "SPELLS-33.T4i3d",
               "text": "Gated nested-save outcomes (generic, found by T4i3b/c 2026-10-22): an optional gate from the one gate table (HP band, REDUCED_TO_ZERO_BY) on nested-save band outcomes with gate inputs on the nested-save graph; KILL admitted in a band only when gated or the save entry is HP-gated (\"never on a save alone\" holds); a hit’s nested save may sit in its own gated result block after the damage block. Nested-save graph in a neutral module so the compiler does not grow. Parity proofs; enumerated golden flips.",
               "status": "DONE",
