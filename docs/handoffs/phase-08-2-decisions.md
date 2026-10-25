@@ -1824,3 +1824,7 @@ Made on your behalf while you were away (Foundry baseline, Roll20 as a second re
       - **Split.** T2c1 covers attacks and saves, the transport, the roll row, Bless and Bane. T2c2 covers ability checks, `ON_SAVING_THROW`, the Sheet, Guidance and Resistance. T2c3 covers `MINIMUM_ROLL` and Glibness.
     - Flyby joins the opportunity-attack qualifier from SPELLS-31.T4k2.
     - As in SPELLS-31, each authoring gap is fixed with a regression test in the subtask that owns it, and each new T6 group needs an option-design ruling at its start.
+
+### D195: installed Systems list and the test-only tracer (orchestrator ruling, 2026-10-25, RULES-2.T12)
+
+Every platform registry (capabilities, policy registrations, core codes) builds from one `installedGameSystems.ts` list, and each System exports one module object that holds its adapters. A tracer Vitest project aliases that list to dnd5e plus a Fate-like tracer kept under test fixtures, so the tracer never ships (ADR 0023). There is no `installGameSystem()` mutation and no production test hook. Callers keep their current registry imports. D&D-shaped capabilities that the tracer lacks fail closed on `require` and are skipped by `find`.
