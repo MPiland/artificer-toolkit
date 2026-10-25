@@ -11953,6 +11953,20 @@
               },
               "note": "Merged m323 (99eb7e77e).",
               "mergedAt": "2026-10-22T04:37:14Z"
+            },
+            {
+              "id": "SPELLS-4.T2ps",
+              "status": "TODO",
+              "closes": ["SPELLS-4.1"],
+              "wsjf": {
+                "bv": 3,
+                "tc": 1,
+                "rr": 3,
+                "size": 13,
+                "after": ["ATTACK-16.T1a"]
+              },
+              "text": "Prismatic Spray on the ATTACK-16.T1a authored ROLL_TABLE: rows 1-5 and the success table (verify the cone first), row 6 as a row-scoped lasting repeat-save plan, row 7, and row 8 repeat-table rerolls with merged rows (lifts T1a's REPEAT_TABLE refusal); its MANUAL_ADJUDICATION rows are replaced. Authoring-parity proof and a room journey.",
+              "note": "Registered 2026-10-25 (user ruling: roll tables must cover Prismatic Spray; measured 11-13 by the ATTACK-16 session)."
             }
           ]
         },
