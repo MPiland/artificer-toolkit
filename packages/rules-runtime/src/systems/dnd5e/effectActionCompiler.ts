@@ -820,7 +820,7 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   }
   // A failed save takes the damage and a made one none; the hold stands either way.
   const frozenGraph =
-    recurrence && recurrenceSave
+    recurrence && recurrenceSave && 'diceConfig' in recurrence.damage
       ? compileTestDefinition(
           action,
           {
@@ -830,7 +830,7 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
                 'ON_SAVE_FAIL',
                 {
                   kind: 'ENTRY_DICE_DAMAGE',
-                  diceConfig: recurrence.damage.diceConfig!,
+                  diceConfig: recurrence.damage.diceConfig,
                   damageTypeId: damageTypeIdentity(recurrence.damage.damageTypeId),
                   entryId: relationship.id,
                   multiplier: 1
