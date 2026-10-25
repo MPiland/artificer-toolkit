@@ -29,6 +29,7 @@ import { createActiveRuleEffectStore } from '@artificer-toolkit/encounter-persis
 import { plannedModifierGrant } from '@artificer-toolkit/rules-runtime/testing/modifierGrantFixture'
 import { readCharacterRow } from '../characters/stateDocuments'
 import { domainRejection } from '../../tests/fixtures/playerControl'
+import { expectReusedCommandRefusal, rejection } from '../../tests/fixtures/roomRefusals'
 import { setAutoRollDice, type FixtureRolls } from '../../tests/fixtures/rollPreferences'
 import { api, internal } from '../_generated/api'
 import { createConvexEncounterStore } from '../lib/convexEncounterStore'
@@ -521,11 +522,13 @@ async function resolveFirstAid(
 function answerFirstAid(
   fixture: Fixture,
   paused: CommandResult,
-  resolution: (requestId: string) => ResolveRuleOccurrenceInputDto['resolution']
+  resolution: (requestId: string) => ResolveRuleOccurrenceInputDto['resolution'],
+  commandId?: string
 ) {
   const { occurrence, pending } = pendingRoll(paused)
   return execute(fixture, (base) => ({
     ...base,
+    commandId: commandId ?? base.commandId,
     type: 'RESOLVE_RULE_OCCURRENCE',
     expectedVersion: paused.projection.version,
     occurrenceId: occurrence.occurrenceId,
@@ -655,6 +658,44 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     const cards = await firstAidCards(fixture)
     expect(cards).toEqual([expect.objectContaining({ characterLabel: allyOf(fixture).label })])
     expect(naturalOf(cards[0]!)).toBe(14)
+  }, 120000)
+
+  it('replays an answered check by its command ID and refuses that ID for another answer (COMMAND_ID_REUSED)', async () => {
+    const { fixture, atAlly } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, false)
+    const paused = await useFirstAid(fixture, atAlly)
+    const commandId = crypto.randomUUID()
+    const enter = (face: number) => (requestId: string) =>
+      ({
+        kind: 'ENTER_DICE',
+        requestId,
+        rawFaces: [face],
+        rollMode: 'NORMAL'
+      }) as const
+    const settled = await answerFirstAid(fixture, paused, enter(14), commandId)
+    expect(settled.occurrence).toMatchObject({ status: 'COMPLETE' })
+    await expect(answerFirstAid(fixture, paused, enter(14), commandId)).resolves.toEqual(settled)
+    expect(await firstAidCards(fixture)).toHaveLength(1)
+    // The room's journal refuses its own ID for other input before Convex sees it.
+    await expectReusedCommandRefusal(answerFirstAid(fixture, paused, enter(3), commandId))
+  }, 120000)
+
+  it('refuses a check answer that reuses the ID of a Convex command, and the check stays answerable (COMMAND_ID_REUSED)', async () => {
+    const { fixture, atAlly, dying } = await dyingHeroAtAllyTurn()
+    await allyRollsAutomatically(fixture, false)
+    const paused = await useFirstAid(fixture, atAlly)
+    const answer = (commandId?: string) =>
+      answerFirstAid(
+        fixture,
+        paused,
+        (requestId) => ({ kind: 'ENTER_DICE', requestId, rawFaces: [14], rollMode: 'NORMAL' }),
+        commandId
+      )
+    expect(await rejection(answer(fixture.createCommandId))).toMatchObject({
+      reason: 'COMMAND_ID_REUSED'
+    })
+    expect(await saves(fixture)).toEqual(dying)
+    expect((await answer()).occurrence).toMatchObject({ status: 'COMPLETE' })
   }, 120000)
 
   it('auto-rolls for a helper who rolls automatically: a miss changes nothing but spends the Action', async () => {
