@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
-import { Shell, buildPlatformNavigation, contentKindOrder } from '#app/shell'
+import { Shell } from '#app/shell'
+import { buildPlatformNavigation, contentKindOrder } from '#app/shell/navigation'
 import { AuthoredListPage } from './AuthoredListPage'
 import { spellListFilters, spellListItems } from './spellList.fixtures'
 

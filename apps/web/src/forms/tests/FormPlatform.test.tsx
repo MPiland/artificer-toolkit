@@ -22,7 +22,8 @@ import {
   createDefaultAuthoringArrayItem,
   createDefaultAuthoringObjectItem
 } from '#forms/rendering/authoringNodeDefaults'
-import { Shell, buildPlatformNavigation, contentKindOrder } from '#app/shell'
+import { Shell } from '#app/shell'
+import { buildPlatformNavigation, contentKindOrder } from '#app/shell/navigation'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { wideField } from '../rendering/FormRenderer.css'
 import { getRequiredValidators } from '../rendering/FormRenderer.utils'

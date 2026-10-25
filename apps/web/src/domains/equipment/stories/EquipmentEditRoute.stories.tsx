@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/tanstack-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { expect, userEvent, within } from 'storybook/test'
-import { Shell, buildPlatformNavigation, contentKindOrder } from '#app/shell'
+import { Shell } from '#app/shell'
+import { buildPlatformNavigation, contentKindOrder } from '#app/shell/navigation'
 import { Route } from '#routes/_authed/equipment/$equipmentPublicId/$equipmentSlug/edit'
 import { AuthoringLayout } from '#forms'
 import {
