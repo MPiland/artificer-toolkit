@@ -716,24 +716,11 @@ describe('Character rule contracts', () => {
       }).success
     ).toBe(false)
 
+    // The System-neutral contract cannot name abilities, so it defaults to empty ability records.
     expect(output.rollContributorEvidence).toEqual({
       initiative: [],
-      abilityChecks: {
-        STRENGTH: [],
-        DEXTERITY: [],
-        CONSTITUTION: [],
-        INTELLIGENCE: [],
-        WISDOM: [],
-        CHARISMA: []
-      },
-      savingThrows: {
-        STRENGTH: [],
-        DEXTERITY: [],
-        CONSTITUTION: [],
-        INTELLIGENCE: [],
-        WISDOM: [],
-        CHARISMA: []
-      },
+      abilityChecks: {},
+      savingThrows: {},
       skillChecks: {},
       attacks: { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
     })
