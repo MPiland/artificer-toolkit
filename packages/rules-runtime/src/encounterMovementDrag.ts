@@ -1,4 +1,3 @@
-import { sizeRank } from '@artificer-toolkit/shared/core'
 import {
   sceneTokenFootprintsOverlap,
   sceneTokenMovementFailure,
@@ -9,6 +8,7 @@ import {
   encounterSourceRelationships,
   type EncounterRelationshipActiveEffectsByActorId
 } from './encounterRelationshipActionFacts.js'
+import { sizeRank } from './systemSizes.js'
 
 type SceneToken = CampaignSceneState['tokens'][number]
 
@@ -21,12 +21,13 @@ export type EncounterDraggedToken = { tokenId: string; actorId: string }
  * held-relationship read both decide it here.
  */
 export function encounterDragDoublesCost(
+  gameSystemId: string,
   moverSize: string | null,
   draggedSizes: readonly (string | null)[]
 ): boolean {
-  const moverRank = sizeRank(moverSize)
+  const moverRank = sizeRank(gameSystemId, moverSize)
   return draggedSizes.some((size) => {
-    const rank = sizeRank(size)
+    const rank = sizeRank(gameSystemId, size)
     return moverRank === null || rank === null || moverRank - rank < 2
   })
 }
@@ -44,6 +45,7 @@ const translated = (path: readonly ScenePoint[], offset: ScenePoint) =>
  * the mover's spatial pass (D170), not here.
  */
 export function encounterMovementDrag(input: {
+  gameSystemId: string
   scene: Pick<CampaignSceneState, 'map' | 'tokens' | 'barriers' | 'doorStates'>
   mover: { tokenId: string; actorId: string }
   actorIdByTokenId: ReadonlyMap<string, string>
@@ -66,6 +68,7 @@ export function encounterMovementDrag(input: {
     .map(([tokenId, actorId]) => ({ tokenId, actorId }))
     .sort((left, right) => left.tokenId.localeCompare(right.tokenId))
   const doublesCost = encounterDragDoublesCost(
+    input.gameSystemId,
     input.sizeOf(mover.actorId),
     tokens.map(({ actorId }) => input.sizeOf(actorId))
   )

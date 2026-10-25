@@ -1,4 +1,7 @@
-import { isNavItemActive, platformNavigation } from './navigation'
+import { authoredSubjectKindSchema } from '@artificer-toolkit/schema/projections'
+import { buildPlatformNavigation, contentKindOrder, isNavItemActive } from './navigation'
+
+const platformNavigation = buildPlatformNavigation(contentKindOrder)
 
 describe('Campaign navigation', () => {
   it('wires Campaigns into the Workspace and keeps detail routes active', () => {
@@ -17,5 +20,38 @@ describe('Campaign navigation', () => {
 
     expect(item?.href).toBe('/social')
     expect(item && isNavItemActive(item, '/social/listings/listing-id/table-title')).toBe(true)
+  })
+})
+
+describe('capability-driven navigation', () => {
+  const contentLabels = (kinds: Parameters<typeof buildPlatformNavigation>[0]) =>
+    buildPlatformNavigation(kinds)
+      .find((group) => group.label === 'Content')
+      ?.items.map((item) => item.label)
+
+  it('lists the published kinds in the fixed presentation order, whatever order they arrive in', () => {
+    expect(contentLabels(['VEHICLE', 'SPELL', 'RACE', 'SPELL'])).toEqual([
+      'Spells',
+      'Races',
+      'Vehicles'
+    ])
+  })
+
+  it('orders every authored subject kind the schema defines', () => {
+    expect([...contentKindOrder].sort()).toEqual(
+      Object.keys(authoredSubjectKindSchema._zod.def.entries).sort()
+    )
+    expect(contentLabels(contentKindOrder)).toHaveLength(contentKindOrder.length)
+  })
+
+  it('shows an explicit empty state, with no Content entries, when nothing is published', () => {
+    const content = buildPlatformNavigation([]).find((group) => group.label === 'Content')
+
+    expect(content?.items).toEqual([])
+    expect(content?.emptyLabel).toBe('No Game System content available')
+  })
+
+  it('has no Content group while the published kinds are loading', () => {
+    expect(buildPlatformNavigation(undefined).map((group) => group.label)).toEqual(['Workspace'])
   })
 })

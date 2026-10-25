@@ -6,6 +6,7 @@ import {
   type CampaignSceneStateDto
 } from '@artificer-toolkit/schema/api/vttScenes'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { tabletopCurrentUserId, tabletopLiveScene } from './CampaignTabletop.stories.fixtures'
 import { createVttSceneRenderer, type VttSceneRenderer } from './vttSceneRenderer'
 import { validated } from '../../../test/validatedFixture'
@@ -98,7 +99,7 @@ function MovementFixture({
   useEffect(() => {
     if (!host.current) return
     let disposed = false
-    void createVttSceneRenderer(host.current, {
+    void createVttSceneRenderer(host.current, SRD_SYSTEM_ID, {
       onCreateBarrier: () => undefined,
       onCreateDarkness: () => undefined,
       onCreateLight: () => undefined,

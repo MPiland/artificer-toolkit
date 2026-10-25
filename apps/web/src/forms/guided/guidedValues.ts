@@ -2,7 +2,13 @@ import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { authoredFormFactories } from '#forms/factories/authoredFormFactories'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
+import { sceneSizes } from '@artificer-toolkit/rules-runtime/systemSizes'
 import { isRecord } from '#forms/utils/valueGuards'
+
+/** The size choices a guided Creature or Race offers: the System's sizes a Scene models. */
+export function guidedSizeOptions(systemId: string | undefined) {
+  return systemId ? sceneSizes(systemId).map(({ code, label }) => ({ label, value: code })) : []
+}
 
 /**
  * The layout form is one object-typed form shared by every Authored domain, so each Guided screen

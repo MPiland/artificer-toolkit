@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import {
   authoredRouteStoryEquipmentParentResponse,
@@ -64,20 +65,20 @@ describe('authoredFormFactories', () => {
 
   it('creates empty values with the selected system id', () => {
     const emptyValues = [
-      backgroundFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      classFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      creatureFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      equipmentFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      featFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      raceFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      spellFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      vehicleFormFactory.createEmptyValues({ systemId: 'system-1' })
+      backgroundFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      classFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      creatureFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      equipmentFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      featFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      raceFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      spellFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      vehicleFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID })
     ]
 
     expect(emptyValues.every(hasSystemId)).toBe(true)
     for (const values of emptyValues) {
       if (hasSystemId(values)) {
-        expect(values.systemId).toBe('system-1')
+        expect(values.systemId).toBe(DND5E_SYSTEM_ID)
       }
     }
   })
@@ -160,7 +161,7 @@ describe('authoredFormFactories', () => {
       status: 'DRAFT',
       subjectId: 'spell-1',
       subjectKind: 'SPELL',
-      systemId: 'system-1',
+      systemId: DND5E_SYSTEM_ID,
       userId: 'user-1'
     }
 

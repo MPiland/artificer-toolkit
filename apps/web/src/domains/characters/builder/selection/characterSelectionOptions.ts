@@ -6,6 +6,7 @@ import type {
 } from '@artificer-toolkit/schema/api/characters'
 import type { AbilityCode } from '@artificer-toolkit/shared/core'
 import { evaluateMulticlassRequirements } from '@artificer-toolkit/shared/character'
+import { formatEnumLabel } from '#components/AuthoredDetail'
 import { compareCharacterBuilderLabels } from './optionProjection'
 import type {
   CharacterSelectionCardGroup,
@@ -260,13 +261,9 @@ function formatMulticlassRequirements(
   return groups
     .map((group) =>
       group.requirements
-        .map((requirement) => `${formatAbilityLabel(requirement.ability)} ${requirement.min}`)
+        .map((requirement) => `${formatEnumLabel(requirement.ability)} ${requirement.min}`)
         .join(' and ')
     )
     .filter(Boolean)
     .join(' or ')
-}
-
-function formatAbilityLabel(ability: string): string {
-  return ability.charAt(0) + ability.slice(1).toLocaleLowerCase('en')
 }

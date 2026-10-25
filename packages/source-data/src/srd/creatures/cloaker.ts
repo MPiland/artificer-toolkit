@@ -50,17 +50,6 @@ export const cloaker: CreatureAuthored = {
       label: 'Damage Transfer',
       description:
         'Damage Transfer. While attached to a creature, the cloaker takes only half the damage dealt to it (rounded down), and that creature takes the other half.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(65, 101),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(65, 102), rangeKind: S.RANGE_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_CLOAKER_DAMAGE_TRANSFER
-        })
-      ],
       order: 1
     },
     {

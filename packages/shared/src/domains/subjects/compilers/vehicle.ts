@@ -1,12 +1,11 @@
 import type { VehicleAuthored } from '#authored'
 import { compileFeature, type CompiledFeature } from '#compilers'
-import type { SizeCode } from '#core'
 import type { CompiledCost, CompiledWeight } from './equipment.js'
 
 export interface CompiledVehicle {
   id: string
   category: string
-  size?: SizeCode
+  size?: string
   armorClass?: number
   hitPoints?: number
   speed?: number

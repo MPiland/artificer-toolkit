@@ -25,9 +25,9 @@ import {
   authoredRecordStatusSchema,
   creatureCategoryCodeSchema,
   damageDefenseBypassCodeSchema,
-  measurementUnitCodeSchema,
-  sizeCodeSchema
+  measurementUnitCodeSchema
 } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 /**
  * A Sense a Creature has: a System sense definition and how far it reaches. This is the shape a
@@ -407,7 +407,7 @@ const creatureAuthoredDtoObject = lazySchema(() =>
     systemId: authoredIdentifierSchema,
     category: creatureCategoryCodeSchema,
     creatureTypeId: authoredIdentifierSchema,
-    size: sizeCodeSchema,
+    size: systemCoreCodeSchema,
     alignmentId: z.optional(authoredIdentifierSchema),
     tags: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
     abilityScores: creatureAbilityScoresDtoSchema,

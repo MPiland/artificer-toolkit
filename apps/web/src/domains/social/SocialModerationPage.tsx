@@ -19,7 +19,8 @@ import { CatchBoundary } from '@tanstack/react-router'
 import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/react'
 import { useState } from 'react'
 import { SocialModerationQueueRow } from './components/SocialModerationQueueRow'
-import { formatStatusLabel, socialModerationActions } from './socialModels'
+import { formatEnumLabel } from '#components/AuthoredDetail'
+import { socialModerationActions } from './socialModels'
 import * as styles from './SocialModerationPage.css'
 
 export function SocialModerationPage() {
@@ -118,7 +119,7 @@ function SocialModerationWorkspace() {
                   <Title order={2} size='h3'>
                     Opened report
                   </Title>
-                  <Badge>{formatStatusLabel(openedReport.status)}</Badge>
+                  <Badge>{formatEnumLabel(openedReport.status)}</Badge>
                 </Group>
                 <Text>
                   <strong>Reporter:</strong> @{openedReport.reporter.username}

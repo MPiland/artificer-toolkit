@@ -221,9 +221,9 @@ export function evaluateDnd5eCharacterSpellSlots(
     }
   })
   const pactCaster = pactCasters.at(-1)
-  const pactMagic =
+  const slotPools =
     pactCaster === undefined
-      ? null
+      ? []
       : (() => {
           const level = Math.max(...pactCaster.selectedSlots.map((slot) => slot.spellLevel))
           const slots = pactCaster.selectedSlots.find(
@@ -234,21 +234,23 @@ export function evaluateDnd5eCharacterSpellSlots(
           )
           const rawUsed = usages.length === 1 ? usages[0]!.rawUsed : 0
           const effectiveUsed = Math.min(rawUsed, slots)
-          return {
-            poolCode: DND5E_PACT_POOL_CODE,
-            sourceClassId: pactCaster.classId,
-            slots,
-            level,
-            rawUsed,
-            effectiveUsed,
-            remaining: Math.max(slots - effectiveUsed, 0)
-          }
+          return [
+            {
+              poolCode: DND5E_PACT_POOL_CODE,
+              sourceClassId: pactCaster.classId,
+              slots,
+              level,
+              rawUsed,
+              effectiveUsed,
+              remaining: Math.max(slots - effectiveUsed, 0)
+            }
+          ]
         })()
   return {
     calculationId: 'spell-slots',
     sourceClassIds: casters.map((caster) => caster.classId),
     maxByLevel,
-    pactMagic,
+    slotPools,
     fusionStrategy:
       standardCasters.length === 0
         ? 'NONE'

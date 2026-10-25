@@ -138,7 +138,7 @@ export function CampaignSceneEditor({
     const host = rendererHost.current
     if (!host) return
     let disposed = false
-    void createVttSceneRenderer(host, {
+    void createVttSceneRenderer(host, gameSystemId, {
       onMapLoadStatus: (status) => {
         setMapLoadStatus(status)
         mapDelivery.onMapLoadStatus(status)
@@ -226,7 +226,7 @@ export function CampaignSceneEditor({
       renderer.current?.destroy()
       renderer.current = null
     }
-  }, [changeDraft, currentUserId, scene.id])
+  }, [changeDraft, currentUserId, gameSystemId, scene.id])
 
   useEffect(() => {
     const latestUpdate = rendererUpdateRef.current

@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 
 export const hornedDevil: CreatureAuthored = {
@@ -62,18 +63,7 @@ export const hornedDevil: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The devil has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(167, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
-            range: { id: S.actionId(167, 1202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(167, 202),
       order: 2
     },
     {
@@ -233,8 +223,11 @@ export const hornedDevil: CreatureAuthored = {
                         },
                         {
                           id: S.actionId(167, 223),
-                          effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                          ruleKind: S.CLOSED_RULE_KIND.CREATURE_HORNED_DEVIL_INFERNAL_WOUND
+                          effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                          label: 'Infernal wound',
+                          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                          instructions:
+                            'Undead and constructs are unaffected. Otherwise the target loses 10 (3d6) hit points at the start of each of its turns, and each time the devil hits it again with its tail the loss increases by 10 (3d6). The wound closes when it is stanched or the target receives magical healing; the GM applies the loss until then.'
                         }
                       ]
                     }

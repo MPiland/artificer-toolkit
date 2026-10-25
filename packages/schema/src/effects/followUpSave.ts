@@ -1,5 +1,5 @@
 import { FOLLOW_UP_SAVE_TIMING, type FollowUpSaveTiming } from '@artificer-toolkit/shared/core'
-import { lazySchema, z } from '../zod.js'
+import { convexOpaqueSchema, lazySchema, z } from '../zod.js'
 
 import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { combatPerceptionRequirementDtoSchema } from '../shared/combatPerception.js'
@@ -53,7 +53,7 @@ export function createFollowUpSaveDtoSchema(outcomeDtoSchema: z.ZodMiniType) {
       endCurrent: z.boolean(),
       resultKind: z.enum(['SINGLE', 'SEQUENCE']),
       gate: z.optional(resultBlockGateDtoSchema),
-      outcomes: authoredNestedCollectionSchema(outcomeDtoSchema)
+      outcomes: authoredNestedCollectionSchema(convexOpaqueSchema(outcomeDtoSchema))
     })
   ])
 

@@ -55,7 +55,7 @@ export function CampaignAnnouncements({
 
   return (
     <div className={styles.layout}>
-      {campaign.role === 'OWNER' && campaign.status === 'ACTIVE' ? (
+      {campaign.capabilities.manageActiveCampaign ? (
         <CampaignAnnouncementComposer campaignId={campaign.id} />
       ) : null}
       <section className={styles.panel} aria-labelledby='campaign-announcements-title'>

@@ -1,12 +1,31 @@
 import { describe, expect, it } from 'vitest'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import {
   guidedField,
+  guidedSizeOptions,
   readGuidedValues,
   readString,
   toDetails,
   toFeatures,
   toSelectOption
 } from './guidedValues'
+
+describe('guidedSizeOptions', () => {
+  it('offers the System sizes a Scene models, smallest first, with their labels', () => {
+    expect(guidedSizeOptions(DND5E_SYSTEM_ID)).toEqual([
+      { label: 'Tiny', value: 'TINY' },
+      { label: 'Small', value: 'SMALL' },
+      { label: 'Medium', value: 'MEDIUM' },
+      { label: 'Large', value: 'LARGE' },
+      { label: 'Huge', value: 'HUGE' },
+      { label: 'Gargantuan', value: 'GARGANTUAN' }
+    ])
+  })
+
+  it('offers nothing before a System is chosen', () => {
+    expect(guidedSizeOptions(undefined)).toEqual([])
+  })
+})
 
 describe('readString', () => {
   it('reads a string and falls back to empty for anything else', () => {

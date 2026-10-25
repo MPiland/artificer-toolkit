@@ -12,6 +12,7 @@ import * as styles from '#forms/guided/guidedAuthoring.css'
 import {
   EMPTY_GUIDED_FORM_VALUES,
   guidedField,
+  guidedSizeOptions,
   readGuidedValues,
   toFeatures,
   toSelectOption
@@ -93,7 +94,13 @@ export const GuidedCreatureAuthoring = withForm({
                 )}
               </form.AppField>
               <form.AppField name={guidedField('creature', 'size')}>
-                {(field) => <field.SelectField data={SIZE_OPTIONS} label='Size' required />}
+                {(field) => (
+                  <field.SelectField
+                    data={guidedSizeOptions(session.systemId)}
+                    label='Size'
+                    required
+                  />
+                )}
               </form.AppField>
               <form.AppField name={guidedField('creature', 'alignmentId')}>
                 {(field) => (
@@ -239,10 +246,6 @@ const DESCRIPTIONS = [
   'Check the stat block essentials before saving or activating.'
 ] as const
 const CREATURE_CATEGORIES = ['MONSTER', 'BEAST', 'NPC', 'COMPANION', 'SUMMON'].map((value) => ({
-  label: value.charAt(0) + value.slice(1).toLowerCase(),
-  value
-}))
-const SIZE_OPTIONS = ['TINY', 'SMALL', 'MEDIUM', 'LARGE', 'HUGE', 'GARGANTUAN'].map((value) => ({
   label: value.charAt(0) + value.slice(1).toLowerCase(),
   value
 }))

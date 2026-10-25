@@ -12,7 +12,7 @@ import {
   activeOptionalCombatDefinitions,
   encounterOptionalCombatSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/optionalCombat'
-import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { systemCoreCodeSchema } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { ServerContestCheckPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { isHandSlot } from '@artificer-toolkit/shared/core'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -239,7 +239,7 @@ export function readEncounterDisarmSelection(input: {
       !Array.isArray(actor.snapshot.payload)
         ? actor.snapshot.payload
         : null
-    const size = sizeCodeSchema.safeParse(payload?.size)
+    const size = systemCoreCodeSchema.safeParse(payload?.size)
     return {
       equipment:
         loadout && equipment

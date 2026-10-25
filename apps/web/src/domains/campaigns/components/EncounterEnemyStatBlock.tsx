@@ -1,10 +1,10 @@
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
 import { abilityScoreCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type { EncounterGmActorDto } from '@artificer-toolkit/schema/api/encounters'
+import type { SpeedDto } from '@artificer-toolkit/schema/shared/speed'
 import { useQuery } from 'convex/react'
 import * as encounterStyles from './encounter.css'
 import { encounterStatBlockDefenses, encounterStatBlockSenses } from './encounterStatBlock.utils'
-import { isRecord } from '#app/forms/utils/valueGuards'
 
 export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto }) {
   // Defenses are vocabulary ids; the System names them.
@@ -92,16 +92,9 @@ function formatTextList(values: unknown[]): string {
   return values.map(String).join(', ')
 }
 
-function formatSpeedList(values: unknown[]): string {
-  if (!values.length) return '—'
-  const speeds = values.flatMap((value) => {
-    if (!isRecord(value)) return []
-    const speed = value
-    const amount = speed.amount
-    if (typeof amount !== 'number' && typeof amount !== 'string') return []
-    const unit =
-      speed.unit === 'FEET' ? 'ft.' : typeof speed.unit === 'string' ? speed.unit.toLowerCase() : ''
-    return `${amount}${unit ? ` ${unit}` : ''}`
-  })
-  return speeds.length ? speeds.join(', ') : '—'
+function formatSpeedList(speeds: readonly SpeedDto[]): string {
+  if (!speeds.length) return '—'
+  return speeds
+    .map(({ amount, unit }) => `${amount} ${unit === 'FEET' ? 'ft.' : unit.toLowerCase()}`)
+    .join(', ')
 }

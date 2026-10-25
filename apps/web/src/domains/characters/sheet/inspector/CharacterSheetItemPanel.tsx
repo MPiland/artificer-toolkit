@@ -1,7 +1,7 @@
 import { Accordion, Button, Modal, Switch, Text } from '@mantine/core'
 import { useState } from 'react'
 
-import { AuthoredDetailProse } from '#app/components/AuthoredDetail'
+import { AuthoredDetailProse, formatEnumLabel } from '#app/components/AuthoredDetail'
 import type { CharacterSheetPanelDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { CharacterSheetFeatureUseControl } from '../shared/CharacterSheetFeatureUseControl'
@@ -14,15 +14,6 @@ import * as inspectorEditorStyles from './inspectorEditor.css'
 import * as inspectorShellStyles from './inspectorShell.css'
 
 type ItemPanel = Extract<CharacterSheetPanelDto, { kind: 'ITEM' }>
-
-function formatRecoveryTrigger(
-  trigger: ItemPanel['resources'][number]['recoveries'][number]['trigger']
-): string {
-  return trigger
-    .replaceAll('_', ' ')
-    .toLocaleLowerCase()
-    .replace(/\b\w/gu, (letter) => letter.toLocaleUpperCase())
-}
 
 export function CharacterSheetItemPanelContent({
   expectedVersion,
@@ -89,7 +80,7 @@ export function CharacterSheetItemPanelContent({
                     <Text className={inspectorShellStyles.muted}>
                       Resets:{' '}
                       {resource.recoveries
-                        .map(({ trigger }) => formatRecoveryTrigger(trigger))
+                        .map(({ trigger }) => formatEnumLabel(trigger))
                         .join(', ')}
                     </Text>
                   ) : null}

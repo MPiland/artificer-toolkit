@@ -3,7 +3,6 @@ import type {
   EncounterRuleWarningDto
 } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { isTargetDead } from '@artificer-toolkit/schema/shared/characterDeathSaves'
-import { sizeRank } from '@artificer-toolkit/shared/core'
 import type { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
 import { isEncounterTargetDying } from './encounterActorDefeat.js'
 import type { EffectOutcomeTargetPrecondition } from './effectOutcomeRegistry.js'
@@ -12,6 +11,7 @@ import {
   targetingExcludesCreatureType,
   withoutCreatureTypeRestrictions
 } from './encounterActionTargetPolicy.js'
+import { sizeRank } from './systemSizes.js'
 
 type OutcomeTarget = Parameters<typeof isEncounterTargetDying>[0]
 
@@ -65,11 +65,10 @@ type EncounterActionWarningInput = {
    */
   targetIntelligence?: number | null
   /**
-   * The actor's and the target's sizes when readable, judged against the action's `sizeLimit`;
-   * either one unknown raises nothing.
+   * The actor's and the target's sizes when readable, judged against the action's `sizeLimit` on
+   * their System's size list; either one unknown raises nothing.
    */
-  actorSize?: string | null
-  targetSize?: string | null
+  sizes?: { gameSystemId: string; actor: string | null; target: string | null }
   /** Set when the action bonds its targets (Telepathic Bond): Intelligence at or below it is excluded. */
   linkIntelligenceFloor?: number | null
   /**
@@ -87,18 +86,14 @@ type EncounterActionWarningInput = {
 
 /** Whether the target is more size steps above the actor than a single-target `sizeLimit` allows. */
 function targetExceedsSizeLimit(
-  input: Pick<EncounterActionWarningInput, 'target' | 'actorSize' | 'targetSize'>
+  input: Pick<EncounterActionWarningInput, 'target' | 'sizes'>
 ): boolean {
   const { targeting } = input.target.targetPolicy
   const limit = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting.sizeLimit : undefined
-  const actorRank = sizeRank(input.actorSize)
-  const targetRank = sizeRank(input.targetSize)
-  return (
-    limit !== undefined &&
-    actorRank !== null &&
-    targetRank !== null &&
-    targetRank - actorRank > limit.stepsAboveActor
-  )
+  if (limit === undefined || !input.sizes) return false
+  const actorRank = sizeRank(input.sizes.gameSystemId, input.sizes.actor)
+  const targetRank = sizeRank(input.sizes.gameSystemId, input.sizes.target)
+  return actorRank !== null && targetRank !== null && targetRank - actorRank > limit.stepsAboveActor
 }
 
 /** Every warning one target raises, or null when the target policy refuses the target outright. */
@@ -182,8 +177,7 @@ export function evaluateEncounterActorsRuleWarnings(
     | 'targetCreatureTypeId'
     | 'targetIntelligence'
     | 'targetPreconditions'
-    | 'actorSize'
-    | 'targetSize'
+    | 'sizes'
   > & {
     targets: readonly Pick<
       EncounterActionWarningInput,

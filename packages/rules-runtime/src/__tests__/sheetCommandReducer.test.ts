@@ -921,6 +921,30 @@ describe('Character Sheet spell summons (D190)', () => {
     expect(remaining(edit(0))).toEqual([held])
   })
 
+  it('renames a summon with no hit point pool, and refuses hit points for it (SPELLS-4.T2v2b)', () => {
+    const {
+      maximumHitPoints: _maximum,
+      currentHitPoints: _current,
+      ...poolless
+    } = summon(timed, false)
+    const owner = character({ spellSummons: [poolless] })
+    const update = (extra: {
+      customName?: string
+      currentHitPoints?: number
+      tempHitPoints?: number
+    }) =>
+      apply(owner, {
+        ...base,
+        type: 'UPDATE_SHEET_EXTRA',
+        extra: { kind: 'SPELL_SUMMON', extraId: timed, ...extra }
+      })
+    expect(update({ customName: 'Hammer' }).state.spellSummons).toEqual([
+      { ...poolless, customName: 'Hammer' }
+    ])
+    expect(() => update({ currentHitPoints: 0 })).toThrow(CharacterSheetCommandError)
+    expect(() => update({ tempHitPoints: 3 })).toThrow(CharacterSheetCommandError)
+  })
+
   it('dismisses a summon, and refuses one that is not there', () => {
     const dismiss = { ...base, type: 'REMOVE_SHEET_EXTRA' } as const
     expect(

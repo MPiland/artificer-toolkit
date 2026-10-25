@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CampaignSceneStateDto } from '@artificer-toolkit/schema/api/vttScenes'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import {
   applySceneDelta,
   createSceneFogAreaPatch,
@@ -262,7 +263,7 @@ export function VttLoadFixture() {
     if (!host) return
     let disposed = false
     let readyFrame = 0
-    void createVttSceneRenderer(host, {
+    void createVttSceneRenderer(host, SRD_SYSTEM_ID, {
       onCreateBarrier: () => undefined,
       onCreateDarkness: () => undefined,
       onCreateLight: () => undefined,

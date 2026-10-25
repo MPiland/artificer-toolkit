@@ -256,7 +256,11 @@ export async function prepareNativeLiveMovement(
                   (token) => captured.actorIdByTokenId.get(token.id) === sourceFacts.actor.id
                 )
                 return reactorToken
-                  ? measureHolderLight(captured.perceptionScene, reactorToken.position)
+                  ? measureHolderLight(
+                      state.gameSystemId,
+                      captured.perceptionScene,
+                      reactorToken.position
+                    )
                   : null
               },
               loadRelationshipFacts: async (relationship) => {
