@@ -35,4 +35,14 @@ Owned by the ATTACK-15 slice session. Design notes, rulings and proofs go here.
 - **Integration (ruling 2026-10-25).** T1 adds INJURIES to the integrated optional rules, so REPLACE_OPTIONAL_COMBAT_RULES and Campaign settings accept it through the real command path, as Morale does. Between T1 and T2 the setting is offered, but an accepted roll is only recorded on its receipt; nothing persists on the Character. This is acceptable because nothing has launched. T3 keeps only the settings-gate proof for AC 15.3.
 - **Keys.** The command and receipt are keyed by `(actorId, sourceCommandId)` plus the table's `definitionId`, so a System with two tables can offer both for one command. A second resolve of the same offer is refused with `TARGET_UNAVAILABLE`, and reusing its command ID replays the first result.
 - **Proofs.** `packages/rules-runtime/src/__tests__/encounterConsequenceRolls.test.ts` covers trigger rules and edge cases. `apps/apis/convex/encounters/consequenceRollCommands.test.ts` is the room journey: drop to 0, GM-only, accept with server roll and card, replay, refused second resolve, decline, undo withdrawal and the turn death save. The stored receipts are room-held history (D85), so `apps/session-worker/test/nativeRoomConsequenceRolls.test.ts` reads them from the room's store. `CampaignTabletopConsequenceRolls.test.tsx` covers the GM control.
-- **Not covered by T1.** Damage outside the damage-save chain makes no offer, for example zone damage during forced movement. Register a follow-up if those paths should offer.
+- **Not covered by T1 (ATTACK-15.T1g).** These automated damage paths make no offer:
+  1. zone damage on voluntary zone entry (`apps/session-worker/src/roomMovementSettlementCallbacks.ts`, `applyMechanics`, then `persistLiveMovementSpatial` in `liveMovementSpatialPersistence.ts`);
+  2. zone damage during forced movement (the same settlement, through `applyRoomForcedMovements`);
+  3. melee retaliation triggered during movement (`nativeEncounterMovement.ts`, through the same settlement);
+  4. check, contest and basic-action outcome batches (`roomEncounterContest.ts` and `roomEncounterBasicActions.ts`, `applyMechanics`);
+  5. damage mirrors (`roomDamageMirror.ts`).
+- **T1g seam.** All five write through `applyRoomEncounterMechanicsBatch` (`roomEncounterMechanics.ts`), then `persistEncounterMechanicsBatchPlan` (`mechanicsBatchPersistence.ts`), as the action, cleaving and turn paths do.
+  - The seam has what an offer needs: the Run state for the tables, `batch.sourceCommandId` for the key, and the target's damage applications. Turn death-save batches carry `batch.deathSave`.
+  - Offers merge per command (Ruling C), so several batches of one command make one offer. Undo withdrawal keys on the root command ID.
+  - Moving the offer write into this seam replaces the four current `persistConsequenceRollOffers` call sites. Check first whether area commit goes through it; if not, area commit keeps its own call.
+- **Ruling (2026-10-25).** Only automation offers. A manual HP change, such as a Sheet `ADJUST_HIT_POINTS` during a Run, makes no offer.
