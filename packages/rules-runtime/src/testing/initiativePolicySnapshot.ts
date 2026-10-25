@@ -9,6 +9,7 @@ import {
 } from '@artificer-toolkit/schema/shared/initiativePolicySnapshot'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { SRD_INITIATIVE_POLICY_DEFINITIONS } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import { DND5E_INITIATIVE_FACT_KEYS } from '../systems/dnd5e/initiativeFactAdapter.js'
@@ -142,6 +143,33 @@ export function initiativePolicySnapshot(input: {
     evaluationGraph: pinnedDefinition(evaluationGraph.id, 'd20 + modifier', evaluationGraph),
     orderChoiceGraph: pinnedDefinition(orderChoiceGraph.id, 'Order choice', orderChoiceGraph),
     tieResolver: pinnedDefinition(tieGraph.id, 'd20 tie-breaker', tieGraph)
+  })
+  return { snapshot, checksum: checksumCanonicalJson(snapshot) }
+}
+
+/**
+ * The frozen snapshot of the seeded SRD initiative policy `policyDefinitionId` and the graphs it pins,
+ * built from the seed documents Campaigns select it from.
+ */
+export function seededInitiativePolicySnapshot(policyDefinitionId: string): {
+  snapshot: EncounterInitiativePolicySnapshotDto
+  checksum: string
+} {
+  const seeded = (id: string) => {
+    const definition = SRD_INITIATIVE_POLICY_DEFINITIONS.find((candidate) => candidate.id === id)
+    if (!definition) throw new Error(`The SRD seeds no initiative definition ${id}.`)
+    return pinnedDefinition(definition.id, definition.label, definition.document)
+  }
+  const policy = initiativePolicyReusableDefinitionDocumentDtoSchema.parse(
+    seeded(policyDefinitionId).document
+  )
+  const snapshot = encounterInitiativePolicySnapshotDtoSchema.parse({
+    schemaVersion: 1,
+    gameSystemId: policy.gameSystemId,
+    policy: seeded(policy.id),
+    evaluationGraph: seeded(policy.evaluationGraph.definitionId),
+    orderChoiceGraph: seeded(policy.orderChoiceGraph.definitionId),
+    tieResolver: seeded(policy.defaultTieResolverDefinitionId)
   })
   return { snapshot, checksum: checksumCanonicalJson(snapshot) }
 }

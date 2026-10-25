@@ -25,6 +25,7 @@ const reasonsWithoutPayload = [
   'SOURCE_REQUIREMENTS_NOT_MET',
   'TARGET_UNAVAILABLE',
   'TELEPORT_UNAVAILABLE',
+  'UNDECLARED_ACTION',
   'VERSION_STALE'
 ] as const
 
@@ -53,6 +54,7 @@ export const DOMAIN_REJECTION_MESSAGES: Record<(typeof reasonsWithoutPayload)[nu
   SOURCE_REQUIREMENTS_NOT_MET: "This actor doesn't meet the requirements to take that action.",
   TARGET_UNAVAILABLE: 'The target is unavailable.',
   TELEPORT_UNAVAILABLE: 'A teleport spell must be cast first, and it must be unspent.',
+  UNDECLARED_ACTION: 'This actor declared a different action for this round.',
   VERSION_STALE: 'Encounter version is stale.'
 }
 

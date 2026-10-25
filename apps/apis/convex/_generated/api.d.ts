@@ -23398,11 +23398,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -34545,11 +34626,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -45701,11 +45863,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -56848,11 +57091,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -68030,11 +68354,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -79177,11 +79582,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -90326,11 +90812,92 @@ export declare const api: {
                   minimumIndexFact: string;
                   selectionOutput: string;
                 };
-                procedure:
-                  | "ACTOR_ROLL"
-                  | "ACTOR_SCORE"
-                  | "SIDE_ROLL"
-                  | "DECLARED_ACTION_ROLL";
+                procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                schemaVersion: 1;
+                tieResolvers: Array<{
+                  automaticOutput: string;
+                  definitionChecksum: string;
+                  definitionId: string;
+                  definitionVersion: number;
+                  maximumAttempts: number;
+                  repeatOnTie: boolean;
+                  scoreOutput: string;
+                  sortDirection: "ASCENDING" | "DESCENDING";
+                }>;
+              }
+            | {
+                cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                declarationModifiers: {
+                  factors: Array<{
+                    equipmentPropertySets: Array<
+                      Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >
+                    >;
+                    id: string;
+                    label: string;
+                    modifier: number;
+                  }>;
+                  sizes: Array<{ modifier: number; size: string }>;
+                  spellLevel: { modifierPerLevel: number };
+                };
+                defaultTieResolverDefinitionId: string;
+                evaluationGraph: {
+                  automaticOutput: string;
+                  definitionChecksum: string;
+                  definitionId: string;
+                  definitionVersion: number;
+                  scoreOutput: string;
+                  sortDirection: "ASCENDING" | "DESCENDING";
+                };
+                gameSystemId: string;
+                id: string;
+                kind: "INITIATIVE_POLICY";
+                orderChoiceGraph: {
+                  definitionChecksum: string;
+                  definitionId: string;
+                  definitionVersion: number;
+                  maximumIndexFact: string;
+                  minimumIndexFact: string;
+                  selectionOutput: string;
+                };
+                procedure: "DECLARED_ACTION_ROLL";
                 schemaVersion: 1;
                 tieResolvers: Array<{
                   automaticOutput: string;
@@ -101323,11 +101890,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -112470,11 +113118,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -129018,7 +129747,7 @@ export declare const api: {
                       required: true;
                     }
                   | {
-                      key: "actionFactors";
+                      key: "factorIds";
                       kind: "MULTI_SELECT";
                       label: string;
                       maximumSelections: number;
@@ -129459,7 +130188,7 @@ export declare const api: {
                         required: true;
                       }
                     | {
-                        key: "actionFactors";
+                        key: "factorIds";
                         kind: "MULTI_SELECT";
                         label: string;
                         maximumSelections: number;
@@ -130428,7 +131157,7 @@ export declare const api: {
                   required: true;
                 }
               | {
-                  key: "actionFactors";
+                  key: "factorIds";
                   kind: "MULTI_SELECT";
                   label: string;
                   maximumSelections: number;
@@ -131403,7 +132132,7 @@ export declare const api: {
                       required: true;
                     }
                   | {
-                      key: "actionFactors";
+                      key: "factorIds";
                       kind: "MULTI_SELECT";
                       label: string;
                       maximumSelections: number;

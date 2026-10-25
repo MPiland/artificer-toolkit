@@ -305,7 +305,7 @@ export function characterActor(input: { id: string; characterId: string }): Enco
     resources: {},
     gmNotes: null,
     sideId: SIDE_ID,
-    snapshot: {},
+    snapshot: { kind: 'CHARACTER', systemId: SRD_SYSTEM_ID, id: input.characterId },
     createdAt: TIMESTAMP,
     updatedAt: TIMESTAMP
   })

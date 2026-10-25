@@ -2083,6 +2083,14 @@ and cadence (`ENCOUNTER_START` carries the settled order into later rounds, `EAC
 fresh round), and pins an evaluation graph, a bounded order-choice graph and bounded tie resolvers.
 Graphs supply facts and scores; the application orders results and invokes the pinned resolver.
 Unresolved ties go through the order-choice graph, never an application tiebreak.
+**Speed Factor (current, ENCOUNTER-4.T1).** `INITIATIVE_POLICY` is a union on `procedure`: only the `DECLARED_ACTION_ROLL`
+variant carries `declarationModifiers`, the authored table of size and per-declaration factors
+(`initiativeDeclarationModifier`, `encounterInitiativeDeclarationModifier.ts`; no System code holds a table). The compiler
+reads sizes and factors from the frozen policy, and the `GM_ADJUDICATED` request lists the policy's `factorIds`. The seeded SRD
+policy (`source-data/srd/initiativePolicies.ts`, selectable like optional combat) settles a tie by the higher Dexterity score
+(D&D fact `initiative.dexterity-score`, one attempt) and leaves a still-equal tie to the table's order choice. A declared actor's
+action and spell admission refuse any other action with `UNDECLARED_ACTION`; basic actions stay unenforced (see
+future-enhancements).
 
 Lifecycle order: `START` creates a `PREPARING` round, evaluates the policy, resolves ties and choices,
 activates the first participant, then enters that actor's `START_OF_TURN`. At an `EACH_ROUND` wrap the

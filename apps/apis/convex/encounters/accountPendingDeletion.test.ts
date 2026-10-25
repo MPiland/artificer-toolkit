@@ -76,7 +76,7 @@ function initiativeDeclarationResolution(
             kind: 'GM_ADJUDICATED',
             optionId: 'GM_ADJUDICATED',
             actorSize: 'MEDIUM',
-            actionFactors: [],
+            factorIds: [],
             spellLevel: null
           }
         : { kind: option.kind, optionId: option.optionId }

@@ -243,7 +243,7 @@ function gmCommand(encounterId: string, pending: DeclarationPending) {
           kind: 'GM_ADJUDICATED',
           optionId: 'GM_ADJUDICATED',
           actorSize: 'MEDIUM',
-          actionFactors: [],
+          factorIds: [],
           spellLevel: null
         }),
         bonus: null
