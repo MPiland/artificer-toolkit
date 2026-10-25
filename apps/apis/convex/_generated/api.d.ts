@@ -128678,7 +128678,11 @@ export declare const api: {
                           };
                       senseDefinitionId: string;
                     }>;
-                    speeds: Array<any>;
+                    speeds: Array<{
+                      amount: number;
+                      speedId: string;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    }>;
                   } | null;
                   systemId: string | null;
                   tempHitPoints: number;
@@ -129808,7 +129812,11 @@ export declare const api: {
                           };
                       senseDefinitionId: string;
                     }>;
-                    speeds: Array<any>;
+                    speeds: Array<{
+                      amount: number;
+                      speedId: string;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    }>;
                   } | null;
                   systemId: string | null;
                   tempHitPoints: number;
@@ -130783,7 +130791,11 @@ export declare const api: {
                       };
                   senseDefinitionId: string;
                 }>;
-                speeds: Array<any>;
+                speeds: Array<{
+                  amount: number;
+                  speedId: string;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                }>;
               } | null;
               systemId: string | null;
               tempHitPoints: number;
@@ -131092,7 +131104,11 @@ export declare const api: {
                           };
                       senseDefinitionId: string;
                     }>;
-                    speeds: Array<any>;
+                    speeds: Array<{
+                      amount: number;
+                      speedId: string;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    }>;
                   } | null;
                   systemId: string | null;
                   tempHitPoints: number;
@@ -131735,7 +131751,11 @@ export declare const api: {
                     };
                 senseDefinitionId: string;
               }>;
-              speeds: Array<any>;
+              speeds: Array<{
+                amount: number;
+                speedId: string;
+                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+              }>;
             } | null;
             systemId: string | null;
             tempHitPoints: number;
