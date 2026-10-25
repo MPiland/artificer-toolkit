@@ -138,85 +138,81 @@ export function CampaignSceneEditor({
     const host = rendererHost.current
     if (!host) return
     let disposed = false
-    void createVttSceneRenderer(
-      host,
-      {
-        onMapLoadStatus: (status) => {
-          setMapLoadStatus(status)
-          mapDelivery.onMapLoadStatus(status)
-        },
-        onCreateAnnotation: (position) => {
-          if (previewRef.current) return
-          changeDraft((current) => ({
-            ...current,
-            annotations: [
-              ...current.annotations,
-              createSceneAnnotation(current.annotations.length, position)
-            ]
-          }))
-        },
-        onCreateBarrier: (kind, a, b) => {
-          if (previewRef.current || (a.x === b.x && a.y === b.y)) return
-          changeDraft((current) => ({
-            ...current,
-            barriers: [...current.barriers, createSceneBarrier(kind, a, b)]
-          }))
-        },
-        onCreateDarkness: (a, b) => {
-          if (previewRef.current) return
-          const zone = createSceneDarknessZone(a, b)
-          if (!zone) return
-          changeDraft((current) => ({
-            ...current,
-            darknessZones: [...current.darknessZones, zone]
-          }))
-        },
-        onCreateLight: (position) => {
-          if (previewRef.current) return
-          changeDraft((current) => ({
-            ...current,
-            lights: [...current.lights, createSceneLight(position)]
-          }))
-        },
-        onCreateToken: (position) => {
-          if (previewRef.current) return
-          changeDraft((current) => ({
-            ...current,
-            tokens: [
-              ...current.tokens,
-              createSceneToken(current.grid, current.tokens.length, position)
-            ]
-          }))
-        },
-        onDoorState: (barrierId, state) => {
-          if (previewRef.current) return
-          changeDraft((current) => ({
-            ...current,
-            barriers: current.barriers.map((barrier) =>
-              barrier.kind === 'DOOR' && barrier.id === barrierId
-                ? { ...barrier, initialState: state }
-                : barrier
-            )
-          }))
-        },
-        onMeasurementCommit: () => undefined,
-        onMeasurementPreview: () => undefined,
-        onPing: () => false,
-        onTokenCommit: (tokenId, path) => {
-          if (previewRef.current) return
-          const position = path.at(-1)
-          if (!position) return
-          changeDraft((current) => ({
-            ...current,
-            tokens: current.tokens.map((token) =>
-              token.id === tokenId ? { ...token, position } : token
-            )
-          }))
-        },
-        onTokenPreview: () => undefined
+    void createVttSceneRenderer(host, gameSystemId, {
+      onMapLoadStatus: (status) => {
+        setMapLoadStatus(status)
+        mapDelivery.onMapLoadStatus(status)
       },
-      gameSystemId
-    ).then((nextRenderer) => {
+      onCreateAnnotation: (position) => {
+        if (previewRef.current) return
+        changeDraft((current) => ({
+          ...current,
+          annotations: [
+            ...current.annotations,
+            createSceneAnnotation(current.annotations.length, position)
+          ]
+        }))
+      },
+      onCreateBarrier: (kind, a, b) => {
+        if (previewRef.current || (a.x === b.x && a.y === b.y)) return
+        changeDraft((current) => ({
+          ...current,
+          barriers: [...current.barriers, createSceneBarrier(kind, a, b)]
+        }))
+      },
+      onCreateDarkness: (a, b) => {
+        if (previewRef.current) return
+        const zone = createSceneDarknessZone(a, b)
+        if (!zone) return
+        changeDraft((current) => ({
+          ...current,
+          darknessZones: [...current.darknessZones, zone]
+        }))
+      },
+      onCreateLight: (position) => {
+        if (previewRef.current) return
+        changeDraft((current) => ({
+          ...current,
+          lights: [...current.lights, createSceneLight(position)]
+        }))
+      },
+      onCreateToken: (position) => {
+        if (previewRef.current) return
+        changeDraft((current) => ({
+          ...current,
+          tokens: [
+            ...current.tokens,
+            createSceneToken(current.grid, current.tokens.length, position)
+          ]
+        }))
+      },
+      onDoorState: (barrierId, state) => {
+        if (previewRef.current) return
+        changeDraft((current) => ({
+          ...current,
+          barriers: current.barriers.map((barrier) =>
+            barrier.kind === 'DOOR' && barrier.id === barrierId
+              ? { ...barrier, initialState: state }
+              : barrier
+          )
+        }))
+      },
+      onMeasurementCommit: () => undefined,
+      onMeasurementPreview: () => undefined,
+      onPing: () => false,
+      onTokenCommit: (tokenId, path) => {
+        if (previewRef.current) return
+        const position = path.at(-1)
+        if (!position) return
+        changeDraft((current) => ({
+          ...current,
+          tokens: current.tokens.map((token) =>
+            token.id === tokenId ? { ...token, position } : token
+          )
+        }))
+      },
+      onTokenPreview: () => undefined
+    }).then((nextRenderer) => {
       if (disposed) {
         nextRenderer.destroy()
         return

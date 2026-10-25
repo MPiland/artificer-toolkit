@@ -263,53 +263,49 @@ export function VttLoadFixture() {
     if (!host) return
     let disposed = false
     let readyFrame = 0
-    void createVttSceneRenderer(
-      host,
-      {
-        onCreateBarrier: () => undefined,
-        onCreateDarkness: () => undefined,
-        onCreateLight: () => undefined,
-        onCreateToken: () => undefined,
-        onDoorState: () => undefined,
-        onMeasurementCommit: (path) => {
-          const renderer = rendererRef.current
-          if (!renderer) return
-          sceneRef.current = {
-            ...sceneRef.current,
-            measurements: [
-              ...sceneRef.current.measurements,
-              {
-                createdByUserId: vttLoadFixtureUserId,
-                id: crypto.randomUUID(),
-                label: 'Committed load-gate measurement',
-                path
-              }
-            ],
-            version: sceneRef.current.version + 1
-          }
-          renderer.update(ownerUpdate(sceneRef.current, 'MEASURE'))
-          setJourney((current) => ({ ...current, measurementCommit: true }))
-        },
-        onMeasurementPreview: () => undefined,
-        onPing: () => false,
-        onTokenCommit: (tokenId, path) => {
-          const renderer = rendererRef.current
-          const position = path.at(-1)
-          if (!renderer || !position) return
-          sceneRef.current = {
-            ...sceneRef.current,
-            tokens: sceneRef.current.tokens.map((token) =>
-              token.id === tokenId ? { ...token, position } : token
-            ),
-            version: sceneRef.current.version + 1
-          }
-          renderer.update(ownerUpdate(sceneRef.current, 'SELECT'))
-          setJourney((current) => ({ ...current, tokenDragCommit: true }))
-        },
-        onTokenPreview: () => undefined
+    void createVttSceneRenderer(host, SRD_SYSTEM_ID, {
+      onCreateBarrier: () => undefined,
+      onCreateDarkness: () => undefined,
+      onCreateLight: () => undefined,
+      onCreateToken: () => undefined,
+      onDoorState: () => undefined,
+      onMeasurementCommit: (path) => {
+        const renderer = rendererRef.current
+        if (!renderer) return
+        sceneRef.current = {
+          ...sceneRef.current,
+          measurements: [
+            ...sceneRef.current.measurements,
+            {
+              createdByUserId: vttLoadFixtureUserId,
+              id: crypto.randomUUID(),
+              label: 'Committed load-gate measurement',
+              path
+            }
+          ],
+          version: sceneRef.current.version + 1
+        }
+        renderer.update(ownerUpdate(sceneRef.current, 'MEASURE'))
+        setJourney((current) => ({ ...current, measurementCommit: true }))
       },
-      SRD_SYSTEM_ID
-    ).then((renderer) => {
+      onMeasurementPreview: () => undefined,
+      onPing: () => false,
+      onTokenCommit: (tokenId, path) => {
+        const renderer = rendererRef.current
+        const position = path.at(-1)
+        if (!renderer || !position) return
+        sceneRef.current = {
+          ...sceneRef.current,
+          tokens: sceneRef.current.tokens.map((token) =>
+            token.id === tokenId ? { ...token, position } : token
+          ),
+          version: sceneRef.current.version + 1
+        }
+        renderer.update(ownerUpdate(sceneRef.current, 'SELECT'))
+        setJourney((current) => ({ ...current, tokenDragCommit: true }))
+      },
+      onTokenPreview: () => undefined
+    }).then((renderer) => {
       if (disposed) {
         renderer.destroy()
         return

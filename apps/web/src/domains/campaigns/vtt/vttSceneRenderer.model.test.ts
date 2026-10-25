@@ -52,6 +52,7 @@ import {
   minimumFocusedTokenScreenSize,
   resolveVttTokenFocusScale,
   resolveVttZoomScale,
+  sceneIlluminationAreas,
   senseEffect,
   senseReachRadius,
   sceneTokenAppearanceKey,
@@ -60,6 +61,7 @@ import {
   stageOverlays,
   statusCategoryColours,
   visibleGridLinePositions,
+  wholeMapPolygon,
   type VttActionPreview,
   type VttSenseReach
 } from './vttSceneRenderer.model'
@@ -1140,6 +1142,30 @@ describe('VTT lighting model', () => {
     expect(alpha('MAGICAL_DARKNESS')).toBe(1)
     expect(gmDarknessCapAlpha).toBeGreaterThan(dimOverlayAlpha)
     expect(gmDarknessCapAlpha).toBeLessThan(1)
+  })
+
+  it('lists the ambient level over the whole map, then each zone that sets a level', () => {
+    const square = [
+      { x: 0, y: 0 },
+      { x: 10, y: 0 },
+      { x: 10, y: 10 }
+    ]
+    const areas = sceneIlluminationAreas(
+      {
+        ambientIllumination: 'DIM',
+        darknessZones: [
+          { ...zone('MAGICAL_DARKNESS', null), id: 'magic', polygon: { points: square } },
+          { ...zone(null, 'HEAVY'), id: 'fog', polygon: { points: square } }
+        ],
+        map: { ...tabletopLiveScene.map, height: 200, width: 300 }
+      },
+      illuminationLevels
+    )
+    expect(areas).toEqual([
+      { level: level('DIM'), points: wholeMapPolygon({ height: 200, width: 300 }), zone: false },
+      { level: level('MAGICAL_DARKNESS'), points: square, zone: true }
+    ])
+    expect(areas[0]?.points).toContainEqual({ x: 300, y: 200 })
   })
 
   it('tints a light faintly, stronger for a more intense light', () => {

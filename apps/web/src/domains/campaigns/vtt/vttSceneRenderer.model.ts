@@ -924,6 +924,46 @@ export function illuminationOverlayAlpha(renderClass: SceneIlluminationRenderCla
   return renderClass === 'DIM' ? dimOverlayAlpha : 1
 }
 
+export function wholeMapPolygon(
+  map: Pick<CampaignSceneStateDto['map'], 'height' | 'width'>
+): ScenePoint[] {
+  return [
+    { x: 0, y: 0 },
+    { x: map.width, y: 0 },
+    { x: map.width, y: map.height },
+    { x: 0, y: map.height }
+  ]
+}
+
+/** One area at a System illumination level: the whole map (`zone: false`) or a darkness zone. */
+export interface VttIlluminationArea {
+  level: SceneIlluminationLevel
+  points: readonly ScenePoint[]
+  zone: boolean
+}
+
+/** The Scene's illumination areas: the ambient level over the whole map, then each zone's level. */
+export function sceneIlluminationAreas(
+  scene: Pick<CampaignSceneStateDto, 'ambientIllumination' | 'darknessZones' | 'map'>,
+  illuminationLevels: readonly SceneIlluminationLevel[]
+): VttIlluminationArea[] {
+  const ambient = requireSceneIlluminationLevel(illuminationLevels, scene.ambientIllumination)
+  return [
+    { level: ambient, points: wholeMapPolygon(scene.map), zone: false },
+    ...scene.darknessZones.flatMap((zone) =>
+      zone.mechanicalIllumination
+        ? [
+            {
+              level: requireSceneIlluminationLevel(illuminationLevels, zone.mechanicalIllumination),
+              points: zone.polygon.points,
+              zone: true
+            }
+          ]
+        : []
+    )
+  ]
+}
+
 /** The low-alpha colour tint a light lays over its bright core and its dim reach. */
 export function lightTintAlpha(light: Pick<SceneLight, 'intensity'>): number {
   return Math.min(0.2, Math.max(0.04, light.intensity * 0.12))

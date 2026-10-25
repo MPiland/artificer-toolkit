@@ -204,22 +204,18 @@ function PresentationFixture({
   useEffect(() => {
     if (!host.current) return
     let disposed = false
-    void createVttSceneRenderer(
-      host.current,
-      {
-        onCreateBarrier: () => undefined,
-        onCreateDarkness: () => undefined,
-        onCreateLight: () => undefined,
-        onCreateToken: () => undefined,
-        onDoorState: () => undefined,
-        onMeasurementCommit: () => undefined,
-        onMeasurementPreview: () => undefined,
-        onPing: () => false,
-        onTokenCommit: () => undefined,
-        onTokenPreview: () => undefined
-      },
-      SRD_SYSTEM_ID
-    ).then((nextRenderer) => {
+    void createVttSceneRenderer(host.current, SRD_SYSTEM_ID, {
+      onCreateBarrier: () => undefined,
+      onCreateDarkness: () => undefined,
+      onCreateLight: () => undefined,
+      onCreateToken: () => undefined,
+      onDoorState: () => undefined,
+      onMeasurementCommit: () => undefined,
+      onMeasurementPreview: () => undefined,
+      onPing: () => false,
+      onTokenCommit: () => undefined,
+      onTokenPreview: () => undefined
+    }).then((nextRenderer) => {
       if (disposed) {
         nextRenderer.destroy()
         return

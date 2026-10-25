@@ -27,23 +27,19 @@ export function CampaignShownSceneCanvas({
     const element = host.current
     if (!element) return
     let disposed = false
-    void createVttSceneRenderer(
-      element,
-      {
-        onMapLoadStatus: mapDelivery.onMapLoadStatus,
-        onCreateBarrier: () => undefined,
-        onCreateDarkness: () => undefined,
-        onCreateLight: () => undefined,
-        onCreateToken: () => undefined,
-        onDoorState: () => undefined,
-        onMeasurementCommit: () => undefined,
-        onMeasurementPreview: () => undefined,
-        onPing: () => false,
-        onTokenCommit: () => undefined,
-        onTokenPreview: () => undefined
-      },
-      gameSystemId
-    ).then((created) => {
+    void createVttSceneRenderer(element, gameSystemId, {
+      onMapLoadStatus: mapDelivery.onMapLoadStatus,
+      onCreateBarrier: () => undefined,
+      onCreateDarkness: () => undefined,
+      onCreateLight: () => undefined,
+      onCreateToken: () => undefined,
+      onDoorState: () => undefined,
+      onMeasurementCommit: () => undefined,
+      onMeasurementPreview: () => undefined,
+      onPing: () => false,
+      onTokenCommit: () => undefined,
+      onTokenPreview: () => undefined
+    }).then((created) => {
       if (disposed) created.destroy()
       else setRenderer(created)
     })
