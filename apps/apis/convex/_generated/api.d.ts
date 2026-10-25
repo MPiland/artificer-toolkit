@@ -127983,7 +127983,7 @@ export declare const api: {
                       minimumRoll?: {
                         amount: number;
                         label: string;
-                        sourceEffectId: string;
+                        sourceId: string;
                       };
                       modifier: number;
                       rawFaces: Array<number>;
@@ -129198,7 +129198,7 @@ export declare const api: {
                       minimumRoll?: {
                         amount: number;
                         label: string;
-                        sourceEffectId: string;
+                        sourceId: string;
                       };
                       modifier: number;
                       rawFaces: Array<number>;
@@ -130257,7 +130257,7 @@ export declare const api: {
                   minimumRoll?: {
                     amount: number;
                     label: string;
-                    sourceEffectId: string;
+                    sourceId: string;
                   };
                   modifier: number;
                   rawFaces: Array<number>;
@@ -130651,7 +130651,7 @@ export declare const api: {
                       minimumRoll?: {
                         amount: number;
                         label: string;
-                        sourceEffectId: string;
+                        sourceId: string;
                       };
                       modifier: number;
                       rawFaces: Array<number>;
@@ -131378,7 +131378,7 @@ export declare const api: {
                 minimumRoll?: {
                   amount: number;
                   label: string;
-                  sourceEffectId: string;
+                  sourceId: string;
                 };
                 modifier: number;
                 rawFaces: Array<number>;

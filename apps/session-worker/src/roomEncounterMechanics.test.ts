@@ -32,6 +32,7 @@ vi.mock('./nativeCharacterRules.js', async (importOriginal) => {
   return { ...actual, prepareLiveCharacterSheetFacts: vi.fn(actual.prepareLiveCharacterSheetFacts) }
 })
 
+// Settling both batches through a built room takes 3-4 s alone, near the 5 s default, so a loaded runner times out.
 it('settles Character and Creature mechanics from native play with private receipts and atomic rollback', async () => {
   const room = srdRoomCharacter({
     characterId: uuid(0xb10),
@@ -412,4 +413,4 @@ it('settles Character and Creature mechanics from native play with private recei
   } finally {
     database.close()
   }
-})
+}, 30_000)

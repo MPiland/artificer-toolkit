@@ -41,7 +41,8 @@ const holderState = (kind: EncounterHolderState['kind']): EncounterHolderState =
   speedAboveZero: true,
   freeHand: true,
   stowableHeldItemInstanceId: null,
-  turnMovement: { usedFeet: 0, speedFeet: 30 }
+  turnMovement: { usedFeet: 0, speedFeet: 30 },
+  activeAuthoredEffectIds: []
 })
 
 const creatureHolder = (creature: CreatureAuthored) =>

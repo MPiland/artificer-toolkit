@@ -1,8 +1,10 @@
 import type {
   CharacterGrantFoldModifier,
+  CharacterGrantFoldOutput,
   CharacterGrantFoldSense,
   EquipmentInstanceMechanicSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import type { CharacterAssemblyRegistry } from '@artificer-toolkit/shared/core'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import {
   attackCriticalRules,
@@ -286,41 +288,92 @@ export function activeAfterRollAbilityCheckDice(
   }))
 }
 
+/** The label a Character grant source reads by: its authored record's or its item's. */
+function characterGrantSourceLabel(
+  registry: Pick<
+    CharacterAssemblyRegistry,
+    'features' | 'classes' | 'feats' | 'races' | 'backgrounds' | 'equipment'
+  >,
+  source: CharacterGrantFoldOutput['modifiers'][number]['source']
+): string {
+  const label =
+    source.kind === 'AUTHORED'
+      ? (registry.features[source.definitionId]?.label ??
+        registry.feats[source.definitionId]?.label ??
+        registry.classes[source.definitionId]?.label ??
+        registry.races[source.definitionId]?.label ??
+        registry.backgrounds?.[source.definitionId]?.label ??
+        Object.values(registry.features)
+          .flatMap((feature) => feature?.options ?? [])
+          .find((option) => option.id === source.definitionId)?.label)
+      : source.kind === 'EQUIPMENT_INSTANCE'
+        ? registry.equipment[source.equipmentId]?.label
+        : undefined
+  return label ?? 'Character feature'
+}
+
 /**
- * The floor a holder's active grants put on the d20 of its ability checks with one ability, or of
- * an ability-less check when `abilityCode` is null; null when it has none. A grant naming no
- * ability covers every check. Floors from several effects reduce to the highest, the lowest effect
- * id breaking a tie, so every roll site and replay reads one source.
+ * The floor a holder's grants put on the d20 of one ability check: its active effects' and, for a
+ * Character, its own unconditional feature grants' (Reliable Talent). The check is made with
+ * `abilityCode`, or is ability-less when it is null; a grant naming no ability covers every check.
+ * A `proficientOnly` grant holds only when the check adds the holder's full proficiency bonus or
+ * more (`proficient`); half proficiency does not count. Floors reduce to the highest, the lowest
+ * source id breaking a tie, so every roll site and replay reads one source; null when none holds.
  */
-export function activeAbilityCheckMinimumRoll(
-  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[],
+export function abilityCheckMinimumRoll(input: {
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
+  /** A Character's grant fold and the registry that labels its sources; null for a Creature. */
+  character: {
+    grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'>
+    registry: Parameters<typeof characterGrantSourceLabel>[0]
+  } | null
   abilityCode: string | null
-): D20MinimumRollDto | null {
+  proficient: boolean
+}): D20MinimumRollDto | null {
+  const { character, abilityCode, proficient } = input
+  const candidates = [
+    ...listActiveEffectGrants(input.effects).flatMap(
+      ({ effectId, modifiers, sourceLabel, sourceHidden }) =>
+        modifiers.map((modifier) => ({
+          modifier,
+          sourceId: effectId,
+          label: () => (sourceHidden ? 'Unseen source' : sourceLabel)
+        }))
+    ),
+    // The fold also carries the active effects' grants; those are read from the effects above.
+    ...(character === null
+      ? []
+      : character.grantFold.modifiers.flatMap((modifier) =>
+          modifier.source.kind === 'ACTIVE_EFFECT' || modifier.deferredRequirements.length > 0
+            ? []
+            : [
+                {
+                  modifier,
+                  sourceId: modifier.sourceId,
+                  label: () => characterGrantSourceLabel(character.registry, modifier.source)
+                }
+              ]
+        ))
+  ]
   let floor: D20MinimumRollDto | null = null
-  for (const { effectId, modifiers, sourceLabel, sourceHidden } of listActiveEffectGrants(
-    effects
-  )) {
-    for (const { valueDomainCode, modifierKind, scope, domain, payload } of modifiers) {
-      if (
-        valueDomainCode !== 'ABILITY_CHECK' ||
-        modifierKind !== 'MINIMUM_ROLL' ||
-        scope !== 'GLOBAL' ||
-        (domain.ability !== undefined && domain.ability !== abilityCode)
-      )
-        continue
-      if (payload === undefined || !('amount' in payload))
-        throw new Error('An active minimum-roll grant must carry its amount.')
-      if (
-        floor === null ||
-        payload.amount > floor.amount ||
-        (payload.amount === floor.amount && effectId < floor.sourceEffectId)
-      )
-        floor = {
-          amount: payload.amount,
-          label: sourceHidden ? 'Unseen source' : sourceLabel,
-          sourceEffectId: effectId
-        }
-    }
+  for (const { modifier, sourceId, label } of candidates) {
+    const { valueDomainCode, modifierKind, scope, domain, payload } = modifier
+    if (
+      valueDomainCode !== 'ABILITY_CHECK' ||
+      modifierKind !== 'MINIMUM_ROLL' ||
+      scope !== 'GLOBAL' ||
+      (domain.ability !== undefined && domain.ability !== abilityCode) ||
+      (domain.proficientOnly === true && !proficient)
+    )
+      continue
+    if (payload === undefined || !('amount' in payload))
+      throw new Error('A minimum-roll grant must carry its amount.')
+    if (
+      floor === null ||
+      payload.amount > floor.amount ||
+      (payload.amount === floor.amount && sourceId < floor.sourceId)
+    )
+      floor = { amount: payload.amount, label: label(), sourceId }
   }
   return floor
 }
