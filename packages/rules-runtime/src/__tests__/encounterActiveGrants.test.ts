@@ -18,7 +18,7 @@ import {
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import {
-  activeAbilityCheckMinimumRoll,
+  abilityCheckMinimumRoll,
   activeAttackRollDice,
   activeSavingThrowDice,
   effectiveHitPointMaximum
@@ -67,7 +67,12 @@ import {
   viciousMockeryEffect
 } from './antitoxinEffectFixture.js'
 import { withGrantModifiers } from '../testing/modifierGrantFixture.js'
-import { evaluateSrdCharacter, vocabulary } from '../testing/dnd5eSrdCharacter.js'
+import {
+  evaluateSrdCharacter,
+  srdFeature,
+  srdRegistry,
+  vocabulary
+} from '../testing/dnd5eSrdCharacter.js'
 import { FRIGHTENED_CONDITION_ID, POISONED_CONDITION_ID } from './encounterActiveEffectFixtures.js'
 
 const srdSystem = systemAuthoredDtoSchema.parse(srdSystemRecord)
@@ -757,40 +762,78 @@ describe('a held d20 floor on ability checks', () => {
       sourceLabel: glibness.label
     })
 
+  const floorOf = (
+    effects: Parameters<typeof abilityCheckMinimumRoll>[0]['effects'],
+    abilityCode: string | null,
+    character: Parameters<typeof abilityCheckMinimumRoll>[0]['character'] = null,
+    proficient = false
+  ) => abilityCheckMinimumRoll({ effects, character, abilityCode, proficient })
+
   it('floors only the checks of the ability the grant names', () => {
     const held = [glibnessHeld(EFFECT_ID)]
-    expect(activeAbilityCheckMinimumRoll(held, CHARISMA)).toEqual({
-      amount: 15,
-      label: 'Glibness',
-      sourceEffectId: EFFECT_ID
-    })
-    expect(activeAbilityCheckMinimumRoll(held, WISDOM_CODE)).toBeNull()
-    expect(activeAbilityCheckMinimumRoll(held, null)).toBeNull()
+    expect(floorOf(held, CHARISMA)).toEqual({ amount: 15, label: 'Glibness', sourceId: EFFECT_ID })
+    expect(floorOf(held, WISDOM_CODE)).toBeNull()
+    expect(floorOf(held, null)).toBeNull()
   })
 
   it('is null when nothing floors the roll, and ignores a rolled-die grant', () => {
-    expect(activeAbilityCheckMinimumRoll([], CHARISMA)).toBeNull()
-    expect(
-      activeAbilityCheckMinimumRoll(
-        [blessEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })],
-        CHARISMA
-      )
-    ).toBeNull()
+    expect(floorOf([], CHARISMA)).toBeNull()
+    expect(floorOf([blessEffect({ id: EFFECT_ID, holderActorId: HOLDER_ID })], CHARISMA)).toBeNull()
   })
 
   it('reduces several floors to the highest', () => {
     const held = [glibnessHeld(EFFECT_ID), glibnessHeld(OTHER_EFFECT_ID, 17)]
-    expect(activeAbilityCheckMinimumRoll(held, CHARISMA)).toMatchObject({
-      amount: 17,
-      sourceEffectId: OTHER_EFFECT_ID
-    })
+    expect(floorOf(held, CHARISMA)).toMatchObject({ amount: 17, sourceId: OTHER_EFFECT_ID })
   })
 
   it('breaks a tie by the lowest effect id', () => {
     const lowest = glibnessHeld(THIRD_EFFECT_ID)
     const tied = glibnessHeld(EFFECT_ID)
-    expect(activeAbilityCheckMinimumRoll([lowest, tied], CHARISMA)?.sourceEffectId).toBe(EFFECT_ID)
-    expect(activeAbilityCheckMinimumRoll([tied, lowest], CHARISMA)?.sourceEffectId).toBe(EFFECT_ID)
+    expect(floorOf([lowest, tied], CHARISMA)?.sourceId).toBe(EFFECT_ID)
+    expect(floorOf([tied, lowest], CHARISMA)?.sourceId).toBe(EFFECT_ID)
+  })
+
+  describe("a Character feature's floor (Reliable Talent, SPELLS-31.T5c)", () => {
+    const reliableTalent = srdFeature({
+      owner: 'CLASS',
+      classLabel: 'Rogue',
+      featureLabel: 'Reliable Talent',
+      level: 11
+    })
+    const rogue = evaluateSrdCharacter({
+      classes: [{ label: 'Rogue', level: 11 }],
+      features: [reliableTalent]
+    })
+    const character = { grantFold: rogue.output.grantFold, registry: srdRegistry }
+    const folded = rogue.output.grantFold.modifiers.find(
+      (modifier) => modifier.modifierKind === 'MINIMUM_ROLL'
+    )
+
+    it('floors a check that adds proficiency at 10, under the feature label', () => {
+      expect(folded?.source).toMatchObject({ definitionId: reliableTalent.featureId })
+      expect(floorOf([], CHARISMA, character, true)).toEqual({
+        amount: 10,
+        label: 'Reliable Talent',
+        sourceId: folded?.sourceId
+      })
+      expect(floorOf([], null, character, true)).toMatchObject({ amount: 10 })
+    })
+
+    it('leaves a check without proficiency, or a Creature, unfloored', () => {
+      expect(floorOf([], CHARISMA, character, false)).toBeNull()
+      expect(floorOf([], CHARISMA, null, true)).toBeNull()
+    })
+
+    it('yields to a higher held floor and outranks a lower one', () => {
+      expect(floorOf([glibnessHeld(EFFECT_ID)], CHARISMA, character, true)).toMatchObject({
+        amount: 15,
+        sourceId: EFFECT_ID
+      })
+      expect(floorOf([glibnessHeld(EFFECT_ID, 8)], CHARISMA, character, true)).toMatchObject({
+        amount: 10,
+        label: 'Reliable Talent'
+      })
+    })
   })
 })
 
@@ -812,6 +855,7 @@ describe('active grants on a System that does not install their policy', () => {
         speedAboveZero: true,
         freeHand: true,
         turnMovement: { usedFeet: 0, speedFeet: 0 },
+        activeAuthoredEffectIds: [],
         stowableHeldItemInstanceId: null
       })
     ).toThrow('The Game System does not provide ability-score policy.')
