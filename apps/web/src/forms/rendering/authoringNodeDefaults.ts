@@ -177,7 +177,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
 
   switch (defaultKind) {
     case 'abilityScores':
-      return createAbilityScores()
+      return {}
     case 'capacity':
       return createMeasurement('POUNDS') satisfies CapacityDto
     case 'activation':
@@ -250,7 +250,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
     case 'classMulticlassRequirement':
       return {
         id: crypto.randomUUID(),
-        ability: 'STRENGTH',
+        ability: '',
         min: 13
       } satisfies ClassMulticlassDto['requirementGroups']['groups'][number]['requirements'][number]
     case 'classMulticlassRequirementGroup':
@@ -502,7 +502,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       } satisfies NonNullable<ModifierDamageInterceptionAuthored['excludes']>
     case 'damageInterceptionSave':
       return {
-        ability: 'CONSTITUTION',
+        ability: '',
         dc: { base: 10, plusDamageTaken: false }
       } satisfies NonNullable<ModifierDamageInterceptionAuthored['save']>
     case 'damageInterceptionSaveDc':
@@ -1019,17 +1019,6 @@ export function createTargeting(selectionKind = 'SELF'): TargetingDto {
   if (selectionKind === 'AREA_CONTENTS')
     return { selectionKind: 'AREA_CONTENTS', dispositionKind: 'ANY' }
   return { selectionKind: 'SINGLE_TARGET', dispositionKind: 'ANY' }
-}
-
-function createAbilityScores() {
-  return {
-    STRENGTH: 10,
-    DEXTERITY: 10,
-    CONSTITUTION: 10,
-    INTELLIGENCE: 10,
-    WISDOM: 10,
-    CHARISMA: 10
-  } satisfies Record<string, number>
 }
 
 function createChargeBonus(order: number) {

@@ -107,3 +107,20 @@ Split proposed to the orchestrator. T9f3a is below. T9f3b covers deleting class 
   - `character-rules-contracts.test.ts`: the `slotPools` bound.
   - `creaturePublication.test.ts`: the message.
 - **Residual, reported:** summon `abilityScores` (`effects/maps/path.ts` `SUMMON_ABILITY_SCORES_NODE_MAP`) is keyed by six hard-coded D&D ability codes in a shared map, and the schema accepts any core-code key. It is not a select, so the generic refusal does not reach it.
+
+### 2026-10-25: T9f3b, System vocabulary D193 data changes
+
+- **Class `hitpoint.ability` deleted.** The class hit point DTO, authored type, compiler and node map carry `dieConfig` only, and the 12 SRD classes and all fixtures dropped `ability`.
+  - Hit point progression rows no longer carry an `abilityIndex`. `characterVitals.ts` applies the System hit point ability (`hitPointFacts.constitutionAbilityIndex`, resolved from `derivedStatisticAbilityCodes.hitPoints`) to every row.
+  - Builder (`characterAbilities.ts`, `CharacterHitpointProgression.tsx`) and class detail (`ClassDetail.model.ts`) read the ability from `abilityScoreCapabilityRegistry.require(systemId)`.
+- **Telepathic link floor is an authored reference.** `excludesIntelligenceAtOrBelow: number` is now `excludesAbilityAtOrBelow: { ability, score }`, with the ability a System core code (schema, projection, node map `telepathicLinkAbilityFloor`).
+  - The Worker (`nativeAreaPreparation.ts`) reads the target's score for the authored ability. No `INTELLIGENCE` read remains.
+  - The rule warning is `TARGET_ABILITY_EXCLUDED`, and its inputs are `targetLinkAbilityScore` and `linkAbilityFloor`.
+- **Race ASI snapshot facts store codes.** A fixed increase is `{ ability, value }`, and a summary fact keeps `{ label, value }`. The catalog reader (`builderCatalog.ts`) labels the code from the System's abilities. `contentSnapshots.test.ts` expects the new stored shape; this is an intended contract change.
+- **`authoringNodeDefaults`:** `classHitpoint` lost `ability` (and `classAuthoring.utils.ts` defaults to `{ dieConfig: '1d8' }`). `classMulticlassRequirement` and `damageInterceptionSave` default `ability` to `''` so the author picks one (orchestrator ruling). `createAbilityScores` is deleted; a new summon stat block starts with `{}`.
+- **Ability score maps keyed by the System (ruling option A).** `NodeMap.keyedBy` plus `buildNodeMap().defineKeyed` declare a map whose nodes are one `entry` per row of a System table. The creature `abilityScores` and `summonAbilityScores` maps use it on `abilities`, so their six hard-coded keys are gone.
+  - The resolver expands it with `request.systemId`, gives an empty keyed object a scope, and clears an unlisted key (refused at ingress for core-code tables, which closes the T9f3a summon residual). No transport field changed.
+  - The registry signature and `campaignTextPolicy` masking walk the keyed entry.
+  - `keyedNodeMaps.test.ts` proves the expansion for a second System (`MIGHT`, `WIT`) and SRD parity (Brown Bear, Arcane Hand). `systemVocabularyOptions.test.ts` now collects table plans from the whole map, keyed rows included.
+  - The nodeRuntime guide (`authoring-schema.md`) documents it. No ADR amendment: the guide does not make static maps a load-bearing rule.
+- **File budget.** `ACTOR_RELATIONSHIP_MODULE_NODE_MAP` moved from `effects/maps/path.ts` to `actorRelationshipModule.ts`, so `path.ts` is back under budget. The `path.ts` and warlock caps were lowered.

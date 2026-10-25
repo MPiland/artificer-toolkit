@@ -566,48 +566,18 @@ const APPLY_GRANTS_NODE_MAP: NodeMap<ApplyGrantsNode> = applyGrants.define(
   }
 )
 
-const SUMMON_ABILITY_SCORES_NODE_MAP: NodeMap<SummonAbilityScoresNode> = summonAbilityScores.define(
-  'summonAbilityScores',
-  ({ map, nodes }) => {
-    const { groupObject } = nodes
-
-    map
-      .set(
-        'STRENGTH',
-        groupObject(['STRENGTH'], 'Strength', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'DEXTERITY',
-        groupObject(['DEXTERITY'], 'Dexterity', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'CONSTITUTION',
-        groupObject(['CONSTITUTION'], 'Constitution', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'INTELLIGENCE',
-        groupObject(['INTELLIGENCE'], 'Intelligence', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'WISDOM',
-        groupObject(['WISDOM'], 'Wisdom', () => NUMERIC_EXPR_NODE_MAP, { presentation: 'inline' })
-      )
-      .set(
-        'CHARISMA',
-        groupObject(['CHARISMA'], 'Charisma', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-  }
-)
+const SUMMON_ABILITY_SCORES_NODE_MAP: NodeMap<SummonAbilityScoresNode> =
+  summonAbilityScores.defineKeyed('summonAbilityScores', {
+    rows: summonAbilityScores.data.table('abilities', {
+      selectColumns: ['id', 'label', 'description']
+    }),
+    entry: {
+      kind: 'GROUP',
+      groupKind: 'OBJECT',
+      presentation: 'inline',
+      nodes: () => NUMERIC_EXPR_NODE_MAP
+    }
+  })
 
 const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatBlock.define(
   'summonStatBlock',
