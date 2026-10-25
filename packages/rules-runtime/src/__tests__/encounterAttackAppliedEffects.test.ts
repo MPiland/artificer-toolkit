@@ -198,6 +198,6 @@ describe('the mark an attack gives its target (ATTACK-13.T1)', () => {
     }))
     const marks = triggers({ rules })
     expect(attack(marks, RANGED).grants.map(({ id }) => id)).toEqual([marks[0]!.id])
-    expect(marks[0]!.effect.definition.recurrence.expiration).toMatchObject({ anchor: 'HOLDER' })
+    expect(marks[0]!.effect.definition.recurrence.anchor).toBe('HOLDER')
   })
 })
