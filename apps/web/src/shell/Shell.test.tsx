@@ -3,7 +3,7 @@ import { renderToString } from 'react-dom/server'
 import { renderWithAppProviders } from '#test/renderWithAppProviders'
 import { TestRouterProvider } from '#test/TestRouterProvider'
 import { Shell } from './Shell'
-import { platformNavigation } from './navigation'
+import { buildPlatformNavigation, contentKindOrder } from './navigation'
 import { useShellReturnHref } from './returnLocation'
 
 vi.mock('#app/data/media', () => ({
@@ -126,7 +126,7 @@ describe('Shell', () => {
       <Shell
         currentPath='/social'
         isAuthenticated
-        navigation={platformNavigation}
+        navigation={buildPlatformNavigation(contentKindOrder)}
         userEmail='test@example.com'
       >
         <div>Page content</div>
@@ -140,6 +140,39 @@ describe('Shell', () => {
     fireEvent.mouseEnter(screen.getByRole('button', { name: /create/i }))
     await screen.findByRole('menu')
     expect(screen.queryByRole('menuitem', { name: 'Social listing' })).not.toBeInTheDocument()
+  })
+
+  it('lists only the content kinds the System publishes in the Library menu', async () => {
+    renderWithAppProviders(
+      <Shell
+        currentPath='/home'
+        isAuthenticated
+        navigation={buildPlatformNavigation(['CREATURE', 'SPELL'])}
+      >
+        <div>Page content</div>
+      </Shell>
+    )
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /library/i }))
+
+    expect(await screen.findByRole('menuitem', { name: 'Spells' })).toHaveAttribute(
+      'href',
+      '/spells'
+    )
+    expect(screen.getByRole('menuitem', { name: 'Creatures' })).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Classes' })).not.toBeInTheDocument()
+    expect(screen.queryByText('No Game System content available')).not.toBeInTheDocument()
+  })
+
+  it('shows an explicit empty state and no Content entries when no System publishes content', async () => {
+    renderWithAppProviders(
+      <Shell currentPath='/home' isAuthenticated navigation={buildPlatformNavigation([])}>
+        <div>Page content</div>
+      </Shell>
+    )
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /library/i }))
+
+    expect(await screen.findByText('No Game System content available')).toBeInTheDocument()
+    expect(screen.queryByRole('menuitem', { name: 'Spells' })).not.toBeInTheDocument()
   })
 
   it('hides the Library importer unless its feature flag is enabled', async () => {

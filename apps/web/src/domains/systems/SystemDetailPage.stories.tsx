@@ -46,6 +46,7 @@ const capability = gameSystemRuleCapabilityDtoSchema.parse({
   gameSystemId: systemId,
   contractVersion: 1,
   authoredRootKinds: ['effect'],
+  contentKinds: [],
   definitionFamilyKeys: ['sense', 'rules-runtime-graph'],
   factContracts: [{ key: 'actor.level', valueKind: 'NUMBER' }],
   operationContracts: [{ key: 'number.add', contractVersion: 1 }]

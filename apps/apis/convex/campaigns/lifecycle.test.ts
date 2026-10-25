@@ -196,6 +196,7 @@ describe('native Campaign creation and member reads', () => {
         invite: false,
         manageMembers: false,
         manageCharacters: false,
+        manageActiveCampaign: false,
         // CAMPAIGN-7: an active owner assigns and transfers like a player; archiving revokes both.
         assignOwnCharacter: false,
         manageSharedContent: false,

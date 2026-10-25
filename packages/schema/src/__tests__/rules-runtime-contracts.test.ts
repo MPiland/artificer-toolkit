@@ -1358,11 +1358,23 @@ describe('rules runtime contracts', () => {
         gameSystemId: SYSTEM_ID,
         contractVersion: 1,
         authoredRootKinds: ['action'],
+        contentKinds: ['SPELL'],
         definitionFamilyKeys: ['test-resolution'],
         factContracts: [{ key: 'actor.value', valueKind: 'NUMBER' }],
         operationContracts: [{ key: 'number.compare-threshold', contractVersion: 1 }]
       })
-    ).toMatchObject({ gameSystemId: SYSTEM_ID })
+    ).toMatchObject({ gameSystemId: SYSTEM_ID, contentKinds: ['SPELL'] })
+    expect(() =>
+      gameSystemRuleCapabilityDtoSchema.parse({
+        gameSystemId: SYSTEM_ID,
+        contractVersion: 1,
+        authoredRootKinds: ['action'],
+        contentKinds: ['SPELLS'],
+        definitionFamilyKeys: ['test-resolution'],
+        factContracts: [],
+        operationContracts: [{ key: 'number.compare-threshold', contractVersion: 1 }]
+      })
+    ).toThrow()
     expect(ruleGraphDefinitionDtoSchema.parse(definition)).toEqual(definition)
     expect(() =>
       ruleGraphDefinitionDtoSchema.parse({
@@ -1384,6 +1396,7 @@ describe('rules runtime contracts', () => {
         gameSystemId: SEEDED_SYSTEM_ID,
         contractVersion: 1,
         authoredRootKinds: ['action'],
+        contentKinds: [],
         definitionFamilyKeys: ['test-resolution'],
         factContracts: [],
         operationContracts: [{ key: 'number.compare-threshold', contractVersion: 1 }]

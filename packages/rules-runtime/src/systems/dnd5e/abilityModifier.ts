@@ -28,5 +28,10 @@ export const dnd5eAbilityScoreCapabilityAdapter: AbilityScoreCapabilityAdapter =
   gameSystemId: DND5E_SYSTEM_ID,
   abilityModifier,
   abilityDefinitionIdByCode: DND5E_ABILITY_DEFINITION_ID_BY_CODE,
-  abilityCode: dnd5eAbilityCode
+  abilityCode: dnd5eAbilityCode,
+  derivedStatisticAbilityCodes: {
+    armorClass: 'DEXTERITY',
+    initiative: 'DEXTERITY',
+    hitPoints: 'CONSTITUTION'
+  }
 }

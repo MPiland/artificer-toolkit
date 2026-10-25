@@ -96,6 +96,7 @@ describe('SystemDetailPage', () => {
       gameSystemId: authoredRouteStorySystem.id,
       contractVersion: 1,
       authoredRootKinds: ['effect'],
+      contentKinds: [],
       definitionFamilyKeys: ['effect-action', 'sense', 'rules-runtime-graph'],
       factContracts: [],
       operationContracts: []

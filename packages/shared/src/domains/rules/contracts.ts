@@ -1,3 +1,5 @@
+import type { Subject } from '../subjects/core/subject.js'
+
 export const RULE_VALUE_KIND = {
   BOOLEAN: 'BOOLEAN',
   NUMBER: 'NUMBER',
@@ -34,6 +36,8 @@ export interface GameSystemRuleCapabilityContract {
   gameSystemId: string
   contractVersion: number
   authoredRootKinds: readonly string[]
+  /** Authored content kinds the System publishes; the shell navigation lists exactly these. */
+  contentKinds: readonly Exclude<Subject, 'CHARACTER'>[]
   definitionFamilyKeys: readonly string[]
   factContracts: readonly RuleFactContract[]
   operationContracts: readonly RuleOperationReference[]

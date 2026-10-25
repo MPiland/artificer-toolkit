@@ -1,3 +1,4 @@
+import { formatEnumLabel } from '#components/AuthoredDetail'
 import type { CharacterSheet } from '../core/CharacterSheet.types'
 import { formatSigned } from '../core/characterSheet.utils'
 
@@ -50,7 +51,7 @@ function formatMechanicOutcome(outcome: CharacterSheetMechanicOutcome, castLevel
     case 'CONDITION':
       return joinFacts(outcome.label, path)
     case 'EFFECT':
-      return joinFacts(outcome.label ?? formatCodeLabel(outcome.effectKind), path)
+      return joinFacts(outcome.label ?? formatEnumLabel(outcome.effectKind), path)
   }
 }
 
@@ -92,20 +93,12 @@ function formatOutcomePath(pathCode: string): string | undefined {
     case 'ON_USE':
       return undefined
     default:
-      return formatCodeLabel(pathCode).toLocaleLowerCase()
+      return formatEnumLabel(pathCode).toLocaleLowerCase()
   }
 }
 
 function formatAbilityLabel(ability: string): string {
   return `${ability.charAt(0)}${ability.slice(1).toLocaleLowerCase()}`
-}
-
-function formatCodeLabel(value: string): string {
-  return value
-    .toLocaleLowerCase()
-    .split('_')
-    .map((part) => `${part.charAt(0).toLocaleUpperCase()}${part.slice(1)}`)
-    .join(' ')
 }
 
 function joinFacts(...facts: Array<string | undefined>): string {

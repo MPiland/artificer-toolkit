@@ -59,6 +59,7 @@ vi.mock('./vttSceneRenderer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./vttSceneRenderer')>()),
   createVttSceneRenderer: (
     _host: HTMLElement,
+    _gameSystemId: string,
     handlers: {
       onAreaDirection: (aim: { origin: ScenePoint; toward: ScenePoint }) => void
       onAreaPoint: (point: ScenePoint) => void

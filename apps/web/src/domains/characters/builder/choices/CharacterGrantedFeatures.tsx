@@ -5,6 +5,7 @@ import type {
   CharacterBuilderFeatureChoiceViewDto,
   CharacterBuilderGrantSummaryItemDto
 } from '@artificer-toolkit/schema/api/characters'
+import { formatEnumLabel } from '#components/AuthoredDetail'
 import { renderSanitizedRichHtml } from '#lib/richText'
 import { AppMultiSelect, AppSelect } from '#ui/primitives/Select'
 import type { CharacterFormValues } from '../core/characterBuilder.types'
@@ -67,7 +68,7 @@ export function CharacterGrantedFeatures({
               <div className={styles.grantedFeatureHeader}>
                 <Text fw={700}>{feature.label}</Text>
                 {showSourceBadge ? (
-                  <Badge variant='light'>{formatSourceKind(feature.source.kind)}</Badge>
+                  <Badge variant='light'>{formatEnumLabel(feature.source.kind)}</Badge>
                 ) : null}
               </div>
               {feature.description?.trim() ? (
@@ -270,13 +271,6 @@ function sameSource(
   right: FeatureChoiceSource
 ): boolean {
   return isSameCharacterProvenanceIdentity(left, right)
-}
-
-function formatSourceKind(kind: CharacterBuilderGrantSummaryItemDto['source']['kind']): string {
-  return kind
-    .toLowerCase()
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (letter: string) => letter.toUpperCase())
 }
 
 function isRedundantDetailLabel(detailLabel: string, featureLabel: string): boolean {

@@ -555,6 +555,13 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Target-chosen save ability:** the Bulette Deadly Leap lets each creature pick Strength or Dexterity for its save (SPELLS-33.T6k3). It ships as a Strength save with the choice, the 15-foot jump precondition and the push as a GM ruling.
 - **Condition suppression:** Calm Emotions.
 - **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits. Contagion (SPELLS-4.T2m3) ships its whole disease as a GM ruling on hit: the 7-day duration is over `MAX_ACTIVE_EFFECT_TURNS`, so neither its threshold saves nor its disease rows can ride an active effect.
+- **Lingering creature riders (SPELLS-33.T6m2, D187a):** the saves, conditions and turn-anchored stun are data; these ship as GM rulings:
+  - **Creature-tag and can-hear area filters:** the Vrock Stunning Screech sparing demons (a creature tag, not a type) and creatures that can't hear it, and the Androsphinx Roar's hearing gate.
+  - **Ordinal use variants:** the Androsphinx Roar's first, second and third roar chosen by the uses spent since the last long rest.
+  - **Wake action:** the Couatl Bite's poison, ended for the unconscious target by another creature's action with no check.
+  - **Stacking recurring damage ended by healing:** the Horned Devil infernal wound, growing by 3d6 with each tail hit and closed by magical healing.
+  - **Follow-up check under a save path:** the Horned Devil Tail's authored DC 12 Wisdom (Medicine) stanch check (`FOLLOW_UP_CHECK`) has no executor inside a failed save's outcomes, so the Tail stays on the creature attack allowlist (`OUTCOME_KIND`) until it does.
+  - **Absolute tree size for tree travel:** the Dryad Tree Stride's Large-or-bigger trees (`TREE_STRIDE` only knows a size relative to the traveler).
 - **Damage-taken lifecycle condition:** a held effect's `onTriggers` `DAMAGE_TAKEN` applying a timed condition, such as Contagion's Slimy Doom stun until the end of the holder's next turn (SPELLS-4.T2m3).
 - **Curse tag ending:** Remove Curse.
 - **Dispel acting on a placed zone.**
@@ -584,6 +591,8 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Destructible held objects (SPELLS-4.T2m2b):** the Net automates as a source-independent restraining relationship, but its "destroyed by 5 slashing damage (AC 10)" clause and its formless-creature exclusion are description only. An object that can be targeted and damaged on the board would automate them.
 - **Drop to 0 hit points and self-heal on a kill (SPELLS-33.T4i4b):** a REDUCE_TO_ZERO_HIT_POINTS outcome with its own persisted application kind (untyped, so resistance does not halve it, and dying rather than dead for Characters), plus a source self-heal when its target dies. Death Glare ships as a GM ruling with its target requirements kept; Consume Life automates its save-gated KILL and the wisp's 3d6 regain is a GM ruling.
 - **Rare class senses and riders:** Blindsense, Feral Senses, Witch Sight, Retaliation, and the One with Shadows light gate.
+- **Save scopes by damage type and by illusion (SPELLS-32.T4j):** Dwarven Resilience gives advantage only on saves against the POISONED condition, not on saves against poison damage such as a breath weapon. Duergar Resilience covers saves against magic but has no separate illusion scope. Automating them needs a save scope keyed on the effect's damage type and an illusion school or tag on the source.
+- **Retire unused size codes (RULES-2.T9f1):** the dnd5e size table still lists FINE, DIMUNITIVE (misspelled), GIANT and COLOSSAL, which no SRD content uses. Removing them needs a data check and a reseed.
 
 ## Other future enhancements (parked)
 

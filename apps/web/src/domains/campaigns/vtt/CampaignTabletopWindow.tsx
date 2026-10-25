@@ -69,7 +69,11 @@ export function CampaignTabletopWindow({
       {campaign.role === 'OWNER' ? (
         <CampaignGmRoller campaignId={campaign.id} rollModes={campaign.rollModes} />
       ) : (
-        <CampaignShownSceneViewer campaignId={campaign.id} currentUserId={currentUserId} />
+        <CampaignShownSceneViewer
+          campaignId={campaign.id}
+          currentUserId={currentUserId}
+          gameSystemId={campaign.gameSystemId}
+        />
       )}
     </main>
   )

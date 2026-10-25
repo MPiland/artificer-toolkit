@@ -12,6 +12,8 @@ import {
   resolveSystemSkillAbilities
 } from '@artificer-toolkit/shared/character'
 
+import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
+
 type DerivedFacts = CharacterRulePolicyInput['derivedBaseFacts']
 type NumericBonus = DerivedFacts['abilities'][number]['bonuses'][number]
 
@@ -67,7 +69,8 @@ function abilityMatches(left: string | undefined, right: string): boolean {
   return left !== undefined && canonicalAbility(left) === canonicalAbility(right)
 }
 
-function abilityRecordKey(
+/** The snapshot's key for an ability, matched through its aliases; the ability itself when absent. */
+export function abilityRecordKey(
   abilities: CharacterBuildSnapshot['abilities'],
   abilityId: string
 ): string {
@@ -76,7 +79,8 @@ function abilityRecordKey(
   )
 }
 
-function abilityRecordIndex(
+/** The snapshot's index of an ability, matched through its aliases; null when absent. */
+export function abilityRecordIndex(
   abilities: CharacterBuildSnapshot['abilities'],
   abilityId: string
 ): number | null {
@@ -277,14 +281,17 @@ export function buildCharacterDerivedRuleFacts(
     const abilityId = registry.classes[classId]?.spellcasting?.ability
     return abilityId ? [abilityRecordKey(snapshot.abilities, abilityId)] : []
   })[0]
+  const { initiative } = abilityScoreCapabilityRegistry.require(
+    snapshot.systemId
+  ).derivedStatisticAbilityCodes
 
   return {
     abilities,
     savingThrows,
     skills,
     initiative: {
-      abilityId: abilityRecordKey(snapshot.abilities, 'DEXTERITY'),
-      abilityIndex: abilityRecordIndex(snapshot.abilities, 'DEXTERITY'),
+      abilityId: abilityRecordKey(snapshot.abilities, initiative),
+      abilityIndex: abilityRecordIndex(snapshot.abilities, initiative),
       bonuses: modifierBonuses('INITIATIVE', {}, false)
     },
     spellcasting: spellcastingAbility

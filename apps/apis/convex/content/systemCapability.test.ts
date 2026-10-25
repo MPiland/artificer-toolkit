@@ -78,6 +78,17 @@ describe('native System capability', () => {
     ).rejects.toThrow()
   })
 
+  it('publishes the content kinds the System offers, from the installed contract', async () => {
+    const { caller } = await fixture()
+    const published = await caller.query(api.content.systems.capability, {
+      id: installed.gameSystemId
+    })
+    expect(published?.contentKinds).toEqual(installed.contentKinds)
+    expect(published?.contentKinds).toEqual(
+      expect.arrayContaining(['SPELL', 'CLASS', 'RACE', 'CREATURE'])
+    )
+  })
+
   it('rejects an expired session', async () => {
     const { t, session, caller } = await fixture()
     await t.run((ctx) =>

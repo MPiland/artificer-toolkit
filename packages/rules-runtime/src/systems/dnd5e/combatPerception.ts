@@ -3,7 +3,6 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   type CombatPerceptionAccessGrade,
   type CombatPerceptionRequirement,
-  type CombatPerceptionIllumination,
   type CombatPerceptionIlluminationAccess,
   type CombatPerceptionObscurement,
   type CombatPerceptionObscurementAccess,
@@ -20,7 +19,8 @@ import {
   type CombatPerceptionContribution,
   type CombatPerceptionContributionSourceIdentity,
   type CombatPerceptionContributionSource,
-  type CombatPerceptionContributionResult
+  type CombatPerceptionContributionResult,
+  type SceneIlluminationLevel
 } from '@artificer-toolkit/shared/vtt'
 
 import { DND5E_SYSTEM_ID } from './identity.js'
@@ -35,7 +35,24 @@ const CHECKSUM_PATTERN = /^[a-f0-9]{64}$/
 const channelValues = ['VISUAL', 'AUDITORY', 'VIBRATION', 'NONVISUAL'] as const
 const accessGradeValues = ['DETECTED', 'LOCATED', 'PRECISE'] as const
 const requirementValues = ['DETECT', 'LOCATE', 'PRECISE', 'SEE'] as const
-const illuminationValues = ['BRIGHT', 'DIM', 'ORDINARY_DARKNESS', 'MAGICAL_DARKNESS'] as const
+/** SRD light: no light dispels magical darkness, and darkvision sees only ordinary darkness. */
+const DND5E_ILLUMINATION_LEVELS = [
+  { code: 'BRIGHT', label: 'Bright light', renderClass: 'LIT', suppressesLight: false },
+  { code: 'DIM', label: 'Dim light', renderClass: 'DIM', suppressesLight: false },
+  {
+    code: 'ORDINARY_DARKNESS',
+    label: 'Ordinary darkness',
+    renderClass: 'DARK',
+    suppressesLight: false
+  },
+  {
+    code: 'MAGICAL_DARKNESS',
+    label: 'Magical darkness',
+    renderClass: 'DARK',
+    suppressesLight: true
+  }
+] as const satisfies readonly SceneIlluminationLevel[]
+const illuminationValues = DND5E_ILLUMINATION_LEVELS.map(({ code }) => code)
 const illuminationAccessValues = [
   'BRIGHT_ONLY',
   'DIM',
@@ -47,12 +64,6 @@ const obscurementValues = ['NONE', 'LIGHT', 'HEAVY'] as const
 const obscurementAccessValues = ['NONE', 'LIGHT', 'HEAVY', 'IGNORE'] as const
 const physicalConstraintValues = ['LINE_OF_EFFECT', 'SHARED_SURFACE'] as const
 
-const illuminationRank: Readonly<Record<CombatPerceptionIllumination, number>> = {
-  BRIGHT: 0,
-  DIM: 1,
-  ORDINARY_DARKNESS: 2,
-  MAGICAL_DARKNESS: 3
-}
 const illuminationAccessRank: Readonly<
   Record<Exclude<CombatPerceptionIlluminationAccess, 'IGNORE'>, number>
 > = {
@@ -771,7 +782,7 @@ function resolveParsedCombatPerception(parsed: {
       reasons.push('INVISIBLE_SUBJECT')
     if (
       capability.illuminationAccess !== 'IGNORE' &&
-      illuminationRank[parsed.environment.illumination] >
+      illuminationValues.indexOf(parsed.environment.illumination) >
         illuminationAccessRank[capability.illuminationAccess]
     )
       reasons.push('ILLUMINATION_INSUFFICIENT')
@@ -907,14 +918,14 @@ function resolveLocalEnvironment(
     sources,
     (contribution) =>
       contribution.kind === 'ILLUMINATION_EFFECT' ? contribution.illumination : null,
-    illuminationRank
+    illuminationValues
   )
   const obscurement = resolveEnvironmentValue(
     environment.obscurement,
     sources,
     (contribution) =>
       contribution.kind === 'ILLUMINATION_EFFECT' ? contribution.obscurement : null,
-    obscurementRank
+    obscurementValues
   )
   return { ...environment, illumination, obscurement }
 }
@@ -923,7 +934,7 @@ function resolveEnvironmentValue<T extends string>(
   base: T,
   sources: readonly CombatPerceptionContributionSource[],
   select: (contribution: CombatPerceptionContribution) => T | null,
-  rank: Readonly<Record<T, number>>
+  ranked: readonly T[]
 ): T {
   let selectedValue = base
   let selectedPrecedence: number | null = null
@@ -934,7 +945,8 @@ function resolveEnvironmentValue<T extends string>(
     if (
       selectedPrecedence === null ||
       source.contribution.precedence > selectedPrecedence ||
-      (source.contribution.precedence === selectedPrecedence && rank[value] > rank[selectedValue])
+      (source.contribution.precedence === selectedPrecedence &&
+        ranked.indexOf(value) > ranked.indexOf(selectedValue))
     ) {
       selectedValue = value
       selectedPrecedence = source.contribution.precedence
@@ -1074,5 +1086,6 @@ export function resolveCombatPerceptionWithContributions(input: {
 
 export const dnd5eCombatPerceptionCapabilityAdapter: CombatPerceptionCapabilityAdapter = {
   gameSystemId: DND5E_SYSTEM_ID,
+  illuminationLevels: DND5E_ILLUMINATION_LEVELS,
   resolveCombatPerceptionWithContributions
 }

@@ -6,7 +6,7 @@ import { expect, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { api } from '@artificer-toolkit/apis/convex/api'
 import { notificationFeedQuery } from '#app/data/notifications'
 import { Shell } from '#app/shell/Shell'
-import { platformNavigation } from '#app/shell/navigation'
+import { buildPlatformNavigation, contentKindOrder } from '#app/shell/navigation'
 import { NotificationsPage } from './NotificationsPage'
 import { NotificationsProvider } from './NotificationsProvider'
 
@@ -17,7 +17,7 @@ const meta = {
     children: <div>Dashboard</div>,
     currentPath: '/home',
     isAuthenticated: true,
-    navigation: platformNavigation,
+    navigation: buildPlatformNavigation(contentKindOrder),
     userEmail: 'story@example.com'
   },
   beforeEach: () => {
