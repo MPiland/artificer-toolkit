@@ -9,7 +9,7 @@ import type { EncounterOptionalCombatSnapshotDto } from '../shared/optionalComba
 import type { EncounterRunActorState } from './encounterRunState.js'
 
 type ProjectionActor<TActor> = TActor extends unknown
-  ? Omit<TActor, 'conditions' | 'resources' | 'snapshot' | 'sideId' | 'createdAt' | 'updatedAt'> & {
+  ? Omit<TActor, 'conditions' | 'resources' | 'snapshot' | 'createdAt' | 'updatedAt'> & {
       resources: unknown
       snapshot: unknown
     } & (TActor extends { conditions: unknown } ? { conditions: unknown } : unknown)
@@ -51,4 +51,5 @@ export type EncounterProjectionInput = Omit<
   initiativePolicySnapshot?: EncounterInitiativePolicySnapshotDto | null
   initiativeRoundState?: EncounterProjectionInitiativeRoundStateInput | null
   optionalCombatSnapshot?: EncounterOptionalCombatSnapshotDto | null
+  optionalCombatSnapshotChecksum?: string | null
 }

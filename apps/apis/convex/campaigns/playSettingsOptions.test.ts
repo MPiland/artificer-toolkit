@@ -30,6 +30,9 @@ const disarm = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
 const facing = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
   (definition) => definition.document.kind === 'FACING'
 )!
+const morale = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+  (definition) => definition.document.kind === 'MORALE'
+)!
 
 async function setup() {
   const base = await fixture()
@@ -84,6 +87,21 @@ describe('native Campaign settings options', () => {
       ctx.db.patch(memberId, { status: 'LEFT', leftAt: new Date().toISOString() })
     )
     await expect(other.caller.query(options, args)).rejects.toThrow()
+  })
+
+  it('offers Morale once its System policy resolves it (ENCOUNTER-6.3)', async () => {
+    const { t, owner, campaign } = await setup()
+    await t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: [morale]
+    })
+    const result = await owner.caller.query(options, { campaignId: campaign.id })
+    expect(result.optionalCombatRules).toContainEqual({
+      definitionId: morale.id,
+      label: morale.label,
+      kind: 'MORALE'
+    })
+    expect(result.optionalCombatRules.map(({ kind }) => kind)).not.toContain('FACING')
   })
 
   it('includes additional catalogue sources once and excludes unpublished, unselected and private definitions', async () => {

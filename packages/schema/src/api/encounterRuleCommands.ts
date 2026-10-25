@@ -9,6 +9,7 @@ import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFa
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
+import { moraleDispositionDtoSchema, moraleTriggerKindDtoSchema } from '../shared/optionalCombat.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
@@ -599,6 +600,35 @@ export const setConcealmentObserversInputDtoSchema = lazySchema(() =>
     remove: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   })
 )
+/**
+ * GM-only morale save (ENCOUNTER-6.1): checks one of the actor's offered or GM-declared triggers.
+ * `leaderActorId` names the group's leader for a group trigger; null rolls the fallback roller. The
+ * GM enters the d20 faces or the server rolls them under the save's frozen roll mode.
+ */
+export const moraleSaveInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('MORALE_SAVE'),
+    actorId: uuidSchema,
+    triggerKind: moraleTriggerKindDtoSchema,
+    leaderActorId: z.nullable(uuidSchema),
+    overwhelmingOpposition: z.boolean(),
+    /** False proposes surrender instead of flight on a failed save. */
+    escapePossible: z.boolean(),
+    roll: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('AUTO_ROLL') }),
+      z.omit(enterDiceResolutionDtoSchema, { requestId: true })
+    ]),
+    visibility: rollVisibilityDtoSchema
+  })
+)
+/** GM-only: confirms the actor's proposed morale outcome or picks another (ENCOUNTER-6.2). */
+export const confirmMoraleInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('CONFIRM_MORALE'),
+    actorId: uuidSchema,
+    disposition: moraleDispositionDtoSchema
+  })
+)
 /** GM-only exact undo of the Run's last committed action and its committed children. */
 export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
@@ -615,6 +645,8 @@ export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputD
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>
 export type SetConcealmentObserversInputDto = z.infer<typeof setConcealmentObserversInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
+export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>
+export type ConfirmMoraleInputDto = z.infer<typeof confirmMoraleInputDtoSchema>
 export type RevertLastEncounterActionInputDto = z.infer<
   typeof revertLastEncounterActionInputDtoSchema
 >
