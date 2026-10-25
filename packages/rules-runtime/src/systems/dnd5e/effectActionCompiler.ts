@@ -63,6 +63,7 @@ import { entryOwed } from './effectActionEntryOwed.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import {
   relationshipRecurrenceGraph,
+  relationshipRecurrencePlan,
   relationshipStateGraph
 } from './effectActionRelationshipGraphs.js'
 import {
@@ -181,7 +182,6 @@ import {
   type TestKind,
   type SpecializedPath,
   isSpecializedPath,
-  isUuid,
   uuid,
   unsupported,
   multipliedDamageAmount
@@ -756,44 +756,11 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   )
   if (new Set(conditionIds).size !== conditionIds.length)
     unsupported('D&D relationship conditions must be unique.')
-  const recurrence = relationship.recurrence
-  if (
-    recurrence &&
-    (recurrence.damage.effectKind !== 'DAMAGE' ||
-      recurrence.damage.valueKind !== 'DICE' ||
-      recurrence.damage.scalingKind !== 'NONE' ||
-      recurrence.damage.bonuses?.length ||
-      !UUID.test(recurrence.damage.id) ||
-      !isUuid(recurrence.damage.damageTypeId) ||
-      typeof recurrence.damage.diceConfig !== 'string')
-  ) {
-    unsupported('D&D relationship recurrence must be one exact damage outcome.')
-  }
-  // The held creature's own turn starts reach it alone; the holder's turns wait for a phase that
-  // reaches every creature it holds.
-  if (
-    recurrence &&
-    (recurrence.turnAnchor.actor !== 'TARGET' || recurrence.turnAnchor.boundary !== 'START_OF_TURN')
-  )
-    unsupported(
-      'D&D relationship recurrence counts only at the start of the held creature’s turns.'
-    )
-  const savingThrow = recurrence?.savingThrow
-  // The hold's own roll is no saving throw, so it settles no caster's DC for the recurrence.
-  const recurrenceSave =
-    savingThrow?.dcMethod === 'FIXED_DC' && !savingThrow.bonuses?.length
-      ? dnd5eRepeatSave({
-          abilityDefinitionId: savingThrow.abilityDefinitionId,
-          savingThrow,
-          requestNodeId: 'd20'
-        })
-      : null
-  if (savingThrow && !recurrenceSave)
-    unsupported('D&D relationship recurrence saves against one fixed DC.')
+  const recurrence = relationshipRecurrencePlan(relationship)
   const plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,
     compiledEntryId: relationship.id,
-    frozenGraphNodeId: recurrenceSave
+    frozenGraphNodeId: recurrence?.save
       ? 'proposal-on_save_fail'
       : recurrence
         ? 'relationship-recurrence'
@@ -811,43 +778,16 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
     },
     ...(entry.pathCode !== 'ON_USE' && { resultGate: dnd5eResultGate(entry.pathCode) }),
     adapterFacts: {
-      ...recurrenceSave?.adapterFacts,
+      ...recurrence?.save?.adapterFacts,
       'dnd5e.relationship-authored-path': entry.pathCode
     },
     perceptionContributions: [],
     maintenance: null,
     marginRiders: []
   }
-  // A failed save takes the damage and a made one none; the hold stands either way.
-  const frozenGraph =
-    recurrence && recurrenceSave && 'diceConfig' in recurrence.damage
-      ? compileTestDefinition(
-          action,
-          {
-            kind: 'SAVE',
-            branches: new Map([
-              [
-                'ON_SAVE_FAIL',
-                {
-                  kind: 'ENTRY_DICE_DAMAGE',
-                  diceConfig: recurrence.damage.diceConfig,
-                  damageTypeId: damageTypeIdentity(recurrence.damage.damageTypeId),
-                  entryId: relationship.id,
-                  multiplier: 1
-                }
-              ]
-            ])
-          },
-          plan
-        )
-      : recurrence
-        ? relationshipRecurrenceGraph({
-            action,
-            relationship,
-            modules,
-            recurrenceDamage: recurrence.damage
-          })
-        : relationshipStateGraph({ action, relationship })
+  const frozenGraph = recurrence
+    ? relationshipRecurrenceGraph({ action, relationship, recurrence, plan })
+    : relationshipStateGraph({ action, relationship })
   return { ...plan, frozenGraph }
 }
 

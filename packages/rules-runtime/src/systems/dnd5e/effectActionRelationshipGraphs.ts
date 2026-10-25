@@ -1,6 +1,7 @@
 import { type ServerPublishedRuleDefinitionDto } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { ActorRelationshipAuthored } from '@artificer-toolkit/shared/authored'
 import { addNumbersRuleOperation, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
+import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
@@ -11,8 +12,12 @@ import {
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   type Dnd5eCompiledEffectActionSource,
+  isUuid,
+  UUID,
   unsupported
 } from './effectActionContracts.js'
+import { dnd5eRepeatSave } from './effectActionFollowUp.js'
+import { compileTestDefinition } from './effectActionTestPhase.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import { damageTypeIdentity } from './effectActionOutcomeNodes.js'
 
@@ -44,15 +49,75 @@ export function relationshipStateGraph(input: {
   return publishedGraph(definition)
 }
 
+/**
+ * A hold's recurrence as the D&D compiler admits it: one exact damage roll at the start of the held
+ * creature's turns, saved against at most one fixed DC. The holder's turns wait for a phase that
+ * reaches every creature it holds.
+ */
+export function relationshipRecurrencePlan(relationship: ActorRelationshipAuthored) {
+  const recurrence = relationship.recurrence
+  if (!recurrence) return null
+  const { damage, savingThrow, turnAnchor } = recurrence
+  if (
+    damage.effectKind !== 'DAMAGE' ||
+    damage.valueKind !== 'DICE' ||
+    damage.scalingKind !== 'NONE' ||
+    !('diceConfig' in damage) ||
+    damage.bonuses?.length ||
+    !UUID.test(damage.id) ||
+    !isUuid(damage.damageTypeId)
+  )
+    unsupported('D&D relationship recurrence must be one exact damage outcome.')
+  if (turnAnchor.actor !== 'TARGET' || turnAnchor.boundary !== 'START_OF_TURN')
+    unsupported(
+      'D&D relationship recurrence counts only at the start of the held creature’s turns.'
+    )
+  // The hold's own roll is no saving throw, so it settles no caster's DC for the recurrence.
+  const save =
+    savingThrow?.dcMethod === 'FIXED_DC' && !savingThrow.bonuses?.length
+      ? dnd5eRepeatSave({
+          abilityDefinitionId: savingThrow.abilityDefinitionId,
+          savingThrow,
+          requestNodeId: 'd20'
+        })
+      : null
+  if (savingThrow && !save) unsupported('D&D relationship recurrence saves against one fixed DC.')
+  return {
+    diceConfig: damage.diceConfig,
+    damageTypeId: damageTypeIdentity(damage.damageTypeId),
+    save
+  }
+}
+
+/** A failed save takes the damage and a made one none; the hold stands either way. */
 export function relationshipRecurrenceGraph(input: {
   action: Dnd5eCompiledEffectActionSource
   relationship: ActorRelationshipAuthored
-  modules: readonly ActorRelationshipAuthored['modules'][number][]
-  recurrenceDamage: NonNullable<ActorRelationshipAuthored['recurrence']>['damage']
+  recurrence: NonNullable<ReturnType<typeof relationshipRecurrencePlan>>
+  plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'>
 }): ServerPublishedRuleDefinitionDto {
-  if (!('diceConfig' in input.recurrenceDamage))
-    unsupported('D&D relationship recurrence dice are unavailable.')
-  const parsed = parseBoundedDiceConfiguration(input.recurrenceDamage.diceConfig!)
+  const { diceConfig, damageTypeId, save } = input.recurrence
+  if (save)
+    return compileTestDefinition(
+      input.action,
+      {
+        kind: 'SAVE',
+        branches: new Map([
+          [
+            'ON_SAVE_FAIL',
+            {
+              kind: 'ENTRY_DICE_DAMAGE',
+              diceConfig,
+              damageTypeId,
+              entryId: input.relationship.id,
+              multiplier: 1
+            }
+          ]
+        ])
+      },
+      input.plan
+    )
+  const parsed = parseBoundedDiceConfiguration(diceConfig)
   const { term } = parsed
   const dice = Array.from({ length: term.count }, (_, index) => ({
     id: `relationship-die-${index + 1}`,
@@ -144,10 +209,7 @@ export function relationshipRecurrenceGraph(input: {
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
           amount,
-          damageTypeId: {
-            kind: 'LITERAL',
-            value: damageTypeIdentity(input.recurrenceDamage.damageTypeId)
-          }
+          damageTypeId: { kind: 'LITERAL', value: damageTypeId }
         }
       }
     ],
@@ -175,6 +237,5 @@ export function relationshipRecurrenceGraph(input: {
       }
     ]
   }
-  void input.modules
   return publishedGraph(definition)
 }
