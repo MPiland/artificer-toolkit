@@ -1863,7 +1863,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   action commits, opportunity attacks, Disarm, Grapple and Shove, spell and area attack rolls, reaction attacks, the damage choke
   point, Sheet HP decreases and GM HP edits. `planIdleTurnCheck`, run by `persistEncounterIdleTurnCheck` at the end of the turn commit,
   after the outgoing turn's Legendary Action damage so that damage counts, ends the idle-bound grants of an `ARMED` holder and clears
-  its mark, and arms an `ENGAGED` one again. Skipped-turn ticks run no check for an actor that had no turn. GM undo restores the marks
+  its mark, and arms an `ENGAGED` one again. An `END_EVENT_EXEMPTION` feature grant (`ENABLE`, payload `{ events, effectIds }`;
+  SPELLS-31.T5f2, Persistent Rage) keeps the holder's own effects with those authored ids from ending on those events: the check reads
+  an `ARMED` holder's feature grants (a Character's rules, or a Creature's or creature form's folded grants through
+  `encounterActorGrantModifiers`), keeps the exempt grants (`endEventExemptAuthoredEffectIds`, which honors HOLDER_ACTIVE_EFFECT
+  restrictions) and leaves the holder armed. Only `ON_IDLE_TURN` reads the exemption today; other end conditions still apply. Skipped-turn ticks run no check for an actor that had no turn. GM undo restores the marks
   an action changed (`idleTurnMarkChanges` on the `RESOLVE_ACTION` root, diffed before and after the commit); Disarm, GM HP edits,
   Sheet HP changes and movement reactions are not undoable. A mark left by a grant that ended another way is reconciled at the next
   END_OF_TURN.
