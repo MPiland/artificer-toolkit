@@ -35,7 +35,7 @@ async function moraleRoom(optionalCombatKinds: readonly ('MORALE' | 'DISARM')[])
 async function storedMorale(room: Awaited<ReturnType<typeof moraleRoom>>) {
   const row = (await readRoomHistory(room.room.base.stub)).actors.find(({ id }) => id === OGRE_ID)
   const actor = readStoredRunActor(row!)
-  return actor.kind === 'CHARACTER' ? null : actor.morale
+  return actor.kind === 'CHARACTER' ? undefined : actor.morale
 }
 
 async function moraleSave(room: Awaited<ReturnType<typeof moraleRoom>>) {
@@ -85,6 +85,6 @@ describe('Morale in the native room (ENCOUNTER-6.1, 6.2)', () => {
     const room = await moraleRoom(['DISARM'])
     const refused = await moraleSave(room)
     expect(refused.type).not.toBe('COMMAND_COMMITTED')
-    expect(await storedMorale(room)).toBeNull()
+    expect(await storedMorale(room)).toBeUndefined()
   })
 })
