@@ -265,8 +265,11 @@ export const nightHag: CreatureAuthored = {
                 outcomes: [
                   {
                     id: S.actionId(4849, 10),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.NIGHT_HAG_ETHEREALNESS
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Etherealness',
+                    instructions:
+                      'The hag enters the Ethereal Plane from the Material Plane, or back, only while she has a heartstone in her possession.',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
                   }
                 ]
               }
