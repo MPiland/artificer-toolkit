@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
+import { DND5E_ABILITY_DEFINITION_ID_BY_CODE } from './identity.js'
 import { resolveDnd5eRollMode } from './rollModePolicy.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
@@ -117,7 +118,7 @@ export function evaluateDnd5eCharacterRollModes(
   const abilityCheck = (entry: Contributor, ability: string | null) =>
     entry.valueDomainCode === 'ABILITY_CHECK' &&
     (entry.ability === null || entry.ability === ability)
-  const abilities = input.derivedBaseFacts.abilities.map(({ abilityId }) => abilityId)
+  const abilities = Object.keys(DND5E_ABILITY_DEFINITION_ID_BY_CODE)
   const attacks = ['MELEE', 'RANGED', 'SPELL', 'UNARMED'] as const
   const skills = [
     'acrobatics',
