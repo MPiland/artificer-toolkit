@@ -76,7 +76,8 @@ describe('Character play-state write budget', () => {
               afterTemporaryHitPoints: after.overview.tempHitPoints,
               maximumHitPoints: actor.maxHitPoints,
               damageTypeId: crypto.randomUUID(),
-              damageDisposition: 'NORMAL'
+              damageDisposition: 'NORMAL',
+              incomingHalved: false
             }
           ]
         }

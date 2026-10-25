@@ -420,6 +420,10 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
     const isMovementPassage = parent.field(['valueDomainCode']).eq('MOVEMENT_PASSAGE')
     const isRolledDie = parent.field(['modifierKind']).eq('ADD_BONUS_DIE')
     const isDamageDie = and([parent.field(['valueDomainCode']).eq('DAMAGE'), isRolledDie])
+    const isSaveForHalf = and([
+      parent.field(['valueDomainCode']).eq('INCOMING_DAMAGE'),
+      local.field(['incomingDamageKind']).eq('SAVE_FOR_HALF')
+    ])
     // A speed or sense range is a typed length, never a value source (D111); a fraction is not.
     const isLength = and([
       or([
@@ -1132,6 +1136,85 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           presentation: 'inline',
           showIf: parent.field(['valueDomainCode']).eq('END_EVENT_EXEMPTION')
         })
+      )
+      .set(
+        'incomingDamageKind',
+        selectSingle(
+          ['incomingDamageKind'],
+          'Incoming Damage',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              {
+                code: 'HALVE',
+                label: 'Halve it',
+                description:
+                  'Each damage application the holder takes is halved, before resistance.'
+              },
+              {
+                code: 'SAVE_FOR_HALF',
+                label: 'Save-for-half bands',
+                description:
+                  'Damage from an effect that allows a save for half damage uses these bands instead.'
+              }
+            ]
+          },
+          {
+            requiredIf: true,
+            showIf: parent.field(['valueDomainCode']).eq('INCOMING_DAMAGE')
+          }
+        )
+      )
+      .set(
+        'saveAbilities',
+        selectMulti(
+          ['saveAbilities'],
+          'Save Abilities',
+          {
+            kind: 'DATA',
+            relationship: table('abilities', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            requiredIf: true,
+            showIf: isSaveForHalf
+          }
+        )
+      )
+      .set(
+        'onSaveSuccess',
+        selectSingle(
+          ['onSaveSuccess'],
+          'On A Successful Save',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'NONE', label: 'No damage', description: 'The holder takes no damage.' },
+              { code: 'HALF', label: 'Half damage', description: 'The holder takes half damage.' }
+            ]
+          },
+          {
+            requiredIf: true,
+            showIf: isSaveForHalf
+          }
+        )
+      )
+      .set(
+        'onSaveFailure',
+        selectSingle(
+          ['onSaveFailure'],
+          'On A Failed Save',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'HALF', label: 'Half damage', description: 'The holder takes half damage.' },
+              { code: 'FULL', label: 'Full damage', description: 'The holder takes full damage.' }
+            ]
+          },
+          {
+            requiredIf: true,
+            showIf: isSaveForHalf
+          }
+        )
       )
       .set(
         'savingThrow',

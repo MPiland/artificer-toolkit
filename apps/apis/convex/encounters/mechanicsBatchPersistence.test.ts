@@ -87,6 +87,7 @@ describe('persistEncounterMechanicsBatchPlan freshness', () => {
             maximumHitPoints: fixture.actor.maxHitPoints,
             damageTypeId: crypto.randomUUID(),
             damageDisposition: 'NORMAL' as const,
+            incomingHalved: false,
             critical: false
           }
         ]

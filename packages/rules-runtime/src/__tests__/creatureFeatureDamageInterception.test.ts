@@ -49,6 +49,7 @@ const damageApplication: Extract<CharacterRuleActionApplication, { kind: 'DAMAGE
   maximumHitPoints: 30,
   damageTypeId: testUuid(0x5010),
   damageDisposition: 'NORMAL',
+  incomingHalved: false,
   critical: false
 }
 

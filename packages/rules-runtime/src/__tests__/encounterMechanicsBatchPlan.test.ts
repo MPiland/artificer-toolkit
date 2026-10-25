@@ -98,6 +98,7 @@ function damage(input: {
     targetActorId: ACTOR_ID,
     damageTypeId: NECROTIC,
     damageDisposition: input.disposition ?? 'NORMAL',
+    incomingHalved: false,
     requestedAmount: input.requested,
     resolvedAmount: input.resolved ?? input.requested,
     appliedAmount:

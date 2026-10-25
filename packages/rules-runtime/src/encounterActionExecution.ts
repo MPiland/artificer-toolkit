@@ -226,28 +226,20 @@ export async function executeNativeActionGraphs(input: {
     }
     ruleExecutionPhaseReceiptsDtoSchema.parse(phaseReceipts)
   }
-  return {
+  // A graph run from its start holds no OUTCOME phase a later choice retains, so it names none.
+  const { kind: _complete, ...complete } = actionComplete({
+    adapter: input.adapter,
+    binding: input.binding,
+    occurrenceId: input.occurrenceId,
     execution: terminal.execution,
     published: terminal.published,
     initialPublished: initial,
     initialFactsChecksum: checksumRuleDocument(first.bound.facts),
-    phaseReceipts: phaseReceipts.length ? phaseReceipts : undefined,
+    phaseReceipts,
     d20,
-    nestedD20,
-    // A graph run from its start holds no OUTCOME phase a later choice retains.
-    outcomePhase: null,
-    applications: input.adapter.interpret({
-      execution: terminal.execution,
-      occurrenceId: input.occurrenceId,
-      published: terminal.published,
-      targetActorId: input.binding.targetActorId,
-      currentHitPoints: input.binding.currentHitPoints,
-      temporaryHitPoints: input.binding.temporaryHitPoints,
-      maximumHitPoints: input.binding.maximumHitPoints,
-      defenses: input.binding.defenses,
-      conditionImmunityIds: input.binding.conditionImmunityIds
-    })
-  }
+    nestedD20
+  })
+  return complete
 }
 
 type NativePhaseReceipts = z.infer<typeof ruleExecutionPhaseReceiptsDtoSchema>
@@ -336,7 +328,8 @@ function actionComplete(input: {
       temporaryHitPoints: input.binding.temporaryHitPoints,
       maximumHitPoints: input.binding.maximumHitPoints,
       defenses: input.binding.defenses,
-      conditionImmunityIds: input.binding.conditionImmunityIds
+      conditionImmunityIds: input.binding.conditionImmunityIds,
+      incomingHalved: input.binding.incomingHalved
     })
   }
 }

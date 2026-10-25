@@ -92,6 +92,8 @@ export interface CharacterRuleActionActiveEffectPlan {
   initialRemaining: number | null
   /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
   hitPointTier?: { atMost: number }
+  /** Set on a plan of a roll-table row: it holds only when the table's roll lands in these faces. */
+  rollTableRow?: { min: number; max: number }
   /**
    * Whose turn boundary counts the effect down: its holder's (the default) or its source's. The
    * grant tick planner counts a source-anchored effect on the source's turns.
@@ -437,6 +439,8 @@ export type CharacterHitPointOutcomeApplication =
       kind: 'DAMAGE'
       damageTypeId: string
       damageDisposition: DamageDispositionDto
+      /** The target halved the damage before its defenses (an `INCOMING_DAMAGE` HALVE grant). */
+      incomingHalved: boolean
       /** A critical hit: damage at 0 hit points adds two death save failures (D96). */
       critical: boolean
       /** The held effect whose damage interception left the target above 0 hit points instead. */
@@ -832,6 +836,11 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /**
+     * The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE`
+     * HALVE). Interpretation reads it; it binds no fact.
+     */
+    incomingHalved?: boolean
     /** The damage types the target took since its last turn began, which a suppression gate reads. */
     targetDamageTypesTaken?: readonly string[]
     /**
@@ -941,6 +950,8 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE` HALVE). */
+    incomingHalved?: boolean
   }): readonly CharacterRuleActionApplication[]
   /** Returns sealed spatial proposals only; Scene settlement remains aggregate-owned. */
   interpretSpatial?(input: {
@@ -966,6 +977,8 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE` HALVE). */
+    incomingHalved?: boolean
     replacement: CharacterRuleActionSaveSuccessReplacement
   }): readonly CharacterRuleActionApplication[]
   /** Interprets one completed persisted recurring effect against its exact graph. */
@@ -985,6 +998,8 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE` HALVE). */
+    incomingHalved?: boolean
   }): {
     applications: readonly CharacterRuleActionApplication[]
     /** Sealed from the exact frozen graph result, never command input. */

@@ -97,6 +97,7 @@ function damage(
     maximumHitPoints: state.maximum,
     damageTypeId: DAMAGE_TYPE_ID,
     damageDisposition: 'NORMAL',
+    incomingHalved: false,
     critical: false
   }
 }
@@ -304,6 +305,7 @@ describe.each([
       maximumHitPoints: 30,
       damageTypeId: DAMAGE_TYPE_ID,
       damageDisposition: 'NORMAL',
+      incomingHalved: false,
       critical: false,
       interceptedBy: testUuid(0xe1ff)
     }

@@ -83,7 +83,8 @@ export const encounterConformanceCorpus: readonly EncounterConformanceScenario[]
                 afterTemporaryHitPoints: 0,
                 maximumHitPoints: target.maxHitPoints,
                 damageTypeId: '10000000-0000-4000-8000-000000000004',
-                damageDisposition: 'NORMAL'
+                damageDisposition: 'NORMAL',
+                incomingHalved: false
               }
             ]
           })

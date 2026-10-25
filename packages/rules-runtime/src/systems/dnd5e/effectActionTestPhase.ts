@@ -38,6 +38,7 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionCore'
 import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
+import { saveDamageMultiplied } from './effectActionSaveDamage.js'
 
 export interface TestPlan {
   kind: TestKind
@@ -47,7 +48,12 @@ export interface TestPlan {
 }
 
 /** A result path's outcome inside a test graph: proposed only when the test resolves to that path. */
-function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcome, suffix = '') {
+function proposalNode(
+  pathCode: string,
+  outcome: Outcome | EntryDiceDamageOutcome,
+  suffix = '',
+  savesForHalf = false
+) {
   return pathGatedProposalNode({
     id: `proposal-${pathCode.toLowerCase()}${suffix}`,
     pathCode,
@@ -57,7 +63,7 @@ function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcom
       DND5E_CONDITION_IMMUNE_FACT_KEYS[pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS],
     amount:
       outcome.kind === 'ENTRY_DICE_DAMAGE'
-        ? entryDiceDamageGraph(pathCode, outcome).amount
+        ? entryDiceDamageGraph(pathCode, outcome, savesForHalf).amount
         : undefined
   })
 }
@@ -65,9 +71,14 @@ function proposalNode(pathCode: string, outcome: Outcome | EntryDiceDamageOutcom
 /**
  * The nodes of an entry dice damage outcome and the amount it proposes: the dice are asked for only
  * when the test resolves to its path, their total takes the authored modifier, and a share of it is
- * dealt through the damage multiplier.
+ * dealt through the damage multiplier, then, for a save the target makes for half, through the
+ * target's own save-damage multiplier.
  */
-function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceDamageOutcome) {
+function entryDiceDamageGraph(
+  pathCode: string,
+  outcome: EntryDiceDamageOutcome,
+  savesForHalf: boolean
+) {
   const prefix = entryDamagePrefix(pathCode)
   const enabledNodeId = `${prefix}enabled`
   const totalNodeId = `${prefix}total`
@@ -111,11 +122,21 @@ function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceDamageOutcome)
     ...totalNodes,
     ...multiplied.nodes
   ]
-  return { nodes, amount: multiplied.amount }
+  if (!savesForHalf || (pathCode !== 'ON_SAVE_FAIL' && pathCode !== 'ON_SAVE_SUCCESS'))
+    return { nodes, amount: multiplied.amount }
+  const saved = saveDamageMultiplied(`${prefix}save-multiplied`, multiplied.amount, pathCode)
+  return { nodes: [...nodes, saved.node], amount: saved.amount }
 }
 
-function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceDamageOutcome) {
-  return [...entryDiceDamageGraph(pathCode, outcome).nodes, proposalNode(pathCode, outcome)]
+function entryDiceDamageNodes(
+  pathCode: string,
+  outcome: EntryDiceDamageOutcome,
+  savesForHalf: boolean
+) {
+  return [
+    ...entryDiceDamageGraph(pathCode, outcome, savesForHalf).nodes,
+    proposalNode(pathCode, outcome, '', savesForHalf)
+  ]
 }
 
 export function compileTestDefinition(
@@ -130,10 +151,12 @@ export function compileTestDefinition(
   const testOperation =
     plan.kind === 'ATTACK' ? DND5E_ATTACK_TEST_OPERATION_KEY : DND5E_SAVE_TEST_OPERATION_KEY
   const conditions = [...(plan.conditions ?? [])]
+  const savesForHalf =
+    plan.kind === 'SAVE' && plan.branches.get('ON_SAVE_SUCCESS')?.kind === 'ENTRY_DICE_DAMAGE'
   const proposalNodes: RuleGraphDefinition['nodes'] = [
     ...[...plan.branches].flatMap(([pathCode, outcome]) =>
       outcome.kind === 'ENTRY_DICE_DAMAGE'
-        ? entryDiceDamageNodes(pathCode, outcome)
+        ? entryDiceDamageNodes(pathCode, outcome, savesForHalf)
         : [proposalNode(pathCode, outcome)]
     ),
     ...conditions.map(([pathCode, { outcome }]) =>
