@@ -294,7 +294,7 @@ function characterGrantSourceLabel(
     CharacterAssemblyRegistry,
     'features' | 'classes' | 'feats' | 'races' | 'backgrounds' | 'equipment'
   >,
-  source: CharacterGrantFoldModifier['source']
+  source: CharacterGrantFoldOutput['modifiers'][number]['source']
 ): string {
   const label =
     source.kind === 'AUTHORED'
