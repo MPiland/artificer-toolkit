@@ -13,6 +13,7 @@ import { joltingGauntlet } from '@artificer-toolkit/rules-runtime/testing/joltin
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterActionPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -920,6 +921,93 @@ describe('room reaction menu for one hit (REACTION-4.2)', () => {
           payload: { ...reactionChoice, reactions: [first, { ...second, reactorActorId: WOLF_ID }] }
         }
       })
+    ).toBe(false)
+  })
+})
+
+/**
+ * SPELLS-31.T5a (D156): the Rogue's Uncanny Dodge, authored as an `ATTACKED_SELF` reaction that
+ * needs sight and grants an `INCOMING_DAMAGE` HALVE adjustment, halves the hit that triggered it.
+ */
+describe('room Uncanny Dodge reaction to a hit (SPELLS-31.1)', () => {
+  /** The SRD Uncanny Dodge feature, acquired by the fixture Character at its first level. */
+  const uncannyDodge = (): ClassFeature => {
+    const feature = rogue.features?.find((entry) => entry.label === 'Uncanny Dodge')
+    if (!feature) throw new Error('The SRD Rogue must author Uncanny Dodge.')
+    return { ...feature, availableAtLevel: 1 }
+  }
+
+  const dodgeRoom = (options: Pick<Parameters<typeof actionRoom>[0], 'characterPlay'> = {}) =>
+    actionRoom({
+      ...options,
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: attackBite }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(attackBite, 'Bite').id,
+      characterClassFeatures: [uncannyDodge()]
+    })
+
+  const biteDamage = (batch: ReturnType<typeof characterBatch>) => {
+    const damage = batch.applications.find((application) => application.kind === 'DAMAGE')
+    if (damage?.kind !== 'DAMAGE') throw new Error('The Bite dealt no damage.')
+    return damage
+  }
+
+  it('halves the hit when used, spends the reaction, and undoes with it', async () => {
+    const room = await dodgeRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    expect(pending.targetActorId).toBe(CHARACTER_ACTOR_ID)
+
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
+    const damage = biteDamage(batch)
+    expect(damage.incomingHalved).toBe(true)
+    expect(damage.resolvedAmount).toBe(Math.floor(damage.requestedAmount / 2))
+    expect(hitPointsLost(batch)).toBe(damage.resolvedAmount)
+    expect(batch.reaction).toMatchObject({
+      selection: 'USE',
+      reaction: { trigger: 'ATTACKED_SELF' },
+      actionEconomyTransition: { beforeUsed: 0, afterUsed: 1 }
+    })
+
+    await undoLastAction(room)
+    expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+    await strike(room, 0)
+    await offeredReaction(room)
+  })
+
+  it('takes the whole hit when declined, spending nothing', async () => {
+    const room = await dodgeRoom()
+    await strike(room, 0)
+    const { decision } = await offeredReaction(room)
+    const declined = await room.resolve(decision, { kind: 'DECLINE' })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+
+    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
+    const damage = biteDamage(batch)
+    expect(damage.incomingHalved).toBe(false)
+    expect(damage.resolvedAmount).toBe(damage.requestedAmount)
+    expect(batch.reaction).toMatchObject({ selection: 'DECLINE' })
+  })
+
+  it('is not offered to a Character who cannot see the attacker', async () => {
+    const room = await dodgeRoom({
+      characterPlay: {
+        conditions: [{ conditionTypeId: conditionId('BLINDED'), label: 'Blinded' }]
+      }
+    })
+    await strike(room, 0)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(
+      biteDamage(characterBatch(await readRoomHistory(room.room.base.stub))).incomingHalved
     ).toBe(false)
   })
 })

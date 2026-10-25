@@ -95,6 +95,7 @@ import {
   MAX_CONDITIONS_PER_PATH,
   conditionImmuneFactKey,
   DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS,
+  DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS,
   DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY,
   DND5E_HEALING_MAXIMIZED_FACT_KEY,
   DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
@@ -1315,6 +1316,10 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
         valueKind: RULE_VALUE_KIND.BOOLEAN
       }))
     ),
+    ...Object.values(DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS).map((key) => ({
+      key,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    })),
     ...Object.values(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).map((key) => ({
       key,
       valueKind: RULE_VALUE_KIND.TEXT

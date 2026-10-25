@@ -56,12 +56,13 @@ export async function resolveNativeActionReaction(
         d20: input.offer.originalD20
       })
     : null
-  // A reaction changes the attack by the defense it is rolled against or by what the target resists.
+  // A reaction changes the attack by the defense it is rolled against or by how the target takes its damage.
   if (
     adjusted &&
     adjusted.twoPhase.boundFactsChecksum === original.twoPhase.boundFactsChecksum &&
     checksumRuleDocument(input.adjustedBinding.defenses) ===
-      checksumRuleDocument(input.binding.defenses)
+      checksumRuleDocument(input.binding.defenses) &&
+    input.adjustedBinding.incomingHalved === input.binding.incomingHalved
   )
     throw new Error('The reaction did not change the attack it answered.')
   const audit = encounterReactionAudit({

@@ -29,6 +29,7 @@ const damage = (damageTypeId: string): CharacterRuleActionApplication => ({
   kind: 'DAMAGE',
   damageTypeId,
   damageDisposition: 'NORMAL',
+  incomingHalved: false,
   critical: false,
   sourceNodeId: 'damage',
   sourceOperationKey: 'damage',

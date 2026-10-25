@@ -5,7 +5,7 @@ import {
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import {
   damageDispositionOf,
-  resolveDispositionDamage
+  resolveIncomingDamage
 } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
   addNumbersRuleOperation,
@@ -850,7 +850,12 @@ export function interpretDirectProposal(
     throw new Dnd5eEffectActionCompilerError('The committed D&D damage proposal trace is invalid.')
   uuid(outputs.damageTypeId, 'D&D damage type identity')
   const damageDisposition = damageDispositionOf(input.defenses, outputs.damageTypeId)
-  const resolvedAmount = resolveDispositionDamage(damageDisposition, requestedAmount)
+  const incomingHalved = input.incomingHalved === true
+  const resolvedAmount = resolveIncomingDamage({
+    requestedAmount,
+    incomingHalved,
+    damageDisposition
+  })
   if (!Number.isSafeInteger(resolvedAmount))
     throw new Dnd5eEffectActionCompilerError(
       'D&D vulnerable damage exceeds the supported safe integer range.'
@@ -871,6 +876,7 @@ export function interpretDirectProposal(
       targetActorId: input.targetActorId,
       damageTypeId: outputs.damageTypeId,
       damageDisposition,
+      incomingHalved,
       critical: false,
       sourceNodeId: trace.nodeId,
       sourceOperationKey: trace.operation.key,

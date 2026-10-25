@@ -1,7 +1,4 @@
-import {
-  SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS,
-  ABILITY_CODE
-} from '../vocabulary.js'
+import { ABILITY_CODE } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   ATTACK_DOMAIN_CODE,
@@ -24,7 +21,6 @@ import {
   PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
   RANGE_KIND,
-  SAVING_THROW_DC_METHOD,
   SCALING,
   SCALING_AMOUNT_KIND,
   STARTING_EQUIPMENT_KIND,
@@ -53,6 +49,7 @@ import {
   attacksPerAttackActionGrant,
   closedRuleEffect,
   equippedCategoryRestriction,
+  evasionGrant,
   gmRulingEffect,
   MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
 } from './mechanics.js'
@@ -674,63 +671,7 @@ export const monk: ClassAuthored = {
         "At 7th level, your instinctive agility lets you dodge out of the way of certain area effects, such as a blue dragon's lightning breath or a fireball spell. When you are subjected to an effect that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail.",
       availableAtLevel: 7,
       order: 12,
-      effects: [
-        {
-          id: classRowId(M, 0x60, 13),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: classRowId(M, 0x6e, 13),
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
-              dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
-            },
-            range: { id: classRowId(M, 0x69, 13), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          paths: [
-            {
-              id: classRowId(M, 0x70, 13),
-              order: 1,
-              pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: classRowId(M, 0x71, 13),
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(M, 0x72, 13),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_MONK_EVASION
-                  }
-                ]
-              }
-            },
-            {
-              id: classRowId(M, 0x73, 13),
-              order: 2,
-              pathCode: PATH_CODE.ON_SAVE_FAIL,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: classRowId(M, 0x74, 13),
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(M, 0x75, 13),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_MONK_EVASION
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ]
+      grants: { modifiers: [evasionGrant(classRowId(M, 0x96, 1))] }
     },
     {
       id: classRowId(M, 3, 14),
