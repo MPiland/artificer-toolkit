@@ -45,7 +45,11 @@ import type {
   AbilityCode,
   MeasurementUnitCode,
   BreakpointScalingAuthored,
+  ModifierAttackDecoysAuthored,
   ModifierDamageDieAuthored,
+  ModifierDamageInterceptionAuthored,
+  ModifierIncomingAttackGateAuthored,
+  ModifierScalarValueAuthored,
   NumericExpr
 } from '@artificer-toolkit/shared/core'
 import type {
@@ -99,11 +103,7 @@ import type {
   ManifestProximityRuleAuthored,
   ManualAdjudicationAuthored,
   RangeMeasurementAuthored,
-  ModifierAttackDecoysAuthored,
-  ModifierDamageInterceptionAuthored,
   ModifierGrantAuthoredFor,
-  ModifierIncomingAttackGateAuthored,
-  ModifierScalarValueAuthored,
   OptionalOnHitAuthored,
   PathChoiceOptionAuthored,
   PathChosenItemAuthored,
@@ -491,8 +491,10 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         level: order,
         count: 1
       } satisfies NonNullable<FeatureDto['optionChoices']>[number]
-    case 'featGrant':
-      return createScalingGrant('FEAT_GRANT', order) satisfies Partial<FeatGrantAuthored>
+    case 'featGrant': {
+      const grant = createScalingGrant('FEAT_GRANT', order)
+      return grant satisfies Partial<FeatGrantAuthored>
+    }
     case 'featGrantLevel':
       return createGrantLevel(order)
     case 'featGrantProgression':
@@ -868,11 +870,10 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         kind: 'DICE',
         diceConfig: '1d6'
       } satisfies ScalarReductionAuthored['amount']
-    case 'senseGrant':
-      return {
-        ...createScalingGrant('SENSE_GRANT', order),
-        range: createRange('DISTANCE')
-      } satisfies Partial<SenseGrantAuthored>
+    case 'senseGrant': {
+      const grant = createScalingGrant('SENSE_GRANT', order)
+      return { ...grant, range: createRange('DISTANCE') } satisfies Partial<SenseGrantAuthored>
+    }
     case 'senseGrantLevel':
       return createGrantLevel(order)
     case 'senseGrantProgression':
@@ -889,8 +890,10 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         shapeKind: 'SPHERE',
         radius: createMeasurement('FEET')
       } satisfies Extract<ShapeAuthored, { shapeKind: 'SPHERE' }>
-    case 'spellGrant':
-      return createScalingGrant('SPELL_GRANT', order) satisfies Partial<SpellGrantAuthored>
+    case 'spellGrant': {
+      const grant = createScalingGrant('SPELL_GRANT', order)
+      return grant satisfies Partial<SpellGrantAuthored>
+    }
     case 'spellGrantLevel':
       return createGrantLevel(order)
     case 'spellGrantProgression':

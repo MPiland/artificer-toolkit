@@ -24,7 +24,7 @@ describe('guided charges', () => {
 
   it('detects simple charges and rejects scaling ones', () => {
     const simple = createCharge()
-    const scaling: ChargeUseDto = { ...simple, scalingKind: 'PROFICIENCY_BONUS' } as ChargeUseDto
+    const scaling: ChargeUseDto = { ...simple, scalingKind: 'PER_LEVEL', levels: [] }
 
     expect(isSimpleCharge(simple)).toBe(true)
     expect(isSimpleCharge(scaling)).toBe(false)

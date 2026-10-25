@@ -13,8 +13,11 @@ function renderFields(charges: ChargeUseDto | undefined) {
   return onChange
 }
 
-const advancedCharge = (): ChargeUseDto =>
-  ({ ...createCharge(), scalingKind: 'PROFICIENCY_BONUS' }) as ChargeUseDto
+const advancedCharge = (): ChargeUseDto => ({
+  ...createCharge(),
+  scalingKind: 'PER_LEVEL',
+  levels: []
+})
 
 describe('GuidedChargeFields', () => {
   it('creates a simple charge when limited uses are turned on', async () => {
