@@ -11443,12 +11443,15 @@
             },
             {
               "text": "Campaign settings offer Facing only once it resolves (isIntegratedOptionalCombatRule).",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by ATTACK-12.T3 (m444); see each task's proof."
+              ],
               "origin": [
                 "G2-OPTIONAL-COMBAT"
               ],
-              "id": "ATTACK-12.3"
+              "id": "ATTACK-12.3",
+              "note": "Closed 2026-10-24 by ATTACK-12.T3."
             },
             {
               "id": "ATTACK-12.4",
@@ -11526,7 +11529,7 @@
             },
             {
               "id": "ATTACK-12.T3",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ATTACK-12.3"
               ],
@@ -11541,8 +11544,9 @@
                 ]
               },
               "text": "Integrate in table and settings; journey test.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-attack-12.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m444.",
+              "mergedAt": "2026-10-25T18:35:44Z",
+              "proof": "Tests 40219981783 and Live 40219981796 green on ci/attack-12@60bafbcbb; merged in m444."
             }
           ]
         },
@@ -20925,7 +20929,7 @@
             },
             {
               "id": "SPELLS-33.T6n1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -20936,12 +20940,13 @@
                 "size": 3
               },
               "text": "Recurring saving throw on a held relationship, part 1: relationship recurrence uses the shared turnAnchor (the bespoke stage literal deleted; Chain Devil, Rug of Smothering and the path.ts node map migrated) and carries an optional savingThrow (damage only on a failure), compiled through the shared SAVE test branch. TARGET anchoring only in this task. Authoring-parity proof, compiler variant tests and a room journey on a TARGET-anchored save.",
-              "note": "Split from SPELLS-33.T6n; T6n2 is +8 scope growth approved by the user 2026-10-25 (build the holder-turn timing correctly and generically rather than approximate or defer it).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "note": "Split from SPELLS-33.T6n; T6n2 is +8 scope growth approved by the user 2026-10-25 (build the holder-turn timing correctly and generically rather than approximate or defer it). Merged in m444.",
+              "mergedAt": "2026-10-25T18:35:44Z",
+              "proof": "Green on ci/spells-33-t6n1 19a0b7070; carried in ci/spells-33-t6n2@20b1a2ac6; merged in m444 (run 40221965035)."
             },
             {
               "id": "SPELLS-33.T6n2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -20955,7 +20960,9 @@
                 ]
               },
               "text": "Recurring effects on a held relationship, part 2: a generic holder-turn phase. At the start of the holder’s (SOURCE) turn, the held creatures’ SOURCE-anchored relationship recurrences fire, with saves prompted to each held creature’s controllers (the D144 zone START_OF_SOURCE_TURN pattern), one shared selection rule imported by Convex persistence and the room. The Shambling Mound’s Engulf moves to SOURCE timing (DC 14 Constitution, 2d8+4 bludgeoning on a failure). Room journey: the save fires on the Mound’s turn and nothing fires on the target’s own turn.",
-              "note": "Split from SPELLS-33.T6n; T6n2 is +8 scope growth approved by the user 2026-10-25 (build the holder-turn timing correctly and generically rather than approximate or defer it)."
+              "note": "Split from SPELLS-33.T6n; T6n2 is +8 scope growth approved by the user 2026-10-25 (build the holder-turn timing correctly and generically rather than approximate or defer it). Merged in m444.",
+              "mergedAt": "2026-10-25T18:35:44Z",
+              "proof": "Tests 40219927617 and Live 40219927615 green on ci/spells-33-t6n2@20b1a2ac6: required recurrence.anchor, shared source-turn candidate phase, Engulf on the mound turns, recurrenceAnchorMigration with test, no-roll hold publishes the bare hold graph (CI-found fix); merged in m444."
             },
             {
               "id": "SPELLS-33.T6n2b",
