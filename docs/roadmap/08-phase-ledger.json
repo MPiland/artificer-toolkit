@@ -11776,7 +11776,7 @@
           "tasks": [
             {
               "id": "ATTACK-15.T1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "ATTACK-15.1"
               ],
@@ -11787,8 +11787,9 @@
                 "size": 8
               },
               "text": "Trigger detection (critical hit, 0 HP, death save failed by 5+) stores an event-backed GM roll offer on the actor (Run state, Convex validators, GM command, receipts) on the authored table with gap-tolerant bands.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
-              "activeWorkbook": "docs/handoffs/slice-attack-15.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling). Merged in m451.",
+              "mergedAt": "2026-10-25T21:23:15Z",
+              "proof": "Tests 40233715652 and Live 40233715553 green on ci/attack-15-t1@02776de7d: event-backed GM consequence-roll offer on crit, drop to 0 HP and death save failed by 5+ at the action, area, cleaving and turn persistence paths; RESOLVE_CONSEQUENCE_ROLL_OFFER accept/decline, undo withdrawal (revertedRunActors.ts keeps actionRevert.ts at 1499); room journey nativeRoomConsequenceRolls.test.ts; merged in m451 (run 40235220553). Remaining HP-lowering paths go to T1g."
             },
             {
               "id": "ATTACK-15.T1g",
