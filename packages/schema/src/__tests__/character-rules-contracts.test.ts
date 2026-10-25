@@ -297,7 +297,6 @@ describe('Character rule contracts', () => {
           classId: 'fighter',
           classLevel: 1,
           die: 10,
-          abilityIndex: 0,
           fallbackValue: 10,
           rollValue: null
         }

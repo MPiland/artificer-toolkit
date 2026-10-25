@@ -68,7 +68,6 @@ export type ClassResourceDto = z.infer<typeof classResourceDtoSchema>
 
 export const classHitpointDtoSchema = lazySchema(() =>
   z.object({
-    ability: systemCoreCodeSchema,
     dieConfig: authoredIdentifierSchema
   })
 )

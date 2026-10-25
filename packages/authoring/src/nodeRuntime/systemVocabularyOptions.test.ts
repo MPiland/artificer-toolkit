@@ -168,7 +168,7 @@ describe('System vocabulary option descriptions', () => {
 
   it('selects the description on every node map select drawn from System vocabulary', () => {
     const selects = listRuntimeNodeMapIds()
-      .flatMap((mapId) => collectTablePlans(getRuntimeNodeMap(mapId).nodes))
+      .flatMap((mapId) => collectTablePlans(getRuntimeNodeMap(mapId)))
       .filter((plan) => vocabularyTables.includes(plan.table) && plan.selectColumns)
 
     expect(selects.length).toBeGreaterThan(30)
@@ -177,7 +177,7 @@ describe('System vocabulary option descriptions', () => {
 
   it('selects only columns the node runtime source manifest serves, on every node map select', () => {
     const selects = listRuntimeNodeMapIds()
-      .flatMap((mapId) => collectTablePlans(getRuntimeNodeMap(mapId).nodes))
+      .flatMap((mapId) => collectTablePlans(getRuntimeNodeMap(mapId)))
       .filter((plan) => plan.selectColumns)
 
     for (const plan of selects) {

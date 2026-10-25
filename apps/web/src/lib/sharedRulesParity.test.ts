@@ -173,8 +173,7 @@ describe('Builder hit points match the server', () => {
     const serverRows = prepareCharacterHitpointProgression(
       character as CharacterAuthored,
       [compileClass(customFighter)],
-      null,
-      payload.references.abilities.map((ability) => ability.id)
+      null
     ).facts.rows
     const web = syncHitpointLevels({
       character,

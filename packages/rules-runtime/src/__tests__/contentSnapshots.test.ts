@@ -307,7 +307,7 @@ describe('content snapshot parts', () => {
     expect(dwarfEntry).toMatchObject({
       category: 'BASE',
       size: dwarf.category === 'BASE' ? dwarf.size : undefined,
-      abilityScoreIncreaseFacts: [{ label: 'Constitution', value: '+2' }]
+      abilityScoreIncreaseFacts: [{ ability: 'CONSTITUTION', value: '+2' }]
     })
   })
 

@@ -17,6 +17,7 @@ import type {
   InlineFilter,
   NodeArrayAuthoringMeta,
   RuntimeNodeEntry,
+  RuntimeNodeMap,
   NodeSelectSource
 } from '@artificer-toolkit/shared/maps'
 import {
@@ -66,8 +67,8 @@ async function resolveNodeRuntimeScope(
   db: NodeRuntimeReader,
   request: NodeRuntimeResolveRequestDto
 ): Promise<ResolvedRuntimeScope> {
-  const nodeMap = getRuntimeNodeMap(request.mapId)
   const scope = toScope(request)
+  const nodeMap = await expandKeyedNodes(db, getRuntimeNodeMap(request.mapId), scope)
   const steps = resolveRuntimeSteps(nodeMap)
   const resolvedSteps: NodeRuntimeStepDto[] = []
   const clearPaths: RuntimePath[] = []
@@ -103,6 +104,26 @@ async function resolveNodeRuntimeScope(
   }
 }
 
+/** A map keyed by a System table gets one node per row of the request's System, in row order. */
+async function expandKeyedNodes(
+  db: NodeRuntimeReader,
+  nodeMap: RuntimeNodeMap,
+  scope: NodeRuntimeScope
+): Promise<RuntimeNodeMap> {
+  if (!nodeMap.keyedBy) return nodeMap
+  const { rows, entry } = nodeMap.keyedBy
+  const options = streamToOptions(await executeRelationshipPlan(db, rows, scope))
+  return {
+    ...nodeMap,
+    nodes: Object.fromEntries(
+      options.map(({ value, label }, index): [string, RuntimeNodeEntry] => [
+        value,
+        { ...entry, path: [value], label, order: (index + 1) * 10 }
+      ])
+    )
+  }
+}
+
 /** The scopes of every populated nested group under `steps`, as `resolveNodeRuntime` returns them. */
 export async function resolveNestedRuntimeScopes(
   db: NodeRuntimeReader,
@@ -121,7 +142,9 @@ export async function resolveNestedRuntimeScopes(
         const childAncestors = [request.values, ...(request.ancestors ?? [])]
 
         if (node.groupKind === 'OBJECT') {
-          if (!isPopulatedRuntimeRecord(groupValue)) continue
+          // An empty keyed object still has its System's rows to author.
+          const keyed = isRuntimeRecord(groupValue) && getRuntimeNodeMap(node.childMapId).keyedBy
+          if (!isPopulatedRuntimeRecord(groupValue) && !keyed) continue
 
           const childPath = [...parentPath, ...node.path]
           const childRequest = {
@@ -255,8 +278,12 @@ async function normalizeParsedValues(
   parsedRequest: NodeRuntimeNormalizeValuesRequestDto
 ): Promise<NormalizedValues> {
   const resolved = await resolveNodeRuntimeScope(db, parsedRequest)
-  const values = isRuntimeRecord(parsedRequest.values) ? parsedRequest.values : {}
-  const optionNormalized = normalizeVisibleSelectOptions(values, resolved.steps)
+  const keyedNormalized = normalizeKeyedEntries(
+    parsedRequest.mapId,
+    isRuntimeRecord(parsedRequest.values) ? parsedRequest.values : {},
+    resolved.steps
+  )
+  const optionNormalized = normalizeVisibleSelectOptions(keyedNormalized.values, resolved.steps)
   const hiddenNormalized = clearValuesAtPaths(optionNormalized.values, resolved.clearPaths)
   const nestedNormalized = await normalizeVisibleGroups(
     db,
@@ -268,11 +295,38 @@ async function normalizeParsedValues(
   return {
     values: nestedNormalized.values,
     clearedPaths: [
+      ...keyedNormalized.clearedPaths,
       ...optionNormalized.clearedPaths,
       ...hiddenNormalized.clearedPaths,
       ...nestedNormalized.clearedPaths
     ],
-    refusedPaths: [...optionNormalized.refusedPaths, ...nestedNormalized.refusedPaths]
+    refusedPaths: [
+      ...keyedNormalized.refusedPaths,
+      ...optionNormalized.refusedPaths,
+      ...nestedNormalized.refusedPaths
+    ]
+  }
+}
+
+// A keyed map's keys are its table's rows: a key the System does not list is cleared, and refused
+// when the table holds System core codes.
+function normalizeKeyedEntries(
+  mapId: string,
+  values: Record<string, unknown>,
+  steps: readonly NodeRuntimeStepDto[]
+): NormalizedValues {
+  const keyedBy = getRuntimeNodeMap(mapId).keyedBy
+  if (!keyedBy) return { values, clearedPaths: [], refusedPaths: [] }
+  const keys = new Set(
+    steps.flatMap((step) => step.sections.flatMap((section) => section.nodes.map(({ id }) => id)))
+  )
+  const unknownPaths = Object.keys(values)
+    .filter((key) => !keys.has(key))
+    .map((key): RuntimePath => [key])
+  return {
+    values: Object.fromEntries(Object.entries(values).filter(([key]) => keys.has(key))),
+    clearedPaths: unknownPaths,
+    refusedPaths: coreCodeTables.has(keyedBy.rows.table) ? unknownPaths : []
   }
 }
 
@@ -584,7 +638,7 @@ function toScope(request: NodeRuntimeResolveRequestDto): NodeRuntimeScope {
   }
 }
 
-function resolveRuntimeSteps(nodeMap: ReturnType<typeof getRuntimeNodeMap>): SteppedNodeGroup[] {
+function resolveRuntimeSteps(nodeMap: RuntimeNodeMap): SteppedNodeGroup[] {
   const steps = resolveNodeMapSteps(nodeMap)
   if (steps.length > 0) return steps
 

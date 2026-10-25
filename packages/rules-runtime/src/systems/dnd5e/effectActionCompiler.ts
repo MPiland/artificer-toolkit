@@ -1433,7 +1433,7 @@ function actorLinkPlan(
     actorLinkContribution: {
       linkOutcomeId: entry.outcome.id,
       linkKind: 'TELEPATHIC',
-      excludesIntelligenceAtOrBelow: entry.outcome.excludesIntelligenceAtOrBelow
+      excludesAbilityAtOrBelow: entry.outcome.excludesAbilityAtOrBelow
     },
     ...(resultGate && { resultGate }),
     adapterFacts: {},

@@ -194,7 +194,6 @@ describe('class schema parsing', () => {
         sets: []
       },
       hitpoint: {
-        ability: 'CONSTITUTION',
         dieConfig: '1d6'
       },
       multiclass: {

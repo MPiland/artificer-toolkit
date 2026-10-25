@@ -193,8 +193,8 @@ export interface CharacterRuleActionActiveEffectPlan {
   actorLinkContribution?: null | {
     linkOutcomeId: string
     linkKind: 'TELEPATHIC'
-    /** Creatures whose Intelligence is this or lower cannot join the bond. */
-    excludesIntelligenceAtOrBelow: number
+    /** Creatures whose score in this System ability is at or below `score` cannot join the bond. */
+    excludesAbilityAtOrBelow: { ability: string; score: number }
   }
   /**
    * Each target swaps into the Creature of the form the caster chose (Giant Insect), for the
