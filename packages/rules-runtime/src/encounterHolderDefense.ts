@@ -8,6 +8,7 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import {
   encounterAttackAgainstContributors,
   encounterSourceConditionImmunities,
+  encounterSourceSaves,
   encounterSourceSightSaveGrants,
   hasEffectSourceRestrictedGrants,
   hasFeatureSourceRestrictedGrants,
@@ -150,12 +151,17 @@ function sourceSightSaveGrants(gameSystemId: string, target: MovementTarget) {
   })
 }
 
+/** A Character's folded feature grants, or a Creature's feature modifiers. */
+function featureGrants(target: MovementTarget) {
+  return target.effectiveRulePolicyOutput?.grantFold ?? { modifiers: target.featureModifiers }
+}
+
 function hasHolderDefenseGrants(gameSystemId: string, target: MovementTarget): boolean {
   return (
     hasEncounterDefensiveGrants(target.activeEffects) ||
     hasFeatureAttacksAgainstGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
     hasFeatureHolderStateSkillGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
-    hasFeatureSourceRestrictedGrants(target.effectiveRulePolicyOutput?.grantFold ?? null) ||
+    hasFeatureSourceRestrictedGrants(featureGrants(target)) ||
     hasEffectSourceRestrictedGrants(target.activeEffects) ||
     sourceSightSaveGrants(gameSystemId, target).length > 0
   )
@@ -180,7 +186,14 @@ export function withHolderDefenseGrants<T extends MovementTarget>(
     }),
     sourceConditionImmunities: encounterSourceConditionImmunities({
       effects: target.activeEffects,
-      grantFold: target.effectiveRulePolicyOutput?.grantFold ?? null,
+      grantFold: featureGrants(target),
+      holderState
+    }),
+    sourceSaves: encounterSourceSaves({
+      gameSystemId,
+      holderActorId: target.actor.id,
+      effects: target.activeEffects,
+      featureGrants: featureGrants(target),
       holderState
     }),
     sourceSightSaves: sourceSightSaves
