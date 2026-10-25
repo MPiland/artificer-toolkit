@@ -17,10 +17,12 @@ import { CampaignShownSceneCanvas } from './CampaignShownSceneCanvas'
  */
 export function CampaignShownSceneViewer({
   campaignId,
-  currentUserId
+  currentUserId,
+  gameSystemId
 }: {
   campaignId: string
   currentUserId: string
+  gameSystemId: string
 }) {
   const client = useConvex()
   const { showing, presentedSceneId } = useCampaignSceneShowing(campaignId)
@@ -56,7 +58,11 @@ export function CampaignShownSceneViewer({
       onClose={() => setDismissed(showingKey)}
     >
       {hydrated.data ? (
-        <CampaignShownSceneCanvas currentUserId={currentUserId} scene={hydrated.data} />
+        <CampaignShownSceneCanvas
+          currentUserId={currentUserId}
+          gameSystemId={gameSystemId}
+          scene={hydrated.data}
+        />
       ) : null}
     </Modal>
   )

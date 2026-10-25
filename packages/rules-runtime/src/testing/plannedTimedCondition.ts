@@ -77,7 +77,7 @@ export function compiledTestSpellCast(input: {
             remaining: 1
           }
         ],
-        pactMagic: null,
+        slotPools: [],
         fusionStrategy: 'NONE' as const
       }
     } satisfies Pick<

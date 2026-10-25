@@ -65,7 +65,11 @@ vi.mock('#app/settings/useGmRollVisibilityPreference', () => ({
 }))
 vi.mock('./vttSceneRenderer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./vttSceneRenderer')>()),
-  createVttSceneRenderer: (_host: HTMLElement, handlers: RendererHandlers) => {
+  createVttSceneRenderer: (
+    _host: HTMLElement,
+    _gameSystemId: string,
+    handlers: RendererHandlers
+  ) => {
     mocks.handlers = handlers
     return Promise.resolve({
       applyTransient: vi.fn(),

@@ -11,6 +11,7 @@ import {
   sceneDefinitionSaveProgressSchema
 } from '@artificer-toolkit/schema/api/sceneDefinitionSave'
 import { lootDocumentSchema } from '@artificer-toolkit/schema/api/lootTables'
+import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { expect, fn, mocked, userEvent, waitFor, within } from 'storybook/test'
 import { queryKeys } from '#app/lib/queryKeys'
 import { CampaignSceneEditor } from './CampaignSceneEditor'
@@ -140,7 +141,7 @@ export const ConfiguredScene: Story = {
   args: {
     campaignId: tabletopCampaignId,
     currentUserId: tabletopCurrentUserId,
-    gameSystemId: '11111111-1111-4111-8111-111111111111',
+    gameSystemId: SRD_SYSTEM_ID,
     memberships: [
       {
         acceptedAt: '2026-08-01T12:00:00.000Z',

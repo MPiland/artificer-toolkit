@@ -12,7 +12,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMutation as useConvexMutation } from 'convex/react'
 import { useState } from 'react'
-import { api } from '@artificer-toolkit/apis/convex/api'
+import { definitionReferences } from '@artificer-toolkit/apis/convex/definition-references'
 import { reusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { getSystemDefinition } from '#app/data/systems/queries'
 import { SenseDefinitionEditor } from './SenseDefinitionEditor'
@@ -27,8 +27,8 @@ export function SystemDefinitionEditor({ definitionId }: { definitionId: string 
   const queryClient = useQueryClient()
   const workspaceQuery = getSystemDefinition(definitionId)
   const workspace = useQuery(workspaceQuery)
-  const saveDraft = useConvexMutation(api.content.definitions.saveDraft)
-  const publishDraft = useConvexMutation(api.content.definitions.publish)
+  const saveDraft = useConvexMutation(definitionReferences.saveDraft)
+  const publishDraft = useConvexMutation(definitionReferences.publish)
   const [mode, setMode] = useState<'GUIDED' | 'ADVANCED'>('GUIDED')
   const [editor, setEditor] = useState<ReturnType<typeof createDefinitionEditorState> | null>(null)
   const [localError, setLocalError] = useState<string | null>(null)
