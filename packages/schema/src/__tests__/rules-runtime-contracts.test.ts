@@ -305,6 +305,40 @@ function recurringSaveBatchResult(outcome: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'): 
   return result
 }
 
+/** A timed condition's last counted turn: the duration node marks the turn and the effect's condition ends. */
+function timedConditionEndResult(): TurnBatchResult {
+  const result = structuredClone(turnBatchResult())
+  const execution = result.executions[0]!
+  const before = { ...execution.targetTransition.before, conditionIds: [turnBatchIds.condition] }
+  const after = { ...before, conditionIds: [] }
+  execution.targetTransition = { ...execution.targetTransition, before, after }
+  execution.execution.evidence.trace = [
+    {
+      nodeId: 'effect-node',
+      operation: { key: 'dnd5e.condition-duration', contractVersion: 1 },
+      inputs: {},
+      outputs: {}
+    }
+  ]
+  execution.applications = [
+    {
+      ordinal: 0,
+      kind: 'CONDITION_REMOVE',
+      conditionId: turnBatchIds.condition,
+      sourceActiveEffectId: turnBatchIds.effect,
+      beforePresent: true,
+      afterPresent: false,
+      applied: true,
+      sourceNodeId: 'effect-node',
+      sourceOperationKey: 'dnd5e.condition-duration',
+      authoredPath: null,
+      resolvedPath: null
+    }
+  ]
+  result.characterTransitions[0] = { ...result.characterTransitions[0]!, before, after }
+  return result
+}
+
 function turnPendingContext() {
   const candidate = (ordinal: number, effectId: string) => ({
     ordinal,
@@ -1755,6 +1789,43 @@ describe('rules runtime contracts', () => {
         ]
       })
     ).toThrow()
+  })
+
+  it('binds a timed condition’s end to its expiring effect, not to a trace candidate (ATTACK-16.T1a2)', () => {
+    expect(storedRuleExecutionResultDtoSchema.parse(timedConditionEndResult())).toMatchObject({
+      status: 'BATCH_COMPLETE'
+    })
+    const invalid = (mutate: (result: TurnBatchResult) => void) => {
+      const result = timedConditionEndResult()
+      mutate(result)
+      expect(() => storedRuleExecutionResultDtoSchema.parse(result)).toThrow(
+        'Turn-effect application trace binding is invalid.'
+      )
+    }
+    invalid((result) => {
+      Reflect.set(
+        result.executions[0]!.applications[0]!,
+        'sourceActiveEffectId',
+        turnBatchIds.source
+      )
+    })
+    invalid((result) => {
+      Reflect.set(result.executions[0]!.applications[0]!, 'resolvedPath', 'END_OF_TURN')
+    })
+    invalid((result) => {
+      result.executions[0]!.execution.evidence.trace[0]!.operation.key = 'effect.apply'
+    })
+    invalid((result) => {
+      result.executions[0]!.lifecycle = {
+        kind: 'UPDATE',
+        expectedVersion: 1,
+        afterVersion: 2,
+        beforeRemainingTicks: 2,
+        afterRemainingTicks: 1,
+        beforeLifecycleChecksum: 'd'.repeat(64),
+        afterLifecycleChecksum: 'e'.repeat(64)
+      }
+    })
   })
 
   it('validates complete turn-effect receipts and rejects malformed batch evidence', () => {

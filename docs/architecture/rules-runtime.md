@@ -1048,7 +1048,10 @@ holds, a lasting row on an action with two tables, or rows beside hit-point tier
 plan's alone and leaves no OUTCOME node; its timed condition is applied by the OUTCOME graph and held by the plan.
 `encounterActiveEffectPlan` picks the row whose faces hold the settled `rollTableRoll` (no row plan when the save
 succeeds or the rolled row does not last), so it needs the settled OUTCOME outputs: a multi-creature action's lead plan
-(`leadActiveEffectPlan`) has none and refuses row plans, and a cast pick cannot also roll on a table.
+(`leadActiveEffectPlan`) has none and refuses row plans, and a cast pick cannot also roll on a table. A timed
+condition's last counted turn (D62.2) removes the effect's conditions under `dnd5e.condition-duration`; the stored
+turn-effect result binds that removal to the expiring effect itself (an `EXPIRE` lifecycle, its own effect id, no
+paths), not to a trace candidate, since the duration node outputs nothing.
 
 **Placed-zone damage dice (SPELLS-20 T1, D133, current).** A zone whose failed entry save deals authored dice
 (`valueKind: 'DICE'`, a plain `NdM`) compiles those dice into the zone's one frozen entry graph: `damage-enabled`
