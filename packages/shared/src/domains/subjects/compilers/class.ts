@@ -35,7 +35,6 @@ export interface CompiledClassResource {
 }
 
 export interface CompiledHitpoint {
-  ability: string
   dieConfig: string
 }
 

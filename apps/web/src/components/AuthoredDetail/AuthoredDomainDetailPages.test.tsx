@@ -885,7 +885,6 @@ describe('authored domain detail pages', () => {
         ...ownedClassResponseFixture.item,
         label: 'Bard',
         hitpoint: {
-          ability: 'CONSTITUTION',
           dieConfig: 'd8'
         },
         spellcasting: {

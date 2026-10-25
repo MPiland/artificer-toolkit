@@ -249,22 +249,9 @@ export const CLASS_RESOURCE_NODE_MAP = classResourceNode.define(
 
 const classHitpointNode = buildNodeMap<ClassHitpointAuthored>()
 
-const CLASS_HITPOINT_NODE_MAP = classHitpointNode.define(
-  'classHitpoint',
-  ({ map, nodes, data }) => {
-    const { selectSingle, text } = nodes
-
-    map
-      .set(
-        'ability',
-        selectSingle(['ability'], 'Ability', {
-          kind: 'DATA',
-          relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
-        })
-      )
-      .set('dieConfig', text(['dieConfig'], 'Die Config'))
-  }
-)
+const CLASS_HITPOINT_NODE_MAP = classHitpointNode.define('classHitpoint', ({ map, nodes }) => {
+  map.set('dieConfig', nodes.text(['dieConfig'], 'Die Config'))
+})
 
 const classStartingGoldNode = buildNodeMap<ClassStartingGoldAuthored>()
 

@@ -52,6 +52,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function maskNodeMapValue(value: unknown, nodeMap: RuntimeNodeMap): unknown {
   if (!isRecord(value)) return value
   const presented: Record<string, unknown> = { ...value }
+  const keyedEntry = nodeMap.keyedBy?.entry
+  if (keyedEntry?.kind === 'GROUP') {
+    const childMap = typeof keyedEntry.nodes === 'function' ? keyedEntry.nodes() : keyedEntry.nodes
+    for (const [key, current] of Object.entries(presented))
+      presented[key] = maskNodeMapValue(current, childMap)
+  }
 
   for (const node of Object.values(nodeMap.nodes)) {
     const key = String(node.path[0])

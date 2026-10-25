@@ -26,7 +26,6 @@ export interface ClassResourceAuthored {
 }
 
 export interface ClassHitpointAuthored {
-  ability: string
   dieConfig: string
 }
 
