@@ -55,6 +55,17 @@ erDiagram
   ABILITY_DEFINITION ||--o{ SAVE_DC_BONUS : contributes
 ```
 
+The model is System-neutral. A `GAME_SYSTEM` row is imported data; what the System can do is the
+rule capability its installed code declares (`systems/installedGameSystems/` in `packages/rules-runtime`,
+read through `content/systems:capability`): its content kinds, authored root kinds, reusable-definition
+families, facts and operations. Every relationship above keys by `gameSystemId`, and each write checks that
+capability: the shell offers only declared content kinds, `content/definitions:create` refuses an undeclared
+family, and publication compiles a graph against the System's own fact and operation contracts. Nothing in
+the model names D&D 5e. Senses, abilities and saving throws are System lists that may be empty, and
+D&D-only families such as `dnd5e-encounter-lifecycle` exist only because the dnd5e capability declares
+them. A test-only second System, never seeded or built, proves this through the real Convex reads and
+publication (D195; `apps/apis/convex/content/systemPortability.tracer.test.ts`).
+
 For a typed reusable vocabulary family such as `sense`, the catalogue entry and reusable-definition
 root share the exact `(id, gameSystemId)` identity. The catalogue entry is selectable metadata; the
 published family document is mechanics. Grants keep their existing UUID reference, and no code/label

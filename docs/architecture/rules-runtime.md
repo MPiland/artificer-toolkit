@@ -394,12 +394,13 @@ neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `d20TestDefinitionCapability`, `contestCheckCapability`, `optionalCombatPolicyCapability`,
 `attackProfileCapability`, `modifierScopeCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
-`combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
-Creature form keeps, and `derivedStatisticAbilityCodes`: the ability armor class, initiative and hit points add,
-which the character fact builders and the Sheet hit die check read, RULES-2.T9e; the web Creature detail, Encounter enemy stat block and Builder hit points read the
+`combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula and abilities a
+Creature form keeps; the web Creature detail, Encounter enemy stat block and Builder hit points read the
 modifier through it), `characterProgressionCapabilityRegistry` (`characterProgressionCapability.ts`: hit die
-size and average, the hit points a level adds and the proficiency bonus, read by the Builder hit point step
-and Class detail) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
+size and average, the hit points a level adds, the proficiency bonus and `derivedStatisticAbilityCodes`, the
+ability armor class, initiative and hit points add, which the character fact builders, the Sheet hit die
+check, the Builder hit point step and Class detail read, RULES-2.T9e; it moved off the ability-score
+adapter in RULES-2.T12b, so a System without Character statistics fails closed there) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
 `characterActionCapabilityRegistry` (the Sheet's Character action discovery,
 `discoverCharacterActionCapabilities`).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
@@ -414,7 +415,8 @@ action or passage choice uses `require` and Cleaving uses `find`, since a System
 Cleaving choice; `attackProfileCapabilityRegistry` for an attack's kind and modifier domain, the
 traits a holder's grants or a Character's action give it, its critical rules and roll contributors,
 the damage defenses it meets, the itemless restrictions a feature attack reduces and what its compiled
-effect reads and spends; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
+effect reads and spends, where a `MovementTarget`'s granted traits use `find` because a System without
+attack profiles grants none; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
 Character-wide, which movement passage and opportunity-attack immunity read, and whether a saving-throw
 grant holds only while the saver sees the effect's source (`encounterActiveGrants`);
 `characterRuleActionSystemAdapterRegistry` for compiling, binding and interpreting rule actions and
@@ -452,7 +454,17 @@ encounter each load policy but not each other, and runtime loads all five. `sche
 asserts that nesting from esbuild closures, so a heavier tier never leaks into a lighter one. The tracer
 Vitest project (`tracer` in the root `vitest.config.ts`) aliases the vocabulary, policy, encounter and
 runtime lists to ones under `src/__tests__/tracer/` that also install a test-only Fate-like System, which
-never ships (ADR 0023). An Encounter actor policy may report no saving throws (`savingThrowDefinitions`
+never ships (ADR 0023). Its proofs (RULES-2.T12b) run an approach check through its own published graph on
+the neutral d20 settlement, consume and end effects through its own event vocabulary (refusing D&D
+lifecycle codes), break and save a maintained stunt through its maintenance link, and show that the
+D&D-shaped capabilities it leaves out fail closed on `require` and are skipped by `find`. It provides the
+System-generic `modifierScope` and `d20TestDefinition` capabilities (without a death save). The Convex
+`convex-tracer` project (`apps/apis/vitest.config.ts`, files named `*.tracer.test.ts`) applies the same
+aliases (`tracerTierAliases` in `scripts/vitestSource.mjs`) to the backend (AUTHORING-1.T2): the tracer is
+imported beside the SRD and travels the real System list, summary, document and capability reads, empty
+catalogue counts and reusable-definition create, draft, publish, get and list. Publication compiles its graph
+against the tracer's own fact and operation contracts, so a D&D fact is refused, and a family the tracer
+does not declare is refused at create. An Encounter actor policy may report no saving throws (`savingThrowDefinitions`
 absent); when it reports them, reconciliation still requires one per ability score.
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from

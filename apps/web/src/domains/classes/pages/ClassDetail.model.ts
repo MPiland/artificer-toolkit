@@ -10,10 +10,7 @@ import {
   type GrantDetailLine
 } from '#components/AuthoredDetail'
 import type { AuthoredContentReferenceData } from '#app/data/contentReferences'
-import {
-  abilityScoreCapabilityRegistry,
-  characterProgressionCapabilityRegistry
-} from '@artificer-toolkit/rules-runtime/platformPolicyModules'
+import { characterProgressionCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import type { ClassResponseDto } from '@artificer-toolkit/schema/api/content'
 import type { ClassAuthoringInputDto } from '@artificer-toolkit/schema/subjects/class'
 
@@ -98,10 +95,7 @@ function formatHitPointHtml(classRecord: ClassAuthoringInputDto): string {
   const hitDie = dieSize ? `1d${dieSize}` : classRecord.hitpoint.dieConfig
   const average = dieSize ? progression.hitDieAverage(dieSize) : null
   const className = classRecord.label.toLowerCase()
-  const ability = formatEnumLabel(
-    abilityScoreCapabilityRegistry.require(classRecord.systemId).derivedStatisticAbilityCodes
-      .hitPoints
-  )
+  const ability = formatEnumLabel(progression.derivedStatisticAbilityCodes.hitPoints)
 
   return [
     `<p><strong>Hit Dice:</strong> ${hitDie} per ${escapeHtml(className)} level</p>`,

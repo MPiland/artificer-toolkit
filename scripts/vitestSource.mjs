@@ -16,6 +16,16 @@ export const sourceResolve = {
 export const inlineWorkspacePackages = [/@artificer-toolkit[\\/]/]
 
 /**
+ * Swaps the installed-Systems tier lists for the tracer's, which also install the test-only System
+ * (D195). The tracer has no character tier, so the character list stays dnd5e-only. Only test
+ * projects set these aliases, so the tracer never reaches a build.
+ */
+export const tracerTierAliases = ['vocabulary', 'policy', 'encounter', 'runtime'].map((tier) => ({
+  find: new RegExp(`^.*/systems/installedGameSystems/${tier}\\.js$`),
+  replacement: resolve(root, `packages/rules-runtime/src/__tests__/tracer/installed/${tier}.ts`)
+}))
+
+/**
  * Points the shared barrels and rules-runtime at one source module each. The barrels re-export each
  * other in cycles, and Vitest's module runner only resolves such `export *` cycles when every importer
  * reaches a barrel through the same module id.
