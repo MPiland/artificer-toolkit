@@ -1,4 +1,4 @@
-import type { RuntimeNodeMap } from '@artificer-toolkit/shared/maps'
+import type { RuntimeNodeEntry, RuntimeNodeMap } from '@artificer-toolkit/shared/maps'
 import {
   BACKGROUND_NODE_MAP,
   CLASS_NODE_MAP,
@@ -72,7 +72,11 @@ function collectNodeMap(runtimeNodeMap: RuntimeNodeMap, registry: Map<string, Ru
 
   registry.set(runtimeNodeMap.mapId, runtimeNodeMap)
 
-  for (const node of Object.values(runtimeNodeMap.nodes)) {
+  const keyedEntry = runtimeNodeMap.keyedBy?.entry
+  for (const node of [
+    ...Object.values(runtimeNodeMap.nodes),
+    ...(keyedEntry ? [keyedEntry] : [])
+  ]) {
     if (node.kind !== 'GROUP') continue
 
     const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
@@ -83,13 +87,19 @@ function collectNodeMap(runtimeNodeMap: RuntimeNodeMap, registry: Map<string, Ru
 function nodeMapContractSignature(nodeMap: RuntimeNodeMap): string {
   const nodes = Object.entries(nodeMap.nodes)
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([id, node]) => {
-      if (node.kind === 'INPUT') return [id, node]
+    .map(([id, node]) => [id, nodeContract(node)])
+  const keyedBy = nodeMap.keyedBy && {
+    rows: nodeMap.keyedBy.rows,
+    entry: nodeContract(nodeMap.keyedBy.entry)
+  }
 
-      const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
-      const contract = Object.fromEntries(Object.entries(node).filter(([key]) => key !== 'nodes'))
-      return [id, { ...contract, childMapId: childMap.mapId }]
-    })
+  return JSON.stringify({ authoring: nodeMap.authoring, nodes, keyedBy })
+}
 
-  return JSON.stringify({ authoring: nodeMap.authoring, nodes })
+function nodeContract(node: RuntimeNodeEntry | NonNullable<RuntimeNodeMap['keyedBy']>['entry']) {
+  if (node.kind === 'INPUT') return node
+
+  const childMap = typeof node.nodes === 'function' ? node.nodes() : node.nodes
+  const contract = Object.fromEntries(Object.entries(node).filter(([key]) => key !== 'nodes'))
+  return { ...contract, childMapId: childMap.mapId }
 }

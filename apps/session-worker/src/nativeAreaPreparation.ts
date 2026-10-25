@@ -817,6 +817,8 @@ export function reachRuleOverrides(input: {
     acknowledged: input.command.acknowledgedWarnings
   }
   const deadCharacterIds = deadCharacterIdsOfTargets(input.movementTargets.values())
+  const linkFloor =
+    leadActiveEffectPlan(input.lead)?.actorLinkContribution?.excludesAbilityAtOrBelow ?? null
   const ruleWarnings =
     input.command.target.kind === 'ACTORS'
       ? evaluateEncounterActorsRuleWarnings({
@@ -831,11 +833,10 @@ export function reachRuleOverrides(input: {
             },
             targetDefeated: isEncounterActorDefeated(prepared.target, deadCharacterIds),
             targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
-            targetIntelligence: snapshotAbilityScore(prepared.target, 'INTELLIGENCE')
+            targetLinkAbilityScore:
+              linkFloor && snapshotAbilityScore(prepared.target, linkFloor.ability)
           })),
-          linkIntelligenceFloor:
-            leadActiveEffectPlan(input.lead)?.actorLinkContribution
-              ?.excludesIntelligenceAtOrBelow ?? null
+          linkAbilityFloor: linkFloor?.score ?? null
         })
       : evaluateEncounterAreaRuleWarnings(shared)
   if (ruleWarnings.kind === 'UNSUPPORTED_TARGET')

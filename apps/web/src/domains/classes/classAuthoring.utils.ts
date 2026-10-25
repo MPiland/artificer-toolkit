@@ -7,7 +7,6 @@ import type {
   ClassMulticlassDto,
   ClassStartingGoldDto
 } from '@artificer-toolkit/schema/subjects/shared'
-import { abilityScoreCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import {
   CHARGE_LIMIT_KIND,
   CHARGE_RESET_KIND,
@@ -71,7 +70,7 @@ export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuth
       subclassSelectionLevel: classRecord.subclassSelectionLevel,
       startingGold: classRecord.startingGold ?? createEmptyStartingGold(),
       startingEquipment: classRecord.startingEquipment ?? createEmptyStartingEquipment(),
-      hitpoint: classRecord.hitpoint ?? createEmptyHitpoint(classRecord.systemId),
+      hitpoint: classRecord.hitpoint ?? { dieConfig: '1d8' },
       multiclass: classRecord.multiclass ?? createEmptyMulticlass()
     }
   }
@@ -99,14 +98,6 @@ function createEmptyStartingGold(): ClassStartingGoldDto {
     multiplier: 1,
     currencyId: '',
     dieConfig: '1d4'
-  }
-}
-
-function createEmptyHitpoint(systemId: string): NonNullable<ClassAuthoringInputDto['hitpoint']> {
-  return {
-    ability:
-      abilityScoreCapabilityRegistry.require(systemId).derivedStatisticAbilityCodes.hitPoints,
-    dieConfig: '1d8'
   }
 }
 

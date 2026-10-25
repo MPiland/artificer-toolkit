@@ -600,6 +600,7 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Rare class senses and riders:** Blindsense, Feral Senses, Witch Sight, Retaliation, and the One with Shadows light gate.
 - **Save scopes by damage type and by illusion (SPELLS-32.T4j):** Dwarven Resilience gives advantage only on saves against the POISONED condition, not on saves against poison damage such as a breath weapon. Duergar Resilience covers saves against magic but has no separate illusion scope. Automating them needs a save scope keyed on the effect's damage type and an illusion school or tag on the source.
 - **Retire unused size codes (RULES-2.T9f1):** the dnd5e size table still lists FINE, DIMUNITIVE (misspelled), GIANT and COLOSSAL, which no SRD content uses. Removing them needs a data check and a reseed.
+- **Non-d20 check resolution (RULES-2.T12, D195):** the neutral check settlement is d20-shaped (ADR 0039 decision 2), so the portability tracer's Fate-like check runs its graph through it. A second System with its own dice (4dF, dice pools) needs a settlement seam that takes the roll shape from the System, which means an ADR 0039 amendment.
 
 ## Other future enhancements (parked)
 

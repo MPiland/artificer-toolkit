@@ -94,6 +94,7 @@ type AuthoringDefaultKind =
   | 'damageInterceptionSave'
   | 'damageInterceptionSaveDc'
   | 'incomingGateSuccessImmunity'
+  | 'telepathicLinkAbilityFloor'
   | 'modifierAttackDecoyArmorClass'
   | 'modifierAttackDecoyThreshold'
   | 'modifierChargeLimitLevel'
@@ -272,6 +273,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   damageInterceptionSave: ['damageInterceptionSave'],
   damageInterceptionSaveDc: ['damageInterceptionSaveDc'],
   incomingGateSuccessImmunity: ['incomingGateSuccessImmunity'],
+  telepathicLinkAbilityFloor: ['telepathicLinkAbilityFloor'],
   modifierAttackDecoyArmorClass: ['modifierAttackDecoyArmorClass'],
   modifierAttackDecoyThreshold: ['modifierAttackDecoyThreshold'],
   modifierChargeLimitLevel: ['modifierChargeLimitLevel'],

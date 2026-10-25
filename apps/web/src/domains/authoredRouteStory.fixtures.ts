@@ -340,7 +340,6 @@ const seedWizardClass = {
     }
   ],
   hitpoint: {
-    ability: 'CONSTITUTION',
     dieConfig: 'd6'
   },
   startingGold: {

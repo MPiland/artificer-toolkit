@@ -85,9 +85,15 @@ export function parseContentSnapshotObjectKey(
 
 const identityShape = () => ({ id: authoredIdentifierSchema, label: authoredShortTextSchema })
 
+// A fixed increase names its System ability code, which the reader labels; a summary fact
+// ("All abilities", "Choose 2 abilities") carries its own label.
 const abilityScoreIncreaseFactSchema = lazySchema(() =>
-  z.strictObject({ label: z.string(), value: z.string() })
+  z.union([
+    z.strictObject({ ability: systemCoreCodeSchema, value: z.string() }),
+    z.strictObject({ label: z.string(), value: z.string() })
+  ])
 )
+export type ContentSnapshotAbilityScoreIncreaseFact = z.infer<typeof abilityScoreIncreaseFactSchema>
 
 // Index entries hold each root's own picker facts. Labels resolved through the System vocabulary
 // or another root (speed names, proficiency targets, a subrace's inherited facts) are joined by
