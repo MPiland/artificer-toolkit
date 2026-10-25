@@ -12,6 +12,14 @@ import {
 } from '../../tests/fixtures/localRoomWorker'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 
+afterEach(() => {
+  try {
+    console.log('T9F2 PROBE', JSON.stringify(roomErrorLogs()).slice(0, 6000))
+  } catch (error) {
+    console.log('T9F2 PROBE none', String(error))
+  }
+})
+
 useLocalRoomWorker()
 
 type Setup = Awaited<ReturnType<typeof setupAutomaticSceneMovement>>
@@ -155,11 +163,3 @@ it('settles a spatial prefix between a used automatic reaction and later control
   expect(effects.find((entry) => entry.id === effect.id)).toBeUndefined()
   expect(await readRunVersion(value)).toBe((before ?? 0) + 1)
 }, 60_000)
-
-afterEach(() => {
-  try {
-    console.log('T9F2 PROBE', JSON.stringify(roomErrorLogs()).slice(0, 6000))
-  } catch (error) {
-    console.log('T9F2 PROBE none', String(error))
-  }
-})
