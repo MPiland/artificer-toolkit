@@ -167,13 +167,19 @@ function reduceRestrictions(
  * Settles every path restriction of a compiled attack Effect against the weapon it is made with
  * and the damage its hit always deals (its `ON_HIT` damage that no restriction, use limit or player
  * choice withholds), so only the circumstance checks remain for {@link attackRestrictionsMet}. An
- * entry that can never be owed is removed.
+ * entry that can never be owed is removed. An `ON_USE` entry's restrictions admit the action's user
+ * instead (the compiled entry's `holderRestrictions`) and stay as authored.
  */
 export function reduceEffectRestrictions<TEffect extends CompiledEffectGroup>(
   effect: TEffect,
   item: Dnd5eAttackingItem | null
 ): TEffect {
-  if (!effect.entries.some((entry) => 'restrictions' in entry && entry.restrictions)) return effect
+  if (
+    !effect.entries.some(
+      (entry) => 'restrictions' in entry && entry.restrictions && entry.pathCode !== 'ON_USE'
+    )
+  )
+    return effect
   const dealtDamageTypeIds = new Set(
     effect.entries.flatMap((entry) =>
       'outcome' in entry &&
@@ -188,7 +194,8 @@ export function reduceEffectRestrictions<TEffect extends CompiledEffectGroup>(
     )
   )
   const entries = effect.entries.flatMap((entry) => {
-    if (!('restrictions' in entry) || !entry.restrictions) return [entry]
+    if (!('restrictions' in entry) || !entry.restrictions || entry.pathCode === 'ON_USE')
+      return [entry]
     const restrictions = reduceRestrictions(entry.restrictions, item, dealtDamageTypeIds)
     if (restrictions === null) return []
     const { restrictions: _settled, ...unrestricted } = entry

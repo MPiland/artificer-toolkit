@@ -22,7 +22,8 @@ export function entryOwed(
       unsupported('D&D once-per-turn paths need the turn record of an attack.')
     if (facts.attackTurnUses.includes(usageKey)) return false
   }
-  if (!('restrictions' in entry) || !entry.restrictions) return true
+  // An ON_USE entry's restrictions admitted its user before the action ran.
+  if (!('restrictions' in entry) || !entry.restrictions || entry.pathCode === 'ON_USE') return true
   return attackRestrictionsMet(entry.restrictions, {
     rollMode: facts.attackRollMode,
     enemyProximity: facts.attackEnemyProximity ?? null,

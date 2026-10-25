@@ -5,6 +5,7 @@ import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-r
 import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { encounterActionRequirementsHold } from '@artificer-toolkit/rules-runtime/encounterActionRequirements'
 import { encounterAttackActionState } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { holderStateRestrictionsHold } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
@@ -58,11 +59,12 @@ export function refuseActionOutsideItsWindow(prepared: Pick<Prepared, 'actor' | 
 }
 
 /**
- * An authored basic action is taken only by an actor that meets its facet restrictions, or that
- * accepted the free held-weapon stow that meets them (D152); an accepted stow it doesn't need is
- * refused.
+ * A Character action is taken only by an actor that meets its use path's holder restrictions
+ * (Frenzy only while raging). An authored basic action is taken only by an actor that meets its
+ * facet restrictions, or that accepted the free held-weapon stow that meets them (D152); an
+ * accepted stow it doesn't need is refused.
  */
-export async function refuseUnmetBasicActionRestrictions(
+export async function refuseUnmetActionRestrictions(
   action: {
     source: Prepared['source']
     acceptedWieldConflict: EncounterAcceptedWieldConflictDto | null
@@ -70,6 +72,21 @@ export async function refuseUnmetBasicActionRestrictions(
   holder: Parameters<typeof encounterHolderState>[0]
 ) {
   const { source } = action
+  if (source.kind === 'CHARACTER_ACTION') {
+    const restrictions =
+      ('holderRestrictions' in source.entry && source.entry.holderRestrictions) || []
+    const holderState = restrictions.length > 0 ? await encounterHolderState(holder) : null
+    if (
+      holderState &&
+      !restrictions.every((current) => holderStateRestrictionsHold(current, holderState))
+    )
+      throw new LiveSessionDomainRejectionError(422, {
+        code: 'DOMAIN_REJECTED',
+        reason: 'SOURCE_REQUIREMENTS_NOT_MET',
+        message: DOMAIN_REJECTION_MESSAGES.SOURCE_REQUIREMENTS_NOT_MET
+      })
+    return
+  }
   if (source.kind !== 'BASIC_ACTION') return
   const admission = source.capability.restrictions
     ? encounterBasicActionAdmission(

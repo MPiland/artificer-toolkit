@@ -159,6 +159,8 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
     endOnConditionIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema)),
     /** The holder may end the effect themselves, at the cost of this activation. */
     holderEnd: z.optional(z.strictObject({ activation: activationCodeSchema })),
+    /** See `PathLifecycleAuthored.endsWithHeldEffectId`. */
+    endsWithHeldEffectId: z.optional(authoredIdentifierSchema),
     /** See `PathLifecycleAuthored.fromSourceOnly`. */
     fromSourceOnly: z.optional(z.boolean()),
     /** See `PathLifecycleAuthored.exclusivity`. */

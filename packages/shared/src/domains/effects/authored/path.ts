@@ -72,6 +72,11 @@ export type PathLifecycleAuthored = {
   /** The holder may end the effect themselves, at the cost of this activation. */
   holderEnd?: { activation: ActivationCode }
   /**
+   * An Effect the holder already holds when this one is made: this one ends with it, however that
+   * ends (D172), as Frenzy ends with Rage.
+   */
+  endsWithHeldEffectId?: string
+  /**
    * Only the effect's source meets it: its grants about attackers apply, and an attack consumes
    * it, only when the source is the attacker.
    */
@@ -243,7 +248,9 @@ export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
   originKind?: PathOriginKind
   /**
    * The path's result is owed only while this facet holds for the attack it rides on (a passive
-   * Effect's `ON_HIT` damage). Groups are OR-ed, each group's conditions AND-ed.
+   * Effect's `ON_HIT` damage). On an activated action's `ON_USE` path it names the holder conditions
+   * its user must meet to take the action (Frenzy only while raging). Groups are OR-ed, each
+   * group's conditions AND-ed.
    */
   restrictions?: FacetAuthored
   /** The result is owed to at most one attack in a turn, whichever qualifies first. */
