@@ -256,6 +256,11 @@ import {
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition
 } from './effectActionNestedSave.js'
+import {
+  isRollTableEntry,
+  rollTableGraphDefinition,
+  rollTablePath
+} from './effectActionRollTable.js'
 
 const DND5E_ORDINARY_SIGHT_DEFINITION_ID = '0b4d8603-8e15-4e5a-89a6-9e1a179c4371'
 const DND5E_ORDINARY_SIGHT_NAMESPACE = '6871f0d5-9ac4-45d4-84c0-30cbd4e7df0c'
@@ -2347,8 +2352,17 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     unsupported('D&D test action has an unsupported bounded shape.')
   }
   const paths = new Set<string>()
+  const tablePaths = new Set<string>()
   const conditionCounts = new Map<string, number>()
   for (const entry of action.compiledEffect.entries) {
+    if (isRollTableEntry(entry)) {
+      // An attack's critical hit would fold its hit table into the critical result; only a save's
+      // result paths resolve through a table.
+      if (kind !== 'SAVE' || !allowedPaths.includes(entry.pathCode))
+        unsupported('D&D roll table must resolve a saving throw result path.')
+      tablePaths.add(entry.pathCode)
+      continue
+    }
     if (isActiveEffectPlanOutcome(entry, action)) continue
     // A SEQUENCE result block applies each of its outcomes in order; OUTCOME
     // specializes every outcome as its own group, exactly like separate paths.
@@ -2393,6 +2407,8 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     )
       unsupported('D&D outcome sized by damage needs a damage outcome on its path.')
   }
+  // A table path holds only its rows; rollTablePath refuses a direct outcome beside them.
+  for (const pathCode of tablePaths) rollTablePath(action, pathCode)
   for (const pathCode of paths) {
     for (const entries of authoredOutcomeGroups(action, pathCode as SpecializedPath))
       validateDiceOutcomeGroup(entries)
@@ -2947,6 +2963,13 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
 }): Dnd5eEffectActionTemplate | null {
   if (!isCheckOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
   assertKnownTestResultPath(input.action, input.selectedPath)
+  const table = rollTablePath(input.action, input.selectedPath)
+  if (table)
+    return {
+      phase: 'OUTCOME',
+      published: publishedGraph(rollTableGraphDefinition(input.action, table)),
+      templateChecksum: checksumRuleDocument(table.rows)
+    }
   if (
     (input.selectedPath === 'ON_HIT' || input.selectedPath === 'ON_CRIT') &&
     isExactImmediateFollowUpSaveAction(input.action)
@@ -3825,6 +3848,19 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
     }
   }[]
   for (const pathCode of [...paths].sort((left, right) => left.localeCompare(right))) {
+    const table = rollTablePath(action, pathCode)
+    if (table) {
+      outcomes.push({
+        pathCode,
+        template: {
+          definitionId: action.effectId,
+          gameSystemId: DND5E_SYSTEM_ID,
+          definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
+          checksum: checksumRuleDocument(table.rows)
+        }
+      })
+      continue
+    }
     const groups = selectedOutcomeGroups(action, pathCode)
     if (groups.length === 0) continue
     if (
