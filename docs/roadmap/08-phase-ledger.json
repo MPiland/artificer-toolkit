@@ -9644,18 +9644,61 @@
           },
           "tasks": [
             {
-              "id": "ATTACK-16.T1",
+              "id": "ATTACK-16.T1a",
               "status": "IN_PROGRESS",
+              "closes": ["ATTACK-16.1"],
+              "activeWorkbook": "docs/handoffs/slice-attack-16.md",
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 8,
+                "after": []
+              },
+              "text": "Kernel roll-table execution: the effect compiler accepts an authored ROLL_TABLE path (dice expression, rows by range, each row an ordinary compiled outcome graph), rolled server-side with the roll and the selected row in trace and replay. Generic, no feature-specific code; authoring-parity proof with a homebrew table.",
+              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
+            },
+            {
+              "id": "ATTACK-16.T1b",
+              "status": "TODO",
               "closes": ["ATTACK-16.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 5
+                "size": 5,
+                "after": []
               },
-              "text": "Threshold at half max HP from one source, authored Constitution save, rolled system-shock result.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-attack-16.md"
+              "text": "Rule-owned action source: an optional combat rule can raise a RESOLVE_ACTION root whose source is the rule (not a Creature passive), for Creatures and Characters, so authored outcomes (timed CONDITION, APPLY_GRANT, STABILIZE) run through the compiled graph path.",
+              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
+            },
+            {
+              "id": "ATTACK-16.T1c",
+              "status": "TODO",
+              "closes": ["ATTACK-16.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 5,
+                "after": ["ATTACK-16.T1a", "ATTACK-16.T1b"]
+              },
+              "text": "Massive damage detection: a MASSIVE_DAMAGE DAMAGE_SAVE_CHECK source on the D167 chain (per-source finalized envelope, threshold half max HP), the authored Constitution save, and on failure a self-targeted SYSTEM root that runs the authored 1d10 system-shock ROLL_TABLE; Character admission included.",
+              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
+            },
+            {
+              "id": "ATTACK-16.T1d",
+              "status": "TODO",
+              "closes": ["ATTACK-16.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 2,
+                "after": ["ATTACK-16.T1c"]
+              },
+              "text": "Migrate the system-shock bands to the authored ROLL_TABLE on the optional-combat definition; delete the 5 executor-less primitives and outcome kinds with their data and fixtures; reseed dev data.",
+              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
             },
             {
               "id": "ATTACK-16.T2",
@@ -9666,7 +9709,7 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 1,
-                "after": ["ATTACK-16.T1"]
+                "after": ["ATTACK-16.T1d"]
               },
               "text": "Integrate and settings gate.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
