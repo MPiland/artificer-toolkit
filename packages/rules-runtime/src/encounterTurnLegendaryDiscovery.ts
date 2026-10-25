@@ -65,7 +65,8 @@ function optionForCandidate(
     target: owner,
     targetPolicy,
     makesAttackRoll,
-    sceneContext: null
+    sceneContext: null,
+    facing: null
   })
   if (ownerWarnings === null) return null
   // The owner may target itself unless the action must name another creature (D99).

@@ -15,6 +15,7 @@ const holderState = {
   speedAboveZero: true,
   freeHand: true,
   turnMovement: { usedFeet: 0, speedFeet: 0 },
+  activeAuthoredEffectIds: [],
   stowableHeldItemInstanceId: null
 } as const
 

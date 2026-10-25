@@ -426,7 +426,7 @@ discovery and effect binding (`encounterFeatureActionCapabilityDiscovery.ts`);
 `legendaryActionEligibilityCapabilityRegistry` and `movementReactionEligibilityCapabilityRegistry`
 for eligibility and the capability definitions it requires; `sceneGridPolicyCapabilityRegistry`, an
 optional `find` capability through `resolveEncounterSceneGrid`, where a System without it plays on the
-Scene's own grid). The four `platform*` files are the only composition roots: no other neutral
+Scene's own grid). The five `platform*` files are the only composition roots: no other neutral
 module installs an adapter, and a `systems/dnd5e` adapter never value-imports a platform file, so
 `passiveMeleeRetaliationZone` takes the attack kind instead of reading the registry. A `MovementTarget`
 carries its actor's `movementPassage` and `grantedAttackTraits`, resolved once through these
@@ -442,6 +442,18 @@ the composition roots reach `systems/*` (active grants read the action-economy c
 `allowanceDefinitionIdByCountDomain`, which an active zero-count grant suppresses);
 the composition roots above are exempt by name
 ([CI validation](ci-validation.md)).
+Each composition root builds its registries from one installed-Systems list per load tier (D195,
+RULES-2.T12a), in `systems/installedGameSystems/`: `vocabulary` (`platformSystemCoreCodes`), `policy`
+(`platformPolicyModules`), `character` (`platformCharacterPolicy`), `encounter`
+(`platformEncounterPolicy`) and `runtime` (`platformRulesRuntime`). Each System exports one module object per
+tier (`GameSystem<Tier>Tier`, declared by its root). A System leaves out a capability it lacks, so `require`
+fails closed and `find` skips it. The tiers nest as the loads do: policy loads vocabulary, character and
+encounter each load policy but not each other, and runtime loads all five. `schemaBoundary.test.ts`
+asserts that nesting from esbuild closures, so a heavier tier never leaks into a lighter one. The tracer
+Vitest project (`tracer` in the root `vitest.config.ts`) aliases the vocabulary, policy, encounter and
+runtime lists to ones under `src/__tests__/tracer/` that also install a test-only Fate-like System, which
+never ships (ADR 0023). An Encounter actor policy may report no saving throws (`savingThrowDefinitions`
+absent); when it reports them, reconciliation still requires one per ability score.
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
@@ -1857,8 +1869,12 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
 - **Restrictions (slice E).** An actor is offered a basic action, and may take it, only when its facet `restrictions` hold; no
   restriction means every actor, Characters and Creatures alike. The check is `encounterBasicActionRestrictionsHold`
   (`encounterBasicActionRestrictions.ts`): it normalizes the facet with the grant-fold restriction normalizer and decides the holder-state
-  predicates (`CAN_ACT`, `SPEED_ABOVE_ZERO`, `FREE_HAND`, `TURN_MOVEMENT`) against `EncounterHolderState` (`encounterHolderDefense.ts`), the same live
-  decision grant restrictions use; any other predicate fails closed. Each CHARACTER or CREATURE context also normalizes to a
+  predicates (`CAN_ACT`, `SPEED_ABOVE_ZERO`, `FREE_HAND`, `TURN_MOVEMENT`, `HOLDER_ACTIVE_EFFECT`) against `EncounterHolderState` (`encounterHolderDefense.ts`), the same live
+  decision grant restrictions use; any other predicate fails closed. `HOLDER_ACTIVE_EFFECT { effectIds }` (SPELLS-31.T5f1)
+  holds while the holder carries an active effect whose `authoredEffectId` is one of `effectIds`
+  (`EncounterHolderState.activeAuthoredEffectIds`): a feature that works "while raging" names Rage's authored effect id, never
+  the reverse. A Character feature's `CONDITION_IMMUNITY` grant restricted by a holder-state predicate is deferred by the fold
+  and joins `sourceConditionImmunities` only while its restriction holds (Mindless Rage). Each CHARACTER or CREATURE context also normalizes to a
   `HOLDER_KIND` condition on its subject, and a CREATURE context's `CREATURE_TYPE` to a `CREATURE_TYPE` condition (D152): the
   Encounter decides both from the holder's `kind` and `creatureTypeIds`, the Character fold decides them as constants (a Character
   holder, no creature type), so its outputs are unchanged, and item-action requirements always see a Character. `FREE_HAND` is true
@@ -2389,6 +2405,17 @@ attacks, timed conditions (one effect owning several conditions and, beside them
 measure, `measureSceneTokenFootprintDistance`. The SRD attack sweep allowlist
 (`__tests__/srdCreatureAttackSweepAllowlist.ts`) lists the attacks that remain unsupported, each with one
 reason, and may only shrink. Versatile grips author one effect per grip.
+
+Positional attack contributors (current, ATTACK-12.T2f): `encounterActionPositionalContributors`
+(`encounterPositionalContributors.ts`) is the single home for roll-mode contributors that come from where
+creatures stand. It returns the Facing arc contributors and the System's Flanking contributor, which it
+reaches through `optionalCombatPolicyCapabilityRegistry` (`resolveFlanking`). Flanking facts come from
+`loadEncounterFlankingFacts`: allies of the attacker in contact with the target, whether each holds the
+policy's participant capability (`flankingParticipantCapabilityDefinitionId`), and whether each sees the
+target. Each preparation site supplies its own tokens and perception through `loadFlanking`: the room's
+attack and root-action plans (`nativeLiveAttackSceneLoaders`), the movement opportunity attack measured
+at its contact point, and the Convex action preparation. `encounterActionTargetPolicy` stays free of
+registry imports, because the System adapters import it.
 
 **Hit point maximum reduction (SPELLS-33.T3a4).** A `HIT_POINT_MAXIMUM_REDUCTION` whose `DAMAGE_TAKEN`
 amount names a damage outcome of its own result path compiles on a direct test path too, not only in an

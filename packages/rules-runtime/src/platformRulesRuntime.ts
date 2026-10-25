@@ -18,24 +18,34 @@ import {
   type RulesRuntimeService
 } from './rulesRuntimeService.js'
 import { maintenanceLinkCapabilityRegistry } from './platformPolicyModules.js'
-import { dnd5eRulesRuntimeRegistration } from './systems/dnd5e/characterActionRuntime.js'
+import { installedRuntimeSystems } from './systems/installedGameSystems/runtime.js'
 
 export { evaluateInstalledCharacterPolicy } from './platformCharacterPolicy.js'
 export { evaluateInstalledEncounterActors } from './platformEncounterPolicy.js'
 
 /**
- * Platform-owned registry of installed System runtime modules. Encounter and
- * transport code receives the resulting generic runtime, never a System
- * selector. Character preparation uses the focused platformCharacterPolicy module.
+ * One installed System's rules runtime tier (D195). Encounter and transport code receives the
+ * resulting generic runtime, never a System selector. Character preparation uses the focused
+ * platformCharacterPolicy module.
  */
-const installedRuntimeModules = [dnd5eRulesRuntimeRegistration] as const
+export interface GameSystemRuntimeTier {
+  readonly gameSystemId: string
+  readonly capabilities: readonly GameSystemRuleCapabilityContract[]
+  readonly operations: readonly RuleOperationContract[]
+  readonly isMeleeAttackTrigger: (triggerCode: string) => boolean
+  readonly isSpellAttackTrigger: (triggerCode: string) => boolean
+  readonly compileCreatureRuleFacts?: (input: {
+    creature: CreatureAuthored
+    vocabulary: SystemVocabularySnapshot
+  }) => EncounterCreatureRuleFactsSnapshot
+}
 
 export const installedGameSystemRuleCapabilities: readonly GameSystemRuleCapabilityContract[] =
-  installedRuntimeModules.flatMap((module) => module.capabilities)
+  installedRuntimeSystems.flatMap((module) => module.capabilities)
 
 export const installedGameSystemRuleOperations: readonly RuleOperationContract[] = [
   ...coreRuleOperations,
-  ...installedRuntimeModules.flatMap((module) => module.operations)
+  ...installedRuntimeSystems.flatMap((module) => module.operations)
 ]
 
 /**
@@ -49,10 +59,10 @@ export function compileInstalledCreatureRuleFacts(input: {
   if (input.creature.systemId !== input.vocabulary.systemId) {
     throw new Error('Creature and System vocabulary identities do not match.')
   }
-  const registration = installedRuntimeModules.find(
+  const registration = installedRuntimeSystems.find(
     (module) => module.gameSystemId === input.vocabulary.systemId
   )
-  if (!registration || !('compileCreatureRuleFacts' in registration)) {
+  if (!registration?.compileCreatureRuleFacts) {
     throw new Error(
       `No Creature rule-fact compiler is registered for Game System "${input.vocabulary.systemId}".`
     )
@@ -61,7 +71,7 @@ export function compileInstalledCreatureRuleFacts(input: {
 }
 
 function requireInstalledRuntimeModule(gameSystemId: string) {
-  const registration = installedRuntimeModules.find(
+  const registration = installedRuntimeSystems.find(
     (module) => module.gameSystemId === gameSystemId
   )
   if (!registration) {
@@ -91,7 +101,7 @@ export function findInstalledGameSystemRuleCapability(
   gameSystemId: string
 ): GameSystemRuleCapabilityDto | null {
   return (
-    installedRuntimeModules
+    installedRuntimeSystems
       .flatMap((module) => module.capabilities)
       .map((candidate) => gameSystemRuleCapabilityDtoSchema.parse(candidate))
       .find((candidate) => candidate.gameSystemId === gameSystemId) ?? null
@@ -112,7 +122,7 @@ export function requireInstalledGameSystemRuleCapability(
 export function createPlatformRulesRuntime(input: {
   definitions: PublishedRuleDefinitionSource
 }): RulesRuntimeService {
-  const registrations = installedRuntimeModules.map((module) => module.gameSystemId)
+  const registrations = installedRuntimeSystems.map((module) => module.gameSystemId)
   if (new Set(registrations).size !== registrations.length) {
     throw new Error('Each installed System may register only one rules runtime module.')
   }

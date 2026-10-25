@@ -166,7 +166,8 @@ describe('the range an offer holds the new holder to', () => {
         target,
         targetPolicy: policy,
         sceneContext: null,
-        makesAttackRoll: false
+        makesAttackRoll: false,
+        facing: null
       })
     ).toEqual([expect.objectContaining({ code: 'TARGET_RANGE_UNCHECKED' })])
   })

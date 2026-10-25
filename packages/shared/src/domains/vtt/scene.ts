@@ -324,13 +324,16 @@ export type SceneAtomicDelta =
     }
   | { kind: 'TOKEN_UPSERTED'; token: SceneToken }
   | { kind: 'TOKEN_REMOVED'; tokenId: string }
-  | { kind: 'TOKEN_MOVED'; position: ScenePoint; tokenId: string }
+  /** `rotationDegrees` is the facing a move ended in, when the Encounter's Facing rule asked for one. */
+  | { kind: 'TOKEN_MOVED'; position: ScenePoint; rotationDegrees?: number; tokenId: string }
   | {
       kind: 'TOKEN_MOVE_UNDONE'
       position: ScenePoint
+      rotationDegrees?: number
       tokenId: string
       undoneCommandId: string
     }
+  | { kind: 'TOKEN_FACING_SET'; rotationDegrees: number; tokenId: string }
   | { kind: 'DOOR_STATE_SET'; barrierId: string; state: SceneDoorState }
   | { kind: 'BARRIER_UPSERTED'; barrier: SceneBarrier }
   | { kind: 'BARRIER_REMOVED'; barrierId: string }

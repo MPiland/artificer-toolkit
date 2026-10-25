@@ -28,6 +28,7 @@ import {
   SCALING_AMOUNT_OPTIONS,
   SELECTABLE_PREDICATE_CODES
 } from '#core'
+import { EFFECT_ID_NODE_MAP } from './effectId.js'
 import { createFacetConditionNodeMap } from './facetCondition.js'
 import { createFacetExistsNodeMap, type FacetExistMin } from './facetExists.js'
 import {
@@ -59,6 +60,11 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
     const { and } = logic
     const local = cond.local()
     const p = cond.parent<ExistsConditionAuthored>()
+    const selectedRelation = (relationCode: NonNullable<ExistsConditionAuthored['relationCode']>) =>
+      and([
+        p.field(['relationCode']).eq(relationCode),
+        local.field(['authoringModeKind']).eq('SELECTED')
+      ])
 
     const { selectSingle, selectMulti, groupArray } = nodes
     const { table } = data
@@ -92,10 +98,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('FEATURE'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('FEATURE')
           }
         )
       )
@@ -113,10 +116,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('OPTION'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('OPTION')
           }
         )
       )
@@ -134,10 +134,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('RACE_ANCESTRY_OPTION'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('RACE_ANCESTRY_OPTION')
           }
         )
       )
@@ -157,10 +154,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('RESOURCE'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('RESOURCE')
           }
         )
       )
@@ -179,10 +173,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('SUBCLASS'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('SUBCLASS')
           }
         )
       )
@@ -201,10 +192,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('SUBRACE'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('SUBRACE')
           }
         )
       )
@@ -220,10 +208,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('PROFICIENCY_GRANT'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('PROFICIENCY_GRANT')
           }
         )
       )
@@ -584,7 +569,7 @@ function createFacetPredicateNodeMap(
       ownerScope === 'PARENT' ? cond.parent<FacetExistMin>() : cond.ancestor<FacetExistMin>(2)
     const p = { field: owner.field, id: selection.id, scope: selection.scope }
 
-    const { selectSingle, selectMulti, number, toggle } = nodes
+    const { selectSingle, selectMulti, number, toggle, groupArray } = nodes
     const { chain, mapValues, table, condition } = data
     const attackActivation = local.field(['predicateCode']).eq('ATTACK_ACTIVATION')
     const attackRollMode = local.field(['predicateCode']).eq('ATTACK_ROLL_MODE')
@@ -1043,6 +1028,14 @@ function createFacetPredicateNodeMap(
         number(['maxSpeedFraction'], 'Max Fraction of Speed', {
           order: 3,
           showIf: local.field(['predicateCode']).eq('TURN_MOVEMENT')
+        })
+      )
+      .set(
+        'effectIds',
+        groupArray(['effectIds'], 'Active Effects', () => EFFECT_ID_NODE_MAP, {
+          order: 3,
+          presentation: 'inline',
+          showIf: local.field(['predicateCode']).eq('HOLDER_ACTIVE_EFFECT')
         })
       )
       .set(

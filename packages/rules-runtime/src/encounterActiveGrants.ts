@@ -267,6 +267,8 @@ export type EncounterHolderState = {
    * which `TURN_MOVEMENT` weighs; both 0 off its turn.
    */
   turnMovement: { usedFeet: number; speedFeet: number }
+  /** The authored ids of the holder's live active effects, which HOLDER_ACTIVE_EFFECT reads. */
+  activeAuthoredEffectIds: readonly string[]
   /**
    * When no hand is free, the held weapon a Character can stow for free to free one (its off hand
    * first, never a shield, D152); null otherwise.
@@ -313,6 +315,8 @@ function holderConditionMatches(
         (condition.speedFraction === null || usedFeet <= speedFeet * condition.speedFraction)
       )
     }
+    case 'HOLDER_ACTIVE_EFFECT':
+      return condition.requiredIds.some((id) => holderState.activeAuthoredEffectIds.includes(id))
     default:
       return isHolderStateKind(condition.kind)
         ? holderState[HOLDER_STATE_FLAG[condition.kind]]
@@ -413,7 +417,10 @@ function hasSourceRestriction(restrictions: ModifierRestrictions): boolean {
 function hasHolderStateRestriction(restrictions: ModifierRestrictions): boolean {
   return restrictions.some((group) =>
     group.conditions.some(
-      (condition) => isHolderStateKind(condition.kind) || condition.kind === 'TURN_MOVEMENT'
+      (condition) =>
+        isHolderStateKind(condition.kind) ||
+        condition.kind === 'TURN_MOVEMENT' ||
+        condition.kind === 'HOLDER_ACTIVE_EFFECT'
     )
   )
 }
@@ -650,7 +657,7 @@ export function encounterFeatureSkillCheckContributors(input: {
   )
 }
 
-/** A holder's condition immunity that holds only against sources of certain creature types. */
+/** A holder's restricted condition immunity: against the sources its qualifier admits (all when empty). */
 export type EncounterSourceConditionImmunity = {
   conditionTypeId: string
   sourceQualifier: SourceCreatureQualifier
@@ -659,7 +666,8 @@ export type EncounterSourceConditionImmunity = {
 /**
  * The condition immunities a holder's active effects and own features (a Character's folded
  * features, a Creature's feature modifiers) give only against some sources (Protection from Evil
- * and Good, Purity of Spirit, Fey Ancestry's magical sleep), whose holder restrictions hold now. Unqualified immunities fold as plain ones.
+ * and Good, Purity of Spirit, Fey Ancestry's magical sleep) or only in some holder state (Mindless
+ * Rage while raging), whose holder restrictions hold now. Unqualified immunities fold as plain ones.
  */
 export function encounterSourceConditionImmunities(input: {
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
@@ -683,7 +691,7 @@ export function encounterSourceConditionImmunities(input: {
     if (
       modifier.valueDomainCode !== 'CONDITION_IMMUNITY' ||
       modifier.modifierKind !== 'ADD_OPTION' ||
-      !hasSourceRestriction(restrictions) ||
+      !(hasSourceRestriction(restrictions) || hasHolderStateRestriction(restrictions)) ||
       payload === undefined ||
       !('conditionTypeId' in payload)
     )
@@ -755,6 +763,18 @@ export function hasFeatureSourceRestrictedGrants(
     (modifier) =>
       modifier.source.kind !== 'ACTIVE_EFFECT' &&
       hasSourceRestriction(modifier.deferredRequirements)
+  )
+}
+
+/** Whether a Character's own features carry a condition immunity its holder state decides (Mindless Rage). */
+export function hasFeatureHolderStateConditionImmunities(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> | null
+): boolean {
+  return (grantFold?.modifiers ?? []).some(
+    (modifier) =>
+      modifier.valueDomainCode === 'CONDITION_IMMUNITY' &&
+      modifier.source.kind !== 'ACTIVE_EFFECT' &&
+      hasHolderStateRestriction(modifier.deferredRequirements)
   )
 }
 
