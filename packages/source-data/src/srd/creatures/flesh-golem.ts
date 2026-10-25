@@ -1,4 +1,6 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 export const fleshGolem: CreatureAuthored = {
   id: S.CREATURE_IDS.FLESH_GOLEM,
@@ -86,7 +88,7 @@ export const fleshGolem: CreatureAuthored = {
       description:
         'Immutable Form. The golem is immune to any spell or effect that would alter its form.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(103, 203),
           invocation: {
             kind: 'PASSIVE',
@@ -94,7 +96,7 @@ export const fleshGolem: CreatureAuthored = {
             range: { id: S.actionId(103, 1203), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_IMMUTABLE_FORM
+          ...CHANGE_SHAPE_RULING.IMMUTABLE_FORM
         })
       ],
       order: 3
@@ -105,7 +107,7 @@ export const fleshGolem: CreatureAuthored = {
       description:
         'Lightning Absorption. Whenever the golem is subjected to lightning damage, it takes no damage and instead regains a number of hit points equal to the lightning damage dealt.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(103, 204),
           invocation: {
             kind: 'PASSIVE',
@@ -113,7 +115,10 @@ export const fleshGolem: CreatureAuthored = {
             range: { id: S.actionId(103, 1204), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_FLESH_GOLEM_LIGHTNING_ABSORPTION
+          label: 'Lightning Absorption',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'Whenever the golem is subjected to lightning damage, it takes no damage and instead regains hit points equal to the lightning damage that would have been dealt.'
         })
       ],
       order: 4
@@ -123,18 +128,7 @@ export const fleshGolem: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The golem has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(103, 205),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
-            range: { id: S.actionId(103, 1205), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(103, 205),
       order: 5
     },
     {

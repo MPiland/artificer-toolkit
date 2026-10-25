@@ -1,5 +1,6 @@
 import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 export const vampireSpawn: CreatureAuthored = {
   id: S.CREATURE_IDS.VAMPIRE_SPAWN,
@@ -161,8 +162,11 @@ export const vampireSpawn: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(278, 214),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_VAMPIRE_SPAWN_BITE
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Life drain',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      "The bite works only on a willing creature or one that is grappled, incapacitated, or restrained by the vampire spawn. The target's hit point maximum is reduced by the necrotic damage taken, and the vampire spawn regains hit points equal to that amount. The reduction lasts until the target finishes a long rest, and the target dies if its hit point maximum drops to 0."
                   }
                 ]
               }
