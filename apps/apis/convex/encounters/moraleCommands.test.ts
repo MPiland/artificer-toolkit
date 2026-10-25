@@ -84,10 +84,10 @@ describe('Morale commands through the room (ENCOUNTER-6.1)', () => {
       disposition: 'FLEE'
     }))
     expect(confirmed.projection.version).toBe(checked.projection.version + 1)
-    // After a room restart Convex's own record answers the same ID.
+    // After a room restart Convex's own record answers the same ID, committing nothing new.
     await closeRoom(fixture.campaign.id)
     const afterRestart = await moraleSave(fixture, started, commandId)
-    expect(afterRestart.projection.version).toBe(checked.projection.version)
+    expect(afterRestart.projection.version).toBe(confirmed.projection.version)
     await expectReusedCommandRefusal(
       execute(fixture, (base) => ({
         ...base,
