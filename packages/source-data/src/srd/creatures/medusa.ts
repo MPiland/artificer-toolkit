@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
 export const medusa: CreatureAuthored = {
@@ -90,8 +91,36 @@ export const medusa: CreatureAuthored = {
                   },
                   {
                     id: S.actionId(194, 918),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MEDUSA_PETRIFYING_GAZE
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
+                    savingThrow: {
+                      id: S.actionId(194, 922),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                      baseDc: 14
+                    },
+                    attempts: { kind: 'ONCE' },
+                    onSuccess: { kind: 'END' },
+                    onFailure: {
+                      kind: 'OUTCOMES',
+                      endCurrent: true,
+                      resultKind: 'SINGLE',
+                      outcomes: [
+                        {
+                          id: S.actionId(194, 923),
+                          effectKind: S.EFFECT_KIND.CONDITION,
+                          conditionId: conditionTypeId('PETRIFIED')
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    id: S.actionId(194, 920),
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Fails by 5 or more',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      'If the save fails by 5 or more, the creature is petrified at once instead of restrained: apply Petrified and skip the follow-up save.'
                   }
                 ]
               }
