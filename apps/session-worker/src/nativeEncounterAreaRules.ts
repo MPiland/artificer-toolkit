@@ -4,6 +4,7 @@ import {
   type ResolveRuleOccurrenceInputDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterSealedChoiceSelection } from '@artificer-toolkit/rules-runtime/encounterSealedChoice'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import type { ServerAggregateChoicePendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import type { ScenePoint } from '@artificer-toolkit/shared/vtt'
@@ -221,7 +222,8 @@ export async function planNativeLiveEncounterAreaAction(input: AreaPlanInput) {
     evaluation,
     areaWarnings: area.warnings,
     targets: reached,
-    movementTargets
+    movementTargets,
+    facing: encounterFacingRule(state)
   })
   const opened = await openReachCastWindow(input, {
     reach: base,
@@ -840,7 +842,8 @@ export async function planNativeLiveEncounterAreaCommit(
     evaluation: first.evaluation,
     areaWarnings: base.area?.warnings ?? [],
     targets: kept.map(({ target }) => target),
-    movementTargets: base.movementTargets
+    movementTargets: base.movementTargets,
+    facing: encounterFacingRule(input.state)
   })
   const { economy, attackAction } = first.evaluation
   const actionEconomy = economy?.consumption ?? null

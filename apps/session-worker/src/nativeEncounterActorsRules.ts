@@ -3,6 +3,7 @@ import type {
   ResolveEncounterActionTargetDto
 } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import { chosenCreaturesCap } from '@artificer-toolkit/rules-runtime/encounterAreaAction'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import {
   absentEncounterActorIds,
   catchEncounterAreaActorIds
@@ -146,7 +147,8 @@ export async function planNativeLiveEncounterActorsAction(
     evaluation,
     areaWarnings: reach.area?.warnings ?? [],
     targets: prepared,
-    movementTargets
+    movementTargets,
+    facing: encounterFacingRule(state)
   })
   const opened = await openReachCastWindow(input, {
     reach,

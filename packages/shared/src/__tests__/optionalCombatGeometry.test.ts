@@ -11,7 +11,16 @@ import {
   SQUARE_GRID_COMPASS_RAYS,
   traceSquareGridForcedMovementRay
 } from '../domains/vtt/optionalCombatGeometry.js'
+import type { FacingArcRange } from '../domains/vtt/facingArc.js'
 import type { CampaignSceneState, SceneGrid, SceneToken } from '../domains/vtt/scene.js'
+
+/** Four 90-degree arcs centred on the facing, as the SRD Facing rule authors them. */
+const QUARTER_ARCS: readonly FacingArcRange[] = [
+  { arc: 'FRONT', fromDegrees: -45, toDegrees: 45 },
+  { arc: 'RIGHT_SIDE', fromDegrees: 45, toDegrees: 135 },
+  { arc: 'REAR', fromDegrees: 135, toDegrees: 225 },
+  { arc: 'LEFT_SIDE', fromDegrees: 225, toDegrees: 315 }
+]
 
 const grid: SceneGrid = {
   cellSize: 10,
@@ -98,28 +107,70 @@ describe('optional combat square-grid geometry', () => {
 
   it('normalizes rotations and applies stable arc-boundary precedence', () => {
     const target = token({ x: 15, y: 15 }, 20, 20)
-    expect(classifySquareGridFacingArc({ subject: { x: 15, y: 5 }, target })).toBe('FRONT')
-    expect(classifySquareGridFacingArc({ subject: { x: 25, y: 5 }, target })).toBe('FRONT')
-    expect(classifySquareGridFacingArc({ subject: { x: 25.1, y: 5 }, target })).toBe('RIGHT_SIDE')
+    expect(
+      classifySquareGridFacingArc({ arcs: QUARTER_ARCS, subject: { x: 15, y: 5 }, target })
+    ).toBe('FRONT')
+    expect(
+      classifySquareGridFacingArc({ arcs: QUARTER_ARCS, subject: { x: 25, y: 5 }, target })
+    ).toBe('FRONT')
+    expect(
+      classifySquareGridFacingArc({ arcs: QUARTER_ARCS, subject: { x: 25.1, y: 5 }, target })
+    ).toBe('RIGHT_SIDE')
     expect(
       classifySquareGridFacingArc({
+        arcs: QUARTER_ARCS,
         subject: { x: 25, y: 25 },
         target: { ...target, rotationDegrees: 360 }
       })
     ).toBe('RIGHT_SIDE')
     expect(
       classifySquareGridFacingArc({
+        arcs: QUARTER_ARCS,
         subject: { x: 5, y: 25 },
         target: { ...target, rotationDegrees: -360 }
       })
     ).toBe('LEFT_SIDE')
-    expect(classifySquareGridFacingArc({ subject: { x: 15, y: 35 }, target })).toBe('REAR')
+    expect(
+      classifySquareGridFacingArc({ arcs: QUARTER_ARCS, subject: { x: 15, y: 35 }, target })
+    ).toBe('REAR')
   })
 
+  it('classifies against the authored arc table, so a homebrew table moves the edges (ATTACK-12)', () => {
+    // A wide front and a narrow rear, with no side arcs.
+    const homebrew: readonly FacingArcRange[] = [
+      { arc: 'FRONT', fromDegrees: -120, toDegrees: 120 },
+      { arc: 'REAR', fromDegrees: 120, toDegrees: 240 }
+    ]
+    const target = token({ x: 15, y: 15 }, 20, 20)
+    const east = { x: 35, y: 15 }
+    const southEast = { x: 35, y: 35 }
+    const south = { x: 15, y: 35 }
+    expect(classifySquareGridFacingArc({ arcs: QUARTER_ARCS, subject: east, target })).toBe(
+      'RIGHT_SIDE'
+    )
+    expect(classifySquareGridFacingArc({ arcs: homebrew, subject: east, target })).toBe('FRONT')
+    expect(classifySquareGridFacingArc({ arcs: QUARTER_ARCS, subject: southEast, target })).toBe(
+      'RIGHT_SIDE'
+    )
+    expect(classifySquareGridFacingArc({ arcs: homebrew, subject: southEast, target })).toBe('REAR')
+    expect(classifySquareGridFacingArc({ arcs: homebrew, subject: south, target })).toBe('REAR')
+    // An edge both arcs share belongs to the one nearer the front.
+    expect(
+      classifySquareGridFacingArc({
+        arcs: homebrew,
+        subject: {
+          x: 15 + Math.sin((120 * Math.PI) / 180) * 20,
+          y: 15 - Math.cos((120 * Math.PI) / 180) * 20
+        },
+        target
+      })
+    ).toBe('FRONT')
+  })
   it('uses the closest occupied cells for large-footprint facing with stable ties', () => {
     const source = footprint(enumerateSquareGridFootprint(grid, token({ x: 20, y: 20 }, 40)))
     const target = footprint(enumerateSquareGridFootprint(grid, token({ x: 45, y: -20 }, 10, 60)))
     const arcs = classifySquareGridFootprintFacingArcs({
+      arcs: QUARTER_ARCS,
       grid,
       source: { footprint: source, rotationDegrees: 0 },
       target: { footprint: target, rotationDegrees: 180 }
@@ -129,6 +180,7 @@ describe('optional combat square-grid geometry', () => {
 
     const tieTarget = footprint(enumerateSquareGridFootprint(grid, token({ x: 30, y: 10 }, 20)))
     const tieInput = {
+      arcs: QUARTER_ARCS,
       grid,
       source: {
         footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 10, y: 10 }, 20))),
@@ -146,6 +198,7 @@ describe('optional combat square-grid geometry', () => {
       })
     ).toEqual(classifySquareGridFootprintFacingArcs(tieInput))
     const boundary = classifySquareGridFootprintFacingArcs({
+      arcs: QUARTER_ARCS,
       grid,
       source: {
         footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 5, y: 5 }))),
@@ -259,6 +312,7 @@ describe('optional combat square-grid geometry', () => {
     ).toEqual([])
     expect(
       classifySquareGridFacingArc({
+        arcs: QUARTER_ARCS,
         subject: { x: Number.NaN, y: 0 },
         target: token({ x: 5, y: 5 })
       })

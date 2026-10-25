@@ -1,4 +1,5 @@
 import type {
+  ChangeFacingInputDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
@@ -24,6 +25,7 @@ import { captureActionEconomyDefinitions } from './nativeEncounterActionEconomy.
 import { liveEncounterCaptures, type LiveCaptureReads } from './nativeEncounterReads.js'
 
 type HolderActivationCommand =
+  | ChangeFacingInputDto
   | EndHeldGrantInputDto
   | EscapeRelationshipInputDto
   | MoveHeldEffectInputDto
@@ -32,7 +34,7 @@ type HolderActivationCommand =
 /**
  * Admits a command a creature runs on an effect it holds (an Escape, D105, an end of its own
  * grant, D113, or a release of a creature it holds, D152, or a move of an effect
- * it is offered, D160) and reads the Run inputs it plans against: the replay of an already-recorded
+ * it is offered, D160, or a turn of its own facing, ATTACK-12) and reads the Run inputs it plans against: the replay of an already-recorded
  * command, or the admitted command with the reads that fence its commit.
  */
 export async function admitNativeLiveHolderCommand(

@@ -3,6 +3,11 @@ import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUui
 
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import { DND5E_CLEAVING_POLICY_MODULE } from './policyModuleRegistration.js'
+import { dnd5eFacingRule } from './facingPolicy.js'
+import {
+  dnd5eFlankingParticipantCapabilityDefinitionId,
+  resolveDnd5eFlankingContributor
+} from './flankingPolicy.js'
 import { prepareDnd5eDisarmContest } from './optionalActionPolicy.js'
 import { prepareDnd5eOverrunContest, prepareDnd5eTumbleContest } from './optionalMovementPolicy.js'
 import {
@@ -172,5 +177,8 @@ export const dnd5eOptionalCombatPolicyCapabilityAdapter = {
   prepareTumbleContest: prepareDnd5eTumbleContest,
   resolveCleaving: resolveDnd5eCleaving,
   offerMoraleTriggers: offerDnd5eMoraleTriggers,
-  prepareMoraleSave: prepareDnd5eMoraleSave
+  prepareMoraleSave: prepareDnd5eMoraleSave,
+  facingRule: dnd5eFacingRule,
+  flankingParticipantCapabilityDefinitionId: dnd5eFlankingParticipantCapabilityDefinitionId,
+  resolveFlanking: resolveDnd5eFlankingContributor
 } as const satisfies OptionalCombatPolicyCapabilityAdapter
