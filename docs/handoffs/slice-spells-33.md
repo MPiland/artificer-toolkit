@@ -707,6 +707,13 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - The seven closed-rule kinds (`CREATURE_{WEREBEAR,WEREBOAR,WERERAT,WERETIGER,WEREWOLF,VAMPIRE}_SHAPECHANGER`, `CREATURE_VAMPIRE_MISTY_ESCAPE`) are deleted from `closedRuleKind.ts`.
 - Proof: `creatureChangeShapeRulingAuthoringParity.test.ts` extended (action shape, Misty Escape passive ruling, creature node map round trip, kinds gone).
 
+## T4s3: Immutable Form, Duergar Enlarge, Mimic Pseudopod Adhesive as GM rulings (D187a; `ci/spells-33-t4s3`)
+
+- Status: implemented; CI is the gate. Clay, Flesh, Iron and Stone Golem Immutable Form use `CHANGE_SHAPE_RULING.IMMUTABLE_FORM` on their PASSIVE effects. Duergar Enlarge keeps its short-rest charge and bonus-action invocation; its outcome is a `MANUAL_ADJUDICATION` ruling (Large size and Strength advantage; the doubled dice are already in the attacks). The Mimic Pseudopod's object-form Adhesive rider is an ON_HIT ruling (grapple, escape DC 13, disadvantage on the escape checks). No engine piece built.
+- Five closed-rule kinds deleted (`CREATURE_IMMUTABLE_FORM`, `CREATURE_IRON_GOLEM_IMMUTABLE_FORM`, `CREATURE_STONE_GOLEM_IMMUTABLE_FORM`, `DUERGAR_ENLARGE`, `CREATURE_MIMIC_PSEUDOPOD_ADHESIVE`). Mimic Grappler stays with T3a and Mimic Adhesive with T6a3 (not in this ledger row).
+- `manualAdjudicationEffect` gained an optional `order`, used by the Pseudopod effect.
+- Proof: `creatureFormRulingAuthoringParity.test.ts` (ruling shape per creature, creature node map round trip, kinds gone); SRD effect compile golden regenerated.
+
 ## T6m2: lingering creature riders (D187a; `ci/spells-33-t6m2`)
 
 - Deletes `CREATURE_ANDROSPHINX_ROAR`, `CREATURE_COUATL_BITE_POISON`, `CREATURE_DRYAD_TREE_STRIDE`, `CREATURE_HORNED_DEVIL_INFERNAL_WOUND` and `CREATURE_VROCK_STUNNING_SCREECH`, and the Couatl Bite allowlist entry.
