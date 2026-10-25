@@ -15287,7 +15287,7 @@
             },
             {
               "id": "SPELLS-31.T5f2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15296,8 +15296,22 @@
                 "size": 2,
                 "after": ["SPELLS-31.T5f1"]
               },
-              "text": "Options bound to another active effect, part 2: Persistent Rage (generic END_EVENT_EXEMPTION holder grant read in planIdleTurnCheck) and Frenzy (FREE self action while raging with a granted bonus-action weapon attack, endWithEffectIds through the T2l release seam, exhaustion on end via an existing outcome shape where one exists; melee-only limit a GM ruling). Each conversion has an authoring-parity proof and deletes its kind.",
-              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25)."
+              "text": "Options bound to another active effect, part 2: Persistent Rage (generic END_EVENT_EXEMPTION holder grant read in planIdleTurnCheck), with an authoring-parity proof; deletes its kind. Frenzy moved to T5f4.",
+              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25). Frenzy split to T5f4 on 2026-10-25 (user ruling: build it now; Rage is very common)."
+            },
+            {
+              "id": "SPELLS-31.T5f4",
+              "status": "IN_PROGRESS",
+              "closes": ["SPELLS-31.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 5,
+                "after": ["SPELLS-31.T5f2"]
+              },
+              "text": "Frenzy as generic, data-authored options: an uncharged FREE self action; a holder-active-effect gate on Character feature actions (the one basic actions use); grantedActions extended to grant a BONUS_ACTION weapon attack on each later turn while the holder effect lasts (the existing action-grant seam, not a modifier and not a second mechanism); endWithEffectIds stored on the definition and expanded on every Rage end path. Exhaustion on end is MANUAL_ADJUDICATION. Authoring-parity proof, room journey, deletes the Frenzy kind.",
+              "note": "Registered 2026-10-25 (user ruling, D187 growth +5): four seams measured missing in spells-31-t5f2-frenzy-sizing.md."
             },
             {
               "id": "SPELLS-31.T5f3",
