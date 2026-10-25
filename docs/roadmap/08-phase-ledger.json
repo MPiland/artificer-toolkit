@@ -3764,10 +3764,11 @@
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 5,
+                "size": 8,
                 "after": ["RULES-2.T9f1"]
               },
-              "text": "System vocabulary (D192 split of T9f): ability-score records keyed by ability definition id; labels and abbreviations from the System record; shared core/ability.ts deleted; reseed, golden flips enumerated."
+              "text": "System vocabulary (D192 as amended 2026-10-24): ability codes become System core codes like sizes in T9f1; persisted and authored ability keys stay codes owned by each System ability table and every ingress rejects a code the System does not list; labels and abbreviations from the System record; shared core/ability.ts deleted; no re-key, no reseed.",
+              "note": " Re-sized 5 to 8 (user ruling 2026-10-24, D192 amendment): the definition-id re-key measured about 21 points."
             },
             {
               "id": "RULES-2.T9f3",
@@ -3781,7 +3782,7 @@
                 "size": 5,
                 "after": ["RULES-2.T9f2"]
               },
-              "text": "System vocabulary (D192 split of T9f): authored ability references (grants, effects, facets, charge, numericExpr, class) become abilityDefinitionId; reseed; one-off ts-morph codemod allowed (D192)."
+              "text": "System vocabulary (D192 as amended 2026-10-24): authored ability references (grants, effects, facets, charge, numericExpr, class) are checked against the System ability codes at every ingress; the class hitpoint.ability field is deleted (D193); excludesIntelligenceAtOrBelow becomes excludesAbilityAtOrBelow; BRIGHT/DIM literals in vttSceneRenderer and illuminationFromLight, the slotPools z.maxLength bound in characterRules.ts, and illumination level-table validation (empty, duplicate, misordered) from the RULES-2.T9 review."
             },
             {
               "id": "RULES-2.T10",
