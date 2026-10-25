@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
-import { equipmentPropertyCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import { equipmentPropertyCodeSchema } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { serverUuidIdentityDtoSchema } from '../shared/serverUuidIdentity.js'
 import { projectionIdentifierSchema } from './identity.js'
 
@@ -11,7 +12,7 @@ import { projectionIdentifierSchema } from './identity.js'
 export const characterInitiativeActorFactsSchema = lazySchema(() =>
   z
     .strictObject({
-      effectiveSize: z.nullable(sizeCodeSchema),
+      effectiveSize: z.nullable(systemCoreCodeSchema),
       checkTotals: z._default(z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())), {}),
       equippedItems: z
         .array(

@@ -12,7 +12,6 @@ import type {
   LengthUnitCode,
   RangeKind,
   ScalingAmountKind,
-  SizeCode,
   VehicleCategoryCode
 } from '#core'
 import { valuesOf, type EmptyObject, type Selectable } from '#utils'
@@ -49,7 +48,7 @@ export type PredicatePayloadByCode = {
       >
   CONCENTRATION: EmptyObject
   RITUAL: EmptyObject
-  SIZE: Selectable<{ sizes: SizeCode[] }>
+  SIZE: Selectable<{ sizes: string[] }>
   FEATURE_OBTAINED: {
     featureIds: string[]
   }
@@ -183,11 +182,11 @@ export type PredicatePayloadByCode = {
   CREATURE_TYPE: Selectable<{ creatureTypeIds: string[] }>
   SOURCE_CREATURE_TYPE: Selectable<{ creatureTypeIds: string[] }>
   SOURCE_TRAIT: Selectable<{ traits: DamageDefenseBypassCode[] }>
-  CREATURE_SIZE: Selectable<{ sizes: SizeCode[] }>
+  CREATURE_SIZE: Selectable<{ sizes: string[] }>
   CREATURE_IS_MOUNT: EmptyObject
   CREATURE_IS_COMPANION: EmptyObject
   VEHICLE_CATEGORY: Selectable<{ categories: VehicleCategoryCode[] }>
-  VEHICLE_SIZE: Selectable<{ sizes: SizeCode[] }>
+  VEHICLE_SIZE: Selectable<{ sizes: string[] }>
 }
 
 type SelectablePredicateCode = {

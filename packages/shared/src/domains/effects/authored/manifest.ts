@@ -13,7 +13,6 @@ import {
   type LengthUnitCode,
   type NumericExpr,
   type ShapeMeasurementValueAuthored,
-  type SizeCode,
   type Trigger
 } from '#core'
 
@@ -218,7 +217,7 @@ export type ManifestProximityRuleAuthored = {
 }
 
 export type SummonStatBlockAuthored = {
-  size?: SizeCode
+  size?: string
   armorClass?: NumericExpr
   armorClassNote?: string
   hitPoints?: NumericExpr
@@ -318,7 +317,7 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
   placementMustBeUnoccupied?: boolean
   invalidPlacementConsumesInvocation?: boolean
   designatedCreatureImmunity?: boolean
-  maximumTargetSize?: SizeCode
+  maximumTargetSize?: string
   excludesFormlessTargets?: boolean
   proximityRule?: ManifestProximityRuleAuthored
   light?: ManifestLightAuthored

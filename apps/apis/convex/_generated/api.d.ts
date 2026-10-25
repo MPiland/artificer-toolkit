@@ -1942,17 +1942,7 @@ export declare const api: {
                       field: "SIZE_OVERRIDE";
                       id?: string;
                       sourceNote?: string;
-                      value:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
+                      value: string;
                     };
                 commandId: string;
                 expectedVersion: number;
@@ -3388,17 +3378,7 @@ export declare const api: {
                   relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
                   relationshipLabel: string;
                   riderCapacity?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speedLabel?: string;
                 }
               | {
@@ -3467,17 +3447,7 @@ export declare const api: {
                   originKind: "SUMMONED";
                   originLabel: string;
                   passivePerception?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speedLabel?: string;
                   spellId: string;
                 }
@@ -8982,17 +8952,7 @@ export declare const api: {
                 field: "SIZE_OVERRIDE";
                 id?: string;
                 sourceNote?: string;
-                value:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                value: string;
               };
           campaignId: string;
           characterId: string;
@@ -9275,17 +9235,7 @@ export declare const api: {
                 field: "SIZE_OVERRIDE";
                 id?: string;
                 sourceNote?: string;
-                value:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                value: string;
               };
           campaignId: string;
           characterId: string;
@@ -9521,17 +9471,7 @@ export declare const api: {
                 field: "SIZE_OVERRIDE";
                 id?: string;
                 sourceNote?: string;
-                value:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                value: string;
               };
           campaignId: string;
           characterId: string;
@@ -11981,17 +11921,7 @@ export declare const api: {
               maximumHitPoints?: number;
               notes?: string;
               passivePerception?: number;
-              size?:
-                | "COLOSSAL"
-                | "DIMUNITIVE"
-                | "FINE"
-                | "GARGANTUAN"
-                | "GIANT"
-                | "HUGE"
-                | "LARGE"
-                | "MEDIUM"
-                | "SMALL"
-                | "TINY";
+              size?: string;
               speeds?: Array<{
                 amount: number;
                 speedId: string;
@@ -12402,17 +12332,7 @@ export declare const api: {
                 maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
-                size?:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                size?: string;
                 speeds?: Array<{
                   amount: number;
                   speedId: string;
@@ -12822,17 +12742,7 @@ export declare const api: {
                 maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
-                size?:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                size?: string;
                 speeds?: Array<{
                   amount: number;
                   speedId: string;
@@ -13568,17 +13478,7 @@ export declare const api: {
                   maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speeds?: Array<{
                     amount: number;
                     speedId: string;
@@ -14322,17 +14222,7 @@ export declare const api: {
                   maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speeds?: Array<{
                     amount: number;
                     speedId: string;
@@ -15088,17 +14978,7 @@ export declare const api: {
                 maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
-                size?:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                size?: string;
                 speeds?: Array<{
                   amount: number;
                   speedId: string;
@@ -15828,17 +15708,7 @@ export declare const api: {
                   maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speeds?: Array<{
                     amount: number;
                     speedId: string;
@@ -18977,17 +18847,7 @@ export declare const api: {
                   relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
                   relationshipLabel: string;
                   riderCapacity?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speedLabel?: string;
                 }
               | {
@@ -19056,17 +18916,7 @@ export declare const api: {
                   originKind: "SUMMONED";
                   originLabel: string;
                   passivePerception?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speedLabel?: string;
                   spellId: string;
                 }
@@ -20181,17 +20031,7 @@ export declare const api: {
                       field: "SIZE_OVERRIDE";
                       id?: string;
                       sourceNote?: string;
-                      value:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
+                      value: string;
                     };
                 commandId: string;
                 expectedVersion: number;
@@ -23033,17 +22873,7 @@ export declare const api: {
                       relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
                       relationshipLabel: string;
                       riderCapacity?: number;
-                      size?:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
+                      size?: string;
                       speedLabel?: string;
                     }
                   | {
@@ -23112,17 +22942,7 @@ export declare const api: {
                       originKind: "SUMMONED";
                       originLabel: string;
                       passivePerception?: number;
-                      size?:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
+                      size?: string;
                       speedLabel?: string;
                       spellId: string;
                     }
@@ -138543,6 +138363,7 @@ export declare const internal: {
                 Record<string, string | number | boolean | null>
               >;
               senses?: Array<Record<string, string | number | boolean | null>>;
+              sizes?: Array<Record<string, string | number | boolean | null>>;
               skills?: Array<Record<string, string | number | boolean | null>>;
               speeds?: Array<Record<string, string | number | boolean | null>>;
               spell_effects?: Array<
@@ -138621,6 +138442,7 @@ export declare const internal: {
             roll_influences?: string;
             roll_modes?: string;
             senses?: string;
+            sizes?: string;
             skills?: string;
             speeds?: string;
             spell_effects?: string;

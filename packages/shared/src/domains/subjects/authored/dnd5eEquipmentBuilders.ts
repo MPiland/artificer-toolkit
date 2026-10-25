@@ -19,8 +19,7 @@ import {
   TRIGGER,
   VALUE_DOMAIN_CODE,
   type AbilityCode,
-  type EquipmentGrip,
-  type SizeCode
+  type EquipmentGrip
 } from '#core'
 import {
   type FacetConditionAuthored,
@@ -338,7 +337,7 @@ function heavyWeaponDisadvantage(
         constraint: 'INCLUDE' as const,
         predicateCode: 'SIZE' as const,
         authoringModeKind: 'SELECTED' as const,
-        sizes: ['SMALL', 'TINY'] as SizeCode[]
+        sizes: ['SMALL', 'TINY']
       }
     ]),
     order

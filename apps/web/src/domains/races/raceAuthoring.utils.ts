@@ -1,3 +1,4 @@
+import { defaultSize } from '@artificer-toolkit/rules-runtime/systemSizes'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type {
@@ -8,8 +9,7 @@ import type { SpeedDto } from '@artificer-toolkit/schema/shared'
 import {
   MEASUREMENT_UNIT_CODE,
   RACE_CATEGORY_CODE,
-  RACE_SELECTION_MODE,
-  SIZE_CODE
+  RACE_SELECTION_MODE
 } from '@artificer-toolkit/shared/core'
 
 type BaseRaceDto = Extract<RaceAuthoringInputDto, { category: 'BASE' }>
@@ -50,7 +50,7 @@ export function createEmptyBaseRace({ systemId }: CreateEmptyRaceInput): RaceFor
     heritageIds: [],
     details: [],
     features: [],
-    size: SIZE_CODE.MEDIUM,
+    size: systemId ? defaultSize(systemId) : '',
     speeds: [createEmptySpeed()],
     systemId
   }
@@ -120,7 +120,7 @@ export function normalizeRaceForSubmit(race: RaceFormValues): RaceAuthoringInput
     selectionMode: race.selectionMode ?? RACE_SELECTION_MODE.DIRECT,
     ancestry: normalizeAncestry(race.ancestry),
     heritageIds: race.heritageIds ?? [],
-    size: race.size ?? SIZE_CODE.MEDIUM,
+    size: race.size ?? defaultSize(race.systemId),
     speeds: race.speeds ?? []
   }
 }

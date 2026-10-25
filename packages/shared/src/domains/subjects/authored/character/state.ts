@@ -2,8 +2,7 @@ import type {
   AbilityCode,
   CreatureOriginKindCode,
   CreatureRelationshipKindCode,
-  EquippedSlotCode,
-  SizeCode
+  EquippedSlotCode
 } from '#core'
 import type { SpeedAuthored } from '#authored'
 
@@ -131,7 +130,7 @@ export interface CharacterSpellSummonState {
   summonOutcomeId: string
   label: string
   concentration: boolean
-  size?: SizeCode
+  size?: string
   armorClass: number | null
   abilityScores?: Partial<Record<AbilityCode, number>>
   speeds?: SpeedAuthored[]

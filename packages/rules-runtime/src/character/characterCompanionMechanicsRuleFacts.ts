@@ -1,5 +1,6 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 
 type CompanionMechanicsFacts = CharacterRulePolicyInput['companionMechanicsFacts']
 
@@ -12,6 +13,7 @@ export function buildCharacterCompanionMechanicsRuleFacts(
       continue
     }
     if (adjustment.field === 'SIZE_OVERRIDE') {
+      systemCoreCodeRegistry.requireCode(snapshot.systemId, 'size', adjustment.value)
       adjustments.push({
         id: adjustment.id,
         companionInstanceId: adjustment.companionInstanceId,
@@ -46,7 +48,10 @@ export function buildCharacterCompanionMechanicsRuleFacts(
         abilityScores: { ...companion.abilityScores },
         armorClass: companion.armorClass,
         maxHitPoints: companion.maxHitPoints,
-        size: companion.size ?? null,
+        size:
+          companion.size === undefined
+            ? null
+            : systemCoreCodeRegistry.requireCode(snapshot.systemId, 'size', companion.size).code,
         alignmentId: companion.alignmentId ?? null,
         creatureTypeId: companion.creatureTypeId ?? null
       })),

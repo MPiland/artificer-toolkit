@@ -2,9 +2,9 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import {
   modifierKindSchema,
   modifierScopeKindSchema,
-  sizeCodeSchema,
   valueDomainCodeSchema
 } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { modifierDomainParamsDtoSchema, modifierPayloadDtoSchema } from '../grants/modifier.js'
 import { senseRangeDtoSchema } from '../grants/sense.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
@@ -306,7 +306,7 @@ export const characterGrantFoldInputSchema = lazySchema(() =>
         totalLevel: z.number().check(z.int()).check(z.gte(0)).check(z.lte(20)),
         raceId: z.nullable(identitySchema),
         subraceId: z.nullable(identitySchema),
-        size: z.nullable(sizeCodeSchema),
+        size: z.nullable(systemCoreCodeSchema),
         abilities: z.record(identitySchema, z.number()),
         heritageIds: z.array(identitySchema).check(z.maxLength(200)),
         featureIds: z.array(identitySchema).check(z.maxLength(500)),

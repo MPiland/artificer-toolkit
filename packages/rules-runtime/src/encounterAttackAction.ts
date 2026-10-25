@@ -141,7 +141,7 @@ export async function evaluateEncounterAttackAction(
   if (
     before &&
     before.turnSequence === state.turnSequence &&
-    encounterAttackActionFits(before, candidate, cap)
+    encounterAttackActionFits(state.gameSystemId, before, candidate, cap)
   ) {
     const suppressed = await isActionEconomySuppressed(input)
     return {
@@ -163,7 +163,7 @@ export async function evaluateEncounterAttackAction(
   const blocked =
     before !== null &&
     before.turnSequence === state.turnSequence &&
-    encounterAttackActionStanding(before).incomplete
+    encounterAttackActionStanding(state.gameSystemId, before).incomplete
   const alternatives = [
     {
       slots: [
@@ -176,7 +176,7 @@ export async function evaluateEncounterAttackAction(
     ...creatureAlternatives
   ]
   // A Feature that only fills slots opens an Attack action only when a slot of its own takes it first.
-  if (!encounterAttackActionFits({ alternatives, attacks: [] }, candidate, cap))
+  if (!encounterAttackActionFits(state.gameSystemId, { alternatives, attacks: [] }, candidate, cap))
     return {
       economy: await evaluateEncounterActionEconomy(input),
       attackAction: null,
@@ -202,9 +202,10 @@ export async function evaluateEncounterAttackAction(
 
 /** Where the open Attack action stands after the attacks made so far (D93). */
 export function encounterAttackActionStanding(
+  gameSystemId: string,
   state: Pick<EncounterAttackActionStateDto, 'alternatives' | 'attacks'>
 ) {
-  return evaluateAttackSlots(state.alternatives, state.attacks.map(slotAttack))
+  return evaluateAttackSlots(gameSystemId, state.alternatives, state.attacks.map(slotAttack))
 }
 
 /**
@@ -212,13 +213,15 @@ export function encounterAttackActionStanding(
  * Attack action (Slowing Breath) limits the attacks even of one already open.
  */
 export function encounterAttackActionFits(
+  gameSystemId: string,
   state: Pick<EncounterAttackActionStateDto, 'alternatives' | 'attacks'>,
   next: AttackSlotAttack,
   cap: number | null
 ) {
   return (
     (cap === null || state.attacks.length < cap) &&
-    evaluateAttackSlots(state.alternatives, [...state.attacks.map(slotAttack), next]).fits
+    evaluateAttackSlots(gameSystemId, state.alternatives, [...state.attacks.map(slotAttack), next])
+      .fits
   )
 }
 

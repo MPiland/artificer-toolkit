@@ -15,7 +15,6 @@ import {
   PATH_ROLL_TABLE_KIND,
   RANGE_KIND,
   SCALING,
-  SIZE_CODE,
   TRIGGER
 } from '#core'
 import { compileConditionEffect, compileEffectResult } from '#compilers'
@@ -733,7 +732,7 @@ describe('effect compiler', () => {
                 effectKind: EFFECT_KIND.MANIFEST,
                 manifestKind: 'SUMMON',
                 statBlock: {
-                  size: SIZE_CODE.LARGE,
+                  size: 'LARGE',
                   armorClass: {
                     kind: NUMERIC_EXPR_CODE.FIXED,
                     value: 20
@@ -772,7 +771,7 @@ describe('effect compiler', () => {
         effectKind: EFFECT_KIND.MANIFEST,
         manifestKind: 'SUMMON',
         statBlock: {
-          size: SIZE_CODE.LARGE,
+          size: 'LARGE',
           armorClass: {
             kind: NUMERIC_EXPR_CODE.FIXED,
             value: 20

@@ -66,7 +66,6 @@ import {
   ABILITY_OPTIONS,
   ACTION_ECONOMY_RULE_KIND_OPTIONS,
   CLOSED_RULE_KIND_OPTIONS,
-  SIZE_OPTIONS,
   ACTIVATION_OPTIONS,
   EQUIPMENT_CATEGORY_OPTIONS,
   EQUIPMENT_PROPERTY_OPTIONS,
@@ -623,8 +622,8 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
       .set(
         'size',
         selectSingle(['size'], 'Size', {
-          kind: 'INLINE_OPTIONS',
-          options: SIZE_OPTIONS
+          kind: 'DATA',
+          relationship: table('sizes', { selectColumns: CODE_COLUMNS })
         })
       )
       .set('occupiesSpace', toggle(['occupiesSpace'], 'Occupies Space'))
@@ -1252,7 +1251,7 @@ const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
         selectSingle(
           ['sizeCode'],
           'Maximum Size',
-          { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
+          { kind: 'DATA', relationship: table('sizes', { selectColumns: CODE_COLUMNS }) },
           { showIf: local.field(['kind']).eq('TARGET_SIZE_MAXIMUM') }
         )
       )
@@ -2504,7 +2503,7 @@ function registerOutcomeFields(
       selectSingle(
         ['minimumPlantSize'],
         'Minimum Plant Size',
-        { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
+        { kind: 'DATA', relationship: table('sizes', { selectColumns: CODE_COLUMNS }) },
         {
           requiredIf: true,
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.PLANT_PORTAL)
@@ -2713,7 +2712,7 @@ function registerOutcomeFields(
       selectSingle(
         ['maximumTargetSize'],
         'Maximum Target Size',
-        { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
+        { kind: 'DATA', relationship: table('sizes', { selectColumns: CODE_COLUMNS }) },
         { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
       )
     )
