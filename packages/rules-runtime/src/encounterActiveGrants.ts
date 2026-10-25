@@ -294,25 +294,34 @@ function creatureTypeConditionMatches(
   )
 }
 
-/** Whether the holder meets a condition, or `undefined` when it cannot be decided here. */
+/**
+ * Whether the holder meets a condition, or `undefined` when it cannot be decided here: it is no
+ * holder condition, or the part of the holder state it reads is not known.
+ */
 function holderConditionMatches(
   condition: ModifierRestrictions[number]['conditions'][number],
-  holderState: EncounterHolderState
+  holderState: Partial<EncounterHolderState>
 ): boolean | undefined {
   switch (condition.kind) {
     case 'HOLDER_KIND':
-      return condition.requiredIds.includes(holderState.kind)
+      return holderState.kind && condition.requiredIds.includes(holderState.kind)
     case 'CREATURE_TYPE':
-      return creatureTypeConditionMatches(condition, holderState.creatureTypeIds)
+      return (
+        holderState.creatureTypeIds &&
+        creatureTypeConditionMatches(condition, holderState.creatureTypeIds)
+      )
     case 'TURN_MOVEMENT': {
+      if (!holderState.turnMovement) return undefined
       const { usedFeet, speedFeet } = holderState.turnMovement
       return (
         (condition.max === null || usedFeet <= condition.max) &&
         (condition.speedFraction === null || usedFeet <= speedFeet * condition.speedFraction)
       )
     }
-    case 'HOLDER_ACTIVE_EFFECT':
-      return condition.requiredIds.some((id) => holderState.activeAuthoredEffectIds.includes(id))
+    case 'HOLDER_ACTIVE_EFFECT': {
+      const activeIds = holderState.activeAuthoredEffectIds
+      return activeIds && condition.requiredIds.some((id) => activeIds.includes(id))
+    }
     default:
       return isHolderStateKind(condition.kind)
         ? holderState[HOLDER_STATE_FLAG[condition.kind]]
@@ -322,12 +331,12 @@ function holderConditionMatches(
 
 /**
  * Whether a modifier's holder restrictions hold: some group has only holder conditions and every
- * one is met. Any other condition cannot be decided here and fails closed, so the group does not
- * hold.
+ * one is met. Any other condition, or one reading holder state not given, cannot be decided here
+ * and fails closed, so the group does not hold.
  */
 export function holderStateRestrictionsHold(
   restrictions: ModifierRestrictions,
-  holderState: EncounterHolderState
+  holderState: Partial<EncounterHolderState>
 ): boolean {
   return (
     restrictions.length === 0 ||

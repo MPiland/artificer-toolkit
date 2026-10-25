@@ -349,7 +349,11 @@ describe('damage interception with a save, exclusions and a cap', () => {
     effectId: testUuid(0xe110),
     dropToHitPoints: 1,
     negatesKill: false,
-    save: { ability: 'CONSTITUTION', dc: { base: 5, plusDamageTaken: true } },
+    save: {
+      ability: 'CONSTITUTION',
+      dc: { base: 5, plusDamageTaken: true, plusPerChargeUsed: 0 },
+      spendsUseOnFailure: false
+    },
     excludes: { damageTypeIds: [RADIANT_ID], critical: true }
   }
   const relentless: HeldDamageInterception = {

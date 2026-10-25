@@ -11,6 +11,8 @@ import {
   type HeldItem
 } from '@artificer-toolkit/shared/core'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import { createEmptyCharacterAuthored } from '@artificer-toolkit/shared/character'
+import type { CharacterResourceUsage } from '@artificer-toolkit/shared/core'
 import type { EquipmentAuthored, RaceAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { compileFeature } from '@artificer-toolkit/shared/compilers'
 import {
@@ -34,6 +36,7 @@ import { buildCharacterDerivedRuleFacts } from '../character/characterDerivedRul
 import { compileCharacterGrantFoldRuleFacts } from '../character/characterGrantFoldRuleFacts.js'
 import { buildCharacterItemMechanicsRuleFacts } from '../character/characterItemMechanicsRuleFacts.js'
 import { buildCharacterMovementRuleFacts } from '../character/characterMovementRuleFacts.js'
+import { buildCharacterResourceRuleFacts } from '../character/characterResourceRuleFacts.js'
 import { prepareCharacterRuleSources } from '../character/characterRuleSnapshot.js'
 import { resolveCharacterRulePolicyRollModes } from '../character/characterRuleRollProjection.js'
 import { evaluateDnd5e2014CharacterPolicy } from '../systems/dnd5e/characterPolicy.js'
@@ -150,6 +153,8 @@ export type SrdCharacterInput = {
   extraEquipment?: readonly EquipmentAuthored[]
   /** Authored Features beyond the SRD, which `features` may then acquire by id. */
   extraFeatures?: readonly FeatureAuthored[]
+  /** Builds the Character's resource pools from its sources, with these uses; none when absent. */
+  resourceUsage?: readonly CharacterResourceUsage[]
 }
 
 export type SrdCharacter = {
@@ -227,11 +232,27 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
     equipmentItems: items
   }
   const grantFoldFacts = compileCharacterGrantFoldRuleFacts({ snapshot, registry })
+  const resourceFacts =
+    input.resourceUsage === undefined
+      ? { resourcePoolCandidates: [], chargeCalculations: [] }
+      : buildCharacterResourceRuleFacts({
+          character: createEmptyCharacterAuthored({
+            id: snapshot.characterId,
+            systemId: snapshot.systemId,
+            userId: 'srd-user'
+          }),
+          snapshot,
+          registry,
+          spellAccessCandidates: [],
+          grantFoldFacts,
+          creaturesById: new Map(),
+          resourceUsage: input.resourceUsage
+        })
   const actionFacts = buildCharacterActionRuleFacts({
     snapshot,
     registry,
     grantFoldFacts,
-    resourcePoolCandidates: []
+    resourcePoolCandidates: resourceFacts.resourcePoolCandidates
   })
   const facts = characterRulePolicyInputSchema.parse({
     contractVersion: 4,
@@ -251,7 +272,7 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
     spellCastSlots: [],
     spellCastResources: [],
     spellcastingClasses: [],
-    chargeCalculations: [],
+    ...resourceFacts,
     actionCandidates: actionFacts.actionCandidates,
     eligibilityFacets: [],
     rest: { totalHitDice: totalLevel, currentExhaustion: 0, attunementSlotOverride: null }

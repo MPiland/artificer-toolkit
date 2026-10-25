@@ -10,6 +10,7 @@ import {
 } from '@artificer-toolkit/schema/api/characterRules'
 import type { SenseRangeDto } from '@artificer-toolkit/schema/grants/sense'
 import {
+  characterHeldDamageInterceptions,
   featureHeldDamageInterceptions,
   heldBatchInputs,
   type HeldDamageInterception
@@ -254,15 +255,24 @@ function withFormArmorClass(
   }
 }
 
+/**
+ * The Character's Sheet inputs: its effective maximum and its interceptions, its features' after its
+ * effects'. A feature's interception spends the feature's own resolved Sheet pool.
+ */
 function nativeCharacterBatchInputs(
   characterFacts: CharacterMovementFacts,
+  policyOutput: CharacterRulePolicyOutput,
   activeEffects: ActiveRuleEffectRecord[]
 ) {
   return heldBatchInputs({
     baseMaximumHitPoints: resolveCharacterEffectiveMaximumHitPoints(
       characterFacts.ruleEvaluation.output.derivedStats.maxHitPoints.effective
     ),
-    effects: activeEffects
+    effects: activeEffects,
+    featureInterceptions: characterHeldDamageInterceptions(
+      policyOutput,
+      activeEffects.map(({ definition }) => definition.authoredEffectId)
+    )
   })
 }
 
@@ -408,7 +418,11 @@ export function buildMovementTarget<
           conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
           spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds
         }
-    const sheetInputs = nativeCharacterBatchInputs(characterFacts, activeEffects)
+    const sheetInputs = nativeCharacterBatchInputs(
+      characterFacts,
+      effectiveRulePolicyOutput,
+      activeEffects
+    )
     const { effectiveMaximumHitPoints, damageInterceptions } =
       form === null
         ? sheetInputs
@@ -606,7 +620,8 @@ export function buildMovementTarget<
           maximum,
           used,
           chargeId: featureDefinitions.find(({ id }) => id === featureId)?.charges?.id ?? null
-        }))
+        })),
+        activeAuthoredEffectIds: activeEffects.map(({ definition }) => definition.authoredEffectId)
       })
     }),
     baseScalarValues,

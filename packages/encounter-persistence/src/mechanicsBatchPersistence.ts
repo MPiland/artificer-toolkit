@@ -128,31 +128,36 @@ async function endGrantsOnRegain<CharacterSources>(
 }
 
 /**
- * Spends the damage interceptions the plan's receipt names (`DAMAGE.interceptedBy`,
- * `KILL_NEGATED.negatedBy`): each spends one use of its holding effect and the last use ends it. The
- * records come back as they were so an undoable root gives the uses back (`restoreConsumedGrants`).
+ * Spends the effect-held damage interceptions the plan's receipt names (`DAMAGE.interceptedBy`, a
+ * failed save that still spent its use, `KILL_NEGATED.negatedBy`): each spends one use of its holding
+ * effect and the last use ends it. A feature-held one names a feature, not a held effect: its charge
+ * is already in the plan's actor or Sheet. The plan was derived from these same held effects in this
+ * transaction. The records come back as they were so an undoable root gives the uses back
+ * (`restoreConsumedGrants`).
  */
 async function spendDamageInterceptions<CharacterSources>(
   ctx: EncounterCharacterWriteTransaction<CharacterSources>,
   target: Awaited<ReturnType<typeof readEncounterMechanicsBatchTarget>>,
   receiptApplications: EncounterMechanicsBatchPlan['receiptApplications']
 ) {
-  const spentEffectIds = receiptApplications.flatMap((application) =>
-    application.kind === 'DAMAGE' && application.interceptedBy !== undefined
-      ? [application.interceptedBy]
+  const namedIds = receiptApplications.flatMap((application) =>
+    application.kind === 'DAMAGE'
+      ? [
+          ...(application.interceptionSaves ?? []).flatMap(({ effectId, spent }) =>
+            spent ? [effectId] : []
+          ),
+          ...(application.interceptedBy === undefined ? [] : [application.interceptedBy])
+        ]
       : application.kind === 'KILL_NEGATED'
         ? [application.negatedBy]
         : []
   )
-  if (!spentEffectIds.length) return []
+  if (!namedIds.length) return []
   const held = await createActiveRuleEffectStore(ctx).list(
     turnEffectOwner(target.actor, target.state.id)
   )
-  const effects = [...new Set(spentEffectIds)].map((effectId) => {
-    const effect = held.find(({ id }) => id === effectId)
-    if (!effect) throw new Error('The damage interception effect is no longer held.')
-    return effect
-  })
+  const spentEffectIds = namedIds.filter((id) => held.some((effect) => effect.id === id))
+  const effects = held.filter(({ id }) => spentEffectIds.includes(id))
   for (const effect of effects) {
     const spent = spentEffectIds.filter((effectId) => effectId === effect.id).length
     if ((effect.lifecycle.remainingUses ?? 0) <= spent) await deleteGrants(ctx, [effect])

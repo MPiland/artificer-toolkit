@@ -645,9 +645,15 @@ export type ModifierDamageInterceptionAuthored = {
   negatesKill: boolean
   /**
    * The holder must pass this save to be intercepted (Undead Fortitude): the DC is `base`, plus the
-   * damage taken when `plusDamageTaken`. A failed save lets the damage land and spends no use.
+   * damage taken when `plusDamageTaken`, plus `plusPerChargeUsed` for each charge of the holding
+   * feature already used (Relentless Rage). A failed save lets the damage land and spends no use,
+   * unless `spendsUseOnFailure` counts every attempt as a use.
    */
-  save?: { ability: string; dc: { base: number; plusDamageTaken: boolean } }
+  save?: {
+    ability: string
+    dc: { base: number; plusDamageTaken: boolean; plusPerChargeUsed: number } // int, 0 to 100
+    spendsUseOnFailure: boolean
+  }
   /** Damage this interception does not meet: of these types, or from a critical hit. */
   excludes?: { damageTypeIds: string[]; critical: boolean }
   /** Only damage of at most this many hit points is intercepted (Relentless: 14). */

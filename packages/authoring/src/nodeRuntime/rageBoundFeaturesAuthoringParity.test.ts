@@ -5,6 +5,7 @@ import {
   sourceQualifierAdmits,
   type EncounterHolderState
 } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import { characterHeldDamageInterceptions } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 import {
   evaluateSrdCharacter,
@@ -212,5 +213,112 @@ describe('Mindless Rage and Reckless Attack (SPELLS-31.T5f1)', () => {
       }).map(({ conditionTypeId: id }) => id)
     expect(immunityIds([HOMEBREW_EFFECT_ID])).toEqual([conditionTypeId('POISONED')])
     expect(immunityIds([RAGE_EFFECT_ID])).toEqual([])
+  })
+})
+
+/** A homebrew last stand: while its own trance lasts, a DC 8 WIS save (+2 per use) keeps it at 1. */
+function homebrewLastStand(): FeatureAuthored {
+  const idFor = (part: number, entry: number) =>
+    `7e57a000-0000-4000-8${part.toString(16).padStart(3, '0')}-${entry.toString(16).padStart(12, '0')}`
+  const focus = homebrewFocus()
+  const [immunity] = focus.grants?.modifiers ?? []
+  if (!immunity) throw new Error('Expected the homebrew focus grant.')
+  return {
+    id: idFor(0x60, 1),
+    label: 'Trance Last Stand',
+    description: 'While your trance lasts, a Wisdom save keeps you standing at 1 hit point.',
+    availableAtLevel: 1,
+    order: 100,
+    charges: {
+      id: idFor(0x61, 1),
+      limitKind: 'FIXED_AMOUNT',
+      scalingKind: 'NONE',
+      resetKind: 'LONG_REST',
+      amount: 3
+    },
+    grants: {
+      modifiers: [
+        {
+          ...immunity,
+          id: idFor(0x62, 1),
+          valueDomainCode: 'DAMAGE_INTERCEPTION',
+          modifierKind: 'ENABLE',
+          payload: {
+            dropToHitPoints: 1,
+            negatesKill: false,
+            save: {
+              ability: 'WISDOM',
+              dc: { base: 8, plusDamageTaken: false, plusPerChargeUsed: 2 },
+              spendsUseOnFailure: true
+            }
+          }
+        }
+      ]
+    }
+  }
+}
+
+describe('Relentless Rage (SPELLS-31.T5f3)', () => {
+  it('leaves no closed rule on the SRD Barbarian for it', () => {
+    expect(JSON.stringify(barbarian.features)).not.toMatch(/RELENTLESS_RAGE/)
+  })
+
+  it('keeps a homebrew charged interception bound to its own effect exactly as authored', async () => {
+    const authored = homebrewLastStand()
+    const result = await normalize({
+      ...structuredClone(barbarian),
+      features: [...(barbarian.features ?? []), authored]
+    })
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual([
+      ...(barbarian.features ?? []),
+      authored
+    ])
+  })
+
+  it('holds the SRD and the homebrew interception the same way, each on its own effect', () => {
+    const homebrew = homebrewLastStand()
+    const BARBARIAN = srdByLabel([barbarian], 'Barbarian')
+    const { output } = evaluateSrdCharacter({
+      classes: [{ label: 'Barbarian', level: 11 }],
+      resourceUsage: [],
+      extraFeatures: [homebrew],
+      features: [
+        srdFeature({
+          owner: 'CLASS',
+          classLabel: 'Barbarian',
+          featureLabel: 'Relentless Rage',
+          level: 11
+        }),
+        {
+          acquisitionId: 'acquired:trance-last-stand',
+          featureId: homebrew.id,
+          source: { kind: 'CLASS', classId: BARBARIAN.id, classLevel: 1 },
+          timing: { kind: 'CLASS_LEVEL', classId: BARBARIAN.id, classLevel: 1 }
+        }
+      ]
+    })
+    const relentlessRage = srdByLabel(barbarian.features ?? [], 'Relentless Rage')
+    const held = (ids: readonly string[]) =>
+      characterHeldDamageInterceptions(output, ids).map(({ effectId, save, charge }) => ({
+        effectId,
+        dc: save?.dc,
+        amount: charge?.amount
+      }))
+    expect(held([RAGE_EFFECT_ID])).toEqual([
+      {
+        effectId: relentlessRage.id,
+        dc: { base: 10, plusDamageTaken: false, plusPerChargeUsed: 5 },
+        amount: 6
+      }
+    ])
+    expect(held([HOMEBREW_EFFECT_ID])).toEqual([
+      {
+        effectId: homebrew.id,
+        dc: { base: 8, plusDamageTaken: false, plusPerChargeUsed: 2 },
+        amount: 3
+      }
+    ])
+    expect(held([])).toEqual([])
   })
 })

@@ -32,6 +32,7 @@ import {
   applyDamageInterceptions,
   hitPointsAfterDamage,
   interceptionChargeMatches,
+  interceptionSavesMatch,
   interceptionChargeReceipt,
   killInterception,
   type HeldDamageInterception
@@ -575,7 +576,8 @@ export function foldCharacterMechanicsApplications<
       const {
         after: afterCurrent,
         interception,
-        saves
+        saves,
+        attempted
       } = hitPointsAfterDamage({
         current,
         currentLost,
@@ -586,24 +588,14 @@ export function foldCharacterMechanicsApplications<
         interceptions: unspentInterceptions
       })
       const intercepted = interception !== undefined
-      const recordedSaves = application.interceptionSaves ?? []
       if (
         intercepted !== (application.interceptedBy !== undefined) ||
         !interceptionChargeMatches(application.interceptionCharge, interception) ||
-        recordedSaves.length !== saves.length ||
-        saves.some((save, index) => {
-          const recorded = recordedSaves[index]
-          return (
-            recorded?.effectId !== save.effectId ||
-            recorded.rawDie !== save.rawDie ||
-            recorded.addedTotal !== save.addedTotal ||
-            recorded.dc !== save.dc ||
-            recorded.passed !== save.passed
-          )
-        })
+        !interceptionSavesMatch(application.interceptionSaves ?? [], saves)
       )
         throw new EncounterValidationError('The Character damage interception is invalid.')
-      if (intercepted) unspentInterceptions.splice(unspentInterceptions.indexOf(interception), 1)
+      for (const spent of attempted)
+        unspentInterceptions.splice(unspentInterceptions.indexOf(spent), 1)
       if (
         application.resolvedAmount !== resolvedAmount ||
         application.appliedAmount !== temporaryLost + current - afterCurrent ||

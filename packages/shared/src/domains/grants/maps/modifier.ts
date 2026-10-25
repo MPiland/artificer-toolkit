@@ -346,6 +346,12 @@ const DAMAGE_INTERCEPTION_SAVE_DC_NODE_MAP = buildNodeMap<
   map
     .set('base', nodes.number(['base'], 'Base DC', { constraints: { minimum: 0, maximum: 100 } }))
     .set('plusDamageTaken', nodes.toggle(['plusDamageTaken'], 'Add The Damage Taken'))
+    .set(
+      'plusPerChargeUsed',
+      nodes.number(['plusPerChargeUsed'], 'Add Per Charge Already Used', {
+        constraints: { minimum: 0, maximum: 100 }
+      })
+    )
 })
 
 const DAMAGE_INTERCEPTION_SAVE_NODE_MAP = damageInterceptionSave.define(
@@ -365,6 +371,10 @@ const DAMAGE_INTERCEPTION_SAVE_NODE_MAP = damageInterceptionSave.define(
           presentation: 'inline',
           requiredIf: true
         })
+      )
+      .set(
+        'spendsUseOnFailure',
+        nodes.toggle(['spendsUseOnFailure'], 'A Failed Save Still Spends A Use')
       )
   }
 )

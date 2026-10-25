@@ -287,7 +287,8 @@ export type DamageInterceptionPayloadDto = {
   negatesKill: boolean
   save?: {
     ability: z.infer<typeof systemCoreCodeSchema>
-    dc: { base: number; plusDamageTaken: boolean }
+    dc: { base: number; plusDamageTaken: boolean; plusPerChargeUsed: number }
+    spendsUseOnFailure: boolean
   }
   excludes?: { damageTypeIds: string[]; critical: boolean }
   maxDamageTaken?: number
@@ -304,8 +305,10 @@ export const damageInterceptionPayloadDtoSchema: z.ZodMiniType<DamageInterceptio
           ability: systemCoreCodeSchema,
           dc: z.strictObject({
             base: z.number().check(z.int()).check(z.gte(0)).check(z.lte(100)),
-            plusDamageTaken: z.boolean()
-          })
+            plusDamageTaken: z.boolean(),
+            plusPerChargeUsed: z.number().check(z.int()).check(z.gte(0)).check(z.lte(100))
+          }),
+          spendsUseOnFailure: z.boolean()
         })
       ),
       excludes: z.optional(
