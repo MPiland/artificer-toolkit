@@ -17,7 +17,7 @@ import { useDisclosure } from '@mantine/hooks'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useMutation as useConvexMutation } from 'convex/react'
-import { api } from '@artificer-toolkit/apis/convex/api'
+import { definitionReferences } from '@artificer-toolkit/apis/convex/definition-references'
 import { getSystemDefinition, getSystemDefinitions } from '#app/data/systems/queries'
 import { SystemDefinitionEditor } from './SystemDefinitionEditor'
 import { definitionErrorMessage, formatDefinitionFamily } from './systemDefinitionModel'
@@ -33,7 +33,7 @@ export function SystemDefinitionWorkspace({
   const [cursorHistory, setCursorHistory] = useState<(string | null)[]>([null])
   const cursor = cursorHistory[cursorHistory.length - 1] ?? null
   const definitions = useQuery(getSystemDefinitions(gameSystemId, cursor))
-  const createDefinition = useConvexMutation(api.content.definitions.create)
+  const createDefinition = useConvexMutation(definitionReferences.create)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [opened, modal] = useDisclosure(false)
   const [label, setLabel] = useState('')

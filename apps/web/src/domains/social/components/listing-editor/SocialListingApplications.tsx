@@ -8,7 +8,9 @@ import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/reac
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { CatchBoundary } from '@tanstack/react-router'
 import { queryKeys } from '#app/lib/queryKeys'
-import { formatStatusLabel } from '../../socialModels'
+import { formatEnumLabel } from '#components/AuthoredDetail'
+import { admissionPageSize, mergeAdmissionRows } from '../../hooks/admissionLists'
+import { AdmissionListFooter } from '../AdmissionListFooter'
 import { SocialReportDialog } from '../SocialReportDialog'
 import * as listStyles from '../SocialHubViews.css'
 import * as styles from './SocialListingSections.css'
@@ -29,12 +31,12 @@ function SocialListingApplicationsList({ listingPublicId }: { listingPublicId: s
   const pending = usePaginatedQuery(
     convexApi.social.admissionLists.listListingApplications,
     { listingPublicId, group: 'PENDING' },
-    { initialNumItems: 24 }
+    { initialNumItems: admissionPageSize }
   )
   const history = usePaginatedQuery(
     convexApi.social.admissionLists.listListingApplications,
     { listingPublicId, group: 'HISTORY' },
-    { initialNumItems: 24 }
+    { initialNumItems: admissionPageSize }
   )
   const queryClient = useQueryClient()
   const decideApplication = useConvexMutation(convexApi.social.applications.decide)
@@ -46,17 +48,17 @@ function SocialListingApplicationsList({ listingPublicId }: { listingPublicId: s
       }
     }
   })
-  const applicationsById = new Map<string, SocialApplicationDto>()
-  for (const application of history.results)
-    applicationsById.set(application.applicationPublicId, application)
-  for (const application of pending.results)
-    applicationsById.set(application.applicationPublicId, application)
-  const applications = [...applicationsById.values()]
-  const loadingFirstPage =
-    pending.status === 'LoadingFirstPage' || history.status === 'LoadingFirstPage'
-  const loadingMore = pending.status === 'LoadingMore' || history.status === 'LoadingMore'
-  const empty =
-    pending.status === 'Exhausted' && history.status === 'Exhausted' && applications.length === 0
+  const {
+    rows: applications,
+    loadingFirstPage,
+    exhaustedEmpty: empty
+  } = mergeAdmissionRows<SocialApplicationDto>({
+    pending,
+    history,
+    direct: undefined,
+    isPending: (application) => application.status === 'SUBMITTED',
+    getKey: (application) => application.applicationPublicId
+  })
 
   return (
     <section className={styles.panel} aria-labelledby='listing-applications-title'>
@@ -75,7 +77,7 @@ function SocialListingApplicationsList({ listingPublicId }: { listingPublicId: s
                   <Title order={3} size='h4'>
                     @{application.applicant.username}
                   </Title>
-                  <Badge variant='light'>{formatStatusLabel(application.status)}</Badge>
+                  <Badge variant='light'>{formatEnumLabel(application.status)}</Badge>
                 </Group>
                 <Text className={listStyles.prose}>{application.message}</Text>
               </div>
@@ -132,17 +134,7 @@ function SocialListingApplicationsList({ listingPublicId }: { listingPublicId: s
           ))}
         </div>
       ) : null}
-      {pending.status === 'CanLoadMore' ? (
-        <Button variant='subtle' onClick={() => pending.loadMore(24)}>
-          Load more pending applications
-        </Button>
-      ) : null}
-      {history.status === 'CanLoadMore' ? (
-        <Button variant='subtle' onClick={() => history.loadMore(24)}>
-          Load more application history
-        </Button>
-      ) : null}
-      {loadingMore ? <Loader aria-label='Loading more applications' size='sm' /> : null}
+      <AdmissionListFooter noun='application' pending={pending} history={history} />
     </section>
   )
 }

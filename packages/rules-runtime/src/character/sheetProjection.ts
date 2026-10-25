@@ -464,7 +464,7 @@ export function getOwnedSpellSlotLevels(
 ): ReadonlySet<number> {
   return new Set([
     ...spellSlots.maxByLevel.flatMap((slot) => (slot.slotCount > 0 ? [slot.spellLevel] : [])),
-    ...(spellSlots.pactMagic && spellSlots.pactMagic.slots > 0 ? [spellSlots.pactMagic.level] : [])
+    ...spellSlots.slotPools.flatMap((pool) => (pool.slots > 0 ? [pool.level] : []))
   ])
 }
 
@@ -865,22 +865,15 @@ export function projectCharacterSheetBundle(
       used: slot.effectiveUsed,
       remaining: slot.remaining
     })),
-    ...(ruleEvaluation.output.spellSlots.pactMagic
-      ? [
-          {
-            slotKey: ruleEvaluation.output.spellSlots.pactMagic.poolCode,
-            label: systemCoreCodeRegistry.requireCode(
-              character.systemId,
-              'spellSlotPool',
-              ruleEvaluation.output.spellSlots.pactMagic.poolCode
-            ).label,
-            level: ruleEvaluation.output.spellSlots.pactMagic.level,
-            max: ruleEvaluation.output.spellSlots.pactMagic.slots,
-            used: ruleEvaluation.output.spellSlots.pactMagic.effectiveUsed,
-            remaining: ruleEvaluation.output.spellSlots.pactMagic.remaining
-          }
-        ]
-      : [])
+    ...ruleEvaluation.output.spellSlots.slotPools.map((pool) => ({
+      slotKey: pool.poolCode,
+      label: systemCoreCodeRegistry.requireCode(character.systemId, 'spellSlotPool', pool.poolCode)
+        .label,
+      level: pool.level,
+      max: pool.slots,
+      used: pool.effectiveUsed,
+      remaining: pool.remaining
+    }))
   ]
     .filter((slot) => slot.max > 0)
     .sort((left, right) => left.level - right.level)

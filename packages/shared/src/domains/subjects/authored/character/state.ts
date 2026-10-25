@@ -136,8 +136,9 @@ export interface CharacterSpellSummonState {
   abilityScores?: Partial<Record<AbilityCode, number>>
   speeds?: SpeedAuthored[]
   passivePerception?: number
-  maximumHitPoints: number
-  currentHitPoints: number
+  /** Absent with `currentHitPoints` for a stat block with no hit points: no pool, never ends at 0. */
+  maximumHitPoints?: number
+  currentHitPoints?: number
   tempHitPoints?: number
   customName?: string
   notes?: string

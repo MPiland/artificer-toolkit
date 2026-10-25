@@ -28,7 +28,7 @@ export function CharacterSheetSpellSummons({
         Summons
       </Text>
       <div className={extrasStyles.extraGroupRows}>
-        {summons.map((summon) => (
+        {summons.map(({ hitPoints, ...summon }) => (
           <div className={extrasStyles.summonRow} key={summon.id} data-summon={summon.id}>
             <span className={extrasStyles.extraIdentity}>
               <strong>{summon.displayName}</strong>
@@ -47,30 +47,32 @@ export function CharacterSheetSpellSummons({
                 <small className={extrasStyles.extraMetricLabel}>Speed</small>
                 <strong>{summon.speedLabel ?? '-'}</strong>
               </span>
-              <NumberInput
-                aria-label={`${summon.displayName} current hit points`}
-                clampBehavior='strict'
-                defaultValue={summon.hitPoints.current}
-                disabled={pending}
-                hideControls
-                key={summon.hitPoints.current}
-                label={`HP / ${summon.hitPoints.maximum}`}
-                max={summon.hitPoints.maximum}
-                min={0}
-                size='xs'
-                onBlur={(event) => {
-                  const currentHitPoints = Number(event.currentTarget.value)
-                  if (
-                    Number.isInteger(currentHitPoints) &&
-                    currentHitPoints !== summon.hitPoints.current
-                  )
-                    void submitCommand({
-                      type: 'UPDATE_SHEET_EXTRA',
-                      expectedVersion,
-                      extra: { kind: 'SPELL_SUMMON', extraId: summon.id, currentHitPoints }
-                    })
-                }}
-              />
+              {hitPoints ? (
+                <NumberInput
+                  aria-label={`${summon.displayName} current hit points`}
+                  clampBehavior='strict'
+                  defaultValue={hitPoints.current}
+                  disabled={pending}
+                  hideControls
+                  key={hitPoints.current}
+                  label={`HP / ${hitPoints.maximum}`}
+                  max={hitPoints.maximum}
+                  min={0}
+                  size='xs'
+                  onBlur={(event) => {
+                    const currentHitPoints = Number(event.currentTarget.value)
+                    if (
+                      Number.isInteger(currentHitPoints) &&
+                      currentHitPoints !== hitPoints.current
+                    )
+                      void submitCommand({
+                        type: 'UPDATE_SHEET_EXTRA',
+                        expectedVersion,
+                        extra: { kind: 'SPELL_SUMMON', extraId: summon.id, currentHitPoints }
+                      })
+                  }}
+                />
+              ) : null}
               <Button
                 disabled={pending}
                 size='xs'

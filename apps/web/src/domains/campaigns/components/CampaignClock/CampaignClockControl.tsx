@@ -17,7 +17,7 @@ export function CampaignClockControl({ campaign }: { campaign: CampaignDetailDto
   const reconcileClock = useConvexMutation(convexApi.campaigns.clock.reconcile)
   const clock = useQuery(getCampaignClock(campaign.id))
   const [now, setNow] = useState(Date.now)
-  const editable = campaign.role === 'OWNER' && campaign.status === 'ACTIVE'
+  const editable = campaign.capabilities.manageActiveCampaign
   const toggle = useMutation({
     mutationFn: () => {
       if (!clock.data) throw new Error('Set Campaign time first.')

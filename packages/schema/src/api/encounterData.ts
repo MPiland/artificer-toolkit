@@ -7,6 +7,7 @@ import {
   creatureSenseDtoSchema
 } from '../subjects/creature.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
+import { speedDtoSchema } from '../shared/speed.js'
 import {
   MAX_TURN_TELEPORT_ALLOWANCES,
   teleportAllowanceDtoSchema
@@ -234,7 +235,7 @@ export const encounterGmActorDtoSchema = lazySchema(() =>
       z.strictObject({
         armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
         abilityScores: z.nullable(z.record(z.string(), z.number())),
-        speeds: z.array(z.unknown()),
+        speeds: z.array(speedDtoSchema),
         senses: z.array(creatureSenseDtoSchema),
         damageVulnerabilities: z.array(z.string()),
         damageResistances: z.array(z.string()),

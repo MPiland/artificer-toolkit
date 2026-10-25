@@ -23,10 +23,7 @@ import {
   planNativeEncounterActionMechanics,
   planNativeEncounterAreaSourceSpend
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
-import {
-  buildEncounterSummon,
-  casterHitPointMaximum
-} from '@artificer-toolkit/rules-runtime/encounterSummon'
+import { buildEncounterSummon } from '@artificer-toolkit/rules-runtime/encounterSummon'
 import { buildEncounterAreaStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
 import { encounterActionSourceLabel } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { actionEndedEffects } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
@@ -358,20 +355,23 @@ export async function settleAreaCommit(args: {
     random: input.random,
     repeatSaves: { damagerActorId: caster.id }
   })
-  const summonedTokens = summon
-    ? [
-        buildEncounterSummon({
-          summon: summon.placement,
-          caster,
-          casterHitPointMaximum: casterHitPointMaximum(caster),
-          label: summon.placement.label ?? sourceLabel,
-          point: summon.point,
-          edgeLength: summon.edgeLength,
-          sourceEffectId: zoneSourceGrant!.id,
-          occurredAt
-        })
-      ]
-    : []
+  const casterTarget = movementTargets.get(caster.id)
+  if (summon && !casterTarget) throw new Error('The summoning caster has no prepared target.')
+  const summonedTokens =
+    summon && casterTarget
+      ? [
+          buildEncounterSummon({
+            summon: summon.placement,
+            caster,
+            casterHitPointMaximum: casterTarget.effectiveMaximumHitPoints,
+            label: summon.placement.label ?? sourceLabel,
+            point: summon.point,
+            edgeLength: summon.edgeLength,
+            sourceEffectId: zoneSourceGrant!.id,
+            occurredAt
+          })
+        ]
+      : []
   const nextFacts = buildEncounterActorRuleFacts({
     actors: [...concentration.actors, ...summonedTokens.map(({ actor }) => actor)]
   })

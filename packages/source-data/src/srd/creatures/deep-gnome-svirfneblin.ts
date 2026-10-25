@@ -69,18 +69,13 @@ export const deepGnomeSvirfneblin: CreatureAuthored = {
       label: 'Gnome Cunning',
       description:
         'Gnome Cunning. The gnome has advantage on Intelligence, Wisdom, and Charisma saving throws against magic.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(78, 202),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.INCOMING_SAVING_THROW,
-            range: { id: S.actionId(78, 1202), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_GNOME_CUNNING
-        })
-      ],
+      grants: S.advantageGrants(78, 202, {
+        savesAgainstMagic: [
+          S.ABILITY_CODE.INTELLIGENCE,
+          S.ABILITY_CODE.WISDOM,
+          S.ABILITY_CODE.CHARISMA
+        ]
+      }),
       order: 2
     },
     {

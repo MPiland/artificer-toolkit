@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   CHARACTER_ABILITY_GENERATION_METHOD,
   HITPOINT_CALCULATION_METHOD_CODE
@@ -23,6 +23,7 @@ import { syncHitpointLevels } from './characterAbilities'
 import { CharacterAbilityAssignments } from './CharacterAbilityAssignments'
 import { CharacterHitpointProgression } from './CharacterHitpointProgression'
 import { DiceRollPresentation } from '#app/components/dice/DiceRollPresentation'
+import { useDismissRollOnClick } from '#app/components/dice/useDismissRollOnClick'
 import type { CharacterBuilderStepProps } from '../../core/CharacterBuilderStep.types'
 
 function preloadAbilityDice(configuration: string) {
@@ -79,16 +80,11 @@ export const CharacterAbilitiesStep = withForm({
       preloadAbilityDice(abilityRollConfiguration)
     }, [abilityIntent.method, abilityRollConfiguration])
 
-    useEffect(() => {
-      if (!presentedRoll) return
-
-      const dismissRoll = () => {
-        setPresentedRoll(undefined)
-        setActiveRollSlot(undefined)
-      }
-      document.addEventListener('click', dismissRoll, { capture: true })
-      return () => document.removeEventListener('click', dismissRoll, { capture: true })
-    }, [presentedRoll])
+    const dismissRoll = useCallback(() => {
+      setPresentedRoll(undefined)
+      setActiveRollSlot(undefined)
+    }, [])
+    useDismissRollOnClick(presentedRoll !== undefined, dismissRoll)
 
     return (
       <div className={sharedStyles.section}>

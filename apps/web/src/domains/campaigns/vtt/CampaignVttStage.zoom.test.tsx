@@ -65,7 +65,7 @@ vi.mock('#app/data/media', () => ({
 // The canvas renderer is the platform: it reports zoom through the callbacks the Stage hands it.
 vi.mock('./vttSceneRenderer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./vttSceneRenderer')>()),
-  createVttSceneRenderer: (_host: HTMLElement, handlers: ZoomHandlers) => {
+  createVttSceneRenderer: (_host: HTMLElement, _gameSystemId: string, handlers: ZoomHandlers) => {
     mocks.handlers = handlers
     return Promise.resolve({
       applyTransient: vi.fn(),

@@ -555,6 +555,13 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Target-chosen save ability:** the Bulette Deadly Leap lets each creature pick Strength or Dexterity for its save (SPELLS-33.T6k3). It ships as a Strength save with the choice, the 15-foot jump precondition and the push as a GM ruling.
 - **Condition suppression:** Calm Emotions.
 - **Long clocks beyond 24 hours, healing denial and rest-benefit denial:** Contagion, Mummy Rot, Death Dog disease, curses, lycanthropy, Couatl and Horned Devil wounds, and absorb-to-heal traits. Contagion (SPELLS-4.T2m3) ships its whole disease as a GM ruling on hit: the 7-day duration is over `MAX_ACTIVE_EFFECT_TURNS`, so neither its threshold saves nor its disease rows can ride an active effect.
+- **Lingering creature riders (SPELLS-33.T6m2, D187a):** the saves, conditions and turn-anchored stun are data; these ship as GM rulings:
+  - **Creature-tag and can-hear area filters:** the Vrock Stunning Screech sparing demons (a creature tag, not a type) and creatures that can't hear it, and the Androsphinx Roar's hearing gate.
+  - **Ordinal use variants:** the Androsphinx Roar's first, second and third roar chosen by the uses spent since the last long rest.
+  - **Wake action:** the Couatl Bite's poison, ended for the unconscious target by another creature's action with no check.
+  - **Stacking recurring damage ended by healing:** the Horned Devil infernal wound, growing by 3d6 with each tail hit and closed by magical healing.
+  - **Follow-up check under a save path:** the Horned Devil Tail's authored DC 12 Wisdom (Medicine) stanch check (`FOLLOW_UP_CHECK`) has no executor inside a failed save's outcomes, so the Tail stays on the creature attack allowlist (`OUTCOME_KIND`) until it does.
+  - **Absolute tree size for tree travel:** the Dryad Tree Stride's Large-or-bigger trees (`TREE_STRIDE` only knows a size relative to the traveler).
 - **Damage-taken lifecycle condition:** a held effect's `onTriggers` `DAMAGE_TAKEN` applying a timed condition, such as Contagion's Slimy Doom stun until the end of the holder's next turn (SPELLS-4.T2m3).
 - **Curse tag ending:** Remove Curse.
 - **Dispel acting on a placed zone.**
@@ -577,13 +584,21 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **SUMMON manifests:** creature-summoned allies. Faithful Hound's turn-start bite, bark and dismissal ship as a GM ruling (SPELLS-4.T2w); an automatic source-turn-start attack by a summon is not built.
 - **Containment:** swallow (Purple Worm, Kraken, Remorhaz, Tarrasque, Giant Frog and Toad; ships as a GM ruling beside the attack damage, no containment, acid or regurgitation piece) and engulf (Gelatinous Cube Engulf and Ooze Cube, Water Elemental Whelm; ships as GM rulings beside the authored save and damage).
   - **Save over contained or passed-through creatures (N4 CONTAINED_CREATURES/PASSAGE, SPELLS-33.T6a2):** a save aimed at the creatures in the source's own space (Water Elemental Whelm) or the creatures it moves through (Gelatinous Cube Engulf). Chosen-creature saves need an Unlimited, Touch or 1 ft+ range, so both actions stay refused at compile on the bounded shape and the GM runs them from the ruling.
-- **Auto-hit and reel tails:** Marilith, Roper.
+- **Held-creature riders (SPELLS-33.T6a3, D187a):** the grapple, start-of-turn damage and held-only targeting are data; these ship as GM rulings or description:
+  - **Auto-hit on a held target:** the Marilith Tail's automatic hit against the creature it grapples.
+  - **Reel held creatures:** the Roper pulling each creature it grapples 25 feet toward it.
+  - **Source-turn hit point loss with a drained-total detach:** the Stirge Blood Drain loses hit points at the start of the stirge's turn and detaches after 10 drained or the target's death (relationship recurrence fires on the held target's turn as typed damage); any creature's action to detach it.
+  - **Damage transfer to a held creature:** Cloaker Damage Transfer.
+  - **Damage to a grappler and touch retaliation:** Barbed Devil Barbed Hide.
+  - **Adhesion on contact:** Mimic Adhesive (Object Form Only).
 - **Creature forms beyond Wild Shape:** Change Shape, lycanthrope and vampire shapes, Misty Escape.
 - **Extra reactions and reaction denial; terrain and underwater predicates; spell negation and storing; partner-bound grants (Nightmare rider resistance, Shield Guardian amulet bearer and damage transfer); body-control swap (Ghost Possession); attackable body parts (Hydra heads, Roper tendrils) and damage-triggered splitting (Black Pudding, Ochre Jelly).**
 - **Effect-tag save qualifiers (SPELLS-33.T4j):** Turn Resistance ("advantage on saves against effects that turn undead") is a GM ruling. Automating it needs a save scope keyed on an authored effect tag, with Turn Undead's save carrying the tag once it converts (SPELLS-31.T4m).
 - **Destructible held objects (SPELLS-4.T2m2b):** the Net automates as a source-independent restraining relationship, but its "destroyed by 5 slashing damage (AC 10)" clause and its formless-creature exclusion are description only. An object that can be targeted and damaged on the board would automate them.
 - **Drop to 0 hit points and self-heal on a kill (SPELLS-33.T4i4b):** a REDUCE_TO_ZERO_HIT_POINTS outcome with its own persisted application kind (untyped, so resistance does not halve it, and dying rather than dead for Characters), plus a source self-heal when its target dies. Death Glare ships as a GM ruling with its target requirements kept; Consume Life automates its save-gated KILL and the wisp's 3d6 regain is a GM ruling.
 - **Rare class senses and riders:** Blindsense, Feral Senses, Witch Sight, Retaliation, and the One with Shadows light gate.
+- **Save scopes by damage type and by illusion (SPELLS-32.T4j):** Dwarven Resilience gives advantage only on saves against the POISONED condition, not on saves against poison damage such as a breath weapon. Duergar Resilience covers saves against magic but has no separate illusion scope. Automating them needs a save scope keyed on the effect's damage type and an illusion school or tag on the source.
+- **Retire unused size codes (RULES-2.T9f1):** the dnd5e size table still lists FINE, DIMUNITIVE (misspelled), GIANT and COLOSSAL, which no SRD content uses. Removing them needs a data check and a reseed.
 
 ## Other future enhancements (parked)
 

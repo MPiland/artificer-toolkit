@@ -1,5 +1,6 @@
 import { SegmentedControl, Switch } from '@mantine/core'
 import clsx from 'clsx'
+import { formatEnumLabel } from '#components/AuthoredDetail'
 import { findOption } from '../forms/utils/valueGuards'
 import { DICE_SHADOW_QUALITIES, type DicePresentationPreferences } from './dicePreferences'
 import * as styles from './settings.css'
@@ -53,7 +54,7 @@ export function DiceSettingsControls({
           aria-label='Dice shadow quality'
           className={styles.appearanceControl}
           data={DICE_SHADOW_QUALITIES.map((quality) => ({
-            label: quality.charAt(0) + quality.slice(1).toLowerCase(),
+            label: formatEnumLabel(quality),
             value: quality
           }))}
           disabled={!value.animate3d}

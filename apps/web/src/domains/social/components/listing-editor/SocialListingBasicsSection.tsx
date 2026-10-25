@@ -1,7 +1,8 @@
 import { Badge, Group, NumberInput, Select, Text, Textarea, TextInput, Title } from '@mantine/core'
 import type { Dispatch, SetStateAction } from 'react'
 import { updateSocialListingDraft, type SocialListingDraft } from '../../socialFormModel'
-import { formatStatusLabel, playModeOptions } from '../../socialModels'
+import { formatEnumLabel } from '#components/AuthoredDetail'
+import { playModeOptions } from '../../socialModels'
 import * as styles from './SocialListingSections.css'
 
 export function SocialListingBasicsSection({
@@ -68,11 +69,11 @@ export function SocialListingBasicsSection({
           <div className={styles.spanAll}>
             <Text fw={600}>{projectedCampaign.name}</Text>
             <Group gap='xs' mt='xs'>
-              <Badge variant='light'>{formatStatusLabel(projectedCampaign.format)}</Badge>
-              <Badge variant='light'>{formatStatusLabel(projectedCampaign.contentMaturity)}</Badge>
+              <Badge variant='light'>{formatEnumLabel(projectedCampaign.format)}</Badge>
+              <Badge variant='light'>{formatEnumLabel(projectedCampaign.contentMaturity)}</Badge>
               {projectedCampaign.toneTags.map((tag) => (
                 <Badge color='gray' key={tag} variant='outline'>
-                  {formatStatusLabel(tag)}
+                  {formatEnumLabel(tag)}
                 </Badge>
               ))}
             </Group>

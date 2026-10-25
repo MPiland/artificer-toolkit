@@ -199,6 +199,58 @@ describe('SRD Creature attack sweep', () => {
     }
   })
 
+  it('sweeps the held-creature attacks as a hold beside automated or GM-ruled riders (D187a)', () => {
+    const hitKindsByLabel = {
+      'Chain Devil: Chain': ['DAMAGE', 'ACTOR_RELATIONSHIP'],
+      'Marilith: Tail': ['DAMAGE', 'ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION'],
+      'Stirge: Blood Drain': ['DAMAGE', 'ACTOR_RELATIONSHIP', 'MANUAL_ADJUDICATION']
+    }
+    for (const [label, expected] of Object.entries(hitKindsByLabel)) {
+      const units = creatures.flatMap(attackUnits).filter((unit) => unit.label === label)
+      expect(units).toHaveLength(1)
+      const [unit] = units
+      const hitKinds = unit.effect.paths.flatMap((path) =>
+        path.pathCode === 'ON_HIT' && path.selectionKind === 'FIXED'
+          ? path.resultBlock.outcomes.map(({ effectKind }) => effectKind)
+          : []
+      )
+      expect(hitKinds).toEqual(expected)
+      expect(SRD_CREATURE_ATTACK_UNSUPPORTED).not.toHaveProperty(unit.effectId)
+    }
+  })
+
+  it('sweeps the lingering poison and wound attacks as a save with a GM ruling on failure (D187a)', () => {
+    // The Horned Devil's stanch check (FOLLOW_UP_CHECK) has no executor under a save path yet, so its
+    // Tail stays on the allowlist while the Couatl Bite runs.
+    const failures = {
+      'Couatl: Bite': {
+        kinds: ['CONDITION', 'CONDITION', 'MANUAL_ADJUDICATION'],
+        allowlisted: undefined
+      },
+      'Horned Devil: Tail': {
+        kinds: ['FOLLOW_UP_CHECK', 'MANUAL_ADJUDICATION'],
+        allowlisted: 'OUTCOME_KIND'
+      }
+    }
+    for (const [label, { kinds, allowlisted }] of Object.entries(failures)) {
+      const units = creatures.flatMap(attackUnits).filter((unit) => unit.label === label)
+      expect(units).toHaveLength(1)
+      const [unit] = units
+      const hitOutcomes = unit.effect.paths.flatMap((path) =>
+        path.pathCode === 'ON_HIT' && path.selectionKind === 'FIXED'
+          ? path.resultBlock.outcomes
+          : []
+      )
+      expect(hitOutcomes.map(({ effectKind }) => effectKind)).toEqual(['DAMAGE', 'FOLLOW_UP_SAVE'])
+      const save = hitOutcomes.find((outcome) => outcome.effectKind === 'FOLLOW_UP_SAVE')
+      expect(
+        save?.onFailure.kind === 'OUTCOMES' &&
+          save.onFailure.outcomes.map(({ effectKind }) => effectKind)
+      ).toEqual(kinds)
+      expect(SRD_CREATURE_ATTACK_UNSUPPORTED[unit.effectId]).toBe(allowlisted)
+    }
+  })
+
   it('prepares, executes and plans every SRD Creature attack, except the shrinking allowlist, and doubles its dice on a critical hit', async () => {
     const runtime = createSrdRulesRuntime()
     const ogre = creatures.find((creature) => creature.label === 'Ogre')

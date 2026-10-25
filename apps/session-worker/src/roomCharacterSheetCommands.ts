@@ -56,6 +56,7 @@ import { checksumCanonicalJson, equalCanonicalJson } from '@artificer-toolkit/sh
 import { createNativeLiveSessionState } from './nativeLiveSessionState.js'
 import { encounterCommandRefusal, RoomAdmissionExpiredError } from './nativeRoomEncounterCommand.js'
 import { send, type Admission, type SocketAttachment } from './roomSocket.js'
+import { readRoomSceneMovedBy } from './roomSceneRead.js'
 import { composeRoomSceneVision } from './roomSceneVision.js'
 import { EncounterDomainRejection } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { admitsRoomMember } from './roomAuthorization.js'
@@ -564,7 +565,10 @@ export async function executeCharacterSheetCommand(
               command,
               random
             })
-            const composition = sceneCache?.uncomposedScene
+            // Ending Concentration may take a summon's token off the presented Scene.
+            const moved = await readRoomSceneMovedBy(transaction, sceneCache?.sceneHeader)
+            const uncomposedScene = moved?.scene ?? sceneCache?.uncomposedScene
+            const composition = uncomposedScene
               ? await composeRoomSceneVision({
                   store: host.store,
                   transaction,
@@ -572,7 +576,7 @@ export async function executeCharacterSheetCommand(
                   authorization: prepared,
                   campaignId: value.campaignId,
                   epoch: value.authorityEpoch,
-                  scene: sceneCache.uncomposedScene
+                  scene: uncomposedScene
                 })
               : null
             if (composition)
@@ -586,7 +590,7 @@ export async function executeCharacterSheetCommand(
                 result: executed.acknowledgement
               }
             })
-            return { ...executed, composition }
+            return { ...executed, composition, moved }
           },
           (entry) => {
             const latest = host.authorization.current(value.authorityEpoch)
@@ -635,7 +639,14 @@ export async function executeCharacterSheetCommand(
       host.setCache({
         ...sceneCache,
         scene: result.composition.scene,
-        characterRevisions: result.composition.characterRevisions
+        characterRevisions: result.composition.characterRevisions,
+        ...(result.moved
+          ? {
+              uncomposedScene: result.moved.scene,
+              baseOrdinals: result.moved.baseOrdinals,
+              sceneHeader: result.moved.header
+            }
+          : {})
       })
     if (!receipt) throw new Error('Room Sheet command receipt is unavailable.')
     for (const recipient of host.webSockets()) {

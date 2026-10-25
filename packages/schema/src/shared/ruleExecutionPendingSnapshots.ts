@@ -511,6 +511,8 @@ export type EncounterAreaActionPendingContextDto = {
    */
   placesZone: boolean
   zoneAppearSave: boolean
+  /** Whether the action conjures a creature at the origin; such an area catches no creature. */
+  placesSummon: boolean
   /** The Scene the action was read against; null for a list of chosen creatures that read none. */
   scene: { sceneId: string; sceneVersion: number } | null
   /**
@@ -626,6 +628,7 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
       casterActorId: uuidSchema,
       placesZone: z.boolean(),
       zoneAppearSave: z.boolean(),
+      placesSummon: z.boolean(),
       scene: z.nullable(
         z.strictObject({ sceneId: uuidSchema, sceneVersion: nonNegativeIntegerSchema })
       ),
@@ -702,11 +705,17 @@ const encounterAreaActionPendingContextDtoSchema = lazySchema(() =>
             path: ['zoneAppearSave'],
             message: 'Only a placed zone saves as it appears.'
           })
-        if (value.placesZone && value.area === null)
+        if ((value.placesZone || value.placesSummon) && value.area === null)
           context.addIssue({
             code: 'custom',
             path: ['area'],
-            message: 'A placed zone fills an area.'
+            message: 'A placed zone or summon fills an area.'
+          })
+        if (value.placesZone && value.placesSummon)
+          context.addIssue({
+            code: 'custom',
+            path: ['placesSummon'],
+            message: 'An action places a zone or a summon, not both.'
           })
         const seen = new Set<string>()
         const seenOccurrences = new Set<string>()

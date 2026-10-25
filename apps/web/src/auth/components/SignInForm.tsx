@@ -1,14 +1,11 @@
 import { useHydrated } from '@tanstack/react-router'
 import { type SubmitEvent, useState } from 'react'
 import { browserAuthClient } from '../authClient'
-import { AuthFormProps } from './authForm.types'
+import type { AuthFeedback, AuthFormProps } from './authForm.types'
 import {
   authButton,
   authFooterRow,
   authForm,
-  authFormMessage,
-  authFormMessageError,
-  authFormMessageSuccess,
   forgotRow,
   inlineLink,
   inlineLinkIcon,
@@ -16,6 +13,7 @@ import {
   textInput
 } from '../auth.css'
 import { AuthDivider } from './AuthDivider'
+import { AuthFormFeedback } from './AuthFormFeedback'
 import { Anchor, Button, PasswordInput, TextInput } from '@mantine/core'
 import IArrowRight from '#assets/icons/IArrowRight'
 
@@ -32,9 +30,7 @@ export function SignInForm({
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState<{ tone: 'error' | 'success'; message: string } | null>(
-    null
-  )
+  const [feedback, setFeedback] = useState<AuthFeedback | null>(null)
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
@@ -97,17 +93,7 @@ export function SignInForm({
       <Button className={authButton} type='submit' disabled={!hydrated} loading={isSubmitting}>
         Sign in
       </Button>
-      {feedback && (
-        <div
-          className={`${authFormMessage} ${
-            feedback.tone === 'error' ? authFormMessageError : authFormMessageSuccess
-          }`}
-          role={feedback.tone === 'error' ? 'alert' : 'status'}
-          aria-live={feedback.tone === 'error' ? 'assertive' : 'polite'}
-        >
-          {feedback.message}
-        </div>
-      )}
+      <AuthFormFeedback feedback={feedback} />
       {publicSignUpEnabled ? (
         <>
           <AuthDivider />
