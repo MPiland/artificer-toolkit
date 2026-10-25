@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 export const clayGolem: CreatureAuthored = {
   id: S.CREATURE_IDS.CLAY_GOLEM,
@@ -63,14 +64,14 @@ export const clayGolem: CreatureAuthored = {
       description:
         'Immutable Form. The golem is immune to any spell or effect that would alter its form.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(64, 103),
           invocation: {
             kind: 'PASSIVE',
             triggerCode: S.TRIGGER.ACTIVATED,
             range: { id: S.actionId(64, 104), rangeKind: S.RANGE_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_IMMUTABLE_FORM
+          ...CHANGE_SHAPE_RULING.IMMUTABLE_FORM
         })
       ],
       order: 2

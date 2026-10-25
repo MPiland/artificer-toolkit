@@ -50,5 +50,12 @@ export const CHANGE_SHAPE_RULING = {
     reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
     instructions:
       'When the vampire drops to 0 hit points outside its resting place and is not in sunlight or running water, it becomes a cloud of mist (as in its Shapechanger trait) instead of falling unconscious; if it cannot transform, it is destroyed. At 0 hit points in mist form it cannot revert and must reach its resting place within 2 hours or be destroyed. In its resting place it reverts to vampire form, paralyzed until it regains at least 1 hit point, and regains 1 hit point after 1 hour there.'
+  },
+  /** Immune to form-altering spells and effects (Clay, Flesh, Iron and Stone Golem). */
+  IMMUTABLE_FORM: {
+    label: 'Immutable Form',
+    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+    instructions:
+      'The golem is immune to any spell or effect that would alter its form. The GM decides whether an effect alters its form and, if so, ignores it.'
   }
 } as const
