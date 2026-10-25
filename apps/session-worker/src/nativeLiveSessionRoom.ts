@@ -1064,7 +1064,7 @@ export class NativeLiveSessionRoom extends DurableObject<SessionWorkerEnvironmen
     }
     // A failure inside the room tells the member nothing, so the room logs it (as Encounter commands do).
     if (!(error instanceof LiveSessionRouteError))
-      console.error('Live Session Scene command failed in the room.', error)
+      console.error('Live Session Scene command failed in the room.', String(error).slice(0, 5000))
     const status = error instanceof LiveSessionRouteError ? error.status : 0
     this.#rejectCommand(
       socket,
