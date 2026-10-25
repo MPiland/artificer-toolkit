@@ -7818,7 +7818,7 @@
                   "SPELLS-33.T4i4b"
                 ]
               },
-              "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i."
+              "note": "2026-10-20 ruling: T4d and T4e folded away (their riders need the hit-point gate owned by SPELLS-4.T2i). Purple Worm Bite goes to SPELLS-33.T6a1; Giant Centipede Bite and Solar Slaying Longbow go to SPELLS-33.T4i. Left by SPELLS-33.T6b2 (orchestrator ruling 2026-10-25): Wereboar Tusks stays on the allowlist as FOLLOW_UP_SAVE because its Charge needs a ruling before the immediate save, and immediateFollowUpSaveEntries accepts only DAMAGE ahead of an immediate save; covering it means widening that shape generically."
             }
           ]
         },
