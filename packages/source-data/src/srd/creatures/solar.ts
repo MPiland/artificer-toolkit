@@ -52,18 +52,7 @@ export const solar: CreatureAuthored = {
       label: 'Angelic Weapons',
       description:
         "Angelic Weapons. The solar's weapon attacks are magical. When the solar hits with any weapon, the weapon deals an extra 6d8 radiant damage (included in the attack).",
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(256, 200),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(256, 201), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SOLAR_ANGELIC_WEAPONS
-        })
-      ],
+      grants: S.magicWeaponsGrants(256, 200),
       order: 1
     },
     {
@@ -316,18 +305,7 @@ export const solar: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The solar has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(256, 901),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(256, 902), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(256, 901),
       order: 6
     },
     {

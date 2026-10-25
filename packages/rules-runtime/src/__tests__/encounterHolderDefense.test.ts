@@ -167,6 +167,7 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
       qualifiedDefenses: [],
       conditionImmunityIds: [],
       sourceConditionImmunities: [],
+      sourceSaves: [],
       spellSchoolImmunityIds: [],
       characterCurrentness: null,
       attackAgainstContributors: [],

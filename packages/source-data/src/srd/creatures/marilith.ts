@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 
 export const marilith: CreatureAuthored = {
@@ -52,18 +53,7 @@ export const marilith: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The marilith has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(192, 501),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(192, 601), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(192, 501),
       order: 1
     },
     {
@@ -233,12 +223,16 @@ export const marilith: CreatureAuthored = {
                     escapeDc: 19,
                     heldAtOnce: 1,
                     largestTarget: S.SIZE_CODE.MEDIUM,
-                    untilEnds: ['RESTRAINED']
+                    untilEnds: ['RESTRAINED'],
+                    restrictedActionEffectIds: [S.actionId(192, 506)]
                   }),
                   {
                     id: S.actionId(192, 968),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_MARILITH_TAIL
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Tail hits the grappled target',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      'Until this grapple ends, the marilith automatically hits the grappled target with its tail: the GM treats the attack roll as a hit.'
                   }
                 ]
               }

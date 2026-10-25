@@ -1,3 +1,4 @@
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import * as S from './shared.js'
 export const vampireSpawn: CreatureAuthored = {
@@ -90,7 +91,7 @@ export const vampireSpawn: CreatureAuthored = {
       description:
         'Spider Climb. The vampire can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(278, 206),
           invocation: {
             kind: 'PASSIVE',
@@ -98,7 +99,10 @@ export const vampireSpawn: CreatureAuthored = {
             range: { id: S.actionId(278, 207), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SPIDER_CLIMB
+          label: 'Spider Climb',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
+          instructions:
+            'The vampire can climb difficult surfaces, including upside down on ceilings, without needing to make an ability check.'
         })
       ],
       order: 2
