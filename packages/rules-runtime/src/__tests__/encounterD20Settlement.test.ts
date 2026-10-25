@@ -64,7 +64,7 @@ describe('freezeD20Context', () => {
       contributorChecksum: checksumRuleDocument(CONTRIBUTORS),
       modifier: 3
     })
-    const minimumRoll = { amount: 15, label: 'Glibness', sourceEffectId: testUuid(701) }
+    const minimumRoll = { amount: 15, label: 'Glibness', sourceId: testUuid(701) }
     expect(
       freezeD20Context({
         gameSystemId: SRD_SYSTEM_ID,
