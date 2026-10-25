@@ -2588,7 +2588,7 @@
                 "tc": 2,
                 "rr": 5,
                 "size": 5,
-                "after": ["RULES-2.T12"]
+                "after": ["RULES-2.T12b"]
               },
               "text": "Neutral second-System portability tracer through real publication, capability, catalogue and shell reads (test fixture, not seeded content); docs and ERDs describe the System-neutral model (workbook slice-authoring-1.md). Shares the RULES-2.T12 tracer fixture and runs in its lane (2026-10-24).",
               "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md"
@@ -4045,14 +4045,15 @@
               "mergedAt": "2026-10-21T23:35:57Z"
             },
             {
-              "id": "RULES-2.T12",
+              "id": "RULES-2.T12a",
               "status": "IN_PROGRESS",
               "closes": ["RULES-2.7"],
+              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
                 "rr": 5,
-                "size": 8,
+                "size": 5,
                 "after": [
                   "RULES-2.T6f",
                   "RULES-2.T7",
@@ -4065,8 +4066,22 @@
                   "RULES-2.T9f2"
                 ]
               },
-              "text": "Second neutral tracer System (Fate-like fixture) driving the Encounter pipeline through the adapters.",
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md"
+              "text": "Tiered installed System lists (installedGameSystems/vocabulary, policy, encounter) with one module object per System per tier, every registry building from its tier list; a test-only Fate-like tracer fixture (vocabulary, policy and encounter adapters) aliased in by a tracer Vitest project registered in CI; proofs for actor evaluation, initiative and turn order, and action economy.",
+              "note": "Split from RULES-2.T12 (size 8 re-measured at 10; user ruling 2026-10-25 accepted +2, scope unchanged; D195 as amended)."
+            },
+            {
+              "id": "RULES-2.T12b",
+              "status": "TODO",
+              "closes": ["RULES-2.7"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 3,
+                "rr": 5,
+                "size": 5,
+                "after": ["RULES-2.T12a"]
+              },
+              "text": "Tracer check through its own published graph on the neutral d20 settlement (ADR 0039 decision 2), its event vocabulary, the maintenance link, require-fails-closed and find-skips proofs for absent D&D-shaped capabilities, and fixes for dnd5e assumptions found on that path.",
+              "note": "Split from RULES-2.T12 (size 8 re-measured at 10; user ruling 2026-10-25 accepted +2, scope unchanged; D195 as amended)."
             },
             {
               "id": "RULES-2.T13a",
