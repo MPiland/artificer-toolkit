@@ -7362,7 +7362,7 @@
             },
             {
               "id": "ENCOUNTER-4.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ENCOUNTER-4.1", "ENCOUNTER-4.2", "ENCOUNTER-4.3", "ENCOUNTER-4.4"],
               "wsjf": {
                 "bv": 2,
@@ -7371,8 +7371,9 @@
                 "size": 2
               },
               "text": "Register the journey: verify nativeRoomSpeedFactorInitiative.test.ts drives declaration through to turn order and enforcement via public commands (it appears to), add it to journeyTests; if the DoD requires the player-visible step, add one Decision drawer test where a player declares a Speed Factor action and the declared order shows (real drawer code over the real DTO schema). Missing thing: only the journey registration, not product code.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-encounter-4.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m440.",
+              "mergedAt": "2026-10-25T15:55:21Z",
+              "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             }
           ]
         },
@@ -7458,7 +7459,7 @@
             },
             {
               "id": "ENCOUNTER-6.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ENCOUNTER-6.1", "ENCOUNTER-6.2", "ENCOUNTER-6.3"],
               "wsjf": {
                 "bv": 2,
@@ -7467,8 +7468,9 @@
                 "size": 1
               },
               "text": "Register nativeRoomMorale.test.ts (offer, save, confirm, recorded on actor) as the PBI journey after confirming it uses the public command path; add CampaignTabletopMorale.test.tsx as the user-visible half. Ledger-only if both pass in the current CI run. Token presentation of the result is VTT_UI-2.T1, not this PBI.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-encounter-6.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m440.",
+              "mergedAt": "2026-10-25T15:55:21Z",
+              "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             }
           ]
         },
@@ -15255,7 +15257,7 @@
             },
             {
               "id": "SPELLS-31.T5f1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15264,9 +15266,10 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2l", "SPELLS-4.T2m1"]
               },
-              "text": "Options bound to another active effect, part 1: the HOLDER_ACTIVE_EFFECT holder-state predicate; Mindless Rage (condition immunity gated on Rage; suspension clause a GM ruling), Reckless Attack. Each conversion has an authoring-parity proof and deletes its kind.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
-              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25)."
+              "text": "Options bound to another active effect, part 1: the HOLDER_ACTIVE_EFFECT holder-state predicate; Mindless Rage (condition immunity gated on Rage; suspension clause a GM ruling), Reckless Attack. Each conversion has an authoring-parity proof and deletes its kind. Reckless Attack ships as a GM ruling: the compiler refuses its two timed grants.",
+              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25). Merged in m440.",
+              "mergedAt": "2026-10-25T15:55:21Z",
+              "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             },
             {
               "id": "SPELLS-31.T5f2",
@@ -18783,7 +18786,7 @@
             },
             {
               "id": "RELIABILITY-8.T5",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-8.1",
                 "RELIABILITY-8.2",
@@ -18800,8 +18803,9 @@
                 "size": 3
               },
               "text": "Journey: one web integration test (real authoring form container, real factory, fake only Convex data) that creates a new authored item with no System chosen (explicit missing-System state, no first-in-list default), submits a blank label (field error, not 'Untitled'), then picks a System and label and saves, checking the submitted DTO. Prefer extending AuthoredDomainAuthoringLayout.test.tsx or a Guided<Subject> test over a new file; a Storybook browser test only if the AC is judged visual (it is not). Register it as journeyTests.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m440.",
+              "mergedAt": "2026-10-25T15:55:21Z",
+              "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             }
           ]
         },
@@ -19107,7 +19111,7 @@
             },
             {
               "id": "RELIABILITY-12.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-12.1", "RELIABILITY-12.2"],
               "wsjf": {
                 "bv": 1,
@@ -19116,8 +19120,9 @@
                 "size": 2
               },
               "text": "Register a journey: a convex-test that saves a Reusable Definition with a facet restriction and an effect path (BASIC_ACTION) through the real handlers and reads it back through the web adapter's typed reference, so the typed shape is exercised end to end at runtime, plus the generatedApiTypes type test. Alternatively, obtain a ruling that a type-only PBI closes on its type test.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-12.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m440.",
+              "mergedAt": "2026-10-25T15:55:21Z",
+              "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             }
           ]
         },
