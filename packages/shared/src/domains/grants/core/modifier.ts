@@ -287,6 +287,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   DAMAGE_MIRROR: [MODIFIER_KIND.ENABLE],
 
+  END_EVENT_EXEMPTION: [MODIFIER_KIND.ENABLE],
+
   INCOMING_ATTACK_GATE: [MODIFIER_KIND.ENABLE],
 
   HEALING_RECEIVED: [MODIFIER_KIND.ENABLE],
@@ -667,6 +669,15 @@ export type ModifierDamageInterceptionAuthored = {
 }
 
 /**
+ * The holder's own active effects with these authored ids do not end on these lifecycle events
+ * (Persistent Rage: Rage no longer ends on `ON_IDLE_TURN`). Their other end conditions still apply.
+ */
+export type ModifierEndEventExemptionAuthored = {
+  events: string[]
+  effectIds: string[]
+}
+
+/**
  * While held, a creature that targets the holder with a single-target attack or harmful spell must
  * first make this save against the holder's source; on a failure the attack or spell is lost.
  */
@@ -685,9 +696,11 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
       ? ModifierAttackDecoysAuthored
       : V extends 'DAMAGE_INTERCEPTION'
         ? ModifierDamageInterceptionAuthored
-        : V extends 'INCOMING_ATTACK_GATE'
-          ? ModifierIncomingAttackGateAuthored
-          : undefined
+        : V extends 'END_EVENT_EXEMPTION'
+          ? ModifierEndEventExemptionAuthored
+          : V extends 'INCOMING_ATTACK_GATE'
+            ? ModifierIncomingAttackGateAuthored
+            : undefined
     : K extends 'MULTIPLY'
       ? ModifierFractionAuthored
       : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'

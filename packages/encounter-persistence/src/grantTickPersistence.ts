@@ -8,6 +8,8 @@ import {
   planReinstatedConcentrations,
   planResumedCarriedEffects
 } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
+import { encounterActorGrantModifiers } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
+import type { CharacterRuleEvaluationResult } from '@artificer-toolkit/rules-runtime/character/characterRuleEvaluation'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import {
@@ -24,6 +26,7 @@ import { readRunActors, readRunState, replaceRunActor } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
 import { reconcileNativeMaintenanceOwners } from './maintenanceOwnerPersistence.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
+import type { EncounterDocument } from './store.js'
 
 /**
  * Counts down every timed effect anchored to this turn boundary that stores no recurrence stage
@@ -172,27 +175,49 @@ export async function persistCarriedEffectResumes(
   }
 }
 
+/** The rules a Character's idle-turn exemptions are read from. */
+export type EncounterIdleTurnCharacterRules = {
+  output: Pick<CharacterRuleEvaluationResult['output'], 'grantFold'>
+}
+
 /**
  * Ends the idle-bound grants of the outgoing turn actor when its turn passed with no attack roll
  * against a hostile creature and no damage (SRD Rage), and resets its mark. Runs after everything
  * else the turn's end commits, such as a Legendary Action's damage, so that damage counts. An actor
- * with no mark holds no such grant, so its effects are never read.
+ * with no mark holds no such grant, so its effects are never read; only an armed actor's feature
+ * grants are read, for the effects they keep from ending (Persistent Rage).
  */
 export async function persistEncounterIdleTurnCheck(
   ctx: EncounterCharacterWriteTransaction,
-  input: { state: EncounterRunState; turnActorId: string | null; occurredAt: string }
+  input: {
+    state: EncounterRunState
+    campaign: EncounterDocument<'campaigns'>
+    turnActorId: string | null
+    occurredAt: string
+  },
+  readCharacterRules: (
+    campaign: EncounterDocument<'campaigns'>,
+    characterId: string
+  ) => Promise<EncounterIdleTurnCharacterRules | null>
 ) {
   if (input.turnActorId === null) return
   const { state } = input
   const actors = await readRunActors(ctx, state)
   const actor = actors.find(({ id }) => id === input.turnActorId)
-  if (!actor || encounterActorIdleTurnMark(actor) === null) return
+  const mark = actor && encounterActorIdleTurnMark(actor)
+  if (!actor || mark === null) return
   const owner = turnEffectOwner(actor, state.id)
   const store = createActiveRuleEffectStore(ctx)
+  const characterRules =
+    mark === 'ARMED' && actor.kind === 'CHARACTER' && actor.form === null
+      ? await readCharacterRules(input.campaign, actor.sourceId)
+      : null
   const { ended, nextMark } = planIdleTurnCheck({
     encounterId: state.id,
     actor,
-    effects: await store.list(owner)
+    effects: await store.list(owner),
+    featureModifiers:
+      mark === 'ARMED' ? encounterActorGrantModifiers(actor, characterRules?.output ?? null) : []
   })
   for (const effect of ended)
     await store.deleteCas({

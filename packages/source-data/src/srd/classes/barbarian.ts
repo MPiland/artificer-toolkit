@@ -1005,7 +1005,22 @@ export const barbarian: ClassAuthored = {
       label: 'Persistent Rage',
       description:
         'Beginning at 15th level, your rage is so fierce that it ends early only if you fall unconscious or if you choose to end it.',
-      effects: [selfClassRuleEffect(17, CLOSED_RULE_KIND.CLASS_BARBARIAN_PERSISTENT_RAGE)],
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(B, 0xb2, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.END_EVENT_EXEMPTION,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ENABLE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            // Rage still ends when the holder falls unconscious or chooses to end it.
+            payload: { events: ['ON_IDLE_TURN'], effectIds: [RAGE_EFFECT_ID] },
+            order: 0
+          }
+        ]
+      },
       availableAtLevel: 15,
       order: 15
     },

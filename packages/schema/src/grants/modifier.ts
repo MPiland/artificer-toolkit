@@ -25,6 +25,7 @@ import {
   modifierKindSchema,
   modifierScopeKindSchema,
   modifierValueKindSchema,
+  pathLifecycleEndEventSchema,
   rangeKindSchema,
   scalingKindSchema,
   shapeKindSchema
@@ -289,6 +290,14 @@ export const attackDecoysPayloadDtoSchema = lazySchema(() =>
     thresholds: authoredNestedCollectionSchema(attackDecoyThresholdDtoSchema),
     /** System Senses that free an attacker perceiving the holder through one of them (Mirror Image). */
     exemptAttackerSenseDefinitionIds: z.optional(z.array(postgresUuidSchema))
+  })
+)
+
+/** The holder's own active effects with these authored ids do not end on these lifecycle events. */
+export const endEventExemptionPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    events: z.array(pathLifecycleEndEventSchema).check(z.minLength(1)),
+    effectIds: z.array(postgresUuidSchema).check(z.minLength(1))
   })
 )
 
@@ -807,6 +816,12 @@ const buildModifierGrantVariants = () =>
       damageInterceptionPayloadDtoSchema
     ),
     buildModifierGrantVariant('DAMAGE_MIRROR', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant(
+      'END_EVENT_EXEMPTION',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      endEventExemptionPayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'INCOMING_ATTACK_GATE',
       'ENABLE',

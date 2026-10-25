@@ -6,6 +6,7 @@ import {
   type EncounterHolderState
 } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { characterHeldDamageInterceptions } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
+import { endEventExemptAuthoredEffectIds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
 import {
   evaluateSrdCharacter,
@@ -320,5 +321,84 @@ describe('Relentless Rage (SPELLS-31.T5f3)', () => {
       }
     ])
     expect(held([])).toEqual([])
+  })
+})
+
+/** A homebrew trance that neither an idle turn nor being attacked breaks. */
+function homebrewUnbrokenTrance(): FeatureAuthored {
+  const idFor = (part: number, entry: number) =>
+    `7e57a000-0000-4000-8${part.toString(16).padStart(3, '0')}-${entry.toString(16).padStart(12, '0')}`
+  return {
+    id: idFor(0x70, 1),
+    label: 'Unbroken Trance',
+    description: 'Your trance no longer ends on an idle turn or when you are attacked.',
+    availableAtLevel: 1,
+    order: 101,
+    grants: {
+      modifiers: [
+        {
+          id: idFor(0x71, 1),
+          grantKind: 'MODIFIER_GRANT',
+          valueDomainCode: 'END_EVENT_EXEMPTION',
+          domain: {},
+          modifierKind: 'ENABLE',
+          scope: 'GLOBAL',
+          selectionKind: 'GRANTED',
+          payload: { events: ['ON_IDLE_TURN', 'ON_ATTACKED'], effectIds: [HOMEBREW_EFFECT_ID] },
+          order: 0
+        }
+      ]
+    }
+  }
+}
+
+describe('Persistent Rage (SPELLS-31.T5f2)', () => {
+  it('leaves no closed rule on the SRD Barbarian for it', () => {
+    expect(JSON.stringify(barbarian.features)).not.toMatch(/PERSISTENT_RAGE/)
+  })
+
+  it('keeps a homebrew end-event exemption exactly as authored', async () => {
+    const authored = homebrewUnbrokenTrance()
+    const result = await normalize({
+      ...structuredClone(barbarian),
+      features: [...(barbarian.features ?? []), authored]
+    })
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual([
+      ...(barbarian.features ?? []),
+      authored
+    ])
+  })
+
+  it('exempts the SRD Rage and the homebrew trance the same way, each from its own events', () => {
+    const homebrew = homebrewUnbrokenTrance()
+    const BARBARIAN = srdByLabel([barbarian], 'Barbarian')
+    const { output } = evaluateSrdCharacter({
+      classes: [{ label: 'Barbarian', level: 15 }],
+      extraFeatures: [homebrew],
+      features: [
+        srdFeature({
+          owner: 'CLASS',
+          classLabel: 'Barbarian',
+          featureLabel: 'Persistent Rage',
+          level: 15
+        }),
+        {
+          acquisitionId: 'acquired:unbroken-trance',
+          featureId: homebrew.id,
+          source: { kind: 'CLASS', classId: BARBARIAN.id, classLevel: 1 },
+          timing: { kind: 'CLASS_LEVEL', classId: BARBARIAN.id, classLevel: 1 }
+        }
+      ]
+    })
+    const exempt = (event: string) =>
+      endEventExemptAuthoredEffectIds({
+        featureModifiers: output.grantFold.modifiers,
+        event,
+        activeAuthoredEffectIds: [RAGE_EFFECT_ID, HOMEBREW_EFFECT_ID]
+      }).sort()
+    expect(exempt('ON_IDLE_TURN')).toEqual([RAGE_EFFECT_ID, HOMEBREW_EFFECT_ID].sort())
+    expect(exempt('ON_ATTACKED')).toEqual([HOMEBREW_EFFECT_ID])
+    expect(exempt('ON_INCAPACITATED')).toEqual([])
   })
 })

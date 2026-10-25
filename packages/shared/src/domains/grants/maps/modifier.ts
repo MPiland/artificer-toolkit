@@ -22,6 +22,7 @@ import {
   VALUE_DOMAIN_OPTIONS
 } from '#core'
 import { DURATION_NODE_MAP } from '../../shared/maps/duration.js'
+import { EFFECT_ID_NODE_MAP } from '../../shared/maps/effectId.js'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
 import { SAVING_THROW_NODE_MAP } from '../../shared/maps/savingThrow.js'
 import { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
@@ -1106,6 +1107,30 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         number(['maxDamageTaken'], 'Only Damage Of At Most', {
           constraints: { minimum: 1 },
           showIf: parent.field(['valueDomainCode']).eq('DAMAGE_INTERCEPTION')
+        })
+      )
+      .set(
+        'events',
+        selectMulti(
+          ['events'],
+          'Events They No Longer End On',
+          {
+            kind: 'DATA',
+            relationship: table('effect_end_events', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          {
+            requiredIf: true,
+            showIf: parent.field(['valueDomainCode']).eq('END_EVENT_EXEMPTION')
+          }
+        )
+      )
+      .set(
+        'effectIds',
+        groupArray(['effectIds'], 'Exempt Active Effects', () => EFFECT_ID_NODE_MAP, {
+          presentation: 'inline',
+          showIf: parent.field(['valueDomainCode']).eq('END_EVENT_EXEMPTION')
         })
       )
       .set(

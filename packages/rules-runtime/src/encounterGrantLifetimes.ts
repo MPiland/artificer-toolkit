@@ -2,6 +2,8 @@ import type {
   EncounterRunActorState,
   EncounterRunCharacterActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { endEventExemptionPayloadDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterMaintainedEffectDescriptorDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
@@ -9,6 +11,7 @@ import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-t
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
 import { campaignMinutesForRounds, ROUNDS_PER_CAMPAIGN_MINUTE } from './campaignClock.js'
 import { carriedCreatureForm, creatureFormContribution } from './encounterActorForm.js'
+import { holderStateRestrictionsHold } from './encounterActiveGrants.js'
 import { encounterActorIdleTurnMark } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import { endSubscriptions } from './events/effectHooks.js'
@@ -219,16 +222,43 @@ export function attackedHostileCreature(input: {
 }
 
 /**
+ * The authored ids of the holder's own active effects that its passive features keep from ending on
+ * `event` (END_EVENT_EXEMPTION: Persistent Rage keeps Rage through an idle turn). A grant bound to
+ * the holder's own active effect holds only while that effect is active; its other deferred holder
+ * conditions fail closed.
+ */
+export function endEventExemptAuthoredEffectIds(input: {
+  featureModifiers: readonly CharacterGrantFoldOutput['modifiers'][number][]
+  event: string
+  activeAuthoredEffectIds: readonly string[]
+}): string[] {
+  return input.featureModifiers.flatMap((modifier) => {
+    if (
+      modifier.valueDomainCode !== 'END_EVENT_EXEMPTION' ||
+      modifier.source.kind !== 'AUTHORED' ||
+      !holderStateRestrictionsHold(modifier.deferredRequirements, {
+        activeAuthoredEffectIds: input.activeAuthoredEffectIds
+      })
+    )
+      return []
+    const { events, effectIds } = endEventExemptionPayloadDtoSchema.parse(modifier.payload)
+    return events.includes(input.event) ? effectIds : []
+  })
+}
+
+/**
  * What the end of the turn actor's turn does to its idle-bound grants (SRD Rage). An armed actor,
  * one that neither attacked a hostile creature nor took damage since its last turn ended, loses the
- * grants that end on `ON_IDLE_TURN`; an engaged one keeps them and is armed again. `effects` need
- * only be read for an armed actor. A grant created on the actor's own turn arrives engaged, so its
- * first check is at the end of the actor's next turn.
+ * grants that end on `ON_IDLE_TURN`; an engaged one keeps them and is armed again. A grant its
+ * `featureModifiers` exempt from `ON_IDLE_TURN` (Persistent Rage) is kept and keeps the actor
+ * armed. `effects` need only be read for an armed actor. A grant created on the actor's own turn
+ * arrives engaged, so its first check is at the end of the actor's next turn.
  */
 export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: {
   encounterId: string
   actor: Pick<EncounterRunActorState, 'kind' | 'resources'>
   effects: readonly Effect[]
+  featureModifiers: readonly CharacterGrantFoldOutput['modifiers'][number][]
 }) {
   const mark = encounterActorIdleTurnMark(input.actor)
   if (mark === null) return { ended: [], nextMark: null }
@@ -237,8 +267,15 @@ export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: 
     effects: input.effects,
     events: [{ kind: 'IDLE_TURN' }]
   }).ended
-  const ended = idleBound.filter((effect) =>
-    isEffectLiveInEncounter(effect, input.actor, input.encounterId)
+  const exempt = endEventExemptAuthoredEffectIds({
+    featureModifiers: input.featureModifiers,
+    event: 'ON_IDLE_TURN',
+    activeAuthoredEffectIds: input.effects.map(({ definition }) => definition.authoredEffectId)
+  })
+  const ended = idleBound.filter(
+    (effect) =>
+      isEffectLiveInEncounter(effect, input.actor, input.encounterId) &&
+      !exempt.includes(effect.definition.authoredEffectId)
   )
   const holdsOthers = idleBound.length > ended.length
   return { ended, nextMark: holdsOthers ? ('ARMED' as const) : null }
