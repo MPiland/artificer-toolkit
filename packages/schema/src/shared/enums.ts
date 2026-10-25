@@ -354,6 +354,8 @@ export const pathLifecycleTurnActorSchema = lazySchema(() => z.enum(['TARGET', '
 export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
   z.enum(['START_OF_TURN', 'END_OF_TURN'])
 )
+/** Which earlier effects a new one ends: `PER_SOURCE`, its source's from the same Effect on any holder. */
+export const pathLifecycleExclusivitySchema = lazySchema(() => z.enum(['PER_SOURCE']))
 /**
  * A lifecycle code that uses an effect or timed grant up (consume) or ends it (end) is a System code
  * (ADR 0039): the wire checks its shape, and the System's `effectConsumeEvent` and `effectEndEvent`

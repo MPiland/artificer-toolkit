@@ -8,6 +8,7 @@ import type {
   MoraleTriggerKindDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
 
 /** Exact optional-combat policy identity a proposal and its contest graph are sealed against. */
 export interface OptionalCombatPolicyPin {
@@ -215,7 +216,19 @@ export interface MoraleSaveProposal {
   readonly failureDisposition: MoraleDispositionDto
 }
 
-/** A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving and Morale. */
+/** An effect an enabled optional rule has a qualifying attack give its target, sourced by the attacker. */
+export interface AttackAppliedEffect {
+  readonly effectId: string
+  readonly label: string
+  /** Only a melee attack qualifies; otherwise any attack roll does. */
+  readonly meleeOnly: boolean
+  readonly plan: CharacterRuleActionActiveEffectPlan
+}
+
+/**
+ * A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale and
+ * attack-applied effects.
+ */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
   prepareDisarmContest(
@@ -233,4 +246,6 @@ export interface OptionalCombatPolicyCapabilityAdapter {
     input: MoraleOfferInput
   ): ReadonlyMap<string, readonly EncounterMoraleOfferDto[]>
   prepareMoraleSave(input: MoralePreparationInput): OptionalCombatResolution<MoraleSaveProposal>
+  /** The effects the Encounter's enabled rules have an attack give its target; none when off. */
+  attackAppliedEffects(input: OptionalCombatPolicyInput): readonly AttackAppliedEffect[]
 }

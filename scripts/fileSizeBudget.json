@@ -1,5 +1,5 @@
 {
-  "apps/session-worker/src/nativeEncounterRules.ts": 1655,
+  "apps/session-worker/src/nativeEncounterRules.ts": 1650,
   "apps/web/src/domains/campaigns/vtt/CampaignTabletopWindow.stories.tsx": 1565,
   "apps/web/src/domains/campaigns/vtt/CampaignVttStage.tsx": 1980,
   "apps/web/src/domains/campaigns/vtt/vttSceneRenderer.ts": 2625,
@@ -7,7 +7,7 @@
   "packages/rules-runtime/src/encounterActionExecution.ts": 1552,
   "packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts": 4490,
   "packages/schema/src/shared/ruleExecutionEncounterApplications.ts": 1616,
-  "packages/shared/src/domains/effects/maps/path.ts": 3460,
+  "packages/shared/src/domains/effects/maps/path.ts": 3268,
   "packages/shared/src/domains/shared/maps/facet.ts": 2508,
   "packages/source-data/src/srd/classes/warlock.ts": 2147,
   "packages/source-data/src/srd/creatures/stat-blocks.ts": 10866,

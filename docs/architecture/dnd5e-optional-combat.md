@@ -94,6 +94,20 @@ visible GM adjudications. Climb attachment is Encounter-owned tactical state and
 Character's authored body or inventory. A mark is represented by the existing active-effect lifecycle
 with bounded per-turn usage evidence, not by a parallel mark or reaction-economy table.
 
+**Marking (current, ATTACK-13.T1).** The MARK definition authors `qualifyingAttackKind` (`MELEE` or
+`ANY`) and the `effect` a qualifying attack gives its target: one timed grant whose result lifecycle
+anchors to the SOURCE's END_OF_TURN with `exclusivity: 'PER_SOURCE'`. The policy
+(`systems/dnd5e/optionalMarkPolicy.ts`) compiles it into an `attackAppliedEffects` entry on the
+optional-combat capability; `prepareAttackTargetGrantTriggers` (`encounterAttackAppliedEffects.ts`)
+turns each entry into an `ATTACKED` grant trigger beside the holder's incoming-damage triggers, so it
+lands on hit or miss. Melee is the attack's classification (`isMeleeAttackSource`), never its distance:
+a reach attack marks. A mark made on the attacker's turn counts that turn's end as a tick, so it lasts
+until the end of the attacker's next turn. `PER_SOURCE` makes the new mark replace the attacker's
+earlier one on any holder (`replacedEffects`, restored by undo); another attacker's mark stays. A
+homebrew copy may change the attack kind, anchor or grants with no Marking-specific code. Only the
+main action root applies marks today; opportunity, legendary and area attacks follow in ATTACK-13.T3
+with the Campaign setting gate.
+
 Morale (ENCOUNTER-6, current) is offered in Campaign settings once its System policy resolves it.
 The GM projection derives each creature's offers from Run state as a pure read: at or below half
 hit points, half its side removed, and the leader named on an earlier group check defeated or gone.

@@ -2,6 +2,7 @@ import { z, lazySchema } from '../zod.js'
 
 import type { AutomationModeDto } from '../api/campaignSettings.js'
 import { ruleCapabilityKeyDtoSchema } from '../api/rulesRuntime.js'
+import { effectDtoSchema } from '../effects/effect.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUuid.js'
 import { dnd5eOptionalCombatRuleKindDtoSchema } from './reusableDefinitionIdentity.js'
 export { dnd5eOptionalCombatRuleKindDtoSchema }
@@ -366,7 +367,12 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
       kind: z.literal('DISARM'),
       defenderCheckDefinitionIds: boundedCheckDefinitionChoicesSchema
     }),
-    z.strictObject({ kind: z.literal('MARK') }),
+    /** A qualifying attack (a melee one, or any) gives its target `effect`, sourced by the attacker. */
+    z.strictObject({
+      kind: z.literal('MARK'),
+      qualifyingAttackKind: z.enum(['MELEE', 'ANY']),
+      effect: effectDtoSchema
+    }),
     z.strictObject({
       kind: z.literal('OVERRUN'),
       initiatorCheckDefinitionId: serverUuidIdentityDtoSchema,

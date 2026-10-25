@@ -23,6 +23,7 @@ import {
 import { storedEffectOffersSchema } from '../effects/storedEffectOffer.js'
 import { storedGrantedActionsSchema } from '../effects/grantedAction.js'
 import { combatPerceptionContributionsDtoSchema } from './combatPerception.js'
+import { pathLifecycleExclusivitySchema } from './enums.js'
 import {
   activationCodeSchema,
   pathLifecycleConsumeEventSchema,
@@ -266,6 +267,11 @@ const activeRuleEffectDefinitionBaseDtoSchema = lazySchema(() =>
      * null for none. Whatever ends the linked effect ends this one in the same transaction.
      */
     linkedEffectId: z.nullable(uuidSchema),
+    /**
+     * Which earlier effects this one ended when it was made: `PER_SOURCE`, those its Encounter
+     * source gave from the same authored Effect, on any holder. Absent: it ends none.
+     */
+    exclusivity: z.optional(pathLifecycleExclusivitySchema),
     /**
      * The level the spell was cast at (D182; 0 for a cantrip); null when it came from no spell
      * cast. An `END_EFFECTS` spell-level selector never matches a null.

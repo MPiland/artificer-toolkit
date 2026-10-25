@@ -331,7 +331,7 @@ describe('what an action ends on its target', () => {
     targetEndedEffects({
       holderActorId: HOLDER_ID,
       held,
-      attacked: false,
+      attack: null,
       testEvidence: [],
       turnActorId: null,
       applications,
@@ -351,11 +351,17 @@ describe('what an action ends on its target', () => {
 
   it('ends nothing when no damage is dealt or all of it is resisted away', () => {
     const held = sleeper(FIRST_ID, anyDamage)
-    expect(taken([held], [])).toEqual({ endedEffects: [], releases: [], grants: [] })
+    expect(taken([held], [])).toEqual({
+      endedEffects: [],
+      releases: [],
+      grants: [],
+      replacedEffects: []
+    })
     expect(taken([held], [damage(FIRE, 0)])).toEqual({
       endedEffects: [],
       releases: [],
-      grants: []
+      grants: [],
+      replacedEffects: []
     })
   })
 
@@ -364,7 +370,8 @@ describe('what an action ends on its target', () => {
     expect(taken([held], [{ ...damage(FIRE), targetActorId: STRANGER_ID }])).toEqual({
       endedEffects: [],
       releases: [],
-      grants: []
+      grants: [],
+      replacedEffects: []
     })
   })
 
@@ -403,13 +410,13 @@ describe('what an action ends on its target', () => {
       })
     const attackedBy = (
       held: ReturnType<typeof marked>[],
-      attacked: boolean,
+      attack: { melee: boolean } | null,
       applications: CharacterRuleActionApplication[] = []
     ) =>
       targetEndedEffects({
         holderActorId: HOLDER_ID,
         held,
-        attacked,
+        attack,
         testEvidence: [],
         turnActorId: null,
         applications,
@@ -419,7 +426,7 @@ describe('what an action ends on its target', () => {
 
     it('uses the effect up on a miss, and releases the condition it owned', () => {
       const held = marked(['ON_ATTACKED'])
-      const { endedEffects, releases } = attackedBy([held], true)
+      const { endedEffects, releases } = attackedBy([held], { melee: true })
       expect(endedEffects).toEqual([held])
       expect(releases).toEqual(
         endedEffectReleases({ holderActorId: HOLDER_ID, held: [held], ended: [held] })
@@ -429,21 +436,23 @@ describe('what an action ends on its target', () => {
 
     it('ends the effect once when the attack also damages the holder', () => {
       const held = marked(['ON_ATTACKED'])
-      const { endedEffects, releases } = attackedBy([held], true, [damage(FIRE)])
+      const { endedEffects, releases } = attackedBy([held], { melee: true }, [damage(FIRE)])
       expect(endedEffects).toEqual([held])
       expect(releases).toHaveLength(1)
     })
 
     it('leaves the effect for an action without an attack roll, or one the holder makes', () => {
-      expect(attackedBy([marked(['ON_ATTACKED'])], false)).toEqual({
+      expect(attackedBy([marked(['ON_ATTACKED'])], null)).toEqual({
         endedEffects: [],
         releases: [],
-        grants: []
+        grants: [],
+        replacedEffects: []
       })
-      expect(attackedBy([marked(['ON_ATTACK_ROLL'])], true)).toEqual({
+      expect(attackedBy([marked(['ON_ATTACK_ROLL'])], { melee: true })).toEqual({
         endedEffects: [],
         releases: [],
-        grants: []
+        grants: [],
+        replacedEffects: []
       })
     })
   })
@@ -490,7 +499,7 @@ describe('what an action ends on its target', () => {
       targetEndedEffects({
         holderActorId: HOLDER_ID,
         held: [held],
-        attacked: true,
+        attack: { melee: true },
         testEvidence: [],
         turnActorId,
         applications: [],

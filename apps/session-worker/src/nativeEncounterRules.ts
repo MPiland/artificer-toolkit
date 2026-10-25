@@ -25,6 +25,7 @@ import {
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
   encounterActionSourceLabel,
+  isMeleeAttackSource,
   resolveEncounterActionSource,
   systemAbilityDefinitions,
   type EncounterActionSourceRequest
@@ -137,9 +138,9 @@ import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/e
 import { settleEncounterAttackActionHit } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import {
   encounterActorEffectiveSize,
-  prepareNativeActionEffectsPlan,
-  prepareNativeIncomingDamageGrantTriggers
+  prepareNativeActionEffectsPlan
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { prepareAttackTargetGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterAttackAppliedEffects'
 import { encounterChosenItemRefusal } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
@@ -177,10 +178,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import {
-  evaluateInstalledEncounterActors,
-  isInstalledMeleeAttackTrigger
-} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { plannedGateImmunityGrant } from './nativeGateImmunity.js'
 import { isMeleeRetaliationHit } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
@@ -1403,17 +1401,19 @@ export async function planNativeLiveEncounterAction(
   const targetHeld = heldOnTarget.filter(
     ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
   )
+  const meleeAttack = isMeleeAttackSource(state.gameSystemId, prepared.source)
   const damageEnded = targetEndedEffects({
     holderActorId: prepared.target.id,
     held: targetHeld,
-    attacked: prepared.makesAttackRoll,
+    attack: prepared.makesAttackRoll ? { melee: meleeAttack } : null,
     testEvidence: [execution.d20, execution.nestedD20],
     turnActorId: prepared.state.currentActorId,
     applications,
     damagerActorId: prepared.actor.id,
     dispositions,
-    grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+    grantTriggers: prepareAttackTargetGrantTriggers({
       encounter: settledPrepared.state,
+      attacker: settledPrepared.actor,
       holder: settledPrepared.target,
       held: settledPrepared.targetFacts.activeEffects,
       occurrenceId,
@@ -1551,12 +1551,6 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId
   })
   const actionRange = rangeDtoSchema.safeParse(prepared.targetPolicy.range)
-  const meleeAttack = isInstalledMeleeAttackTrigger(
-    state.gameSystemId,
-    prepared.source.kind === 'CHARACTER_ACTION'
-      ? prepared.source.candidate.mechanicFacts.invocation.triggerCode
-      : prepared.source.capability.mechanicFacts.invocation.triggerCode
-  )
   // A melee hit sets off the zones its target holds around itself against the attacker (D153).
   const attackerInProjection = settlement.projectedTargets.get(prepared.actor.id)
   const retaliation =
@@ -1724,6 +1718,7 @@ export async function planNativeLiveEncounterAction(
       ...hitEnded.consumedGrants,
       ...decoyStrike.endedGrants,
       ...damageEnded.endedEffects,
+      ...damageEnded.replacedEffects,
       ...(actionEnded?.endedEffects ?? [])
     ]
   }

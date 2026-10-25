@@ -1108,7 +1108,7 @@ An effect or a reaction subscribes to events through authored data; a feature ne
 `packages/rules-runtime/src/events/` and never import `systems/*`:
 
 - **Event table** (`encounterEventTable.ts`). `EncounterEvent` is the structural facts every System has: `ACTION`
-  (whether it makes an attack roll or casts a spell, and whether it is aimed at an enemy), `ATTACKED`, `HIT`, `TEST`
+  (whether it makes an attack roll or casts a spell, and whether it is aimed at an enemy), `ATTACKED` (melee or not, from the attack's classification, never its distance), `HIT`, `TEST`
   (`CHECK` or `SAVE`, with its ability by code or definition id, or none), `DAMAGED` (`AFTER` it lands: damager,
   damage types, dispositions; `BEFORE` it lands: the current hit points it takes the holder from and to), `HIT_POINTS_REGAINED`, `INCAPACITATED` (of the holder or of named sources), `CONDITION_HELD`,
   `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED`, `AREA_LEFT`, and the events a reaction answers:

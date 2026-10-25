@@ -13,6 +13,7 @@ import {
   prepareNativeActionEffectsPlan,
   prepareNativeIncomingDamageGrantTriggers
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { isMeleeAttackSource } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { projectNativeActionEffectTransitions } from '@artificer-toolkit/rules-runtime/encounterActionEffectReceipts'
 import { createLinkedRiders } from '@artificer-toolkit/rules-runtime/encounterActionEffectPlans'
 import {
@@ -199,7 +200,9 @@ export async function planAreaOutcomes(args: {
       held: (input.activeEffectsByActorId.get(actor.id) ?? []).filter(
         ({ id }) => !damageEndedEffects.has(id) && !consumedGrants.some((ended) => ended.id === id)
       ),
-      attacked: prepared.makesAttackRoll,
+      attack: prepared.makesAttackRoll
+        ? { melee: isMeleeAttackSource(state.gameSystemId, prepared.source) }
+        : null,
       testEvidence: [complete.d20, complete.nestedD20],
       turnActorId: prepared.state.currentActorId,
       applications,

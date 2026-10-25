@@ -8,7 +8,7 @@ import type { SpatialTokenFootprint } from '@artificer-toolkit/shared/vtt'
 
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
-import type { NativeEncounterActionSource } from './encounterActionSources.js'
+import { isMeleeAttackSource, type NativeEncounterActionSource } from './encounterActionSources.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
 import {
   settleAutomaticSpatialEvidence,
@@ -22,7 +22,6 @@ import {
 } from './encounterSpatialCandidateExecution.js'
 import { planNativeSpatialMovementPrefix } from './encounterSpatialMovementPlan.js'
 import { zoneMeleeRetaliationContacts } from './encounterZoneContacts.js'
-import { isInstalledMeleeAttackTrigger } from './platformRulesRuntime.js'
 import type { RulesRuntimeService } from './rulesRuntimeService.js'
 import { executeTargetBoundActiveRuleEffectWithPause } from './targetBoundActiveRuleEffectExecutor.js'
 
@@ -50,12 +49,7 @@ export function isMeleeRetaliationHit(input: {
     prepared.actor.id !== prepared.target.id &&
     (input.resultPath === 'ON_HIT' || input.resultPath === 'ON_CRIT') &&
     rangeDtoSchema.safeParse(prepared.targetPolicy.range).success &&
-    isInstalledMeleeAttackTrigger(
-      input.gameSystemId,
-      prepared.source.kind === 'CHARACTER_ACTION'
-        ? prepared.source.candidate.mechanicFacts.invocation.triggerCode
-        : prepared.source.capability.mechanicFacts.invocation.triggerCode
-    )
+    isMeleeAttackSource(input.gameSystemId, prepared.source)
   )
 }
 

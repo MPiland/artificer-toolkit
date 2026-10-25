@@ -12,7 +12,7 @@ import { encounterAttackActionAttacks } from './encounterAttackAction.js'
 import type { EncounterAttackActionTransitionDto } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import { encounterActionSourceLabel } from './encounterActionSources.js'
 import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
-import type { IncomingDamageGrantTrigger } from './encounterEndedEffectRelease.js'
+import type { EncounterGrantTrigger } from './encounterEndedEffectRelease.js'
 import {
   discoverEncounterFeatureActions,
   type EncounterPassiveWeaponHit
@@ -123,7 +123,7 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
   /** Tells apart the settlements of one occurrence that damage the same creature (Legendary Actions). */
   ordinal?: number | string
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
-}): IncomingDamageGrantTrigger[] {
+}): EncounterGrantTrigger[] {
   const { holder } = input
   if (holder.kind !== 'CREATURE') return []
   return discoverEncounterFeatureActions({
@@ -159,7 +159,7 @@ export function prepareNativeIncomingDamageGrantTriggers(input: {
         INCOMING_DAMAGE_GRANT_NAMESPACE
       ),
       authoredEffectId: capability.effectId,
-      damageTypeIds,
+      subscription: { event: 'DAMAGED', damageTypeIds },
       effect
     }
   })
@@ -195,7 +195,8 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   return plans[0] ?? null
 }
 
-function creatureSnapshotSize(actor: EncounterRunActorState): string | null {
+/** A Creature's size from its stored snapshot; null when the snapshot names none. */
+export function creatureSnapshotSize(actor: EncounterRunActorState): string | null {
   const snapshot = actor.snapshot
   const payload =
     snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) ? snapshot.payload : null

@@ -529,6 +529,7 @@ export function prepareRecurringActiveEffect(
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
     linkedEffectId: null,
+    ...(grantContribution?.exclusivity && { exclusivity: grantContribution.exclusivity }),
     originLevel: input.spellCastLevel ?? null,
     origin: {
       kind: 'ENCOUNTER',
