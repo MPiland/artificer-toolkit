@@ -188,9 +188,10 @@ describe('Consequence roll offers (ATTACK-15.1)', () => {
 
   it('withdraw a command’s offers and remove a resolved one', () => {
     const offered = offer(consequenceRollDamageFacts([hit(HERO, { critical: true })]))[0]!.after
-    const [withdrawn] = withdrawConsequenceRollOffers([offered, ogre], ATTACK, AT)
-    expect(withdrawn!.after.consequenceRollOffers).toBeUndefined()
-    expect(withdrawConsequenceRollOffers([offered], LATER, AT)).toEqual([])
+    const [withdrawn, untouched] = withdrawConsequenceRollOffers([offered, ogre], ATTACK, AT)
+    expect(withdrawn!.consequenceRollOffers).toBeUndefined()
+    expect(untouched).toBe(ogre)
+    expect(withdrawConsequenceRollOffers([offered], LATER, AT)[0]).toBe(offered)
     expect(
       withoutConsequenceRollOffer(offered, offered.consequenceRollOffers![0]!, AT)
         .consequenceRollOffers

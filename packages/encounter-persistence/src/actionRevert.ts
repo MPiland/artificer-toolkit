@@ -28,7 +28,6 @@ import { withCharacterTemporaryHitPoints } from '@artificer-toolkit/schema/share
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
-import { withdrawConsequenceRollOffers } from '@artificer-toolkit/rules-runtime/encounterConsequenceRolls'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
   featureChargeUsed,
@@ -68,7 +67,8 @@ import {
 } from './targetMechanicsInverse.js'
 import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
-import { readRunActors, readRunActorWithRow, readRunState, replaceRunActor } from './documents.js'
+import { readRunActors, readRunActorWithRow, readRunState } from './documents.js'
+import { persistRevertedRunActors } from './revertedRunActors.js'
 import { removeConjuredActors } from './summonRemoval.js'
 import {
   removeTurnSpeedBonus,
@@ -1063,16 +1063,10 @@ async function commitRevert(
   }
 ): Promise<EncounterCommandResultDto> {
   const { run, state, campaign, root, updatedAt } = input
-  // The consequence roll offers the action made go with it (ATTACK-15).
-  const withdrawn = withdrawConsequenceRollOffers(input.nextActors, root.commandId, updatedAt)
-  const nextActors = input.nextActors.map(
-    (actor) => withdrawn.find(({ before }) => before === actor)?.after ?? actor
-  )
-  for (const [index, actor] of input.actors.entries()) {
-    const next = nextActors[index]!
-    if (next === actor) continue
-    await replaceRunActor(ctx, actor, next)
-  }
+  const nextActors = await persistRevertedRunActors(ctx, {
+    ...input,
+    revertedCommandId: root.commandId
+  })
   const nextState = encounterRunStateSchema.parse({
     ...state,
     version: state.version + 1,

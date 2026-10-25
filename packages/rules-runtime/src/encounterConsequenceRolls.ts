@@ -155,18 +155,19 @@ export function offerConsequenceRolls(input: {
   })
 }
 
-/** Withdraws every offer a command made, as undoing or voiding that command does. */
+/**
+ * Withdraws every offer a command made, as undoing that command does; actors that held none come
+ * back unchanged, so a caller can skip writing them.
+ */
 export function withdrawConsequenceRollOffers(
   actors: readonly EncounterRunActorState[],
   sourceCommandId: string,
   updatedAt: string
-): ActorChange[] {
-  return actors.flatMap((actor) => {
+): EncounterRunActorState[] {
+  return actors.map((actor) => {
     const offers = actor.consequenceRollOffers ?? []
     const kept = offers.filter((offer) => offer.sourceCommandId !== sourceCommandId)
-    return kept.length === offers.length
-      ? []
-      : [{ before: actor, after: withOffers(actor, kept, updatedAt) }]
+    return kept.length === offers.length ? actor : withOffers(actor, kept, updatedAt)
   })
 }
 
