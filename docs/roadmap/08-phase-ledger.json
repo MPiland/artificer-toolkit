@@ -4607,11 +4607,10 @@
             },
             {
               "id": "RULES-2.T9f1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RULES-2.7"
               ],
-              "activeWorkbook": "docs/handoffs/slice-rules-2-t12.md",
               "wsjf": {
                 "bv": 5,
                 "tc": 3,
@@ -4621,7 +4620,10 @@
                   "RULES-2.T9b"
                 ]
               },
-              "text": "System vocabulary (D192 split of T9f): sizes become System core codes; rank and spaceFeet on the dnd5e adapter; no reseed."
+              "text": "System vocabulary (D192 split of T9f): sizes become System core codes; rank and spaceFeet on the dnd5e adapter; no reseed.",
+              "mergedAt": "2026-10-25T05:24:38Z",
+              "proof": "Tests 40164499480 and Live 40164499439 green on tip a878c3a59; reviewed: sizes as System core codes, every ingress refuses a size the System does not list, empty size when systemId is empty; merged in m432.",
+              "note": " Merged in m432."
             },
             {
               "id": "RULES-2.T9f2",
