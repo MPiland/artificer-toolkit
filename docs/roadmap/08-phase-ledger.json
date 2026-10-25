@@ -12976,8 +12976,25 @@
                 ]
               },
               "text": "Web repeat-offer row (split from T2lb2a at review, 2026-10-20): the Character sees and uses a REPEAT_SOURCE_PATH offer (cast level, frozen DC) from the tabletop effect offers, with a browser journey for the Heat Metal repeat.",
-              "note": "Merged m315 (85f13553c).",
+              "note": "Merged m315 (85f13553c). Its Heat Metal browser journey was not built; carried to T2lb2d (2026-10-24).",
               "mergedAt": "2026-10-22T02:15:34Z"
+            },
+            {
+              "id": "SPELLS-4.T2lb2d",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-4.1"
+              ],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 1,
+                "after": [
+                  "SPELLS-4.T2lb2c"
+                ]
+              },
+              "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable."
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -14177,15 +14194,12 @@
           "acs": [
             {
               "text": "Spell action choices, slot spend and undo, upcasting, rituals, concentration start, multi-effect spells and components work in an Encounter.",
-              "status": "TODO",
+              "status": "DONE",
               "proof": [
-                "apps/apis/convex/encounters/actionSpellCasting.test.ts (choices, slot spend and undo, upcast levels, ritual, Sheet and Encounter list the same cast levels)",
-                "packages/rules-runtime/src/__tests__/encounterSpellCastLevelFacts.test.ts (cast level selects the authored scaling row)",
-                "partial: T12 (CI 38841168163 at 9b39d86d4, merged 2026-10-15) Mass Cure Wounds, Mass Healing Word and Prayer of Healing in one RESOLVE_ACTION with the ACTORS target kind: apps/session-worker/test/nativeRoomChosenActorsSpell.test.ts, apps/web/src/domains/campaigns/vtt/CampaignTabletopActionDrawer.test.tsx, packages/rules-runtime/src/__tests__/scalingRowSelection.test.ts",
-                "SPELLS-8.T8 (pool-paid casts): apps/apis/convex/encounters/actionSpellCasting.test.ts journey \"a $attribute grant is cast from its use and not a slot, and GM undo restores the use\" (LIMITED_USE, CAST_AT_LEVEL) and exhaustion refusal; packages/rules-runtime characterSpellCastActions.test.ts pool binding, Assisted spend, Manual and cantrip no-spend; session-worker nativeRoomReaction.test.ts pool-paid reaction not offered (deferred edge case in future-enhancements.md); CI 38852613485/38852613448."
+                "Closed by SPELLS-8.T1undefined), SPELLS-8.T5undefined), SPELLS-8.T6undefined), SPELLS-8.T7 (m422), SPELLS-8.T8undefined), SPELLS-8.T9undefined), SPELLS-8.T10undefined), SPELLS-8.T11undefined), SPELLS-8.T12undefined), SPELLS-8.T14 (m352); see each task's proof."
               ],
               "origin": [],
-              "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain.",
+              "note": "rul-9-rules-audit.md slice 5 (depends on area actions). Found in SPELLS-7 slice 5d (2026-10-10): action receipts never spend a slot today (encounterActionReceipt.ts sets spellCastConsumption to null; only movement reactions spend one), and GM undo refuses any action root that carries one (actionRevert.ts). Slot spend on cast needs its inverse in the revert path in the same change, for single-target and area roots. T1 merged 6bafbd6ed: core Encounter casting for single-Effect spells; multi-Effect spells are not offered until the compiler executes multi-entry groups. T5-T11 remain. Closed 2026-10-24 by SPELLS-8.T1, SPELLS-8.T5, SPELLS-8.T6, SPELLS-8.T7, SPELLS-8.T8, SPELLS-8.T9, SPELLS-8.T10, SPELLS-8.T11, SPELLS-8.T12, SPELLS-8.T14.",
               "id": "SPELLS-8.1"
             },
             {
@@ -14351,7 +14365,7 @@
             {
               "id": "SPELLS-8.T7",
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Multi-Effect spells (Arcane Sword, Faithful Hound, Grease, Spiritual Weapon) cast in an Encounter.",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-8.1"
               ],
@@ -14364,8 +14378,9 @@
                   "SPELLS-8.T1"
                 ]
               },
-              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "D187a re-plan: size 5 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m422.",
+              "mergedAt": "2026-10-24T22:01:51Z",
+              "proof": "Tests and Live green on tip 8e6381b71; Arcane Sword is a Concentration SUMMON with a CONJURED REPEAT_SOURCE_PATH bonus-action attack offer; area-cast receipt accepts a Concentration summon via sourceGrantTransition (room test red first); authoring-parity row and room test."
             },
             {
               "id": "SPELLS-8.T8",
@@ -16984,7 +16999,7 @@
             },
             {
               "id": "SPELLS-31.T4j",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -17000,8 +17015,9 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Join SPELLS-4.T2j: Multiattack Defense, Nature's Ward, both Land's Stride. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling).",
-              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 3 to 2; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m423.",
+              "mergedAt": "2026-10-24T22:34:13Z",
+              "proof": "Tests and Live green on tip 46df785a9; feature riders converted (circle-of-the-land, druid, hunter, ranger, mechanics); closed kinds deleted including Nature's Ward; golden row dropped."
             },
             {
               "id": "SPELLS-31.T4k1",
@@ -17528,7 +17544,7 @@
             },
             {
               "id": "SPELLS-31.T5n2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.1"
               ],
@@ -17542,8 +17558,9 @@
                 ]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: Scene-light activation gate (split from T5n, ruled 2026-10-20): ACTION_SCENE reads the holder cell's illumination (scene lights, zones, barriers) so an activation can require dim light or darkness; One with Shadows gains the gate (converted ungated in T5n). Generic predicate, no feature-specific code.",
-              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 3 to 1; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m423.",
+              "mergedAt": "2026-10-24T22:34:13Z",
+              "proof": "No-op: One with Shadows is already the T5n self action; CLASS_WARLOCK_ONE_WITH_SHADOWS deleted in T5n."
             },
             {
               "id": "SPELLS-31.T5o",
@@ -18245,7 +18262,7 @@
             },
             {
               "id": "SPELLS-33.T4gh",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -18261,7 +18278,9 @@
                 ]
               },
               "text": "five Rejuvenations, Ghost and Night Hag Etherealness (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-25T01:51:34Z",
+              "proof": "Tests and Live green on tip 9438a4032; reviewed and approved; merged through the m424 batch run.",
+              "note": " Merged in m424."
             },
             {
               "id": "SPELLS-33.T4i1a",
@@ -21846,11 +21865,11 @@
           "acs": [
             {
               "id": "RELIABILITY-12.1",
-              "text": "Facet restrictions and effect paths (BASIC_ACTION) reach Convex as their real types: the intersection-built schemas in packages/shared facet.ts and effects/path.ts become flat unions, recursion included, so apps/apis/convex/_generated/api.d.ts has no any for them; the generatedApiTypes type test proves it and the authoring contract and publication tests pass unchanged.",
+              "text": "Facet restrictions and effect paths (BASIC_ACTION) reach the web as their real types: the four content/definitions.ts handlers declare the packages/schema workspace DTO type and the web adapter reads through a typed reference to it (pairing contract test); in the Convex validator only facet, path and follow-up outcomes are named v.any() leaves, still zod-parsed in the handler, and the generatedApiTypes type test proves any appears only at those leaves; the authoring contract and publication tests pass unchanged.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Found 2026-10-14 by RELIABILITY-11 (workbook status log): same Convex intersection-to-any defect, spread across many intersections plus recursion."
+              "note": "Found 2026-10-14 by RELIABILITY-11 (workbook status log): same Convex intersection-to-any defect, spread across many intersections plus recursion. D194 (user ruling 2026-10-24): wire stays nested; staticApi stays on; only follow-up save/check outcomes keep a named v.any leaf; handlers and web adapter share the packages/schema type with a pairing contract test. D194 amended (user ruling 2026-10-24, option B): the zod-to-Convex converter inlines every reuse, so flat unions measured about 54 MB per facet validator; facet and path became named validator leaves too (about 29,000 nodes)."
             },
             {
               "id": "RELIABILITY-12.2",
