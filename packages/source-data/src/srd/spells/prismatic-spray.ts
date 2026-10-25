@@ -245,6 +245,18 @@ export const prismaticSpray: SpellAuthored = {
             createDamageTableRow(0x240, 0x250, 3, 'LIGHTNING', true),
             createDamageTableRow(0x240, 0x250, 4, 'POISON', true),
             createDamageTableRow(0x240, 0x250, 5, 'COLD', true),
+            // Indigo and violet do nothing to a creature that succeeds; the table still covers them.
+            ...[6, 7].map((rollValue) => ({
+              id: spellChildId(SPELL_IDS.PRISMATIC_SPRAY, 0x240, rollValue),
+              order: rollValue,
+              rollValue,
+              resolutionKind: 'RESULT' as const,
+              resultBlock: {
+                id: `${spellChildId(SPELL_IDS.PRISMATIC_SPRAY, 0x240, rollValue)}__result`,
+                resultKind: 'SINGLE' as const,
+                outcomes: []
+              }
+            })),
             createRepeatTableRow(0x240)
           ]
         }

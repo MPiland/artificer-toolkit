@@ -359,6 +359,10 @@ export const nestedSaveGateNodeId = (pathCode: string) =>
   `nested-save-gate-${pathCode.toLowerCase()}`
 /** The result path a closed gate hands its band: no authored path is satisfied by it. */
 export const NESTED_SAVE_GATE_CLOSED_PATH = 'GATE_CLOSED'
+/** The op that opens a roll-table row's outcomes to the result path only when the table die lands in the row. */
+export const DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY = 'dnd5e.roll-table-row-gate'
+/** The id prefix of a roll table's own dice and running sums, which every row gate reads. */
+export const ROLL_TABLE_DICE_NODE_PREFIX = 'roll-table-'
 export const nestedSaveRiderConditionNodeId = (index: number) =>
   index === 0 ? 'nested-save-rider-condition' : `nested-save-rider-condition-${index + 1}`
 /** The authored result path in a direct proposal node id: `[prefix]proposal-<path>[-condition]`. */
