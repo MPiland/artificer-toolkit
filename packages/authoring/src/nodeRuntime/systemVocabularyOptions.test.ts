@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { getRuntimeNodeMap, listRuntimeNodeMapIds } from './mapRegistry.js'
-import { resolveNodeRuntime } from './nodeRuntimeService.js'
+import { normalizeNodeRuntimeValues, resolveNodeRuntime } from './nodeRuntimeService.js'
 import { nodeRuntimeSourceManifest } from './nodeRuntimeSourceManifest.js'
 import { createNodeRuntimeSourceReader, systemCoreCodeRows } from './systemSourceRows.js'
 import {
@@ -91,6 +91,17 @@ describe('System vocabulary option descriptions', () => {
       options,
       DND5E_SIZES.map(({ code, description }) => ({ id: code, description }))
     )
+  })
+
+  it('clears a size the System does not list, and keeps one it does', async () => {
+    const normalizeSize = (size: string) =>
+      normalizeNodeRuntimeValues(reader, {
+        mapId: 'vehicle',
+        systemId: srdSystemRecord.id,
+        values: { size }
+      })
+    expect((await normalizeSize('ENORMOUS')).values).not.toHaveProperty('size')
+    expect((await normalizeSize('LARGE')).values).toHaveProperty('size', 'LARGE')
   })
 
   it('exposes the description column, and no tooltip column, on every System vocabulary source', () => {

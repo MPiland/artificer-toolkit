@@ -20,6 +20,8 @@ T9f is too large for one task. I sent the orchestrator the split packet `rules-2
 
 T9f1 does not depend on the ruling, so I started it. T9f2 and T9f3 wait for the reply.
 
+Ruling D192 (user approved): split B. The order is T9f1 (size 3), then T9f2 (5), then T9f3 (5), and each is reported green-ready on its own. T12 follows T9f1 and T9f2, and T9f3 may run beside T12. A one-off ts-morph codemod is allowed for the mechanical rewrite in T9f2 and T9f3 only. It stays in the scratchpad and is not committed, the full diff is reviewed before commit, and this log records its summary and the count of changed sites.
+
 ### 2026-10-24: T9f1, sizes are System core codes
 
 What changed:
@@ -48,7 +50,8 @@ Behavior:
 
 - One change is visible to users: size dropdowns now list sizes smallest first. They used to list TINY through GIANT, then FINE, DIMUNITIVE and COLOSSAL.
 - No other behavior changes, and nothing needs reseeding. Stored size codes are the same strings as before.
-- Golden and snapshot flips: none are expected. I will list any that CI reports here.
+- Golden and snapshot flips: none.
+- Moved assertions. Four schema tests expected an unknown size (`NOT_A_SIZE`, `AVERAGE`, `ENORMOUS`) to fail parsing. The schema now checks only the core-code shape, so those samples became malformed codes (`not a size`, `average`, `enormous`) that it still rejects. System membership has new proofs at its owners: node-map normalization clears a size the System does not list (`systemVocabularyOptions.test.ts`), and a `SIZE_OVERRIDE` of `AVERAGE` is refused (`sheetExtras.test.ts`). `sizeRank` already returned null for `ENORMOUS` (`systemSizes.test.ts`).
 
 Proposed follow-ups (ledger proposals, not done in this task):
 
