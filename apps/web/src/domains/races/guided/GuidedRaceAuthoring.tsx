@@ -13,7 +13,7 @@ import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import { toGuidedRaceParentOptions } from './guidedRaceParents'
-import { toFeatures } from '#forms/guided/guidedValues'
+import { guidedSizeOptions, toFeatures } from '#forms/guided/guidedValues'
 import { isRecord } from '#forms/utils/valueGuards'
 
 type GuidedRaceAuthoringProps = {
@@ -129,7 +129,13 @@ export const GuidedRaceAuthoring = withForm({
           ) : (
             <div className={styles.fields}>
               <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['size'])}>
-                {(field) => <field.SelectField data={SIZE_OPTIONS} label='Size' required />}
+                {(field) => (
+                  <field.SelectField
+                    data={guidedSizeOptions(session.systemId)}
+                    label='Size'
+                    required
+                  />
+                )}
               </form.AppField>
               <form.AppField
                 name={toTypedAuthoringFieldName<object>(undefined, ['speeds', 0, 'speedId'])}
@@ -214,7 +220,3 @@ const DESCRIPTIONS = [
   'Add the abilities that define how this race plays.',
   'Check the essentials before saving or activating.'
 ] as const
-const SIZE_OPTIONS = ['TINY', 'SMALL', 'MEDIUM', 'LARGE', 'HUGE', 'GARGANTUAN'].map((value) => ({
-  label: value.charAt(0) + value.slice(1).toLowerCase(),
-  value
-}))

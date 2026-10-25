@@ -25,6 +25,8 @@ export interface SystemCoreCodeEntry {
   actionFact?: 'attackRoll' | 'spellCast'
   /** The edge in feet of the square a creature of this size fills; a size without it fills none a Scene models. */
   spaceFeet?: number
+  /** The size a new Creature or Race takes until its author picks one. */
+  isDefault?: boolean
 }
 
 /**

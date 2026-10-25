@@ -12,11 +12,12 @@ import { createEmptyRace } from '#domains/races/raceAuthoring.utils'
 import { createEmptyCreature } from '#domains/creatures/creatureAuthoring.utils'
 import { createEmptySpell } from '#domains/spells/spellAuthoring.utils'
 import { createInitialSession } from '#forms/layout/authoringSessionState'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { createAuthoredOperations } from './authoredOperations'
 
 const client = new ConvexReactClient('https://unit-test.convex.cloud')
 const background = createEmptyBackground({
-  systemId: '11111111-1111-4111-8111-111111111111'
+  systemId: DND5E_SYSTEM_ID
 })
 const classPayload = createEmptyClass({ systemId: background.systemId })
 const featPayload = createEmptyFeat({ systemId: background.systemId })

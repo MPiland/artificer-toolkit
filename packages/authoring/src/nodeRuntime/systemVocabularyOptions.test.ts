@@ -93,16 +93,24 @@ describe('System vocabulary option descriptions', () => {
     )
   })
 
-  it('clears a size the System does not list, and keeps one it does', async () => {
-    const normalizeSize = (size: string) =>
-      normalizeNodeRuntimeValues(reader, {
-        mapId: 'vehicle',
-        systemId: srdSystemRecord.id,
-        values: { size }
-      })
-    expect((await normalizeSize('ENORMOUS')).values).not.toHaveProperty('size')
-    expect((await normalizeSize('LARGE')).values).toHaveProperty('size', 'LARGE')
-  })
+  it.each([
+    { mapId: 'vehicle', values: {} },
+    { mapId: 'creature', values: {} },
+    { mapId: 'race', values: { category: 'BASE' } },
+    { mapId: 'attackSlotCondition', values: { kind: 'TARGET_SIZE_AT_MOST' } }
+  ])(
+    'clears a $mapId size the System does not list, and keeps one it does',
+    async ({ mapId, values }) => {
+      const normalizeSize = (size: string) =>
+        normalizeNodeRuntimeValues(reader, {
+          mapId,
+          systemId: srdSystemRecord.id,
+          values: { ...values, size }
+        })
+      expect((await normalizeSize('ENORMOUS')).values).not.toHaveProperty('size')
+      expect((await normalizeSize('LARGE')).values).toHaveProperty('size', 'LARGE')
+    }
+  )
 
   it('exposes the description column, and no tooltip column, on every System vocabulary source', () => {
     for (const table of vocabularyTables) {

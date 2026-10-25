@@ -30,7 +30,13 @@ export const DND5E_SIZES = [
   { code: 'DIMUNITIVE', label: 'Diminutive', description: 'Very tiny.' },
   { code: 'TINY', label: 'Tiny', description: 'Very small size.', spaceFeet: 2.5 },
   { code: 'SMALL', label: 'Small', description: 'Below average size.', spaceFeet: 5 },
-  { code: 'MEDIUM', label: 'Medium', description: 'Average humanoid size.', spaceFeet: 5 },
+  {
+    code: 'MEDIUM',
+    label: 'Medium',
+    description: 'Average humanoid size.',
+    spaceFeet: 5,
+    isDefault: true
+  },
   { code: 'LARGE', label: 'Large', description: 'Larger than humanoid.', spaceFeet: 10 },
   { code: 'HUGE', label: 'Huge', description: 'Massive size.', spaceFeet: 15 },
   { code: 'GARGANTUAN', label: 'Gargantuan', description: 'Enormous size.', spaceFeet: 20 },

@@ -1,5 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { readField, toFeatures } from './guidedValues'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
+import { guidedSizeOptions, readField, toFeatures } from './guidedValues'
+
+describe('guidedSizeOptions', () => {
+  it('offers the System sizes a Scene models, smallest first, with their labels', () => {
+    expect(guidedSizeOptions(DND5E_SYSTEM_ID)).toEqual([
+      { label: 'Tiny', value: 'TINY' },
+      { label: 'Small', value: 'SMALL' },
+      { label: 'Medium', value: 'MEDIUM' },
+      { label: 'Large', value: 'LARGE' },
+      { label: 'Huge', value: 'HUGE' },
+      { label: 'Gargantuan', value: 'GARGANTUAN' }
+    ])
+  })
+
+  it('offers nothing before a System is chosen', () => {
+    expect(guidedSizeOptions(undefined)).toEqual([])
+  })
+})
 
 describe('readField', () => {
   it('reads a field off in-progress values', () => {

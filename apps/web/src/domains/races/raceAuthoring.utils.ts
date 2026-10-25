@@ -1,3 +1,4 @@
+import { defaultSize } from '@artificer-toolkit/rules-runtime/systemSizes'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type {
@@ -49,7 +50,7 @@ export function createEmptyBaseRace({ systemId }: CreateEmptyRaceInput): RaceFor
     heritageIds: [],
     details: [],
     features: [],
-    size: 'MEDIUM',
+    size: defaultSize(systemId),
     speeds: [createEmptySpeed()],
     systemId
   }
@@ -119,7 +120,7 @@ export function normalizeRaceForSubmit(race: RaceFormValues): RaceAuthoringInput
     selectionMode: race.selectionMode ?? RACE_SELECTION_MODE.DIRECT,
     ancestry: normalizeAncestry(race.ancestry),
     heritageIds: race.heritageIds ?? [],
-    size: race.size ?? 'MEDIUM',
+    size: race.size ?? defaultSize(race.systemId),
     speeds: race.speeds ?? []
   }
 }

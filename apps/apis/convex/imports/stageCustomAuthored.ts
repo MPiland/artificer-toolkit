@@ -43,6 +43,7 @@ import {
   compileCurrentEquipment
 } from '../content/equipmentRelationships'
 import { equipmentOptionFacts } from '@artificer-toolkit/rules-runtime/character/equipmentOptionFacts'
+import { requireAuthoredSizes } from '@artificer-toolkit/rules-runtime/systemSizes'
 import { ensureDraftImageSlot, promoteDraftImageSlot } from '../content/imageSlots'
 import {
   assertActivePublicationNameAvailable,
@@ -308,6 +309,7 @@ async function prepareActive(
     userId: ownerUserId,
     status: 'ACTIVE'
   })
+  requireAuthoredSizes(authored)
   const initialChecksum = checksumRuleDocument(authored.document)
   const reader = await createSystemSourceReader(
     ctx,

@@ -3,6 +3,7 @@ import type {
   AttackSlotDto,
   AttackSlotSetDto
 } from '@artificer-toolkit/schema/features/attackSlots'
+import { systemCoreCodeRegistry } from './platformSystemCoreCodes.js'
 import { sizeRank } from './systemSizes.js'
 
 export type AttackSlotAlternatives = AttackSlotSetDto['alternatives']
@@ -16,7 +17,7 @@ export type AttackSlotAttack = {
   targetIds: readonly string[]
   /** Whether the attack roll hit; null when it has no roll or is not yet rolled. */
   hit: boolean | null
-  /** The target's size; null when unknown, which satisfies a size predicate. */
+  /** The target's size; null when unknown, which satisfies a size predicate, while a size the System does not list never does. */
   targetSize: string | null
 }
 
@@ -39,8 +40,10 @@ export function attackSlotConditionHolds(
   earlier: readonly AttackSlotAttack[]
 ) {
   if (condition.kind === 'TARGET_SIZE_AT_MOST') {
+    systemCoreCodeRegistry.requireCode(gameSystemId, 'size', condition.size)
+    if (attack.targetSize === null) return true
     const rank = sizeRank(gameSystemId, attack.targetSize)
-    return rank === null || rank <= (sizeRank(gameSystemId, condition.size) ?? -1)
+    return rank !== null && rank <= (sizeRank(gameSystemId, condition.size) ?? -1)
   }
   if (earlier.length === 0 || !earlier.every((made) => made.hit === true)) return false
   const shared = [...earlier, ...(attack.targetIds.length ? [attack] : [])].reduce<

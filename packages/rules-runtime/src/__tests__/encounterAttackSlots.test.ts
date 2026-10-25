@@ -279,4 +279,19 @@ describe('a hold gate (appliesWhen)', () => {
       attackSlotConditionHolds(DND5E_SYSTEM_ID, small, made({ targetSize: 'LARGE' }), [])
     ).toBe(false)
   })
+
+  it('fails closed on a size the System does not list', () => {
+    const small = { kind: 'TARGET_SIZE_AT_MOST', size: 'MEDIUM' } as const
+    expect(
+      attackSlotConditionHolds(DND5E_SYSTEM_ID, small, made({ targetSize: 'ENORMOUS' }), [])
+    ).toBe(false)
+    expect(() =>
+      attackSlotConditionHolds(
+        DND5E_SYSTEM_ID,
+        { kind: 'TARGET_SIZE_AT_MOST', size: 'ENORMOUS' },
+        made({ targetSize: 'TINY' }),
+        []
+      )
+    ).toThrow('The Game System does not define the size "ENORMOUS".')
+  })
 })

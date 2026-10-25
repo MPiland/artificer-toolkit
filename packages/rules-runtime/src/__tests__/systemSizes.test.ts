@@ -1,9 +1,19 @@
+import { brownBear } from '@artificer-toolkit/source-data/srd/creatures/brown-bear.js'
+import { dwarf } from '@artificer-toolkit/source-data/srd/races/dwarf.js'
 import { SIZE_CODE } from '@artificer-toolkit/source-data/srd/sizes.js'
+import { cart } from '@artificer-toolkit/source-data/srd/vehicles/cart.js'
 import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
+import { parsePublicationDocument } from '../authoredPublicationRead.js'
 import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
-import { sizeRank, sizeSpaceFeet } from '../systemSizes.js'
+import {
+  defaultSize,
+  requireAuthoredSizes,
+  sceneSizes,
+  sizeRank,
+  sizeSpaceFeet
+} from '../systemSizes.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 
 const UNKNOWN_SYSTEM_ID = '00000000-0000-4000-8000-0000000000ff'
@@ -66,7 +76,77 @@ describe('System sizes', () => {
     expect(sizeSpaceFeet(DND5E_SYSTEM_ID, 'toString')).toBeNull()
   })
 
+  describe('on authored content', () => {
+    const refusal = 'The Game System does not define the size "ENORMOUS".'
+    const multiattack = {
+      ...brownBear.features[0],
+      attackSlots: {
+        alternatives: [
+          {
+            slots: [
+              {
+                count: 1,
+                fillers: [{ kind: 'ANY_ATTACK' as const }],
+                condition: { kind: 'TARGET_SIZE_AT_MOST' as const, size: 'ENORMOUS' }
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+    it('accepts the SRD sizes', () => {
+      for (const subject of [
+        parsePublicationDocument('CREATURE', brownBear),
+        parsePublicationDocument('RACE', dwarf),
+        parsePublicationDocument('VEHICLE', cart)
+      ])
+        expect(() => requireAuthoredSizes(subject)).not.toThrow()
+    })
+
+    it('refuses a Creature size the System does not list', () => {
+      const creature = parsePublicationDocument('CREATURE', { ...brownBear, size: 'ENORMOUS' })
+      expect(() => requireAuthoredSizes(creature)).toThrow(refusal)
+    })
+
+    it('refuses a Race size the System does not list', () => {
+      const race = parsePublicationDocument('RACE', { ...dwarf, size: 'ENORMOUS' })
+      expect(() => requireAuthoredSizes(race)).toThrow(refusal)
+    })
+
+    it('refuses a Vehicle size the System does not list', () => {
+      const vehicle = parsePublicationDocument('VEHICLE', { ...cart, size: 'ENORMOUS' })
+      expect(() => requireAuthoredSizes(vehicle)).toThrow(refusal)
+    })
+
+    it('refuses an attack-slot size condition the System does not list', () => {
+      const creature = parsePublicationDocument('CREATURE', {
+        ...brownBear,
+        features: [multiattack, ...brownBear.features.slice(1)]
+      })
+      expect(() => requireAuthoredSizes(creature)).toThrow(refusal)
+    })
+  })
+
+  it('gives a new Creature or Race the System default size', () => {
+    expect(defaultSize(DND5E_SYSTEM_ID)).toBe('MEDIUM')
+  })
+
+  it('lists the sizes that fill a space a Scene models', () => {
+    expect(sceneSizes(DND5E_SYSTEM_ID).map(({ code }) => code)).toEqual([
+      'TINY',
+      'SMALL',
+      'MEDIUM',
+      'LARGE',
+      'HUGE',
+      'GARGANTUAN'
+    ])
+  })
+
   it('fails closed on a System with no sizes', () => {
+    expect(() => defaultSize(UNKNOWN_SYSTEM_ID)).toThrow(
+      'The Game System does not provide vocabulary policy.'
+    )
     expect(() => sizeRank(UNKNOWN_SYSTEM_ID, 'MEDIUM')).toThrow(
       'The Game System does not provide vocabulary policy.'
     )

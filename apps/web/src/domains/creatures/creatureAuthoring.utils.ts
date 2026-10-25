@@ -2,6 +2,7 @@ import type {
   CreatureAuthoringInputDto,
   CreatureAuthoredDto
 } from '@artificer-toolkit/schema/subjects/creature'
+import { defaultSize } from '@artificer-toolkit/rules-runtime/systemSizes'
 import { CREATURE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 
 type CreatureStringFormValue = {
@@ -40,7 +41,7 @@ export function createEmptyCreature({ systemId }: CreateEmptyCreatureInput): Cre
     status: 'DRAFT',
     category: CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: '',
-    size: 'MEDIUM',
+    size: defaultSize(systemId),
     systemId,
     tags: [],
     abilityScores: createDefaultAbilityScores(),

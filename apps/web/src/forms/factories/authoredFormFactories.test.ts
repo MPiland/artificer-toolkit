@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
 import {
   authoredRouteStoryEquipmentParentResponse,
@@ -54,20 +55,20 @@ describe('authoredFormFactories', () => {
 
   it('creates empty values with the selected system id', () => {
     const emptyValues = [
-      backgroundFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      classFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      creatureFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      equipmentFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      featFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      raceFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      spellFormFactory.createEmptyValues({ systemId: 'system-1' }),
-      vehicleFormFactory.createEmptyValues({ systemId: 'system-1' })
+      backgroundFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      classFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      creatureFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      equipmentFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      featFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      raceFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      spellFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID }),
+      vehicleFormFactory.createEmptyValues({ systemId: DND5E_SYSTEM_ID })
     ]
 
     expect(emptyValues.every(hasSystemId)).toBe(true)
     for (const values of emptyValues) {
       if (hasSystemId(values)) {
-        expect(values.systemId).toBe('system-1')
+        expect(values.systemId).toBe(DND5E_SYSTEM_ID)
       }
     }
   })
@@ -106,21 +107,21 @@ describe('authoredFormFactories', () => {
   })
 
   it('resolves create system ids from available systems', () => {
-    const systems = [{ id: 'system-1' }]
+    const systems = [{ id: DND5E_SYSTEM_ID }]
 
-    expect(backgroundFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(classFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(creatureFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(equipmentFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(featFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(raceFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(spellFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
-    expect(vehicleFormFactory.resolveCreateSystemId(systems)).toBe('system-1')
+    expect(backgroundFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
+    expect(classFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
+    expect(creatureFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
+    expect(equipmentFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
+    expect(featFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
+    expect(raceFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
+    expect(spellFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
+    expect(vehicleFormFactory.resolveCreateSystemId(systems)).toBe(DND5E_SYSTEM_ID)
   })
 
   it('caches saved draft JSON for the first navigation to its edit route', async () => {
     const session = spellFormFactory.createSession?.({
-      data: { systems: [{ id: 'system-1' }] },
+      data: { systems: [{ id: DND5E_SYSTEM_ID }] },
       mode: 'create'
     })
     if (!session) throw new Error('Expected a spell create session.')
@@ -135,7 +136,7 @@ describe('authoredFormFactories', () => {
       status: 'DRAFT',
       subjectId: 'spell-1',
       subjectKind: 'SPELL',
-      systemId: 'system-1',
+      systemId: DND5E_SYSTEM_ID,
       userId: 'user-1'
     }
 
@@ -149,7 +150,7 @@ describe('authoredFormFactories', () => {
   })
 
   it('creates authoring sessions for every authored form domain', () => {
-    const systemData = { systems: [{ id: 'system-1' }] }
+    const systemData = { systems: [{ id: DND5E_SYSTEM_ID }] }
     const sessions = [
       ['background', backgroundFormFactory.createSession?.({ data: systemData, mode: 'create' })],
       ['class', classFormFactory.createSession?.({ data: systemData, mode: 'create' })],
@@ -173,7 +174,7 @@ describe('authoredFormFactories', () => {
       expect(session?.initialValues).toEqual(
         expect.objectContaining({
           label: '',
-          systemId: 'system-1'
+          systemId: DND5E_SYSTEM_ID
         })
       )
     }

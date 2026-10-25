@@ -53,9 +53,15 @@ Behavior:
 - Golden and snapshot flips: none.
 - Moved assertions. Four schema tests expected an unknown size (`NOT_A_SIZE`, `AVERAGE`, `ENORMOUS`) to fail parsing. The schema now checks only the core-code shape, so those samples became malformed codes (`not a size`, `average`, `enormous`) that it still rejects. System membership has new proofs at its owners: node-map normalization clears a size the System does not list (`systemVocabularyOptions.test.ts`), and a `SIZE_OVERRIDE` of `AVERAGE` is refused (`sheetExtras.test.ts`). `sizeRank` already returned null for `ENORMOUS` (`systemSizes.test.ts`).
 
-Proposed follow-ups (ledger proposals, not done in this task):
-
-- Retire FINE, DIMUNITIVE, GIANT and COLOSSAL from the D&D 5e size list. No SRD content uses them, and DIMUNITIVE is misspelled.
-- `GuidedRaceAuthoring` and `GuidedCreatureAuthoring` keep their own six-size lists. They should take their options from the System's list.
+Proposed follow-up (ledger proposal, out of scope by review): retire FINE, DIMUNITIVE, GIANT and COLOSSAL from the D&D 5e size list. No SRD content uses them, and DIMUNITIVE is misspelled.
 
 Merge risk: the sibling T9e lane may also edit `fileSizeBudget.json` and `nativeEncounterRules.ts`.
+
+### 2026-10-24: T9f1 review fixes (approved with fixes at 54c5e468b)
+
+- **Ingress rejection restored.** `requireAuthoredSizes` (`systemSizes.ts`) refuses a Creature, Race or Vehicle size, or a `TARGET_SIZE_AT_MOST` attack-slot condition in their Features, that the System does not list. Publication (`normalizePublicationDocument`) and import staging (`stageCustomAuthored.prepareActive`) call it before node-map normalization, which would otherwise clear the code. Draft saves store raw work-in-progress JSON and stay unchecked; publication is the gate.
+- **Companion rule policy.** `characterCompanionMechanicsRuleFacts` refuses an unlisted companion size and an unlisted `SIZE_OVERRIDE`.
+- **Attack slots fail closed.** `TARGET_SIZE_AT_MOST` refuses an unlisted condition size, and an unlisted target size never satisfies it (it used to rank -1, which always passed).
+- **Web defaults.** A System marks one size `isDefault` (D&D 5e: MEDIUM). `defaultSize(systemId)` feeds `createEmptyCreature`, `createEmptyBaseRace` and `normalizeRaceForSubmit`. The guided Creature and Race size lists come from `sceneSizes(systemId)`, the System's sizes that fill a Scene space, through `guidedSizeOptions`.
+- **Proofs:** `systemSizes.test.ts` (authored refusals, default, scene sizes), `encounterAttackSlots.test.ts` (fail closed), `characterCompanionMechanicsRuleFacts.test.ts` (new), `creaturePublication.test.ts` (publish refuses `ENORMOUS`), `systemVocabularyOptions.test.ts` (normalization clears an unlisted size on the creature, race, vehicle and attackSlotCondition maps), `guidedValues.test.ts`. Web fixtures that used unregistered System ids (`dnd-5e-srd`, `system-1`, a random UUID) now use `DND5E_SYSTEM_ID`, since the default size needs a registered System.
+- **Residual size paths not covered by `requireAuthoredSizes`:** facet `sizes`, manifest `statBlock.size` and `maximumTargetSize`, and effect `appliesWhen` size conditions. Node-map normalization still clears unlisted codes there.
