@@ -1,5 +1,4 @@
-import { afterEach, expect, it } from 'vitest'
-import { roomErrorLogs } from '../../tests/fixtures/localRoomWorker'
+import { expect, it } from 'vitest'
 import {
   readCheckpointedHitPoints,
   setupAutomaticSceneMovement,
@@ -11,14 +10,6 @@ import {
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
-
-afterEach(() => {
-  try {
-    console.log('T9F2 PROBE', JSON.stringify(roomErrorLogs()).slice(0, 6000))
-  } catch (error) {
-    console.log('T9F2 PROBE none', String(error))
-  }
-})
 
 useLocalRoomWorker()
 
