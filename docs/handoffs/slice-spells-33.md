@@ -702,4 +702,3 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - Vrock Stunning Screech: the failed save stuns until the end of the vrock's next turn (ROUND 1, SOURCE END_OF_TURN anchor); the demon and hearing exemptions are a GM ruling.
 - Dryad Tree Stride: the placeholder TELEPORT stays; the trees and their size are a GM ruling.
 - Filters, ordinal variants, wake, stacking damage and absolute tree size are in future-enhancements under "Lingering creature riders". Proofs: `creatureLingeringRiderAuthoringParity.test.ts`, the attack sweep and the Couatl room test in `nativeRoomHitRiders.test.ts`.
->>>>>>> origin/codex/phase-08-2-convex-cutover
