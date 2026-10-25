@@ -9655,8 +9655,22 @@
                 "size": 8,
                 "after": []
               },
-              "text": "Kernel roll-table execution: the effect compiler accepts an authored ROLL_TABLE path (dice expression, rows by range, each row an ordinary compiled outcome graph), rolled server-side with the roll and the selected row in trace and replay. Generic, no feature-specific code; authoring-parity proof with a homebrew table.",
+              "text": "Kernel roll-table execution: the effect compiler accepts an authored ROLL_TABLE path rolled server-side in the OUTCOME phase (receipt keeps the roll) with a generic row-gate op (nested-save band pattern), each row an ordinary compiled outcome graph of path-gatable kinds, the roll and selected row in trace and replay; publication refuses gaps, overlaps and out-of-die ranges. REPEAT_TABLE rows refused. Generic; authoring-parity proof with a homebrew table.",
               "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
+            },
+            {
+              "id": "ATTACK-16.T1a2",
+              "status": "TODO",
+              "closes": ["ATTACK-16.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 3,
+                "after": ["ATTACK-16.T1a"]
+              },
+              "text": "Row-scoped lasting plans: a roll-table row can carry its own timed CONDITION and APPLY_GRANT plans (lasting plans chosen per selected row, not once per action), with proofs. Repeat saves inside rows stay with SPELLS-4.T2ps.",
+              "note": "Registered 2026-10-25 (T1a measured 11 against 8; user ruling accepted +3)."
             },
             {
               "id": "ATTACK-16.T1b",
@@ -9681,7 +9695,7 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 5,
-                "after": ["ATTACK-16.T1a", "ATTACK-16.T1b"]
+                "after": ["ATTACK-16.T1a2", "ATTACK-16.T1b"]
               },
               "text": "Massive damage detection: a MASSIVE_DAMAGE DAMAGE_SAVE_CHECK source on the D167 chain (per-source finalized envelope, threshold half max HP), the authored Constitution save, and on failure a self-targeted SYSTEM root that runs the authored 1d10 system-shock ROLL_TABLE; Character admission included.",
               "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
@@ -11963,7 +11977,7 @@
                 "tc": 1,
                 "rr": 3,
                 "size": 13,
-                "after": ["ATTACK-16.T1a"]
+                "after": ["ATTACK-16.T1a2"]
               },
               "text": "Prismatic Spray on the ATTACK-16.T1a authored ROLL_TABLE: rows 1-5 and the success table (verify the cone first), row 6 as a row-scoped lasting repeat-save plan, row 7, and row 8 repeat-table rerolls with merged rows (lifts T1a's REPEAT_TABLE refusal); its MANUAL_ADJUDICATION rows are replaced. Authoring-parity proof and a room journey.",
               "note": "Registered 2026-10-25 (user ruling: roll tables must cover Prismatic Spray; measured 11-13 by the ATTACK-16 session)."
