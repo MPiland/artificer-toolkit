@@ -1,6 +1,7 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { chargeEffect } from './chargeEffect.js'
 import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
+import { lycanthropyCurseOutcome } from './lycanthropyCurse.js'
 import * as S from './shared.js'
 
 export const weretiger: CreatureAuthored = {
@@ -156,11 +157,7 @@ export const weretiger: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '1d10+3'
                   },
-                  {
-                    id: S.actionId(290, 216),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WERETIGER_BITE
-                  }
+                  lycanthropyCurseOutcome(S.actionId(290, 216), 'weretiger', 13)
                 ]
               }
             }
