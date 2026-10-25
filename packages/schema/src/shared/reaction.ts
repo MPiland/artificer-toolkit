@@ -4,7 +4,6 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { combatPerceptionRequirementDtoSchema } from './combatPerception.js'
 import {
-  abilityModifierReferenceSchema,
   pathLifecycleEndTriggerAgainstSchema,
   pathLifecycleEndTriggerOfSchema,
   pathLifecycleEndTriggerBySchema
@@ -124,7 +123,7 @@ export const sourceEffectIdsFilterDtoSchema = lazySchema(() =>
 /** The ability check a higher-level spell owes (Counterspell, Dispel Magic): the DC is `baseDc` plus the spell's level. */
 export const higherLevelCheckDtoSchema = lazySchema(() =>
   z.strictObject({
-    ability: abilityModifierReferenceSchema,
+    ability: systemCoreCodeSchema,
     baseDc: z.number().check(z.int()).check(z.nonnegative())
   })
 )

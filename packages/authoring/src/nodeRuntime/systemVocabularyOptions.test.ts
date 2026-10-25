@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { getRuntimeNodeMap, listRuntimeNodeMapIds } from './mapRegistry.js'
@@ -111,6 +112,39 @@ describe('System vocabulary option descriptions', () => {
       expect((await normalizeSize('LARGE')).values).toHaveProperty('size', 'LARGE')
     }
   )
+
+  it('serves the System abilities, in System order, as ability options', async () => {
+    const options = await optionsOf('classMulticlassRequirement', 'ability')
+    expect(options.map((option) => option.value)).toEqual(
+      srdSystemRecord.abilities.map(({ code }) => code)
+    )
+    expectDescriptions(
+      options,
+      srdSystemRecord.abilities.map(({ code, description }) => ({ id: code, description }))
+    )
+  })
+
+  it('clears an ability the System does not list, and keeps one it does', async () => {
+    const normalizeAbility = (ability: string) =>
+      normalizeNodeRuntimeValues(reader, {
+        mapId: 'classMulticlassRequirement',
+        systemId: srdSystemRecord.id,
+        values: { ability, min: 13 }
+      })
+    expect((await normalizeAbility('SANITY')).values).not.toHaveProperty('ability')
+    expect((await normalizeAbility('WISDOM')).values).toHaveProperty('ability', 'WISDOM')
+  })
+
+  it('offers every System ability, then the spellcasting ability, as ability modifier references', () => {
+    const rows = systemCoreCodeRows(
+      srdSystemRecord,
+      dnd5eCoreCodeAdapter.lists
+    ).ability_modifier_references
+    expect(rows.map(({ id }) => id)).toEqual([
+      ...srdSystemRecord.abilities.map(({ code }) => code),
+      SPELLCASTING_ABILITY_REFERENCE
+    ])
+  })
 
   it('exposes the description column, and no tooltip column, on every System vocabulary source', () => {
     for (const table of vocabularyTables) {

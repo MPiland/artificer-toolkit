@@ -6,7 +6,6 @@ import {
   type CharacterSheetPanelTargetDto
 } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import {
-  ABILITIES,
   FEATURE_ATTRIBUTE,
   roundLengthForDisplay,
   type CharacterCalculation,
@@ -42,11 +41,6 @@ const PROFICIENCY_OPTIONS = [
   { value: 'FULL', label: 'Proficient' },
   { value: 'DOUBLE', label: 'Expertise' }
 ]
-
-const ABILITY_OPTIONS = Object.values(ABILITIES).map((ability) => ({
-  value: ability.code,
-  label: ability.label
-}))
 
 function formatCode(value: string): string {
   return value
@@ -285,7 +279,9 @@ function buildAbilityPanel(
   ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'ABILITY' }>
 ): CharacterSheetPanelDto {
-  const ability = ABILITIES[target.ability]
+  const ability = params.sheet.overview.abilities.find((row) => row.ability === target.ability)
+  if (!ability)
+    throw new Error(`Ability "${target.ability}" is not available on this character sheet.`)
   const matching = params.adjustments.filter(
     (adjustment) => adjustment.family === 'ABILITY' && adjustment.ability === target.ability
   )
@@ -346,7 +342,10 @@ function buildSavingThrowPanel(
   ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'SAVING_THROW' }>
 ): CharacterSheetPanelDto {
-  const ability = ABILITIES[target.ability]
+  const ability = params.sheet.overview.savingThrows.find((row) => row.ability === target.ability)
+  if (!ability) {
+    throw new Error(`Saving throw "${target.ability}" is not available on this character sheet.`)
+  }
   const getNumeric = (field: 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE') =>
     findAdjustment(
       params.adjustments,
@@ -481,7 +480,10 @@ function buildSkillPanel(
       label: 'Governing ability',
       value:
         governingAbility?.field === 'GOVERNING_ABILITY_OVERRIDE' ? governingAbility.value : null,
-      options: ABILITY_OPTIONS,
+      options: params.sheet.overview.abilities.map(({ ability, label }) => ({
+        value: ability,
+        label
+      })),
       commitIntent: 'IMMEDIATE',
       ...adjustmentEditorMetadata(governingAbility)
     }

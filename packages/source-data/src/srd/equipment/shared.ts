@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   PATH_CODE,
@@ -53,7 +52,6 @@ import {
   withOffHandDamage as sharedWithOffHandDamage
 } from '@artificer-toolkit/shared'
 import type {
-  AbilityCode,
   ClosedRuleKind,
   EquipmentChildId,
   EquipmentEffectAuthored,
@@ -70,7 +68,9 @@ import {
   SRD_SPEEDS,
   SRD_DWARVEN_HERITAGE_ID,
   SRD_SYSTEM_ID,
-  SRD_USER_ID
+  SRD_USER_ID,
+  ABILITY_CODE,
+  type SrdAbilityCode
 } from '../vocabulary.js'
 export {
   ABILITY_CODE,
@@ -338,7 +338,7 @@ export function meleeWeaponAbilityModifiers(equipmentId: string): WeaponAbilityM
 }
 export function rangedWeaponAbilityModifiers(
   equipmentId: string,
-  ability: AbilityCode = 'DEXTERITY'
+  ability: SrdAbilityCode = 'DEXTERITY'
 ): WeaponAbilityModifier[] {
   return sharedRangedWeaponAbilityModifiers(srdChildId(equipmentId), ability)
 }

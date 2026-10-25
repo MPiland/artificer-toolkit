@@ -1,6 +1,5 @@
 import { z, lazySchema } from '../zod.js'
 import {
-  abilityCodeSchema,
   chargeBonusKindSchema,
   chargeLimitKindSchema,
   chargeResetKindSchema,
@@ -11,13 +10,14 @@ import {
   authoredNestedCollectionSchema,
   authoredNonnegativeNumberSchema
 } from './authoredLimits.js'
+import { systemCoreCodeSchema } from './systemCoreCode.js'
 
 export const chargeBonusDtoSchema = lazySchema(() =>
   z.union([
     z.object({
       id: authoredIdentifierSchema,
       bonusKind: z.literal(chargeBonusKindSchema._zod.def.entries.ABILITY_MODIFIER),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       min: z.optional(authoredNonnegativeNumberSchema),
       max: z.optional(authoredNonnegativeNumberSchema),
       multiplier: z.optional(authoredNonnegativeNumberSchema),
@@ -84,7 +84,7 @@ export const chargeDtoSchema = lazySchema(() =>
       bonuses: z.optional(authoredNestedCollectionSchema(chargeBonusDtoSchema)),
       limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.ABILITY_MODIFIER),
       scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       multiplier: z.optional(z.number()),
       min: z.optional(z.number()),
       max: z.optional(z.number())

@@ -11,7 +11,6 @@ import {
   modifierLengthFeet
 } from '../../modifierLength.js'
 import { abilityModifier, resolveAbilityModifierBonus } from './abilityModifier.js'
-import { canonicalCharacterAbility } from './characterPolicyValues.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   dnd5eFoldedModifierApplicability,
@@ -139,8 +138,7 @@ export function evaluateDnd5eCharacterModifiers(
       const prefix = `ABILITY_SCORE:${group.modifierKind}|ability=`
       return (
         group.domainKey.startsWith(prefix) &&
-        canonicalCharacterAbility(group.domainKey.slice(prefix.length)) ===
-          canonicalCharacterAbility(ability.abilityId)
+        group.domainKey.slice(prefix.length) === ability.abilityId
       )
     })
     const sets = groups.filter((group) => group.modifierKind === 'SET_VALUE')
@@ -165,11 +163,8 @@ export function evaluateDnd5eCharacterModifiers(
   const spellcastingAbilityId = input.derivedBaseFacts.spellcasting?.abilityId ?? null
   const concreteAbility = (ability: string): string | null =>
     ability === SPELLCASTING_ABILITY_REFERENCE ? spellcastingAbilityId : ability
-  const abilityModifierOf = (ability: unknown) => {
-    const score =
-      abilityScores.find(
-        (entry) => canonicalCharacterAbility(entry.abilityId) === canonicalCharacterAbility(ability)
-      )?.effective ?? 10
+  const abilityModifierOf = (ability: string) => {
+    const score = abilityScores.find((entry) => entry.abilityId === ability)?.effective ?? 10
     return abilityModifier(score)
   }
   return grantFold.modifierGroups.map((group): CharacterResolvedModifierGroup => {
@@ -179,7 +174,7 @@ export function evaluateDnd5eCharacterModifiers(
           if (payload !== undefined && 'ability' in payload) {
             return {
               ...contribution,
-              ability: canonicalCharacterAbility(payload.ability),
+              ability: payload.ability,
               resolvedValue: resolveAbilityModifierBonus(
                 abilityModifierOf(payload.ability),
                 payload
@@ -199,7 +194,7 @@ export function evaluateDnd5eCharacterModifiers(
             )
           return {
             ...contribution,
-            ability: canonicalCharacterAbility(best),
+            ability: best ?? null,
             resolvedValue:
               best === undefined ? 0 : resolveAbilityModifierBonus(abilityModifierOf(best), payload)
           }

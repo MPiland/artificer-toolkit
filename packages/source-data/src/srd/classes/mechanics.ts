@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   EFFECT_KIND,
@@ -11,7 +10,6 @@ import {
   RANGE_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type AbilityCode,
   type ActivationCode,
   type AuthoringConstraintCode,
   type DamageDefenseBypassCode,
@@ -25,6 +23,7 @@ import type {
   ModifierGrantAuthored,
   OptionAuthored
 } from '@artificer-toolkit/shared/authored'
+import { ABILITY_CODE, type SrdAbilityCode } from '../vocabulary.js'
 
 export { closedRuleEffect } from '../closed-rule-effect.js'
 
@@ -276,7 +275,7 @@ export function conditionSaveAdvantageGrants(
  */
 export function magicSaveAdvantageGrants(
   makeId: (entry: number) => string,
-  abilities: readonly AbilityCode[],
+  abilities: readonly SrdAbilityCode[],
   firstOrder = 0
 ): ModifierGrantAuthored[] {
   return abilities.map((ability, index) => ({

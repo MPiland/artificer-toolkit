@@ -6,11 +6,11 @@ import {
   SRD_DND5E_CONCENTRATION_CHECK_DEFINITION_ID,
   SRD_DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
 } from './concentration.js'
-import { ABILITY_CODE, ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared'
+import { ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared'
 import type { EffectPathAuthored } from '@artificer-toolkit/shared/authored'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { SRD_BASIC_ACTION_IDS } from './basicActions.js'
-import { SRD_MEDICINE_SKILL_ID } from './vocabulary.js'
+import { SRD_MEDICINE_SKILL_ID, ABILITY_CODE } from './vocabulary.js'
 import type { BaselineContentBundle } from '../content.js'
 
 function emptySubjectBundle(): BaselineContentBundle {

@@ -1,6 +1,5 @@
 import {
   ACTIVATION_CODE,
-  ABILITY_CODE,
   ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
@@ -36,7 +35,8 @@ import {
   SRD_LANGUAGES,
   SRD_SKILLS,
   SRD_SYSTEM_ID,
-  SRD_USER_ID
+  SRD_USER_ID,
+  ABILITY_CODE
 } from '../vocabulary.js'
 import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
 

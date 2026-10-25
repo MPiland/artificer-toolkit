@@ -8,7 +8,6 @@ import {
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import { buildModifierDomainKey } from '@artificer-toolkit/shared/character'
 
-import { canonicalCharacterAbility } from './characterPolicyValues.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
   DND5E_ITEM_CONDITION_KINDS,
@@ -120,18 +119,15 @@ export function evaluateDnd5e2014CharacterGrantFold(
    * modifiers already accepted from earlier sources (race before class, feat and equipment).
    */
   const abilityValue = (abilityId: string | null): number => {
-    const ability = canonicalCharacterAbility(abilityId)
     const base =
-      Object.entries(parsedInput.base.abilities).find(
-        ([key]) => canonicalCharacterAbility(key) === ability
-      )?.[1] ?? 0
+      Object.entries(parsedInput.base.abilities).find(([key]) => key === abilityId)?.[1] ?? 0
     let score = base
     let set: number | null = null
     for (const modifier of acc.modifiers) {
       const { payload } = modifier
       if (
         modifier.valueDomainCode !== 'ABILITY_SCORE' ||
-        canonicalCharacterAbility(modifier.domain.ability) !== ability ||
+        (modifier.domain.ability ?? null) !== abilityId ||
         payload === undefined ||
         !('amount' in payload) ||
         ('valueKind' in payload && payload.valueKind !== 'FIXED') ||

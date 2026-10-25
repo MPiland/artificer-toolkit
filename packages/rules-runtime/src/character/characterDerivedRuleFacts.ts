@@ -6,8 +6,6 @@ import {
 import {
   buildSkillSubjectAliasMap,
   buildModifierDomainKey,
-  normalizeAbilityKey,
-  resolveAbilityAlias,
   resolveSkillAlias,
   resolveSystemSkillAbilities
 } from '@artificer-toolkit/shared/character'
@@ -48,45 +46,12 @@ function modifierBonuses(
   })
 }
 
-function canonicalAbility(abilityId: string): string {
-  return resolveAbilityAlias(abilityId) ?? abilityId
-}
-
-function abilityModifierBonuses(
-  valueDomainCode: string,
-  abilityId: string,
-  includeSetValue = true
-): NumericBonus[] {
-  const aliases = [abilityId, canonicalAbility(abilityId), normalizeAbilityKey(abilityId)].filter(
-    (ability): ability is string => ability !== undefined
-  )
-  return [...new Set(aliases)].flatMap((ability) =>
-    modifierBonuses(valueDomainCode, { ability }, includeSetValue)
-  )
-}
-
-function abilityMatches(left: string | undefined, right: string): boolean {
-  return left !== undefined && canonicalAbility(left) === canonicalAbility(right)
-}
-
-/** The snapshot's key for an ability, matched through its aliases; the ability itself when absent. */
-export function abilityRecordKey(
-  abilities: CharacterBuildSnapshot['abilities'],
-  abilityId: string
-): string {
-  return (
-    Object.keys(abilities).find((candidate) => abilityMatches(candidate, abilityId)) ?? abilityId
-  )
-}
-
-/** The snapshot's index of an ability, matched through its aliases; null when absent. */
+/** The snapshot's index of an ability code; null when absent. */
 export function abilityRecordIndex(
   abilities: CharacterBuildSnapshot['abilities'],
   abilityId: string
 ): number | null {
-  const index = Object.keys(abilities).findIndex((candidate) =>
-    abilityMatches(candidate, abilityId)
-  )
+  const index = Object.keys(abilities).indexOf(abilityId)
   return index < 0 ? null : index
 }
 
@@ -109,8 +74,7 @@ export function buildCharacterDerivedRuleFacts(
   const abilities: DerivedFacts['abilities'] = Object.entries(snapshot.abilities).map(
     ([abilityId, baseScore]) => {
       const abilityAdjustments = adjustments.filter(
-        (adjustment) =>
-          adjustment.family === 'ABILITY' && abilityMatches(adjustment.ability, abilityId)
+        (adjustment) => adjustment.family === 'ABILITY' && adjustment.ability === abilityId
       )
       const manualBonus = abilityAdjustments.find(
         (adjustment) => adjustment.field === 'OTHER_MODIFIER'
@@ -123,7 +87,7 @@ export function buildCharacterDerivedRuleFacts(
         abilityId,
         baseScore,
         bonuses: [
-          ...abilityModifierBonuses('ABILITY_SCORE', abilityId),
+          ...modifierBonuses('ABILITY_SCORE', { ability: abilityId }),
           ...(manualBonus && typeof manualBonus.value === 'number'
             ? [fixedBonus(manualBonus.id, manualBonus.value)]
             : [])
@@ -142,10 +106,8 @@ export function buildCharacterDerivedRuleFacts(
 
   const savingThrows: DerivedFacts['savingThrows'] = Object.keys(snapshot.abilities).map(
     (abilityId) => {
-      const canonicalId = canonicalAbility(abilityId)
       const targetAdjustments = adjustments.filter(
-        (adjustment) =>
-          adjustment.family === 'SAVING_THROW' && abilityMatches(adjustment.ability, abilityId)
+        (adjustment) => adjustment.family === 'SAVING_THROW' && adjustment.ability === abilityId
       )
       const proficiencyOverride = targetAdjustments.find(
         (adjustment) => adjustment.field === 'PROFICIENCY_OVERRIDE'
@@ -160,7 +122,7 @@ export function buildCharacterDerivedRuleFacts(
       return {
         abilityId,
         abilityIndex: abilityRecordIndex(snapshot.abilities, abilityId),
-        proficiencySubjectId: canonicalId,
+        proficiencySubjectId: abilityId,
         proficiencyOverride: proficiencyOverride
           ? {
               sourceId: proficiencyOverride.id,
@@ -171,10 +133,10 @@ export function buildCharacterDerivedRuleFacts(
         bonuses: [
           {
             kind: 'PROFICIENCY' as const,
-            sourceId: `saving-throw-proficiency:${canonicalId}`,
+            sourceId: `saving-throw-proficiency:${abilityId}`,
             operation: 'ADD' as const
           },
-          ...abilityModifierBonuses('SAVING_THROW_MODIFIER', abilityId, false),
+          ...modifierBonuses('SAVING_THROW_MODIFIER', { ability: abilityId }, false),
           ...manualBonuses.flatMap((adjustment) =>
             typeof adjustment.value === 'number'
               ? [fixedBonus(adjustment.id, adjustment.value)]
@@ -279,7 +241,7 @@ export function buildCharacterDerivedRuleFacts(
 
   const spellcastingAbility = snapshot.classes.flatMap(({ classId }) => {
     const abilityId = registry.classes[classId]?.spellcasting?.ability
-    return abilityId ? [abilityRecordKey(snapshot.abilities, abilityId)] : []
+    return abilityId ? [abilityId] : []
   })[0]
   const { initiative } = abilityScoreCapabilityRegistry.require(
     snapshot.systemId
@@ -290,7 +252,7 @@ export function buildCharacterDerivedRuleFacts(
     savingThrows,
     skills,
     initiative: {
-      abilityId: abilityRecordKey(snapshot.abilities, initiative),
+      abilityId: initiative,
       abilityIndex: abilityRecordIndex(snapshot.abilities, initiative),
       bonuses: modifierBonuses('INITIATIVE', {}, false)
     },

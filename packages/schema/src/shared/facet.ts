@@ -8,7 +8,6 @@ import type { FacetBodyAuthored, FacetContextAuthored } from '@artificer-toolkit
 import { z, convexOpaqueSchema, lazySchema, lazySchemaParts } from '../zod.js'
 
 import {
-  abilityCodeSchema,
   activationCodeSchema,
   authoringConstraintCodeSchema,
   authoringModeKindSchema,
@@ -199,7 +198,7 @@ const predicatePayloadSchemas = lazySchemaParts(
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELLCASTING_ABILITY)
         }),
         selectableSchema({
-          abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
+          abilities: authoredReferenceCollectionSchema(systemCoreCodeSchema)
         })
       ),
       SPELL_LEVEL: z.object({
@@ -212,7 +211,7 @@ const predicatePayloadSchemas = lazySchemaParts(
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_ABILITY)
         }),
         selectableSchema({
-          abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
+          abilities: authoredReferenceCollectionSchema(systemCoreCodeSchema)
         })
       ),
       SAVING_THROW_DC: z.object({
@@ -242,7 +241,7 @@ const predicatePayloadSchemas = lazySchemaParts(
       }),
       ATTACK_ABILITY: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ABILITY),
-        ability: abilityCodeSchema
+        ability: systemCoreCodeSchema
       }),
       ATTACK_ACTIVATION: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ACTIVATION),
@@ -305,7 +304,7 @@ const predicatePayloadSchemas = lazySchemaParts(
         }),
         selectableSchema(
           {
-            abilities: abilityCodeSchema
+            abilities: systemCoreCodeSchema
           },
           {
             level: scalingAmountKindSchema
@@ -455,7 +454,7 @@ const predicatePayloadSchemas = lazySchemaParts(
         }),
         selectableSchema(
           {
-            abilities: abilityCodeSchema
+            abilities: systemCoreCodeSchema
           },
           {
             min: z.number(),
@@ -469,7 +468,7 @@ const predicatePayloadSchemas = lazySchemaParts(
         }),
         selectableSchema(
           {
-            abilities: abilityCodeSchema
+            abilities: systemCoreCodeSchema
           },
           {
             min: z.number(),

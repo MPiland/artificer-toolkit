@@ -1,5 +1,4 @@
 import type {
-  AbilityCode,
   AttackDomainCode,
   EquipmentCategoryCode,
   LengthUnitCode,
@@ -23,8 +22,8 @@ type CharacterRuleRollMode = string
 
 export interface CharacterRuleRollModes {
   initiative: CharacterRuleRollMode
-  abilityChecks: Record<AbilityCode, CharacterRuleRollMode>
-  savingThrows: Record<AbilityCode, CharacterRuleRollMode>
+  abilityChecks: Record<string, CharacterRuleRollMode>
+  savingThrows: Record<string, CharacterRuleRollMode>
   skillChecks: Record<string, CharacterRuleRollMode>
   attacks: Record<AttackDomainCode, CharacterRuleRollMode>
 }
@@ -145,7 +144,7 @@ export interface CharacterRuleSpellAccess {
   sourceInstanceId: string
   attributes?: SpellGrantAttribute[]
   castAtLevel?: number
-  castingAbility?: AbilityCode
+  castingAbility?: string
   charges?: CompiledChargeUse
 }
 

@@ -7,7 +7,7 @@ import type {
   ReactionTriggerBindingAuthored,
   ResourceUseAuthored
 } from '#authored'
-import { ABILITY_MODIFIER_REFERENCE_OPTIONS, ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
+import { ACTIVATION_OPTIONS, TRIGGER_OPTIONS } from '#core'
 import { buildNodeMap, type NodeMap } from '#utils'
 import { RANGE_NODE_MAP, SAVING_THROW_NODE_MAP, SHAPE_NODE_MAP } from '../../shared/maps/index.js'
 import { CHECK_NODE_MAP } from './check.js'
@@ -120,7 +120,7 @@ const higherLevelCheck = buildNodeMap<ReactionHigherLevelCheckAuthored>()
 
 export const HIGHER_LEVEL_CHECK_NODE_MAP = higherLevelCheck.define(
   'higherLevelCheck',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     const { selectSingle, number } = nodes
 
     map
@@ -129,7 +129,12 @@ export const HIGHER_LEVEL_CHECK_NODE_MAP = higherLevelCheck.define(
         selectSingle(
           ['ability'],
           'Check ability',
-          { kind: 'INLINE_OPTIONS', options: ABILITY_MODIFIER_REFERENCE_OPTIONS },
+          {
+            kind: 'DATA',
+            relationship: data.table('ability_modifier_references', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
           { order: 1, requiredIf: true }
         )
       )

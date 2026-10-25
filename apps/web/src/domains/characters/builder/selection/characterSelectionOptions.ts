@@ -4,7 +4,6 @@ import type {
   CharacterBuilderClassReferenceDto,
   CharacterBuilderRaceReferenceDto
 } from '@artificer-toolkit/schema/api/characters'
-import type { AbilityCode } from '@artificer-toolkit/shared/core'
 import { evaluateMulticlassRequirements } from '@artificer-toolkit/shared/character'
 import { formatEnumLabel } from '#components/AuthoredDetail'
 import { compareCharacterBuilderLabels } from './optionProjection'
@@ -123,7 +122,7 @@ export function buildBackgroundSelectionGroups(
 }
 
 export function applyClassChoiceEligibility(params: {
-  abilityScores: Partial<Record<AbilityCode, number>>
+  abilityScores: Partial<Record<string, number>>
   choices: CharacterBuilderChoiceOptionDto[]
   currentClassIds: string[]
   references: CharacterBuilderClassReferenceDto[]
@@ -144,7 +143,7 @@ export function applyClassChoiceEligibility(params: {
 }
 
 function getClassChoiceDisabledReason(params: {
-  abilityScores: Partial<Record<AbilityCode, number>>
+  abilityScores: Partial<Record<string, number>>
   candidateClassId: string
   currentClassIds: string[]
   references: CharacterBuilderClassReferenceDto[]

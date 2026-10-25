@@ -2,6 +2,7 @@ import type {
   CreatureAuthoringInputDto,
   CreatureAuthoredDto
 } from '@artificer-toolkit/schema/subjects/creature'
+import { defaultAbilityScores } from '@artificer-toolkit/rules-runtime/systemAbilities'
 import { defaultSize } from '@artificer-toolkit/rules-runtime/systemSizes'
 import { CREATURE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 
@@ -44,7 +45,7 @@ export function createEmptyCreature({ systemId }: CreateEmptyCreatureInput): Cre
     size: systemId ? defaultSize(systemId) : '',
     systemId,
     tags: [],
-    abilityScores: createDefaultAbilityScores(),
+    abilityScores: systemId ? defaultAbilityScores(systemId) : {},
     naturalArmorBonus: 0,
     hitPoints: 1,
     speeds: [],
@@ -58,17 +59,6 @@ export function createEmptyCreature({ systemId }: CreateEmptyCreatureInput): Cre
     features: [],
     equipmentLoadout: [],
     proficiencies: []
-  }
-}
-
-export function createDefaultAbilityScores(): CreatureFormValues['abilityScores'] {
-  return {
-    STRENGTH: 10,
-    DEXTERITY: 10,
-    CONSTITUTION: 10,
-    INTELLIGENCE: 10,
-    WISDOM: 10,
-    CHARISMA: 10
   }
 }
 
@@ -103,7 +93,7 @@ export function toCreatureFormValues(
     description: creature.description ?? '',
     quote: creature.quote ?? '',
     tags: toStringFormValues(creature.tags),
-    abilityScores: creature.abilityScores ?? createDefaultAbilityScores(),
+    abilityScores: creature.abilityScores ?? defaultAbilityScores(creature.systemId),
     logisticsNotes: toStringFormValues(creature.logisticsNotes),
     npcProfile: creature.npcProfile
       ? {

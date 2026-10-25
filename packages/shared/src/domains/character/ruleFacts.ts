@@ -1,61 +1,9 @@
-import { ABILITIES } from '../core/ability.js'
 import type { CharacterAssemblyRegistry, CharacterAssemblyRegistrySystem } from './ruleRegistry.js'
-
-const ABILITY_KEY_ALIASES: Record<string, string> = {
-  STRENGTH: 'STR',
-  STR: 'STRENGTH',
-  DEXTERITY: 'DEX',
-  DEX: 'DEXTERITY',
-  CONSTITUTION: 'CON',
-  CON: 'CONSTITUTION',
-  INTELLIGENCE: 'INT',
-  INT: 'INTELLIGENCE',
-  WISDOM: 'WIS',
-  WIS: 'WISDOM',
-  CHARISMA: 'CHA',
-  CHA: 'CHARISMA',
-  SPELLCASTING: 'SPELLCASTING'
-}
 
 export type ParsedModifierDomainKey = {
   valueDomainCode: string
   modifierKind: string
   params: Record<string, string>
-}
-
-export function normalizeAbilityKey(ability: string | undefined): string | undefined {
-  if (!ability) return undefined
-  return ABILITY_KEY_ALIASES[ability] ?? ability
-}
-
-export function resolveAbilityRecordKey(
-  record: Record<string, unknown>,
-  ability: string | undefined
-): string | undefined {
-  if (!ability) return undefined
-  if (ability in record) return ability
-
-  const normalized = normalizeAbilityKey(ability)
-  if (normalized && normalized in record) return normalized
-
-  return normalized ?? ability
-}
-
-const ABILITY_CANONICAL_BY_ALIAS = (() => {
-  const aliases = new Map<string, string>()
-  for (const abilityCode of Object.keys(ABILITIES)) {
-    aliases.set(abilityCode, abilityCode)
-    const short = ABILITIES[abilityCode as keyof typeof ABILITIES].short
-    if (short) aliases.set(short, abilityCode)
-  }
-  return aliases
-})()
-
-export function resolveAbilityAlias(subjectId: string): string | undefined {
-  return (
-    ABILITY_CANONICAL_BY_ALIAS.get(subjectId) ??
-    ABILITY_CANONICAL_BY_ALIAS.get(subjectId.toUpperCase())
-  )
 }
 
 function toSkillCanonicalId(value: string): string {
@@ -104,11 +52,10 @@ export function buildSkillSubjectAliasMap(
 export function resolveSystemSkillAbilities(system: CharacterAssemblyRegistrySystem) {
   const abilityCodesById = new Map<string, string>()
   for (const ability of system.abilities ?? []) {
-    const abilityCode = normalizeAbilityKey(ability.code)
-    if (!abilityCode || abilityCodesById.has(ability.id)) {
+    if (!ability.code || abilityCodesById.has(ability.id)) {
       throw new Error(`System ability definition "${ability.id}" is ambiguous.`)
     }
-    abilityCodesById.set(ability.id, abilityCode)
+    abilityCodesById.set(ability.id, ability.code)
   }
   const canonicalIds = new Set<string>()
   return [...(system.skills ?? [])]

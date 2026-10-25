@@ -1,7 +1,6 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterChargeSourceLevel } from '@artificer-toolkit/schema/api/characterResourceRules'
 import type { CompiledCharge } from '@artificer-toolkit/shared/compilers'
-import type { AbilityCode } from '@artificer-toolkit/shared/core'
 
 type ChargeCalculation = CharacterRulePolicyInput['chargeCalculations'][number]
 type ChargeBase = ChargeCalculation['base']
@@ -27,7 +26,7 @@ function baseFacts(charge: CompiledCharge, context: CharacterChargeRuleFactConte
 
   switch (charge.limitKind) {
     case 'ABILITY_MODIFIER': {
-      const abilityCharge = charge as CompiledCharge & { ability: AbilityCode }
+      const abilityCharge = charge as CompiledCharge & { ability: string }
       return {
         ...common,
         kind: charge.limitKind,

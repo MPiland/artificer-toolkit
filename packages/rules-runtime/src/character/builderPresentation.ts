@@ -10,7 +10,7 @@ import {
 } from '@artificer-toolkit/shared/subjects/authored'
 
 import type { CharacterBuilderCatalog } from './builderCatalog.js'
-import { abilityOrder } from './builderEligibility.js'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import { isCharacterHitpointProgressionValid } from './builderHitPoints.js'
 import type { CharacterStartingEquipmentDecision } from './builderStartingEquipment.js'
 import type {
@@ -25,6 +25,11 @@ import type {
 } from './builderTypes.js'
 
 type BuilderMode = 'create' | 'edit'
+
+const hasEveryAbilityScore = (character: CharacterAuthored, summary: CharacterBuilderSummary) =>
+  systemCoreCodeRegistry
+    .abilityCodes(character.systemId)
+    .every((code) => summary.abilities[code] !== undefined)
 
 export function createReadiness(
   character: CharacterAuthored,
@@ -41,8 +46,8 @@ export function createReadiness(
   if (!character.intent.background.backgroundId)
     blockingIssues.push('A background selection is required.')
   if (summary.classes.length === 0) blockingIssues.push('At least one class is required.')
-  if (Object.keys(summary.abilities).length < abilityOrder.length) {
-    blockingIssues.push('All six ability scores must be assigned.')
+  if (!hasEveryAbilityScore(character, summary)) {
+    blockingIssues.push('Every ability score must be assigned.')
   }
   if (
     !isCharacterHitpointProgressionValid(
@@ -154,7 +159,7 @@ export function resolveRecommendedCharacterBuilderSection(
   }
 
   if (
-    Object.keys(summary.abilities).length < abilityOrder.length ||
+    !hasEveryAbilityScore(character, summary) ||
     !isCharacterHitpointProgressionValid(
       character.intent.classes,
       character.intent.hitpoints.levels,

@@ -11,7 +11,6 @@ import {
   type ScopedFacetAuthored
 } from '#authored'
 import {
-  ABILITY_OPTIONS,
   ACTIVATION_OPTIONS,
   AUTHORING_CONSTRAINT_OPTIONS,
   AUTHORING_MODE_KIND_OPTIONS,
@@ -1155,8 +1154,10 @@ function createFacetPredicateNodeMap(
           ['abilities'],
           'Abilities',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS,
+            kind: 'DATA',
+            relationship: data.table('abilities', {
+              selectColumns: ['id', 'label', 'description']
+            }),
             filter: {
               kind: 'ALLOW',
               by: condition((c) =>
@@ -1331,7 +1332,10 @@ function createFacetPredicateNodeMap(
         selectSingle(
           ['ability'],
           'Attack Ability',
-          { kind: 'INLINE_OPTIONS', options: ABILITY_OPTIONS },
+          {
+            kind: 'DATA',
+            relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
+          },
           {
             order: 3,
             showIf: local.field(['predicateCode']).eq('ATTACK_ABILITY'),

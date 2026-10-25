@@ -9,8 +9,7 @@ import {
   CharacterStartingEquipmentSource,
   getCharacterChosenGrantSelectionIdentityKey
 } from '@artificer-toolkit/shared/subjects/authored/character/intent'
-
-import { abilityCodeSchema } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const characterProfileAuthoredDtoSchemaRaw = lazySchema(() =>
   z.object({
@@ -182,7 +181,7 @@ const characterClassIntentDtoSchemaRaw = lazySchema(() =>
 )
 const characterManualAbilityAssignmentDtoSchemaRaw = lazySchema(() =>
   z.object({
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     score: z.number().check(z.int())
   })
 )
@@ -191,7 +190,7 @@ const characterAbilityRollGroupRecordDtoSchemaRaw = lazySchema(() =>
     id: z.string(),
     rolls: z.array(characterDieRollRecordDtoSchemaRaw),
     kept: z.array(characterDieRollRecordDtoSchemaRaw),
-    assignedAbility: z.optional(abilityCodeSchema),
+    assignedAbility: z.optional(systemCoreCodeSchema),
     score: z.number().check(z.int()),
     applied: z.optional(z.boolean()),
     rolling: z.optional(z.boolean())
@@ -206,13 +205,13 @@ const characterManualRolledAbilityRecordDtoSchemaRaw = lazySchema(() =>
 )
 const characterStandardArrayAssignmentDtoSchemaRaw = lazySchema(() =>
   z.object({
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     option: z.enum(['8', '10', '12', '13', '14', '15'])
   })
 )
 const characterPointBuyAssignmentDtoSchemaRaw = lazySchema(() =>
   z.object({
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     option: z.enum(['8', '9', '10', '11', '12', '13', '14', '15'])
   })
 )

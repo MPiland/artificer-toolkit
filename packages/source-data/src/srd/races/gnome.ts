@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   FEATURE_ATTRIBUTE,
@@ -24,7 +23,8 @@ import {
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
   SRD_USER_ID,
-  SRD_DARKVISION_SENSE_ID
+  SRD_DARKVISION_SENSE_ID,
+  ABILITY_CODE
 } from '../vocabulary.js'
 import { magicSaveAdvantageGrants } from '../classes/mechanics.js'
 

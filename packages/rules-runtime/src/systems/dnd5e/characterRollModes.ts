@@ -3,7 +3,6 @@ import type {
   CharacterRulePolicyInput,
   CharacterRulePolicyOutput
 } from '@artificer-toolkit/schema/api/characterRules'
-import { abilityCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import { modifierRollInfluence, type AttackDomainCode } from '@artificer-toolkit/shared/core'
 import {
   compareCanonicalD20Contributors,
@@ -11,7 +10,6 @@ import {
 } from '@artificer-toolkit/shared/rules'
 
 import type { CharacterResolvedModifierGroup } from './characterModifiers.js'
-import { canonicalCharacterAbility } from './characterPolicyValues.js'
 import { resolveDnd5eRollMode } from './rollModePolicy.js'
 import {
   DND5E_CHARACTER_WIDE_TARGET,
@@ -66,7 +64,7 @@ function dnd5eRollContributors(
       return [
         {
           valueDomainCode: modifier.valueDomainCode,
-          ability: canonicalCharacterAbility(domain.ability),
+          ability: domain.ability ?? null,
           conditionTypeId: domain.conditionTypeId,
           ruleDefinitionId: domain.ruleDefinitionId,
           skillId: domain.skillId,
@@ -119,6 +117,7 @@ export function evaluateDnd5eCharacterRollModes(
   const abilityCheck = (entry: Contributor, ability: string | null) =>
     entry.valueDomainCode === 'ABILITY_CHECK' &&
     (entry.ability === null || entry.ability === ability)
+  const abilities = input.derivedBaseFacts.abilities.map(({ abilityId }) => abilityId)
   const attacks = ['MELEE', 'RANGED', 'SPELL', 'UNARMED'] as const
   const skills = [
     'acrobatics',
@@ -142,10 +141,10 @@ export function evaluateDnd5eCharacterRollModes(
   ] as const
   const rollContributorEvidence = {
     initiative: matching((entry) => entry.valueDomainCode === 'INITIATIVE'),
-    abilityChecks: keyedRecord(abilityCodeSchema.options, (ability) =>
+    abilityChecks: keyedRecord(abilities, (ability) =>
       matching((entry) => abilityCheck(entry, ability))
     ),
-    savingThrows: keyedRecord(abilityCodeSchema.options, (ability) =>
+    savingThrows: keyedRecord(abilities, (ability) =>
       matching(
         (entry) =>
           entry.valueDomainCode === 'SAVING_THROW_MODIFIER' &&
@@ -158,7 +157,7 @@ export function evaluateDnd5eCharacterRollModes(
       const skill = input.derivedBaseFacts.skills.find((entry) => entry.skillId === skillId)
       return matching(
         (entry) =>
-          abilityCheck(entry, canonicalCharacterAbility(skill?.governingAbilityId)) ||
+          abilityCheck(entry, skill?.governingAbilityId ?? null) ||
           (entry.valueDomainCode === 'SKILL_MODIFIER' &&
             skill?.proficiencySubjectIds.some((alias) => alias === entry.skillId) === true)
       )
@@ -172,11 +171,11 @@ export function evaluateDnd5eCharacterRollModes(
     rollModes: {
       initiative: resolveDnd5eRollMode(rollContributorEvidence.initiative).rollMode,
       abilityChecks: keyedRecord(
-        abilityCodeSchema.options,
+        abilities,
         (key) => resolveDnd5eRollMode(rollContributorEvidence.abilityChecks[key]).rollMode
       ),
       savingThrows: keyedRecord(
-        abilityCodeSchema.options,
+        abilities,
         (key) => resolveDnd5eRollMode(rollContributorEvidence.savingThrows[key]).rollMode
       ),
       skillChecks: keyedRecord(

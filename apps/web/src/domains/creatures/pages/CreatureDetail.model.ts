@@ -15,16 +15,7 @@ type CreatureFeature = NonNullable<CreatureAuthoredDto['features']>[number]
 type CreatureReferences = Pick<
   AuthoredContentReferenceData,
   'challengeRatings' | 'conditionTypes' | 'creatureTypes' | 'damageTypes' | 'equipment' | 'speeds'
->
-
-const abilityOrder = [
-  'STRENGTH',
-  'DEXTERITY',
-  'CONSTITUTION',
-  'INTELLIGENCE',
-  'WISDOM',
-  'CHARISMA'
-] as const
+> & { abilities: Array<{ value: string; short: string }> }
 
 export function buildCreatureDetailModel(
   creature: CreatureAuthoredDto,
@@ -93,11 +84,11 @@ export function buildCreatureDetailModel(
     reactionItems: featureBuckets.reactions,
     regionalEffectItems: featureBuckets.regionalEffects,
     stats: {
-      abilities: abilityOrder.map((ability) => {
-        const score = creature.abilityScores[ability]
+      abilities: references.abilities.map((ability) => {
+        const score = creature.abilityScores[ability.value] ?? 0
 
         return {
-          abbreviation: formatAbilityAbbreviation(ability),
+          abbreviation: ability.short,
           modifier: formatAbilityModifier(abilityModifier(score)),
           score: formatNumber(score)
         }
@@ -283,23 +274,6 @@ function getCreatureProfileItems(creature: CreatureAuthoredDto, references: Crea
           : `${entry.quantity} item${entry.quantity === 1 ? '' : 's'}`
     }))
   ]
-}
-
-function formatAbilityAbbreviation(ability: (typeof abilityOrder)[number]): string {
-  switch (ability) {
-    case 'STRENGTH':
-      return 'STR'
-    case 'DEXTERITY':
-      return 'DEX'
-    case 'CONSTITUTION':
-      return 'CON'
-    case 'INTELLIGENCE':
-      return 'INT'
-    case 'WISDOM':
-      return 'WIS'
-    case 'CHARISMA':
-      return 'CHA'
-  }
 }
 
 function formatAbilityModifier(modifier: number): string {

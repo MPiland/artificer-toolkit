@@ -1,4 +1,3 @@
-import type { ABILITY_CODE } from './ability.js'
 import type { CoreMeta } from './core.js'
 
 export const NUMERIC_EXPR_CODE = {
@@ -88,7 +87,7 @@ export const NUMERIC_EXPR: Record<keyof typeof NUMERIC_EXPR_CODE, NumericExprOpt
 export type NumericAtom =
   | { kind: typeof NUMERIC_EXPR_CODE.FIXED; value: number }
   | { kind: typeof NUMERIC_EXPR_CODE.PROFICIENCY_BONUS }
-  | { kind: typeof NUMERIC_EXPR_CODE.ABILITY_MODIFIER; ability: keyof typeof ABILITY_CODE }
+  | { kind: typeof NUMERIC_EXPR_CODE.ABILITY_MODIFIER; ability: string }
   | { kind: typeof NUMERIC_EXPR_CODE.SKILL_BONUS; skillId: string }
   | { kind: typeof NUMERIC_EXPR_CODE.CHARACTER_LEVEL }
   | { kind: typeof NUMERIC_EXPR_CODE.CLASS_LEVEL; classId?: string }

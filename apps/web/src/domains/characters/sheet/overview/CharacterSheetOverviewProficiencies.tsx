@@ -7,7 +7,7 @@ import * as proficiencyStyles from './proficiencies.css'
 import * as panelStyles from '../shared/panel.css'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { formatSigned } from '../core/characterSheet.utils'
-import { formatProficiencyLevel, getAbilityShortLabel } from './characterSheetOverview.utils'
+import { formatProficiencyLevel } from './characterSheetOverview.utils'
 import { CharacterSheetRollValue } from '../dice/CharacterSheetRollValue'
 import { withRollModifier } from '../dice/dice.utils'
 
@@ -54,7 +54,7 @@ export function CharacterSheetSavingThrowsPanel({
                 type='button'
                 onClick={() => openPanel?.({ kind: 'SAVING_THROW', ability: save.ability })}
               >
-                {getAbilityShortLabel(save.ability)}
+                {save.short}
               </button>
               <span
                 className={proficiencyStyles.proficiencyDot}
@@ -135,9 +135,7 @@ export function CharacterSheetSkillsPanel({
                 {skill.label}
               </button>
             </div>
-            <Text className={proficiencyStyles.proficiencyMeta}>
-              {getAbilityShortLabel(skill.ability)}
-            </Text>
+            <Text className={proficiencyStyles.proficiencyMeta}>{skill.abilityShort}</Text>
             <span
               className={proficiencyStyles.proficiencyDot}
               data-proficiency={skill.proficiency}

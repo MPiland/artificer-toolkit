@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   CLOSED_RULE_KIND,
@@ -27,7 +26,8 @@ import {
   SRD_SYSTEM_ID,
   SRD_USER_ID,
   SRD_DARKVISION_SENSE_ID,
-  SRD_SKILLS
+  SRD_SKILLS,
+  ABILITY_CODE
 } from '../vocabulary.js'
 import { raceClosedRuleEffect } from './closed-rule-effect.js'
 

@@ -1,5 +1,4 @@
 import type {
-  AbilityCode,
   ChargeLimitKind,
   ChargeResetKind,
   DurationKind,
@@ -454,7 +453,7 @@ export type ValueDomainParamByCode = {
   // hold only for attacks against the effect's source (`againstEffectSource`, Bestow Curse).
   ATTACK_ROLL: {
     attackDomain: AttackDomainCode
-    ability?: AbilityCode
+    ability?: string
     againstEffectSource?: boolean
   }
 
@@ -502,13 +501,13 @@ export type ValueDomainParamByCode = {
   HEALING_RECEIVED: EmptyObject
 
   // Ability checks may apply globally or to one ability.
-  ABILITY_CHECK: { ability?: AbilityCode }
+  ABILITY_CHECK: { ability?: string }
 
   // Save bonus is per ability (STR/DEX/etc); conditionTypeId scopes advantage/disadvantage to a specific
   // condition; `requiresHolderSeesSource` limits advantage/disadvantage to effects whose source the
   // holder can see (Danger Sense, D100).
   SAVING_THROW_MODIFIER: {
-    ability: AbilityCode
+    ability: string
     conditionTypeId?: string
     ruleDefinitionId?: string
     requiresHolderSeesSource?: boolean
@@ -525,7 +524,7 @@ export type ValueDomainParamByCode = {
    * ABILITIES / SCORES
    * ────────────────────────────────────────────── */
 
-  ABILITY_SCORE: { ability: AbilityCode }
+  ABILITY_SCORE: { ability: string }
 
   /* ──────────────────────────────────────────────
    * MOVEMENT & SENSES

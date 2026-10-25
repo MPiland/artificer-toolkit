@@ -1,10 +1,4 @@
-import type {
-  AbilityCode,
-  GRANT_KIND,
-  NodeSubjectCode,
-  SpellGrantAccess,
-  SpellGrantAttribute
-} from '#core'
+import type { GRANT_KIND, NodeSubjectCode, SpellGrantAccess, SpellGrantAttribute } from '#core'
 import type { ScalingGrant, ChargeAuthored, FacetAuthored } from '#authored'
 
 /** What a grant adds to its casts (D156): a narrower target, a once-per-target lockout, a slot cost. */
@@ -30,14 +24,14 @@ export type SpellGrantAuthored<N extends NodeSubjectCode = NodeSubjectCode> = Sc
     | {
         grantKind: typeof GRANT_KIND.SPELL_GRANT
         castAtLevel?: number
-        castingAbility?: AbilityCode
+        castingAbility?: string
         attributes?: Exclude<SpellGrantAttribute, 'LIMITED_USE'>[]
         filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>
       }
     | {
         grantKind: typeof GRANT_KIND.SPELL_GRANT
         castAtLevel?: number
-        castingAbility?: AbilityCode
+        castingAbility?: string
         charges?: ChargeAuthored<true>
         attributes?: SpellGrantAttribute[]
         filters?: FacetAuthored<Extract<NodeSubjectCode, 'SPELL'>>

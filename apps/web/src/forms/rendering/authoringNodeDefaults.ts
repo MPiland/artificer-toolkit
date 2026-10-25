@@ -42,7 +42,6 @@ import type {
   CreatureSenseDto
 } from '@artificer-toolkit/schema/subjects/creature'
 import type {
-  AbilityCode,
   MeasurementUnitCode,
   BreakpointScalingAuthored,
   ModifierAttackDecoysAuthored,
@@ -1047,7 +1046,7 @@ function createAbilityScores() {
     INTELLIGENCE: 10,
     WISDOM: 10,
     CHARISMA: 10
-  } satisfies Record<AbilityCode, number>
+  } satisfies Record<string, number>
 }
 
 function createChargeBonus(order: number) {

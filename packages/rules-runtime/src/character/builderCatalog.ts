@@ -1,5 +1,4 @@
 import {
-  ABILITY_OPTIONS,
   CLASS_CATEGORY,
   EQUIPMENT_PROPERTY_REGISTRY,
   MEASUREMENT_UNIT_REGISTRY,
@@ -268,7 +267,7 @@ export function createCharacterBuilderCatalog({
             )
             .map(
               (ability) =>
-                ABILITY_OPTIONS.find((candidate) => candidate.code === ability)?.label ?? ability
+                system?.abilities.find((candidate) => candidate.code === ability)?.label ?? ability
             ),
           proficiencyGroups: getClassProficiencyGroups(
             proficiencies,
@@ -308,8 +307,9 @@ export function createCharacterBuilderCatalog({
 
 type ClassProficiency = NonNullable<CharacterBuilderClassCatalogSource['proficiencies']>[number]
 
+// Snapshot facts are built without the System record, so they label the ability code (RULES-2.T9f3).
 export function getRaceAbilityScoreIncreaseFacts(
-  race: Pick<ResolvedRace, 'features'> | undefined
+  race: Pick<ResolvedRace, 'features' | 'systemId'> | undefined
 ): Array<{ label: string; value: string }> {
   const facts: Array<{ label: string; value: string }> = []
 
@@ -321,15 +321,18 @@ export function getRaceAbilityScoreIncreaseFacts(
       return fact ? [fact] : []
     })
     const uniformValue = fixedFacts[0]?.value
-    const fixedLabels = new Set(fixedFacts.map((fact) => fact.label))
+    const fixedAbilities = new Set(fixedFacts.map((fact) => fact.ability))
     if (
+      race &&
       uniformValue &&
       fixedFacts.every((fact) => fact.value === uniformValue) &&
-      ABILITY_OPTIONS.every((ability) => fixedLabels.has(ability.label))
+      systemCoreCodeRegistry
+        .abilityCodes(race.systemId)
+        .every((ability) => fixedAbilities.has(ability))
     ) {
       facts.push({ label: 'All abilities', value: uniformValue })
     } else {
-      facts.push(...fixedFacts)
+      facts.push(...fixedFacts.map(({ label, value }) => ({ label, value })))
     }
 
     const optionAmounts = [
@@ -357,7 +360,7 @@ export function getRaceAbilityScoreIncreaseFacts(
 
 function getFixedAbilityScoreIncreaseFact(
   modifier: ModifierGrantAuthored
-): { label: string; value: string } | null {
+): { ability: string; label: string; value: string } | null {
   if (modifier.valueDomainCode !== 'ABILITY_SCORE' || modifier.modifierKind !== 'BONUS') {
     return null
   }
@@ -373,9 +376,8 @@ function getFixedAbilityScoreIncreaseFact(
   }
 
   return {
-    label:
-      ABILITY_OPTIONS.find((ability) => ability.code === modifier.domain.ability)?.label ??
-      modifier.domain.ability,
+    ability: modifier.domain.ability,
+    label: formatCatalogLabel(modifier.domain.ability),
     value: `+${modifier.payload.amount}`
   }
 }

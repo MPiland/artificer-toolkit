@@ -2,7 +2,6 @@ import type {
   CharacterAssemblyRegistry,
   CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
-import { normalizeAbilityKey } from '@artificer-toolkit/shared/character'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type {
   CharacterInitiativeActorFacts,
@@ -57,11 +56,10 @@ export function toCharacterInitiativeActorFacts(input: {
     }
     const abilitiesById = new Map<string, string>()
     for (const ability of registry.system.abilities ?? []) {
-      const abilityCode = normalizeAbilityKey(ability.code)
-      if (!abilityCode || abilitiesById.has(ability.id)) {
+      if (!ability.code || abilitiesById.has(ability.id)) {
         throw new Error(`System ability definition "${ability.id}" is ambiguous.`)
       }
-      abilitiesById.set(ability.id, abilityCode)
+      abilitiesById.set(ability.id, ability.code)
     }
     const checkIds = new Set<string>()
     const checkSkillIds = new Set<string>()

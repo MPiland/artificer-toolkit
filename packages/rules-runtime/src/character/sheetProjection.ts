@@ -5,7 +5,6 @@ import {
   currencyOptionIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
 import {
-  ABILITIES,
   AUTHORED_RECORD_STATUS,
   CHARACTER_EXTRA_KIND_OPTIONS,
   CHARACTER_EXTRA_KIND_REGISTRY,
@@ -42,10 +41,7 @@ import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
 import { labelCharacterConditions } from './characterConditionLabels.js'
 import { effectiveHitPointMaximum } from './activeEffectGrantTotals.js'
 import {
-  CHARACTER_ABILITY_ALIASES,
   DND5E_2014_EXHAUSTION_PRESENTATION,
-  getAbilityDerivedTotal,
-  isAbilityCode,
   classSpellSelectionKey,
   createSkillReference,
   getClassSpellSelectionSources
@@ -143,6 +139,7 @@ function formatAllProficiencyLabel(kind: string): string {
 }
 
 function formatProficiencyLabel(params: {
+  abilityByCode: ReadonlyMap<string, { label: string }>
   equipmentLabels: ReadonlyMap<string, string>
   languageLabels: ReadonlyMap<string, string>
   proficiency: CharacterRuleProficiency
@@ -162,10 +159,10 @@ function formatProficiencyLabel(params: {
     }
     case 'LANGUAGE':
       return params.languageLabels.get(proficiency.subjectId) ?? 'Unknown language'
-    case 'SAVE_ABILITY':
-      return isAbilityCode(proficiency.subjectId)
-        ? `${ABILITIES[proficiency.subjectId].label} saves`
-        : 'Unknown saving throw'
+    case 'SAVE_ABILITY': {
+      const abilityLabel = params.abilityByCode.get(proficiency.subjectId)?.label
+      return abilityLabel ? `${abilityLabel} saves` : 'Unknown saving throw'
+    }
     case 'SKILL':
       return params.skillLabels.get(proficiency.subjectId) ?? 'Unknown skill'
     default:
@@ -553,6 +550,7 @@ function buildActiveSpellGroups(params: {
   ownedSlotLevels: ReadonlySet<number>
   castLevelReaderSpellIds: ReadonlySet<string>
   actionReferences: CharacterRuleActionPresentationReferences
+  abilityByCode: ReadonlyMap<string, { short: string }>
 }): CharacterSheetResponseDto['spells']['activeGroups'] {
   const { ownedSlotLevels, castLevelReaderSpellIds } = params
   const spellCastDecisionsByCandidateId = new Map(
@@ -632,7 +630,7 @@ function buildActiveSpellGroups(params: {
           hasAttack && attackBonus !== undefined
             ? formatModifier(attackBonus)
             : save && saveDc !== undefined
-              ? `${ABILITIES[save.ability].short} ${saveDc}`
+              ? `${params.abilityByCode.get(save.ability)?.short ?? save.ability} ${saveDc}`
               : undefined
         return {
           rowId: candidateId,
@@ -838,6 +836,16 @@ export function projectCharacterSheetBundle(
     resolution.catalog.equipment.map((equipment) => [equipment.id, equipment.label])
   )
   const skillLabels = createVocabularyLabelMap(resolution.registry.system?.skills)
+  // The System record owns ability labels and abbreviations; a System without an abbreviation shows the label.
+  const systemAbilities = (resolution.registry.system?.abilities ?? []).map(
+    ({ code, label, short }) => ({ code, label, short: short ?? label })
+  )
+  const abilityByCode = new Map(systemAbilities.map((ability) => [ability.code, ability]))
+  const requireSystemAbility = (code: string) => {
+    const ability = abilityByCode.get(code)
+    if (!ability) throw new Error(`The Game System does not define the ability "${code}".`)
+    return ability
+  }
   const languageLabels = createVocabularyLabelMap(resolution.registry.system?.languages)
   const senseLabels = createVocabularyLabelMap(resolution.registry.system?.senses)
   const damageTypeLabels = createVocabularyLabelMap(resolution.registry.system?.damageTypes)
@@ -855,7 +863,7 @@ export function projectCharacterSheetBundle(
       currency.label
     ])
   )
-  const skillReference = createSkillReference(resolution.registry.system)
+  const skillReference = createSkillReference(resolution.registry.system, character.systemId)
   const spellSlots = [
     ...ruleEvaluation.output.spellSlots.maxByLevel.map((slot) => ({
       slotKey: getSpellSlotKey(slot.spellLevel),
@@ -1038,6 +1046,7 @@ export function projectCharacterSheetBundle(
         code: metadata.code,
         label: metadata.label,
         ability: metadata.ability,
+        abilityShort: requireSystemAbility(metadata.ability).short,
         total,
         rollMode: ruleProjection.rollModes.skillChecks[skill],
         proficiency: ruleProjection.calculations.skillProficiencyLevels[skill]?.effective ?? 'NONE'
@@ -1347,7 +1356,8 @@ export function projectCharacterSheetBundle(
     castLevelReaderSpellIds: getCastLevelReaderSpellIds(
       ruleEvaluation.output.spellReferenceMechanics
     ),
-    actionReferences: mechanicPresentation.actionReferences
+    actionReferences: mechanicPresentation.actionReferences,
+    abilityByCode
   })
   const displayedProficiencyKeys = new Set<string>()
 
@@ -1380,30 +1390,25 @@ export function projectCharacterSheetBundle(
     overview: {
       abilities: Object.keys(resolution.summary.abilities).map((ability) => {
         const abilityCode = ability as keyof typeof resolution.summary.abilities
+        const { label, short } = requireSystemAbility(abilityCode)
         return {
           ability: abilityCode,
-          score: getAbilityDerivedTotal(ruleProjection.derivedStats.abilityScores, abilityCode),
-          modifier: getAbilityDerivedTotal(
-            ruleProjection.derivedStats.abilityModifiers,
-            abilityCode
-          ),
+          label,
+          short,
+          score: ruleProjection.derivedStats.abilityScores[abilityCode] ?? 0,
+          modifier: ruleProjection.derivedStats.abilityModifiers[abilityCode] ?? 0,
           rollMode: ruleProjection.rollModes.abilityChecks[abilityCode]
         }
       }),
-      savingThrows: Object.keys(ABILITIES)
-        .filter((ability): ability is keyof typeof ABILITIES => isAbilityCode(ability))
-        .map((ability) => ({
-          ability,
-          label: ABILITIES[ability].label,
-          total: getAbilityDerivedTotal(ruleProjection.derivedStats.savingThrows, ability),
-          rollMode: ruleProjection.rollModes.savingThrows[ability],
-          proficiency:
-            ruleProjection.calculations.savingThrowProficiencyLevels[ability]?.effective ??
-            ruleProjection.calculations.savingThrowProficiencyLevels[
-              CHARACTER_ABILITY_ALIASES[ability] ?? ''
-            ]?.effective ??
-            'NONE'
-        })),
+      savingThrows: systemAbilities.map(({ code: ability, label, short }) => ({
+        ability,
+        label,
+        short,
+        total: ruleProjection.derivedStats.savingThrows[ability] ?? 0,
+        rollMode: ruleProjection.rollModes.savingThrows[ability],
+        proficiency:
+          ruleProjection.calculations.savingThrowProficiencyLevels[ability]?.effective ?? 'NONE'
+      })),
       skills: overviewSkills,
       facts: [
         { label: 'Initiative', value: formatModifier(ruleProjection.derivedStats.initiative) },
@@ -1512,6 +1517,7 @@ export function projectCharacterSheetBundle(
       >((proficiencies, proficiency) => {
         const kind = getProficiencyTargetKind(proficiency, resolution)
         const label = formatProficiencyLabel({
+          abilityByCode,
           equipmentLabels,
           languageLabels,
           proficiency,

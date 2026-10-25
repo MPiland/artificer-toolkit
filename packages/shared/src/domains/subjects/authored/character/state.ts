@@ -1,9 +1,4 @@
-import type {
-  AbilityCode,
-  CreatureOriginKindCode,
-  CreatureRelationshipKindCode,
-  EquippedSlotCode
-} from '#core'
+import type { CreatureOriginKindCode, CreatureRelationshipKindCode, EquippedSlotCode } from '#core'
 import type { SpeedAuthored } from '#authored'
 
 export interface CharacterEquipmentItemState {
@@ -132,7 +127,7 @@ export interface CharacterSpellSummonState {
   concentration: boolean
   size?: string
   armorClass: number | null
-  abilityScores?: Partial<Record<AbilityCode, number>>
+  abilityScores?: Partial<Record<string, number>>
   speeds?: SpeedAuthored[]
   passivePerception?: number
   /** Absent with `currentHitPoints` for a stat block with no hit points: no pool, never ends at 0. */

@@ -3,7 +3,6 @@ import { withGrantProse, type CharacterPresentationLookup } from './characterRul
 import { getAvailableSubclassesForClass } from './builderEligibility.js'
 import { evaluateMulticlassRequirements } from '@artificer-toolkit/shared/character'
 import {
-  ABILITY_OPTIONS,
   ADVANCEMENT_METHOD_OPTIONS,
   CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS,
   CLASS_CATEGORY,
@@ -1061,7 +1060,10 @@ function toCharacterBuilderReferences(
   presentation: CharacterPresentationLookup
 ): CharacterBuilderReferencesDto {
   return {
-    abilities: ABILITY_OPTIONS.map((option) => ({ id: option.code, label: option.label })),
+    abilities: (resolution.registry.system?.abilities ?? []).map(({ code, label }) => ({
+      id: code,
+      label
+    })),
     advancementMethods: ADVANCEMENT_METHOD_OPTIONS.map((option) => ({
       id: option.code,
       label: option.label

@@ -2,13 +2,10 @@ import { z, lazySchema } from '../zod.js'
 
 import { AUTHORED_LIMITS, authoredIdentifierSchema } from '../shared/authoredLimits.js'
 import { chargeUseDtoSchema } from '../shared/charge.js'
-import {
-  abilityCodeSchema,
-  chargeResetKindSchema,
-  damageDefenseBypassCodeSchema
-} from '../shared/enums.js'
+import { chargeResetKindSchema, damageDefenseBypassCodeSchema } from '../shared/enums.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
 import { characterGrantFoldModifierSchema } from './characterGrantFoldRules.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const encounterActorResourceReconciliationPolicySchema = lazySchema(() =>
   z.enum(['CLAMP_USED_TO_MAXIMUM'])
@@ -106,7 +103,7 @@ export const encounterCreatureRuleFactsSnapshotSchema = lazySchema(() =>
       checkTotals: z.optional(z.record(serverUuidIdentityDtoSchema, z.number().check(z.int()))),
       /** Proficiency bonus added to a saving throw, keyed by ability definition; absent when not proficient. */
       saveProficiencyBonuses: z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())),
-      resourceAbilityScores: z.partialRecord(abilityCodeSchema, z.number()),
+      resourceAbilityScores: z.partialRecord(systemCoreCodeSchema, z.number()),
       initiativeAbilityDefinitionId: serverUuidIdentityDtoSchema,
       /**
        * The Creature's feature modifier grants as the grant fold Characters use accepted them, with the
@@ -144,7 +141,7 @@ const encounterActorRuleFactSchema = lazySchema(() =>
       checkTotals: z._default(z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())), {}),
       /** Immutable proficiency bonus per proficient save, keyed by ability definition. */
       saveProficiencyBonuses: z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())),
-      resourceAbilityScores: z.optional(z.partialRecord(abilityCodeSchema, z.number())),
+      resourceAbilityScores: z.optional(z.partialRecord(systemCoreCodeSchema, z.number())),
       initiativeAbilityDefinitionId: z.optional(z.nullable(serverUuidIdentityDtoSchema)),
       vocabularySnapshot: z.optional(
         z.nullable(

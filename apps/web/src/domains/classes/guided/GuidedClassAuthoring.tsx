@@ -307,7 +307,10 @@ export const GuidedClassAuthoring = withForm({
                   name={toTypedAuthoringFieldName<object>(undefined, ['spellcasting', 'ability'])}
                 >
                   {(field) => (
-                    <field.SelectField data={ABILITY_OPTIONS} label='Spellcasting ability' />
+                    <field.SelectField
+                      data={system.abilities.map(({ code, label }) => ({ label, value: code }))}
+                      label='Spellcasting ability'
+                    />
                   )}
                 </form.AppField>
                 <form.AppField
@@ -456,14 +459,3 @@ const SUBCLASS_DESCRIPTIONS = [
   'Add the level features that distinguish the subclass.',
   'Check the essentials before saving or activating.'
 ] as const
-const ABILITY_OPTIONS = [
-  'STRENGTH',
-  'DEXTERITY',
-  'CONSTITUTION',
-  'INTELLIGENCE',
-  'WISDOM',
-  'CHARISMA'
-].map((value) => ({
-  label: value.charAt(0) + value.slice(1).toLowerCase(),
-  value
-}))

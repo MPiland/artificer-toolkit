@@ -1,5 +1,5 @@
 import type { ActivationAuthored, FollowUpSaveBranchAuthored, OutcomeAuthored } from '#authored'
-import { EFFECT_KIND, type AbilityCode } from '#core'
+import { EFFECT_KIND } from '#core'
 
 export type FollowUpCheckBranchAuthored =
   | Exclude<FollowUpSaveBranchAuthored, { kind: 'OUTCOMES' }>
@@ -15,7 +15,7 @@ export type FollowUpCheckAuthored = {
   effectKind: typeof EFFECT_KIND.FOLLOW_UP_CHECK
   label: string
   activation: ActivationAuthored
-  ability: AbilityCode
+  ability: string
   fixedDc: number
   skillId?: string
   toolEquipmentId?: string

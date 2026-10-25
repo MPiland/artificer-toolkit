@@ -1,8 +1,7 @@
 import {
   CLASS_CATEGORY,
   CHARACTER_ABILITY_GENERATION_METHOD,
-  RACE_CATEGORY_CODE,
-  type AbilityCode
+  RACE_CATEGORY_CODE
 } from '@artificer-toolkit/shared/core'
 import type {
   CharacterAcquisitionTiming,
@@ -130,17 +129,17 @@ export function collectCharacterBuilderFeatures(
 
 export function deriveAbilityScores(
   abilities: CharacterAbilityScoresIntent
-): Partial<Record<AbilityCode, number>> {
+): Partial<Record<string, number>> {
   switch (abilities.method) {
     case CHARACTER_ABILITY_GENERATION_METHOD.STANDARD_ARRAY:
     case CHARACTER_ABILITY_GENERATION_METHOD.POINT_BUY:
       return Object.fromEntries(
         abilities.assignments.map((assignment) => [assignment.ability, Number(assignment.option)])
-      ) as Partial<Record<AbilityCode, number>>
+      ) as Partial<Record<string, number>>
     case CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED:
       return Object.fromEntries(
         abilities.state.assignments.map((assignment) => [assignment.ability, assignment.score])
-      ) as Partial<Record<AbilityCode, number>>
+      ) as Partial<Record<string, number>>
     default:
       return {}
   }

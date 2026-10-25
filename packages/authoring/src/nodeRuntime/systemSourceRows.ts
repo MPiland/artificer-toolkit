@@ -1,4 +1,5 @@
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 import type { NodeRuntimeQueryRow, NodeRuntimeSourceReader } from './nodeRuntimeSourceContract.js'
 import type { NodeRuntimeSourceTable } from './nodeRuntimeSourceManifest.js'
 
@@ -31,7 +32,23 @@ export function systemCoreCodeRows(
   system: SystemAuthoredDto,
   coreCodes: NodeRuntimePolicyVocabulary
 ): Readonly<Record<string, readonly NodeRuntimeQueryRow[]>> {
+  // Ability codes key authored ability scores and references; the System record owns their labels.
+  const abilities = system.abilities.map(({ code, label, description, short }) => ({
+    id: code,
+    label,
+    description: description ?? null,
+    short: short ?? null
+  }))
   return {
+    abilities,
+    ability_modifier_references: [
+      ...abilities,
+      {
+        id: SPELLCASTING_ABILITY_REFERENCE,
+        label: 'Spellcasting',
+        description: 'The spellcasting ability of the effect source.'
+      }
+    ],
     roll_influences: policyRows(coreCodes.rollInfluence),
     roll_modes: policyRows(coreCodes.rollMode),
     spell_slot_pools: policyRows(coreCodes.spellSlotPool),
@@ -39,7 +56,7 @@ export function systemCoreCodeRows(
     effect_end_events: policyRows(coreCodes.effectEndEvent),
     action_traits: policyRows(coreCodes.actionTrait),
     sizes: policyRows(coreCodes.size),
-    ability_definitions: 'abilities' in system ? system.abilities : [],
+    ability_definitions: system.abilities,
     alignments: system.alignments,
     challenge_ratings: system.challengeRatings,
     condition_types: system.conditionTypes,

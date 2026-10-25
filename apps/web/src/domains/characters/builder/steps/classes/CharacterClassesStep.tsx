@@ -9,7 +9,7 @@ import {
   clearSubclassDependents,
   clearSubclassOwnedChoices
 } from '../../shared/dependencyClearing'
-import { abilityCodes, getAssignedAbilityScores } from '../abilities/abilityGeneration'
+import { getAssignedAbilityScores } from '../abilities/abilityGeneration'
 import {
   choiceOptions,
   getAllChosenGrantChoices,
@@ -46,8 +46,7 @@ export const CharacterClassesStep = withForm({
     const currentBaseScores = getAssignedAbilityScores(form.state.values.intent.abilities)
     const resolvedBaseScores = getAssignedAbilityScores(payload.character.intent.abilities)
     const abilityScores: typeof currentBaseScores = {}
-    for (const ability of abilityCodes) {
-      const score = currentBaseScores[ability]
+    for (const [ability, score] of Object.entries(currentBaseScores)) {
       if (score === undefined) continue
       abilityScores[ability] =
         score +
