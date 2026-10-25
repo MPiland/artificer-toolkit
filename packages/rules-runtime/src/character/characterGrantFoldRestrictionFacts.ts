@@ -52,6 +52,16 @@ function turnMovementCondition(
   }
 }
 
+function holderActiveEffectCondition(
+  condition: Parameters<typeof baseCondition>[0] & { readonly effectIds: readonly string[] }
+): RestrictionCondition {
+  return {
+    ...baseCondition(condition, 'HOLDER_ACTIVE_EFFECT'),
+    mode: 'SELECTED',
+    requiredIds: [...condition.effectIds]
+  }
+}
+
 function normalizeCondition(
   condition: FacetConditionAuthored<'CHARACTER'>,
   normalizeProficiencyTarget: NormalizeProficiencyTarget
@@ -121,6 +131,8 @@ function normalizeCondition(
       return baseCondition(condition, 'FREE_HAND')
     case 'TURN_MOVEMENT':
       return turnMovementCondition(condition)
+    case 'HOLDER_ACTIVE_EFFECT':
+      return holderActiveEffectCondition(condition)
     case 'ATTACK_ACTION_OTHER_WEAPON':
       return {
         ...baseCondition(condition, 'ATTACK_ACTION_OTHER_WEAPON'),
@@ -209,6 +221,8 @@ function normalizeCreatureCondition(
       return baseCondition(condition, condition.predicateCode)
     case 'TURN_MOVEMENT':
       return turnMovementCondition(condition)
+    case 'HOLDER_ACTIVE_EFFECT':
+      return holderActiveEffectCondition(condition)
     case 'CREATURE_TYPE':
       return {
         ...baseCondition(condition, 'CREATURE_TYPE'),
