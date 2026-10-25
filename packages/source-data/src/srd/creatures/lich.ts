@@ -64,7 +64,7 @@ export const lich: CreatureAuthored = {
       description:
         'Rejuvenation. If it has a phylactery, a destroyed lich gains a new body in 1d10 days, regaining all its hit points and becoming active again.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(183, 502),
           invocation: {
             kind: 'PASSIVE',
@@ -72,7 +72,10 @@ export const lich: CreatureAuthored = {
             range: { id: S.actionId(183, 602), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_LICH_REJUVENATION
+          label: 'Rejuvenation',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            'If the lich has a phylactery, a destroyed lich gains a new body in 1d10 days, regains all its hit points and becomes active again.'
         })
       ],
       order: 2

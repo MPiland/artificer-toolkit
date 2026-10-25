@@ -62,7 +62,7 @@ export const mummyLord: CreatureAuthored = {
       description:
         "Rejuvenation. A destroyed mummy lord gains a new body in 24 hours if its heart is intact, regaining all its hit points and becoming active again. The new body appears within 5 feet of the mummy lord's heart.",
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(202, 502),
           invocation: {
             kind: 'PASSIVE',
@@ -70,7 +70,10 @@ export const mummyLord: CreatureAuthored = {
             range: { id: S.actionId(202, 602), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MUMMY_LORD_REJUVENATION
+          label: 'Rejuvenation',
+          reasonCode: 'EXTERNAL_WORLD_STATE',
+          instructions:
+            'A destroyed mummy lord gains a new body in 24 hours if its heart is intact, regains all its hit points and becomes active again. The new body appears within 5 feet of the heart.'
         })
       ],
       order: 2
