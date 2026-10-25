@@ -9,8 +9,11 @@ import { useMutation as useConvexMutation, usePaginatedQuery } from 'convex/reac
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { CatchBoundary } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
-import { formatSocialTimestamp, formatStatusLabel } from '../../socialModels'
+import { formatEnumLabel } from '#components/AuthoredDetail'
+import { formatSocialTimestamp } from '../../socialModels'
+import { admissionPageSize, mergeAdmissionRows } from '../../hooks/admissionLists'
 import { useInvitationExpiry } from '../../hooks/useInvitationExpiry'
+import { AdmissionListFooter } from '../AdmissionListFooter'
 import { SocialEmptyState } from '../SocialEmptyState'
 import * as styles from '../SocialHubViews.css'
 
@@ -47,12 +50,12 @@ function SocialListingInvitationsList({
   const pending = usePaginatedQuery(
     convexApi.social.admissionLists.listListingInvitations,
     { listingPublicId, group: 'PENDING', asOf },
-    { initialNumItems: 24 }
+    { initialNumItems: admissionPageSize }
   )
   const history = usePaginatedQuery(
     convexApi.social.admissionLists.listListingInvitations,
     { listingPublicId, group: 'HISTORY', asOf },
-    { initialNumItems: 24 }
+    { initialNumItems: admissionPageSize }
   )
   const direct = useQuery(
     convexQuery(
@@ -65,16 +68,13 @@ function SocialListingInvitationsList({
     mutationFn: (input: CampaignInviteVersionInput) => revokeInvite(input)
   })
   const focused = useRef<string | null>(null)
-  const pendingRows =
-    direct.data?.status === 'PENDING' ? [direct.data, ...pending.results] : pending.results
-  const historyRows =
-    direct.data && direct.data.status !== 'PENDING'
-      ? [direct.data, ...history.results]
-      : history.results
-  const merged = new Map<string, CampaignInviteDto>()
-  for (const invitation of [...pendingRows, ...historyRows])
-    merged.set(invitation.invitePublicId, invitation)
-  const rows = [...merged.values()]
+  const { rows, loadingFirstPage, exhaustedEmpty } = mergeAdmissionRows<CampaignInviteDto>({
+    pending,
+    history,
+    direct: direct.data,
+    isPending: (invitation) => invitation.status === 'PENDING',
+    getKey: (invitation) => invitation.invitePublicId
+  })
   useInvitationExpiry(asOf, setAsOf, rows)
   const target = rows.some((item) => item.invitePublicId === invitePublicId) ? invitePublicId : null
   useEffect(() => {
@@ -85,16 +85,12 @@ function SocialListingInvitationsList({
     row.focus({ preventScroll: true })
     row.scrollIntoView({ block: 'center' })
   }, [direct.isError, target])
-  const empty =
-    pending.status === 'Exhausted' && history.status === 'Exhausted' && rows.length === 0
   return (
     <>
-      {pending.status === 'LoadingFirstPage' || history.status === 'LoadingFirstPage' ? (
-        <Loader aria-label='Loading sent invitations' size='sm' />
-      ) : null}
+      {loadingFirstPage ? <Loader aria-label='Loading sent invitations' size='sm' /> : null}
       {direct.isError ? <Alert color='gray'>This item is no longer available.</Alert> : null}
       {revoke.error ? <Alert color='red'>{revoke.error.message}</Alert> : null}
-      {empty && !invitePublicId ? (
+      {exhaustedEmpty && !invitePublicId ? (
         <SocialEmptyState
           title='No invitations sent'
           body='Invitations you send for this listing will appear here.'
@@ -114,7 +110,7 @@ function SocialListingInvitationsList({
                   <Title order={2} size='h3'>
                     @{invitation.recipientUsername}
                   </Title>
-                  <Badge variant='light'>{formatStatusLabel(invitation.status)}</Badge>
+                  <Badge variant='light'>{formatEnumLabel(invitation.status)}</Badge>
                 </Group>
                 <Text c='dimmed' size='sm'>
                   Sent {formatSocialTimestamp(invitation.createdAt)} - Expires{' '}
@@ -149,19 +145,7 @@ function SocialListingInvitationsList({
           ))}
         </div>
       )}
-      {pending.status === 'CanLoadMore' ? (
-        <Button variant='subtle' onClick={() => pending.loadMore(24)}>
-          Load more pending invitations
-        </Button>
-      ) : null}
-      {history.status === 'CanLoadMore' ? (
-        <Button variant='subtle' onClick={() => history.loadMore(24)}>
-          Load more invitation history
-        </Button>
-      ) : null}
-      {pending.status === 'LoadingMore' || history.status === 'LoadingMore' ? (
-        <Loader aria-label='Loading more invitations' size='sm' />
-      ) : null}
+      <AdmissionListFooter noun='invitation' pending={pending} history={history} />
     </>
   )
 }

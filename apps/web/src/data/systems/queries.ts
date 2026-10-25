@@ -5,6 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/api/systems'
 import { convexQuery } from '@convex-dev/react-query'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
+import { definitionReferences } from '@artificer-toolkit/apis/convex/definition-references'
 
 export function getSystemListPage(cursor: string | null = null) {
   return convexQuery(convexApi.content.systems.list, { cursor, limit: 10 })
@@ -43,5 +44,5 @@ export function getSystemDefinitions(gameSystemId: string, cursor: string | null
 }
 
 export function getSystemDefinition(definitionId: string) {
-  return convexQuery(convexApi.content.definitions.get, { definitionId })
+  return convexQuery(definitionReferences.get, { definitionId })
 }

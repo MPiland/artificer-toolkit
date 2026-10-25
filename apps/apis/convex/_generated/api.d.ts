@@ -1632,6 +1632,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -3433,7 +3434,11 @@ export declare const api: {
                     id: string;
                     label: string;
                   }>;
-                  hitPoints: { current: number; maximum: number; temp: number };
+                  hitPoints?: {
+                    current: number;
+                    maximum: number;
+                    temp: number;
+                  };
                   id: string;
                   isActive: boolean;
                   kind: "SPELL_SUMMON";
@@ -8046,6 +8051,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -8134,6 +8140,7 @@ export declare const api: {
               delete: boolean;
               edit: boolean;
               invite: boolean;
+              manageActiveCampaign: boolean;
               manageCharacters: boolean;
               manageMembers: boolean;
               manageNotes: boolean;
@@ -8222,6 +8229,7 @@ export declare const api: {
               delete: boolean;
               edit: boolean;
               invite: boolean;
+              manageActiveCampaign: boolean;
               manageCharacters: boolean;
               manageMembers: boolean;
               manageNotes: boolean;
@@ -8320,6 +8328,7 @@ export declare const api: {
                 delete: boolean;
                 edit: boolean;
                 invite: boolean;
+                manageActiveCampaign: boolean;
                 manageCharacters: boolean;
                 manageMembers: boolean;
                 manageNotes: boolean;
@@ -8412,6 +8421,7 @@ export declare const api: {
               delete: boolean;
               edit: boolean;
               invite: boolean;
+              manageActiveCampaign: boolean;
               manageCharacters: boolean;
               manageMembers: boolean;
               manageNotes: boolean;
@@ -8517,6 +8527,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -9769,6 +9780,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -10193,6 +10205,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -10279,6 +10292,7 @@ export declare const api: {
               delete: boolean;
               edit: boolean;
               invite: boolean;
+              manageActiveCampaign: boolean;
               manageCharacters: boolean;
               manageMembers: boolean;
               manageNotes: boolean;
@@ -10350,6 +10364,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -11253,6 +11268,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;
@@ -11898,11 +11914,11 @@ export declare const api: {
               armorClass: number | null;
               castAt: string;
               concentration: boolean;
-              currentHitPoints: number;
+              currentHitPoints?: number;
               customName?: string;
               id: string;
               label: string;
-              maximumHitPoints: number;
+              maximumHitPoints?: number;
               notes?: string;
               passivePerception?: number;
               size?: string;
@@ -12309,11 +12325,11 @@ export declare const api: {
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
-                currentHitPoints: number;
+                currentHitPoints?: number;
                 customName?: string;
                 id: string;
                 label: string;
-                maximumHitPoints: number;
+                maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
                 size?: string;
@@ -12719,11 +12735,11 @@ export declare const api: {
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
-                currentHitPoints: number;
+                currentHitPoints?: number;
                 customName?: string;
                 id: string;
                 label: string;
-                maximumHitPoints: number;
+                maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
                 size?: string;
@@ -13455,11 +13471,11 @@ export declare const api: {
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
-                  currentHitPoints: number;
+                  currentHitPoints?: number;
                   customName?: string;
                   id: string;
                   label: string;
-                  maximumHitPoints: number;
+                  maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
                   size?: string;
@@ -14199,11 +14215,11 @@ export declare const api: {
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
-                  currentHitPoints: number;
+                  currentHitPoints?: number;
                   customName?: string;
                   id: string;
                   label: string;
-                  maximumHitPoints: number;
+                  maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
                   size?: string;
@@ -14955,11 +14971,11 @@ export declare const api: {
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
-                currentHitPoints: number;
+                currentHitPoints?: number;
                 customName?: string;
                 id: string;
                 label: string;
-                maximumHitPoints: number;
+                maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
                 size?: string;
@@ -15685,11 +15701,11 @@ export declare const api: {
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
-                  currentHitPoints: number;
+                  currentHitPoints?: number;
                   customName?: string;
                   id: string;
                   label: string;
-                  maximumHitPoints: number;
+                  maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
                   size?: string;
@@ -18887,7 +18903,11 @@ export declare const api: {
                     id: string;
                     label: string;
                   }>;
-                  hitPoints: { current: number; maximum: number; temp: number };
+                  hitPoints?: {
+                    current: number;
+                    maximum: number;
+                    temp: number;
+                  };
                   id: string;
                   isActive: boolean;
                   kind: "SPELL_SUMMON";
@@ -22909,7 +22929,7 @@ export declare const api: {
                         id: string;
                         label: string;
                       }>;
-                      hitPoints: {
+                      hitPoints?: {
                         current: number;
                         maximum: number;
                         temp: number;
@@ -123936,6 +123956,16 @@ export declare const api: {
         { id: string },
         {
           authoredRootKinds: Array<string>;
+          contentKinds: Array<
+            | "BACKGROUND"
+            | "CLASS"
+            | "CREATURE"
+            | "EQUIPMENT"
+            | "FEAT"
+            | "RACE"
+            | "SPELL"
+            | "VEHICLE"
+          >;
           contractVersion: number;
           definitionFamilyKeys: Array<string>;
           factContracts: Array<{
@@ -128486,7 +128516,11 @@ export declare const api: {
                           };
                       senseDefinitionId: string;
                     }>;
-                    speeds: Array<any>;
+                    speeds: Array<{
+                      amount: number;
+                      speedId: string;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    }>;
                   } | null;
                   systemId: string | null;
                   tempHitPoints: number;
@@ -129616,7 +129650,11 @@ export declare const api: {
                           };
                       senseDefinitionId: string;
                     }>;
-                    speeds: Array<any>;
+                    speeds: Array<{
+                      amount: number;
+                      speedId: string;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    }>;
                   } | null;
                   systemId: string | null;
                   tempHitPoints: number;
@@ -130591,7 +130629,11 @@ export declare const api: {
                       };
                   senseDefinitionId: string;
                 }>;
-                speeds: Array<any>;
+                speeds: Array<{
+                  amount: number;
+                  speedId: string;
+                  unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                }>;
               } | null;
               systemId: string | null;
               tempHitPoints: number;
@@ -130900,7 +130942,11 @@ export declare const api: {
                           };
                       senseDefinitionId: string;
                     }>;
-                    speeds: Array<any>;
+                    speeds: Array<{
+                      amount: number;
+                      speedId: string;
+                      unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+                    }>;
                   } | null;
                   systemId: string | null;
                   tempHitPoints: number;
@@ -131543,7 +131589,11 @@ export declare const api: {
                     };
                 senseDefinitionId: string;
               }>;
-              speeds: Array<any>;
+              speeds: Array<{
+                amount: number;
+                speedId: string;
+                unit: "INCHES" | "FEET" | "YARDS" | "MILES";
+              }>;
             } | null;
             systemId: string | null;
             tempHitPoints: number;
@@ -135182,6 +135232,7 @@ export declare const api: {
             delete: boolean;
             edit: boolean;
             invite: boolean;
+            manageActiveCampaign: boolean;
             manageCharacters: boolean;
             manageMembers: boolean;
             manageNotes: boolean;

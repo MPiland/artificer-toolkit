@@ -16,11 +16,28 @@ import type { CampaignSceneState, SceneGrid, SceneLight, ScenePoint, SceneToken 
 import { SYSTEM_BASE_SQUARE_FEET } from './scene.js'
 import { feetInSceneUnit } from './sceneReducer.js'
 
-const illuminationRank: Readonly<Record<CombatPerceptionIllumination, number>> = {
-  BRIGHT: 0,
-  DIM: 1,
-  ORDINARY_DARKNESS: 2,
-  MAGICAL_DARKNESS: 3
+/** How the canvas draws an illumination level: as lit ground, as dim light, or as darkness. */
+export type SceneIlluminationRenderClass = 'LIT' | 'DIM' | 'DARK'
+
+/**
+ * One illumination level of a System (ADR 0039). A System lists its levels brightest first, so a
+ * level's rank is its position and rank 0 is bright light; no light brightens a point a
+ * light-suppressing level covers. The render class only draws the level.
+ */
+export interface SceneIlluminationLevel {
+  code: CombatPerceptionIllumination
+  label: string
+  renderClass: SceneIlluminationRenderClass
+  suppressesLight: boolean
+}
+
+export function requireSceneIlluminationLevel(
+  levels: readonly SceneIlluminationLevel[],
+  code: CombatPerceptionIllumination
+): SceneIlluminationLevel {
+  const level = levels.find((item) => item.code === code)
+  if (!level) throw new Error(`The Game System does not define the illumination "${code}".`)
+  return level
 }
 
 const obscurementRank: Readonly<Record<CombatPerceptionObscurement, number>> = {
@@ -140,6 +157,7 @@ function withinLightCone(light: SceneLight, point: ScenePoint): boolean {
   return Math.abs(offset) <= (light.angleDegrees * Math.PI) / 360
 }
 
+/** A light's radii shed the levels they are named for; the System ranks and draws them. */
 function illuminationFromLight(
   light: SceneLight,
   point: ScenePoint
@@ -151,18 +169,31 @@ function illuminationFromLight(
   return null
 }
 
+function illuminationRank(
+  levels: readonly SceneIlluminationLevel[],
+  code: CombatPerceptionIllumination
+): number {
+  return levels.indexOf(requireSceneIlluminationLevel(levels, code))
+}
+
 function brighterIllumination(
+  levels: readonly SceneIlluminationLevel[],
   current: CombatPerceptionIllumination,
   candidate: CombatPerceptionIllumination
 ): CombatPerceptionIllumination {
-  return illuminationRank[candidate] < illuminationRank[current] ? candidate : current
+  return illuminationRank(levels, candidate) < illuminationRank(levels, current)
+    ? candidate
+    : current
 }
 
 function darkerIllumination(
+  levels: readonly SceneIlluminationLevel[],
   current: CombatPerceptionIllumination,
   candidate: CombatPerceptionIllumination
 ): CombatPerceptionIllumination {
-  return illuminationRank[candidate] > illuminationRank[current] ? candidate : current
+  return illuminationRank(levels, candidate) > illuminationRank(levels, current)
+    ? candidate
+    : current
 }
 
 function strongerObscurement(
@@ -198,48 +229,68 @@ export function sceneTokenLights(
 }
 
 /**
- * Illumination and obscurement at one Scene point (D108). Illumination precedence: ambient light;
- * then DIM / ORDINARY_DARKNESS zones darken it (darker wins); then lights that reach the point
- * (cone, radii, barriers) brighten it (brighter wins); MAGICAL_DARKNESS (ambient or zone) applies last and
- * forces MAGICAL_DARKNESS. Obscurement is the strongest zone obscurement at the point.
+ * Illumination and obscurement at one Scene point (D108), ranked by the System's levels.
+ * Illumination precedence: ambient light; then zones darken it (darker wins); then lights that
+ * reach the point (cone, radii, barriers) brighten it (brighter wins); a light-suppressing level
+ * (ambient or zone) applies last and replaces the result, the darkest such level winning.
+ * Obscurement is the strongest zone obscurement at the point.
  */
 export function resolveSceneIlluminationAt(
   scene: PerceptionSceneState,
   point: ScenePoint,
-  barrierIndex: SceneBarrierIndex
+  barrierIndex: SceneBarrierIndex,
+  illuminationLevels: readonly SceneIlluminationLevel[]
 ): { illumination: CombatPerceptionIllumination; obscurement: CombatPerceptionObscurement } {
+  const suppressesLight = (code: CombatPerceptionIllumination) =>
+    requireSceneIlluminationLevel(illuminationLevels, code).suppressesLight
   const zones = scene.darknessZones.filter((zone) => scenePointInPolygon(point, zone.polygon))
   let illumination = scene.ambientIllumination
   let obscurement: CombatPerceptionObscurement = 'NONE'
   for (const zone of zones) {
-    if (zone.mechanicalIllumination && zone.mechanicalIllumination !== 'MAGICAL_DARKNESS')
-      illumination = darkerIllumination(illumination, zone.mechanicalIllumination)
+    if (zone.mechanicalIllumination && !suppressesLight(zone.mechanicalIllumination))
+      illumination = darkerIllumination(
+        illuminationLevels,
+        illumination,
+        zone.mechanicalIllumination
+      )
     if (zone.mechanicalObscurement)
       obscurement = strongerObscurement(obscurement, zone.mechanicalObscurement)
   }
   for (const light of [...scene.lights, ...sceneTokenLights(scene)]) {
     if (!canLightPassBetween(scene, light.position, point, barrierIndex)) continue
     const candidate = illuminationFromLight(light, point)
-    if (candidate) illumination = brighterIllumination(illumination, candidate)
+    if (candidate) illumination = brighterIllumination(illuminationLevels, illumination, candidate)
   }
-  if (
-    scene.ambientIllumination === 'MAGICAL_DARKNESS' ||
-    zones.some((zone) => zone.mechanicalIllumination === 'MAGICAL_DARKNESS')
-  )
-    illumination = 'MAGICAL_DARKNESS'
+  const suppressing = [
+    scene.ambientIllumination,
+    ...zones.map((zone) => zone.mechanicalIllumination)
+  ].filter((code): code is CombatPerceptionIllumination => code !== null && suppressesLight(code))
+  if (suppressing.length > 0)
+    illumination = suppressing.reduce((darkest, code) =>
+      darkerIllumination(illuminationLevels, darkest, code)
+    )
   return { illumination, obscurement }
 }
 
-/** Sunlight at a Scene point: the Scene is daylit and that point resolves BRIGHT (D189). */
-export function resolveSceneDaylightAt(
+/**
+ * The light at a Scene point: bright light is the System's brightest level (rank 0, D193), and
+ * sunlight is bright light in a daylit Scene (D189).
+ */
+export function resolveSceneLightAt(
   scene: PerceptionSceneState & Pick<CampaignSceneState, 'daylight'>,
   point: ScenePoint,
-  barrierIndex: SceneBarrierIndex
-): boolean {
-  return (
-    scene.daylight &&
-    resolveSceneIlluminationAt(scene, point, barrierIndex).illumination === 'BRIGHT'
+  barrierIndex: SceneBarrierIndex,
+  illuminationLevels: readonly SceneIlluminationLevel[]
+): { brightLight: boolean; daylight: boolean } {
+  const { illumination } = resolveSceneIlluminationAt(
+    scene,
+    point,
+    barrierIndex,
+    illuminationLevels
   )
+  const brightLight =
+    requireSceneIlluminationLevel(illuminationLevels, illumination) === illuminationLevels[0]
+  return { brightLight, daylight: scene.daylight && brightLight }
 }
 
 /**
@@ -254,6 +305,7 @@ export function resolveSceneCombatPerceptionEnvironment(input: {
   sharedSurface: boolean
   invisibleChannels: readonly CombatPerceptionChannel[]
   suppressedChannels: readonly CombatPerceptionChannel[]
+  illuminationLevels: readonly SceneIlluminationLevel[]
 }): CombatPerceptionEnvironment {
   const barrierIndex = new SceneBarrierIndex(input.scene.barriers)
   const visualLineOfSight = canLightPassBetween(
@@ -265,7 +317,8 @@ export function resolveSceneCombatPerceptionEnvironment(input: {
   const { illumination, obscurement } = resolveSceneIlluminationAt(
     input.scene,
     input.subject.position,
-    barrierIndex
+    barrierIndex,
+    input.illuminationLevels
   )
   const suppressedChannels = new Set(input.suppressedChannels)
   if (!visualLineOfSight) suppressedChannels.add('VISUAL')

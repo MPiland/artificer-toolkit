@@ -11,12 +11,15 @@ import {
   measureScenePathMovementCost,
   nearestFootprintEdgePoint,
   pointCubeOutline,
+  requireSceneIlluminationLevel,
   SceneBarrierIndex,
   sceneDistanceAsCoordinateLength,
   scenePointInPolygon,
   sceneRangeBand,
   sceneRangeOutline,
   type SceneGrid,
+  type SceneIlluminationLevel,
+  type SceneIlluminationRenderClass,
   type ScenePoint,
   type SceneTokenSense,
   type SpatialAreaShape,
@@ -804,17 +807,31 @@ export function resolveViewTokenId(input: {
   return has(assignedTokenId) ? assignedTokenId : null
 }
 
-/** What a sense does to the picture. A sense is told apart by its channel and illumination access. */
+/**
+ * What a sense does to the picture. A sense is told apart by its channel and the System level of
+ * its illumination access: sight into some darkness, or into the System's darkest level.
+ */
 export type VttSenseEffect = 'BLINDSIGHT' | 'DARKVISION' | 'TREMORSENSE' | 'TRUESIGHT'
 
+/** The System level a sense's sight reaches into, when that level is a darkness. */
+export function senseAccessLevel(
+  sense: Pick<SceneTokenSense, 'channel' | 'illuminationAccess'>,
+  illuminationLevels: readonly SceneIlluminationLevel[]
+): SceneIlluminationLevel | null {
+  if (sense.channel !== 'VISUAL') return null
+  const access = illuminationLevels.find(({ code }) => code === sense.illuminationAccess)
+  return access?.renderClass === 'DARK' ? access : null
+}
+
 export function senseEffect(
-  sense: Pick<SceneTokenSense, 'channel' | 'illuminationAccess'>
+  sense: Pick<SceneTokenSense, 'channel' | 'illuminationAccess'>,
+  illuminationLevels: readonly SceneIlluminationLevel[]
 ): VttSenseEffect | null {
   if (sense.channel === 'NONVISUAL') return 'BLINDSIGHT'
   if (sense.channel === 'VIBRATION') return 'TREMORSENSE'
-  if (sense.channel !== 'VISUAL') return null
-  if (sense.illuminationAccess === 'ORDINARY_DARKNESS') return 'DARKVISION'
-  return sense.illuminationAccess === 'MAGICAL_DARKNESS' ? 'TRUESIGHT' : null
+  const access = senseAccessLevel(sense, illuminationLevels)
+  if (!access) return null
+  return access === illuminationLevels.at(-1) ? 'TRUESIGHT' : 'DARKVISION'
 }
 
 /**
@@ -835,6 +852,8 @@ export function senseReachRadius(
 
 /** The area one sense reaches: its radius and the line of sight clamped to it. */
 export interface VttSenseReach {
+  /** The darkest System level the sense's sight reaches into; null for a sense that is not sight. */
+  access: SceneIlluminationLevel | null
   effect: VttSenseEffect
   origin: ScenePoint
   polygon: readonly ScenePoint[]
@@ -842,18 +861,22 @@ export interface VttSenseReach {
 }
 
 /**
- * Whether a token in this illumination is seen. Bright and dim light show it; in darkness only
- * a sense does. Tremorsense feels the ground, so a token counts as on the ground and is felt at any
- * distance within range with no sight line.
+ * Whether a token at this System illumination level is seen. Lit and dim levels show it; in
+ * darkness only a sense does, and sight only into darkness no darker than its access level, as the
+ * rules rank it. Tremorsense feels the ground, so a token counts as on the ground and is felt at
+ * any distance within range with no sight line.
  */
 export function isTokenRevealed(input: {
   halfSize: number
-  illumination: SceneIllumination
+  illumination: SceneIlluminationLevel
+  illuminationLevels: readonly SceneIlluminationLevel[]
   point: ScenePoint
   reaches: readonly VttSenseReach[]
 }): boolean {
-  const { halfSize, illumination, point, reaches } = input
-  if (illumination === 'BRIGHT' || illumination === 'DIM') return true
+  const { halfSize, illumination, illuminationLevels, point, reaches } = input
+  if (illumination.renderClass !== 'DARK') return true
+  const rank = (level: SceneIlluminationLevel) =>
+    illuminationLevels.findIndex(({ code }) => code === level.code)
   return reaches.some((reach) => {
     if (reach.effect === 'TREMORSENSE') {
       // Every token is treated as standing on the ground: the Scene has no flying data.
@@ -862,8 +885,8 @@ export function isTokenRevealed(input: {
       )
     }
     if (!scenePointInPolygon(point, { points: [...reach.polygon] })) return false
-    if (reach.effect === 'BLINDSIGHT' || reach.effect === 'TRUESIGHT') return true
-    return illumination === 'ORDINARY_DARKNESS'
+    if (reach.effect === 'BLINDSIGHT') return true
+    return reach.access !== null && rank(illumination) <= rank(reach.access)
   })
 }
 
@@ -883,23 +906,62 @@ export function isWithinTokenVisual(
   return false
 }
 
-type SceneIllumination = CampaignSceneStateDto['ambientIllumination']
 type SceneDarknessZone = CampaignSceneStateDto['darknessZones'][number]
 type SceneLight = CampaignSceneStateDto['lights'][number]
 
-/** Overlay alpha that stands for DIM light; BRIGHT is 0 and both kinds of darkness are 1. */
+/** Overlay alpha that stands for the DIM render class; LIT is 0 and DARK is 1. */
 export const dimOverlayAlpha = 0.5
 
 /** The darkest the GM's see-all view draws darkness, so the whole map stays readable. */
 export const gmDarknessCapAlpha = 0.6
 
 /**
- * The alpha of the black darkness overlay that encodes an illumination class at a point. One
- * overlay carries the whole of D108's precedence, so the class is read straight off the pixel.
+ * The alpha of the black darkness overlay that encodes a render class at a point. One overlay
+ * carries the whole of D108's precedence, so the class is read straight off the pixel.
  */
-export function illuminationOverlayAlpha(illumination: SceneIllumination): number {
-  if (illumination === 'BRIGHT') return 0
-  return illumination === 'DIM' ? dimOverlayAlpha : 1
+export function illuminationOverlayAlpha(renderClass: SceneIlluminationRenderClass): number {
+  if (renderClass === 'LIT') return 0
+  return renderClass === 'DIM' ? dimOverlayAlpha : 1
+}
+
+export function wholeMapPolygon(
+  map: Pick<CampaignSceneStateDto['map'], 'height' | 'width'>
+): ScenePoint[] {
+  return [
+    { x: 0, y: 0 },
+    { x: map.width, y: 0 },
+    { x: map.width, y: map.height },
+    { x: 0, y: map.height }
+  ]
+}
+
+/** One area at a System illumination level: the whole map (`zone: false`) or a darkness zone. */
+export interface VttIlluminationArea {
+  level: SceneIlluminationLevel
+  points: readonly ScenePoint[]
+  zone: boolean
+}
+
+/** The Scene's illumination areas: the ambient level over the whole map, then each zone's level. */
+export function sceneIlluminationAreas(
+  scene: Pick<CampaignSceneStateDto, 'ambientIllumination' | 'darknessZones' | 'map'>,
+  illuminationLevels: readonly SceneIlluminationLevel[]
+): VttIlluminationArea[] {
+  const ambient = requireSceneIlluminationLevel(illuminationLevels, scene.ambientIllumination)
+  return [
+    { level: ambient, points: wholeMapPolygon(scene.map), zone: false },
+    ...scene.darknessZones.flatMap((zone) =>
+      zone.mechanicalIllumination
+        ? [
+            {
+              level: requireSceneIlluminationLevel(illuminationLevels, zone.mechanicalIllumination),
+              points: zone.polygon.points,
+              zone: true
+            }
+          ]
+        : []
+    )
+  ]
 }
 
 /** The low-alpha colour tint a light lays over its bright core and its dim reach. */
@@ -936,7 +998,7 @@ export function clampPolygonToRadius(
 }
 
 interface VttDarknessZoneStyle {
-  /** Dotted arcane outline of magical darkness. */
+  /** Dotted arcane outline of a level that dispels light. */
   illuminationOutline: { dash: number; gap: number; width: number } | null
   /** Non-colour obscurement cue: dashed for light, solid and heavier for heavy. */
   obscurementOutline: { dash: number | null; gap: number; width: number } | null
@@ -944,11 +1006,15 @@ interface VttDarknessZoneStyle {
 
 /** The non-colour cues of a darkness zone: its illumination and obscurement each get an outline. */
 export function darknessZoneStyle(
-  zone: Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement'>
+  zone: Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement'>,
+  illuminationLevels: readonly SceneIlluminationLevel[]
 ): VttDarknessZoneStyle {
   return {
     illuminationOutline:
-      zone.mechanicalIllumination === 'MAGICAL_DARKNESS' ? { dash: 3, gap: 9, width: 3 } : null,
+      zone.mechanicalIllumination &&
+      requireSceneIlluminationLevel(illuminationLevels, zone.mechanicalIllumination).suppressesLight
+        ? { dash: 3, gap: 9, width: 3 }
+        : null,
     obscurementOutline:
       zone.mechanicalObscurement === 'HEAVY'
         ? { dash: null, gap: 0, width: 6 }
@@ -1003,19 +1069,15 @@ export function dashedPolygonSegments(
   return segments
 }
 
-const illuminationLabels = {
-  BRIGHT: 'Bright light',
-  DIM: 'Dim light',
-  MAGICAL_DARKNESS: 'Magical darkness',
-  ORDINARY_DARKNESS: 'Ordinary darkness'
-} as const satisfies Record<SceneIllumination, string>
-
-/** The words for one darkness zone, e.g. "Magical darkness, heavily obscured". */
+/** The words for one darkness zone with its System level label, e.g. "Magical darkness, heavily obscured". */
 export function describeDarknessZone(
-  zone: Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement'>
+  zone: Pick<SceneDarknessZone, 'mechanicalIllumination' | 'mechanicalObscurement'>,
+  illuminationLevels: readonly SceneIlluminationLevel[]
 ): string {
   const parts = [
-    zone.mechanicalIllumination ? illuminationLabels[zone.mechanicalIllumination] : null,
+    zone.mechanicalIllumination
+      ? requireSceneIlluminationLevel(illuminationLevels, zone.mechanicalIllumination).label
+      : null,
     zone.mechanicalObscurement === 'HEAVY'
       ? 'heavily obscured'
       : zone.mechanicalObscurement === 'LIGHT'
@@ -1027,17 +1089,19 @@ export function describeDarknessZone(
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-/** The lighting sentence for the canvas description; null when nothing departs from bright light. */
+/** The lighting sentence for the canvas description; null when nothing departs from a lit Scene. */
 export function describeSceneLighting(
   scene: Pick<CampaignSceneStateDto, 'ambientIllumination' | 'darknessZones'>,
-  visionLabels: readonly string[]
+  visionLabels: readonly string[],
+  illuminationLevels: readonly SceneIlluminationLevel[]
 ): string | null {
+  const ambient = requireSceneIlluminationLevel(illuminationLevels, scene.ambientIllumination)
   const parts = [
-    scene.ambientIllumination === 'BRIGHT'
-      ? null
-      : `Ambient: ${illuminationLabels[scene.ambientIllumination]}`,
+    ambient.renderClass === 'LIT' ? null : `Ambient: ${ambient.label}`,
     scene.darknessZones.length > 0
-      ? `Darkness zones: ${scene.darknessZones.map(describeDarknessZone).join('; ')}`
+      ? `Darkness zones: ${scene.darknessZones
+          .map((zone) => describeDarknessZone(zone, illuminationLevels))
+          .join('; ')}`
       : null,
     visionLabels.length > 0 ? `Vision: ${visionLabels.join(', ')}` : null
   ].filter((part): part is string => part !== null)

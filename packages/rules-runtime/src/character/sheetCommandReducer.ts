@@ -596,8 +596,13 @@ export function applyCharacterSheetCommand(
         const summon = next.state.spellSummons?.find((entry) => entry.id === extra.extraId)
         if (!summon)
           throw new CharacterSheetCommandError(`Summon "${extra.extraId}" is not available.`)
+        if (
+          summon.maximumHitPoints === undefined &&
+          (extra.currentHitPoints !== undefined || extra.tempHitPoints !== undefined)
+        )
+          throw new CharacterSheetCommandError(`Summon "${extra.extraId}" has no hit points.`)
         const currentHitPoints =
-          extra.currentHitPoints === undefined
+          extra.currentHitPoints === undefined || summon.maximumHitPoints === undefined
             ? summon.currentHitPoints
             : Math.min(extra.currentHitPoints, summon.maximumHitPoints)
         const tempHitPoints = extra.tempHitPoints ?? summon.tempHitPoints
@@ -615,7 +620,7 @@ export function applyCharacterSheetCommand(
                         ? undefined
                         : (extra.customName ?? entry.customName),
                     notes: extra.notes === null ? undefined : (extra.notes ?? entry.notes),
-                    currentHitPoints,
+                    ...(currentHitPoints === undefined ? {} : { currentHitPoints }),
                     ...(tempHitPoints ? { tempHitPoints } : { tempHitPoints: undefined })
                   }
                 ]
@@ -665,7 +670,7 @@ export function applyCharacterSheetCommand(
         const maximumHitPoints =
           sheet.extras.items.find(
             (item) => item.kind === 'VEHICLE' && item.id === command.extra.extraId
-          )?.hitPoints.maximum ?? 0
+          )?.hitPoints?.maximum ?? 0
         next.state.vehicles = next.state.vehicles?.map((vehicle) =>
           vehicle.id !== command.extra.extraId
             ? vehicle
@@ -707,7 +712,7 @@ export function applyCharacterSheetCommand(
         (item) => item.kind === creatureExtra.kind && item.id === creatureExtra.extraId
       )
       const maximumHitPoints =
-        sheetExtra?.kind === 'VEHICLE' ? 0 : (sheetExtra?.hitPoints.maximum ?? 0)
+        sheetExtra?.kind === 'VEHICLE' ? 0 : (sheetExtra?.hitPoints?.maximum ?? 0)
       next.state.creatures = next.state.creatures?.map((creature) =>
         creature.id !== creatureExtra.extraId
           ? creature

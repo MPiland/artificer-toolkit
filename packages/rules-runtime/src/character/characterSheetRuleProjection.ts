@@ -195,16 +195,13 @@ export interface CharacterRuleCompanionStats {
  *
  * Single-class: read directly from the class's compiled spellLimits at current level.
  * Multiclass: summed effective caster levels looked up in the fusion table.
- * Pact magic (Warlock): separate slot pool tracked in `pactMagic`.
+ * A System slot pool (such as D&D's Pact Magic) is tracked separately in `slotPools`.
  */
 export interface CharacterRuleSpellSlots {
   /** Slot level (1-9) -> maximum slots */
   maxByLevel: Record<number, number>
-  /** Pact magic is tracked separately from standard slots. */
-  pactMagic?: {
-    slots: number
-    level: number
-  }
+  /** Each System slot pool the Character casts from beside its standard slots. */
+  slotPools: { poolCode: string; slots: number; level: number }[]
   /** How slots were computed */
   fusionStrategy: 'NONE' | 'SINGLE_CLASS' | 'MULTICLASS_FUSED'
 }

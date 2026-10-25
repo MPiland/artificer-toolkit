@@ -577,7 +577,6 @@ describe('summon target', () => {
     evaluateEncounterSummonTarget({
       gameSystemId: DND5E_SYSTEM_ID,
       statBlock: { size: 'MEDIUM' },
-      casterHitPointMaximum: 40,
       range: RANGE_150,
       point: at(10),
       grid: FEET_GRID,
@@ -634,14 +633,6 @@ describe('summon target', () => {
     expect(evaluate({ statBlock, tokens: [tokenOf(solid.id)], actors: [solid] })).toEqual({
       refusal: 'SPACE_OCCUPIED'
     })
-  })
-
-  it('refuses a stat block whose hit points need a caster maximum the Run does not hold', () => {
-    const statBlock = { size: 'MEDIUM', hitPoints: { kind: 'HIT_POINT_MAXIMUM' } } as const
-    expect(evaluate({ statBlock, casterHitPointMaximum: null })).toEqual({
-      refusal: 'HIT_POINTS_UNKNOWN'
-    })
-    expect(evaluate({ statBlock, casterHitPointMaximum: 40 })).toHaveProperty('shape')
   })
 
   it('refuses a stat block with no size', () => {

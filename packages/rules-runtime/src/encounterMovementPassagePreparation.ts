@@ -85,8 +85,8 @@ function characterAbilityCheck(
     (definition) => definition.id === abilityDefinitionId
   )?.code
   if (code === undefined) return { modifier: undefined, evidence: undefined, rollMode: undefined }
-  // The System may spell an ability "STR" while the rules output keys it "STRENGTH": every lookup
-  // goes through the one canonical key.
+  // The System may spell an ability by its short alias while the rules output keys it by the full
+  // code: every lookup goes through the one canonical key.
   const canonicalKey = (ability: string) => resolveAbilityAlias(ability) ?? ability
   const canonical = canonicalKey(code)
   const byCanonical = <TValue>(record: Readonly<Record<string, TValue>>) => record[canonical]

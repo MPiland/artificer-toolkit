@@ -40,10 +40,12 @@ import {
   type EffectAuthored,
   type FeatureAuthored,
   type FollowUpSaveAuthored,
+  type ModifierGrantAuthored,
   type MovementPassageOption
 } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
+import { magicConditionImmunityGrant, magicSaveAdvantageGrants } from '../classes/mechanics.js'
 import { CREATURE_IDS } from '../ids.js'
 import { SIZE_CODE, type SizeCode } from '../sizes.js'
 export { SPELL_IDS } from '../ids.js'
@@ -294,15 +296,20 @@ export function movementPassageGrants(
 }
 
 /**
- * A feature's advantage on saving throws against being <conditions> and on checks of <skills>.
- * A condition's save can use any ability, so each condition gets one grant per ability. The grants
- * take the IDs `grantId(creatureIndex, firstLocalIndex)` onward.
+ * A feature's advantage on saving throws against being <conditions>, on <savesAgainstMagic>
+ * ability saves against a magical source (D179), and on checks of <skills>. A condition's save can
+ * use any ability, so each condition gets one grant per ability. The grants take the IDs
+ * `grantId(creatureIndex, firstLocalIndex)` onward; each magic save uses five.
  */
 export function advantageGrants(
   creatureIndex: number,
   firstLocalIndex: number,
-  input: { savesAgainst: readonly SrdConditionCode[]; skills?: readonly string[] }
-): NonNullable<FeatureAuthored['grants']> {
+  input: {
+    savesAgainst?: readonly SrdConditionCode[]
+    savesAgainstMagic?: readonly AbilityCode[]
+    skills?: readonly string[]
+  }
+): { modifiers: ModifierGrantAuthored[] } {
   const common = {
     grantKind: GRANT_KIND.MODIFIER_GRANT,
     modifierKind: MODIFIER_KIND.ROLL_INFLUENCE,
@@ -315,7 +322,7 @@ export function advantageGrants(
       valueDomainCode: VALUE_DOMAIN_CODE.SKILL_MODIFIER,
       domain: { skillId: skillId(code) }
     })),
-    ...input.savesAgainst.flatMap((code) =>
+    ...(input.savesAgainst ?? []).flatMap((code) =>
       Object.values(ABILITY_CODE).map((ability) => ({
         valueDomainCode: VALUE_DOMAIN_CODE.SAVING_THROW_MODIFIER,
         domain: { ability, conditionTypeId: vocabularyId(SRD_CONDITION_TYPES, code) }
@@ -323,12 +330,19 @@ export function advantageGrants(
     )
   ]
   return {
-    modifiers: domains.map((entry, order) => ({
-      ...common,
-      ...entry,
-      id: grantId(creatureIndex, firstLocalIndex + order),
-      order
-    }))
+    modifiers: [
+      ...domains.map((entry, order) => ({
+        ...common,
+        ...entry,
+        id: grantId(creatureIndex, firstLocalIndex + order),
+        order
+      })),
+      ...magicSaveAdvantageGrants(
+        (entry) => grantId(creatureIndex, firstLocalIndex + domains.length + entry),
+        input.savesAgainstMagic ?? [],
+        domains.length
+      )
+    ]
   }
 }
 
@@ -388,6 +402,34 @@ export function magicWeaponsGrants(
       }
     ]
   }
+}
+
+/**
+ * Magic Resistance: advantage on every saving throw against spells and other magical effects,
+ * limited to a magical source (D179). The grants take the IDs `grantId(creatureIndex,
+ * firstLocalIndex)` through `firstLocalIndex + 29`.
+ */
+export function magicResistanceGrants(creatureIndex: number, firstLocalIndex: number) {
+  return advantageGrants(creatureIndex, firstLocalIndex, {
+    savesAgainstMagic: Object.values(ABILITY_CODE)
+  })
+}
+
+/**
+ * Immunity to a condition only when magic applies it (Fey Ancestry: magic can't put it to sleep).
+ * The grant takes the IDs `grantId(creatureIndex, firstLocalIndex)` through `firstLocalIndex + 4`.
+ */
+export function magicConditionImmunity(
+  creatureIndex: number,
+  firstLocalIndex: number,
+  conditionCode: SrdConditionCode,
+  order: number
+) {
+  return magicConditionImmunityGrant(
+    (entry) => grantId(creatureIndex, firstLocalIndex + entry),
+    vocabularyId(SRD_CONDITION_TYPES, conditionCode),
+    order
+  )
 }
 
 /** A feature that makes the Creature's movement provoke no opportunity attacks (Flyby). */
@@ -699,6 +741,8 @@ export type GrappleRider = {
   restrictedActionEffectIds?: readonly string[]
   /** The hold applies only when this holds of the open Attack action (a Multiattack's "if both attacks hit"). */
   appliesWhen?: AttackSlotCondition
+  /** The printed "takes N damage at the start of each of its turns" while held. */
+  recurrence?: ActorRelationshipAuthored['recurrence']
 }
 
 /**
@@ -752,6 +796,7 @@ export function grappledOutcome(
     effectKind: EFFECT_KIND.ACTOR_RELATIONSHIP,
     heldAtOnce: rider.heldAtOnce,
     ...(rider.appliesWhen ? { appliesWhen: rider.appliesWhen } : {}),
+    ...(rider.recurrence ? { recurrence: rider.recurrence } : {}),
     modules: modules.map((module, order) => ({ ...module, order: order + 1 })),
     conditions: [
       ...(rider.omitGrappled ? [] : [GRAPPLED_CONDITION_ID]),

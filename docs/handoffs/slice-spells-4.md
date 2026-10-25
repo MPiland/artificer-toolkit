@@ -689,6 +689,24 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
   - `spellCastLevels.test.ts`;
   - the golden (Spiritual Weapon's attack → `TEST_OUTCOME`).
 
+## T2v2b (D187b, D190a): Arcane Hand and Mage Hand as summons
+
+- Status: implemented on `spells-4-t2v2b`; CI is the gate.
+- Data, Arcane Hand: the summon is labelled "Arcane Hand", as Spiritual Weapon's is (otherwise it takes the cast's "Arcane Hand (5th level)"); the stat block gains Dex 10 and `occupiesSpace: false` (the SRD hand "doesn't fill its space"; it was `true`). An empty `APPLY_GRANT` carrier outcome holds a `CONJURED` `REPEAT_SOURCE_PATH` offer of a new sibling Effect, the Clenched Fist (5-ft melee spell attack, 4d8 force at 5th level plus 2d8 per slot level above), `FREE_ONCE` on the cast turn and a bonus action afterwards. Moving the hand and the Forceful, Grasping and Interposing hands are GM rulings (D187a).
+- Data, Mage Hand: a stat block (one 5-ft square, fly 30, `INVULNERABLE`, `occupiesSpace: false`) and no offers. Using the hand, its 30-ft leash, dismissing it and the recast end are GM rulings.
+- Contract (orchestrator ruling Q2 = A): the caster's maximum is a required `number`. The commit reads the caster's prepared movement target's `effectiveMaximumHitPoints` (a Character's Sheet maximum, another actor's Run maximum), the same map entry preparation reads. Deleted: `casterHitPointMaximum()` and the `HIT_POINTS_UNKNOWN` refusal, which refused every Character's Arcane Hand; `evaluateEncounterSummonTarget` no longer takes a maximum. A creature caster has no summoning cast today (`summonPlacement` compiles only on a Character's actions), so no test can drive one.
+- Contract (orchestrator ruling Q1 = A, bug fix): the Sheet's `CharacterSpellSummonState` HP fields are optional together (no pool for a stat block with no hit points, never ends at 0), and so is the Extras item's `hitPoints`. Before, a Sheet CAST_SPELL of Spiritual Weapon threw. `buildSheetSpellSummon` records the summon, Extras shows it without an HP control, and UPDATE_SHEET_EXTRA refuses hit points for it. No migration: the field only loosens.
+- Bug fixed: the area root's refine refused any `maintenanceTransition` without a placed zone, so a Concentration summon (Arcane Hand) failed its commit. It now also accepts the carrier `sourceGrantTransition`.
+- Bug fixed: the area pending snapshot did not record a summon, so its commit re-check (`requireAreaActionPendingRoot`) caught the creatures under a hand that takes no space, while preparation caught nobody, and refused the commit. The snapshot now holds a required `placesSummon` (never with `placesZone`, always with an area), and such an area catches nobody.
+- Bug fixed: a summon with no carrier grant (Mage Hand) compiled a bare carrier that the turn-effect kernel counted, whose tick threw ("must contain an application proposal"). The bare carrier is now `SOURCE`-anchored (`tickAnchor`), so the grant tick planner counts it on its caster's turns exactly as it counts a carrier grant (Spiritual Weapon, Arcane Hand), cast turn included.
+- Bug fixed: a Sheet command that ends Concentration takes a summon's token off the presented Scene, but the room composed vision from its cached, pre-command Scene and refused the command ("Scene vision Scene version is stale"). `readRoomSceneMovedBy` (`roomSceneRead.ts`) re-reads a Scene a command moved; the Encounter and Sheet command paths both use it and refresh the cache from it.
+- Proof:
+  - room `nativeRoomCoreOptionSpells.test.ts` "Arcane Hand" (the caster's 25 hit points, free and bonus-action fist attacks from the hand, removal at Concentration end) and "Mage Hand" (invulnerable body, no offers, a token move, removal at expiry);
+  - `coreOptionSpellAuthoringParity.test.ts` (Arcane Hand, Mage Hand);
+  - `characterSpellCastActions.test.ts`: both summon compiles and the fist's `4d8`/`8d8` at levels 5 and 7;
+  - Convex `sheetSpellSummons.test.ts` "a summon whose stat block has no hit points" (Spiritual Weapon from the Sheet), `sheetCommandReducer.test.ts` (no pool: rename, hit points refused), `CharacterSheetExtras.test.tsx` (no HP control);
+  - the golden (the Clenched Fist → `TEST_OUTCOME`).
+
 ## T2m2 (D187a): Freedom of Movement and Calm Emotions leave their closed kinds
 
 - Freedom of Movement: an `APPLY_GRANT` of two `CONDITION_IMMUNITY` `ADD_OPTION` modifiers (PARALYZED, RESTRAINED), each restricted by a `SOURCE_TRAIT` `MAGICAL` facet (`sourceTraitRestriction`, source-data `classes/mechanics.ts`), then a `MANUAL_ADJUDICATION` for difficult terrain, speed reduction, the 5-foot escape and underwater movement. Calm Emotions is one `MANUAL_ADJUDICATION` (GM ruling). `CALM_EMOTIONS` and `FREEDOM_OF_MOVEMENT` are gone from `closedRuleKind.ts`; the semantic ledger marks both `COMPLETE_WITH_MANUAL_EXCEPTIONS`.
@@ -714,6 +732,13 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 - Merge fixes with m416 (SPELLS-31.T4s Wild Shape): the druid's Wild Shape form now authors `retainsProficiencies: true` (absent compiled to `false`; proof `wildShapeScaling.test.ts` "keeps the druid's proficiencies"), and `creatureFormOutcomeFields.ts` imports the form and form-filter node maps from m416's `creatureForm.ts` instead of keeping its own copies.
 - Proof: `characterFormProficiencies.test.ts` (saves, held saves, a check, defenses, a missing holding effect, and the retaining case), `encounterAreaActionCompilation.test.ts` (Polymorph compiles `false`), room `nativeRoomConcentration.test.ts` "a Concentrating Character in a form that replaces its proficiencies", `nativeRoomDisarm.test.ts` "room Disarm of a Character in a form that replaces its proficiencies", and `nativeRoomPolymorph.test.ts` T4d now seeds its form effect (`characterFormFixture.ts`).
 - Not here (follow-ups): a retaining form (Wild Shape) still contests with the Character's own size; a Character in any form keeps its own granted attack traits, innate conditions and movement passage.
+
+## T2m2b (D187a, orchestrator ruling A): the SRD Net compiles and plays
+
+- Cause: the Net's hit path (`MANIFEST OBJECT` + `FOLLOW_UP_CHECK`) is refused by the D&D test-action compiler ("test action outcome is not supported"), so the Character action was MANUAL and never offered.
+- Now: one `ACTOR_RELATIONSHIP` on hit: `TARGET_SIZE_MAXIMUM` Large, `ESCAPE_CHECK` (action, Strength check, fixed DC 10, the target or a creature within reach, so rescues apply) and the new generic module `SOURCE_INDEPENDENT_HOLD`, holding the RESTRAINED condition. The module is a lifetime fact on the relationship (schema, shared authored type, node map): `encounterEndedRelationships` skips the source-can't-act and beyond-sealed-reach ends for it and nothing else (an escape or rescue still ends it).
+- Description-only (orchestrator OK; in future-enhancements "Destructible held objects"): the "destroyed by 5 slashing damage (AC 10)" clause and the formless exclusion.
+- Proof: `encounterRelationshipEnds.test.ts` "keeps a source-independent hold whose source is unable and far away" (red before the module); `equipmentNetAuthoringParity.test.ts` (the Net and a DC 15 variant pass the equipment node map as authored); room `nativeRoomFreedomOfMovement.test.ts` "a thrown Net" (a Character's Net hit restrains a Guard whether or not Freedom of Movement is on it).
 
 ## T2w (D187a): Faithful Hound as a summon
 

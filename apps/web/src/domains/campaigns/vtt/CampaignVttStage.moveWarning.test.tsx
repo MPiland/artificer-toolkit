@@ -49,6 +49,7 @@ vi.mock('./vttSceneRenderer', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./vttSceneRenderer')>()),
   createVttSceneRenderer: (
     _host: HTMLElement,
+    _gameSystemId: string,
     handlers: { onTokenCommit: (tokenId: string, path: ScenePoint[]) => void }
   ) => {
     mocks.onTokenCommit = handlers.onTokenCommit

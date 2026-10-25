@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./auth-proxy-context": "./convex/lib/authProxyContext.ts",
+    "./convex/definition-references": "./convex/content/definitionReferences.ts",
     "./convex/api": {
       "types": "./convex/_generated/api.d.ts",
       "default": "./convex/_generated/api.js"

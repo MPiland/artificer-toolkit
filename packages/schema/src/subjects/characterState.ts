@@ -121,25 +121,35 @@ const characterOwnedCreatureStateDtoSchemaRaw = lazySchema(() =>
  */
 const characterSpellSummonStateDtoSchemaRaw: z.ZodMiniType<CharacterSpellSummonState> = lazySchema(
   () =>
-    z.object({
-      id: postgresUuidSchema,
-      spellId: z.string(),
-      summonOutcomeId: z.string(),
-      label: z.string().check(z.minLength(1)),
-      /** The cast opened Concentration: this summon is the Sheet's Concentration and ends with it. */
-      concentration: z.boolean(),
-      size: z.optional(systemCoreCodeSchema),
-      armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-      abilityScores: z.optional(z.partialRecord(abilityCodeSchema, z.number().check(z.int()))),
-      speeds: z.optional(z.array(speedDtoSchema)),
-      passivePerception: z.optional(z.number().check(z.int())),
-      maximumHitPoints: z.number().check(z.int()).check(z.positive()),
-      currentHitPoints: z.number().check(z.int()).check(z.positive()),
-      tempHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
-      customName: z.optional(z.string()),
-      notes: z.optional(z.string()),
-      castAt: z.iso.datetime()
-    })
+    z
+      .object({
+        id: postgresUuidSchema,
+        spellId: z.string(),
+        summonOutcomeId: z.string(),
+        label: z.string().check(z.minLength(1)),
+        /** The cast opened Concentration: this summon is the Sheet's Concentration and ends with it. */
+        concentration: z.boolean(),
+        size: z.optional(systemCoreCodeSchema),
+        armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
+        abilityScores: z.optional(z.partialRecord(abilityCodeSchema, z.number().check(z.int()))),
+        speeds: z.optional(z.array(speedDtoSchema)),
+        passivePerception: z.optional(z.number().check(z.int())),
+        /** Absent with `currentHitPoints` when the stat block gives no hit points: no pool. */
+        maximumHitPoints: z.optional(z.number().check(z.int()).check(z.positive())),
+        currentHitPoints: z.optional(z.number().check(z.int()).check(z.positive())),
+        tempHitPoints: z.optional(z.number().check(z.int()).check(z.nonnegative())),
+        customName: z.optional(z.string()),
+        notes: z.optional(z.string()),
+        castAt: z.iso.datetime()
+      })
+      .check(
+        z.refine(
+          (summon) =>
+            (summon.maximumHitPoints === undefined) === (summon.currentHitPoints === undefined) &&
+            (summon.maximumHitPoints !== undefined || summon.tempHitPoints === undefined),
+          'A summon has current and maximum hit points together, or no hit point pool.'
+        )
+      )
 )
 const characterOwnedVehicleStateDtoSchemaRaw = lazySchema(() =>
   z.object({

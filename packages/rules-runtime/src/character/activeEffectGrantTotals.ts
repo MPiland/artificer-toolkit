@@ -232,7 +232,7 @@ export function activeAttackRollDice(
 }
 
 /**
- * The dice a holder's active grants add to its saving throws with one ability ("WISDOM"), or to an
+ * The dice a holder's active grants add to its saving throws with one ability (its code), or to an
  * ability-less save (a death save) when `abilityCode` is null. A grant naming no ability covers
  * every save; one naming an ability covers only that ability's saves.
  */
@@ -248,7 +248,7 @@ export function activeSavingThrowDice(
 }
 
 /**
- * The dice a holder's active grants add to its ability checks with one ability ("STRENGTH"), or to
+ * The dice a holder's active grants add to its ability checks with one ability (its code), or to
  * an ability-less check when `abilityCode` is null. A grant naming no ability covers every check.
  */
 export function activeAbilityCheckDice(

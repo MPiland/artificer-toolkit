@@ -382,14 +382,11 @@ export function projectCharacterRulePolicyToSheetProjection(
       maxByLevel: Object.fromEntries(
         output.spellSlots.maxByLevel.map((entry) => [entry.spellLevel, entry.slotCount])
       ),
-      ...(output.spellSlots.pactMagic
-        ? {
-            pactMagic: {
-              slots: output.spellSlots.pactMagic.slots,
-              level: output.spellSlots.pactMagic.level
-            }
-          }
-        : {}),
+      slotPools: output.spellSlots.slotPools.map(({ poolCode, slots, level }) => ({
+        poolCode,
+        slots,
+        level
+      })),
       fusionStrategy: output.spellSlots.fusionStrategy
     },
     resources,

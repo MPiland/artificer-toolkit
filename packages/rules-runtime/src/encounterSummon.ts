@@ -8,11 +8,6 @@ import {
 import { summonBody } from './encounterActorBody.js'
 import { summonHitPoints } from './summonHitPoints.js'
 
-/** The caster's hit point maximum when the Run holds it; a Character's lives on the Sheet. */
-export function casterHitPointMaximum(caster: EncounterRunActorState): number | null {
-  return caster.kind === 'CHARACTER' ? null : caster.maxHitPoints
-}
-
 /**
  * The creature a cast summons: a Run actor owned by the caster, built from the spell's stat block,
  * and the Scene token that stands at `point`. The summon fights on the caster's side and is
@@ -22,8 +17,8 @@ export function casterHitPointMaximum(caster: EncounterRunActorState): number | 
 export function buildEncounterSummon(input: {
   summon: Pick<CompiledActionSummonPlacement, 'statBlock'>
   caster: EncounterRunActorState
-  /** The caster's hit point maximum, when the Run holds it (a Character's lives on the Sheet). */
-  casterHitPointMaximum: number | null
+  /** The caster's effective hit point maximum: a Character's from its Sheet, others' from the Run. */
+  casterHitPointMaximum: number
   /** The creature's name: the stat block's own, else the spell's. */
   label: string
   /** The carrier effect on the caster whose end removes the summon. */
@@ -44,7 +39,6 @@ export function buildEncounterSummon(input: {
     occurredAt
   } = input
   const maxHitPoints = summonHitPoints(summon.statBlock, casterHitPointMaximum)
-  if (maxHitPoints === null) throw new Error("The summon's hit points need the caster's maximum.")
   const actor = encounterRunActorStateSchema.parse({
     id: crypto.randomUUID(),
     encounterId: caster.encounterId,

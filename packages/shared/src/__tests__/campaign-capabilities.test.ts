@@ -16,6 +16,10 @@ describe('Campaign capabilities', () => {
       readPartyChat: true
     })
 
+    expect(getCampaignCapabilities('ACTIVE', 'OWNER').manageActiveCampaign).toBe(true)
+    expect(getCampaignCapabilities('ACTIVE', 'PLAYER').manageActiveCampaign).toBe(false)
+    expect(getCampaignCapabilities('ARCHIVED', 'OWNER').manageActiveCampaign).toBe(false)
+
     const archivedOwner = getCampaignCapabilities('ARCHIVED', 'OWNER')
     expect(archivedOwner.delete).toBe(true)
     expect(archivedOwner.readTableChat).toBe(true)

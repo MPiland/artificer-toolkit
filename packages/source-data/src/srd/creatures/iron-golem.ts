@@ -1,5 +1,6 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 export const ironGolem: CreatureAuthored = {
   id: S.CREATURE_IDS.IRON_GOLEM,
@@ -72,7 +73,7 @@ export const ironGolem: CreatureAuthored = {
       description:
         'Immutable Form. The golem is immune to any spell or effect that would alter its form.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(175, 502),
           invocation: {
             kind: 'PASSIVE',
@@ -80,7 +81,7 @@ export const ironGolem: CreatureAuthored = {
             range: { id: S.actionId(175, 602), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_IRON_GOLEM_IMMUTABLE_FORM
+          ...CHANGE_SHAPE_RULING.IMMUTABLE_FORM
         })
       ],
       order: 2
@@ -90,18 +91,7 @@ export const ironGolem: CreatureAuthored = {
       label: 'Magic Resistance',
       description:
         'Magic Resistance. The golem has advantage on saving throws against spells and other magical effects.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(175, 503),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(175, 604), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MAGIC_RESISTANCE
-        })
-      ],
+      grants: S.magicResistanceGrants(175, 503),
       order: 3
     },
     {

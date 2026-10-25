@@ -1,11 +1,7 @@
+import type { ReferenceOption } from '#app/data/contentReferences'
 import { richHtmlToPlainText } from '#lib/richText'
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-interface ReferenceLabelOption {
-  value: string
-  label: string
-}
 
 export function formatEnumLabel(value: string | null | undefined): string {
   if (!value) return 'Not set'
@@ -33,7 +29,7 @@ export function formatReference(value: string | null | undefined, fallback = 'Co
 export function formatReferenceLabel(
   value: string | null | undefined,
   fallback = 'Configured',
-  options: readonly ReferenceLabelOption[] = []
+  options: readonly ReferenceOption[] = []
 ): string {
   if (!value) return 'Not set'
   return options.find((option) => option.value === value)?.label ?? formatReference(value, fallback)
@@ -55,7 +51,7 @@ export function formatReferenceList(
 export function formatReferenceLabelList(
   values: readonly string[] | null | undefined,
   fallback: string,
-  options: readonly ReferenceLabelOption[] = []
+  options: readonly ReferenceOption[] = []
 ): string {
   if (!values?.length) return 'None'
 

@@ -166,7 +166,7 @@ describe('the SRD Maze in the room (SPELLS-4.T2h1)', () => {
     const { actor: conjured } = buildEncounterSummon({
       summon: { statBlock: { occupiesSpace: false, hitPoints: { kind: 'FIXED', value: 10 } } },
       caster: character,
-      casterHitPointMaximum: null,
+      casterHitPointMaximum: 20,
       label: 'Conjured',
       sourceEffectId: testUuid(0x7f3),
       point: { x: 450, y: 150 },
