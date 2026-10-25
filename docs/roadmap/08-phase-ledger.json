@@ -18262,7 +18262,7 @@
             },
             {
               "id": "SPELLS-33.T4gh",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -18278,7 +18278,9 @@
                 ]
               },
               "text": "five Rejuvenations, Ghost and Night Hag Etherealness (7 kinds). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-32/33.T1 ruling; workbook slice-spells-33.md).",
-              "activeWorkbook": "docs/handoffs/slice-spells-33.md"
+              "mergedAt": "2026-10-25T01:51:34Z",
+              "proof": "Tests and Live green on tip 9438a4032; reviewed and approved; merged through the m424 batch run.",
+              "note": " Merged in m424."
             },
             {
               "id": "SPELLS-33.T4i1a",
@@ -21863,11 +21865,11 @@
           "acs": [
             {
               "id": "RELIABILITY-12.1",
-              "text": "Facet restrictions and effect paths (BASIC_ACTION) reach Convex as their real types: the intersection-built schemas in packages/shared facet.ts and effects/path.ts become flat unions, recursion included, so apps/apis/convex/_generated/api.d.ts has no any for them; the generatedApiTypes type test proves it and the authoring contract and publication tests pass unchanged.",
+              "text": "Facet restrictions and effect paths (BASIC_ACTION) reach the web as their real types: the four content/definitions.ts handlers declare the packages/schema workspace DTO type and the web adapter reads through a typed reference to it (pairing contract test); in the Convex validator only facet, path and follow-up outcomes are named v.any() leaves, still zod-parsed in the handler, and the generatedApiTypes type test proves any appears only at those leaves; the authoring contract and publication tests pass unchanged.",
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Found 2026-10-14 by RELIABILITY-11 (workbook status log): same Convex intersection-to-any defect, spread across many intersections plus recursion. D194 (user ruling 2026-10-24): wire stays nested; staticApi stays on; only follow-up save/check outcomes keep a named v.any leaf; handlers and web adapter share the packages/schema type with a pairing contract test."
+              "note": "Found 2026-10-14 by RELIABILITY-11 (workbook status log): same Convex intersection-to-any defect, spread across many intersections plus recursion. D194 (user ruling 2026-10-24): wire stays nested; staticApi stays on; only follow-up save/check outcomes keep a named v.any leaf; handlers and web adapter share the packages/schema type with a pairing contract test. D194 amended (user ruling 2026-10-24, option B): the zod-to-Convex converter inlines every reuse, so flat unions measured about 54 MB per facet validator; facet and path became named validator leaves too (about 29,000 nodes)."
             },
             {
               "id": "RELIABILITY-12.2",
