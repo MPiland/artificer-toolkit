@@ -10,6 +10,7 @@ import { cleric } from '@artificer-toolkit/source-data/srd/classes/cleric.js'
 import { hunterConclave } from '@artificer-toolkit/source-data/srd/classes/hunter.js'
 import { lifeDomainCleric } from '@artificer-toolkit/source-data/srd/classes/life-domain.js'
 import { draconicBloodlineOrigin } from '@artificer-toolkit/source-data/srd/classes/draconic-bloodline.js'
+import { fighter } from '@artificer-toolkit/source-data/srd/classes/fighter.js'
 import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
 import { oathOfDevotion } from '@artificer-toolkit/source-data/srd/classes/oath-of-devotion.js'
 import { paladin } from '@artificer-toolkit/source-data/srd/classes/paladin.js'
@@ -33,6 +34,8 @@ import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/d
  * and Superior Inspiration (T5o) are a RESTORE_RESOURCE outcome on a ROLL_INITIATIVE passive.
  * Thief's Reflexes (T5o2, D187a) is a passive GM ruling. Dragon Wings (T4o) is a fly speed equal to
  * the walking speed; Unarmored Movement Improvement and Second-Story Work (T4o, D187a) are GM rulings.
+ * Reliable Talent (T5c) is a proficient-only ability check floor; Indomitable, Diamond Soul and
+ * Stroke of Luck (T5c, D187a) spend their use automatically and leave the new result to a GM ruling.
  */
 
 const reader = createSrdNodeRuntimeReader(dnd5eCoreCodeAdapter.lists)
@@ -392,6 +395,46 @@ const CASES: ReadonlyArray<{
         throw new Error(`${label} must author a manual adjudication.`)
       outcome.reasonCode = 'GM_CHOICE'
       outcome.instructions = 'The table decides how this applies.'
+      return variant
+    }
+  })),
+  {
+    record: rogue,
+    label: 'Reliable Talent',
+    variant: () => {
+      const variant = structuredClone(rogue)
+      const [floor] = feature(variant, 'Reliable Talent').grants?.modifiers ?? []
+      if (floor?.valueDomainCode !== 'ABILITY_CHECK' || floor.modifierKind !== 'MINIMUM_ROLL')
+        throw new Error('Reliable Talent must author an ability check floor.')
+      // A homebrew variant that floors proficient Strength checks at 12.
+      floor.domain = { ability: 'STRENGTH', proficientOnly: true }
+      floor.payload = { amount: 12 }
+      return variant
+    }
+  },
+  ...(
+    [
+      { record: fighter, label: 'Indomitable' },
+      { record: monk, label: 'Diamond Soul' },
+      { record: rogue, label: 'Stroke of Luck' }
+    ] as const
+  ).map(({ record, label }) => ({
+    record,
+    label,
+    variant: () => {
+      const variant = structuredClone(record)
+      const [effect] = feature(variant, label).effects ?? []
+      const path = effect?.paths[0]
+      const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
+      if (
+        effect?.invocation.kind !== 'ACTION' ||
+        !effect.invocation.resourceUse ||
+        outcome?.effectKind !== 'MANUAL_ADJUDICATION'
+      )
+        throw new Error(`${label} must author a charged GM ruling.`)
+      // A homebrew variant that costs two uses and words the ruling for the table.
+      effect.invocation.resourceUse.cost = 2
+      outcome.instructions = 'The table decides the new result.'
       return variant
     }
   }))

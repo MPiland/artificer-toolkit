@@ -53,6 +53,7 @@ import {
   attacksPerAttackActionGrant,
   closedRuleEffect,
   equippedCategoryRestriction,
+  gmRulingEffect,
   MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
 } from './mechanics.js'
 
@@ -879,35 +880,23 @@ export const monk: ClassAuthored = {
         'Beginning at 14th level, your mastery of ki grants you proficiency in all saving throws. Additionally, whenever you make a saving throw and fail, you can spend 1 ki point to reroll it and take the second result.',
       availableAtLevel: 14,
       order: 20,
+      // The ki spend is automated; the reroll waits on a save-result window (future-enhancements).
       effects: [
-        ABILITY_CODE.STRENGTH,
-        ABILITY_CODE.DEXTERITY,
-        ABILITY_CODE.CONSTITUTION,
-        ABILITY_CODE.INTELLIGENCE,
-        ABILITY_CODE.WISDOM,
-        ABILITY_CODE.CHARISMA
-      ].map((ability, index) =>
-        closedRuleEffect({
-          id: index === 0 ? classRowId(M, 0x60, 21) : classRowId(M, 0x76, index + 1),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_DIAMOND_SOUL_REROLL,
-          pathCode: PATH_CODE.ON_SAVE_FAIL,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.SAVING_THROW,
-            activation: { code: ACTIVATION_CODE.FREE },
-            savingThrow: {
-              id: classRowId(M, 0x78, index + 1),
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS[ability],
-              dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
-            },
-            range: {
-              id: index === 0 ? classRowId(M, 0x69, 21) : classRowId(M, 0x77, index + 1),
-              rangeKind: RANGE_KIND.SELF
-            },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(M, 0x60, 21),
+            range: classRowId(M, 0x69, 21),
+            path: classRowId(M, 0x80, 21),
+            result: classRowId(M, 0x81, 21),
+            outcome: classRowId(M, 0x6c, 21)
+          },
+          label: 'Diamond Soul',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'Use this right after you fail a saving throw: reroll that saving throw and take the second result. The GM applies the new result in place of the failed one.',
+          resourceUse: { chargeId: kiCharge.id, cost: 1 }
         })
-      ),
+      ],
       grants: {
         proficiencies: [
           {

@@ -8,6 +8,7 @@ import {
   CLOSED_RULE_KIND,
   EFFECT_KIND,
   FEATURE_ATTRIBUTE,
+  MANUAL_ADJUDICATION_REASON,
   MODIFIER_KIND,
   MODIFIER_SCOPE_KIND,
   PATH_CODE,
@@ -38,7 +39,7 @@ import {
   SRD_USER_ID,
   ABILITY_CODE
 } from '../vocabulary.js'
-import { abilityScoreImprovementOptions, closedRuleEffect } from './mechanics.js'
+import { abilityScoreImprovementOptions, closedRuleEffect, gmRulingEffect } from './mechanics.js'
 
 function skillId(code: string): string {
   const entry = SRD_SKILLS.find((s) => s.code === code)
@@ -845,7 +846,22 @@ export const rogue: ClassAuthored = {
       label: 'Reliable Talent',
       description:
         'By 11th level, you have refined your chosen skills until they approach perfection. Whenever you make an ability check that lets you add your proficiency bonus, you can treat a d20 roll of 9 or lower as a 10.',
-      effects: [selfClassRuleEffect(13, CLOSED_RULE_KIND.CLASS_ROGUE_RELIABLE_TALENT)],
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(R, 0x8c, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.ABILITY_CHECK,
+            // Half proficiency (Jack of All Trades) does not add the proficiency bonus.
+            domain: { proficientOnly: true },
+            modifierKind: MODIFIER_KIND.MINIMUM_ROLL,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: { amount: 10 },
+            order: 0
+          }
+        ]
+      },
       availableAtLevel: 11,
       order: 12
     },
@@ -971,64 +987,30 @@ export const rogue: ClassAuthored = {
       label: 'Stroke of Luck',
       description:
         "At 20th level, you have an uncanny knack for succeeding when you need to. If your attack misses a target within range, you can turn the miss into a hit. Alternatively, if you fail an ability check, you can treat the d20 roll as a 20.\n\nOnce you use this feature, you can't use it again until you finish a short or long rest.",
+      attributes: [FEATURE_ATTRIBUTE.LIMITED_USE],
+      charges: {
+        id: classRowId(R, 0x66, 22),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'SHORT_REST',
+        amount: 1
+      },
+      // The use is automated; the changed attack or check result is the GM's to apply.
       effects: [
-        closedRuleEffect({
-          id: classRowId(R, 0x60, 22),
-          ruleKind: CLOSED_RULE_KIND.CLASS_ROGUE_STROKE_OF_LUCK,
-          pathCode: PATH_CODE.ON_MISS,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(R, 0x69, 22), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(R, 0x60, 0x82),
-          ruleKind: CLOSED_RULE_KIND.CLASS_ROGUE_STROKE_OF_LUCK,
-          pathCode: PATH_CODE.ON_MISS,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            range: { id: classRowId(R, 0x69, 0x82), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(R, 0x60, 0x83),
-          ruleKind: CLOSED_RULE_KIND.CLASS_ROGUE_STROKE_OF_LUCK,
-          pathCode: PATH_CODE.ON_MISS,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_SPELL_ATTACK,
-            range: { id: classRowId(R, 0x69, 0x83), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        closedRuleEffect({
-          id: classRowId(R, 0x60, 0x85),
-          ruleKind: CLOSED_RULE_KIND.CLASS_ROGUE_STROKE_OF_LUCK,
-          pathCode: PATH_CODE.ON_MISS,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.RANGED_SPELL_ATTACK,
-            range: { id: classRowId(R, 0x69, 0x85), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: TARGET_DISPOSITION_KIND.HOSTILE
-            }
-          }
-        }),
-        selfClassRuleEffect(0x84, CLOSED_RULE_KIND.CLASS_ROGUE_STROKE_OF_LUCK)
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(R, 0x60, 22),
+            range: classRowId(R, 0x69, 22),
+            path: classRowId(R, 0x80, 22),
+            result: classRowId(R, 0x81, 22),
+            outcome: classRowId(R, 0x6c, 22)
+          },
+          label: 'Stroke of Luck',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'Use this right after your attack misses a target within range, to turn the miss into a hit, or right after you fail an ability check, to treat its d20 roll as a 20. The GM applies the changed result.',
+          resourceUse: { chargeId: classRowId(R, 0x66, 22), cost: 1 }
+        })
       ],
       availableAtLevel: 20,
       order: 21

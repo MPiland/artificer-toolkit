@@ -28,6 +28,12 @@ const DESCRIPTION_ONLY_FEATURES: ReadonlyArray<{
     resolvedBy: 'grant'
   },
   {
+    owner: 'Barbarian',
+    feature: 'Indomitable Might',
+    kind: 'BARBARIAN_INDOMITABLE_MIGHT',
+    resolvedBy: 'description'
+  },
+  {
     owner: 'Monk',
     feature: 'Unarmored Defense',
     kind: 'MONK_UNARMORED_DEFENSE',
