@@ -1,7 +1,6 @@
 import type {
   ApplyGrantAuthored,
   ActorRelationshipAuthored,
-  ActorRelationshipModuleAuthored,
   ConditionAuthored,
   DamageAuthored,
   FailureMarginRiderAuthored,
@@ -26,7 +25,8 @@ import type {
   ResultBlockAuthored,
   DegradeEquipmentDestroyWhenAuthored,
   ScalarReductionAuthored,
-  SummonStatBlockAuthored
+  SummonStatBlockAuthored,
+  TelepathicLinkAbilityFloorAuthored
 } from '#authored'
 import {
   MANIFEST_BLOCKING_RULE_OPTIONS,
@@ -92,10 +92,10 @@ import {
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
-import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { ATTACK_SLOT_CONDITION_NODE_MAP } from '../../features/maps/attackSlots.js'
+import { ACTOR_RELATIONSHIP_MODULE_NODE_MAP } from './actorRelationshipModule.js'
 import {
   FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP,
   FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
@@ -128,7 +128,6 @@ type ManifestProximityRuleNode = ManifestProximityRuleAuthored
 type ManifestOccupantSaveBonusNode = AllUnionFields<ManifestOccupantSaveBonusAuthored>
 type ManifestComponentRegionNode = NonNullable<ManifestComponentAuthored['region']>
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
-type ActorRelationshipModuleNode = AllUnionFields<ActorRelationshipModuleAuthored>
 type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
 type NodeMapBuildApi<NLocal extends object> = Parameters<
   BuildNodeMap<NLocal>['define']
@@ -224,6 +223,7 @@ const pathLifecycleGrantedAction =
   buildNodeMap<NonNullable<PathLifecycleAuthored['grantedActions']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
 const summonAbilityScores = buildNodeMap<SummonAbilityScoresNode>()
+const telepathicLinkAbilityFloor = buildNodeMap<TelepathicLinkAbilityFloorAuthored>()
 const summonStatBlock = buildNodeMap<SummonStatBlockAuthored>()
 const outcome = buildNodeMap<OutcomeNode>()
 const nonManifestOutcome = buildNodeMap<NonManifestOutcomeNode>()
@@ -256,8 +256,6 @@ const hitPointMaximumReductionAmountSource =
   buildNodeMap<HitPointMaximumReductionAuthored['amountSource']>()
 const degradeEquipmentDestroyWhen = buildNodeMap<DegradeEquipmentDestroyWhenAuthored>()
 const scalarReductionAmount = buildNodeMap<ScalarReductionAuthored['amount']>()
-const actorRelationshipModule = buildNodeMap<ActorRelationshipModuleNode>()
-const actionEffectId = buildNodeMap<{ value: string }>()
 const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode>()
 /** The rider's conditions are edited as outcome rows; the schema admits only CONDITION outcomes. */
 type FollowUpSaveFailureMarginRiderNode = Omit<FailureMarginRiderAuthored, 'outcomes'> & {
@@ -1142,10 +1140,6 @@ const DEGRADE_EQUIPMENT_DESTROY_WHEN_NODE_MAP = degradeEquipmentDestroyWhen.defi
   }
 )
 
-const ACTION_EFFECT_ID_NODE_MAP = actionEffectId.define('actionEffectId', ({ map, nodes }) => {
-  map.set('value', nodes.text(['value'], 'Effect ID'))
-})
-
 const SCALAR_REDUCTION_AMOUNT_NODE_MAP = scalarReductionAmount.define(
   'scalarReductionAmount',
   ({ map, nodes }) => {
@@ -1207,152 +1201,24 @@ const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP = followUpSaveFailureMarginRi
   }
 )
 
-const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
-  'actorRelationshipModule',
-  ({ map, nodes, cond, logic: { or }, data }) => {
-    const { text, number, selectSingle, selectMulti, groupObject, groupArray } = nodes
-    const local = cond.local()
-    const { table } = data
-    const releaseCost = local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST')
-    const isActionEffectModule = or([
-      local.field(['kind']).eq('SOURCE_ACTION_TARGET_RESTRICTION'),
-      local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE')
-    ])
-    const isCapabilityModule = or([
-      local.field(['kind']).eq('TARGET_CAPABILITY_SUPPRESSION'),
-      local.field(['kind']).eq('CONDITIONAL_TARGET_STATE')
-    ])
+const TELEPATHIC_LINK_ABILITY_FLOOR_NODE_MAP = telepathicLinkAbilityFloor.define(
+  'telepathicLinkAbilityFloor',
+  ({ map, nodes, data }) => {
+    const { number, selectSingle } = nodes
 
     map
-      .set('id', text(['id'], 'ID'))
-      .set('order', number(['order'], 'Order'))
       .set(
-        'kind',
-        selectSingle(['kind'], 'Module', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'TARGET_SIZE_MAXIMUM', label: 'Target Size Maximum' },
-            { code: 'SOURCE_ACTION_TARGET_RESTRICTION', label: 'Source Action Restriction' },
-            { code: 'SOURCE_ATTACK_ROLL_INFLUENCE', label: 'Source Attack Influence' },
-            { code: 'SOURCE_FOLLOWS_TARGET', label: 'Source Follows Target' },
-            { code: 'SOURCE_OCCUPIES_HAND', label: 'Source Occupies Hand' },
-            { code: 'SOURCE_INDEPENDENT_HOLD', label: 'Source Independent Hold' },
-            { code: 'TARGET_DRAGGED', label: 'Target Dragged' },
-            { code: 'SOURCE_RELEASE_MOVEMENT_COST', label: 'Release Movement Cost' },
-            { code: 'ESCAPE_CHECK', label: 'Escape Check' },
-            { code: 'TARGET_CAPABILITY_SUPPRESSION', label: 'Capability Suppression' },
-            { code: 'CONDITIONAL_TARGET_STATE', label: 'Conditional Target State' }
-          ]
-        })
-      )
-      .set(
-        'sizeCode',
+        'ability',
         selectSingle(
-          ['sizeCode'],
-          'Maximum Size',
-          { kind: 'DATA', relationship: table('sizes', { selectColumns: CODE_COLUMNS }) },
-          { showIf: local.field(['kind']).eq('TARGET_SIZE_MAXIMUM') }
+          ['ability'],
+          'Ability',
+          { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
+          { requiredIf: true }
         )
       )
       .set(
-        'actionEffectIds',
-        groupArray(['actionEffectIds'], 'Action Effects', () => ACTION_EFFECT_ID_NODE_MAP, {
-          presentation: 'inline',
-          showIf: isActionEffectModule
-        })
-      )
-      .set(
-        'influence',
-        selectSingle(
-          ['influence'],
-          'Influence',
-          { kind: 'DATA', relationship: table('roll_influences', { selectColumns: CODE_COLUMNS }) },
-          { showIf: local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE') }
-        )
-      )
-      .set(
-        'amount',
-        number(['amount'], 'Movement Cost', { constraints: { minimum: 0 }, showIf: releaseCost })
-      )
-      .set(
-        'unit',
-        selectSingle(
-          ['unit'],
-          'Unit',
-          { kind: 'INLINE_OPTIONS', options: LENGTH_UNIT_OPTIONS },
-          { showIf: releaseCost }
-        )
-      )
-      .set(
-        'activation',
-        groupObject(['activation'], 'Activation', () => ACTIVATION_NODE_MAP, {
-          presentation: 'inline',
-          showIf: local.field(['kind']).eq('ESCAPE_CHECK')
-        })
-      )
-      .set(
-        'checks',
-        groupObject(['checks'], 'Escape Checks', () => CHECK_CHOICE_NODE_MAP, {
-          presentation: 'inline',
-          showIf: local.field(['kind']).eq('ESCAPE_CHECK')
-        })
-      )
-      .set(
-        'dc',
-        groupObject(['dc'], 'Escape DC', () => ESCAPE_DC_NODE_MAP, {
-          presentation: 'inline',
-          showIf: local.field(['kind']).eq('ESCAPE_CHECK')
-        })
-      )
-      .set(
-        'actorKinds',
-        selectMulti(
-          ['actorKinds'],
-          'Eligible Actors',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: [
-              { code: 'TARGET', label: 'Target' },
-              { code: 'CREATURE_WITHIN_REACH', label: 'Creature Within Reach' }
-            ]
-          },
-          { showIf: local.field(['kind']).eq('ESCAPE_CHECK') }
-        )
-      )
-      .set(
-        'capabilityDefinitionIds',
-        selectMulti(
-          ['capabilityDefinitionIds'],
-          'Capabilities',
-          {
-            kind: 'DATA',
-            relationship: table('reusable_definitions', { selectColumns: ['id', 'label'] })
-          },
-          { showIf: isCapabilityModule }
-        )
-      )
-      .set(
-        'conditionIds',
-        selectMulti(
-          ['conditionIds'],
-          'Conditions',
-          {
-            kind: 'DATA',
-            relationship: table('condition_types', {
-              selectColumns: ['id', 'label', 'description']
-            })
-          },
-          { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
-        )
-      )
-      .set(
-        'whenResolvedAttackD20Mode',
-        selectSingle(
-          ['whenResolvedAttackD20Mode'],
-          'When Attack Mode Is',
-          { kind: 'DATA', relationship: table('roll_modes', { selectColumns: CODE_COLUMNS }) },
-          { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
-        )
+        'score',
+        number(['score'], 'At or Below', { constraints: { minimum: 0 }, requiredIf: true })
       )
   }
 )
@@ -2472,12 +2338,16 @@ function registerOutcomeFields(
       })
     )
     .set(
-      'excludesIntelligenceAtOrBelow',
-      number(['excludesIntelligenceAtOrBelow'], 'Exclude Intelligence At or Below', {
-        constraints: { minimum: 0 },
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPATHIC_LINK)
-      })
+      'excludesAbilityAtOrBelow',
+      groupObject(
+        ['excludesAbilityAtOrBelow'],
+        'Excludes Ability Score',
+        () => TELEPATHIC_LINK_ABILITY_FLOOR_NODE_MAP,
+        {
+          presentation: 'inline',
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPATHIC_LINK)
+        }
+      )
     )
     .set(
       'anyDistance',

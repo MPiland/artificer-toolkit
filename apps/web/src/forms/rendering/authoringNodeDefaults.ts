@@ -239,7 +239,6 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
       return createDetail(order)
     case 'classHitpoint':
       return {
-        ability: 'CONSTITUTION',
         dieConfig: '1d8'
       } satisfies ClassHitpointDto
     case 'classMulticlass':
