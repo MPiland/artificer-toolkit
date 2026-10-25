@@ -122,7 +122,7 @@ export function buildBackgroundSelectionGroups(
 }
 
 export function applyClassChoiceEligibility(params: {
-  abilityScores: Partial<Record<string, number>>
+  abilityScores: Record<string, number>
   choices: CharacterBuilderChoiceOptionDto[]
   currentClassIds: string[]
   references: CharacterBuilderClassReferenceDto[]
@@ -143,7 +143,7 @@ export function applyClassChoiceEligibility(params: {
 }
 
 function getClassChoiceDisabledReason(params: {
-  abilityScores: Partial<Record<string, number>>
+  abilityScores: Record<string, number>
   candidateClassId: string
   currentClassIds: string[]
   references: CharacterBuilderClassReferenceDto[]

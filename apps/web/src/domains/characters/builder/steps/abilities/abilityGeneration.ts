@@ -392,7 +392,7 @@ export function getAssignedAbilityCodes(
 
 export function getAssignedAbilityScores(
   abilities: CharacterFormValues['intent']['abilities']
-): Partial<Record<string, number>> {
+): Record<string, number> {
   if (abilities.method === CHARACTER_ABILITY_GENERATION_METHOD.MANUAL_ROLLED) {
     return Object.fromEntries(
       abilities.state.assignments.map((assignment) => [assignment.ability, assignment.score])
