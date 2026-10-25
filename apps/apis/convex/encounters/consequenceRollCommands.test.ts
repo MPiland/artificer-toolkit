@@ -122,17 +122,23 @@ function resolve(
   })
 }
 
-async function storedReceipts(fixture: Fixture) {
+/** The resolve command Convex stores once the room publishes, as its only one. */
+async function storedResolve(fixture: Fixture) {
   await checkpointLiveRoom(fixture.campaign.id)
-  return fixture.t.run(async (ctx) =>
-    (
-      await readReceiptHeaders(
-        ctx,
-        'encounterRunCommands',
-        await ctx.db.query('encounterRunCommands').collect()
-      )
-    ).filter((command) => command.commandType === 'RESOLVE_CONSEQUENCE_ROLL_OFFER')
+  const commands = await fixture.t.run(async (ctx) =>
+    readReceiptHeaders(
+      ctx,
+      'encounterRunCommands',
+      await ctx.db.query('encounterRunCommands').collect()
+    )
   )
+  const resolves = commands.filter(
+    (command) => command.commandType === 'RESOLVE_CONSEQUENCE_ROLL_OFFER'
+  )
+  expect(resolves.map(({ commandType }) => commandType)).toEqual(['RESOLVE_CONSEQUENCE_ROLL_OFFER'])
+  const [resolved] = resolves
+  if (resolved?.commandType !== 'RESOLVE_CONSEQUENCE_ROLL_OFFER') throw new Error('Unreachable.')
+  return resolved
 }
 
 describe('Consequence roll offers through the room (ATTACK-15.1)', () => {
@@ -182,8 +188,7 @@ describe('Consequence roll offers through the room (ATTACK-15.1)', () => {
     ).toMatchObject({ reason: 'TARGET_UNAVAILABLE' })
     await expectReusedCommandRefusal(resolve(fixture, bitten, 'DECLINE', { commandId }))
 
-    const [receipt] = await storedReceipts(fixture)
-    expect(receipt?.receipt).toEqual({
+    expect((await storedResolve(fixture)).receipt).toEqual({
       actorId: fixture.hero.id,
       offer: offersIn(fixture, bitten)[0],
       resolution: {
@@ -200,8 +205,9 @@ describe('Consequence roll offers through the room (ATTACK-15.1)', () => {
     const declined = await resolve(fixture, bitten, 'DECLINE')
     expect(offersIn(fixture, declined)).toEqual([])
     expect(declined.roll).toBeNull()
-    const [receipt] = await storedReceipts(fixture)
-    expect(receipt?.receipt).toMatchObject({ resolution: { decision: 'DECLINE' } })
+    expect((await storedResolve(fixture)).receipt).toMatchObject({
+      resolution: { decision: 'DECLINE' }
+    })
   }, 120000)
 
   it('withdraws the offer when the GM undoes the damaging action', async () => {
