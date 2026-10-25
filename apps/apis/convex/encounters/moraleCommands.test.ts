@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest'
 import { SRD_CONTENT_SOURCE } from '@artificer-toolkit/source-data/srd/catalogue.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
 import {
+  SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
+  SRD_RULE_STATE_DEFINITIONS
+} from '@artificer-toolkit/source-data/srd/ruleState.js'
+import {
   execute,
   setup,
   start,
@@ -10,7 +14,6 @@ import {
 } from '../../tests/fixtures/liveCharacterRun'
 import {
   closeRoom,
-  roomErrorLogs,
   seedRoomContentSnapshots,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -18,14 +21,6 @@ import { expectReusedCommandRefusal, rejection } from '../../tests/fixtures/room
 import { internal } from '../_generated/api'
 
 useLocalRoomWorker()
-
-async function withLogs<T>(run: () => Promise<T>) {
-  try {
-    return await run()
-  } catch (error) {
-    throw new Error(`${String(error)} LOGS ${JSON.stringify(roomErrorLogs()).slice(0, 3000)}`)
-  }
-}
 
 /** An ACTIVE Run with the Morale rule on, its enemy Creature unharmed. */
 async function moraleRun() {
@@ -36,7 +31,13 @@ async function moraleRun() {
   if (!morale) throw new Error('Missing published Morale.')
   await fixture.t.mutation(internal.content.import.importDefinitions, {
     contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitions: [morale]
+    definitions: [
+      morale,
+      // Rollers are chosen among the actors that can act, which reads their action capability.
+      ...SRD_RULE_STATE_DEFINITIONS.filter(
+        (definition) => definition.id === SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID
+      )
+    ]
   })
   await seedRoomContentSnapshots(fixture.campaign.id)
   const replaced = await execute(fixture, (base) => ({
@@ -69,7 +70,7 @@ function moraleSave(fixture: Fixture, from: CommandResult, commandId?: string) {
 }
 
 describe('Morale commands through the room (ENCOUNTER-6.1)', () => {
-  it('replays a check by its command ID without a second roll, and refuses that ID for other input', async () => withLogs(async () => {
+  it('replays a check by its command ID without a second roll, and refuses that ID for other input', async () => {
     const { fixture, started } = await moraleRun()
     const commandId = crypto.randomUUID()
     const checked = await moraleSave(fixture, started, commandId)
@@ -102,9 +103,9 @@ describe('Morale commands through the room (ENCOUNTER-6.1)', () => {
         visibility: 'PUBLIC'
       }))
     )
-  }), 120000)
+  }, 120000)
 
-  it('refuses a check that reuses the ID of a Convex command (COMMAND_ID_REUSED)', async () => withLogs(async () => {
+  it('refuses a check that reuses the ID of a Convex command (COMMAND_ID_REUSED)', async () => {
     const { fixture, started } = await moraleRun()
     expect(await rejection(moraleSave(fixture, started, fixture.createCommandId))).toMatchObject({
       reason: 'COMMAND_ID_REUSED'
@@ -113,5 +114,5 @@ describe('Morale commands through the room (ENCOUNTER-6.1)', () => {
     expect((await moraleSave(fixture, started)).projection.version).toBe(
       started.projection.version + 1
     )
-  }), 120000)
+  }, 120000)
 })
