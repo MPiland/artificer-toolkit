@@ -73,8 +73,8 @@ async function resolve(room: Room, decision: 'ACCEPT' | 'DECLINE') {
 /** The receipt of the one resolve command the room holds (D85: Convex never sees it mid-Run). */
 async function storedReceipt(room: Room) {
   const resolves = (await readRoomHistory(room.room.base.stub)).commands
-    .map((row) => encounterStoredRunCommandSchema.parse(row))
-    .filter((command) => command.commandType === 'RESOLVE_CONSEQUENCE_ROLL_OFFER')
+    .filter(({ commandType }) => commandType === 'RESOLVE_CONSEQUENCE_ROLL_OFFER')
+    .map(({ _id, _creationTime, ...row }) => encounterStoredRunCommandSchema.parse(row))
   expect(resolves).toHaveLength(1)
   const [resolved] = resolves
   if (resolved?.commandType !== 'RESOLVE_CONSEQUENCE_ROLL_OFFER') throw new Error('Unreachable.')
