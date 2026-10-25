@@ -33,12 +33,9 @@ type AuthoringDefaultKind =
   | 'attackSlotFiller'
   | 'attackSlotSet'
   | 'cost'
-  | 'creatureAction'
   | 'creatureCompanionProfile'
   | 'creatureEquipmentLoadout'
   | 'creatureHitDice'
-  | 'creatureLairProfile'
-  | 'creatureLegendaryProfile'
   | 'creatureMountProfile'
   | 'creatureNpcProfile'
   | 'creatureQualifiedDamageDefense'
@@ -207,12 +204,9 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   classStartingGold: ['classStartingGold'],
   contains: ['contains'],
   cost: ['cost', 'creatureCost'],
-  creatureAction: ['creatureAction'],
   creatureCompanionProfile: ['creatureCompanionProfile'],
   creatureEquipmentLoadout: ['creatureEquipmentLoadout'],
   creatureHitDice: ['creatureHitDice'],
-  creatureLairProfile: ['creatureLairProfile'],
-  creatureLegendaryProfile: ['creatureLegendaryProfile'],
   creatureMountProfile: ['creatureMountProfile'],
   creatureNpcProfile: ['creatureNpcProfile'],
   creatureQualifiedDamageDefense: ['creatureQualifiedDamageDefense'],
