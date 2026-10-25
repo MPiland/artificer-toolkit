@@ -41,6 +41,7 @@ import {
   readEncounterDisarmSelection,
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import { planNativeEncounterAreaSourceSpend } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
 import {
   actionEndedEffects,
@@ -322,6 +323,7 @@ export async function planNativeLiveContest(
       definition,
       prepared,
       sceneContext,
+      facing: encounterFacingRule(state),
       rejectTarget: () => {
         throw new LiveSessionDomainRejectionError(422, {
           code: 'DOMAIN_REJECTED',

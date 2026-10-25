@@ -13,6 +13,21 @@ const ids = {
   source: '00000000-0000-4000-8000-000000000004'
 }
 
+function facingParameters() {
+  return {
+    kind: 'FACING' as const,
+    facingStepDegrees: 90,
+    arcs: [
+      { arc: 'FRONT' as const, fromDegrees: -45, toDegrees: 45 },
+      { arc: 'RIGHT_SIDE' as const, fromDegrees: 45, toDegrees: 135 },
+      { arc: 'REAR' as const, fromDegrees: 135, toDegrees: 225 },
+      { arc: 'LEFT_SIDE' as const, fromDegrees: 225, toDegrees: 315 }
+    ],
+    attackerInTargetArc: [{ arc: 'REAR' as const, influence: 'ADVANTAGE' }],
+    sourceCannotTargetInOwnArcs: ['REAR' as const]
+  }
+}
+
 function document(id: string, kind: 'FLANKING' | 'FACING', group: string | null = null) {
   return {
     schemaVersion: 1 as const,
@@ -23,7 +38,7 @@ function document(id: string, kind: 'FLANKING' | 'FACING', group: string | null 
     parameters:
       kind === 'FLANKING'
         ? { kind, participantCapabilityDefinitionId: '00000000-0000-4000-8000-000000000005' }
-        : { kind },
+        : facingParameters(),
     mutuallyExclusiveGroup: group
   }
 }
@@ -98,7 +113,7 @@ describe('optional combat contracts', () => {
     expect(
       dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.safeParse({
         ...document(ids.flanking, 'FLANKING'),
-        parameters: { kind: 'FACING' }
+        parameters: facingParameters()
       }).success
     ).toBe(false)
     expect(
@@ -107,5 +122,36 @@ describe('optional combat contracts', () => {
         parameters: { kind: 'FLANKING', arbitrary: true }
       }).success
     ).toBe(false)
+  })
+
+  it('accepts an authored Facing arc table that tiles the circle, including a homebrew one', () => {
+    const facing = (parameters: Record<string, unknown>) =>
+      dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.safeParse({
+        ...document(ids.facing, 'FACING'),
+        parameters: { ...facingParameters(), ...parameters }
+      }).success
+    expect(facing({})).toBe(true)
+    expect(
+      facing({
+        facingStepDegrees: 60,
+        arcs: [
+          { arc: 'FRONT', fromDegrees: 300, toDegrees: 420 },
+          { arc: 'RIGHT_SIDE', fromDegrees: 60, toDegrees: 150 },
+          { arc: 'REAR', fromDegrees: 150, toDegrees: 210 },
+          { arc: 'LEFT_SIDE', fromDegrees: 210, toDegrees: 300 }
+        ],
+        attackerInTargetArc: [
+          { arc: 'LEFT_SIDE', influence: 'ADVANTAGE' },
+          { arc: 'RIGHT_SIDE', influence: 'ADVANTAGE' }
+        ],
+        sourceCannotTargetInOwnArcs: []
+      })
+    ).toBe(true)
+    expect(facing({ facingStepDegrees: 7 })).toBe(false)
+    const [front, right, rear, left] = facingParameters().arcs
+    expect(facing({ arcs: [front, right, rear] })).toBe(false)
+    expect(facing({ arcs: [front, { ...right!, toDegrees: 140 }, rear, left] })).toBe(false)
+    expect(facing({ arcs: [front, right, { ...rear!, arc: 'FRONT' }, left] })).toBe(false)
+    expect(facing({ sourceCannotTargetInOwnArcs: ['REAR', 'REAR'] })).toBe(false)
   })
 })

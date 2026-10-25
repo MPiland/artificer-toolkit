@@ -142,6 +142,7 @@ function sceneAtomicDeltaConflictKey(delta: SceneAtomicDelta): string {
     case 'TOKEN_REMOVED':
     case 'TOKEN_MOVED':
     case 'TOKEN_MOVE_UNDONE':
+    case 'TOKEN_FACING_SET':
       return `TOKEN:${delta.tokenId}`
     case 'DOOR_STATE_SET':
     case 'BARRIER_REMOVED':
@@ -235,6 +236,7 @@ function applyAtomicDelta(state: CampaignSceneState, delta: SceneAtomicDelta): C
     case 'TOKEN_REMOVED':
     case 'TOKEN_MOVED':
     case 'TOKEN_MOVE_UNDONE':
+    case 'TOKEN_FACING_SET':
     case 'DOOR_STATE_SET':
     case 'BARRIER_UPSERTED':
     case 'BARRIER_REMOVED':
@@ -316,6 +318,7 @@ export function applySceneGeometryDelta<
         | 'TOKEN_REMOVED'
         | 'TOKEN_MOVED'
         | 'TOKEN_MOVE_UNDONE'
+        | 'TOKEN_FACING_SET'
         | 'DOOR_STATE_SET'
         | 'BARRIER_UPSERTED'
         | 'BARRIER_REMOVED'
@@ -327,25 +330,25 @@ export function applySceneGeometryDelta<
       return { ...state, tokens: upsertById(state.tokens, delta.token) }
     case 'TOKEN_REMOVED':
       return { ...state, tokens: removeById(state.tokens, delta.tokenId) }
-    case 'TOKEN_MOVED': {
+    case 'TOKEN_MOVED':
+    case 'TOKEN_MOVE_UNDONE':
+    case 'TOKEN_FACING_SET': {
       if (!state.tokens.some((token) => token.id === delta.tokenId)) {
-        throw new Error('Cannot move a token that is not in the scene.')
+        const change = {
+          TOKEN_MOVED: 'move',
+          TOKEN_MOVE_UNDONE: 'undo movement for',
+          TOKEN_FACING_SET: 'turn'
+        }[delta.kind]
+        throw new Error(`Cannot ${change} a token that is not in the scene.`)
+      }
+      const patch = {
+        ...(delta.kind !== 'TOKEN_FACING_SET' && { position: delta.position }),
+        ...(delta.rotationDegrees !== undefined && { rotationDegrees: delta.rotationDegrees })
       }
       return {
         ...state,
         tokens: state.tokens.map((token) =>
-          token.id === delta.tokenId ? { ...token, position: delta.position } : token
-        )
-      }
-    }
-    case 'TOKEN_MOVE_UNDONE': {
-      if (!state.tokens.some((token) => token.id === delta.tokenId)) {
-        throw new Error('Cannot undo movement for a token that is not in the scene.')
-      }
-      return {
-        ...state,
-        tokens: state.tokens.map((token) =>
-          token.id === delta.tokenId ? { ...token, position: delta.position } : token
+          token.id === delta.tokenId ? { ...token, ...patch } : token
         )
       }
     }
@@ -601,23 +604,31 @@ function projectAtomicSceneDeltaForViewer(
     }
     case 'TOKEN_REMOVED':
     case 'TOKEN_MOVED':
-    case 'TOKEN_MOVE_UNDONE': {
+    case 'TOKEN_MOVE_UNDONE':
+    case 'TOKEN_FACING_SET': {
       const tokenId = rawDelta.tokenId
       const prior = visibleToken(before, viewer, tokenId)
       const next = visibleToken(after, viewer, tokenId)
       if (next && prior) {
+        if (rawDelta.kind === 'TOKEN_REMOVED') return upserted(next)
+        if (rawDelta.kind === 'TOKEN_FACING_SET') return structuredClone(rawDelta)
+        const facing =
+          rawDelta.rotationDegrees === undefined ? {} : { rotationDegrees: next.rotationDegrees }
         if (rawDelta.kind === 'TOKEN_MOVED') {
-          return { kind: 'TOKEN_MOVED', tokenId, position: structuredClone(next.position) }
-        }
-        if (rawDelta.kind === 'TOKEN_MOVE_UNDONE') {
           return {
-            kind: 'TOKEN_MOVE_UNDONE',
-            position: structuredClone(next.position),
+            kind: 'TOKEN_MOVED',
             tokenId,
-            undoneCommandId: rawDelta.undoneCommandId
+            position: structuredClone(next.position),
+            ...facing
           }
         }
-        return upserted(next)
+        return {
+          kind: 'TOKEN_MOVE_UNDONE',
+          position: structuredClone(next.position),
+          tokenId,
+          undoneCommandId: rawDelta.undoneCommandId,
+          ...facing
+        }
       }
       if (next) return upserted(next)
       return prior ? { kind: 'TOKEN_REMOVED', tokenId } : null
