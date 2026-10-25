@@ -232,6 +232,16 @@ export interface EncounterWritePorts<CharacterSources = never> extends Encounter
     movements: readonly { sceneId: string; sceneCommandId: string }[]
   }): Promise<void>
   /**
+   * Turns a token back to the facing an action's Change facing reaction found (ATTACK-12), refusing
+   * a token moved or turned since. Only the room owns the Scene, so only the room provides it.
+   */
+  restoreActionFacing?(input: {
+    encounterId: string
+    commandId: string
+    sceneId: string
+    sceneCommandId: string
+  }): Promise<void>
+  /**
    * Takes the Scene tokens of conjured creatures off their Scene (D187b) when their effect ends or
    * their cast is reverted. `commandId` names the Encounter command that ends them. Only the room
    * owns the Scene, so only the room provides it.
@@ -272,7 +282,10 @@ export interface EncounterCharacterWriteTransaction<
   readonly ports: EncounterReadPorts &
     Pick<
       EncounterWritePorts<CharacterSources>,
-      'writeCharacterRecord' | 'restoreActionForcedMovements' | 'removeSummonTokens'
+      | 'writeCharacterRecord'
+      | 'restoreActionForcedMovements'
+      | 'restoreActionFacing'
+      | 'removeSummonTokens'
     >
 }
 
