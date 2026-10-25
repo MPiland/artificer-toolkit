@@ -528,6 +528,7 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     armorClassFormulaPayloadDtoSchema,
     attackDecoysPayloadDtoSchema,
     damageInterceptionPayloadDtoSchema,
+    endEventExemptionPayloadDtoSchema,
     incomingAttackGatePayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
