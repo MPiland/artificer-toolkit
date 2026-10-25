@@ -49,3 +49,12 @@ Each AC note in the ledger lists the exact files.
 - ACs 8.2/8.4: tests added for `SystemChoiceAlert` (picker sets `?system=`), spell Continue gated on school, `manualCurrency` (cleared select ignored), `guidedCharge` and `GuidedChargeFields`.
 - AC 8.5: node defaults are typed against their schema DTOs with `satisfies`; `authoringNodeDefaults.ts` has no cast allowance left in `scripts/doubleCasts.mjs`.
 - AC 8.6: the layout form stays `object`-typed; see the T1 deviation note. A domain-generic `useAppForm` was assessed as a 35-50 file change with TS2589 risk.
+
+### AC 8.6 follow-up — 2026-10-24
+
+- The layout form stays one `object`-typed form (shared with the Character Builder); a domain-generic `useAppForm` was assessed as a 35-50 file change. Guided screens are typed by their domain's form values at one boundary in `guidedValues.ts`: `readGuidedValues(domain, values)` returns `Partial` of the registry's `toFormValues` result, and `guidedField(domain, key, ...nested)` checks the top-level key against the same type.
+- Gone: the per-screen `read<Domain>Values`/`readFeatures`/`readDetails` readers and `isRecord` re-parsing, every `toTypedAuthoringFieldName<object>(undefined, ...)` in the Guided screens, `readField`, and the two-argument `readString`. Shared and tolerant of malformed invalid-draft rows: `toFeatures`, `toDetails`, `readString`, `toSelectOption`, `GuidedSummaryRow`.
+- Single narrowing point: the type predicate in `isGuidedValues` (no cast). It relies on the layout form being created from the same domain's `toFormValues`. Its JSDoc states it is an unchecked narrowing; QUALITY-7 removes it. Tests: `GuidedClassAuthoring.test.tsx` (preserved advanced grants) and `GuidedBackgroundAuthoring.test.tsx` (starting-gear rows and the preserved-choices alert).
+- `EMPTY_GUIDED_FORM_VALUES` is an un-annotated `{}` type carrier for `withForm`; no `{} as object`.
+- Retired with the readers: the class `proficiencies` grant-kind filter and the background `startingEquipment` shape check (the values are the domain's typed form values).
+- Deleted unused node defaults `creatureAction`, `creatureLairProfile`, `creatureLegendaryProfile` (referenced only by their own switch case and registry entry).
