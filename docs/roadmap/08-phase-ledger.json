@@ -9337,6 +9337,11 @@
               "proof": [],
               "origin": ["G2-OPTIONAL-COMBAT"],
               "id": "ATTACK-12.3"
+            },
+            {
+              "id": "ATTACK-12.4",
+              "status": "TODO",
+              "text": "With Flanking enabled, a melee attack at the table (including opportunity attacks) by an attacker whose ally is on the opposite side of the target has advantage, and the roll evidence names flanking; without an opposite ally it does not."
             }
           ],
           "wsjf": {
@@ -9375,6 +9380,20 @@
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
             },
             {
+              "id": "ATTACK-12.T2f",
+              "status": "TODO",
+              "closes": ["ATTACK-12.4"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 5,
+                "after": ["ATTACK-12.T2"]
+              },
+              "text": "Live flanking bug fix: move flanking into encounterActionPositionalContributors (via the optional-combat capability registry, reusing resolveDnd5eFlankingContributor), add one mechanics-prep positional-candidate loader (target-adjacent allies with relationships, capability states and perception) wired into the 4 attack prep sites, and delete the compiler-only flankingContributor and positionalFacts path. Regression room test that fails before the fix, plus a negative case.",
+              "note": "Registered 2026-10-25 (measured by the ATTACK-12 session; user ruling +5)."
+            },
+            {
               "id": "ATTACK-12.T3",
               "status": "TODO",
               "closes": ["ATTACK-12.3"],
@@ -9383,7 +9402,7 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 1,
-                "after": ["ATTACK-12.T2"]
+                "after": ["ATTACK-12.T2", "ATTACK-12.T2f"]
               },
               "text": "Integrate in table and settings; journey test.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
