@@ -417,12 +417,11 @@ describe('roll table rows that last (ATTACK-16.T1a2)', () => {
                 id: testUuid(0xa146),
                 order: 2,
                 pathCode: 'ON_SAVE_SUCCESS',
-                rows: RANGE_ROWS.map((range, index) => ({
-                  ...range,
-                  id: testUuid(0xa170 + index),
-                  resultBlock: { ...range.resultBlock, id: testUuid(0xa180 + index) }
-                }))
-              } as TablePath
+                rows: [
+                  row(11, [1, 3], [{ ...blinded, id: testUuid(0xa191) }]),
+                  row(12, [4, 6], [{ ...deafened, id: testUuid(0xa192) }])
+                ]
+              }
             ]
           }
         ]
