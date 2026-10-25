@@ -1018,7 +1018,7 @@
 00000000-0002-01f9-0070-00b200000000 CREATURE Leadership (Recharges after a Short or Long Rest) | SINGLE_GRAPH 3e6a13f750662ae80083616eca7452a495e773c87c68e1ead6bfa666fa040b71 nodes=1 outputs=1
 00000000-0002-01f9-0070-00c000000000 CREATURE Longsword | TEST_OUTCOME test=3628fd3bb3f11f45fdad2ab7c06803005ac853a4c7622ff62c37e0974e28b958 nodes=3 outputs=5 outcomes=[ON_CRIT=b0087acd9e881d475acab079e7f0ee6bc78a196c49d18326bf0ce1b55cd9e8f3,ON_HIT=b0087acd9e881d475acab079e7f0ee6bc78a196c49d18326bf0ce1b55cd9e8f3]
 00000000-0002-01f9-0070-00c400000000 CREATURE Harpoon | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
-00000000-0002-01f9-0070-00c500000000 CREATURE Pseudopod | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
+00000000-0002-01f9-0070-00c500000000 CREATURE Pseudopod | TEST_OUTCOME test=08499a4bb736b02058666c6466013ab08e6a1ae663ba4f9f1ca4b815d5de80f4 nodes=3 outputs=5 outcomes=[ON_CRIT=00b37efa618f1f3454a96eeb2d8326db8fc840db0c15c5fb1eabb11846f09594,ON_HIT=00b37efa618f1f3454a96eeb2d8326db8fc840db0c15c5fb1eabb11846f09594]
 00000000-0002-01f9-0070-00ca00000000 CREATURE Dreadful Glare | TEST_OUTCOME test=cb2e5b5fb58f970397931cca4740fbf6c3ced8b088905f7cb1c826edd0fb3541 nodes=3 outputs=5 outcomes=[ON_SAVE_FAIL=9bdb4410c15c962140600a6727b8923c3ff3f70f3d432b0f86f8ecfd44dbbdde]
 00000000-0002-01f9-0070-00db00000000 CREATURE Bite | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
 00000000-0002-01f9-0070-00ef00000000 CREATURE Tendril | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action outcome is not supported.
