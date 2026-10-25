@@ -2,12 +2,8 @@ import { v5 as uuidv5 } from 'uuid'
 
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 
-import {
-  creatureSnapshotSize,
-  prepareNativeIncomingDamageGrantTriggers
-} from './encounterActionEffects.js'
+import { effectTarget, prepareNativeIncomingDamageGrantTriggers } from './encounterActionEffects.js'
 import { prepareRecurringActiveEffect } from './encounterActionEffectPlans.js'
-import { readEncounterActorConditionState } from './encounterCharacterMechanicsBatch.js'
 import {
   effectsReplacedByGrants,
   type EncounterGrantTrigger
@@ -27,18 +23,21 @@ type GrantTriggerInput = Parameters<typeof prepareNativeIncomingDamageGrantTrigg
  * effects, so planning and persisting prepare the same triggers.
  */
 export function prepareAttackTargetGrantTriggers(
-  input: GrantTriggerInput & {
+  input: Omit<GrantTriggerInput, 'holder' | 'held'> & {
     encounter: GrantTriggerInput['encounter'] & OptionalCombatPolicyInput
     attacker: EncounterRunActorState
+    /** The attacked creature's rules target, with the effects it holds before the attack. */
+    target: Parameters<typeof effectTarget>[0]
   }
 ): EncounterGrantTrigger[] {
-  const { encounter, attacker, holder } = input
+  const { encounter, attacker, target } = input
+  const holder = target.actor
   const attackApplied =
     optionalCombatPolicyCapabilityRegistry
       .find(encounter.gameSystemId)
       ?.attackAppliedEffects(encounter) ?? []
   return [
-    ...prepareNativeIncomingDamageGrantTriggers(input),
+    ...prepareNativeIncomingDamageGrantTriggers({ ...input, holder, held: target.activeEffects }),
     ...attackApplied.map(({ effectId, label, meleeOnly, plan }) => {
       const effect = prepareRecurringActiveEffect({
         encounterId: encounter.id,
@@ -48,13 +47,7 @@ export function prepareAttackTargetGrantTriggers(
         sourceLabel: label,
         sourceHidden: !attacker.public,
         currentActorId: encounter.currentActorId,
-        target: {
-          actorId: holder.id,
-          conditionIds: readEncounterActorConditionState(holder.conditions ?? []).ids,
-          effectiveSize: creatureSnapshotSize(holder),
-          lifetimeScope: 'ENCOUNTER',
-          activeEffects: input.held
-        },
+        target: effectTarget(target),
         activeEffectsByActorId: input.activeEffectsByActorId,
         activeEffectPlan: plan,
         published: plan.frozenGraph,

@@ -11,7 +11,7 @@ no mark while the rule is off; SOURCE END_OF_TURN on the attacker's turn ends at
 
 - ATTACKED subscribers audited: grant subscriptions now carry `meleeOnly`; reaction/retaliation,
   legendary and area paths share `isMeleeAttackSource`.
-- Policy `systems/dnd5e/optionalMarkPolicy.ts`; triggers `encounterAttackAppliedEffects.ts`; worker
+- Policy `systems/dnd5e/optionalMarkPolicy.ts`; triggers `encounterAttackAppliedEffects.ts` (target facts from the movement target via `effectTarget`, so a Character holder reads its sheet conditions); worker
   main root passes them and adds `replacedEffects` to consumed grants (undo restores them).
 - The SRD mark data already authors the opportunity-attack advantage grant; AC 13.2 proves it.
 - Deferred to T3: marks from opportunity, legendary and area attacks; the Campaign setting gate.

@@ -50,7 +50,7 @@ type CompleteExecution = Extract<
 >
 
 /** The facts an effect plan reads from the creature that will hold the effect. */
-function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
+export function effectTarget(target: MovementTarget<CharacterActionMovementFacts>) {
   return {
     actorId: target.actor.id,
     conditionIds: target.characterFacts
@@ -195,8 +195,7 @@ export function encounterActiveEffectPlan<TCharacterFacts extends CharacterActio
   return plans[0] ?? null
 }
 
-/** A Creature's size from its stored snapshot; null when the snapshot names none. */
-export function creatureSnapshotSize(actor: EncounterRunActorState): string | null {
+function creatureSnapshotSize(actor: EncounterRunActorState): string | null {
   const snapshot = actor.snapshot
   const payload =
     snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) ? snapshot.payload : null

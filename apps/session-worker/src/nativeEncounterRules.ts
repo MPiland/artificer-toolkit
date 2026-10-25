@@ -1414,8 +1414,7 @@ export async function planNativeLiveEncounterAction(
     grantTriggers: prepareAttackTargetGrantTriggers({
       encounter: settledPrepared.state,
       attacker: settledPrepared.actor,
-      holder: settledPrepared.target,
-      held: settledPrepared.targetFacts.activeEffects,
+      target: settledPrepared.targetFacts,
       occurrenceId,
       commandId: command.commandId,
       activeEffectsByActorId

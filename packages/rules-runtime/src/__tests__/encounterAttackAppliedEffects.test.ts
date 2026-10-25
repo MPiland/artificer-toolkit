@@ -12,6 +12,7 @@ import {
   ENCOUNTER_ID,
   srdCreatureActor,
   srdEncounterState,
+  srdCreatureTarget,
   srdOptionalCombat,
   TIMESTAMP,
   testUuid
@@ -75,8 +76,7 @@ function triggers(input: {
   return prepareAttackTargetGrantTriggers({
     encounter,
     attacker,
-    holder,
-    held: activeEffectsByActorId.get(holder.id) ?? [],
+    target: srdCreatureTarget(holder, [...(activeEffectsByActorId.get(holder.id) ?? [])]),
     occurrenceId: testUuid(0x13d0 + (input.occurrence ?? 0)),
     commandId: COMMAND_ID,
     activeEffectsByActorId
