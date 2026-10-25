@@ -65,7 +65,7 @@ const lethal: CharacterRuleActionApplication = {
   resolvedPath: 'ON_HIT',
   kind: 'DAMAGE',
   targetActorId: ACTOR_ID,
-  damageTypeId: null,
+  damageTypeId: testUuid(0xf307),
   damageDisposition: 'NORMAL',
   requestedAmount: 14,
   resolvedAmount: 14,
