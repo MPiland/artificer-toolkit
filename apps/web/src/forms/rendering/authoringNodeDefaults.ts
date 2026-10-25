@@ -1168,7 +1168,14 @@ function createProficiencyGrant(order: number) {
 function createScalingGrant<TGrantKind extends ScalingGrantAuthored['grantKind']>(
   grantKind: TGrantKind,
   order: number
-) {
+): {
+  grantKind: TGrantKind
+  id: string
+  order: number
+  selectionKind: 'GRANTED'
+  scalingKind: 'NONE'
+  authoringModeKind: 'ALL'
+} {
   return {
     grantKind,
     id: crypto.randomUUID(),
