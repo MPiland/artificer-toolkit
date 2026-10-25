@@ -12,6 +12,7 @@ import {
 import { onEndGrantEffect } from '../encounterEffectOnEnd.js'
 import {
   firstGrantedActionUseKey,
+  nextGrantedAttackCharge,
   grantedActionId,
   heldGrantedActions,
   nextGrantedActionUseKey,
@@ -116,6 +117,17 @@ describe('the offers a held effect makes', () => {
     expect(firstGrantedActionUseKey(holds, [])).toBe(hasteKey)
     expect(firstGrantedActionUseKey(holds, [hasteKey as string])).toBeNull()
     expect(firstGrantedActionUseKey([], [])).toBeNull()
+  })
+
+  it('charges a granted attack to a free offer’s use first, then to an offer’s own allowance (SPELLS-31.T5f4)', () => {
+    const holds = heldGrantedActions([hasteHeld(), retreatHeld()])
+    const hasteKey = nextGrantedActionUseKey(holds[0]!, [])
+    expect(holds[1]?.offer.activation).toBe('BONUS_ACTION')
+    expect(nextGrantedAttackCharge(holds, [])).toEqual({ useKey: hasteKey })
+    expect(nextGrantedAttackCharge(holds, [hasteKey as string])).toEqual({
+      activation: 'BONUS_ACTION'
+    })
+    expect(nextGrantedAttackCharge([holds[0]!], [hasteKey as string])).toBeNull()
   })
 })
 

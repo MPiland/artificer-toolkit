@@ -10,6 +10,7 @@ import {
   evaluateEncounterActionEconomy,
   type ActionEconomyInput
 } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import type { GrantedAttackCharge } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterActionUndeclared } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclaredAction'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
@@ -54,7 +55,7 @@ export async function evaluateNativeLiveActionEconomy(input: {
    * charged to it instead, as one attack of its own Attack action. A `FREE` offer spends its unspent
    * use (`useKey`); any other spends its own allowance (`activation`, Frenzy's Bonus Action).
    */
-  weaponAttackOffer?: { useKey: string } | { activation: ActionEconomyInput['activation'] } | null
+  weaponAttackOffer?: GrantedAttackCharge | null
 }) {
   const { prepared } = input
   const invocation =
@@ -111,7 +112,10 @@ export async function evaluateNativeLiveActionEconomy(input: {
       : null
   const offerEconomy =
     offer && 'activation' in offer
-      ? await evaluateEncounterActionEconomy({ ...economyInput, activation: offer.activation })
+      ? await evaluateEncounterActionEconomy({
+          ...economyInput,
+          activation: { code: offer.activation, amount: 1 }
+        })
       : null
   const offered = offer && ('useKey' in offer || offerEconomy?.available) ? offer : null
   const { economy, suppressed } = offered ? { economy: offerEconomy, suppressed: false } : evaluated

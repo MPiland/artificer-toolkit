@@ -409,9 +409,8 @@ const PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP: NodeMap<
 
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
-  ({ map, nodes, data }) => {
+  ({ map, nodes, data: { table } }) => {
     const { selectSingle, selectMulti, groupObject, groupArray, toggle, number, text } = nodes
-    const { table } = data
 
     map
       .set(

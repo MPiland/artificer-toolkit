@@ -20,7 +20,7 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
   actorGrantedActions,
-  firstGrantedActionUseKey
+  nextGrantedAttackCharge
 } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
@@ -690,9 +690,7 @@ export async function planNativeLiveEncounterAction(
   ).filter(({ offer }) => offer.weaponAttack)
   const turnUsesSpent =
     weaponAttackHolds.length > 0 ? await readNativeLiveTurnUses(capture, prepared.actor.id) : []
-  const weaponAttackUseKey = firstGrantedActionUseKey(weaponAttackHolds, turnUsesSpent)
-  // A FREE offer's use comes first; otherwise an offer charged to an allowance (Frenzy's Bonus Action).
-  const allowanceOffer = weaponAttackHolds.find(({ offer }) => offer.activation !== 'FREE')
+  const weaponAttackOffer = nextGrantedAttackCharge(weaponAttackHolds, turnUsesSpent)
   const { activationCode, economy, suppressed, attackAction, grantedUseKey } =
     await evaluateNativeLiveActionEconomy({
       prepared,
@@ -702,11 +700,7 @@ export async function planNativeLiveEncounterAction(
       targetIds: [prepared.target.id],
       targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
       capture,
-      weaponAttackOffer: weaponAttackUseKey
-        ? { useKey: weaponAttackUseKey }
-        : allowanceOffer
-          ? { activation: { code: allowanceOffer.offer.activation, amount: 1 } }
-          : null
+      weaponAttackOffer
     })
   const mechanicFacts =
     prepared.source.kind === 'CHARACTER_ACTION'
