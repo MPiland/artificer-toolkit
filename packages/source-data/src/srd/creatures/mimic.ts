@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
 import * as S from './shared.js'
 export const mimic: CreatureAuthored = {
@@ -64,18 +65,6 @@ export const mimic: CreatureAuthored = {
       label: 'Adhesive (Object Form Only)',
       description:
         'Adhesive (Object Form Only). The mimic adheres to anything that touches it. A Huge or smaller creature adhered to the mimic is also grappled by it (escape DC 13). Ability checks made to escape this grapple have disadvantage.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(197, 502),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(197, 602), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_ADHESIVE
-        })
-      ],
       order: 2
     },
     {
@@ -165,7 +154,7 @@ export const mimic: CreatureAuthored = {
             }
           ]
         },
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(197, 505),
           order: 2,
           invocation: {
@@ -183,8 +172,10 @@ export const mimic: CreatureAuthored = {
               dispositionKind: S.TARGET_DISPOSITION_KIND.ANY
             }
           },
-          pathCode: S.PATH_CODE.ON_HIT,
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_PSEUDOPOD_ADHESIVE
+          label: 'Adhesive',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'If the mimic is in object form, the target is subjected to its Adhesive trait: it is grappled (escape DC 13), and ability checks made to escape this grapple have disadvantage.'
         })
       ],
       order: 5

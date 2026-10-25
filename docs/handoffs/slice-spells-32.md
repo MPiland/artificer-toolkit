@@ -43,13 +43,13 @@ None beyond the closed rules themselves.
 
 Sizes are Fibonacci points from 1, 2, 3 and 5. T2 and T3 have no dependencies and go first; the others start after the group they join merges.
 
-| Task | Size | Depends on              | Scope                                                                                              |
-| ---- | ---- | ----------------------- | -------------------------------------------------------------------------------------------------- |
-| T2   | 1    | none                    | C: delete the description-only kinds and their CLOSED_RULE outcomes; keep descriptions (6 kinds)   |
-| T3   | 1    | none                    | A: Dwarven Resilience and Halfling Brave as saving throw advantages (Steel Will pattern) (2 kinds) |
-| T4j  | 1    | SPELLS-4.T2j            | Fey Ancestry, Gnome Cunning ("against magic" qualifier, built with SPELLS-33.T4j) (2 kinds)        |
-| T5   | 2    | SPELLS-31.T5c, T5d, T5f | Halfling Lucky, Relentless Endurance, Savage Attacks (3 kinds)                                     |
-| T6   | 1    | SPELLS-33.T6k1          | Halfling Nimbleness (1 kinds)                                                                      |
+| Task | Size | Depends on              | Scope                                                                                                                                                                                                         |
+| ---- | ---- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T2   | 1    | none                    | C: delete the description-only kinds and their CLOSED_RULE outcomes; keep descriptions (6 kinds)                                                                                                              |
+| T3   | 1    | none                    | A: Dwarven Resilience and Halfling Brave as saving throw advantages (Steel Will pattern) (2 kinds)                                                                                                            |
+| T4j  | 1    | SPELLS-4.T2j            | Fey Ancestry, Gnome Cunning ("against magic" qualifier, built with SPELLS-33.T4j) (2 kinds) Converted with SPELLS-33.T4j, with Dwarven Resilience as POISONED-scoped save advantage; the 3 kinds are deleted. |
+| T5   | 2    | SPELLS-31.T5c, T5d, T5f | Halfling Lucky, Relentless Endurance, Savage Attacks (3 kinds)                                                                                                                                                |
+| T6   | 1    | SPELLS-33.T6k1          | Halfling Nimbleness (1 kinds)                                                                                                                                                                                 |
 
 5 subtasks, 6 points.
 

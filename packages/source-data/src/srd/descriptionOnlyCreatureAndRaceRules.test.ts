@@ -63,6 +63,7 @@ const CREATURE_KINDS = [
   'CREATURE_KRAKEN_LIGHTNING_STORM',
   'CREATURE_LAMIA_INNATE_SPELLCASTING',
   'CREATURE_LEGENDARY_RESISTANCE',
+  'CREATURE_LICH_TURN_RESISTANCE',
   'CREATURE_MERROW_AMPHIBIOUS',
   'CREATURE_MIMIC_FALSE_APPEARANCE_OBJECT_FORM_ONLY',
   'CREATURE_MUMMY_LORD_LEGENDARY_ACTIONS',
@@ -186,6 +187,16 @@ describe('disease as a GM ruling (D187a, SPELLS-33.T6b3)', () => {
     const rulings = nodesWhere(owner, (node) => node.effectKind === 'MANUAL_ADJUDICATION')
     expect(rulings).toHaveLength(1)
     expect(String(rulings[0]?.instructions)).toMatch(/disease/i)
+  })
+})
+
+describe('effect-tag save qualifiers as GM rulings (D187a, SPELLS-33.T4j)', () => {
+  it('Lich: Turn Resistance is one manual adjudication and nothing automated', () => {
+    const authored = srdCreatures.find((entry) => entry.label === 'Lich')
+    const owner = authored?.features?.find((entry) => entry.label === 'Turn Resistance')
+    const outcomes = nodesWhere(owner, (node) => typeof node.effectKind === 'string')
+    expect(outcomes.map((node) => node.effectKind)).toEqual(['MANUAL_ADJUDICATION'])
+    expect(String(outcomes[0]?.instructions)).toMatch(/turns undead/i)
   })
 })
 

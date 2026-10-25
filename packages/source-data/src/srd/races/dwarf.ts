@@ -3,7 +3,6 @@ import {
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
-  CLOSED_RULE_KIND,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
   MEASUREMENT_UNIT_CODE,
@@ -29,7 +28,8 @@ import {
   SRD_USER_ID,
   SRD_DARKVISION_SENSE_ID
 } from '../vocabulary.js'
-import { raceClosedRuleEffect } from './closed-rule-effect.js'
+import { conditionSaveAdvantageGrants } from '../classes/mechanics.js'
+import { conditionTypeId } from '../spells/shared.js'
 
 function raceFeatureId(raceIndex: number, group: number, entry: number): string {
   const rHex = raceIndex.toString(16).padStart(4, '0')
@@ -164,12 +164,6 @@ export const dwarf: RaceAuthored = {
         'You have advantage on saving throws against poison, and you have resistance against poison damage.',
       availableAtLevel: 1,
       order: 3,
-      effects: [
-        raceClosedRuleEffect(
-          (entry) => raceFeatureId(1, 2, entry),
-          CLOSED_RULE_KIND.RACE_DWARVEN_RESILIENCE
-        )
-      ],
       grants: {
         modifiers: [
           {
@@ -182,7 +176,13 @@ export const dwarf: RaceAuthored = {
             selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
             payload: { damageTypeId: damageTypeId('POISON') },
             order: 0
-          }
+          },
+          // A save against poison is a save against the poisoned condition, as poison damage's is.
+          ...conditionSaveAdvantageGrants(
+            (entry) => raceFeatureId(1, 2, 4 + entry),
+            conditionTypeId('POISONED'),
+            1
+          )
         ]
       }
     },
