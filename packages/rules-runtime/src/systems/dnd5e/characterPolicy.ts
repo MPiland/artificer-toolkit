@@ -234,7 +234,5 @@ export function evaluateDnd5e2014CharacterPolicy(
 
 export const dnd5eCharacterPolicyRegistration = {
   gameSystemId: DND5E_SYSTEM_ID,
-  evaluateCharacterActions: evaluateDnd5e2014CharacterActions,
-  evaluateCharacterGrantFold: evaluateDnd5e2014CharacterGrantFold,
   evaluateCharacterPolicy: evaluateDnd5e2014CharacterPolicy
 } as const

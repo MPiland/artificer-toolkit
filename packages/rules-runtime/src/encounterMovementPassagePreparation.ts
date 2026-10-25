@@ -7,8 +7,8 @@ import {
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import {
-  activeAbilityCheckDice,
-  activeAbilityCheckMinimumRoll
+  abilityCheckMinimumRoll,
+  activeAbilityCheckDice
 } from './character/activeEffectGrantTotals.js'
 import { freezeD20Context } from './encounterD20Settlement.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
@@ -28,6 +28,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
+import { addsFullProficiency } from '@artificer-toolkit/schema/api/characterSheet'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   characterCheckSkillId,
@@ -63,7 +64,7 @@ export type ContestFacts = {
   size: string | null
   /** The dice the actor's active effects add to this check (D156). */
   addedDice: D20AddedDieDto[]
-  /** The floor the actor's active effects put on this check's d20; null when it has none. */
+  /** The floor the actor's active effects and features put on this check's d20; null when none. */
   minimumRoll: D20MinimumRollDto | null
 }
 
@@ -138,11 +139,19 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
     throw new Error('Movement passage actor facts are stale.')
   const abilityCode = checkAbilityCode(input.system, input.checkKind, input.checkDefinitionId)
   const withConditions = (
-    facts: Omit<ContestFacts, 'addedDice' | 'minimumRoll'>
+    facts: Omit<ContestFacts, 'addedDice' | 'minimumRoll'>,
+    floorHolder: Pick<Parameters<typeof abilityCheckMinimumRoll>[0], 'character' | 'proficient'> = {
+      character: null,
+      proficient: false
+    }
   ): ContestFacts => ({
     ...facts,
     addedDice: activeAbilityCheckDice(target.activeEffects, abilityCode),
-    minimumRoll: activeAbilityCheckMinimumRoll(target.activeEffects, abilityCode),
+    minimumRoll: abilityCheckMinimumRoll({
+      effects: target.activeEffects,
+      abilityCode,
+      ...floorHolder
+    }),
     ...withEncounterConditionCheckContributors({
       gameSystemId: input.gameSystemId,
       holderActorId: target.actor.id,
@@ -188,16 +197,27 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
             })
           )
         : null
-    return withConditions({
-      controllerCharacterId: facts.active.id,
-      contributors: featureCheck?.contributors ?? check.evidence ?? [],
-      modifier:
-        typeof check.modifier === 'number' && Number.isSafeInteger(check.modifier)
-          ? check.modifier
-          : null,
-      rollMode: featureCheck?.rollMode ?? check.rollMode ?? 'NORMAL',
-      size: initiative.effectiveSize
-    })
+    const proficiency =
+      input.checkKind === 'SKILL' && skillId
+        ? policy.derivedStats.skills.find((skill) => skill.skillId === skillId)?.proficiency
+            .effective
+        : undefined
+    return withConditions(
+      {
+        controllerCharacterId: facts.active.id,
+        contributors: featureCheck?.contributors ?? check.evidence ?? [],
+        modifier:
+          typeof check.modifier === 'number' && Number.isSafeInteger(check.modifier)
+            ? check.modifier
+            : null,
+        rollMode: featureCheck?.rollMode ?? check.rollMode ?? 'NORMAL',
+        size: initiative.effectiveSize
+      },
+      {
+        character: { grantFold: policy.grantFold, registry: facts.ruleEvaluation.registry },
+        proficient: addsFullProficiency(proficiency)
+      }
+    )
   }
   const creature = formCreature ?? target.actor
   if (creature.kind === 'CREATURE') {

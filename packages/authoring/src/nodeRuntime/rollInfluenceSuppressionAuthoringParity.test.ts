@@ -76,7 +76,8 @@ const holderState: EncounterHolderState = {
   speedAboveZero: true,
   freeHand: true,
   stowableHeldItemInstanceId: null,
-  turnMovement: { usedFeet: 0, speedFeet: 30 }
+  turnMovement: { usedFeet: 0, speedFeet: 30 },
+  activeAuthoredEffectIds: []
 }
 
 const ROGUE = srdByLabel(SRD.classes, 'Rogue')

@@ -1,7 +1,4 @@
-import {
-  SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS,
-  ABILITY_CODE
-} from '../vocabulary.js'
+import { ABILITY_CODE } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
   AUTHORING_MODE_KIND,
@@ -20,8 +17,8 @@ import {
   MODIFIER_SCOPE_KIND,
   MEASUREMENT_UNIT_CODE,
   PROFICIENCY_KIND,
+  MANUAL_ADJUDICATION_REASON,
   RANGE_KIND,
-  SAVING_THROW_DC_METHOD,
   SCALING,
   SCALING_AMOUNT_KIND,
   STARTING_EQUIPMENT_KIND,
@@ -41,6 +38,7 @@ import {
   attacksPerAttackActionGrant,
   closedRuleEffect,
   duelingRestriction,
+  gmRulingEffect,
   twoWeaponFightingGrants,
   equippedCategoryRestriction
 } from './mechanics.js'
@@ -794,36 +792,23 @@ export const fighter: ClassAuthored = {
           { id: classRowId(F, 0x68, 3), level: 17, amount: 3 }
         ]
       },
+      // The charge spend is automated; the reroll waits on a save-result window (future-enhancements).
       effects: [
-        ABILITY_CODE.STRENGTH,
-        ABILITY_CODE.DEXTERITY,
-        ABILITY_CODE.CONSTITUTION,
-        ABILITY_CODE.INTELLIGENCE,
-        ABILITY_CODE.WISDOM,
-        ABILITY_CODE.CHARISMA
-      ].map((ability, index) =>
-        closedRuleEffect({
-          id: index === 0 ? classRowId(F, 0x60, 10) : classRowId(F, 0x70, index + 1),
-          ruleKind: CLOSED_RULE_KIND.CLASS_FIGHTER_INDOMITABLE,
-          pathCode: PATH_CODE.ON_SAVE_FAIL,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.SAVING_THROW,
-            resourceUse: { chargeId: classRowId(F, 0x66, 10), cost: 1 },
-            activation: { code: ACTIVATION_CODE.FREE },
-            savingThrow: {
-              id: classRowId(F, 0x72, index + 1),
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS[ability],
-              dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
-            },
-            range: {
-              id: index === 0 ? classRowId(F, 0x69, 10) : classRowId(F, 0x71, index + 1),
-              rangeKind: RANGE_KIND.SELF
-            },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(F, 0x60, 10),
+            range: classRowId(F, 0x69, 10),
+            path: classRowId(F, 0x80, 10),
+            result: classRowId(F, 0x81, 10),
+            outcome: classRowId(F, 0x6c, 10)
+          },
+          label: 'Indomitable',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'Use this right after you fail a saving throw: reroll that saving throw and use the new roll, even if it is lower. The GM applies the new result in place of the failed one.',
+          resourceUse: { chargeId: classRowId(F, 0x66, 10), cost: 1 }
         })
-      )
+      ]
     },
     {
       id: classRowId(F, 3, 11),

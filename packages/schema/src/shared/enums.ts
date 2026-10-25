@@ -154,6 +154,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'SPEED_ABOVE_ZERO',
     'FREE_HAND',
     'TURN_MOVEMENT',
+    'HOLDER_ACTIVE_EFFECT',
     'ATTACK_ACTION_OTHER_WEAPON',
     'CHARACTER_LEVEL',
     'CLASS_LEVEL',
