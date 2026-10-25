@@ -28,6 +28,7 @@ import {
   SCALING_AMOUNT_OPTIONS,
   SELECTABLE_PREDICATE_CODES
 } from '#core'
+import { EFFECT_ID_NODE_MAP } from './effectId.js'
 import { createFacetConditionNodeMap } from './facetCondition.js'
 import { createFacetExistsNodeMap, type FacetExistMin } from './facetExists.js'
 import {
@@ -59,6 +60,11 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
     const { and } = logic
     const local = cond.local()
     const p = cond.parent<ExistsConditionAuthored>()
+    const selectedRelation = (relationCode: string) =>
+      and([
+        p.field(['relationCode']).eq(relationCode),
+        local.field(['authoringModeKind']).eq('SELECTED')
+      ])
 
     const { selectSingle, selectMulti, groupArray } = nodes
     const { table } = data
@@ -92,10 +98,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('FEATURE'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('FEATURE')
           }
         )
       )
@@ -113,10 +116,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('OPTION'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('OPTION')
           }
         )
       )
@@ -134,10 +134,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('RACE_ANCESTRY_OPTION'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('RACE_ANCESTRY_OPTION')
           }
         )
       )
@@ -157,10 +154,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('RESOURCE'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('RESOURCE')
           }
         )
       )
@@ -179,10 +173,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('SUBCLASS'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('SUBCLASS')
           }
         )
       )
@@ -201,10 +192,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('SUBRACE'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('SUBRACE')
           }
         )
       )
@@ -220,10 +208,7 @@ const FACET_BODY_NODE_MAP = facetBodyNode.define(
           {
             order: 3,
             requiredIf: true,
-            showIf: and([
-              p.field(['relationCode']).eq('PROFICIENCY_GRANT'),
-              local.field(['authoringModeKind']).eq('SELECTED')
-            ])
+            showIf: selectedRelation('PROFICIENCY_GRANT')
           }
         )
       )
@@ -570,12 +555,6 @@ const FACET_BODY_EXISTS_NODE_MAP = createFacetExistsNodeMap(
 )
 
 const facetPredicateNode = buildNodeMap<PredicateConditionAuthored>()
-
-const holderEffectId = buildNodeMap<{ value: string }>()
-
-const HOLDER_EFFECT_ID_NODE_MAP = holderEffectId.define('holderEffectId', ({ map, nodes }) => {
-  map.set('value', nodes.text(['value'], 'Effect ID'))
-})
 
 function createFacetPredicateNodeMap(
   mapId: string,
@@ -1053,7 +1032,7 @@ function createFacetPredicateNodeMap(
       )
       .set(
         'effectIds',
-        groupArray(['effectIds'], 'Active Effects', () => HOLDER_EFFECT_ID_NODE_MAP, {
+        groupArray(['effectIds'], 'Active Effects', () => EFFECT_ID_NODE_MAP, {
           order: 3,
           presentation: 'inline',
           showIf: local.field(['predicateCode']).eq('HOLDER_ACTIVE_EFFECT')
