@@ -132,12 +132,8 @@ export function formatListingLocation(listing: SocialListingDto) {
   return `${listing.location.city}, ${listing.location.stateCode}`
 }
 
-export function formatStatusLabel(value: string) {
-  return value
-    .toLowerCase()
-    .split('_')
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join(' ')
+export function formatSocialDate(value: string) {
+  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value))
 }
 
 export function formatSocialTimestamp(value: string) {

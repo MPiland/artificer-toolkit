@@ -206,7 +206,7 @@ export function CampaignDetailPage({
           </Tabs.Panel>
         ) : null}
       </Tabs>
-      {campaign.role === 'OWNER' && campaign.status === 'ACTIVE' ? (
+      {campaign.capabilities.manageActiveCampaign ? (
         <CampaignGmRoller campaignId={campaign.id} rollModes={campaign.rollModes} />
       ) : null}
     </main>
