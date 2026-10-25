@@ -665,13 +665,14 @@ describe('First Aid, a System basic action with a check (D98)', () => {
     await allyRollsAutomatically(fixture, false)
     const paused = await useFirstAid(fixture, atAlly)
     const commandId = crypto.randomUUID()
-    const enter = (face: number) => (requestId: string) =>
-      ({
+    const enter =
+      (face: number) =>
+      (requestId: string): ResolveRuleOccurrenceInputDto['resolution'] => ({
         kind: 'ENTER_DICE',
         requestId,
         rawFaces: [face],
         rollMode: 'NORMAL'
-      }) as const
+      })
     const settled = await answerFirstAid(fixture, paused, enter(14), commandId)
     expect(settled.occurrence).toMatchObject({ status: 'COMPLETE' })
     await expect(answerFirstAid(fixture, paused, enter(14), commandId)).resolves.toEqual(settled)
