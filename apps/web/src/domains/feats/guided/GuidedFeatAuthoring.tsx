@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSelector } from '@tanstack/react-form'
-import { Alert, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core'
+import { Alert, Stack, Text, TextInput } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type { EffectDto } from '@artificer-toolkit/schema/effects'
 import type { ChargeDto, DetailDto } from '@artificer-toolkit/schema/shared'
@@ -9,6 +9,8 @@ import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
+import { GuidedChargeFields } from '#forms/guided/GuidedChargeFields'
+import { createCharge, isSimpleCharge } from '#forms/guided/guidedCharge'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import { GuidedSimpleEffectComposer } from '#forms/guided/GuidedSimpleEffectComposer'
@@ -16,7 +18,7 @@ import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
 import { EMPTY_GUIDED_FORM_VALUES, readField, readString } from '#forms/guided/guidedValues'
-import { findOption, isRecord } from '#forms/utils/valueGuards'
+import { isRecord } from '#forms/utils/valueGuards'
 
 const STEPS = ['Basics', 'Core outcome', 'Features', 'Review'] as const
 const TITLES = [
@@ -180,84 +182,15 @@ function FeatOutcomeEditor({
         }
       />
       <GuidedSimpleEffectComposer effects={effects} system={system} onChange={onEffectsChange} />
-      <Select
-        label='Does it have limited uses?'
-        data={[
-          { value: 'no', label: 'No, use it whenever it applies' },
-          { value: 'yes', label: 'Yes, it has a resettable limit' }
-        ]}
-        value={charges ? 'yes' : 'no'}
-        onChange={(value) => {
-          if (value === 'no' && charges && !isSimpleCharge(charges)) return
-          onChargesChange(value === 'yes' ? (charges ?? createCharge()) : undefined)
-        }}
-      />
-      {charges && isSimpleCharge(charges) ? (
-        <div className={styles.fields}>
-          <NumberInput
-            label='Uses'
-            min={1}
-            value={charges.amount ?? 1}
-            onChange={(value) =>
-              onChargesChange({
-                ...charges,
-                amount: typeof value === 'number' ? value : 1
-              } as ChargeDto)
-            }
-          />
-          <Select
-            label='Reset timing'
-            data={RESET_OPTIONS}
-            value={charges.resetKind}
-            onChange={(value) =>
-              onChargesChange({
-                ...charges,
-                resetKind:
-                  findOption(
-                    RESET_OPTIONS.map((option) => option.value),
-                    value
-                  ) ?? 'LONG_REST'
-              })
-            }
-          />
-        </div>
-      ) : null}
-      {charges && !isSimpleCharge(charges) ? (
-        <Alert color='blue' title='Advanced charge model preserved'>
-          This feat uses a scaling or source-based charge model. Guided keeps it intact; switch to
-          Advanced to change or remove it.
-        </Alert>
-      ) : null}
+      <GuidedChargeFields charges={charges} subject='feat' onChange={onChargesChange} />
     </Stack>
   )
-}
-
-const RESET_OPTIONS = [
-  { value: 'SHORT_REST', label: 'Short rest' },
-  { value: 'LONG_REST', label: 'Long rest' },
-  { value: 'DAWN', label: 'Dawn' }
-] as const
-
-function createCharge(): ChargeDto {
-  return {
-    id: crypto.randomUUID(),
-    resetKind: 'LONG_REST',
-    limitKind: 'FIXED_AMOUNT',
-    scalingKind: 'NONE',
-    amount: 1
-  }
 }
 
 function formatCharge(charge: ChargeDto | undefined): string {
   if (!charge) return 'At will'
   if (!isSimpleCharge(charge)) return 'Advanced charge model'
   return `${charge.amount} per ${formatReset(charge.resetKind)}`
-}
-
-function isSimpleCharge(
-  charge: ChargeDto
-): charge is Extract<ChargeDto, { limitKind: 'FIXED_AMOUNT'; scalingKind: 'NONE' }> {
-  return charge.limitKind === 'FIXED_AMOUNT' && charge.scalingKind === 'NONE'
 }
 
 function readDetails(values: object): DetailDto[] {

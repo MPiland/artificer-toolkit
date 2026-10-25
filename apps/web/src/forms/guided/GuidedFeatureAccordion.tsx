@@ -12,6 +12,7 @@ import {
 } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import { GuidedChargeFields } from './GuidedChargeFields'
 import { GuidedSimpleEffectComposer } from './GuidedSimpleEffectComposer'
 import { rehydrateGuidedSpell } from './guidedSimpleEffect.rehydrate'
 import type { GuidedEffectIds } from './guidedSimpleEffect.types'
@@ -24,13 +25,9 @@ const USAGE_OPTIONS = [
   { value: 'ACTION', label: 'Action' },
   { value: 'BONUS_ACTION', label: 'Bonus action' },
   { value: 'REACTION', label: 'Reaction' }
-] as const
+] as const satisfies readonly { value: NonNullable<FeatureDto['section']>; label: string }[]
 
-const RESET_OPTIONS = [
-  { value: 'SHORT_REST', label: 'Short rest' },
-  { value: 'LONG_REST', label: 'Long rest' },
-  { value: 'DAWN', label: 'Dawn' }
-] as const
+const USAGE_VALUES = USAGE_OPTIONS.map((option) => option.value)
 
 const OUTCOME_OPTIONS = [
   { value: 'DESCRIPTION', label: 'Description only' },
@@ -75,6 +72,7 @@ export function GuidedFeatureAccordion({
       id: crypto.randomUUID(),
       label: '',
       description: '',
+      section: 'TRAIT',
       order: features.length + 1
     }
     onChange([...features, feature])
@@ -105,11 +103,9 @@ export function GuidedFeatureAccordion({
       ) : (
         <Accordion value={openId} onChange={setOpenId} variant='separated' chevronPosition='left'>
           {features.map((feature) => {
-            const usage = feature.section ? usageLabel(feature.section) : 'Passive'
+            const usage = feature.section ? usageLabel(feature.section) : 'Usage not set'
             const outcome = readOutcome(feature)
             const limited = Boolean(feature.charges)
-            const simpleCharge =
-              feature.charges && isSimpleCharge(feature.charges) ? feature.charges : undefined
             const hasValidationError = !feature.label.trim()
 
             return (
@@ -161,16 +157,12 @@ export function GuidedFeatureAccordion({
                       <Select
                         label='How is it used?'
                         data={USAGE_OPTIONS}
-                        value={feature.section ?? 'TRAIT'}
-                        onChange={(value) =>
-                          updateFeature(feature.id, {
-                            section:
-                              findOption(
-                                USAGE_OPTIONS.map((option) => option.value),
-                                value
-                              ) ?? 'TRAIT'
-                          })
-                        }
+                        allowDeselect={false}
+                        value={feature.section ?? null}
+                        onChange={(value) => {
+                          const section = findOption(USAGE_VALUES, value)
+                          if (section) updateFeature(feature.id, { section })
+                        }}
                       />
                     </div>
 
@@ -180,64 +172,11 @@ export function GuidedFeatureAccordion({
                       onChange={(effects) => updateFeature(feature.id, { effects })}
                     />
 
-                    <Select
-                      label='Does it have limited uses?'
-                      data={[
-                        { value: 'no', label: 'No, use it whenever it applies' },
-                        { value: 'yes', label: 'Yes, it has a resettable limit' }
-                      ]}
-                      value={limited ? 'yes' : 'no'}
-                      onChange={(value) => {
-                        if (value === 'no' && feature.charges && !isSimpleCharge(feature.charges))
-                          return
-                        updateFeature(feature.id, {
-                          charges:
-                            value === 'yes' ? (feature.charges ?? createFeatureCharge()) : undefined
-                        })
-                      }}
+                    <GuidedChargeFields
+                      charges={feature.charges}
+                      subject='feature'
+                      onChange={(charges) => updateFeature(feature.id, { charges })}
                     />
-                    {simpleCharge ? (
-                      <div className={styles.fields}>
-                        <NumberInput
-                          label='Uses'
-                          min={1}
-                          max={100}
-                          value={simpleCharge.amount}
-                          onChange={(value) =>
-                            updateFeature(feature.id, {
-                              charges: {
-                                ...simpleCharge,
-                                amount: typeof value === 'number' ? value : 1
-                              }
-                            })
-                          }
-                        />
-                        <Select
-                          label='Reset timing'
-                          data={RESET_OPTIONS}
-                          value={simpleCharge.resetKind}
-                          onChange={(value) =>
-                            updateFeature(feature.id, {
-                              charges: {
-                                ...simpleCharge,
-                                resetKind:
-                                  findOption(
-                                    RESET_OPTIONS.map((option) => option.value),
-                                    value
-                                  ) ?? 'LONG_REST'
-                              }
-                            })
-                          }
-                        />
-                      </div>
-                    ) : null}
-
-                    {feature.charges && !isSimpleCharge(feature.charges) ? (
-                      <Alert color='blue' title='Advanced charge model preserved'>
-                        This feature uses a scaling or source-based charge model. Guided keeps it
-                        intact; switch to Advanced to change or remove it.
-                      </Alert>
-                    ) : null}
 
                     {hasUnsupportedMechanics(feature) ? (
                       <Alert color='blue' title='Some details require Advanced'>
@@ -267,27 +206,8 @@ export function GuidedFeatureAccordion({
   )
 }
 
-function createFeatureCharge(): NonNullable<FeatureDto['charges']> {
-  return {
-    id: crypto.randomUUID(),
-    amount: 1,
-    resetKind: 'LONG_REST',
-    limitKind: 'FIXED_AMOUNT',
-    scalingKind: 'NONE'
-  }
-}
-
-function isSimpleCharge(
-  charge: NonNullable<FeatureDto['charges']>
-): charge is Extract<
-  NonNullable<FeatureDto['charges']>,
-  { limitKind: 'FIXED_AMOUNT'; scalingKind: 'NONE' }
-> {
-  return charge.limitKind === 'FIXED_AMOUNT' && charge.scalingKind === 'NONE'
-}
-
 function usageLabel(value: NonNullable<FeatureDto['section']>): string {
-  return USAGE_OPTIONS.find((option) => option.value === value)?.label ?? 'Passive'
+  return USAGE_OPTIONS.find((option) => option.value === value)?.label ?? value
 }
 
 function outcomeLabel(value: FeatureOutcome): string {

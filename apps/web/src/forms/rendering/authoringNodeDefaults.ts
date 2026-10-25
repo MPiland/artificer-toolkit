@@ -382,22 +382,12 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         amount: 1
       }
     case 'invocation':
-      return {
-        kind: 'ACTION',
-        triggerCode: 'ACTIVATED',
-        activation: { code: 'ACTION', amount: 1 },
-        range: createRange('SELF')
-      }
+      return createDefaultInvocation()
     case 'manifestBehavior':
       return {
         id: crypto.randomUUID(),
         order,
-        invocation: {
-          kind: 'ACTION',
-          triggerCode: 'ACTIVATED',
-          activation: { code: 'ACTION', amount: 1 },
-          range: createRange('SELF')
-        },
+        invocation: createDefaultInvocation(),
         paths: []
       }
     case 'manifestComponent':
@@ -768,7 +758,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
     case 'targetRequirement':
       return { kind: 'SIGHT', direction: 'ACTOR_SEES_TARGET' }
     case 'targeting':
-      return createTargeting('SELF') as AuthoringGroupValues
+      return { ...createTargeting('SELF') }
     case 'damageDieCastLevelScaling':
       return { level: 1, count: 1 }
     case 'damageLevelScalingEntry':
@@ -801,16 +791,20 @@ function createFollowUpSaveRepeatPerception() {
   }
 }
 
+function createDefaultInvocation(): EffectDto['invocation'] {
+  return {
+    kind: 'ACTION',
+    triggerCode: 'ACTIVATED',
+    activation: { code: 'ACTION', amount: 1 },
+    range: createRange('SELF')
+  }
+}
+
 export function createDefaultEffect(order: number): EffectDto {
   return {
     id: crypto.randomUUID(),
     order,
-    invocation: {
-      kind: 'ACTION',
-      triggerCode: 'ACTIVATED',
-      activation: { code: 'ACTION', amount: 1 },
-      range: createRange('SELF')
-    },
+    invocation: createDefaultInvocation(),
     paths: [createDefaultPath(1, 'ON_USE')]
   }
 }
