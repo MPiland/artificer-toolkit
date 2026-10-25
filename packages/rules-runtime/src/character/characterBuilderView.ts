@@ -1,6 +1,7 @@
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import { withGrantProse, type CharacterPresentationLookup } from './characterRuleContext.js'
 import { getAvailableSubclassesForClass } from './builderEligibility.js'
+import { hasEveryAbilityScore } from './builderPresentation.js'
 import { evaluateMulticlassRequirements } from '@artificer-toolkit/shared/character'
 import {
   ADVANCEMENT_METHOD_OPTIONS,
@@ -346,8 +347,8 @@ function getClassDisabledReason(
     return undefined
   }
 
-  if (Object.keys(resolution.summary.abilities).length < 6) {
-    return 'Assign all six ability scores before adding another class.'
+  if (!hasEveryAbilityScore(character, resolution.summary)) {
+    return 'Assign every ability score before adding another class.'
   }
 
   const proposedClasses = proposedClassIds.flatMap((classId) => {

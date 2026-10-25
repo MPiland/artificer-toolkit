@@ -26,7 +26,11 @@ import type {
 
 type BuilderMode = 'create' | 'edit'
 
-const hasEveryAbilityScore = (character: CharacterAuthored, summary: CharacterBuilderSummary) =>
+/** Whether the summary holds a score for every ability the Character's System lists. */
+export const hasEveryAbilityScore = (
+  character: CharacterAuthored,
+  summary: CharacterBuilderSummary
+) =>
   systemCoreCodeRegistry
     .abilityCodes(character.systemId)
     .every((code) => summary.abilities[code] !== undefined)

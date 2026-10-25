@@ -282,6 +282,9 @@ function buildAbilityPanel(
   const ability = params.sheet.overview.abilities.find((row) => row.ability === target.ability)
   if (!ability)
     throw new Error(`Ability "${target.ability}" is not available on this character sheet.`)
+  const description = params.resolution.registry.system?.abilities.find(
+    ({ code }) => code === target.ability
+  )?.description
   const matching = params.adjustments.filter(
     (adjustment) => adjustment.family === 'ABILITY' && adjustment.ability === target.ability
   )
@@ -306,7 +309,7 @@ function buildAbilityPanel(
     characterId: params.character.id,
     target,
     title: ability.label,
-    ...(ability.description ? { description: ability.description } : {}),
+    ...(description ? { description } : {}),
     state: resolvePanelState(params.adjustments, target),
     editable: params.editable,
     allowedCommands: [...CORE_PANEL_COMMANDS],

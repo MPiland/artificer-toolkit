@@ -103,7 +103,7 @@ export const encounterCreatureRuleFactsSnapshotSchema = lazySchema(() =>
       checkTotals: z.optional(z.record(serverUuidIdentityDtoSchema, z.number().check(z.int()))),
       /** Proficiency bonus added to a saving throw, keyed by ability definition; absent when not proficient. */
       saveProficiencyBonuses: z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())),
-      resourceAbilityScores: z.partialRecord(systemCoreCodeSchema, z.number()),
+      resourceAbilityScores: z.record(systemCoreCodeSchema, z.number()),
       initiativeAbilityDefinitionId: serverUuidIdentityDtoSchema,
       /**
        * The Creature's feature modifier grants as the grant fold Characters use accepted them, with the
@@ -141,7 +141,7 @@ const encounterActorRuleFactSchema = lazySchema(() =>
       checkTotals: z._default(z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())), {}),
       /** Immutable proficiency bonus per proficient save, keyed by ability definition. */
       saveProficiencyBonuses: z.record(serverUuidIdentityDtoSchema, z.number().check(z.int())),
-      resourceAbilityScores: z.optional(z.partialRecord(systemCoreCodeSchema, z.number())),
+      resourceAbilityScores: z.optional(z.record(systemCoreCodeSchema, z.number())),
       initiativeAbilityDefinitionId: z.optional(z.nullable(serverUuidIdentityDtoSchema)),
       vocabularySnapshot: z.optional(
         z.nullable(

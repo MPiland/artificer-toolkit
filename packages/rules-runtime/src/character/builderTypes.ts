@@ -47,7 +47,7 @@ export interface CharacterBuilderClassSummary {
 
 export interface CharacterBuilderSummary {
   totalLevel: number
-  abilities: Partial<Record<string, number>>
+  abilities: Record<string, number>
   selectedRace?: {
     raceId: string
     raceLabel: string
