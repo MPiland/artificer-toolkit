@@ -303,10 +303,12 @@ describe('non-character authored domain layout coverage', () => {
     // The route now carries the chosen System: a blank label is a field error, not "Untitled".
     rerender(createLayout(authoredRouteStorySystem))
     const name = await screen.findByRole('textbox', { name: 'Name' })
+    await user.type(name, '   ')
     await user.click(screen.getByRole('button', { name: 'Save Draft' }))
     expect((await screen.findAllByText(/Name is required./)).length).toBeGreaterThan(0)
     expect(convexMocks.mutation).not.toHaveBeenCalled()
 
+    await user.clear(name)
     await user.type(name, 'Moon Blade')
     await user.click(screen.getByRole('button', { name: 'Save Draft' }))
     await waitFor(() => expect(convexMocks.mutation).toHaveBeenCalledOnce())
