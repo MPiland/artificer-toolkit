@@ -265,6 +265,7 @@ export async function seedConcentration(fixture: {
       perceptionContributions: [],
       recurrence: {
         recurrenceStage: 'NONE' as const,
+        anchor: 'HOLDER' as const,
         consumeOnFirstEvents: [],
         endOnEvents: [],
         endOnTriggers: [],
@@ -274,8 +275,7 @@ export async function seedConcentration(fixture: {
         expiration: {
           kind: 'TICKS' as const,
           initialRemaining: 3,
-          decrementStage: 'END_OF_TURN' as const,
-          anchor: 'HOLDER' as const
+          decrementStage: 'END_OF_TURN' as const
         }
       },
       stateContributions: [

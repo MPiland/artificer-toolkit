@@ -61,6 +61,7 @@ const definition: ActiveRuleEffectDefinitionDto = {
   perceptionContributions: [],
   recurrence: {
     recurrenceStage: 'NONE',
+    anchor: 'HOLDER',
     consumeOnFirstEvents: [],
     endOnEvents: [],
     endOnTriggers: [],

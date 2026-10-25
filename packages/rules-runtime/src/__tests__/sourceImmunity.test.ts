@@ -332,6 +332,7 @@ describe('SRD Chains of Carceri: a grant that locks each target out (SPELLS-31.T
         // A Run holds no rest, so the lockout lasts the Run.
         recurrence: {
           recurrenceStage: 'NONE',
+          anchor: 'HOLDER',
           lifetimeScope: 'ENCOUNTER',
           expiration: { kind: 'INDEFINITE' }
         },

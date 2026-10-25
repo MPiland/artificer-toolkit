@@ -416,11 +416,11 @@ describe('stored grants', () => {
     })
     expect(definition.recurrence).toMatchObject({
       recurrenceStage: 'NONE',
+      anchor: 'SOURCE',
       expiration: {
         kind: 'TICKS',
         initialRemaining: 600,
-        decrementStage: 'START_OF_TURN',
-        anchor: 'SOURCE'
+        decrementStage: 'START_OF_TURN'
       }
     })
   })
@@ -2013,11 +2013,11 @@ describe('a timed condition counted on its source’s turns (SPELLS-4.T2a1, Colo
   it('stores no recurrence stage and a tick count anchored to the caster’s end of turn', () => {
     expect(storedBlindness(null).definition.recurrence).toMatchObject({
       recurrenceStage: 'NONE',
+      anchor: 'SOURCE',
       expiration: {
         kind: 'TICKS',
         initialRemaining: 1,
-        decrementStage: 'END_OF_TURN',
-        anchor: 'SOURCE'
+        decrementStage: 'END_OF_TURN'
       }
     })
   })

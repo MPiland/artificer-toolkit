@@ -38,12 +38,11 @@ export function effectEventScope(
   if (recurrence.fromSourceOnly && sourceActorId === null) return null
   const actorId = recurrence.fromSourceOnly ? sourceActorId : null
   if (!recurrence.activeOnlyOnFinalAnchorTurn) return { actorId, turnActorId: null }
-  const { expiration } = recurrence
-  if (expiration.kind !== 'TICKS' || effect.lifecycle.remainingTicks !== 1) return null
+  if (recurrence.expiration.kind !== 'TICKS' || effect.lifecycle.remainingTicks !== 1) return null
   return {
     actorId,
     turnActorId:
-      expiration.anchor === 'SOURCE' && sourceActorId !== null ? sourceActorId : holderActorId
+      recurrence.anchor === 'SOURCE' && sourceActorId !== null ? sourceActorId : holderActorId
   }
 }
 

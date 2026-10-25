@@ -55,6 +55,7 @@ const definition: ActiveRuleEffectDefinitionDto = {
   perceptionContributions: [],
   recurrence: {
     recurrenceStage: 'NONE',
+    anchor: 'HOLDER',
     consumeOnFirstEvents: [],
     endOnEvents: [],
     endOnTriggers: [],
@@ -64,8 +65,7 @@ const definition: ActiveRuleEffectDefinitionDto = {
     expiration: {
       kind: 'TICKS',
       initialRemaining: 3,
-      decrementStage: 'END_OF_TURN',
-      anchor: 'HOLDER'
+      decrementStage: 'END_OF_TURN'
     }
   }
 }
