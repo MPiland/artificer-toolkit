@@ -226,7 +226,7 @@ describe('System core codes at authoring ingress', () => {
       ['race', dwarf],
       ['vehicle', cart]
     ] as const)
-      expect((await ingress(mapId, document)).refusedPaths).toEqual([])
+      expect((await ingress(mapId, { ...document })).refusedPaths).toEqual([])
   })
 
   it.each([

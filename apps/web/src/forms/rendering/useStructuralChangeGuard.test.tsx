@@ -155,7 +155,7 @@ describe('useStructuralChangeGuard', () => {
 
   it('does not apply a stale native result after the form changes', async () => {
     let resolveNormalization:
-      | ((value: { clearedPaths: string[][]; values: object }) => void)
+      | ((value: { clearedPaths: string[][]; refusedPaths: string[][]; values: object }) => void)
       | undefined
     mocks.nativeQuery.mockReturnValue(
       new Promise((resolve) => {
