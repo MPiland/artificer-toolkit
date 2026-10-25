@@ -1496,19 +1496,17 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
         })
       ),
       /** One entry per System slot pool the Character casts from beside its standard slots. */
-      slotPools: z
-        .array(
-          z.strictObject({
-            poolCode: boundedIdentitySchema,
-            sourceClassId: boundedIdentitySchema,
-            slots: integerSchema.check(z.gte(0)),
-            level: integerSchema.check(z.gte(1)).check(z.lte(9)),
-            rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647)),
-            effectiveUsed: integerSchema.check(z.gte(0)),
-            remaining: integerSchema.check(z.gte(0))
-          })
-        )
-        .check(z.maxLength(20)),
+      slotPools: z.array(
+        z.strictObject({
+          poolCode: boundedIdentitySchema,
+          sourceClassId: boundedIdentitySchema,
+          slots: integerSchema.check(z.gte(0)),
+          level: integerSchema.check(z.gte(1)).check(z.lte(9)),
+          rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647)),
+          effectiveUsed: integerSchema.check(z.gte(0)),
+          remaining: integerSchema.check(z.gte(0))
+        })
+      ),
       fusionStrategy: z.enum(['NONE', 'SINGLE_CLASS', 'MULTICLASS_FUSED'])
     }),
     chargeMaximums: z.array(
