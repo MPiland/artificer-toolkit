@@ -1,6 +1,6 @@
 import { MAX_RULE_EXECUTION_AUTOMATIC_EVIDENCE_REQUESTS } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
 import { type CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
-import { type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
+import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
 import { CharacterRuleActionUnsupportedCompilationError } from '../../characterRuleActionSystemAdapter.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
@@ -13,6 +13,7 @@ import {
   type Dnd5eCompiledEffectActionSource
 } from './effectActionContracts.js'
 import { dnd5eRollTableRowGateOperation } from './effectActionOperationRegistry.js'
+import { publishedGraph } from './effectActionPublishedGraph.js'
 import {
   boundedOutcome,
   damageMultiplier,
@@ -38,8 +39,43 @@ export type RollTable = Readonly<{
   rows: readonly Readonly<{ min: number; max: number; entries: readonly RowEntry[] }>[]
 }>
 
-export function isRollTableEntry(entry: Entry): boolean {
+function isRollTableEntry(entry: Entry): boolean {
   return entry.resolutionKind === 'ROLL_TABLE' || entry.resolutionKind === 'ROLL_TABLE_REPEAT'
+}
+
+/**
+ * The result paths an action resolves through a table, each refused unless it is one of the
+ * saving throw's `savePaths`: an attack's critical hit would fold its hit table into the critical
+ * result. Every table is compiled here, so a table path holds only its rows.
+ */
+export function admitRollTablePaths(
+  action: Dnd5eCompiledEffectActionSource,
+  savePaths: readonly string[]
+): ReadonlySet<string> {
+  const paths = new Set(
+    action.compiledEffect.entries.filter(isRollTableEntry).map(({ pathCode }) => pathCode)
+  )
+  for (const pathCode of paths) {
+    if (!savePaths.includes(pathCode))
+      unsupported('D&D roll table must resolve a saving throw result path.')
+    rollTablePath(action, pathCode)
+  }
+  return paths
+}
+
+/** The OUTCOME template of a table path, or null when the path holds no table. */
+export function rollTableOutcomeTemplate(
+  action: Dnd5eCompiledEffectActionSource,
+  pathCode: string
+) {
+  const table = rollTablePath(action, pathCode)
+  return (
+    table && {
+      phase: 'OUTCOME' as const,
+      published: publishedGraph(rollTableGraphDefinition(action, table)),
+      templateChecksum: checksumRuleDocument(table.rows)
+    }
+  )
 }
 
 /**
@@ -121,7 +157,7 @@ function rollTableDie(die: string): BoundedDiceTerm {
  * A table path's OUTCOME graph: the table die, then for each row a gate that hands the path to the
  * row's outcomes only when the roll lands in the row. A row's own dice are asked for only then.
  */
-export function rollTableGraphDefinition(
+function rollTableGraphDefinition(
   action: Dnd5eCompiledEffectActionSource,
   table: RollTable
 ): RuleGraphDefinition {
