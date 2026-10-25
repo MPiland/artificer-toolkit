@@ -4,7 +4,6 @@ import {
   guidedField,
   guidedSizeOptions,
   readGuidedValues,
-  readString,
   toDetails,
   toFeatures,
   toSelectOption
@@ -24,14 +23,6 @@ describe('guidedSizeOptions', () => {
 
   it('offers nothing before a System is chosen', () => {
     expect(guidedSizeOptions(undefined)).toEqual([])
-  })
-})
-
-describe('readString', () => {
-  it('reads a string and falls back to empty for anything else', () => {
-    expect(readString('Fireball')).toBe('Fireball')
-    expect(readString(3)).toBe('')
-    expect(readString(undefined)).toBe('')
   })
 })
 

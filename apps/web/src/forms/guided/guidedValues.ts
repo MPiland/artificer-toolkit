@@ -17,7 +17,7 @@ export function guidedSizeOptions(systemId: string | undefined) {
  */
 export const EMPTY_GUIDED_FORM_VALUES = {}
 
-export type GuidedDomain = keyof typeof authoredFormFactories
+type GuidedDomain = keyof typeof authoredFormFactories
 
 /** The domain's own form values; a Guided draft may not have filled every field yet. */
 export type GuidedValues<TDomain extends GuidedDomain> = Partial<
@@ -49,10 +49,6 @@ export function guidedField<TDomain extends GuidedDomain>(
   ...nested: (string | number)[]
 ) {
   return toTypedAuthoringFieldName<object>(undefined, [key, ...nested])
-}
-
-export function readString(value: unknown): string {
-  return typeof value === 'string' ? value : ''
 }
 
 export function toSelectOption(item: { id: string; label: string }) {
