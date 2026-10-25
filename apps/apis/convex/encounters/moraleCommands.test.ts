@@ -10,6 +10,7 @@ import {
 } from '../../tests/fixtures/liveCharacterRun'
 import {
   closeRoom,
+  roomErrorLogs,
   seedRoomContentSnapshots,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
@@ -17,6 +18,14 @@ import { expectReusedCommandRefusal, rejection } from '../../tests/fixtures/room
 import { internal } from '../_generated/api'
 
 useLocalRoomWorker()
+
+async function withLogs<T>(run: () => Promise<T>) {
+  try {
+    return await run()
+  } catch (error) {
+    throw new Error(`${String(error)} LOGS ${JSON.stringify(roomErrorLogs()).slice(0, 3000)}`)
+  }
+}
 
 /** An ACTIVE Run with the Morale rule on, its enemy Creature unharmed. */
 async function moraleRun() {
@@ -60,7 +69,7 @@ function moraleSave(fixture: Fixture, from: CommandResult, commandId?: string) {
 }
 
 describe('Morale commands through the room (ENCOUNTER-6.1)', () => {
-  it('replays a check by its command ID without a second roll, and refuses that ID for other input', async () => {
+  it('replays a check by its command ID without a second roll, and refuses that ID for other input', async () => withLogs(async () => {
     const { fixture, started } = await moraleRun()
     const commandId = crypto.randomUUID()
     const checked = await moraleSave(fixture, started, commandId)
@@ -93,9 +102,9 @@ describe('Morale commands through the room (ENCOUNTER-6.1)', () => {
         visibility: 'PUBLIC'
       }))
     )
-  }, 120000)
+  }), 120000)
 
-  it('refuses a check that reuses the ID of a Convex command (COMMAND_ID_REUSED)', async () => {
+  it('refuses a check that reuses the ID of a Convex command (COMMAND_ID_REUSED)', async () => withLogs(async () => {
     const { fixture, started } = await moraleRun()
     expect(await rejection(moraleSave(fixture, started, fixture.createCommandId))).toMatchObject({
       reason: 'COMMAND_ID_REUSED'
@@ -104,5 +113,5 @@ describe('Morale commands through the room (ENCOUNTER-6.1)', () => {
     expect((await moraleSave(fixture, started)).projection.version).toBe(
       started.projection.version + 1
     )
-  }, 120000)
+  }), 120000)
 })
