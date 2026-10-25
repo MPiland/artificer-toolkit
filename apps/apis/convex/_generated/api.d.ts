@@ -23460,20 +23460,7 @@ export declare const api: {
                       label: string;
                       modifier: number;
                     }>;
-                    sizes: Array<{
-                      modifier: number;
-                      size:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
-                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
                     spellLevel: { modifierPerLevel: number };
                   };
                   defaultTieResolverDefinitionId: string;
@@ -34701,20 +34688,7 @@ export declare const api: {
                       label: string;
                       modifier: number;
                     }>;
-                    sizes: Array<{
-                      modifier: number;
-                      size:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
-                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
                     spellLevel: { modifierPerLevel: number };
                   };
                   defaultTieResolverDefinitionId: string;
@@ -45951,20 +45925,7 @@ export declare const api: {
                       label: string;
                       modifier: number;
                     }>;
-                    sizes: Array<{
-                      modifier: number;
-                      size:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
-                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
                     spellLevel: { modifierPerLevel: number };
                   };
                   defaultTieResolverDefinitionId: string;
@@ -57192,20 +57153,7 @@ export declare const api: {
                       label: string;
                       modifier: number;
                     }>;
-                    sizes: Array<{
-                      modifier: number;
-                      size:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
-                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
                     spellLevel: { modifierPerLevel: number };
                   };
                   defaultTieResolverDefinitionId: string;
@@ -68468,20 +68416,7 @@ export declare const api: {
                       label: string;
                       modifier: number;
                     }>;
-                    sizes: Array<{
-                      modifier: number;
-                      size:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
-                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
                     spellLevel: { modifierPerLevel: number };
                   };
                   defaultTieResolverDefinitionId: string;
@@ -79709,20 +79644,7 @@ export declare const api: {
                       label: string;
                       modifier: number;
                     }>;
-                    sizes: Array<{
-                      modifier: number;
-                      size:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
-                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
                     spellLevel: { modifierPerLevel: number };
                   };
                   defaultTieResolverDefinitionId: string;
@@ -90952,20 +90874,7 @@ export declare const api: {
                     label: string;
                     modifier: number;
                   }>;
-                  sizes: Array<{
-                    modifier: number;
-                    size:
-                      | "COLOSSAL"
-                      | "DIMUNITIVE"
-                      | "FINE"
-                      | "GARGANTUAN"
-                      | "GIANT"
-                      | "HUGE"
-                      | "LARGE"
-                      | "MEDIUM"
-                      | "SMALL"
-                      | "TINY";
-                  }>;
+                  sizes: Array<{ modifier: number; size: string }>;
                   spellLevel: { modifierPerLevel: number };
                 };
                 defaultTieResolverDefinitionId: string;
@@ -102043,20 +101952,7 @@ export declare const api: {
                       label: string;
                       modifier: number;
                     }>;
-                    sizes: Array<{
-                      modifier: number;
-                      size:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
-                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
                     spellLevel: { modifierPerLevel: number };
                   };
                   defaultTieResolverDefinitionId: string;
@@ -113284,20 +113180,7 @@ export declare const api: {
                       label: string;
                       modifier: number;
                     }>;
-                    sizes: Array<{
-                      modifier: number;
-                      size:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
-                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
                     spellLevel: { modifierPerLevel: number };
                   };
                   defaultTieResolverDefinitionId: string;
