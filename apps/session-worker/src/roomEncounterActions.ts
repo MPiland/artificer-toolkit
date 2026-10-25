@@ -20,11 +20,11 @@ import type {
 import type { LiveSessionEncounterRulesInput } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
 import type { LiveSessionRulesRevisions } from '@artificer-toolkit/schema/api/liveSessionRulesRevisions'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
+import { planNativeLiveEncounterAction } from './nativeEncounterRules.js'
 import {
-  planNativeLiveEncounterAction,
   buildNativeLiveEncounterActionPendingInput,
   buildNativeLiveEncounterActionCommitInput
-} from './nativeEncounterRules.js'
+} from './nativeEncounterActionPersistence.js'
 import { buildNativeLiveEncounterCounteredCastCommitInput } from './nativeEncounterCastReaction.js'
 import { buildNativeLiveEncounterGatedActionCommitInput } from './nativeEncounterIncomingGate.js'
 import { persistRoomEncounterCheckAction } from './roomEncounterBasicActions.js'

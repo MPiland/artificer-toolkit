@@ -1541,7 +1541,7 @@ const encounterAreaActionApplicationOutputImplSchema = lazySchema(() =>
        */
       placedSpatialEffectIds: z.array(uuidSchema).check(z.maxLength(5)),
       /**
-       * The Concentration a zone-only cast opens, which no creature outcome carries (D135). Absent
+       * The Concentration a zone-only or summoning cast opens, which no creature outcome carries (D135). Absent
        * when a creature outcome carries it or the cast maintains nothing.
        */
       maintenanceTransition: z.optional(z.nullable(maintainedEffectTransitionDtoSchema)),

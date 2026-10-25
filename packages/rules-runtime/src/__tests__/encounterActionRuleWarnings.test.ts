@@ -512,7 +512,7 @@ describe('encounter action rule warning gate', () => {
           makesAttackRoll: false,
           sceneContext: null
         },
-        ...sizes,
+        sizes: { gameSystemId: SRD_SYSTEM_ID, actor: sizes.actorSize, target: sizes.targetSize },
         targetDefeated: false,
         targetPreconditions: { declared: [], target: undefined },
         actionEconomy: null,

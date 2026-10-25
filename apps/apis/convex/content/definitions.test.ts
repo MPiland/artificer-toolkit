@@ -28,10 +28,11 @@ import {
   SRD_RULE_CAPABILITY_DEFINITIONS,
   SRD_CONDITION_RULE_STATE_DEFINITIONS
 } from '@artificer-toolkit/source-data/srd/ruleState.js'
+import { DND5E_INITIATIVE_FACT_KEYS } from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
 import {
-  createDnd5eSpeedFactorInitiativeDefinition,
-  DND5E_INITIATIVE_FACT_KEYS
-} from '@artificer-toolkit/rules-runtime/systems/dnd5e/initiativeFactAdapter'
+  SRD_DND5E_SPEED_FACTOR_DECLARATION_MODIFIERS,
+  SRD_DND5E_SPEED_FACTOR_INITIATIVE_GRAPH
+} from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 import { ruleGraphDefinitionDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
 import { dnd5eEncounterLifecycleReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/encounterLifecycle'
 import { initiativePolicyReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/initiativePolicy'
@@ -551,7 +552,7 @@ describe('native reusable definitions', () => {
     const score = await publishDocument(
       a,
       'rules-runtime-graph',
-      createDnd5eSpeedFactorInitiativeDefinition().definition
+      SRD_DND5E_SPEED_FACTOR_INITIATIVE_GRAPH
     )
     // The bounded System-fact graph matches the existing neutral publisher initiative fixture.
     const choice = await publishDocument(
@@ -604,7 +605,8 @@ describe('native reusable definitions', () => {
           maximumIndexFact: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMaximumIndex
         },
         tieResolvers: [{ ...scorePin, repeatOnTie: true, maximumAttempts: 20 }],
-        defaultTieResolverDefinitionId: score.id
+        defaultTieResolverDefinitionId: score.id,
+        declarationModifiers: SRD_DND5E_SPEED_FACTOR_DECLARATION_MODIFIERS
       })
     )
   })

@@ -25,9 +25,9 @@ import {
   authoredRecordStatusSchema,
   creatureCategoryCodeSchema,
   damageDefenseBypassCodeSchema,
-  measurementUnitCodeSchema,
-  sizeCodeSchema
+  measurementUnitCodeSchema
 } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 /**
  * A Sense a Creature has: a System sense definition and how far it reaches. This is the shape a
@@ -72,6 +72,10 @@ export const creatureQualifiedDamageDefenseDtoSchema = lazySchema(() =>
   })
 )
 
+export type CreatureQualifiedDamageDefenseDto = z.infer<
+  typeof creatureQualifiedDamageDefenseDtoSchema
+>
+
 export const creatureMountProfileDtoSchema = lazySchema(() =>
   z.object({
     mountType: z.enum(['CONTROLLED', 'INDEPENDENT']),
@@ -81,6 +85,8 @@ export const creatureMountProfileDtoSchema = lazySchema(() =>
   })
 )
 
+export type CreatureMountProfileDto = z.infer<typeof creatureMountProfileDtoSchema>
+
 export const creatureCompanionProfileDtoSchema = lazySchema(() =>
   z.object({
     bondType: z.enum(['FAMILIAR', 'ANIMAL_COMPANION', 'SUMMON']),
@@ -88,6 +94,8 @@ export const creatureCompanionProfileDtoSchema = lazySchema(() =>
     notes: z.optional(authoredPlainTextSchema)
   })
 )
+
+export type CreatureCompanionProfileDto = z.infer<typeof creatureCompanionProfileDtoSchema>
 
 export const creatureNpcProfileDtoSchema = lazySchema(() =>
   z.object({
@@ -97,6 +105,8 @@ export const creatureNpcProfileDtoSchema = lazySchema(() =>
     personalityTraits: z.optional(authoredReferenceCollectionSchema(authoredPlainTextSchema))
   })
 )
+
+export type CreatureNpcProfileDto = z.infer<typeof creatureNpcProfileDtoSchema>
 
 export const creatureAbilityScoresDtoSchema = lazySchema(() =>
   z.object({
@@ -397,7 +407,7 @@ const creatureAuthoredDtoObject = lazySchema(() =>
     systemId: authoredIdentifierSchema,
     category: creatureCategoryCodeSchema,
     creatureTypeId: authoredIdentifierSchema,
-    size: sizeCodeSchema,
+    size: systemCoreCodeSchema,
     alignmentId: z.optional(authoredIdentifierSchema),
     tags: z.optional(authoredReferenceCollectionSchema(authoredShortTextSchema)),
     abilityScores: creatureAbilityScoresDtoSchema,

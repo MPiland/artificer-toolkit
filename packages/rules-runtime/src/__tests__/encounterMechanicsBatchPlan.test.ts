@@ -263,7 +263,7 @@ describe('Creature mechanics batch plan', () => {
       ...buildEncounterSummon({
         summon: { statBlock: { damageabilityKind, hitPoints: { kind: 'FIXED', value: 10 } } },
         caster: creatureActor({ id: CHARACTER_ID, snapshot: {} }),
-        casterHitPointMaximum: null,
+        casterHitPointMaximum: 20,
         label: 'Conjured',
         sourceEffectId: ACTIVE_EFFECT_ID,
         point: { x: 0, y: 0 },

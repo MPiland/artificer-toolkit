@@ -1942,17 +1942,7 @@ export declare const api: {
                       field: "SIZE_OVERRIDE";
                       id?: string;
                       sourceNote?: string;
-                      value:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
+                      value: string;
                     };
                 commandId: string;
                 expectedVersion: number;
@@ -3388,17 +3378,7 @@ export declare const api: {
                   relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
                   relationshipLabel: string;
                   riderCapacity?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speedLabel?: string;
                 }
               | {
@@ -3454,7 +3434,11 @@ export declare const api: {
                     id: string;
                     label: string;
                   }>;
-                  hitPoints: { current: number; maximum: number; temp: number };
+                  hitPoints?: {
+                    current: number;
+                    maximum: number;
+                    temp: number;
+                  };
                   id: string;
                   isActive: boolean;
                   kind: "SPELL_SUMMON";
@@ -3463,17 +3447,7 @@ export declare const api: {
                   originKind: "SUMMONED";
                   originLabel: string;
                   passivePerception?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speedLabel?: string;
                   spellId: string;
                 }
@@ -8978,17 +8952,7 @@ export declare const api: {
                 field: "SIZE_OVERRIDE";
                 id?: string;
                 sourceNote?: string;
-                value:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                value: string;
               };
           campaignId: string;
           characterId: string;
@@ -9271,17 +9235,7 @@ export declare const api: {
                 field: "SIZE_OVERRIDE";
                 id?: string;
                 sourceNote?: string;
-                value:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                value: string;
               };
           campaignId: string;
           characterId: string;
@@ -9517,17 +9471,7 @@ export declare const api: {
                 field: "SIZE_OVERRIDE";
                 id?: string;
                 sourceNote?: string;
-                value:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                value: string;
               };
           campaignId: string;
           characterId: string;
@@ -11970,24 +11914,14 @@ export declare const api: {
               armorClass: number | null;
               castAt: string;
               concentration: boolean;
-              currentHitPoints: number;
+              currentHitPoints?: number;
               customName?: string;
               id: string;
               label: string;
-              maximumHitPoints: number;
+              maximumHitPoints?: number;
               notes?: string;
               passivePerception?: number;
-              size?:
-                | "COLOSSAL"
-                | "DIMUNITIVE"
-                | "FINE"
-                | "GARGANTUAN"
-                | "GIANT"
-                | "HUGE"
-                | "LARGE"
-                | "MEDIUM"
-                | "SMALL"
-                | "TINY";
+              size?: string;
               speeds?: Array<{
                 amount: number;
                 speedId: string;
@@ -12391,24 +12325,14 @@ export declare const api: {
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
-                currentHitPoints: number;
+                currentHitPoints?: number;
                 customName?: string;
                 id: string;
                 label: string;
-                maximumHitPoints: number;
+                maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
-                size?:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                size?: string;
                 speeds?: Array<{
                   amount: number;
                   speedId: string;
@@ -12811,24 +12735,14 @@ export declare const api: {
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
-                currentHitPoints: number;
+                currentHitPoints?: number;
                 customName?: string;
                 id: string;
                 label: string;
-                maximumHitPoints: number;
+                maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
-                size?:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                size?: string;
                 speeds?: Array<{
                   amount: number;
                   speedId: string;
@@ -13557,24 +13471,14 @@ export declare const api: {
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
-                  currentHitPoints: number;
+                  currentHitPoints?: number;
                   customName?: string;
                   id: string;
                   label: string;
-                  maximumHitPoints: number;
+                  maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speeds?: Array<{
                     amount: number;
                     speedId: string;
@@ -14311,24 +14215,14 @@ export declare const api: {
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
-                  currentHitPoints: number;
+                  currentHitPoints?: number;
                   customName?: string;
                   id: string;
                   label: string;
-                  maximumHitPoints: number;
+                  maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speeds?: Array<{
                     amount: number;
                     speedId: string;
@@ -15077,24 +14971,14 @@ export declare const api: {
                 armorClass: number | null;
                 castAt: string;
                 concentration: boolean;
-                currentHitPoints: number;
+                currentHitPoints?: number;
                 customName?: string;
                 id: string;
                 label: string;
-                maximumHitPoints: number;
+                maximumHitPoints?: number;
                 notes?: string;
                 passivePerception?: number;
-                size?:
-                  | "COLOSSAL"
-                  | "DIMUNITIVE"
-                  | "FINE"
-                  | "GARGANTUAN"
-                  | "GIANT"
-                  | "HUGE"
-                  | "LARGE"
-                  | "MEDIUM"
-                  | "SMALL"
-                  | "TINY";
+                size?: string;
                 speeds?: Array<{
                   amount: number;
                   speedId: string;
@@ -15817,24 +15701,14 @@ export declare const api: {
                   armorClass: number | null;
                   castAt: string;
                   concentration: boolean;
-                  currentHitPoints: number;
+                  currentHitPoints?: number;
                   customName?: string;
                   id: string;
                   label: string;
-                  maximumHitPoints: number;
+                  maximumHitPoints?: number;
                   notes?: string;
                   passivePerception?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speeds?: Array<{
                     amount: number;
                     speedId: string;
@@ -18973,17 +18847,7 @@ export declare const api: {
                   relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
                   relationshipLabel: string;
                   riderCapacity?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speedLabel?: string;
                 }
               | {
@@ -19039,7 +18903,11 @@ export declare const api: {
                     id: string;
                     label: string;
                   }>;
-                  hitPoints: { current: number; maximum: number; temp: number };
+                  hitPoints?: {
+                    current: number;
+                    maximum: number;
+                    temp: number;
+                  };
                   id: string;
                   isActive: boolean;
                   kind: "SPELL_SUMMON";
@@ -19048,17 +18916,7 @@ export declare const api: {
                   originKind: "SUMMONED";
                   originLabel: string;
                   passivePerception?: number;
-                  size?:
-                    | "COLOSSAL"
-                    | "DIMUNITIVE"
-                    | "FINE"
-                    | "GARGANTUAN"
-                    | "GIANT"
-                    | "HUGE"
-                    | "LARGE"
-                    | "MEDIUM"
-                    | "SMALL"
-                    | "TINY";
+                  size?: string;
                   speedLabel?: string;
                   spellId: string;
                 }
@@ -20173,17 +20031,7 @@ export declare const api: {
                       field: "SIZE_OVERRIDE";
                       id?: string;
                       sourceNote?: string;
-                      value:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
+                      value: string;
                     };
                 commandId: string;
                 expectedVersion: number;
@@ -23025,17 +22873,7 @@ export declare const api: {
                       relationshipKind: "COMPANION" | "MOUNT" | "OWNED";
                       relationshipLabel: string;
                       riderCapacity?: number;
-                      size?:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
+                      size?: string;
                       speedLabel?: string;
                     }
                   | {
@@ -23091,7 +22929,7 @@ export declare const api: {
                         id: string;
                         label: string;
                       }>;
-                      hitPoints: {
+                      hitPoints?: {
                         current: number;
                         maximum: number;
                         temp: number;
@@ -23104,17 +22942,7 @@ export declare const api: {
                       originKind: "SUMMONED";
                       originLabel: string;
                       passivePerception?: number;
-                      size?:
-                        | "COLOSSAL"
-                        | "DIMUNITIVE"
-                        | "FINE"
-                        | "GARGANTUAN"
-                        | "GIANT"
-                        | "HUGE"
-                        | "LARGE"
-                        | "MEDIUM"
-                        | "SMALL"
-                        | "TINY";
+                      size?: string;
                       speedLabel?: string;
                       spellId: string;
                     }
@@ -23570,11 +23398,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -34717,11 +34626,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -45873,11 +45863,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -57020,11 +57091,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -68202,11 +68354,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -79349,11 +79582,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -90498,11 +90812,92 @@ export declare const api: {
                   minimumIndexFact: string;
                   selectionOutput: string;
                 };
-                procedure:
-                  | "ACTOR_ROLL"
-                  | "ACTOR_SCORE"
-                  | "SIDE_ROLL"
-                  | "DECLARED_ACTION_ROLL";
+                procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                schemaVersion: 1;
+                tieResolvers: Array<{
+                  automaticOutput: string;
+                  definitionChecksum: string;
+                  definitionId: string;
+                  definitionVersion: number;
+                  maximumAttempts: number;
+                  repeatOnTie: boolean;
+                  scoreOutput: string;
+                  sortDirection: "ASCENDING" | "DESCENDING";
+                }>;
+              }
+            | {
+                cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                declarationModifiers: {
+                  factors: Array<{
+                    equipmentPropertySets: Array<
+                      Array<
+                        | "LIGHT"
+                        | "ONE_HANDED"
+                        | "TWO_HANDED"
+                        | "FINESSE"
+                        | "RANGED"
+                        | "THROWN"
+                        | "HEAVY"
+                        | "LOADING"
+                        | "AMMUNITION"
+                        | "REACH"
+                        | "SPECIAL"
+                        | "VERSATILE"
+                        | "MEDIUM"
+                        | "SIMPLE"
+                        | "MARTIAL"
+                        | "MELEE"
+                        | "FLASK"
+                        | "VIAL"
+                        | "POISON"
+                        | "CONTAINER"
+                        | "POTION"
+                        | "SCROLL"
+                        | "WONDEROUS_ITEM"
+                        | "ARCANE_FOCUS"
+                        | "HOLY_SYMBOL"
+                        | "DRINK"
+                        | "FOOD"
+                        | "ARTISANAL_TOOL"
+                        | "MUSICAL_INSTRUMENT"
+                        | "GAMING_SET"
+                        | "DRUIDIC_FOCUS"
+                        | "PROFESSIONAL_TOOL"
+                        | "WOOD"
+                        | "METAL"
+                        | "MAGIC"
+                        | "VEX"
+                        | "CLOTHING"
+                      >
+                    >;
+                    id: string;
+                    label: string;
+                    modifier: number;
+                  }>;
+                  sizes: Array<{ modifier: number; size: string }>;
+                  spellLevel: { modifierPerLevel: number };
+                };
+                defaultTieResolverDefinitionId: string;
+                evaluationGraph: {
+                  automaticOutput: string;
+                  definitionChecksum: string;
+                  definitionId: string;
+                  definitionVersion: number;
+                  scoreOutput: string;
+                  sortDirection: "ASCENDING" | "DESCENDING";
+                };
+                gameSystemId: string;
+                id: string;
+                kind: "INITIATIVE_POLICY";
+                orderChoiceGraph: {
+                  definitionChecksum: string;
+                  definitionId: string;
+                  definitionVersion: number;
+                  maximumIndexFact: string;
+                  minimumIndexFact: string;
+                  selectionOutput: string;
+                };
+                procedure: "DECLARED_ACTION_ROLL";
                 schemaVersion: 1;
                 tieResolvers: Array<{
                   automaticOutput: string;
@@ -101495,11 +101890,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -112642,11 +113118,92 @@ export declare const api: {
                     minimumIndexFact: string;
                     selectionOutput: string;
                   };
-                  procedure:
-                    | "ACTOR_ROLL"
-                    | "ACTOR_SCORE"
-                    | "SIDE_ROLL"
-                    | "DECLARED_ACTION_ROLL";
+                  procedure: "ACTOR_ROLL" | "ACTOR_SCORE" | "SIDE_ROLL";
+                  schemaVersion: 1;
+                  tieResolvers: Array<{
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumAttempts: number;
+                    repeatOnTie: boolean;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  }>;
+                }
+              | {
+                  cadence: "ENCOUNTER_START" | "EACH_ROUND";
+                  declarationModifiers: {
+                    factors: Array<{
+                      equipmentPropertySets: Array<
+                        Array<
+                          | "LIGHT"
+                          | "ONE_HANDED"
+                          | "TWO_HANDED"
+                          | "FINESSE"
+                          | "RANGED"
+                          | "THROWN"
+                          | "HEAVY"
+                          | "LOADING"
+                          | "AMMUNITION"
+                          | "REACH"
+                          | "SPECIAL"
+                          | "VERSATILE"
+                          | "MEDIUM"
+                          | "SIMPLE"
+                          | "MARTIAL"
+                          | "MELEE"
+                          | "FLASK"
+                          | "VIAL"
+                          | "POISON"
+                          | "CONTAINER"
+                          | "POTION"
+                          | "SCROLL"
+                          | "WONDEROUS_ITEM"
+                          | "ARCANE_FOCUS"
+                          | "HOLY_SYMBOL"
+                          | "DRINK"
+                          | "FOOD"
+                          | "ARTISANAL_TOOL"
+                          | "MUSICAL_INSTRUMENT"
+                          | "GAMING_SET"
+                          | "DRUIDIC_FOCUS"
+                          | "PROFESSIONAL_TOOL"
+                          | "WOOD"
+                          | "METAL"
+                          | "MAGIC"
+                          | "VEX"
+                          | "CLOTHING"
+                        >
+                      >;
+                      id: string;
+                      label: string;
+                      modifier: number;
+                    }>;
+                    sizes: Array<{ modifier: number; size: string }>;
+                    spellLevel: { modifierPerLevel: number };
+                  };
+                  defaultTieResolverDefinitionId: string;
+                  evaluationGraph: {
+                    automaticOutput: string;
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    scoreOutput: string;
+                    sortDirection: "ASCENDING" | "DESCENDING";
+                  };
+                  gameSystemId: string;
+                  id: string;
+                  kind: "INITIATIVE_POLICY";
+                  orderChoiceGraph: {
+                    definitionChecksum: string;
+                    definitionId: string;
+                    definitionVersion: number;
+                    maximumIndexFact: string;
+                    minimumIndexFact: string;
+                    selectionOutput: string;
+                  };
+                  procedure: "DECLARED_ACTION_ROLL";
                   schemaVersion: 1;
                   tieResolvers: Array<{
                     automaticOutput: string;
@@ -129190,7 +129747,7 @@ export declare const api: {
                       required: true;
                     }
                   | {
-                      key: "actionFactors";
+                      key: "factorIds";
                       kind: "MULTI_SELECT";
                       label: string;
                       maximumSelections: number;
@@ -129631,7 +130188,7 @@ export declare const api: {
                         required: true;
                       }
                     | {
-                        key: "actionFactors";
+                        key: "factorIds";
                         kind: "MULTI_SELECT";
                         label: string;
                         maximumSelections: number;
@@ -130600,7 +131157,7 @@ export declare const api: {
                   required: true;
                 }
               | {
-                  key: "actionFactors";
+                  key: "factorIds";
                   kind: "MULTI_SELECT";
                   label: string;
                   maximumSelections: number;
@@ -131575,7 +132132,7 @@ export declare const api: {
                       required: true;
                     }
                   | {
-                      key: "actionFactors";
+                      key: "factorIds";
                       kind: "MULTI_SELECT";
                       label: string;
                       maximumSelections: number;
@@ -138535,6 +139092,7 @@ export declare const internal: {
                 Record<string, string | number | boolean | null>
               >;
               senses?: Array<Record<string, string | number | boolean | null>>;
+              sizes?: Array<Record<string, string | number | boolean | null>>;
               skills?: Array<Record<string, string | number | boolean | null>>;
               speeds?: Array<Record<string, string | number | boolean | null>>;
               spell_effects?: Array<
@@ -138613,6 +139171,7 @@ export declare const internal: {
             roll_influences?: string;
             roll_modes?: string;
             senses?: string;
+            sizes?: string;
             skills?: string;
             speeds?: string;
             spell_effects?: string;

@@ -1,4 +1,4 @@
-import { RACE_CATEGORY_CODE, RACE_SELECTION_MODE_OPTIONS, SIZE_OPTIONS } from '#core'
+import { RACE_CATEGORY_CODE, RACE_SELECTION_MODE_OPTIONS } from '#core'
 import { FEATURE_NODE_MAP, SPEED_NODE_MAP } from '#maps'
 import { buildNodeMap } from '#utils'
 import type {
@@ -212,8 +212,8 @@ export const RACE_NODE_MAP = raceNode.define('race', ({ map, nodes, cond, data }
         ['size'],
         'Size',
         {
-          kind: 'INLINE_OPTIONS',
-          options: SIZE_OPTIONS
+          kind: 'DATA',
+          relationship: table('sizes', { selectColumns: ['id', 'label', 'description'] })
         },
         {
           section: RACE_SECTIONS.traits,

@@ -99,7 +99,7 @@ describe('encounter contracts', () => {
         },
         {
           kind: 'MULTI_SELECT' as const,
-          key: 'actionFactors' as const,
+          key: 'factorIds' as const,
           label: 'Action factors',
           minimumSelections: 0,
           maximumSelections: 4,
@@ -1123,7 +1123,10 @@ describe('encounter contracts', () => {
             kind: 'GM_ADJUDICATED',
             optionId: 'GM_ADJUDICATED',
             actorSize: 'TINY',
-            actionFactors: ['MELEE_HEAVY', 'RANGED_LOADING'],
+            factorIds: [
+              '00000000-0000-4000-8000-0000000004e4',
+              '00000000-0000-4000-8000-0000000004e7'
+            ],
             spellLevel: 3
           },
           bonus: null
@@ -1147,7 +1150,10 @@ describe('encounter contracts', () => {
             kind: 'GM_ADJUDICATED',
             optionId: 'GM_ADJUDICATED',
             actorSize: 'TINY',
-            actionFactors: ['MELEE_HEAVY', 'MELEE_HEAVY'],
+            factorIds: [
+              '00000000-0000-4000-8000-0000000004e4',
+              '00000000-0000-4000-8000-0000000004e4'
+            ],
             spellLevel: 3
           },
           bonus: null

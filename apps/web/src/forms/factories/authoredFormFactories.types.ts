@@ -2,7 +2,10 @@ import type { ReactNode } from 'react'
 import type { ConvexReactClient } from 'convex/react'
 import type { QueryClient } from '@tanstack/react-query'
 import type { AuthoredDraftDto } from '@artificer-toolkit/schema/api/content'
-import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
+import type {
+  SystemListResponseDto,
+  SystemResponseDto
+} from '@artificer-toolkit/schema/api/systems'
 import type {
   ActivatedAuthoringResponse,
   DraftAuthoringResponse,
@@ -21,8 +24,7 @@ export type AuthoredFormDomain =
   | 'spell'
   | 'vehicle'
 
-export type AuthoredFormFactoryBase = {
-  createSession?: (input: AuthoredFormSessionInput) => AuthoredFormSession | undefined
+type AuthoredFormFactoryBase = {
   domain: AuthoredFormDomain
   fallbackLabel: string
   mapId: AuthoredFormDomain
@@ -100,17 +102,16 @@ export type AuthoredFormSession = {
   system?: SystemResponseDto | null
   systemId?: string
   systemRequired: boolean
+  systems: SystemListResponseDto
 }
 
 export type AuthoredFormFactory<
   TValues extends object,
   TSubmit extends object,
-  TAuthored extends object = TSubmit,
-  TContext = undefined
+  TAuthored extends object = TSubmit
 > = AuthoredFormFactoryBase & {
   createEmptyValues: (input: { systemId: string }) => TValues
-  createSession?: (input: AuthoredFormSessionInput) => AuthoredFormSession | undefined
-  normalizeForSubmit: (values: TValues, context?: TContext) => TSubmit
-  resolveCreateSystemId: (systems: readonly { id: string }[], context?: TContext) => string | null
-  toFormValues: (record: TValues | TSubmit | TAuthored, context?: TContext) => TValues
+  createSession: (input: AuthoredFormSessionInput) => AuthoredFormSession
+  normalizeForSubmit: (values: TValues) => TSubmit
+  toFormValues: (record: TValues | TSubmit | TAuthored) => TValues
 }

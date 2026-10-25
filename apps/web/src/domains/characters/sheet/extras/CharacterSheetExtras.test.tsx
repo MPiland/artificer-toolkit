@@ -151,4 +151,48 @@ describe('CharacterSheetExtras spell summons (D190)', () => {
       extra: { kind: 'SPELL_SUMMON', extraId: summonId }
     })
   })
+
+  it('shows a summon with no hit points without a hit point control (SPELLS-4.T2v2b)', () => {
+    render(
+      <MantineProvider>
+        <QueryClientProvider client={new QueryClient()}>
+          <CharacterSheetExtras
+            pending={false}
+            sheet={{
+              ...characterSheetFixture,
+              extras: {
+                ...characterSheetFixture.extras,
+                items: [
+                  {
+                    kind: 'SPELL_SUMMON',
+                    kindLabel: 'Spell Summon',
+                    id: '00000000-0000-4000-8000-000000000a02',
+                    spellId: 'spiritual-weapon',
+                    originKind: 'SUMMONED',
+                    originLabel: 'Summoned',
+                    authoredName: 'Spiritual Weapon',
+                    displayName: 'Spiritual Weapon',
+                    isActive: true,
+                    concentration: false,
+                    armorClass: null,
+                    speedLabel: 'Fly 20 ft.',
+                    actions: [],
+                    features: [],
+                    equipmentItemIds: []
+                  }
+                ]
+              }
+            }}
+            submitCommand={vi.fn(async () => true)}
+          />
+        </QueryClientProvider>
+      </MantineProvider>
+    )
+    const summons = screen.getByRole('region', { name: 'Summons' })
+    expect(within(summons).getByText('Spiritual Weapon')).toBeInTheDocument()
+    expect(
+      within(summons).queryByRole('textbox', { name: 'Spiritual Weapon current hit points' })
+    ).not.toBeInTheDocument()
+    expect(within(summons).getByRole('button', { name: 'Dismiss' })).toBeInTheDocument()
+  })
 })

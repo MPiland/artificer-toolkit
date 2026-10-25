@@ -20,7 +20,8 @@ const checksum = 'a'.repeat(64)
  * existing version, or stored facts from the old derivation are mistaken for current ones.
  */
 const factsShapeByVersion: Readonly<Record<number, string>> = {
-  1: 'bd9f89f9203754081a83156523106116d6940867a2d308ddc1aa85d4f4c602c3'
+  1: 'bd9f89f9203754081a83156523106116d6940867a2d308ddc1aa85d4f4c602c3',
+  2: '109cf498720edeb3af1c05d7a6239694838221ca7919d9b95b6ec558c72309c2'
 }
 const subjectKinds = {
   backgrounds: 'BACKGROUND',

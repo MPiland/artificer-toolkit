@@ -7,7 +7,6 @@ import {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CompiledRepeatSourcePathOffer } from '@artificer-toolkit/schema/effects/storedEffectOffer'
-import { sizeRank } from '@artificer-toolkit/shared/core'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
@@ -15,6 +14,7 @@ import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
 import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAttackSlots.js'
 import { resolveCreatureFormDuration } from './encounterFormChoice.js'
 import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
+import { sizeRank } from './systemSizes.js'
 import {
   installedGameSystemRuleOperations,
   requireInstalledGameSystemRuleCapability
@@ -429,15 +429,20 @@ export function prepareRecurringActiveEffect(
       appliesWhen &&
       !(
         input.attacks &&
-        attackSlotConditionHolds(appliesWhen, input.attacks.current, input.attacks.earlier)
+        attackSlotConditionHolds(
+          input.published.gameSystemId,
+          appliesWhen,
+          input.attacks.current,
+          input.attacks.earlier
+        )
       )
     )
       return null
     const maximum = relationshipContribution.modules.find(
       (module) => module.kind === 'TARGET_SIZE_MAXIMUM'
     )
-    const targetRank = sizeRank(input.target.effectiveSize)
-    const maximumRank = maximum ? sizeRank(maximum.sizeCode) : null
+    const targetRank = sizeRank(input.published.gameSystemId, input.target.effectiveSize)
+    const maximumRank = maximum ? sizeRank(input.published.gameSystemId, maximum.sizeCode) : null
     if (maximum && (targetRank === null || maximumRank === null || targetRank > maximumRank))
       return null
     const sameSourceRelationships = encounterSourceRelationships(

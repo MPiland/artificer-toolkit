@@ -8,6 +8,7 @@ import type {
   CharacterInitiativeActorFacts
 } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type { AuthoredVersionVector } from '@artificer-toolkit/schema/projections/identity'
+import type { InitiativeDeclarationModifiersDto } from '@artificer-toolkit/schema/shared/initiativePolicy'
 import type { InitiativeDeclarationFactsDto } from '@artificer-toolkit/schema/shared/initiativeState'
 import type { ServerInitiativeDeclarationRequestDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
@@ -23,12 +24,7 @@ type InitiativeDeclarationSelection =
       kind: 'GM_ADJUDICATED'
       optionId: 'GM_ADJUDICATED'
       actorSize: string
-      actionFactors: readonly (
-        | 'MELEE_HEAVY'
-        | 'MELEE_LIGHT_OR_FINESSE'
-        | 'MELEE_TWO_HANDED'
-        | 'RANGED_LOADING'
-      )[]
+      factorIds: readonly string[]
       spellLevel: number | null
     }
 
@@ -113,7 +109,10 @@ function spellVersion(
     )
   return matches[0]!
 }
-function options(source: InitiativeDeclarationSource) {
+function options(
+  source: InitiativeDeclarationSource,
+  declarationModifiers: InitiativeDeclarationModifiersDto
+) {
   if (source.kind === 'CUSTOM') {
     const primaryOptions: Option[] = [
       {
@@ -132,23 +131,21 @@ function options(source: InitiativeDeclarationSource) {
         key: 'actorSize',
         label: 'Actor size',
         required: true,
-        options: ['TINY', 'SMALL', 'MEDIUM', 'LARGE', 'HUGE', 'GARGANTUAN'].map((value) => ({
-          value,
-          label: value[0]! + value.slice(1).toLowerCase()
+        options: declarationModifiers.sizes.map(({ size }) => ({
+          value: size,
+          label: size.charAt(0) + size.slice(1).toLowerCase()
         }))
       },
       {
         kind: 'MULTI_SELECT',
-        key: 'actionFactors',
+        key: 'factorIds',
         label: 'Action factors',
         minimumSelections: 0,
-        maximumSelections: 4,
-        options: [
-          { value: 'MELEE_HEAVY', label: 'Melee heavy' },
-          { value: 'MELEE_LIGHT_OR_FINESSE', label: 'Melee light or finesse' },
-          { value: 'MELEE_TWO_HANDED', label: 'Melee two-handed' },
-          { value: 'RANGED_LOADING', label: 'Ranged loading' }
-        ]
+        maximumSelections: declarationModifiers.factors.length,
+        options: declarationModifiers.factors.map((factor) => ({
+          value: factor.id,
+          label: factor.label
+        }))
       },
       { kind: 'NULLABLE_INTEGER', key: 'spellLevel', label: 'Spell level', minimum: 0, maximum: 99 }
     ]
@@ -270,6 +267,8 @@ export function createEncounterInitiativeDeclarationRequest(input: {
   participantExpectedVersion: number
   controllerUserId: string | null
   source: InitiativeDeclarationSource
+  /** The frozen declared-action policy's authored modifiers; GM adjudication offers their sizes and factors. */
+  declarationModifiers: InitiativeDeclarationModifiersDto
 }): ServerInitiativeDeclarationRequestDto {
   return {
     requestId: input.requestId,
@@ -279,11 +278,12 @@ export function createEncounterInitiativeDeclarationRequest(input: {
     actorId: input.actorId,
     participantExpectedVersion: input.participantExpectedVersion,
     controllerUserId: input.controllerUserId,
-    ...options(input.source)
+    ...options(input.source, input.declarationModifiers)
   }
 }
 export function compileEncounterInitiativeDeclaration(input: {
   source: InitiativeDeclarationSource
+  declarationModifiers: InitiativeDeclarationModifiersDto
   primary: InitiativeDeclarationSelection
   bonus: InitiativeDeclarationSelection | null
 }): { declaration: InitiativeDeclarationFactsDto; checksum: string } {
@@ -295,11 +295,17 @@ export function compileEncounterInitiativeDeclaration(input: {
         throw new EncounterValidationError(
           'Custom initiative declarations require GM adjudication.'
         )
+      if (
+        selection.factorIds.some(
+          (id) => !input.declarationModifiers.factors.some((factor) => factor.id === id)
+        )
+      )
+        throw new EncounterValidationError('The adjudicated action factor is not authored.')
       return {
         kind: 'GM_ADJUDICATED',
         optionId: 'GM_ADJUDICATED',
         actorId: input.source.actor.id,
-        actionFactors: [...selection.actionFactors].sort(),
+        factorIds: [...selection.factorIds].sort(),
         spellLevel: selection.spellLevel
       }
     }
@@ -403,6 +409,11 @@ export function compileEncounterInitiativeDeclaration(input: {
     throw new EncounterValidationError(
       'The initiative source lacks an authoritative effective size.'
     )
+  if (
+    input.source.kind === 'CUSTOM' &&
+    !input.declarationModifiers.sizes.some((entry) => entry.size === size)
+  )
+    throw new EncounterValidationError('The adjudicated actor size is not authored.')
   const declaration = {
     actorSize: size,
     primary: compile(input.primary),

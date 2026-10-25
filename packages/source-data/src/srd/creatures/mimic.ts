@@ -65,18 +65,6 @@ export const mimic: CreatureAuthored = {
       label: 'Adhesive (Object Form Only)',
       description:
         'Adhesive (Object Form Only). The mimic adheres to anything that touches it. A Huge or smaller creature adhered to the mimic is also grappled by it (escape DC 13). Ability checks made to escape this grapple have disadvantage.',
-      effects: [
-        S.closedRuleEffect({
-          id: S.actionId(197, 502),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: S.TRIGGER.ACTIVATED,
-            range: { id: S.actionId(197, 602), rangeKind: S.RANGE_KIND.SELF },
-            targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
-          },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_MIMIC_ADHESIVE
-        })
-      ],
       order: 2
     },
     {

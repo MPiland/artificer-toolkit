@@ -5,7 +5,6 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { rollVisibilityDtoSchema } from './rolls.js'
 import { movementReactionChoiceSelectionDtoSchema } from '../shared/reaction.js'
 import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecutionProtocol.js'
-import { sizeCodeSchema } from '../shared/enums.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
@@ -14,9 +13,6 @@ import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 const checksumSchema = lazySchema(() => z.string().check(z.regex(/^[a-f0-9]{64}$/)))
-const speedFactorActionFactorDtoSchema = lazySchema(() =>
-  z.enum(['MELEE_HEAVY', 'MELEE_LIGHT_OR_FINESSE', 'MELEE_TWO_HANDED', 'RANGED_LOADING'])
-)
 export const initiativeDeclarationSelectionDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
@@ -27,16 +23,16 @@ export const initiativeDeclarationSelectionDtoSchema = lazySchema(() =>
       .strictObject({
         kind: z.literal('GM_ADJUDICATED'),
         optionId: z.literal('GM_ADJUDICATED'),
-        actorSize: sizeCodeSchema,
-        actionFactors: z.array(speedFactorActionFactorDtoSchema).check(z.maxLength(4)),
+        actorSize: systemCoreCodeSchema,
+        factorIds: z.array(uuidSchema).check(z.maxLength(32)),
         spellLevel: z.nullable(z.number().check(z.int()).check(z.gte(0)).check(z.lte(99)))
       })
       .check(
         z.superRefine((value, context) => {
-          if (new Set(value.actionFactors).size !== value.actionFactors.length) {
+          if (new Set(value.factorIds).size !== value.factorIds.length) {
             context.addIssue({
               code: 'custom',
-              path: ['actionFactors'],
+              path: ['factorIds'],
               message: 'GM-adjudicated action factors must be unique.'
             })
           }

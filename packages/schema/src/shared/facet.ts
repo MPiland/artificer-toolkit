@@ -24,7 +24,6 @@ import {
   proficiencyKindSchema,
   rangeKindSchema,
   scalingAmountKindSchema,
-  sizeCodeSchema,
   vehicleCategoryCodeSchema
 } from './enums.js'
 import {
@@ -175,7 +174,7 @@ const predicatePayloadSchemas = lazySchemaParts(
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SIZE)
         }),
         selectableSchema({
-          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
+          sizes: authoredReferenceCollectionSchema(systemCoreCodeSchema)
         })
       ),
       FEATURE_OBTAINED: z.object({
@@ -521,7 +520,7 @@ const predicatePayloadSchemas = lazySchemaParts(
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_SIZE)
         }),
         selectableSchema({
-          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
+          sizes: authoredReferenceCollectionSchema(systemCoreCodeSchema)
         })
       ),
       CREATURE_IS_MOUNT: z.object({
@@ -543,7 +542,7 @@ const predicatePayloadSchemas = lazySchemaParts(
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.VEHICLE_SIZE)
         }),
         selectableSchema({
-          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
+          sizes: authoredReferenceCollectionSchema(systemCoreCodeSchema)
         })
       )
     }) satisfies {

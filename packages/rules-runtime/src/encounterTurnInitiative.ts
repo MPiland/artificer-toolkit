@@ -238,7 +238,11 @@ export async function prepareEncounterTurnInitiative(input: {
         resolutionCommands: root.resolutionCommands
       }
     : null
-  if (!resume && snapshot?.policy.document.procedure === 'DECLARED_ACTION_ROLL') {
+  const declarationModifiers =
+    snapshot?.policy.document.procedure === 'DECLARED_ACTION_ROLL'
+      ? snapshot.policy.document.declarationModifiers
+      : null
+  if (!resume && declarationModifiers) {
     if (!pendingRoot) throw new Error('Initiative declaration requires a frozen policy.')
     const declarations = await input.loadDeclarations()
     const participant = staged
@@ -260,13 +264,18 @@ export async function prepareEncounterTurnInitiative(input: {
           actorId: participant.actorId,
           participantExpectedVersion: participant.version,
           controllerUserId: source.controllerUserId,
-          source
+          source,
+          declarationModifiers
         })
       })
     }
   }
   if (resume && pendingContext?.kind === 'ENCOUNTER_INITIATIVE_DECLARATION') {
-    if (!pendingRoot || resume.resolution.kind !== 'INITIATIVE_DECLARATION')
+    if (
+      !pendingRoot ||
+      !declarationModifiers ||
+      resume.resolution.kind !== 'INITIATIVE_DECLARATION'
+    )
       throw new Error('Encounter initiative declaration is unavailable.')
     const request = pendingContext.request
     const declarations = await input.loadDeclarations()
@@ -285,7 +294,8 @@ export async function prepareEncounterTurnInitiative(input: {
       ...request,
       participantExpectedVersion: participant.version,
       controllerUserId: source.controllerUserId,
-      source
+      source,
+      declarationModifiers
     })
     if (checksumCanonicalJson(current) !== checksumCanonicalJson(request))
       throw new Error('Initiative declaration options are stale.')
@@ -300,7 +310,12 @@ export async function prepareEncounterTurnInitiative(input: {
         ))
     )
       throw new Error('Initiative declaration selection is unavailable.')
-    const compiled = compileEncounterInitiativeDeclaration({ source, primary, bonus })
+    const compiled = compileEncounterInitiativeDeclaration({
+      source,
+      declarationModifiers,
+      primary,
+      bonus
+    })
     await staged.repository.updateInitiativeParticipant({
       encounterId: participant.encounterId,
       round: participant.round,
@@ -335,7 +350,8 @@ export async function prepareEncounterTurnInitiative(input: {
             actorId: nextParticipant.actorId,
             participantExpectedVersion: nextParticipant.version,
             controllerUserId: nextSource.controllerUserId,
-            source: nextSource
+            source: nextSource,
+            declarationModifiers
           })
         })
       }
@@ -355,6 +371,7 @@ export async function prepareEncounterTurnInitiative(input: {
       pendingSnapshot,
       entities: createEncounterInitiativeScoreEntities({
         state: staged.read(),
+        policy: snapshot.policy.document,
         sources,
         adapter
       }),

@@ -13,11 +13,11 @@ import {
   RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
-  SIZE_CODE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import {
   SRD_GNOMISH_HERITAGE_ID,
   SRD_LANGUAGES,

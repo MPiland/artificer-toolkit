@@ -21,7 +21,7 @@ const declaration = {
     kind: 'GM_ADJUDICATED' as const,
     optionId: 'GM_ADJUDICATED' as const,
     actorId,
-    actionFactors: [],
+    factorIds: [],
     spellLevel: null
   },
   bonus: null

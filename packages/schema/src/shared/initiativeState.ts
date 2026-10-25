@@ -71,17 +71,16 @@ const initiativeDeclarationSourceDtoSchema = lazySchema(() =>
       kind: z.literal('GM_ADJUDICATED'),
       optionId: z.literal('GM_ADJUDICATED'),
       actorId: serverUuidIdentityDtoSchema,
-      actionFactors: z
-        .array(
-          z.enum(['MELEE_HEAVY', 'MELEE_LIGHT_OR_FINESSE', 'MELEE_TWO_HANDED', 'RANGED_LOADING'])
-        )
-        .check(z.maxLength(4))
+      /** Factor IDs from the frozen policy's `declarationModifiers`. */
+      factorIds: z
+        .array(serverUuidIdentityDtoSchema)
+        .check(z.maxLength(32))
         .check(
           z.superRefine((value, context) => {
             if (new Set(value).size !== value.length) {
               context.addIssue({
                 code: 'custom',
-                message: 'GM-adjudicated Speed Factor selections must be unique.'
+                message: 'GM-adjudicated initiative factors must be unique.'
               })
             }
           })

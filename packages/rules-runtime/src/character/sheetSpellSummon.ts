@@ -58,7 +58,6 @@ export function buildSheetSpellSummon(input: {
   const { placement } = input
   const { statBlock } = placement
   const maximumHitPoints = summonHitPoints(statBlock, input.casterHitPointMaximum)
-  if (!maximumHitPoints) throw new Error('A summon the Sheet tracks needs hit points.')
   const resolve = (expr: unknown) =>
     expr === undefined
       ? null
@@ -81,8 +80,7 @@ export function buildSheetSpellSummon(input: {
     ...(Object.keys(abilityScores).length ? { abilityScores } : {}),
     ...(statBlock.speeds?.length ? { speeds: statBlock.speeds } : {}),
     ...(passivePerception === null ? {} : { passivePerception }),
-    maximumHitPoints,
-    currentHitPoints: maximumHitPoints,
+    ...(maximumHitPoints > 0 ? { maximumHitPoints, currentHitPoints: maximumHitPoints } : {}),
     castAt: input.castAt
   }
 }
@@ -114,11 +112,15 @@ export function sheetSpellSummonExtra(
     concentration: summon.concentration,
     armorClass: summon.armorClass,
     ...(speedLabel ? { speedLabel } : {}),
-    hitPoints: {
-      current: summon.currentHitPoints,
-      maximum: summon.maximumHitPoints,
-      temp: summon.tempHitPoints ?? 0
-    },
+    ...(summon.maximumHitPoints === undefined || summon.currentHitPoints === undefined
+      ? {}
+      : {
+          hitPoints: {
+            current: summon.currentHitPoints,
+            maximum: summon.maximumHitPoints,
+            temp: summon.tempHitPoints ?? 0
+          }
+        }),
     ...(summon.size ? { size: summon.size } : {}),
     ...(summon.abilityScores ? { abilityScores: summon.abilityScores } : {}),
     ...(summon.passivePerception === undefined

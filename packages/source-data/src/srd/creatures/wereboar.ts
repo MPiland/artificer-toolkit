@@ -2,6 +2,7 @@ import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { damageInterceptionGrants } from './damageInterceptionGrants.js'
 import { chargeEffect } from './chargeEffect.js'
 import { CHANGE_SHAPE_RULING } from './changeShapeRuling.js'
+import { lycanthropyCurseOutcome } from './lycanthropyCurse.js'
 import * as S from './shared.js'
 export const wereboar: CreatureAuthored = {
   id: S.CREATURE_IDS.WEREBOAR,
@@ -151,11 +152,7 @@ export const wereboar: CreatureAuthored = {
                     scalingKind: S.SCALING.NONE,
                     diceConfig: '2d6+3'
                   },
-                  {
-                    id: S.actionId(6929, 4),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_WEREBOAR_TUSKS
-                  }
+                  lycanthropyCurseOutcome(S.actionId(6929, 4), 'wereboar', 12)
                 ]
               }
             }

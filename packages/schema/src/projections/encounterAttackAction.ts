@@ -1,6 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { attackSlotSetDtoSchema } from '../features/attackSlots.js'
-import { sizeCodeSchema } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 
 /** Most attacks one Attack action can make; bounds the stored state. */
@@ -31,7 +31,7 @@ export const encounterAttackActionStateDtoSchema = lazySchema(() =>
             attack: z.boolean(),
             targetIds: z.array(postgresUuidSchema).check(z.minLength(1)).check(z.maxLength(16)),
             /** The target's size when known; a slot's size predicate reads it. */
-            targetSize: z.optional(sizeCodeSchema),
+            targetSize: z.optional(systemCoreCodeSchema),
             /** Whether the attack roll hit, once settled; absent for an action without one. */
             hit: z.optional(z.boolean()),
             /** The item the attack was made with and its property codes; absent for an unarmed strike. */

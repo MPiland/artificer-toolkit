@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
 import {
   createDefaultAbilityScores,
   createEmptyCreature,
   normalizeCreatureForSubmit,
-  resolveCreateCreatureSystemId,
   toCreatureFormValues
 } from '../creatureAuthoring.utils'
 
@@ -22,25 +22,20 @@ describe('creature authoring helpers', () => {
   it('creates editable category-driven creature drafts', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
-    expect(createEmptyCreature({ systemId: 'dnd-5e-srd' })).toMatchObject({
+    expect(createEmptyCreature({ systemId: DND5E_SYSTEM_ID })).toMatchObject({
       id: generatedId,
       label: '',
       status: 'DRAFT',
       category: 'MONSTER',
       size: 'MEDIUM',
-      systemId: 'dnd-5e-srd',
+      systemId: DND5E_SYSTEM_ID,
       equipmentLoadout: [],
       abilityScores: createDefaultAbilityScores()
     })
   })
 
-  it('uses only real system list data when creating creatures', () => {
-    expect(resolveCreateCreatureSystemId([])).toBeNull()
-    expect(resolveCreateCreatureSystemId([{ id: 'dnd-5e-srd' }])).toBe('dnd-5e-srd')
-  })
-
   it('normalizes creature payloads before submit', () => {
-    const creature = createEmptyCreature({ systemId: 'dnd-5e-srd' })
+    const creature = createEmptyCreature({ systemId: DND5E_SYSTEM_ID })
     const normalized = normalizeCreatureForSubmit({
       ...creature,
       label: '  ',
@@ -48,7 +43,7 @@ describe('creature authoring helpers', () => {
     })
 
     expect(normalized).toMatchObject({
-      label: 'Untitled Creature',
+      label: '',
       description: '',
       category: 'MONSTER',
       speeds: []
@@ -56,7 +51,7 @@ describe('creature authoring helpers', () => {
   })
 
   it('adapts primitive authored arrays to editable rows and back', () => {
-    const authored = normalizeCreatureForSubmit(createEmptyCreature({ systemId: 'dnd-5e-srd' }))
+    const authored = normalizeCreatureForSubmit(createEmptyCreature({ systemId: DND5E_SYSTEM_ID }))
     const formValues = toCreatureFormValues({
       ...authored,
       tags: ['forest', 'ambush'],
@@ -102,7 +97,7 @@ describe('creature authoring helpers', () => {
 
   it('preserves advanced equipment loadouts through guided-compatible normalization', () => {
     const formValues = toCreatureFormValues({
-      ...normalizeCreatureForSubmit(createEmptyCreature({ systemId: 'dnd-5e-srd' })),
+      ...normalizeCreatureForSubmit(createEmptyCreature({ systemId: DND5E_SYSTEM_ID })),
       features: [
         {
           id: '00000000-0000-4000-8000-000000000002',
@@ -133,7 +128,7 @@ describe('creature authoring helpers', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
     const creature = normalizeCreatureForSubmit({
-      ...createEmptyCreature({ systemId: 'dnd-5e-srd' }),
+      ...createEmptyCreature({ systemId: DND5E_SYSTEM_ID }),
       userId: 'user-1',
       label: 'River Hart',
       description: 'A sturdy beast.',

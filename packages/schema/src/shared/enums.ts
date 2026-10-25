@@ -22,21 +22,6 @@ export const activationCodeSchema = lazySchema(() =>
 
 export const authoredRecordStatusSchema = lazySchema(() => z.enum(['DRAFT', 'ACTIVE']))
 
-export const sizeCodeSchema = lazySchema(() =>
-  z.enum([
-    'COLOSSAL',
-    'DIMUNITIVE',
-    'FINE',
-    'GARGANTUAN',
-    'GIANT',
-    'HUGE',
-    'LARGE',
-    'MEDIUM',
-    'SMALL',
-    'TINY'
-  ])
-)
-
 /** What an authored manifest blocks; a placed zone carries its rules for consumers such as cover (D154). */
 export const manifestBlockingRuleSchema = lazySchema(() =>
   z.enum([

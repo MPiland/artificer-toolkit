@@ -4,6 +4,7 @@ import {
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { EncounterRuleWarningCodeDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
+import { net } from '@artificer-toolkit/source-data/srd/equipment/net.js'
 import { guard } from '@artificer-toolkit/source-data/srd/creatures/guard.js'
 import { freedomOfMovement } from '@artificer-toolkit/source-data/srd/spells/freedom-of-movement.js'
 import { holdPerson } from '@artificer-toolkit/source-data/srd/spells/hold-person.js'
@@ -24,8 +25,9 @@ import { seededSrdCreature } from './seededSrdCreature.js'
 /**
  * SPELLS-4.T2m2 (D187a): Freedom of Movement makes its holder immune to the paralyzed and
  * restrained conditions a magical source applies. A spell's condition is magical on every path that
- * applies it, a save (Hold Person) or a zone (Web); a grapple is not. The net's case is proved at the
- * single immunity point (encounterSourceQualifiedGrants.test.ts) until the SRD Net attack compiles.
+ * applies it, a save (Hold Person) or a zone (Web); a grapple is not. The SRD Net is equipment, not a
+ * spell, so it restrains a holder (T2m2b); the single immunity point is also proved in
+ * encounterSourceQualifiedGrants.test.ts.
  */
 
 const CHARACTER_ACTOR_ID = testUuid(0x2d10)
@@ -68,9 +70,10 @@ const freedom = (warded: boolean, sourceActorId: string): Pick<ActionRoomConfig,
 
 /** The Character (first in the order) acting with `actionLabel`, and the Guard it acts on. */
 function characterRoom(
-  config: Pick<ActionRoomConfig, 'characterSpellcasting'> & {
+  config: Pick<ActionRoomConfig, 'characterSpellcasting' | 'characterEquipment'> & {
     actionLabel: string
     warded: boolean
+    rolls?: number[]
     guardAt?: { x: number; y: number }
   }
 ) {
@@ -84,8 +87,10 @@ function characterRoom(
     ],
     ...(config.guardAt && { positions: { [GUARD_ID]: config.guardAt } }),
     ...(config.characterSpellcasting && { characterSpellcasting: config.characterSpellcasting }),
+    ...(config.characterEquipment && { characterEquipment: config.characterEquipment }),
     characterAction: (action) => action.label.startsWith(config.actionLabel),
     autoRoll: 'EVERYONE',
+    ...(config.rolls && { rolls: config.rolls }),
     fallbackRoll: LOWEST,
     ...freedom(config.warded, CHARACTER_ACTOR_ID)
   })
@@ -157,6 +162,25 @@ describe('room Freedom of Movement (SPELLS-4.T2m2)', () => {
       rolls: [19],
       fallbackRoll: LOWEST,
       ...freedom(true, FROG_ID)
+    })
+
+    committed(await room.startAction(GUARD_ID, RANGE))
+
+    expect(await conditionsOf(room)).toContainEqual({ conditionTypeId: RESTRAINED })
+  })
+
+  it.each([
+    { holder: 'restrains a Guard it hits', warded: false },
+    {
+      holder: 'restrains a Guard holding the spell, since a net is equipment, not a spell',
+      warded: true
+    }
+  ])('a thrown Net $holder', async ({ warded }) => {
+    const room = await characterRoom({
+      characterEquipment: [net],
+      actionLabel: net.label,
+      rolls: [19],
+      warded
     })
 
     committed(await room.startAction(GUARD_ID, RANGE))
