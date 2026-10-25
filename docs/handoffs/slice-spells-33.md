@@ -699,4 +699,3 @@ T4i2a put the save, damage-type and critical exclusions and the damage cap on th
 - Five closed-rule kinds deleted (`CREATURE_IMMUTABLE_FORM`, `CREATURE_IRON_GOLEM_IMMUTABLE_FORM`, `CREATURE_STONE_GOLEM_IMMUTABLE_FORM`, `DUERGAR_ENLARGE`, `CREATURE_MIMIC_PSEUDOPOD_ADHESIVE`). Mimic Grappler stays with T3a and Mimic Adhesive with T6a3 (not in this ledger row).
 - `manualAdjudicationEffect` gained an optional `order`, used by the Pseudopod effect.
 - Proof: `creatureFormRulingAuthoringParity.test.ts` (ruling shape per creature, creature node map round trip, kinds gone); SRD effect compile golden regenerated.
-
