@@ -26,7 +26,6 @@
 00000000-0000-0000-c001-600f00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-601100000000 CHARACTER:classes Persistent Rage | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-601200000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c001-601300000000 CHARACTER:classes Indomitable Might | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-601400000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c001-601500000000 CHARACTER:classes Primal Champion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c002-140100000000 CHARACTER:classes Cutting Words | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -74,18 +73,13 @@
 00000000-0000-0000-c005-600500000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-600700000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-600900000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c005-600a00000000 CHARACTER:classes Indomitable | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c005-600a00000000 CHARACTER:classes Indomitable | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c005-600c00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-600d00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-600f00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-601000000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c005-608400000000 CHARACTER:classes Great Weapon Fighting | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c005-608500000000 CHARACTER:classes Protection | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c005-700200000000 CHARACTER:classes Indomitable | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c005-700300000000 CHARACTER:classes Indomitable | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c005-700400000000 CHARACTER:classes Indomitable | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c005-700500000000 CHARACTER:classes Indomitable | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c005-700600000000 CHARACTER:classes Indomitable | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-0b1500000000 CHARACTER:classes Wholeness of Body | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must be a positive safe fixed amount with no scaling or bonuses.
 00000000-0000-0000-c006-140100000000 CHARACTER:classes Open Hand Technique | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-140200000000 CHARACTER:classes Tranquility | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
@@ -102,18 +96,13 @@
 00000000-0000-0000-c006-600f00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-601000000000 CHARACTER:classes Unarmored Movement Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-601300000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c006-601500000000 CHARACTER:classes Diamond Soul | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c006-601500000000 CHARACTER:classes Diamond Soul | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c006-601700000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-601900000000 CHARACTER:classes Empty Body | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.
 00000000-0000-0000-c006-601a00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-601b00000000 CHARACTER:classes Perfect Self | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c006-700200000000 CHARACTER:classes Martial Arts | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c006-720200000000 CHARACTER:classes Martial Arts | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c006-760200000000 CHARACTER:classes Diamond Soul | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c006-760300000000 CHARACTER:classes Diamond Soul | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c006-760400000000 CHARACTER:classes Diamond Soul | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c006-760500000000 CHARACTER:classes Diamond Soul | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c006-760600000000 CHARACTER:classes Diamond Soul | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c007-140100000000 CHARACTER:classes Channel Divinity: Sacred Weapon | SINGLE_GRAPH 9d3c88c3e13f68fc87b73742234623150bbf35e16083f46c65b47114723bda3e nodes=1 outputs=1
 00000000-0000-0000-c007-140200000000 CHARACTER:classes Channel Divinity: Turn the Unholy | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c007-140300000000 CHARACTER:classes Aura of Devotion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -170,8 +159,7 @@
 00000000-0000-0000-c009-600400000000 CHARACTER:classes Cunning Action | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action outcome is not a supported hit-point or condition outcome.
 00000000-0000-0000-c009-600700000000 CHARACTER:classes Uncanny Dodge | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-600900000000 CHARACTER:classes Evasion | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c009-600d00000000 CHARACTER:classes Reliable Talent | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c009-601600000000 CHARACTER:classes Stroke of Luck | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
+00000000-0000-0000-c009-601600000000 CHARACTER:classes Stroke of Luck | SINGLE_GRAPH 752198cc29be2bdeb3ca463b267490bf5d88ca9a01028f33a838ee0d68496c19 nodes=1 outputs=1
 00000000-0000-0000-c009-602800000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-602900000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-602a00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
@@ -179,10 +167,6 @@
 00000000-0000-0000-c009-602c00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-602d00000000 CHARACTER:classes Ability Score Improvement | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c009-608100000000 CHARACTER:classes Sneak Attack | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c009-608200000000 CHARACTER:classes Stroke of Luck | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c009-608300000000 CHARACTER:classes Stroke of Luck | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
-00000000-0000-0000-c009-608400000000 CHARACTER:classes Stroke of Luck | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
-00000000-0000-0000-c009-608500000000 CHARACTER:classes Stroke of Luck | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D test action has an unsupported bounded shape.
 00000000-0000-0000-c00a-140100000000 CHARACTER:classes Dragon Ancestor | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00a-140300000000 CHARACTER:classes Elemental Affinity | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action is not the supported activated self action shape.
 00000000-0000-0000-c00a-140400000000 CHARACTER:classes Dragon Wings | REFUSED CharacterRuleActionUnsupportedCompilationError: D&D Effect action must have one fixed direct result without lifecycle overrides.

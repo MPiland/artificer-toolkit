@@ -7362,7 +7362,7 @@
             },
             {
               "id": "ENCOUNTER-4.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ENCOUNTER-4.1", "ENCOUNTER-4.2", "ENCOUNTER-4.3", "ENCOUNTER-4.4"],
               "wsjf": {
                 "bv": 2,
@@ -7371,8 +7371,9 @@
                 "size": 2
               },
               "text": "Register the journey: verify nativeRoomSpeedFactorInitiative.test.ts drives declaration through to turn order and enforcement via public commands (it appears to), add it to journeyTests; if the DoD requires the player-visible step, add one Decision drawer test where a player declares a Speed Factor action and the declared order shows (real drawer code over the real DTO schema). Missing thing: only the journey registration, not product code.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-encounter-4.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m440.",
+              "mergedAt": "2026-10-25T15:55:21Z",
+              "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             }
           ]
         },
@@ -7458,7 +7459,7 @@
             },
             {
               "id": "ENCOUNTER-6.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["ENCOUNTER-6.1", "ENCOUNTER-6.2", "ENCOUNTER-6.3"],
               "wsjf": {
                 "bv": 2,
@@ -7467,8 +7468,9 @@
                 "size": 1
               },
               "text": "Register nativeRoomMorale.test.ts (offer, save, confirm, recorded on actor) as the PBI journey after confirming it uses the public command path; add CampaignTabletopMorale.test.tsx as the user-visible half. Ledger-only if both pass in the current CI run. Token presentation of the result is VTT_UI-2.T1, not this PBI.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-encounter-6.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m440.",
+              "mergedAt": "2026-10-25T15:55:21Z",
+              "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             }
           ]
         },
@@ -8249,23 +8251,24 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 1,
-                "size": 5
+                "size": 3
               },
               "text": "Verify 6.4 against the original scenario and add the two race tests (replacement first, action first).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-6.T2",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-6.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 1,
-                "size": 8
+                "size": 2
               },
-              "text": "UUID-backed Creature loadout contract in packages/schema shared by authoring and Encounters.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Move the Creature loadout pin DTO into packages/schema; the UUID-backed loadout contract (packages/schema/src/subjects/creature.ts) already exists and is shared by authoring and Encounters.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
+              "activeWorkbook": "docs/handoffs/slice-attack-6.md"
             },
             {
               "id": "ATTACK-6.T3",
@@ -8275,11 +8278,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 1,
-                "size": 3,
+                "size": 2,
                 "after": ["ATTACK-6.T2"]
               },
               "text": "Source audit loadout-specific checks.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-6.T4",
@@ -8289,11 +8292,11 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 1,
-                "size": 8,
+                "size": 13,
                 "after": ["ATTACK-6.T2"]
               },
-              "text": "One shared modular-equipment derivation for Creatures and Characters.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "One shared modular-equipment derivation for Creatures and Characters: Creatures use the Character restriction evaluator and the same armor class and attack paths, so magic weapons and armor apply to Creatures.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             }
           ]
         },
@@ -9336,6 +9339,11 @@
               "proof": [],
               "origin": ["G2-OPTIONAL-COMBAT"],
               "id": "ATTACK-12.3"
+            },
+            {
+              "id": "ATTACK-12.4",
+              "status": "TODO",
+              "text": "With Flanking enabled, a melee attack at the table (including opportunity attacks) by an attacker whose ally is on the opposite side of the target has advantage, and the roll evidence names flanking; without an opposite ally it does not."
             }
           ],
           "wsjf": {
@@ -9374,6 +9382,20 @@
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
             },
             {
+              "id": "ATTACK-12.T2f",
+              "status": "TODO",
+              "closes": ["ATTACK-12.4"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 5,
+                "after": ["ATTACK-12.T2"]
+              },
+              "text": "Live flanking bug fix: move flanking into encounterActionPositionalContributors (via the optional-combat capability registry, reusing resolveDnd5eFlankingContributor), add one mechanics-prep positional-candidate loader (target-adjacent allies with relationships, capability states and perception) wired into the 4 attack prep sites, and delete the compiler-only flankingContributor and positionalFacts path. Regression room test that fails before the fix, plus a negative case.",
+              "note": "Registered 2026-10-25 (measured by the ATTACK-12 session; user ruling +5)."
+            },
+            {
               "id": "ATTACK-12.T3",
               "status": "TODO",
               "closes": ["ATTACK-12.3"],
@@ -9382,7 +9404,7 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 1,
-                "after": ["ATTACK-12.T2"]
+                "after": ["ATTACK-12.T2", "ATTACK-12.T2f"]
               },
               "text": "Integrate in table and settings; journey test.",
               "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
@@ -9429,16 +9451,17 @@
           "tasks": [
             {
               "id": "ATTACK-13.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-13.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 5
+                "size": 8
               },
-              "text": "Melee attack applies a mark active effect, one per attacker, expiring end of attacker's next turn.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Melee attack applies a mark active effect, one per attacker, expiring at the end of the attacker's next turn: widen the MARK arm (or graph), one-mark-per-attacker rule and an after-attack hook.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
+              "activeWorkbook": "docs/handoffs/slice-attack-13.md"
             },
             {
               "id": "ATTACK-13.T2",
@@ -9448,11 +9471,11 @@
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 5,
+                "size": 8,
                 "after": ["ATTACK-13.T1"]
               },
-              "text": "Marked opportunity attack: advantage, no reaction cost, once per turn, blocked without reactions.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Marked opportunity attack: advantage, no reaction cost (new once-per-turn free-reaction counter in the reaction economy), once per turn, blocked without reactions.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-13.T3",
@@ -9548,7 +9571,7 @@
               "id": "ATTACK-15.1"
             },
             {
-              "text": "An accepted injury is recorded on the Character, shows on the Sheet, and is removed by the healing the table names.",
+              "text": "An accepted injury is recorded on the Character, shows on the Sheet with the healing the table names, and the GM can remove it.",
               "status": "TODO",
               "proof": [],
               "origin": ["G2-OPTIONAL-COMBAT"],
@@ -9571,16 +9594,17 @@
           "tasks": [
             {
               "id": "ATTACK-15.T1",
-              "status": "TODO",
+              "status": "IN_PROGRESS",
               "closes": ["ATTACK-15.1"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 5
+                "size": 8
               },
-              "text": "Trigger detection (critical hit, 0 HP, death save failed by 5+) and GM roll offer on the authored table.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Trigger detection (critical hit, 0 HP, death save failed by 5+) stores an event-backed GM roll offer on the actor (Run state, Convex validators, GM command, receipts) on the authored table with gap-tolerant bands.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
+              "activeWorkbook": "docs/handoffs/slice-attack-15.md"
             },
             {
               "id": "ATTACK-15.T2",
@@ -9593,8 +9617,8 @@
                 "size": 8,
                 "after": ["ATTACK-15.T1"]
               },
-              "text": "Accepted injury persisted on the Character, shown on the Sheet, removed by the named healing.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Accepted injury persisted on the Character and shown on the Sheet; the GM removes it (every SRD recovery is a judgment call), the table's named healing shown as guidance.",
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
             },
             {
               "id": "ATTACK-15.T3",
@@ -9655,8 +9679,22 @@
                 "size": 8,
                 "after": []
               },
-              "text": "Kernel roll-table execution: the effect compiler accepts an authored ROLL_TABLE path (dice expression, rows by range, each row an ordinary compiled outcome graph), rolled server-side with the roll and the selected row in trace and replay. Generic, no feature-specific code; authoring-parity proof with a homebrew table.",
+              "text": "Kernel roll-table execution: the effect compiler accepts an authored ROLL_TABLE path rolled server-side in the OUTCOME phase (receipt keeps the roll) with a generic row-gate op (nested-save band pattern), each row an ordinary compiled outcome graph of path-gatable kinds, the roll and selected row in trace and replay; publication refuses gaps, overlaps and out-of-die ranges. REPEAT_TABLE rows refused. Generic; authoring-parity proof with a homebrew table.",
               "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
+            },
+            {
+              "id": "ATTACK-16.T1a2",
+              "status": "TODO",
+              "closes": ["ATTACK-16.1"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 3,
+                "after": ["ATTACK-16.T1a"]
+              },
+              "text": "Row-scoped lasting plans: a roll-table row can carry its own timed CONDITION and APPLY_GRANT plans (lasting plans chosen per selected row, not once per action), with proofs. Repeat saves inside rows stay with SPELLS-4.T2ps.",
+              "note": "Registered 2026-10-25 (T1a measured 11 against 8; user ruling accepted +3)."
             },
             {
               "id": "ATTACK-16.T1b",
@@ -9681,7 +9719,7 @@
                 "tc": 1,
                 "rr": 1,
                 "size": 5,
-                "after": ["ATTACK-16.T1a", "ATTACK-16.T1b"]
+                "after": ["ATTACK-16.T1a2", "ATTACK-16.T1b"]
               },
               "text": "Massive damage detection: a MASSIVE_DAMAGE DAMAGE_SAVE_CHECK source on the D167 chain (per-source finalized envelope, threshold half max HP), the authored Constitution save, and on failure a self-targeted SYSTEM root that runs the authored 1d10 system-shock ROLL_TABLE; Character admission included.",
               "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
@@ -11963,7 +12001,7 @@
                 "tc": 1,
                 "rr": 3,
                 "size": 13,
-                "after": ["ATTACK-16.T1a"]
+                "after": ["ATTACK-16.T1a2"]
               },
               "text": "Prismatic Spray on the ATTACK-16.T1a authored ROLL_TABLE: rows 1-5 and the success table (verify the cone first), row 6 as a row-scoped lasting repeat-save plan, row 7, and row 8 repeat-table rerolls with merged rows (lifts T1a's REPEAT_TABLE refusal); its MANUAL_ADJUDICATION rows are replaced. Authoring-parity proof and a room journey.",
               "note": "Registered 2026-10-25 (user ruling: roll tables must cover Prismatic Spray; measured 11-13 by the ATTACK-16 session)."
@@ -15175,7 +15213,7 @@
             },
             {
               "id": "SPELLS-31.T5c",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15185,8 +15223,9 @@
                 "after": ["SPELLS-31.T1"]
               },
               "text": "D187a scope: grep this task id in docs/handoffs/d187a-replan.md; riders marked DOC or DESCRIPTION_ONLY ship as a GM ruling, and deferred engine pieces are not built. Original scope: New option (ruling at start): d20 test overrides (reroll, floor, outcome); Indomitable, Diamond Soul, Reliable Talent, Indomitable Might, Stroke of Luck (with charges). Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Reliable Talent reuses SPELLS-4.T2c3's MINIMUM_ROLL option but needs a proficiency condition on the grant (floor only on checks the holder is proficient in), which T2c3 did not add.",
-              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "note": "D187a re-plan: size 5 to 3; rare riders with no automated equivalent ship as a GM ruling (description), engine pieces in future-enhancements. Merged in m439.",
+              "mergedAt": "2026-10-25T15:38:10Z",
+              "proof": "Tests 40206396607 and Live 40206396624 green on tip 9e966f09d (contains the phase tip); reviewed and approved; five class kinds deleted, one ability-check floor reducer with proficientOnly; merged in m439."
             },
             {
               "id": "SPELLS-31.T5d",
@@ -15218,7 +15257,7 @@
             },
             {
               "id": "SPELLS-31.T5f1",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["SPELLS-31.1"],
               "wsjf": {
                 "bv": 5,
@@ -15227,9 +15266,10 @@
                 "size": 3,
                 "after": ["SPELLS-31.T1", "SPELLS-4.T2i", "SPELLS-4.T2l", "SPELLS-4.T2m1"]
               },
-              "text": "Options bound to another active effect, part 1: the HOLDER_ACTIVE_EFFECT holder-state predicate; Mindless Rage (condition immunity gated on Rage; suspension clause a GM ruling), Reckless Attack. Each conversion has an authoring-parity proof and deletes its kind.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md",
-              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25)."
+              "text": "Options bound to another active effect, part 1: the HOLDER_ACTIVE_EFFECT holder-state predicate; Mindless Rage (condition immunity gated on Rage; suspension clause a GM ruling), Reckless Attack. Each conversion has an authoring-parity proof and deletes its kind. Reckless Attack ships as a GM ruling: the compiler refuses its two timed grants.",
+              "note": "Split from SPELLS-31.T5f (size 5, scope unchanged; orchestrator ruling 2026-10-25). Merged in m440.",
+              "mergedAt": "2026-10-25T15:55:21Z",
+              "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             },
             {
               "id": "SPELLS-31.T5f2",
@@ -17047,6 +17087,20 @@
               "note": "Split from SPELLS-33.T6n; T6n2 is +8 scope growth approved by the user 2026-10-25 (build the holder-turn timing correctly and generically rather than approximate or defer it)."
             },
             {
+              "id": "SPELLS-33.T6n2b",
+              "status": "TODO",
+              "closes": ["SPELLS-33.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 3,
+                "size": 2,
+                "after": ["SPELLS-33.T6n2"]
+              },
+              "text": "Generic HIT_POINT_LOSS recurrence outcome: hit points lost directly, unaffected by resistance or vulnerability, temporary hit points absorbing it first; recurrence.outcome DAMAGE or HIT_POINT_LOSS, with proofs (Stirge blood drain converts in T6n3).",
+              "note": "Registered 2026-10-25 (measured +2 in the T6n2 design note; user ruling)."
+            },
+            {
               "id": "SPELLS-33.T6n3",
               "status": "TODO",
               "closes": ["SPELLS-33.1"],
@@ -17055,7 +17109,7 @@
                 "tc": 2,
                 "rr": 3,
                 "size": 5,
-                "after": ["SPELLS-33.T6n2"]
+                "after": ["SPELLS-33.T6n2b"]
               },
               "text": "Convert the holder-turn creatures onto the SPELLS-33.T6n2 phase, data only: the swallows (Purple Worm, Behir, Remorhaz, Tarrasque, Kraken, Giant Toad, Giant Frog), the Stirge blood drain, the Gelatinous Cube engulf and the Water Elemental whelm. Each replaces its MANUAL_ADJUDICATION start-of-holder-turn damage with a SOURCE-anchored relationship recurrence; riders outside the phase (regurgitation, detach thresholds) stay GM rulings under D187a. Authoring-parity proof per creature and one room journey on a swallow.",
               "note": "+5 scope growth approved by the user 2026-10-25."
@@ -18732,7 +18786,7 @@
             },
             {
               "id": "RELIABILITY-8.T5",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-8.1",
                 "RELIABILITY-8.2",
@@ -18749,8 +18803,9 @@
                 "size": 3
               },
               "text": "Journey: one web integration test (real authoring form container, real factory, fake only Convex data) that creates a new authored item with no System chosen (explicit missing-System state, no first-in-list default), submits a blank label (field error, not 'Untitled'), then picks a System and label and saves, checking the submitted DTO. Prefer extending AuthoredDomainAuthoringLayout.test.tsx or a Guided<Subject> test over a new file; a Storybook browser test only if the AC is judged visual (it is not). Register it as journeyTests.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-8.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m440.",
+              "mergedAt": "2026-10-25T15:55:21Z",
+              "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             }
           ]
         },
@@ -19056,7 +19111,7 @@
             },
             {
               "id": "RELIABILITY-12.T2",
-              "status": "IN_PROGRESS",
+              "status": "DONE",
               "closes": ["RELIABILITY-12.1", "RELIABILITY-12.2"],
               "wsjf": {
                 "bv": 1,
@@ -19065,8 +19120,9 @@
                 "size": 2
               },
               "text": "Register a journey: a convex-test that saves a Reusable Definition with a facet restriction and an effect path (BASIC_ACTION) through the real handlers and reads it back through the web adapter's typed reference, so the typed shape is exercised end to end at runtime, plus the generatedApiTypes type test. Alternatively, obtain a ruling that a type-only PBI closes on its type test.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
-              "activeWorkbook": "docs/handoffs/slice-reliability-12.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m440.",
+              "mergedAt": "2026-10-25T15:55:21Z",
+              "proof": "Batch m440 (ci/closure-sweep@ba16dd3fd, ci/spells-31-t5f1@48eb7c949) green on Tests and Live; reviewed and approved; merged in m440."
             }
           ]
         },

@@ -7,8 +7,8 @@ import { savingThrowSpentEffects } from '../encounterEndedEffectRelease.js'
 import { discoverEncounterEventHooks } from '../events/encounterEventHooks.js'
 import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
 import {
+  abilityCheckMinimumRoll,
   activeAbilityCheckDice,
-  activeAbilityCheckMinimumRoll,
   activeSavingThrowDice
 } from './activeEffectGrantTotals.js'
 
@@ -19,6 +19,8 @@ type ResolvedRoll = {
   source: RollSourceDto
   /** The ability a check or saving throw is made with: the dice its carried effects add key on it. */
   abilityCode?: string
+  /** Whether a skill check adds the Character's full proficiency bonus or more. */
+  proficient?: boolean
 }
 
 function withModifier(expression: string, modifier: number) {
@@ -82,6 +84,7 @@ function structuredRolls(sheet: CharacterSheetResponseDto): ResolvedRoll[] {
       expression: withModifier('1d20', skill.total),
       rollMode: skill.rollMode,
       abilityCode: skill.ability,
+      proficient: skill.proficiency === 'FULL' || skill.proficiency === 'DOUBLE',
       source: { kind: 'SKILL_CHECK' as const, label: `${skill.label} check` }
     })),
     {
@@ -169,12 +172,14 @@ export function resolveCharacterSheetRoll(
 
 /**
  * The dice the Character's carried effects add to a resolved ability check, skill check or saving
- * throw (Guidance, Resistance), and the effects the test spends: those whose die applied to its
- * ability (D156). Any other roll adds none.
+ * throw (Guidance, Resistance), the effects the test spends: those whose die applied to its
+ * ability (D156), and the floor a check's d20 takes from those effects and the Character's own
+ * features (Glibness, Reliable Talent). Any other roll adds none.
  */
 export function carriedTestDice(
   resolved: ResolvedRoll,
-  activeEffects: readonly ActiveRuleEffectRecord[]
+  activeEffects: readonly ActiveRuleEffectRecord[],
+  character: NonNullable<Parameters<typeof abilityCheckMinimumRoll>[0]['character']>
 ) {
   const { abilityCode } = resolved
   if (abilityCode === undefined) return { addedDice: [], spent: [], minimumRoll: null }
@@ -190,6 +195,11 @@ export function carriedTestDice(
       effects: activeEffects,
       events: [{ kind: 'TEST', test: 'CHECK', ability: { code: abilityCode } }]
     }).ended,
-    minimumRoll: activeAbilityCheckMinimumRoll(activeEffects, abilityCode)
+    minimumRoll: abilityCheckMinimumRoll({
+      effects: activeEffects,
+      character,
+      abilityCode,
+      proficient: resolved.proficient === true
+    })
   }
 }

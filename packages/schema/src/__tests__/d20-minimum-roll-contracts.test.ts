@@ -7,7 +7,7 @@ import { d20CheckTotal, d20MinimumRollDtoSchema } from '../shared/d20MinimumRoll
 import { ruleCheckD20EvidenceDtoSchema } from '../shared/ruleExecutionEncounterApplications.js'
 
 const uuid = (suffix: number) => `00000000-0000-4000-8000-${suffix.toString(16).padStart(12, '0')}`
-const floor = { amount: 15, label: 'Glibness', sourceEffectId: uuid(1) }
+const floor = { amount: 15, label: 'Glibness', sourceId: uuid(1) }
 
 const evidence = {
   requestId: 'check-request',

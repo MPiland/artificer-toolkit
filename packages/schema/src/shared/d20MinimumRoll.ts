@@ -1,17 +1,18 @@
 import { z, lazySchema } from '../zod.js'
 import { d20AddedDiceTotal, type D20RolledAddedDieDto } from './d20AddedDice.js'
-import { ruleExecutionUuidSchema } from './ruleExecutionPrimitives.js'
+import { ruleExecutionIdentifierSchema } from './ruleExecutionPrimitives.js'
 
 /**
- * The d20 floor a test applies to the face it kept (Glibness's 15): the amount, the source the
- * roller reads beside it ("Glibness", or "Unseen source" for a hidden one) and the active effect
- * that gave it. Several floors on one test reduce to the highest.
+ * The d20 floor a test applies to the face it kept (Glibness's 15, Reliable Talent's 10): the
+ * amount, the source the roller reads beside it ("Glibness", or "Unseen source" for a hidden one)
+ * and the active effect or Character grant source that gave it. Several floors on one test reduce
+ * to the highest.
  */
 export const d20MinimumRollDtoSchema = lazySchema(() =>
   z.strictObject({
     amount: z.number().check(z.int()).check(z.gte(2)).check(z.lte(20)),
     label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(500)),
-    sourceEffectId: ruleExecutionUuidSchema
+    sourceId: ruleExecutionIdentifierSchema
   })
 )
 export type D20MinimumRollDto = z.infer<typeof d20MinimumRollDtoSchema>
