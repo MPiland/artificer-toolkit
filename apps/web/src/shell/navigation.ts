@@ -26,7 +26,7 @@ export interface AppShellNavGroup {
   emptyLabel?: string
 }
 
-export type ContentKind = GameSystemRuleCapabilityDto['contentKinds'][number]
+type ContentKind = GameSystemRuleCapabilityDto['contentKinds'][number]
 
 /** Presentation of each authored content kind; a missing kind fails typecheck. */
 const contentKindNavigation = {
