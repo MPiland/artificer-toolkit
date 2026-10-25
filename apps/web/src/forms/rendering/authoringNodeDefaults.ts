@@ -1178,15 +1178,16 @@ function createScalingGrant<TGrantKind extends ScalingGrantAuthored['grantKind']
 } {
   return {
     grantKind,
-    id: crypto.randomUUID(),
-    order,
-    selectionKind: 'GRANTED',
-    scalingKind: 'NONE',
-    authoringModeKind: 'ALL'
-  } satisfies Pick<
-    ScalingGrantAuthored,
-    'grantKind' | 'id' | 'order' | 'selectionKind' | 'scalingKind'
-  > & { authoringModeKind: 'ALL' }
+    ...({
+      id: crypto.randomUUID(),
+      order,
+      selectionKind: 'GRANTED',
+      scalingKind: 'NONE',
+      authoringModeKind: 'ALL'
+    } satisfies Pick<ScalingGrantAuthored, 'id' | 'order' | 'selectionKind' | 'scalingKind'> & {
+      authoringModeKind: 'ALL'
+    })
+  }
 }
 
 function createCheckChoice() {
