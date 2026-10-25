@@ -42,5 +42,10 @@ export const dnd5eCharacterProgressionCapabilityAdapter: CharacterProgressionCap
   hitDieSize: parseHitDie,
   hitDieAverage,
   hitPointGain,
-  proficiencyBonus
+  proficiencyBonus,
+  derivedStatisticAbilityCodes: {
+    armorClass: 'DEXTERITY',
+    initiative: 'DEXTERITY',
+    hitPoints: 'CONSTITUTION'
+  }
 }

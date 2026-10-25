@@ -5,14 +5,17 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterInitiativePolicySnapshotDto } from '@artificer-toolkit/schema/shared/initiativePolicySnapshot'
 import { reusableDefinitionCurrentDtoSchema } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { CurrentReusableDefinitionSource } from '../../ruleCapabilityStateService.js'
 import { pinnedInitiativePolicySnapshot } from '../../testing/initiativePolicySnapshot.js'
+import { activeEffect } from '../encounterActiveEffectFixtures.js'
 import { TRACER_INITIATIVE_FACT_KEYS } from './encounterTier.js'
 import {
+  TRACER_ACTOR_ACTION_CAPABILITY_ID,
   TRACER_APPROACH_DEFINITION_IDS,
   TRACER_EXCHANGE_ACTION_ALLOWANCE_ID,
   TRACER_SYSTEM_ID,
@@ -62,6 +65,14 @@ export function tracerCreatureActor(input: {
       id: THUG_BLUEPRINT_ID,
       systemId: TRACER_SYSTEM_ID,
       sourceRevision: 1,
+      payload: {
+        size: 'PERSONAL',
+        damageVulnerabilities: [],
+        damageResistances: [],
+        damageImmunities: [],
+        conditionImmunities: [],
+        qualifiedDamageDefenses: []
+      },
       ruleFacts: {
         gameSystemId: TRACER_SYSTEM_ID,
         vocabularySnapshotId: '00000000-0000-4000-8000-0000000fe004',
@@ -82,6 +93,47 @@ export function tracerCreatureActor(input: {
     createdAt: TIMESTAMP,
     updatedAt: TIMESTAMP
   })
+}
+
+/** A modifier-free effect a tracer actor holds, whose lifecycle codes the tracer vocabulary reads. */
+export function tracerActiveEffect(input: {
+  id: string
+  holderActorId: string
+  consumeOnFirstEvents?: readonly string[]
+  endOnEvents?: readonly string[]
+}): ActiveRuleEffectRecord {
+  const effect = activeEffect({
+    id: input.id,
+    owner: {
+      kind: 'ENCOUNTER_ACTOR',
+      encounterId: ENCOUNTER_ID,
+      targetActorId: input.holderActorId
+    },
+    createdOrdinal: 1,
+    ...(input.consumeOnFirstEvents && { consumeOnFirstEvents: input.consumeOnFirstEvents }),
+    ...(input.endOnEvents && { endOnEvents: input.endOnEvents }),
+    stateContributions: [
+      {
+        kind: 'MODIFIER_GRANT',
+        applyGrantOutcomeId: input.id,
+        modifiers: [],
+        senses: [],
+        sourceLabel: 'Aspect',
+        sourceHidden: false
+      }
+    ]
+  })
+  const { frozenGraph } = effect.definition
+  return {
+    ...effect,
+    definition: {
+      ...effect.definition,
+      frozenGraph: {
+        ...frozenGraph,
+        source: { ...frozenGraph.source, gameSystemId: TRACER_SYSTEM_ID }
+      }
+    }
+  }
 }
 
 /** A tracer Encounter Run with no optional combat rules; active in exchange 1 unless told otherwise. */
@@ -203,28 +255,44 @@ export function tracerInitiativePolicy(input: { cadence: 'ENCOUNTER_START' | 'EA
   })
 }
 
-const exchangeActionAllowance = {
-  schemaVersion: 1,
-  kind: 'RULE_CAPABILITY',
-  id: TRACER_EXCHANGE_ACTION_ALLOWANCE_ID,
-  gameSystemId: TRACER_SYSTEM_ID,
-  usage: { maximum: 1, refreshBoundary: 'START_OF_TURN' }
+function ruleCapability(
+  id: string,
+  usage: { maximum: number; refreshBoundary: 'START_OF_TURN' } | null
+) {
+  return { schemaVersion: 1, kind: 'RULE_CAPABILITY', id, gameSystemId: TRACER_SYSTEM_ID, usage }
 }
 
-/** The tracer's published definitions: its exchange-action allowance. */
+const tracerCapabilities = new Map([
+  [
+    TRACER_EXCHANGE_ACTION_ALLOWANCE_ID,
+    {
+      label: 'Exchange action',
+      document: ruleCapability(TRACER_EXCHANGE_ACTION_ALLOWANCE_ID, {
+        maximum: 1,
+        refreshBoundary: 'START_OF_TURN'
+      })
+    }
+  ],
+  [
+    TRACER_ACTOR_ACTION_CAPABILITY_ID,
+    { label: 'Act', document: ruleCapability(TRACER_ACTOR_ACTION_CAPABILITY_ID, null) }
+  ]
+])
+
+/** The tracer's published definitions: its exchange-action allowance and its actor-action capability. */
 export const tracerDefinitions: CurrentReusableDefinitionSource = {
   async requireCurrent(definitionId) {
-    if (definitionId !== TRACER_EXCHANGE_ACTION_ALLOWANCE_ID)
-      throw new Error(`Tracer definition "${definitionId}" is missing.`)
+    const capability = tracerCapabilities.get(definitionId)
+    if (!capability) throw new Error(`Tracer definition "${definitionId}" is missing.`)
     return reusableDefinitionCurrentDtoSchema.parse({
       id: definitionId,
       gameSystemId: TRACER_SYSTEM_ID,
       contentSourceId: CONTENT_SOURCE_ID,
       definitionFamilyKey: 'rule-capability',
-      label: 'Exchange action',
+      label: capability.label,
       description: null,
-      document: exchangeActionAllowance,
-      checksum: checksumRuleDocument(exchangeActionAllowance),
+      document: capability.document,
+      checksum: checksumRuleDocument(capability.document),
       contractVersion: 1,
       version: 1,
       publishedAt: TIMESTAMP,
