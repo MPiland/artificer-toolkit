@@ -29,7 +29,13 @@ async function reliableCharacter() {
     label: 'Half Persuasion',
     grants: {
       proficiencies: [
-        { ...grant, id: crypto.randomUUID(), level: 'HALF' as const, skillIds: [persuasion] }
+        {
+          ...grant,
+          id: crypto.randomUUID(),
+          level: 'HALF' as const,
+          rounding: 'DOWN' as const,
+          skillIds: [persuasion]
+        }
       ]
     }
   }

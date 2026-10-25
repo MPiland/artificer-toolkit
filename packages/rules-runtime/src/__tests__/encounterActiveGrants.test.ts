@@ -795,6 +795,7 @@ describe('a held d20 floor on ability checks', () => {
 
   describe("a Character feature's floor (Reliable Talent, SPELLS-31.T5c)", () => {
     const reliableTalent = srdFeature({
+      owner: 'CLASS',
       classLabel: 'Rogue',
       featureLabel: 'Reliable Talent',
       level: 11
