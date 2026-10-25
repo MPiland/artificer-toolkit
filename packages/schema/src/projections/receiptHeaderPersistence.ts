@@ -49,6 +49,7 @@ export const encounterRunCommandHeaderSchema = lazySchema(() =>
         'CONFIRM_MORALE',
         'END_HELD_GRANT',
         'MOVE_HELD_EFFECT',
+        'CHANGE_FACING',
         'RELEASE_RELATIONSHIP',
         'RELATIONSHIPS_ENDED',
         'SUMMONS_ENDED',

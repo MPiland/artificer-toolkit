@@ -94,9 +94,18 @@ describe('applySceneGeometryDelta', () => {
       { kind: 'TOKEN_UPSERTED', token: replacementToken },
       { kind: 'TOKEN_REMOVED', tokenId: token.id },
       { kind: 'TOKEN_MOVED', position: { x: 3, y: 4 }, tokenId: token.id },
+      { kind: 'TOKEN_MOVED', position: { x: 3, y: 4 }, rotationDegrees: 90, tokenId: token.id },
+      { kind: 'TOKEN_FACING_SET', rotationDegrees: 180, tokenId: token.id },
       {
         kind: 'TOKEN_MOVE_UNDONE',
         position: { x: 5, y: 6 },
+        tokenId: token.id,
+        undoneCommandId: 'command-1'
+      },
+      {
+        kind: 'TOKEN_MOVE_UNDONE',
+        position: { x: 5, y: 6 },
+        rotationDegrees: 270,
         tokenId: token.id,
         undoneCommandId: 'command-1'
       },
@@ -110,6 +119,28 @@ describe('applySceneGeometryDelta', () => {
       const narrow = applySceneGeometryDelta(narrowState(), delta)
       expect(geometry(narrow)).toEqual(geometry(full))
     }
+  })
+
+  it('turns a token only when a move or facing change names a facing (ATTACK-12)', () => {
+    const facing = (delta: Parameters<typeof applySceneGeometryDelta>[1]) =>
+      applySceneGeometryDelta(narrowState(), delta).tokens[0]?.rotationDegrees
+    expect(facing({ kind: 'TOKEN_MOVED', position: { x: 3, y: 4 }, tokenId: token.id })).toBe(0)
+    expect(
+      facing({
+        kind: 'TOKEN_MOVED',
+        position: { x: 3, y: 4 },
+        rotationDegrees: 90,
+        tokenId: token.id
+      })
+    ).toBe(90)
+    expect(facing({ kind: 'TOKEN_FACING_SET', rotationDegrees: 180, tokenId: token.id })).toBe(180)
+    expect(
+      applySceneGeometryDelta(narrowState(), {
+        kind: 'TOKEN_FACING_SET',
+        rotationDegrees: 180,
+        tokenId: token.id
+      }).tokens[0]?.position
+    ).toEqual(token.position)
   })
 
   it('preserves a door state on door upsert and removes it on conversion or removal', () => {
@@ -147,6 +178,13 @@ describe('applySceneGeometryDelta', () => {
         undoneCommandId: 'command-1'
       })
     ).toThrow('Cannot undo movement for a token that is not in the scene.')
+    expect(() =>
+      applySceneGeometryDelta(narrowState(), {
+        kind: 'TOKEN_FACING_SET',
+        rotationDegrees: 90,
+        tokenId: 'missing'
+      })
+    ).toThrow('Cannot turn a token that is not in the scene.')
     expect(() =>
       applySceneGeometryDelta(narrowState(), {
         barrierId: wall.id,

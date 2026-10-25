@@ -547,13 +547,20 @@ const sceneAtomicDeltaDtoSchema: z.ZodMiniType<SceneAtomicDelta> = lazySchema(()
     z.strictObject({
       kind: z.literal('TOKEN_MOVED'),
       position: scenePointDtoSchema,
+      rotationDegrees: z.optional(degreesSchema),
       tokenId: uuidSchema
     }),
     z.strictObject({
       kind: z.literal('TOKEN_MOVE_UNDONE'),
       position: scenePointDtoSchema,
+      rotationDegrees: z.optional(degreesSchema),
       tokenId: uuidSchema,
       undoneCommandId: uuidSchema
+    }),
+    z.strictObject({
+      kind: z.literal('TOKEN_FACING_SET'),
+      rotationDegrees: degreesSchema,
+      tokenId: uuidSchema
     }),
     z.strictObject({
       kind: z.literal('DOOR_STATE_SET'),
@@ -873,6 +880,11 @@ export const sceneTokenMovementCommandInputDtoSchema = lazySchema(() =>
       carefully: z.optional(z.boolean()),
       /** The rule warnings the mover overrides with "Do it anyway" (ADR 0034); absent is none. */
       acknowledgedWarnings: z.optional(encounterAcknowledgedRuleWarningsDtoSchema),
+      /**
+       * The facing a voluntary Encounter move ends in, when the Encounter's Facing rule is on
+       * (ATTACK-12). The room checks the rule and its facing step; absent keeps the token's facing.
+       */
+      facingDegrees: z.optional(degreesSchema),
       tokenId: uuidSchema,
       path: z
         .array(scenePointDtoSchema)
@@ -892,6 +904,15 @@ export const sceneTokenMovementCommandInputDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['carefully'],
             message: 'Only voluntary movement can move carefully.'
+          })
+        if (
+          command.facingDegrees !== undefined &&
+          (command.movementKind !== 'VOLUNTARY' || command.expectedEncounterVersion === null)
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['facingDegrees'],
+            message: 'Only a voluntary Encounter move chooses the facing it ends in.'
           })
         if (command.movementKind === 'TELEPORT' && command.path.length !== 2)
           context.addIssue({
@@ -920,6 +941,15 @@ export const sceneDoorStateCommandInputDtoSchema = lazySchema(() =>
     type: z.literal('SET_SCENE_DOOR_STATE'),
     barrierId: uuidSchema,
     state: z.enum(['OPEN', 'CLOSED', 'LOCKED'])
+  })
+)
+
+/** A token's new facing, written only by the room for an Encounter's Change facing reaction (ATTACK-12). */
+export const sceneTokenFacingCommandInputDtoSchema = lazySchema(() =>
+  z.extend(sceneCommandBaseDtoSchema, {
+    type: z.literal('SET_SCENE_TOKEN_FACING'),
+    tokenId: uuidSchema,
+    rotationDegrees: degreesSchema
   })
 )
 
@@ -1129,6 +1159,7 @@ export type GetCampaignLiveSceneInputDto = z.infer<typeof getCampaignLiveSceneIn
 export type DeleteSceneDefinitionInputDto = z.infer<typeof deleteSceneDefinitionInputDtoSchema>
 export type SceneCommandResultDto = z.infer<typeof sceneCommandResultDtoSchema>
 export type SceneDoorStateCommandInputDto = z.infer<typeof sceneDoorStateCommandInputDtoSchema>
+export type SceneTokenFacingCommandInputDto = z.infer<typeof sceneTokenFacingCommandInputDtoSchema>
 export type SceneTokenMovementCommandInputDto = z.infer<
   typeof sceneTokenMovementCommandInputDtoSchema
 >

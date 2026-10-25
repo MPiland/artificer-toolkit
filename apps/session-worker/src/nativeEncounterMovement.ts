@@ -8,8 +8,10 @@ import { type PreparedSpatialMovementPlan } from '@artificer-toolkit/rules-runti
 import { buildEncounterMovementReactionFacts } from '@artificer-toolkit/rules-runtime/encounterMovementReactionFacts'
 import {
   resolveEncounterAttackPerception,
-  resolveEncounterBelievedAttackPerception
+  resolveEncounterBelievedAttackPerception,
+  resolveEncounterObserversSeeing
 } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
+import { loadEncounterFlankingFacts } from '@artificer-toolkit/rules-runtime/encounterPositionalContributors'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import {
   discoverEncounterMovementReactionChoices,
@@ -52,6 +54,7 @@ import {
   prepareEncounterMovementPassageBoundary
 } from '@artificer-toolkit/rules-runtime/encounterMovementPassageBoundary'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
+import { admitsEncounterFacing } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
 import { encounterMovementPassageFacts } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePolicy'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
@@ -89,6 +92,10 @@ export async function prepareNativeLiveMovement(
     captured
   if (save.input.type !== 'MOVE_SCENE_TOKEN' || save.input.expectedEncounterVersion === null)
     throw new Error('Movement requires an Encounter move.')
+  // A move ends in a facing only when the Encounter's Facing rule allows that step (ATTACK-12).
+  const { facingDegrees } = save.input
+  if (facingDegrees !== undefined && !admitsEncounterFacing(state, facingDegrees))
+    rejectDomain('FACING_UNAVAILABLE')
   const { random, scene } = input
   const { carefully } = save.input
   const userId = input.scope.expectedUserId
@@ -164,6 +171,26 @@ export async function prepareNativeLiveMovement(
       maintenanceProjection?: NativeLiveMovementMaintenanceProjection
     }
   ) {
+    // The reaction attack is made from where the mover is in contact with the reactor.
+    const contactTokens = scene.tokens.flatMap((token) => {
+      const actorId = captured.actorIdByTokenId.get(token.id)
+      return actorId
+        ? [
+            {
+              ...token,
+              actorId,
+              tokenId: token.id,
+              position:
+                token.id === captured.token.id ? reaction.option.candidate.contact : token.position
+            }
+          ]
+        : []
+    })
+    const loadReactionTarget = async (actor: { id: string }) => {
+      const loaded = reaction.targets.get(actor.id)
+      if (!loaded) throw new Error('Movement reaction target is unavailable.')
+      return loaded
+    }
     // A reaction chosen from options that changed since they were issued is the client's stale view.
     return prepareEncounterMovementReactionAction({
       facts: factsFor(reaction.targets),
@@ -215,7 +242,6 @@ export async function prepareNativeLiveMovement(
               },
               loadSource: async (source) =>
                 resolveEncounterActionSource({ ...source, system, spells }),
-              // The reaction attack is made from where the mover is in contact with the reactor.
               loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
                 measureNativeEnemyProximity({
                   state,
@@ -223,29 +249,45 @@ export async function prepareNativeLiveMovement(
                   attackerActorId: sourceFacts.actor.id,
                   targetActorId: targetFacts.actor.id,
                   grid: scene.grid,
-                  tokens: scene.tokens.flatMap((token) => {
-                    const actorId = captured.actorIdByTokenId.get(token.id)
-                    return actorId
-                      ? [
-                          {
-                            actorId,
-                            position:
-                              token.id === captured.token.id
-                                ? reaction.option.candidate.contact
-                                : token.position,
-                            height: token.height,
-                            width: token.width,
-                            rotationDegrees: token.rotationDegrees
-                          }
-                        ]
-                      : []
-                  }),
-                  loadTarget: async (actor) => {
-                    const loaded = reaction.targets.get(actor.id)
-                    if (!loaded) throw new Error('Movement reaction target is unavailable.')
-                    return loaded
-                  },
+                  tokens: contactTokens,
+                  loadTarget: loadReactionTarget,
                   definitions
+                }),
+              // Each ally's sight of the mover is judged at the contact point too.
+              loadFlanking: ({ sourceFacts, targetFacts, capabilityDefinitionId }) =>
+                loadEncounterFlankingFacts({
+                  gameSystemId: state.gameSystemId,
+                  actors: captured.actors,
+                  attacker: sourceFacts,
+                  target: targetFacts,
+                  grid: scene.grid,
+                  tokens: contactTokens,
+                  capabilityDefinitionId,
+                  loadTarget: loadReactionTarget,
+                  definitions,
+                  observersSeeing: ({ subject, observers }) => {
+                    const tokenOf = (actorId: string) => {
+                      const token = contactTokens.find((entry) => entry.actorId === actorId)
+                      if (!token) throw new Error('Movement reaction perception facts are stale.')
+                      return token
+                    }
+                    return resolveEncounterObserversSeeing({
+                      gameSystemId: state.gameSystemId,
+                      loadDefinition,
+                      loadSystem: async () => system,
+                      subject,
+                      observers: observers.map((observer) => ({
+                        observer,
+                        placement: {
+                          scene: captured.perceptionScene,
+                          sceneGrid: scene.grid,
+                          observerToken: tokenOf(observer.actor.id),
+                          subjectToken: tokenOf(subject.actor.id),
+                          spatialEffects
+                        }
+                      }))
+                    })
+                  }
                 }),
               loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
               loadTargetHasNotTakenTurn: ({ targetFacts }) =>

@@ -118,6 +118,7 @@ export function presentTimelineEntry(
       command.commandType === 'ESCAPE' ||
       command.commandType === 'END_HELD_GRANT' ||
       command.commandType === 'MOVE_HELD_EFFECT' ||
+      command.commandType === 'CHANGE_FACING' ||
       command.commandType === 'RELEASE_RELATIONSHIP' ||
       command.commandType === 'RELATIONSHIPS_ENDED' ||
       command.commandType === 'SUMMONS_ENDED' ||
@@ -130,6 +131,7 @@ export function presentTimelineEntry(
       command.commandType === 'ESCAPE' ||
       command.commandType === 'END_HELD_GRANT' ||
       command.commandType === 'MOVE_HELD_EFFECT' ||
+      command.commandType === 'CHANGE_FACING' ||
       command.commandType === 'RETURNED_TO_PLAY'
         ? command.ruleOverrides
         : [],

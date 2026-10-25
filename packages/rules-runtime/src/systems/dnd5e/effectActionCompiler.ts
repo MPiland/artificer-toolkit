@@ -30,8 +30,7 @@ import { v5 as uuidv5 } from 'uuid'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   CharacterRuleActionSystemAdapter,
-  CharacterRuleActionActiveEffectPlan,
-  CharacterRuleActionPositionalFacts
+  CharacterRuleActionActiveEffectPlan
 } from '../../characterRuleActionSystemAdapter.js'
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { CharacterRuleActionTargetDefenseUnavailableError } from '../../characterRuleActionSystemAdapter.js'
@@ -94,7 +93,7 @@ import {
 import { compileDnd5eSummonPlacement } from './effectActionSummons.js'
 import { compileDnd5eZonePlacement } from './effectActionZones.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
-import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
+import { dnd5eAttackKind, dnd5eAttackModifierDomain } from './attackKind.js'
 import type { EnemyProximity } from '../../encounterEnemyProximity.js'
 import type { MoveToward } from '../../encounterMoveToward.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
@@ -115,10 +114,6 @@ import {
 } from '@artificer-toolkit/schema/shared/attackCriticalRules'
 import { createDnd5eContestGraph } from './optionalCombatContestGraph.js'
 import { createDnd5eCheckDefinition } from './encounterLifecyclePolicy.js'
-import {
-  resolveDnd5eFlankingContributor,
-  resolveDnd5eFlankingParticipantCapabilityDefinitionIds
-} from './flankingPolicy.js'
 import {
   DND5E_ATTACK_TEST_OPERATION_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY
@@ -3663,95 +3658,6 @@ export function selectDnd5eTargetSavingThrow(input: {
   }
 }
 
-function flankingContributor(input: {
-  attackKind: unknown
-  gameSystemId: string
-  positionalFacts: CharacterRuleActionPositionalFacts | null | undefined
-  sceneContext: Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0]['sceneContext']
-}): ReceiptD20ContributorDto | null {
-  const facts = input.positionalFacts
-  const scene = input.sceneContext
-  if (!facts || !scene) return null
-  const capabilityDefinitionIds = resolveDnd5eFlankingParticipantCapabilityDefinitionIds({
-    automationMode: facts.automationMode,
-    gameSystemId: input.gameSystemId,
-    optionalCombatSnapshot: facts.optionalCombatSnapshot,
-    optionalCombatSnapshotChecksum: facts.optionalCombatSnapshotChecksum
-  })
-  if (capabilityDefinitionIds.length !== 1) return null
-  const capabilityDefinitionId = capabilityDefinitionIds[0]!
-  const sourceCapability = facts.sourceCapabilityState.capabilities.find(
-    (candidate) => candidate.capability.capabilityDefinitionId === capabilityDefinitionId
-  )
-  if (!sourceCapability) return null
-  const contributor = resolveDnd5eFlankingContributor({
-    attackClassification: isDnd5eMeleeAttackKind(input.attackKind) ? 'MELEE' : 'OTHER',
-    automationMode: facts.automationMode,
-    gameSystemId: input.gameSystemId,
-    grid: scene.grid,
-    optionalCombatSnapshot: facts.optionalCombatSnapshot,
-    optionalCombatSnapshotChecksum: facts.optionalCombatSnapshotChecksum,
-    attacker: {
-      actorId: scene.sourceToken.actorId,
-      token: {
-        height: scene.sourceToken.height,
-        id: scene.sourceToken.tokenId,
-        position: scene.sourceToken.position,
-        width: scene.sourceToken.width
-      },
-      canSeeTarget: facts.sourceCanSeeTarget,
-      targetRelationship: facts.sourceTargetRelationship,
-      participantCapability: {
-        availability: sourceCapability,
-        availabilityChecksum: checksumRuleDocument(sourceCapability)
-      }
-    },
-    target: {
-      actorId: scene.targetToken.actorId,
-      token: {
-        height: scene.targetToken.height,
-        id: scene.targetToken.tokenId,
-        position: scene.targetToken.position,
-        width: scene.targetToken.width
-      }
-    },
-    alliedCandidates: facts.candidates.flatMap((candidate) => {
-      const capability = candidate.capabilityState.capabilities.find(
-        (availability) => availability.capability.capabilityDefinitionId === capabilityDefinitionId
-      )
-      return capability
-        ? [
-            {
-              actorId: candidate.actorId,
-              token: {
-                height: candidate.token.height,
-                id: candidate.token.tokenId,
-                position: candidate.token.position,
-                width: candidate.token.width
-              },
-              attackerRelationship: candidate.sourceRelationship,
-              canSeeTarget: candidate.canSeeTarget,
-              targetRelationship: candidate.targetRelationship,
-              participantCapability: {
-                availability: capability,
-                availabilityChecksum: checksumRuleDocument(capability)
-              }
-            }
-          ]
-        : []
-    })
-  }).contributor
-  return contributor
-    ? {
-        sourceId: contributor.sourceId,
-        grantId: contributor.grantId,
-        domainKey: contributor.domainKey,
-        influence: contributor.influence,
-        source: contributor.source
-      }
-    : null
-}
-
 /**
  * A persisted active effect retains the compiled graph rather than the source
  * document. Reconstruct the exact published-definition view from that sealed
@@ -3961,17 +3867,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         }
       : null
   },
-  positionalCapabilityDefinitionIds: ({
-    automationMode,
-    optionalCombatSnapshot,
-    optionalCombatSnapshotChecksum
-  }) =>
-    resolveDnd5eFlankingParticipantCapabilityDefinitionIds({
-      automationMode,
-      gameSystemId: DND5E_SYSTEM_ID,
-      optionalCombatSnapshot,
-      optionalCombatSnapshotChecksum
-    }),
   combatPerceptionBaselineCapabilities: ({ observerActorId }) => [
     {
       instanceId: uuidv5(observerActorId, DND5E_ORDINARY_SIGHT_NAMESPACE),
@@ -4041,9 +3936,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     targetConditionIds,
     conditionOutcomeRules,
     conditionImmunityIds,
-    targetDamageTypesTaken,
-    sceneContext,
-    positionalFacts
+    targetDamageTypesTaken
   }) => {
     const resolvedDamageExpressionFacts: Record<string, string> = {}
     const resolvedDamageOutcomeExpressions: Record<string, string> = {}
@@ -4344,23 +4237,18 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       const attackDomain = attackKind.success ? dnd5eAttackModifierDomain(attackKind.data) : 'MELEE'
       const addedDice = derivedAddedDice(sourceDerivedFacts.attackAddedDice, attackDomain)
       const contributors = (sourceContributorEvidence?.attacks?.[attackDomain] ?? []).map(
-        ({ sourceId, grantId, domainKey, influence, source }) => ({
+        ({ sourceId, grantId, domainKey, influence, source, positional }) => ({
           sourceId,
           grantId,
           domainKey,
           influence,
-          source
+          source,
+          ...(positional ? { positional } : {})
         })
       )
-      const flanking = flankingContributor({
-        attackKind: action.attackKind,
-        gameSystemId: DND5E_SYSTEM_ID,
-        positionalFacts,
-        sceneContext
-      })
       // A target's grant that suppresses an influence (Elusive's advantage) leaves the attack none.
       const suppressed = sourceDerivedFacts.attackSuppressedInfluences
-      const allContributors = (flanking ? [...contributors, flanking] : contributors).filter(
+      const allContributors = contributors.filter(
         ({ influence }) => !Array.isArray(suppressed) || !suppressed.includes(influence)
       )
       allContributors.sort(compareCanonicalD20Contributors)
