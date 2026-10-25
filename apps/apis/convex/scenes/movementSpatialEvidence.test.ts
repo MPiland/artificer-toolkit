@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest'
+import { afterEach, expect, it } from 'vitest'
 import type {
   PendingEncounterRuleOccurrenceSummaryDto,
   ResolveRuleOccurrenceInputDto
@@ -12,6 +12,7 @@ import {
   checkpointLiveRoom,
   executeInRoom,
   executeSceneInRoom,
+  roomErrorLogs,
   invalidateRoomInputs,
   queueRoomRolls,
   useLocalRoomWorker
@@ -21,6 +22,10 @@ import { setAutoRollDice } from '../../tests/fixtures/rollPreferences'
 import { seedSpatialEffect } from '../../tests/fixtures/spatialEffect'
 import { seedSpatialSaveEffect } from '../../tests/fixtures/spatialSaveEffect'
 import { api } from '../_generated/api'
+
+afterEach(() =>
+  console.log('T9F2 PROBE ROOM ERRORS', JSON.stringify(roomErrorLogs()).slice(0, 4000))
+)
 
 useLocalRoomWorker()
 
