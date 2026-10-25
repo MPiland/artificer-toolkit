@@ -220,19 +220,24 @@ function checkWeaponDamageTypeChoices(
 
 /**
  * Path restrictions and usage limits gate the damage an attack's hit or critical owes (D119); the
- * roll mode and the turn they read exist only for that attack, so no other path can carry one.
+ * roll mode and the turn they read exist only for that attack, so no other path can carry one. An
+ * activated action's ON_USE path may carry restrictions too: the holder conditions its user must
+ * meet to take it (Frenzy only while raging).
  */
 function checkPathRestrictions(
-  effect: Pick<EffectAuthored, 'paths'>,
+  effect: Pick<EffectAuthored, 'invocation' | 'paths'>,
   context: z.core.$RefinementCtx
 ) {
+  const activated =
+    effect.invocation.kind === 'ACTION' && effect.invocation.triggerCode === 'ACTIVATED'
   effect.paths.forEach((path, index) => {
     if (path.pathCode === 'ON_HIT' || path.pathCode === 'ON_CRIT') return
-    if (path.restrictions)
+    if (path.restrictions && !(activated && path.pathCode === 'ON_USE'))
       context.addIssue({
         code: 'custom',
         path: ['paths', index, 'restrictions'],
-        message: 'Only an ON_HIT or ON_CRIT path can carry restrictions.'
+        message:
+          "Only an ON_HIT or ON_CRIT path, or an activated action's ON_USE path, can carry restrictions."
       })
     if (path.usage)
       context.addIssue({

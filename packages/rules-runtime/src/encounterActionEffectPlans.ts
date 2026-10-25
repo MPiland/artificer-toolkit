@@ -527,9 +527,20 @@ export function prepareRecurringActiveEffect(
     input.currentActorId === (tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)
       ? baseRemaining + 1
       : baseRemaining
+  // The held effect this one ends with (D172), as Frenzy ends with Rage; its action admits only a
+  // holder of it.
+  const endsWithHeld = plan.endsWithHeldEffectId
+    ? input.target.activeEffects.find(
+        ({ definition }) => definition.authoredEffectId === plan.endsWithHeldEffectId
+      )
+    : null
+  if (endsWithHeld === undefined)
+    throw new EncounterActionEffectPlanError(
+      'The effect ends with an effect its target does not hold.'
+    )
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
-    linkedEffectId: null,
+    linkedEffectId: endsWithHeld?.id ?? null,
     ...(grantContribution?.exclusivity && { exclusivity: grantContribution.exclusivity }),
     originLevel: input.spellCastLevel ?? null,
     origin: {

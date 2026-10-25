@@ -7,9 +7,11 @@ import {
 } from '@artificer-toolkit/schema/projections/characterMechanics'
 
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { characterResourcePoolIdentitySchema } from '@artificer-toolkit/schema/shared/characterResourceIdentity'
 
+import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
 import type {
   CharacterActionCapabilityDescriptor,
   EffectActionCapabilityDescriptor
@@ -341,6 +343,19 @@ export function compileCastChoicePlans(
   }
 }
 
+/**
+ * The holder conditions an activated action's `ON_USE` paths name (Frenzy only while raging and
+ * not yet frenzied), one list per restricted entry, as a basic action's restrictions read them.
+ */
+function activatedActionAdmission(compiledEffect: CompiledEffectGroup) {
+  const restrictions = compiledEffect.entries.flatMap((entry) =>
+    'restrictions' in entry && entry.restrictions && entry.pathCode === 'ON_USE'
+      ? [normalizeCharacterGrantRestrictions(entry.restrictions)]
+      : []
+  )
+  return restrictions.length > 0 ? { holderRestrictions: restrictions } : {}
+}
+
 export function compileCharacterActionEntryPoints(
   input: {
     gameSystemId: string
@@ -366,6 +381,7 @@ export function compileCharacterActionEntryPoints(
     input.candidates.map((candidate, index) => {
       const descriptor = input.descriptors[index]!
       const exactTargetPolicy = buildCompiledActionTargetPolicy(descriptor)
+      const admission = activatedActionAdmission(descriptor.compiledEffect)
       try {
         const zonePlacement = adapter.compileZonePlacement?.({ action: descriptor }) ?? null
         if (zonePlacement) {
@@ -418,6 +434,7 @@ export function compileCharacterActionEntryPoints(
             actionId: candidate.actionId,
             effectId: candidate.effectId,
             targetPolicy: exactTargetPolicy,
+            ...admission,
             compilation: {
               kind: 'COMPILED',
               resourceBinding: compiledResourceBinding(candidate),
@@ -442,6 +459,7 @@ export function compileCharacterActionEntryPoints(
             actionId: candidate.actionId,
             effectId: candidate.effectId,
             targetPolicy: exactTargetPolicy,
+            ...admission,
             compilation: {
               kind: 'COMPILED',
               resourceBinding: compiledResourceBinding(candidate),
@@ -466,6 +484,7 @@ export function compileCharacterActionEntryPoints(
           actionId: candidate.actionId,
           effectId: candidate.effectId,
           targetPolicy: exactTargetPolicy,
+          ...admission,
           compilation: {
             kind: 'COMPILED',
             resourceBinding: compiledResourceBinding(candidate),

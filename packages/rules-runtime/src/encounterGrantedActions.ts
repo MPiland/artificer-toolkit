@@ -88,6 +88,23 @@ export function firstGrantedActionUseKey(
   )
 }
 
+/** How a granted weapon attack is charged: a `FREE` offer's use key, or an offer's own allowance. */
+export type GrantedAttackCharge = { useKey: string } | { activation: GrantedAction['activation'] }
+
+/**
+ * How the next of these weapon-attack offers is charged: a `FREE` offer's unspent use first, else
+ * the first offer charged to an allowance (Frenzy's Bonus Action); null when none can be.
+ */
+export function nextGrantedAttackCharge(
+  holds: readonly HeldGrantedAction[],
+  spentKeys: readonly string[]
+): GrantedAttackCharge | null {
+  const useKey = firstGrantedActionUseKey(holds, spentKeys)
+  if (useKey) return { useKey }
+  const charged = holds.find(({ offer }) => offer.activation !== 'FREE')
+  return charged ? { activation: charged.offer.activation } : null
+}
+
 /** Every offer the actor holds: its held effects' and its Creature traits'. */
 export function actorGrantedActions(
   heldEffects: readonly HeldEffect[],

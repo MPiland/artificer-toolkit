@@ -74,7 +74,7 @@ import {
 } from './nativeEncounterActionEconomy.js'
 import {
   nativeLiveRelationshipFacts,
-  refuseUnmetBasicActionRestrictions
+  refuseUnmetActionRestrictions
 } from './nativeEncounterActionInputs.js'
 import { readNativeLiveTurnMovedFeet } from './nativeTurnUses.js'
 import {
@@ -242,7 +242,7 @@ export async function prepareCasterSource(
       reason: 'TARGET_UNAVAILABLE',
       message: (takes && WRONG_TARGET_MESSAGES[takes]) ?? 'This action does not take that target.'
     })
-  await refuseUnmetBasicActionRestrictions(
+  await refuseUnmetActionRestrictions(
     { source, acceptedWieldConflict: command.acceptedWieldConflict },
     {
       target: casterFacts,

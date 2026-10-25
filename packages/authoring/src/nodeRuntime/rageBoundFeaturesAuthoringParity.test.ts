@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
+import { discoverCharacterActionCapabilities } from '@artificer-toolkit/rules-runtime/characterActionCapabilityDiscovery'
 import {
   encounterSourceConditionImmunities,
+  holderStateRestrictionsHold,
   sourceQualifierAdmits,
   type EncounterHolderState
 } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
+import { compileCharacterActionEntryPoints } from '@artificer-toolkit/rules-runtime/encounterActionEntryPointCompiler'
 import { characterHeldDamageInterceptions } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
 import { endEventExemptAuthoredEffectIds } from '@artificer-toolkit/rules-runtime/encounterGrantLifetimes'
 import { dnd5eCoreCodeAdapter } from '@artificer-toolkit/rules-runtime/systems/dnd5e/coreCodes'
@@ -14,6 +17,7 @@ import {
   srdFeature
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdCharacter'
 import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
+import { CLOSED_RULE_KIND } from '@artificer-toolkit/shared/core'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { barbarian, RAGE_EFFECT_ID } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
@@ -22,7 +26,12 @@ import {
   conditionTypeId,
   creatureTypeId
 } from '@artificer-toolkit/source-data/srd/spells/shared.js'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITIES,
+  SRD_CONDITION_TYPES,
+  SRD_SYSTEM_ID,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
@@ -400,5 +409,132 @@ describe('Persistent Rage (SPELLS-31.T5f2)', () => {
     expect(exempt('ON_IDLE_TURN')).toEqual([RAGE_EFFECT_ID, HOMEBREW_EFFECT_ID].sort())
     expect(exempt('ON_ATTACKED')).toEqual([HOMEBREW_EFFECT_ID])
     expect(exempt('ON_INCAPACITATED')).toEqual([])
+  })
+})
+
+const FRENZY = srdByLabel(pathOfTheBerserker.features ?? [], 'Frenzy')
+const HOMEBREW_FURY_EFFECT_ID = '7e57a000-0000-4000-8000-0000000005f4'
+
+/**
+ * A homebrew trance fury, authored with Frenzy's options: once while its trance lasts, a free
+ * action offers a Bonus Action weapon attack each turn until the trance ends.
+ */
+function homebrewTranceFury(): FeatureAuthored {
+  const [fury] = FRENZY.effects ?? []
+  if (!fury) throw new Error('Expected the SRD Frenzy effect.')
+  const idFor = (entry: number) => `7e57a000-0000-4000-8080-${entry.toString(16).padStart(12, '0')}`
+  let next = 0
+  // Every id is the homebrew's own; the bound effect is the trance, not Rage.
+  const effect = JSON.parse(
+    JSON.stringify(fury).replace(/"[0-9a-f]{8}-0000-0000-c001-[0-9a-f]{12}"/g, (id) =>
+      id === `"${RAGE_EFFECT_ID}"`
+        ? `"${HOMEBREW_EFFECT_ID}"`
+        : id === `"${fury.id}"`
+          ? `"${HOMEBREW_FURY_EFFECT_ID}"`
+          : `"${idFor((next += 1))}"`
+    )
+  )
+  return {
+    id: idFor(0x100),
+    label: 'Trance Fury',
+    description:
+      'While your trance lasts, you can fall into a fury once and attack as a bonus action.',
+    availableAtLevel: 1,
+    order: 102,
+    effects: [effect]
+  }
+}
+
+function compiledFuryEntries(homebrew: FeatureAuthored) {
+  const BARBARIAN = srdByLabel([barbarian], 'Barbarian')
+  const character = evaluateSrdCharacter({
+    classes: [{ label: 'Barbarian', level: 3, subclass: 'Path of the Berserker' }],
+    extraFeatures: [homebrew],
+    features: [
+      srdFeature({
+        owner: 'SUBCLASS',
+        classLabel: 'Barbarian',
+        subclassLabel: 'Path of the Berserker',
+        featureLabel: 'Frenzy',
+        level: 3
+      }),
+      {
+        acquisitionId: 'acquired:trance-fury',
+        featureId: homebrew.id,
+        source: { kind: 'CLASS', classId: BARBARIAN.id, classLevel: 1 },
+        timing: { kind: 'CLASS_LEVEL', classId: BARBARIAN.id, classLevel: 1 }
+      }
+    ]
+  })
+  const candidates = character.facts.actionCandidates
+  const entries = compileCharacterActionEntryPoints({
+    gameSystemId: SRD_SYSTEM_ID,
+    candidates,
+    descriptors: discoverCharacterActionCapabilities({
+      gameSystemId: SRD_SYSTEM_ID,
+      candidates,
+      conditionDefinitionIds: SRD_CONDITION_TYPES.map((condition) => condition.id).sort(),
+      abilityDefinitions: SRD_ABILITIES.map(({ id, code }) => ({ id, code })),
+      entryPoints: character.entryPoints
+    })
+  })
+  return (effectId: string) => {
+    const index = candidates.findIndex((candidate) => candidate.effectId === effectId)
+    const entry = entries[index]
+    if (entry?.kind !== 'CHARACTER_ACTION' || entry.compilation.kind !== 'COMPILED')
+      throw new Error(`Expected ${effectId} to compile.`)
+    return {
+      plan: entry.compilation.activeEffectPlan,
+      holderRestrictions: ('holderRestrictions' in entry && entry.holderRestrictions) || []
+    }
+  }
+}
+
+describe('Frenzy (SPELLS-31.T5f4)', () => {
+  it('no longer lists its closed rule kind', () => {
+    expect(CLOSED_RULE_KIND).not.toHaveProperty('CLASS_BERSERKER_FRENZY')
+    expect(JSON.stringify(pathOfTheBerserker.features)).not.toMatch(/BERSERKER_FRENZY/)
+  })
+
+  it('authors the melee-only and exhaustion clauses as a GM ruling', () => {
+    const path = FRENZY.effects?.[1]?.paths[0]
+    expect(path?.selectionKind === 'FIXED' && path.resultBlock.outcomes[0]).toMatchObject({
+      effectKind: 'MANUAL_ADJUDICATION'
+    })
+  })
+
+  it('keeps a homebrew fury bound to its own effect exactly as authored', async () => {
+    const authored = homebrewTranceFury()
+    const result = await normalize({
+      ...structuredClone(pathOfTheBerserker),
+      features: [...(pathOfTheBerserker.features ?? []), authored]
+    })
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual([
+      ...(pathOfTheBerserker.features ?? []),
+      authored
+    ])
+  })
+
+  it('compiles the SRD and the homebrew fury the same way, each bound to its own effect', () => {
+    const compiled = compiledFuryEntries(homebrewTranceFury())
+    for (const [effectId, boundId] of [
+      [FRENZY.effects?.[0]?.id ?? '', RAGE_EFFECT_ID],
+      [HOMEBREW_FURY_EFFECT_ID, HOMEBREW_EFFECT_ID]
+    ] as const) {
+      const { plan, holderRestrictions } = compiled(effectId)
+      expect(plan?.endsWithHeldEffectId).toBe(boundId)
+      expect(plan?.modifierGrantContribution?.grantedActions).toEqual([
+        { activation: 'BONUS_ACTION', actionDefinitionIds: [], weaponAttack: true }
+      ])
+      const admits = (ids: readonly string[]) =>
+        holderRestrictions.every((restrictions) =>
+          holderStateRestrictionsHold(restrictions, holderState(ids))
+        )
+      // Only while the bound effect is held, and once: not again while the fury is.
+      expect(admits([boundId])).toBe(true)
+      expect(admits([])).toBe(false)
+      expect(admits([boundId, effectId])).toBe(false)
+    }
   })
 })

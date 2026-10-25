@@ -37,6 +37,7 @@ import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-run
 import { readEncounterBoundSceneTokens } from './actionSceneInputs.js'
 import { readEncounterActorDefeated, readZeroHitPointActorIds } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import { holderStateRestrictionsHold } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
@@ -262,6 +263,12 @@ export async function readEncounterActionChoices(
         })
       )
     }
+    // An action whose use path names holder restrictions is offered only to a holder that meets them.
+    const characterHolderState = entryPoints.some(
+      (entry) => entry.kind === 'CHARACTER_ACTION' && 'holderRestrictions' in entry
+    )
+      ? await readActionHolderState(tx, { actor, state, campaign, target: actorTarget })
+      : null
     const available = projectCharacterTurnActions(facts, policyOutput, spellCast.decisions).filter(
       (action) =>
         // Unequipped or exhausted actions stay selectable; resolving them warns ("Do it anyway").
@@ -274,7 +281,12 @@ export async function readEncounterActionChoices(
           (entry) =>
             entry.kind === 'CHARACTER_ACTION' &&
             entry.actionId === action.id &&
-            entry.compilation.kind === 'COMPILED'
+            entry.compilation.kind === 'COMPILED' &&
+            (!characterHolderState ||
+              !('holderRestrictions' in entry) ||
+              (entry.holderRestrictions ?? []).every((restrictions) =>
+                holderStateRestrictionsHold(restrictions, characterHolderState)
+              ))
         )
     )
     actions = await Promise.all(

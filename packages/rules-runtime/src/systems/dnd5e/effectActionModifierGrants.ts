@@ -97,6 +97,7 @@ export function modifierGrantEntryPlan(input: {
     endOnTriggers = [],
     endOnConditionIds = [],
     holderEnd = null,
+    endsWithHeldEffectId,
     fromSourceOnly = false,
     exclusivity,
     activeOnlyOnFinalAnchorTurn = false,
@@ -165,6 +166,7 @@ export function modifierGrantEntryPlan(input: {
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: untilEndEvent ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
+    ...(endsWithHeldEffectId !== undefined && { endsWithHeldEffectId }),
     tickAnchor: planTickAnchor(turnAnchor),
     modifierGrantContribution: {
       applyGrantOutcomeId: entry.outcome.id,

@@ -9,6 +9,7 @@ import type { EncounterMaintainedEffectDescriptorDto } from '@artificer-toolkit/
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { withLinkedDependents } from './activeEffectLinks.js'
 import { campaignMinutesForRounds, ROUNDS_PER_CAMPAIGN_MINUTE } from './campaignClock.js'
 import { carriedCreatureForm, creatureFormContribution } from './encounterActorForm.js'
 import { holderStateRestrictionsHold } from './encounterActiveGrants.js'
@@ -156,27 +157,38 @@ export function planEncounterGrantTicks(input: {
 }): EncounterGrantTick[] {
   const ticks: EncounterGrantTick[] = []
   for (const { actor, effects } of input.holders) {
-    for (const effect of effects) {
+    const owner = turnEffectOwner(actor, input.encounterId)
+    const counted = effects.flatMap((effect) => {
       const { recurrence } = effect.definition
       const expiration = recurrence.expiration
       const remaining = effect.lifecycle.remainingTicks
-      if (
-        remaining === null ||
+      return remaining === null ||
         recurrence.recurrenceStage !== 'NONE' ||
         expiration.kind !== 'TICKS' ||
         (!isModifierGrant(effect) && recurrence.anchor !== 'SOURCE') ||
         expiration.decrementStage !== input.stage ||
-        !isEffectLiveInEncounter(effect, actor, input.encounterId)
-      )
-        continue
-      if (effectAnchorActorId(effect, actor.id, input.encounterId) !== input.turnActorId) continue
-      const owner = turnEffectOwner(actor, input.encounterId)
-      ticks.push(
-        remaining <= 1
-          ? { kind: 'EXPIRE', effect, owner }
-          : { kind: 'UPDATE', effect, owner, remainingTicks: remaining - 1 }
-      )
-    }
+        !isEffectLiveInEncounter(effect, actor, input.encounterId) ||
+        effectAnchorActorId(effect, actor.id, input.encounterId) !== input.turnActorId
+        ? []
+        : [{ effect, remaining }]
+    })
+    // An effect linked to an expiring one ends with it (D172), as Frenzy ends with Rage.
+    const expired = withLinkedDependents(
+      counted.filter(({ remaining }) => remaining <= 1).map(({ effect }) => effect),
+      effects
+    )
+    const expiredIds = new Set(expired.map(({ id }) => id))
+    ticks.push(
+      ...expired.map((effect) => ({ kind: 'EXPIRE' as const, effect, owner })),
+      ...counted
+        .filter(({ effect }) => !expiredIds.has(effect.id))
+        .map(({ effect, remaining }) => ({
+          kind: 'UPDATE' as const,
+          effect,
+          owner,
+          remainingTicks: remaining - 1
+        }))
+    )
   }
   return ticks.sort(
     (left, right) =>
@@ -253,11 +265,18 @@ export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: 
     event: 'ON_IDLE_TURN',
     activeAuthoredEffectIds: input.effects.map(({ definition }) => definition.authoredEffectId)
   })
-  const ended = idleBound.filter(
-    (effect) =>
-      isEffectLiveInEncounter(effect, input.actor, input.encounterId) &&
-      !exempt.includes(effect.definition.authoredEffectId)
+  // An effect linked to a kept one (Frenzy to a persistent Rage) is kept with it (D172).
+  const kept = new Set(
+    withLinkedDependents(
+      idleBound.filter(
+        (effect) =>
+          !isEffectLiveInEncounter(effect, input.actor, input.encounterId) ||
+          exempt.includes(effect.definition.authoredEffectId)
+      ),
+      input.effects
+    ).map(({ id }) => id)
   )
+  const ended = idleBound.filter(({ id }) => !kept.has(id))
   const holdsOthers = idleBound.length > ended.length
   return { ended, nextMark: holdsOthers ? ('ARMED' as const) : null }
 }
