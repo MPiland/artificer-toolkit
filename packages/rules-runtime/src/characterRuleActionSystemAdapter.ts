@@ -439,6 +439,8 @@ export type CharacterHitPointOutcomeApplication =
       kind: 'DAMAGE'
       damageTypeId: string
       damageDisposition: DamageDispositionDto
+      /** The target halved the damage before its defenses (an `INCOMING_DAMAGE` HALVE grant). */
+      incomingHalved: boolean
       /** A critical hit: damage at 0 hit points adds two death save failures (D96). */
       critical: boolean
       /** The held effect whose damage interception left the target above 0 hit points instead. */
