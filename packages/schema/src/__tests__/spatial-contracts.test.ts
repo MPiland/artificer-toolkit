@@ -239,10 +239,7 @@ describe('spatial contracts', () => {
       visibility: 'PUBLIC' as const,
       revealOnTrigger: false
     }
-    const current = (
-      placementInput: typeof fixed | ReturnType<typeof placement>,
-      spatialState: object
-    ) =>
+    const current = (placementInput: object, spatialState: object) =>
       spatialRuleEffectCurrentStateDtoSchema.safeParse({
         definition: effectDefinition(),
         lifecycle: { schemaVersion: 1, remainingTicks: null },
