@@ -76,6 +76,14 @@ jobs:
           [ -f "$RUNNER_TEMP/throwaway-secrets" ] || exit 0
           mkdir -p browser-journey-logs
           docker logs phase82-convex-local-linux > browser-journey-logs/convex-backend.log 2>&1 || true
+          # Function errors and console output are not in the container log; `convex logs` streams,
+          # so it is stopped once it has printed the retained history.
+          key=$(docker exec phase82-convex-local-linux ./generate_admin_key.sh | tail -n 1)
+          echo "::add-mask::$key"
+          echo "::add-mask::${key##*|}"
+          timeout 30 yarn workspace @artificer-toolkit/apis exec convex logs --history 2000 \
+            --url http://127.0.0.1:3210 --admin-key "$key" \
+            > browser-journey-logs/convex-function.log 2>&1 || true
           for path in local-validation/browser-proof local-validation/local-convex-proofs; do
             [ -d "$path" ] && cp -R "$path" browser-journey-logs/
           done
