@@ -85,6 +85,7 @@ type AuthoringDefaultKind =
   | 'manifestCreatureFormFilter'
   | 'creatureFormFilterScaledCap'
   | 'creatureFormFilterScalingBreakpoint'
+  | 'manifestCamouflage'
   | 'manifestDestructionCriterion'
   | 'manifestLight'
   | 'manifestOccupantSaveBonus'
@@ -266,6 +267,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   manifestCreatureFormFilter: ['manifestCreatureFormFilter'],
   creatureFormFilterScaledCap: ['creatureFormFilterScaledCap'],
   creatureFormFilterScalingBreakpoint: ['creatureFormFilterScalingBreakpoint'],
+  manifestCamouflage: ['manifestCamouflage'],
   manifestDestructionCriterion: ['manifestDestructionCriterion'],
   manifestLight: ['manifestLight'],
   manifestOccupantSaveBonus: ['manifestOccupantSaveBonus'],

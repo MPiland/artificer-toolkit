@@ -6,7 +6,7 @@
   "packages/rules-runtime/src/character/sheetPanel.ts": 1688,
   "packages/rules-runtime/src/encounterActionExecution.ts": 1545,
   "packages/rules-runtime/src/systems/dnd5e/effectActionCompiler.ts": 4172,
-  "packages/shared/src/domains/effects/maps/path.ts": 3167,
+  "packages/shared/src/domains/effects/maps/path.ts": 3156,
   "packages/shared/src/domains/shared/maps/facet.ts": 2501,
   "packages/source-data/src/srd/classes/warlock.ts": 2147,
   "packages/source-data/src/srd/creatures/stat-blocks.ts": 10866,
