@@ -1492,6 +1492,8 @@ describe('room area origin warnings (range and sight)', () => {
   function warningRoom(options: { blind?: boolean; walled?: boolean } = {}) {
     return actionRoom({
       ...(options.walled ? { sceneOverrides: { barriers: [wall] } } : {}),
+      // These tests are about the sight warning; the wall's cover has its own proof.
+      automaticCover: false,
       actors: [
         srdCreatureActor({
           id: CASTER_ID,

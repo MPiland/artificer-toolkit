@@ -604,6 +604,7 @@ export function prepareCasterActionOnTarget(
               sourceActorId: sourceFacts.actor.id,
               targetActorId: targetFacts.actor.id,
               originPoint: origin.point,
+              refuseBlocked: true,
               sceneContext: {
                 sceneId: origin.sceneId,
                 sceneVersion: origin.sceneVersion,

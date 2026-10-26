@@ -69,6 +69,7 @@ export function nativeLiveAttackSceneLoaders(input: {
         system,
         sourceActorId: facts.sourceFacts.actor.id,
         targetActorId: facts.targetFacts.actor.id,
+        refuseBlocked: true,
         sceneContext,
         capture
       }),

@@ -54,6 +54,7 @@ import {
   MovementBlockedError,
   prepareEncounterMovementPassageBoundary
 } from '@artificer-toolkit/rules-runtime/encounterMovementPassageBoundary'
+import { refuseBlockedCover } from './nativeLiveCover.js'
 import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import { admitsEncounterFacing } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import { availableEncounterMovementPassageChoice } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
@@ -300,12 +301,15 @@ export async function prepareNativeLiveMovement(
                 )
                 if (!reactorToken || !movingToken)
                   throw new Error('Movement reaction perception facts are stale.')
-                return resolveEncounterCover({
-                  system,
-                  scene: { ...captured.perceptionScene, tokens: contactTokens },
-                  origin: { kind: 'TOKEN', token: reactorToken },
-                  targetTokenId: movingToken.id
-                })
+                return refuseBlockedCover(
+                  resolveEncounterCover({
+                    system,
+                    scene: { ...captured.perceptionScene, tokens: contactTokens },
+                    origin: { kind: 'TOKEN', token: reactorToken },
+                    targetTokenId: movingToken.id
+                  }),
+                  true
+                )
               },
               loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
               loadTargetHasNotTakenTurn: ({ targetFacts }) =>
