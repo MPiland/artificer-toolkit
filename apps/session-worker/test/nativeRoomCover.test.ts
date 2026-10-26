@@ -105,7 +105,7 @@ describe('Cover from the live Scene (SPELLS-14.T1)', () => {
     if (
       moved.type !== 'COMMAND_COMMITTED' ||
       moved.delta?.scope !== 'SCENE' ||
-      moved.delta.result.delta.kind !== 'TOKEN_MOVED'
+      moved.delta.result.delta?.kind !== 'TOKEN_MOVED'
     )
       throw new Error(`The move did not commit: ${JSON.stringify(moved)}`)
     const after = applySceneGeometryDelta(before, moved.delta.result.delta)
