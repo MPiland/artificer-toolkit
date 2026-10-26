@@ -1,3 +1,13 @@
+import {
+  EQUIPMENT_CATEGORY_CODE,
+  EQUIPMENT_PROPERTY_CODE,
+  HAND_CONFLICT_MESSAGE,
+  isHandSlot,
+  isHeldEquipmentCategory,
+  resolveHandOccupancy,
+  type CreatureAuthored,
+  type EquipmentAuthored
+} from '@artificer-toolkit/shared'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { srdBaselineContent } from './index.js'
@@ -204,5 +214,88 @@ export function auditSrdSourceSemantics(): SrdSourceAuditIssue[] {
     }
   }
 
+  issues.push(...auditCreatureEquipmentLoadouts(srdBaselineContent.subjects.creatures, equipment))
+
   return issues
+}
+
+/**
+ * The loadout checks the Creature schema cannot make because it does not resolve Equipment (D107):
+ * every entry binds existing Equipment; hands hold no conflict once two-handed weapons are known;
+ * hands hold only weapons and shields and nothing held is worn; worn armor binds no action Feature;
+ * and a Creature wears at most one armor.
+ */
+export function auditCreatureEquipmentLoadouts(
+  creatures: readonly CreatureAuthored[],
+  equipment: readonly EquipmentAuthored[]
+): SrdSourceAuditIssue[] {
+  const equipmentById = new Map(equipment.map((record) => [record.id, record]))
+  return creatures.flatMap((creature) => {
+    const loadout = creature.equipmentLoadout ?? []
+    const issue = (text: string, paths: string[]): SrdSourceAuditIssue => ({
+      domain: 'creature-equipment',
+      id: creature.id,
+      label: creature.label,
+      issue: text,
+      paths
+    })
+    const missing = loadout.filter((entry) => !equipmentById.has(entry.equipmentId))
+    const resolved = loadout.flatMap((entry) => {
+      const item = equipmentById.get(entry.equipmentId)
+      return item ? [{ entry, item }] : []
+    })
+    const conflicts = resolveHandOccupancy(
+      resolved.map(({ entry, item }) => ({
+        id: entry.id,
+        slot: entry.useState,
+        twoHanded: item.properties?.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED) === true
+      }))
+    ).conflicts
+    const misplaced = resolved.filter(
+      ({ entry, item }) =>
+        (isHandSlot(entry.useState) || entry.useState === 'WORN') &&
+        isHandSlot(entry.useState) !== isHeldEquipmentCategory(item.category)
+    )
+    const armor = resolved.filter(({ item }) => item.category === EQUIPMENT_CATEGORY_CODE.ARMOR)
+    const armorWithActions = armor.filter(({ entry }) => entry.actionFeatureIds.length > 0)
+    const wornArmor = armor.filter(({ entry }) => entry.useState === 'WORN')
+
+    return [
+      ...(missing.length > 0
+        ? [
+            issue(
+              'loadout binds missing Equipment',
+              missing.map((entry) => entry.id)
+            )
+          ]
+        : []),
+      ...conflicts.map((conflict) =>
+        issue(`loadout hand conflict: ${HAND_CONFLICT_MESSAGE[conflict.code]}`, [conflict.itemId])
+      ),
+      ...(misplaced.length > 0
+        ? [
+            issue(
+              'loadout holds an item that is not a weapon or shield, or wears one that is',
+              misplaced.map(({ entry }) => entry.id)
+            )
+          ]
+        : []),
+      ...(armorWithActions.length > 0
+        ? [
+            issue(
+              'loadout armor binds an action Feature',
+              armorWithActions.map(({ entry }) => entry.id)
+            )
+          ]
+        : []),
+      ...(wornArmor.length > 1
+        ? [
+            issue(
+              'loadout wears more than one armor',
+              wornArmor.map(({ entry }) => entry.id)
+            )
+          ]
+        : [])
+    ]
+  })
 }
