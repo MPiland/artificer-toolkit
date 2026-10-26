@@ -1214,16 +1214,18 @@ function renderWindow(
   queryClient.setQueryDefaults(sceneBindingQuery.queryKey.slice(0, 2), {
     queryFn: async () => sceneBinding
   })
+  const activeState = {
+    encounter,
+    pending: fixtures.pending ?? null,
+    waitingOn: null,
+    turnMovement: [],
+    halfSpeedFields: [],
+    auras: [],
+    movementCostZones: [],
+    placedZones: []
+  }
   queryClient.setQueryDefaults(activeEncounterQuery.queryKey, {
-    queryFn: async () => ({
-      encounter,
-      pending: fixtures.pending ?? null,
-      waitingOn: null,
-      turnMovement: [],
-      halfSpeedFields: [],
-      auras: [],
-      movementCostZones: []
-    })
+    queryFn: async () => activeState
   })
   queryClient.setQueryDefaults(pendingPreparedQuery.queryKey, { queryFn: async () => [] })
   const rollPreferencesQuery = convexQuery(convexApi.account.rollPreferences, {})
@@ -1256,15 +1258,7 @@ function renderWindow(
   })
   queryClient.setQueryData(sceneBindingQuery.queryKey, sceneBinding)
   seedTabletopSystem(queryClient, campaign)
-  queryClient.setQueryData(activeEncounterQuery.queryKey, {
-    encounter,
-    pending: fixtures.pending ?? null,
-    waitingOn: null,
-    turnMovement: [],
-    halfSpeedFields: [],
-    auras: [],
-    movementCostZones: []
-  })
+  queryClient.setQueryData(activeEncounterQuery.queryKey, activeState)
   queryClient.setQueryData(pendingPreparedQuery.queryKey, [])
   queryClient.setQueryData(rollPreferencesQuery.queryKey, {
     autoRollDice: true,
@@ -1276,16 +1270,7 @@ function renderWindow(
   Object.defineProperty(convex, 'query', {
     value: fn<ConvexReactClient['query']>().mockImplementation(async (...[reference, args]) => {
       const name = getFunctionName(reference)
-      if (name === getFunctionName(convexApi.encounters.activeReads.active))
-        return {
-          encounter,
-          pending: fixtures.pending ?? null,
-          waitingOn: null,
-          turnMovement: [],
-          halfSpeedFields: [],
-          auras: [],
-          movementCostZones: []
-        }
+      if (name === getFunctionName(convexApi.encounters.activeReads.active)) return activeState
       if (name === getFunctionName(convexApi.encounters.projectionReads.pendingPrepared)) return []
       if (name === getFunctionName(convexApi.scenes.recipientReads.header)) return header
       if (name === getFunctionName(convexApi.encounters.sceneBindings.get)) return sceneBinding

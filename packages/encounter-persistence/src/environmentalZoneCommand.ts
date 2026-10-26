@@ -10,6 +10,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { CharacterRuleActionUnsupportedCompilationError } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
 import { planEncounterEnvironmentalZone } from '@artificer-toolkit/rules-runtime/encounterEnvironmentalZone'
+import { withZoneDcs } from '@artificer-toolkit/rules-runtime/encounterZoneConcealment'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
 import { rejectDomain } from './domainRejections.js'
 import { readRunState } from './documents.js'
@@ -22,7 +23,8 @@ import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntr
 /**
  * The GM places an environmental zone, such as a pit or a caltrop field, on the Encounter's
  * Scene (MOVE-3.2, ADR 0038). The zone is authored with the same zone node map as an item's or a
- * spell's and resolves as theirs do; the receipt names it, so the GM's undo removes it.
+ * spell's and resolves as theirs do; the receipt names it, so the GM's undo removes it. A spot DC
+ * conceals it from every player (MOVE-3.3).
  */
 export async function placeEnvironmentalZone(
   ctx: EncounterWriteTransaction,
@@ -93,7 +95,14 @@ export async function placeEnvironmentalZone(
   await createPlacedSpatialEffect(ctx, {
     encounterId: state.id,
     sceneId: binding.sceneId,
-    zone
+    zone: {
+      ...zone,
+      spatialState: withZoneDcs(zone.spatialState, {
+        spotDc: input.spotDc ?? null,
+        disarmDc: input.disarmDc ?? null,
+        placerActorId: null
+      })
+    }
   })
 
   const now = new Date().toISOString()

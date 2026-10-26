@@ -31,7 +31,8 @@ function heldAt(version: number): HeldEncounterSession {
       turnMovement: [],
       halfSpeedFields: [],
       auras: [],
-      movementCostZones: []
+      movementCostZones: [],
+      placedZones: []
     },
     preparedPending: [],
     actorSides: null,

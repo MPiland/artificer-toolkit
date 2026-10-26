@@ -292269,6 +292269,25 @@ export declare const api: {
                 requestId: string;
               }
             | null;
+          placedZones: Array<{
+            disarmDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
+            id: string;
+            label: string | null;
+            shape:
+              | {
+                  center: { x: number; y: number };
+                  kind: "CIRCLE";
+                  radius: number;
+                }
+              | {
+                  center: { x: number; y: number };
+                  innerRadius: number;
+                  kind: "RING";
+                  outerRadius: number;
+                }
+              | { kind: "POLYGON"; points: Array<{ x: number; y: number }> };
+            spotDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
+          }>;
           turnMovement: Array<{
             actorId: string;
             allowances: Array<{

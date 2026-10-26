@@ -9,9 +9,11 @@ import {
   type PendingEncounterRuleOccurrenceSummaryDto
 } from '@artificer-toolkit/schema/api/encounterData'
 import { projectPlayerEncounterProjection } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
+import { zoneConcealedFrom } from '@artificer-toolkit/rules-runtime/encounterZoneConcealment'
+import { readEncounterControlledActorIds } from './actorController.js'
 import { readRunProjectionFacts } from './actorProjectionFacts.js'
 import { readEncounterCharacterStates } from './characterStates.js'
-import { readCampaignRunState } from './documents.js'
+import { readCampaignRunState, readRunActors, readRunState } from './documents.js'
 import { halfSpeedFieldsOf } from './halfSpeedFields.js'
 import { readSceneSpatialRows } from './sceneSpatialRows.js'
 import { readSessionAuras } from './sessionAuras.js'
@@ -80,11 +82,12 @@ export async function readEncounterSessionState(
       turnMovement: [],
       halfSpeedFields: [],
       auras: [],
-      movementCostZones: []
+      movementCostZones: [],
+      placedZones: []
     }
   const pending = await readPendingRunDecision(ctx, row, campaign, membership)
   const encounter = await presentEncounterRun(ctx, row, campaign, membership)
-  const spatialRows = await readSceneSpatialRows(ctx, row.id)
+  const spatialRows = await readMemberSpatialRows(ctx, { row, campaign, membership })
   return {
     encounter,
     pending,
@@ -100,8 +103,45 @@ export async function readEncounterSessionState(
       encounterId: row.id,
       rows: spatialRows,
       actors: encounter.actors
-    })
+    }),
+    placedZones: spatialRows.flatMap(({ id, placement, spatialState }) =>
+      placement.anchorKind === 'FIXED' &&
+      placement.geometry.frame === 'SCENE_ABSOLUTE' &&
+      (placement.visibility === 'PUBLIC' || spatialState.revealed)
+        ? [
+            {
+              id,
+              label: placement.label ?? null,
+              shape: placement.geometry.shape,
+              spotDc: (membership.role === 'OWNER' && spatialState.concealment?.spotDc) || null,
+              disarmDc: (membership.role === 'OWNER' && spatialState.disarmDc) || null
+            }
+          ]
+        : []
+    )
   }
+}
+
+/**
+ * The bound Scene's placed zones the member may read: a zone concealed from the member is left
+ * out (MOVE-3.3), so every zone read this session state makes redacts alike. The member's
+ * controlled actors are read only when a zone is concealed.
+ */
+async function readMemberSpatialRows(
+  ctx: EncounterReadTransaction,
+  input: { row: Run; campaign: Campaign; membership: Membership }
+) {
+  const { row, membership } = input
+  const rows = await readSceneSpatialRows(ctx, row.id)
+  if (membership.role === 'OWNER' || !rows.some((zone) => zone.spatialState.concealment))
+    return rows
+  const controlledActorIds = await readEncounterControlledActorIds(ctx, {
+    ...input,
+    actors: await readRunActors(ctx, readRunState(row))
+  })
+  return rows.filter(
+    (zone) => !zoneConcealedFrom(zone.spatialState, { kind: 'PLAYER', controlledActorIds })
+  )
 }
 
 /** The decision kinds a paused START can wait on before the Run is ACTIVE. */
