@@ -253,11 +253,16 @@ describe('movement through a hostile creature', () => {
     automationMode?: 'MANUAL' | 'ASSISTED'
     /** A second HOSTILE Wolf further along the path, past the first. */
     laterBlocker?: boolean
+    /** The first blocker's Bite is an opportunity attack. */
+    reactiveBlocker?: boolean
     rolls?: readonly number[]
     optionalCombatKinds?: MovementRoomConfig['optionalCombatKinds']
   }) {
     const mover = srdCreatureActor({ id: MOVER_ID, creature: plainWolf, disposition: 'FRIENDLY' })
-    const blocker = srdCreatureActor({ id: BLOCKER_ID, creature: plainWolf })
+    const blocker = srdCreatureActor({
+      id: BLOCKER_ID,
+      creature: options.reactiveBlocker ? reactionWolf : plainWolf
+    })
     const later = srdCreatureActor({ id: LATER_BLOCKER_ID, creature: plainWolf })
     return movementRoom({
       actors: options.laterBlocker ? [mover, blocker, later] : [mover, blocker],
@@ -392,6 +397,34 @@ describe('movement through a hostile creature', () => {
                 }
               }
             }
+          ]
+        }
+      })
+    }
+  )
+
+  it.each(['OVERRUN', 'TUMBLE'] as const)(
+    'a won %s still provokes the blocker it passes, because its SRD policy suppresses no opportunity attack (MOVE-2)',
+    async (ruleKind) => {
+      const room = await passageRoom({ reactiveBlocker: true, rolls: [19, 0] })
+      await room.move([MOVER_START, { x: 550, y: 150 }])
+      const option = (await passageOptions(room)).find(
+        (candidate) => candidate.ruleKind === ruleKind && candidate.economy === 'ACTION'
+      )
+      if (!option) throw new Error(`The ${ruleKind} option is missing.`)
+
+      await room.respond({ kind: 'PASSAGE_OPTION', optionId: option.optionId })
+
+      const { reactionTimeline } = await reactionDecision(room)
+      expect(reactionTimeline.map((entry) => entry.group.reactorActorId)).toEqual([BLOCKER_ID])
+      await room.respond({ kind: 'DECLINE' })
+      expect(await room.pending()).toBeNull()
+      expect(await resolvedReceipt(room, 'RESOLVE_RULE_OCCURRENCE')).toMatchObject({
+        result: { terminalPosition: { x: 550, y: 150 } },
+        metadata: {
+          resolutionCommands: [
+            { passageContest: { actionKind: ruleKind, outcome: 'SUCCESS' } },
+            { kind: 'DECLINE' }
           ]
         }
       })
