@@ -58,7 +58,7 @@ export async function recordConsequenceRollCommand(
       ({ pin }) => pin.definitionId === offer.definitionId
     )
     if (!table) rejectDomain('TARGET_UNAVAILABLE', 'That table is not on for this Encounter.')
-    const character = await ctx.ports.readCharacterRow(actor.sourceId)
+    const character = actor.sourceId ? await ctx.ports.readCharacterRow(actor.sourceId) : null
     if (character?.status !== 'ACTIVE')
       rejectDomain('TARGET_UNAVAILABLE', 'That Character is unavailable.')
     const document = ctx.ports.readCharacterRecord(character) as CharacterAuthored
