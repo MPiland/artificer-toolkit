@@ -476,6 +476,29 @@ export type AuthoredPointArea =
   | { readonly kind: 'RADIUS'; readonly radius: AuthoredPointAreaLength }
   | { readonly kind: 'CUBE'; readonly edgeLength: AuthoredPointAreaLength }
 
+/**
+ * A sphere, cylinder or circle as its radius and a cube as its edge; null for any other shape. The
+ * Worker, the action compiler and the GM zone tool all size a point area through it.
+ */
+export function pointAreaOfShape<TLength extends AuthoredPointAreaLength>(
+  shape:
+    | { readonly shapeKind: 'CUBE'; readonly edgeLength: TLength }
+    | { readonly shapeKind: 'SPHERE' | 'CYLINDER' | 'CIRCLE'; readonly radius: TLength }
+    | { readonly shapeKind: 'LINE' | 'CONE' | 'WALL' | 'DOME' }
+):
+  | { readonly kind: 'RADIUS'; readonly radius: TLength }
+  | { readonly kind: 'CUBE'; readonly edgeLength: TLength }
+  | null {
+  if (shape.shapeKind === 'CUBE') return { kind: 'CUBE', edgeLength: shape.edgeLength }
+  if (
+    shape.shapeKind === 'SPHERE' ||
+    shape.shapeKind === 'CYLINDER' ||
+    shape.shapeKind === 'CIRCLE'
+  )
+    return { kind: 'RADIUS', radius: shape.radius }
+  return null
+}
+
 /** An authored length in Scene coordinates. Null for a length that is scaled or empty. */
 export function authoredLengthInSceneCoordinates(
   length: AuthoredPointAreaLength,

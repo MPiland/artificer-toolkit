@@ -23,7 +23,8 @@ import {
   createUniformSceneFogLayer,
   projectSceneForViewer,
   sceneFogOwnerFailure,
-  type ScenePoint
+  type ScenePoint,
+  type SpatialPointAreaShape
 } from '@artificer-toolkit/shared/vtt'
 import { getCampaignLiveScenes } from '#app/data/campaigns/scenes'
 import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScenes'
@@ -73,6 +74,7 @@ import { useCampaignLiveLoot } from '../loot/useCampaignLiveLoot'
 import { useVttTokenArtUrls } from './useVttTokenArtUrls'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
+import { CampaignTabletopZoneTool } from './CampaignTabletopZoneTool'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
@@ -136,6 +138,13 @@ export function CampaignVttStage({
   const [areaAim, setAreaAim] = useState<VttAreaAim | null>(null)
   const [areaSize, setAreaSize] = useState<VttAreaSize | null>(null)
   const [aimingArea, setAimingArea] = useState(false)
+  // The GM zone tool's open state, and the zone it aims on the map with where its center goes.
+  const [zoneToolOpened, setZoneToolOpened] = useState(false)
+  const [zoneAim, setZoneAim] = useState<{
+    size: SpatialPointAreaShape
+    onPicked: (point: ScenePoint) => void
+  } | null>(null)
+  const zoneAimRef = useRef(zoneAim)
   const [actionPreview, setActionPreview] = useState<VttActionPreview | null>(null)
   // The action the caster is picking a target for on the map or in the turn-order list (ATTACK-17.1).
   const [targetingRequest, setTargetingRequest] = useState<VttTargetingRequest | null>(null)
@@ -692,8 +701,10 @@ export function CampaignVttStage({
     () =>
       aimingArea && areaSize
         ? { casterTokenId: actionPreview?.sourceTokenId ?? null, size: areaSize }
-        : null,
-    [actionPreview?.sourceTokenId, aimingArea, areaSize]
+        : zoneAim
+          ? { casterTokenId: null, size: zoneAim.size }
+          : null,
+    [actionPreview?.sourceTokenId, aimingArea, areaSize, zoneAim]
   )
   // The preview shows while the drawer is open, including while the caster aims an area's center.
   const overlays = useMemo(() => {
@@ -915,6 +926,7 @@ export function CampaignVttStage({
     pickTargetTokenRef.current = pickTargetToken
     pickDestinationRef.current = destinationPick ? pickDestination : null
     commitTokenMoveRef.current = commitTokenMove
+    zoneAimRef.current = zoneAim
   })
 
   useEffect(() => {
@@ -923,10 +935,19 @@ export function CampaignVttStage({
     let disposed = false
     void createVttSceneRenderer(host, campaign.gameSystemId, {
       onAreaAimCancel: () => {
+        if (zoneAimRef.current) {
+          setZoneAim(null)
+          return
+        }
         setAimingArea(false)
         setActionsOpened(true)
       },
       onAreaPoint: (point) => {
+        if (zoneAimRef.current) {
+          zoneAimRef.current.onPicked(point)
+          setZoneAim(null)
+          return
+        }
         setAreaAim({ origin: point, toward: null })
         setAimingArea(false)
         setActionsOpened(true)
@@ -1472,6 +1493,20 @@ export function CampaignVttStage({
                 }}
               />
             </>
+          ) : null}
+          {campaign.role === 'OWNER' && activeEncounter && encounterScene ? (
+            <CampaignTabletopZoneTool
+              connected={live.status === 'CONNECTED'}
+              encounterId={activeEncounter.id}
+              encounterVersion={activeEncounter.version}
+              gameSystemId={campaign.gameSystemId}
+              grid={encounterScene.grid}
+              opened={zoneToolOpened && !zoneAim}
+              onClose={() => setZoneToolOpened(false)}
+              onOpen={() => setZoneToolOpened(true)}
+              onPickPoint={(size, onPicked) => setZoneAim({ size, onPicked })}
+              onSend={(command) => encounterCommand.mutateAsync(command)}
+            />
           ) : null}
           {campaign.role === 'OWNER' && activeEncounter && !activeEncounterSceneBinding ? (
             <Button
