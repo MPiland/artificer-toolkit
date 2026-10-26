@@ -55,4 +55,15 @@ describe('a contest whose win is a picked outcome, through the effect node map (
     push.amount = 10
     await expectKept(effects)
   })
+
+  it("keeps an option's influence on the initiator's check, from the System's roll influences", async () => {
+    const effects = shoveEffects()
+    const win = effects[0]?.paths[0]
+    if (win?.selectionKind !== 'CHOICE') throw new Error('Shove must author its pick.')
+    const [prone, push] = win.options
+    if (!prone || !push) throw new Error('Shove must author two options.')
+    prone.initiatorCheckInfluence = 'ADVANTAGE'
+    push.initiatorCheckInfluence = 'DISADVANTAGE'
+    await expectKept(effects)
+  })
 })

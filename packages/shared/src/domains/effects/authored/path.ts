@@ -206,6 +206,11 @@ export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthor
 
 export type PathChoiceOptionAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> =
   PathEntryWithMetadata & {
+    /**
+     * A System roll-influence code (advantage, disadvantage) the initiator's contest check takes when
+     * this option is picked; it merges with the initiator's other contributors, never a second test.
+     */
+    initiatorCheckInfluence?: string
     resultBlock: ResultBlockAuthored<TOutcome>
   }
 

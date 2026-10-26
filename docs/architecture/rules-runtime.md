@@ -993,6 +993,11 @@ manual. The top-level plans hold the first option. The choice DTO lists the opti
 `ACTOR` / `ACTORS` target, and the cast command names one as `choiceOptionId`; an action whose target is any other
 kind cannot carry the pick and goes manual. A read that shows only the shared test before any pick (the target
 modifiers) passes `readsSharedTest` and reads the top-level option.
+An option may author `initiatorCheckInfluence`, a System roll-influence code (MOVE-2.T2b). It does not make a
+separate test: the compiler copies it onto the option's entries. `prepareEncounterBasicActionContest` reads it from the
+picked effect and merges it into the initiator's check as one `AUTHORED` contributor (`<optionId>:pick`) through
+`mergedRollContributors`, so the System cancels it against the actor's other roll-mode contributors. An influence on an
+action whose check is not a contest is refused by `compileCastChoicePlans`.
 Creature feature actions compile the same way: discovery calls `compileCastChoicePlans` for any compiled effect with
 `castChoiceOptions` (Vampire Spawn Claws and the Vampire's Unarmed Strike are damage-or-grapple picks, SPELLS-33 T3a6),
 and a failing option makes only that action unavailable (D54). A flow that cannot prompt (opportunity attacks, reactions,

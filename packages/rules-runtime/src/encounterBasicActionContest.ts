@@ -9,6 +9,7 @@ import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
+import { mergedRollContributors } from './encounterActiveGrants.js'
 import { freezeD20Context } from './encounterD20Settlement.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { ESCAPE_ACTION_LABEL, findEncounterHolderContestEscape } from './encounterEscapeCheck.js'
@@ -17,6 +18,7 @@ import {
   encounterBasicActionCheckLabel
 } from './encounterMovementPassagePreparation.js'
 import type { MovementTarget } from './encounterMovementTargets.js'
+import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import { contestCheckCapabilityRegistry } from './platformEncounterPolicy.js'
 import {
   isEncounterContestPendingContextCurrent,
@@ -62,6 +64,8 @@ function sealEncounterContest(input: {
   contestGraph: EncounterContestPendingContextInput['contestGraph']
   source: EncounterContestPendingContextInput['source']
   initiatorCheck: ContestCheck
+  /** Contributors the action itself adds to the initiator's check (a picked option's, D148). */
+  initiatorActionContributors: readonly EncounterRelationshipD20Contributor[]
   defenderChecks: readonly ContestCheck[]
 }) {
   const { state, actor, target, system, sceneContext, targetFacts } = input
@@ -81,6 +85,11 @@ function sealEncounterContest(input: {
   const initiator = facts(actor.id, input.initiatorCheck)
   if (initiator.modifier === null)
     throw new EncounterValidationError('This actor has no total for the check.')
+  const initiatorRoll = mergedRollContributors(
+    state.gameSystemId,
+    initiator.contributors,
+    input.initiatorActionContributors
+  )
   // The defender is offered only the listed checks it has a total for.
   const defenderChecks = input.defenderChecks.flatMap((listed) => {
     const check = facts(target.id, listed)
@@ -143,8 +152,8 @@ function sealEncounterContest(input: {
       requestNodeId: 'initiator_d20',
       ...freezeD20Context({
         gameSystemId: state.gameSystemId,
-        rollMode: initiator.rollMode,
-        contributors: initiator.contributors,
+        rollMode: initiatorRoll.rollMode,
+        contributors: initiatorRoll.contributors,
         modifier: initiator.modifier
       })
     },
@@ -231,6 +240,26 @@ export function prepareEncounterBasicActionContest(input: {
       compiledEffectChecksum: capability.compiledEffectChecksum
     },
     initiatorCheck,
+    // The picked option's own influence on the initiator's check, as one more contributor (D148).
+    initiatorActionContributors: capability.compiledEffect.entries.flatMap((entry) =>
+      entry.groupKind !== 'CHOICE' &&
+      'initiatorCheckInfluence' in entry &&
+      entry.initiatorCheckInfluence !== undefined
+        ? [
+            {
+              sourceId: `${entry.entryId}:pick`,
+              grantId: null,
+              domainKey: null,
+              influence: entry.initiatorCheckInfluence,
+              source: {
+                kind: 'AUTHORED' as const,
+                id: capability.definitionId,
+                holderActorId: input.actor.id
+              }
+            }
+          ]
+        : []
+    ),
     defenderChecks: listedChecks(invocation.check.dc.checks)
   })
   return { ...sealed, published }
@@ -293,6 +322,7 @@ export function prepareEncounterEscapeContest(input: {
     },
     source: { kind: 'HELD_EFFECT', activeEffectId: effect.id, definitionChecksum },
     initiatorCheck,
+    initiatorActionContributors: [],
     defenderChecks: listedChecks(escape.contestChecks)
   })
   return { ...sealed, published, escape }
