@@ -663,6 +663,19 @@ const damageSaveCheckCommonFields = () => ({
     .check(z.maxLength(MAX_CONCENTRATION_DAMAGE_APPLICATIONS - 1))
 })
 
+/** The holder's own save a kernel-built damage save rolls: modifier, mode and added dice. */
+const damageSaveFactsSchema = () =>
+  z.strictObject({
+    savingThrowAbilityDefinitionId: uuidSchema,
+    modifier: integerSchema,
+    rollMode: systemCoreCodeSchema,
+    keep: rollModeKeepSchema,
+    contributors: canonicalConcentrationContributorsDtoSchema,
+    contributorChecksum: checksumSchema,
+    /** Dice the holder rolls with the save (D156); absent when it rolls none. */
+    addedDice: z.optional(d20AddedDiceDtoSchema)
+  })
+
 function remainingInCanonicalOrder(
   value: {
     application: Parameters<typeof compareDamageSaveApplications>[0]
@@ -699,16 +712,29 @@ export const encounterConcentrationDamageCheckPendingContextDtoSchema = lazySche
         id: uuidSchema,
         checksum: checksumSchema
       }),
-      save: z.strictObject({
-        savingThrowAbilityDefinitionId: uuidSchema,
-        modifier: integerSchema,
-        rollMode: systemCoreCodeSchema,
-        keep: rollModeKeepSchema,
-        contributors: canonicalConcentrationContributorsDtoSchema,
-        contributorChecksum: checksumSchema,
-        /** Dice the holder rolls with the save (D156); absent when it rolls none. */
-        addedDice: z.optional(d20AddedDiceDtoSchema)
-      })
+      save: damageSaveFactsSchema()
+    })
+    .check(z.superRefine(remainingInCanonicalOrder))
+)
+
+/**
+ * A massive-damage save (ATTACK-16): one damage source dealt the holder at least the rule's share of
+ * its maximum hit points. The pin binds the check to the exact optional rule definition it read.
+ */
+export const encounterMassiveDamageSavePendingContextDtoSchema = lazySchema(() =>
+  z
+    .strictObject({
+      kind: z.literal('ENCOUNTER_DAMAGE_SAVE_CHECK'),
+      source: z.literal('MASSIVE_DAMAGE'),
+      ...damageSaveCheckCommonFields(),
+      optionalCombatDefinition: z.strictObject({
+        id: uuidSchema,
+        version: integerSchema.check(z.gte(1)),
+        checksum: checksumSchema
+      }),
+      /** The holder's maximum hit points the threshold was measured against. */
+      maximumHitPoints: integerSchema.check(z.gte(1)),
+      save: damageSaveFactsSchema()
     })
     .check(z.superRefine(remainingInCanonicalOrder))
 )
@@ -740,6 +766,7 @@ export const encounterEffectRepeatSavePendingContextDtoSchema = lazySchema(() =>
 export const encounterDamageSaveCheckPendingContextDtoSchema = lazySchema(() =>
   z.discriminatedUnion('source', [
     encounterConcentrationDamageCheckPendingContextDtoSchema,
-    encounterEffectRepeatSavePendingContextDtoSchema
+    encounterEffectRepeatSavePendingContextDtoSchema,
+    encounterMassiveDamageSavePendingContextDtoSchema
   ])
 )

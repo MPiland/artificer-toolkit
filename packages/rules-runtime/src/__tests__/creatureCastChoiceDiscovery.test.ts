@@ -60,9 +60,9 @@ describe('Creature discovery compiles a cast pick per option (SPELLS-33.T3a6, D1
   it('runs the first authored option of a pick a no-prompt flow (a Legendary Action) cannot ask for', () => {
     const { compiledEffect } = discoveredClaws().capability!
     const options = castChoiceOptions(compiledEffect)!
-    expect(pickedCastChoiceEffect(compiledEffect, undefined, true)).toEqual(
+    expect(pickedCastChoiceEffect(compiledEffect, undefined, [], true)).toEqual(
       options[0]!.compiledEffect
     )
-    expect(() => pickedCastChoiceEffect(compiledEffect, undefined)).toThrow()
+    expect(() => pickedCastChoiceEffect(compiledEffect, undefined, [])).toThrow()
   })
 })
