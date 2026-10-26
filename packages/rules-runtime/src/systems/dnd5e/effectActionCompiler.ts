@@ -105,11 +105,8 @@ import {
   DND5E_POISONED_CONDITION_DEFINITION_ID
 } from './identity.js'
 import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode, derivedAddedDice } from './d20AddedDiceGraph.js'
-import {
-  damageAddedDiceDtoSchema,
-  damageAddedDieNodePrefix,
-  type DamageAddedDieDto
-} from '@artificer-toolkit/schema/shared/d20AddedDice'
+import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import { incomingDamageProfileDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import {
   attackCriticalRulesDtoSchema,
   DEFAULT_CRITICAL_HIT_THRESHOLD
@@ -126,7 +123,6 @@ import {
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-  DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
   DND5E_HEAL_TOTAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
   DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
@@ -160,6 +156,7 @@ import {
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
   DND5E_ATTACK_TURN_USES_FACT_KEY,
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
+  DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
@@ -229,21 +226,14 @@ import {
   namesOnlyItsUser
 } from './effectActionTargetPolicy.js'
 import {
-  boundedDiceTerm,
   dnd5eEffectScalingFacts,
   parseBoundedDiceConfiguration,
   scalingLevel,
-  type BoundedDiceTerm,
   type Dnd5eEffectScalingFacts
 } from './effectActionScalingFacts.js'
 
-import {
-  DND5E_OUTCOME_TARGET,
-  damageTypeIdentity,
-  damageMultiplier,
-  multipliedDamage,
-  rolledDiceNodes
-} from './effectActionOutcomeNodes.js'
+import { DND5E_OUTCOME_TARGET, damageMultiplier } from './effectActionOutcomeNodes.js'
+import { isCriticalHitDamage, withDamageAddedDice } from './effectActionDamageAddedDice.js'
 import {
   isImmediateFollowUpSave,
   escalationCondition,
@@ -2584,23 +2574,6 @@ function exactDiceConfiguration(
   return resolved
 }
 
-/**
- * A critical hit rolls every damage die of the attack's hit damage twice and adds the modifier
- * once (SRD 5.1). Every attack OUTCOME applies it here; authored ON_CRIT riders and the damage of
- * a save the hit forces are not the attack's damage and keep their dice.
- */
-function isCriticalHitDamage(
-  selectedPath: SpecializedPath,
-  entry: CompiledEffectGroup['entries'][number]
-): boolean {
-  return (
-    selectedPath === 'ON_CRIT' &&
-    entry.pathCode === 'ON_HIT' &&
-    'outcome' in entry &&
-    entry.outcome.effectKind === 'DAMAGE'
-  )
-}
-
 /** A critical hit's dice change for an entry: doubled, plus the attack's extra dice (D158). */
 function criticalHitDice(
   selectedPath: SpecializedPath,
@@ -2782,131 +2755,6 @@ function mergedOutcomeGraphDefinition(input: {
     ),
     ...(sourceEntryBindings.length > 0 ? { sourceEntryBindings } : {})
   }
-}
-
-/** One added die's own damage (D156): its dice, the multiplier of the damage it joins, its proposal. */
-function addedDamageDieGraphDefinition(input: {
-  action: Dnd5eCompiledEffectActionSource
-  term: BoundedDiceTerm
-  prefix: string
-  damageTypeId: string
-  multiplier: number
-}): RuleGraphDefinition {
-  const { nodes: rolledNodes, subtotal } = rolledDiceNodes(input.term, input.prefix)
-  const multiplied = multipliedDamage(
-    `${input.prefix}damage-multiplied`,
-    subtotal,
-    input.multiplier
-  )
-  const proposalId = `${input.prefix}proposal`
-  return {
-    schemaVersion: 1,
-    id: input.action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      ...rolledNodes,
-      ...multiplied.nodes,
-      {
-        id: proposalId,
-        operation: { key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
-        inputs: {
-          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
-          amount: multiplied.amount,
-          damageTypeId: { kind: 'LITERAL', value: input.damageTypeId }
-        }
-      }
-    ],
-    outputs: {
-      targetActorId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'targetActorId' },
-      amount: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'amount' },
-      damageTypeId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'damageTypeId' }
-    }
-  }
-}
-
-/**
- * The selected result with the dice active grants add to or take from its first damage (D156).
- * Each added die deals its own damage of its type (the joined damage's when it names none), rolled
- * twice on a critical hit and multiplied like the joined damage. Each subtracted die is rolled the
- * same way and taken off the joined damage, floored at 0. A miss, or a result with no damage, takes
- * none of them.
- */
-function withDamageAddedDice(input: {
-  action: Dnd5eCompiledEffectActionSource
-  selectedPath: SpecializedPath
-  groups: ReturnType<typeof selectedOutcomeGroups>
-  definitions: readonly RuleGraphDefinition[]
-  dice: readonly DamageAddedDieDto[]
-}): readonly RuleGraphDefinition[] {
-  const primaryIndex = input.groups.findIndex(
-    ([entry]) => entry !== undefined && 'outcome' in entry && entry.outcome.effectKind === 'DAMAGE'
-  )
-  const primaryEntry = input.groups[primaryIndex]?.[0]
-  const primary = input.definitions[primaryIndex]
-  if (
-    input.dice.length === 0 ||
-    input.selectedPath === 'ON_MISS' ||
-    !primary ||
-    !primaryEntry ||
-    !('outcome' in primaryEntry) ||
-    primaryEntry.outcome.effectKind !== 'DAMAGE'
-  )
-    return input.definitions
-  const joined = primaryEntry.outcome
-  const critical = isCriticalHitDamage(input.selectedPath, primaryEntry)
-    ? { extraDice: 0 }
-    : undefined
-  const term = (die: DamageAddedDieDto) =>
-    boundedDiceTerm(`${die.count}d${die.faces}`, critical).term
-  const added = input.dice.flatMap((die, index) =>
-    die.sign === 'ADD'
-      ? [
-          addedDamageDieGraphDefinition({
-            action: input.action,
-            term: term(die),
-            prefix: damageAddedDieNodePrefix(index),
-            damageTypeId: die.damageTypeId ?? damageTypeIdentity(joined.damageTypeId),
-            multiplier: damageMultiplier(joined)
-          })
-        ]
-      : []
-  )
-  const proposalIndex = primary.nodes.findIndex(
-    (node) => node.operation.key === DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-  )
-  const proposal = primary.nodes[proposalIndex]
-  const joinedAmount = proposal?.inputs.amount
-  if (!proposal || !joinedAmount) unsupported('D&D added damage dice need the damage they join.')
-  let amount = joinedAmount
-  const reductionNodes = input.dice.flatMap((die, index) => {
-    if (die.sign !== 'SUBTRACT') return []
-    const prefix = damageAddedDieNodePrefix(index)
-    const { nodes, subtotal } = rolledDiceNodes(term(die), prefix)
-    const reduced = {
-      id: `${prefix}damage-reduced`,
-      operation: { key: DND5E_DAMAGE_REDUCTION_OPERATION_KEY, contractVersion: 1 },
-      inputs: { amount, reduction: subtotal }
-    }
-    amount = { kind: 'NODE_OUTPUT', nodeId: reduced.id, port: 'value' }
-    return [...nodes, reduced]
-  })
-  const reducedPrimary: RuleGraphDefinition = {
-    ...primary,
-    nodes: [
-      ...primary.nodes.slice(0, proposalIndex),
-      ...reductionNodes,
-      { ...proposal, inputs: { ...proposal.inputs, amount } },
-      ...primary.nodes.slice(proposalIndex + 1)
-    ]
-  }
-  return [
-    ...input.definitions.slice(0, primaryIndex),
-    reducedPrimary,
-    ...input.definitions.slice(primaryIndex + 1),
-    ...added
-  ]
 }
 
 /**
@@ -3140,7 +2988,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
         selectedPath: input.selectedPath,
         groups,
         definitions,
-        dice: input.facts.damageAddedDice ?? []
+        dice: input.facts.damageAddedDice ?? [],
+        incomingReductions: input.facts.incomingDamageReductions ?? []
       })
     })
   })
@@ -3981,6 +3830,11 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       sourceDerivedFacts.damageAddedDice === undefined
         ? []
         : damageAddedDiceDtoSchema.parse(sourceDerivedFacts.damageAddedDice)
+    // A target with no folded incoming-damage profile (outside an Encounter) has no reductions.
+    const incomingReductions =
+      targetDerivedFacts.incomingDamage === undefined
+        ? []
+        : incomingDamageProfileDtoSchema.parse(targetDerivedFacts.incomingDamage).reductions
     const baseFacts = {
       ...dnd5eAddedDiceFacts([]),
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
@@ -4035,7 +3889,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }),
       ...(damageAddedDice.length === 0
         ? {}
-        : { [DND5E_DAMAGE_ADDED_DICE_FACT_KEY]: JSON.stringify(damageAddedDice) })
+        : { [DND5E_DAMAGE_ADDED_DICE_FACT_KEY]: JSON.stringify(damageAddedDice) }),
+      ...(incomingReductions.length === 0
+        ? {}
+        : { [DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY]: JSON.stringify(incomingReductions) })
     }
     const derivedStats = targetDerivedFacts.derivedStats as
       | { armorClass?: { effective?: unknown }; savingThrows?: unknown }

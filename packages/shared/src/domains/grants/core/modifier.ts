@@ -1,4 +1,9 @@
-import type { ChargeLimitPayload, DurationAuthored, SavingThrowAuthored } from '#authored'
+import type {
+  ChargeLimitPayload,
+  DurationAuthored,
+  HealBonusAuthored,
+  SavingThrowAuthored
+} from '#authored'
 import type {
   AttackDomainCode,
   ChargeResetKind,
@@ -694,6 +699,8 @@ export type ModifierIncomingAttackGateAuthored = {
  * While held, `HALVE` halves every damage application the holder takes, before its resistances
  * (Uncanny Dodge). `SAVE_FOR_HALF` replaces the bands of damage from an effect that allows one of
  * `saveAbilities` saves for half damage (Evasion: a DEX success takes none, a failure takes half).
+ * `REDUCE` takes `count` dice of `faces` plus the holder's `bonuses` from the damage of each attack
+ * that hits it, before halving and resistances (Deflect Missiles).
  */
 export type ModifierIncomingDamageAuthored =
   | { incomingDamageKind: 'HALVE' }
@@ -702,6 +709,12 @@ export type ModifierIncomingDamageAuthored =
       saveAbilities: string[]
       onSaveSuccess: 'NONE' | 'HALF'
       onSaveFailure: 'HALF' | 'FULL'
+    }
+  | {
+      incomingDamageKind: 'REDUCE'
+      count?: number
+      faces?: number
+      bonuses: HealBonusAuthored[]
     }
 
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =

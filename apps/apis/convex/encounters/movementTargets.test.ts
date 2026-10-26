@@ -364,7 +364,7 @@ describe('native movement target facts', () => {
       ...after.effectiveRulePolicyOutput,
       savingThrowAddedDice: {},
       healingMaximized: false,
-      incomingDamage: { halved: false, saveForHalf: [] },
+      incomingDamage: { halved: false, saveForHalf: [], reductions: [] },
       targetProtection: {
         status: 'NORMALIZED',
         defenses: after.effectiveRulePolicyOutput!.defenses,

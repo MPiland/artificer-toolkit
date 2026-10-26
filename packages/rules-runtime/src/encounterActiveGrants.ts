@@ -473,16 +473,28 @@ export function encounterGrantsEnabledDomain(
 }
 
 /**
+ * What a holder's amount bonuses read; null where the holder has no such value (a Creature has no
+ * class levels or proficiency bonus in its facts), and such a bonus adds nothing.
+ */
+export type IncomingDamageHolder = {
+  abilityModifier(ability: string): number | null
+  proficiencyBonus: number | null
+  classLevel(classId: string): number | null
+}
+
+/**
  * How a holder takes damage, from its held modifiers (a Character's fold, or a Creature's features
- * and active grants): any `INCOMING_DAMAGE` `HALVE` halves each damage application, and each
- * `SAVE_FOR_HALF` replaces what a save-for-half effect deals it on a save of its abilities.
+ * and active grants): any `INCOMING_DAMAGE` `HALVE` halves each damage application, each
+ * `SAVE_FOR_HALF` replaces what a save-for-half effect deals it on a save of its abilities, and each
+ * `REDUCE` takes its die plus its bonuses, resolved for the holder now, from an attack's damage.
  */
 export function incomingDamageProfile(
   modifiers: readonly {
     modifierKind: string
     valueDomainCode: string
     payload?: object | undefined
-  }[]
+  }[],
+  holder: IncomingDamageHolder
 ): IncomingDamageProfileDto {
   const payloads = modifiers
     .filter(
@@ -494,7 +506,28 @@ export function incomingDamageProfile(
     halved: payloads.some(({ incomingDamageKind }) => incomingDamageKind === 'HALVE'),
     saveForHalf: payloads.flatMap((payload) =>
       payload.incomingDamageKind === 'SAVE_FOR_HALF' ? [payload] : []
-    )
+    ),
+    reductions: payloads.flatMap((payload) => {
+      if (payload.incomingDamageKind !== 'REDUCE') return []
+      const flat = payload.bonuses.reduce((sum, bonus) => {
+        const value =
+          bonus.bonusKind === 'ABILITY_BONUS'
+            ? holder.abilityModifier(bonus.ability)
+            : bonus.bonusKind === 'CLASS_LEVEL'
+              ? holder.classLevel(bonus.classId)
+              : holder.proficiencyBonus
+        if (value === null) return sum
+        const scaled = value * (bonus.multiplier ?? 1)
+        return sum + Math.min(bonus.max ?? scaled, Math.max(bonus.min ?? scaled, scaled))
+      }, 0)
+      const { count, faces } = payload
+      return [
+        {
+          die: count === undefined || faces === undefined ? null : { count, faces },
+          flat: Math.max(0, Math.floor(flat))
+        }
+      ]
+    })
   }
 }
 

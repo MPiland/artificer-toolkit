@@ -14,7 +14,8 @@ import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { rolledDieShape } from '../shared/d20AddedDice.js'
-import { MAX_ROLLED_DIE_COUNT } from '@artificer-toolkit/shared/core'
+import { MAX_ROLLED_DIE_COUNT, ROLLED_DIE_FACES } from '@artificer-toolkit/shared/core'
+import { amountBonusDtoSchema } from '../effects/heal.js'
 import {
   chargeLimitKindSchema,
   chargeResetKindSchema,
@@ -346,8 +347,14 @@ export const damageInterceptionPayloadDtoSchema: z.ZodMiniType<DamageInterceptio
  * How the holder takes damage. `HALVE` halves every damage application before its defenses,
  * rounding down (Uncanny Dodge). `SAVE_FOR_HALF` replaces what an effect that deals half its damage
  * on a successful save deals the holder on a save of one of `saveAbilities` (Evasion: none on a
- * success, half on a failure); any other save is untouched.
+ * success, half on a failure); any other save is untouched. `REDUCE` takes a rolled die plus the
+ * holder's `bonuses` from the primary damage of each attack that hits it, floored at 0, before halving
+ * and its defenses (Deflect Missiles).
  */
+const incomingDamageDieShape = () => ({
+  count: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ROLLED_DIE_COUNT)),
+  faces: z.literal(ROLLED_DIE_FACES)
+})
 const incomingSaveForHalfPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
     incomingDamageKind: z.literal('SAVE_FOR_HALF'),
@@ -359,16 +366,46 @@ const incomingSaveForHalfPayloadDtoSchema = lazySchema(() =>
 export const incomingDamagePayloadDtoSchema = lazySchema(() =>
   z.union([
     z.strictObject({ incomingDamageKind: z.literal('HALVE') }),
-    incomingSaveForHalfPayloadDtoSchema
+    incomingSaveForHalfPayloadDtoSchema,
+    z
+      .strictObject({
+        incomingDamageKind: z.literal('REDUCE'),
+        count: z.optional(incomingDamageDieShape().count),
+        faces: z.optional(incomingDamageDieShape().faces),
+        bonuses: authoredNestedCollectionSchema(amountBonusDtoSchema)
+      })
+      .check(
+        z.refine(
+          ({ count, faces }) => (count === undefined) === (faces === undefined),
+          'A reduction die names both its count and its faces.'
+        )
+      )
   ])
 )
 export type IncomingDamagePayloadDto = z.infer<typeof incomingDamagePayloadDtoSchema>
 
-/** A holder's `INCOMING_DAMAGE` grants, folded: whether it halves damage, and its save-for-half replacements. */
+/**
+ * A holder's `INCOMING_DAMAGE` grants, folded: whether it halves damage, its save-for-half
+ * replacements, and its attack damage reductions, each a die and the flat amount its bonuses resolve
+ * to for the holder.
+ */
+export const incomingDamageReductionsDtoSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        die: z.nullable(z.strictObject(incomingDamageDieShape())),
+        flat: z.number().check(z.int()).check(z.gte(0))
+      })
+    )
+    .check(z.maxLength(16))
+)
+export type IncomingDamageReductionsDto = z.infer<typeof incomingDamageReductionsDtoSchema>
+
 export const incomingDamageProfileDtoSchema = lazySchema(() =>
   z.strictObject({
     halved: z.boolean(),
-    saveForHalf: z.array(incomingSaveForHalfPayloadDtoSchema)
+    saveForHalf: z.array(incomingSaveForHalfPayloadDtoSchema),
+    reductions: incomingDamageReductionsDtoSchema
   })
 )
 export type IncomingDamageProfileDto = z.infer<typeof incomingDamageProfileDtoSchema>

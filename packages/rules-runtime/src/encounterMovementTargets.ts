@@ -36,6 +36,7 @@ import {
   incomingDamageProfile
 } from './encounterActiveGrants.js'
 import { listActiveEffectGrants } from './character/activeEffectGrantTotals.js'
+import { abilityScoreCapabilityRegistry } from './platformPolicyModules.js'
 import type { IncomingDamageProfileDto } from '@artificer-toolkit/schema/grants/modifier'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type {
@@ -61,7 +62,11 @@ import {
   reconcileEncounterActorRuleOutput,
   requireEncounterActorRuleResult
 } from './encounterActorRuleOutput.js'
-import { snapshotCreatureTypeId, snapshotFeatureDefinitions } from './encounterActorState.js'
+import {
+  snapshotAbilityScore,
+  snapshotCreatureTypeId,
+  snapshotFeatureDefinitions
+} from './encounterActorState.js'
 import { characterFormStatBlock, snapshotStatBlock } from './encounterProjection.js'
 import { characterFormCreatureView, formRetainsProficiencies } from './encounterActorForm.js'
 import type { TargetBoundActiveRuleEffectExecutionInput } from './targetBoundActiveRuleEffectExecutor.js'
@@ -431,7 +436,14 @@ export function buildMovementTarget<
           conditionImmunityIds: effectiveRulePolicyOutput.conditionImmunityIds,
           spellSchoolImmunityIds: effectiveRulePolicyOutput.spellSchoolImmunityIds
         }
-    const incomingDamage = incomingDamageProfile(effectiveRulePolicyOutput.grantFold.modifiers)
+    const classLevels = characterClassLevels(characterFacts)
+    const incomingDamage = incomingDamageProfile(effectiveRulePolicyOutput.grantFold.modifiers, {
+      abilityModifier: (ability) =>
+        effectiveRulePolicyOutput.abilityModifiers.find((entry) => entry.ability === ability)
+          ?.value ?? null,
+      proficiencyBonus: effectiveRulePolicyOutput.proficiencyBonus,
+      classLevel: (classId) => classLevels[classId] ?? 0
+    })
     const sheetInputs = nativeCharacterBatchInputs(
       characterFacts,
       effectiveRulePolicyOutput,
@@ -613,10 +625,21 @@ export function buildMovementTarget<
   const conditions = readEncounterActorConditionState(actor.conditions ?? [])
   const creatureStatBlock = snapshotStatBlock(actor)
   const featureDefinitions = snapshotFeatureDefinitions(actor)
-  const incomingDamage = incomingDamageProfile([
-    ...(creatureFacts?.modifiers ?? []),
-    ...listActiveEffectGrants(activeEffects).flatMap(({ modifiers }) => modifiers)
-  ])
+  const { abilityModifier } = abilityScoreCapabilityRegistry.require(gameSystemId)
+  const incomingDamage = incomingDamageProfile(
+    [
+      ...(creatureFacts?.modifiers ?? []),
+      ...listActiveEffectGrants(activeEffects).flatMap(({ modifiers }) => modifiers)
+    ],
+    {
+      abilityModifier: (ability) => {
+        const score = snapshotAbilityScore(actor, ability)
+        return score === null ? null : abilityModifier(score)
+      },
+      proficiencyBonus: null,
+      classLevel: () => null
+    }
+  )
   return {
     actor,
     activeEffects,

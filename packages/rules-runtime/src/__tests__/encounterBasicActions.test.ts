@@ -160,7 +160,7 @@ function target(
       ]
     },
     defenses: [],
-    incomingDamage: { halved: false, saveForHalf: [] },
+    incomingDamage: { halved: false, saveForHalf: [], reductions: [] },
     qualifiedDefenses: [],
     conditionImmunityIds: [],
     sourceConditionImmunities: [],

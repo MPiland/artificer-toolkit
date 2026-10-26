@@ -21,6 +21,7 @@ import {
   SHAPE_KIND_OPTIONS,
   VALUE_DOMAIN_OPTIONS
 } from '#core'
+import { OUTCOME_BONUS_NODE_MAP } from '../../effects/maps/outcomeBonus.js'
 import { DURATION_NODE_MAP } from '../../shared/maps/duration.js'
 import { EFFECT_ID_NODE_MAP } from '../../shared/maps/effectId.js'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
@@ -424,6 +425,11 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
       parent.field(['valueDomainCode']).eq('INCOMING_DAMAGE'),
       local.field(['incomingDamageKind']).eq('SAVE_FOR_HALF')
     ])
+    const isIncomingReduction = and([
+      parent.field(['valueDomainCode']).eq('INCOMING_DAMAGE'),
+      local.field(['incomingDamageKind']).eq('REDUCE')
+    ])
+    const hasDie = or([isRolledDie, isIncomingReduction])
     // A speed or sense range is a typed length, never a value source (D111); a fraction is not.
     const isLength = and([
       or([
@@ -560,14 +566,14 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         'count',
         number(['count'], 'Dice', {
           constraints: { minimum: 1, maximum: MAX_ROLLED_DIE_COUNT },
-          showIf: isRolledDie
+          showIf: hasDie
         })
       )
       .set(
         'faces',
         number(['faces'], 'Die Faces', {
           constraints: { minimum: ROLLED_DIE_FACES[0], maximum: Math.max(...ROLLED_DIE_FACES) },
-          showIf: isRolledDie
+          showIf: hasDie
         })
       )
       .set(
@@ -1156,6 +1162,12 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
                 label: 'Save-for-half bands',
                 description:
                   'Damage from an effect that allows a save for half damage uses these bands instead.'
+              },
+              {
+                code: 'REDUCE',
+                label: 'Reduce attack damage',
+                description:
+                  'The damage of each attack that hits the holder is reduced by the dice and bonuses, before halving and resistance.'
               }
             ]
           },
@@ -1215,6 +1227,14 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
             showIf: isSaveForHalf
           }
         )
+      )
+      .set(
+        'bonuses',
+        groupArray(['bonuses'], 'Reduction Bonuses', () => OUTCOME_BONUS_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true,
+          showIf: isIncomingReduction
+        })
       )
       .set(
         'savingThrow',

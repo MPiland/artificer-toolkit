@@ -51,12 +51,13 @@ export type ReactionMovementTriggerBindingAuthored = {
 
 /**
  * The reactor is the target of an attack that hit; the reaction pauses the attack's outcome. With
- * `attackRange: 'MELEE'` it answers only a melee attack, and with `requiresSight` only an attacker the
- * reactor sees (Parry).
+ * `attackRange` it answers only a melee or only a ranged attack, with `weaponOnly` only a weapon
+ * attack, and with `requiresSight` only an attacker the reactor sees (Parry).
  */
 export type ReactionAttackedSelfTriggerBindingAuthored = {
   kind: 'ATTACKED_SELF'
-  attackRange?: 'MELEE'
+  attackRange?: 'MELEE' | 'RANGED'
+  weaponOnly?: boolean
   requiresSight?: boolean
 }
 
