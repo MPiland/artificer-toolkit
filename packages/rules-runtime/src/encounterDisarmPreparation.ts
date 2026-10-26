@@ -146,7 +146,7 @@ export function readEncounterDisarmSelection(input: {
 }) {
   const { actor, target, prepared } = input
   const { source, sourceFacts, targetFacts } = prepared
-  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH')
+  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH' || source.kind === 'RULE')
     throw new Error('Disarm requires a weapon attack action.')
   const targetWarnings = evaluateEncounterActionTargetPolicy({
     actor,
@@ -346,7 +346,7 @@ export function prepareEncounterDisarmContest(input: {
   if (command.acceptedWieldConflict) throw new Error('Disarm does not stow a shield.')
   const { sourcePolicyFacts, defenderFacts, descriptor } = input.selection
   const { source, sourceFacts, plan } = prepared
-  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH')
+  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH' || source.kind === 'RULE')
     throw new Error('Disarm requires a weapon attack action.')
   const selection = resolveOptionalCombatActionSelection({
     definition: input.definition,

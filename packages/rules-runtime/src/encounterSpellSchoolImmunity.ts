@@ -9,7 +9,10 @@ import type { NativeEncounterActionSource } from './encounterActionSources.js'
 export function encounterSpellSchoolImmunity(input: {
   source:
     | Pick<
-        Extract<NativeEncounterActionSource, { kind: 'CREATURE' | 'BASIC_ACTION' | 'REPEAT_PATH' }>,
+        Extract<
+          NativeEncounterActionSource,
+          { kind: 'CREATURE' | 'BASIC_ACTION' | 'REPEAT_PATH' | 'RULE' }
+        >,
         'kind'
       >
     | {
