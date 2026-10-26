@@ -62,8 +62,8 @@ async function bite(room: MarkingRoom, targetActorId: string, targetIndex: numbe
   expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
 }
 
-/** The marks the attacker holds on creatures: the effects it gave, by holder. */
-async function marks(room: MarkingRoom) {
+/** The marks `sourceActorId` (the Wolf attacker by default) gave on creatures, by holder. */
+async function marks(room: MarkingRoom, sourceActorId = ATTACKER_ID) {
   return (await readRoomHistory(room.room.base.stub)).activeEffects
     .map(({ targetActorId, definitionJson }) => ({
       targetActorId,
@@ -71,7 +71,7 @@ async function marks(room: MarkingRoom) {
     }))
     .filter(
       ({ definition }) =>
-        definition.origin?.kind === 'ENCOUNTER' && definition.origin.sourceActorId === ATTACKER_ID
+        definition.origin?.kind === 'ENCOUNTER' && definition.origin.sourceActorId === sourceActorId
     )
     .map(({ targetActorId }) => targetActorId)
 }
@@ -123,7 +123,7 @@ describe('room Marking (ATTACK-13.T1)', () => {
  * ATTACK-13.T2: a Fighter with a Club and a Reaction Club beside two Wolves, in that turn order.
  * Every die shows its minimum, so every attack misses and the Wolves keep walking.
  */
-function fighterMarkingRoom() {
+function fighterMarkingRoom(positions?: Readonly<Record<string, ScenePoint>>) {
   return actionRoom({
     autoRoll: 'BOTH',
     fallbackRoll: 0,
@@ -135,7 +135,8 @@ function fighterMarkingRoom() {
     characterEquipment: [reactionClub],
     characterAction: (action) =>
       action.label.includes('Club') && !action.label.includes('Reaction'),
-    optionalCombatKinds: ['MARK']
+    optionalCombatKinds: ['MARK'],
+    positions
   })
 }
 
@@ -264,5 +265,21 @@ describe('room Marking free opportunity attack (ATTACK-13.T2)', () => {
       reactionUsed: 1,
       freeReaction: { turnSequence: renewed.turnSequence, used: 1 }
     })
+  }, 180000)
+})
+
+describe('room Marking from an opportunity attack (ATTACK-13.T3)', () => {
+  it('marks the creature the opportunity attack strikes, moving the attacker’s one mark', async () => {
+    // The second Wolf waits below the Fighter, within its Club's reach.
+    const room = await fighterMarkingRoom({ [SECOND_TARGET_ID]: { x: 150, y: 250 } })
+    await bite(room, SECOND_TARGET_ID, 2)
+    expect(await marks(room, FIGHTER_ACTOR_ID)).toEqual([SECOND_TARGET_ID])
+    await room.advanceTurn()
+
+    // The first Wolf is not marked, so the attack has no advantage and spends the reaction.
+    await walk(room, [{ x: 250, y: 150 }, BESIDE, AWAY])
+    expect(await takeOpportunityAttack(room)).toBe('NORMAL')
+    expect(await marks(room, FIGHTER_ACTOR_ID)).toEqual([FIRST_TARGET_ID])
+    expect((await fighterReactions(room)).reactionUsed).toBe(1)
   }, 180000)
 })

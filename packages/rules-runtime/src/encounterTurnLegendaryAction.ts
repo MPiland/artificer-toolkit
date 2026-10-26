@@ -26,10 +26,8 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
-import {
-  prepareNativeActionEffectsPlan,
-  prepareNativeIncomingDamageGrantTriggers
-} from './encounterActionEffects.js'
+import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
+import { prepareAttackTargetGrantTriggers } from './encounterAttackAppliedEffects.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
 import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
@@ -378,10 +376,10 @@ export async function prepareTurnLegendaryActions<
       applications: result.applications,
       damagerActorId: actor.id,
       dispositions,
-      grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+      grantTriggers: prepareAttackTargetGrantTriggers({
         encounter: prepared.state,
-        holder: prepared.target,
-        held: prepared.targetFacts.activeEffects,
+        attacker: prepared.actor,
+        target: prepared.targetFacts,
         occurrenceId,
         commandId: root.rootCommandId,
         ordinal,
@@ -456,7 +454,8 @@ export async function prepareTurnLegendaryActions<
     const riderEffects = createLinkedRiders(effects.riderEffects, recurringEffect, (plan, index) =>
       createEffect(riderEffectKey(index), plan)
     )
-    // The target's own damage triggers give it timed grants after the option's effects.
+    // The target's own damage triggers and the owner's mark give it timed grants after the option's
+    // effects.
     const grantEffects = incomingDamageGrantRecords({
       grants: damageEnded.grants,
       owner: effectOwner,
