@@ -48,12 +48,19 @@ function characterAttack(label: string) {
   return { attack: decision.mechanic.attackBonus, damage: Number(damageBonus) }
 }
 
-/** A STR 16 Creature's one-handed melee attack with its loadout's `label` weapon in `useState`. */
-function creatureBonuses(label: string, useState: EquipmentSlotCode) {
+/**
+ * A STR 16 Creature's one-handed melee attack with its loadout's `label` weapon in `useState`,
+ * beside the `others` it also carries.
+ */
+function creatureBonuses(
+  label: string,
+  useState: EquipmentSlotCode,
+  others: ReturnType<typeof entry>[] = []
+) {
   const weapon = entry(label, useState)
   return resolveDnd5eCreatureWeaponBonuses({
     abilityScores: { STRENGTH: 16 },
-    equipment: [weapon],
+    equipment: [weapon, ...others],
     loadoutEntryId: weapon.id,
     attackKind: 'MELEE',
     grip: 'ONE_HANDED',
@@ -78,8 +85,11 @@ describe('a Creature’s bound weapon bonuses match a Character’s (ATTACK-6.3)
     expect(creatureBonuses('Longsword', 'MAIN_HAND')).toEqual({ attack: 0, damage: 0 })
   })
 
-  it('a carried magic weapon is unequipped, so its bonus does not apply', () => {
-    expect(creatureBonuses('Longsword +1', 'CARRIED')).toEqual({ attack: 0, damage: 0 })
+  it('a carried magic weapon’s bonus applies only to attacks made with it, which draw it', () => {
+    const carried = entry('Longsword +1', 'CARRIED')
+
+    expect(creatureBonuses('Longsword', 'MAIN_HAND', [carried])).toEqual({ attack: 0, damage: 0 })
+    expect(creatureBonuses('Longsword +1', 'CARRIED')).toEqual({ attack: 1, damage: 1 })
   })
 })
 
