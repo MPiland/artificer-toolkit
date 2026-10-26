@@ -323,6 +323,7 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
   light?: ManifestLightAuthored
   hollow?: boolean
   wallThickness?: ShapeMeasurementValueAuthored
+  camouflage?: ManifestCamouflageAuthored
   spreadsAroundCorners?: boolean
   obscurementKind?: 'LIGHT' | 'HEAVY'
   properties?: Array<keyof typeof MANIFEST_PROPERTY>
@@ -337,9 +338,7 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
 export type ManifestCamouflageAuthored = { spotDc: HeldEscapeDcAuthored }
 
 type ZoneManifestAuthored = NonCreatureManifestAuthored<typeof MANIFEST_KIND.ZONE> &
-  Required<Pick<ManifestAuthoredBase, 'attachmentKind'>> & {
-    camouflage?: ManifestCamouflageAuthored
-  }
+  Required<Pick<ManifestAuthoredBase, 'attachmentKind'>>
 
 export type ManifestAuthored =
   | CreatureManifestAuthored
