@@ -19607,11 +19607,11 @@
             },
             {
               "id": "RELIABILITY-19.2",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by RELIABILITY-19.T2 (m461); see each task's proof."],
               "origin": [],
               "text": "When two merged slices both shrink a file listed in scripts/fileSizeBudget.json and the merged file ends up below both caps, merge-slice lowers that entry to the merged size and continues; a merged file above its resolved cap still refuses. The ADR 0039 shrink-only ratchet is unchanged.",
-              "note": "Registered 2026-10-25 (user yes): the SPELLS-31.T5b + T4k2d1 batch (run 40262719408) was refused because effectActionCompiler.ts shrank to 4172 under the 4182 cap."
+              "note": "Registered 2026-10-25 (user yes): the SPELLS-31.T5b + T4k2d1 batch (run 40262719408) was refused because effectActionCompiler.ts shrank to 4172 under the 4182 cap. Closed 2026-10-24 by RELIABILITY-19.T2."
             }
           ],
           "tasks": [
@@ -19632,7 +19632,7 @@
             },
             {
               "id": "RELIABILITY-19.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["RELIABILITY-19.2"],
               "wsjf": {
                 "bv": 3,
@@ -19641,7 +19641,10 @@
                 "size": 2,
                 "after": ["RELIABILITY-19.T1"]
               },
-              "text": "In scripts/mergeSlice.mjs resolveBudgetConflict, after the per-entry minimum, lower each entry the ratchet reports as shrunk to its merged code-line count and re-run ratchetProblems; refuse on growth or any other problem. Unit-test both paths against real git merges in a temp repo; update docs/architecture/ci-validation.md (approved merges)."
+              "text": "In scripts/mergeSlice.mjs resolveBudgetConflict, after the per-entry minimum, lower each entry the ratchet reports as shrunk to its merged code-line count and re-run ratchetProblems; refuse on growth or any other problem. Unit-test both paths against real git merges in a temp repo; update docs/architecture/ci-validation.md (approved merges).",
+              "mergedAt": "2026-10-26T14:35:56Z",
+              "proof": "Tests 40270554072 green on c3cfa0e26 (Live path-filtered); red proof scripts/mergeSlice.test.mjs RED 1/46; reviewed (DRY fix requested and done); merged in m461",
+              "note": " Merged in m461."
             }
           ]
         }
