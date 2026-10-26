@@ -8304,7 +8304,7 @@
           "tasks": [
             {
               "id": "MOVE-2.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "MOVE-2.1",
                 "MOVE-2.2",
@@ -8319,7 +8319,9 @@
                 "size": 2
               },
               "text": "Map existing Overrun, Tumble and Shove Aside policy/authoring proofs to ACs 2.1, 2.2, 2.3, 2.5, 2.6; add any missing authoring-parity assertion against the SRD documents (packages/source-data/src/srd/optionalCombat.ts). No new product code expected.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m454.",
+              "mergedAt": "2026-10-26T01:11:38Z",
+              "proof": "Tests 40250672670 and Live 40251808544 green on 1f036e0f7; reviewed (test-only AC mapping); merged in m454"
             },
             {
               "id": "MOVE-2.T2",
