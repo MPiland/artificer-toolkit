@@ -42,8 +42,8 @@ export async function ruleTriggerWindowStart(ctx: EncounterReadTransaction, enco
 }
 
 /**
- * The failed rule save a rule receipt records for `holderActorId`, with the action the rule raises
- * for it: today a massive-damage save whose pinned rule names a `failedSaveEffectId`. Null otherwise.
+ * The failed rule save a rule receipt records, with its holder and the action the rule raises for
+ * it: today a massive-damage save whose pinned rule names a `failedSaveEffectId`. Null otherwise.
  */
 export function ruleFailedSaveAction(
   state: EncounterRunState,
@@ -98,18 +98,19 @@ export async function requireSystemTriggerAdmission(
         query.eq('campaignId', run.campaignId).eq('commandId', parentCommandId)
       )
       .unique()
-  // An answer that settles an action records only its rule receipt, never a Run command; a rule
-  // root's parent is the failed save's receipt itself.
+  // A rule root's parent is the failed save's receipt itself; an answer that settles an action
+  // records only its rule receipt, never a Run command.
+  const ruleParent = trigger === 'RULE' ? await readReceipt() : null
   const parent =
     trigger === 'RULE'
-      ? await readReceipt()
+      ? ruleParent
       : ((await ctx.db
           .query('encounterRunCommands')
           .withIndex('by_campaignId_commandId', (query) =>
             query.eq('campaignId', run.campaignId).eq('commandId', parentCommandId)
           )
           .unique()) ?? (await readReceipt()))
-  const failedSave = trigger === 'RULE' && parent ? ruleFailedSaveAction(state, parent) : null
+  const failedSave = ruleParent ? ruleFailedSaveAction(state, ruleParent) : null
   const ruleAction = parseEncounterRuleActionId(command.actorId, command.actionId)
   const selfTargeted =
     command.target.kind === 'ACTOR' && command.target.actorId.toLowerCase() === holderActorId
@@ -133,15 +134,16 @@ export async function requireSystemTriggerAdmission(
   )
     rejectDomain('COMMAND_ID_REUSED', 'The rule-raised action has no committed parent.')
   if (!input.fresh) return
-  const parentVersion = 'encounterVersion' in parent! ? parent.encounterVersion : parent!.version
-  if (trigger === 'RULE') {
+  if (ruleParent) {
     const windowStart = await ruleTriggerWindowStart(ctx, run.id)
-    if (windowStart === null || parentVersion < windowStart || parentVersion > state.version)
+    const { encounterVersion } = ruleParent
+    if (windowStart === null || encounterVersion < windowStart || encounterVersion > state.version)
       rejectDomain('VERSION_STALE')
     if (await readEncounterActorDefeated(ctx, await readRunActor(ctx, state, holderActorId)))
       rejectDomain('ACTOR_DEFEATED')
     return
   }
+  const parentVersion = 'encounterVersion' in parent! ? parent.encounterVersion : parent!.version
   if (parentVersion !== state.version || command.expectedVersion !== parentVersion)
     rejectDomain('VERSION_STALE')
   if (trigger === 'START_OF_TURN') {
