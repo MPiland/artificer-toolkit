@@ -1461,6 +1461,7 @@ export const srdSystemRecord: SystemSeedRecord = {
       },
       { code: 'TOTAL', label: 'Total cover', minBlockedLines: 4, bonus: 0, blocksTargeting: true }
     ],
-    creatureMaxTierCode: 'HALF'
+    creatureMaxTierCode: 'HALF',
+    saveAbilityDefinitionIds: [SRD_ABILITY_DEFINITION_IDS.DEXTERITY]
   }
 }

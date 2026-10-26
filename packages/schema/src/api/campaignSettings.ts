@@ -49,6 +49,8 @@ const campaignPlaySettingsBaseDtoSchema = lazySchema(() =>
     automationMode: z._default(automationModeDtoSchema, 'ASSISTED'),
     /** When on, each ammunition attack draws its pieces from the chosen stack (ATTACK-19.4, D4). */
     trackAmmunition: z._default(z.boolean(), false),
+    /** When on, the app works out each target's cover from the Scene for attacks and area saves (SPELLS-14, Q1). */
+    automaticCover: z._default(z.boolean(), true),
     initiativePolicyDefinitionId: z._default(z.nullable(uuidSchema), null),
     initiativeTieDefinitionId: z._default(z.nullable(uuidSchema), null),
     optionalCombatRuleDefinitionIds: optionalCombatDefinitionIdsDtoSchema,
