@@ -133,3 +133,68 @@ describe('a roll table row that lasts, cast by a Character (ATTACK-16.T1a2)', ()
     120000
   )
 })
+
+/**
+ * Homebrew: a test-less self Effect whose own ON_USE path rolls the same d6 table, no save first
+ * (ATTACK-16.T1c2a).
+ */
+const { savingThrow: _save, ...wordInvocation } = wordEffect!.invocation as Extract<
+  SpellEffect['invocation'],
+  { triggerCode: 'SAVING_THROW' }
+>
+const selfShock: SpellAuthored = {
+  ...shock,
+  id: testUuid(0xf45),
+  label: 'Homebrew Self Shock',
+  effects: [
+    {
+      ...shock.effects![0]!,
+      invocation: {
+        ...wordInvocation,
+        triggerCode: 'ACTIVATED',
+        range: { id: testUuid(0xf46), rangeKind: 'SELF' },
+        targeting: { selectionKind: 'SELF' }
+      },
+      paths: [{ ...(shock.effects![0]!.paths[0] as TablePath), pathCode: 'ON_USE' }]
+    }
+  ]
+}
+
+async function casterConditions(room: Awaited<ReturnType<typeof actionRoom>>) {
+  const caster = vitalsOf(await readRoomHistory(room.room.base.stub)).find(
+    ({ id }) => id === CASTER_ACTOR_ID
+  )
+  if (!caster) throw new Error('The caster is missing.')
+  return ((caster.conditions ?? []) as { conditionTypeId: string }[]).map(
+    ({ conditionTypeId }) => conditionTypeId
+  )
+}
+
+describe('a roll table on a test-less self action, used by a Character (ATTACK-16.T1c2a)', () => {
+  it.each([
+    [3, BLINDED],
+    [4, DEAFENED]
+  ])(
+    'holds on the user the row its table rolls %i on',
+    async (tableFace, condition) => {
+      const room = await actionRoom({
+        autoRoll: 'BOTH',
+        rolls: [tableFace - 1],
+        actors: [
+          {
+            ...characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+            snapshot: { kind: 'CHARACTER', id: CASTER_ID, systemId: srdSystemRecord.id }
+          },
+          srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+        ],
+        characterSpellcasting: { spells: [selfShock], prepared: [selfShock.id] },
+        characterPlay: { classLevel: 17 },
+        characterAction: (action) => action.label.startsWith(selfShock.label)
+      })
+      const { answer } = await room.startAction(CASTER_ACTOR_ID)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      expect(await casterConditions(room)).toEqual([condition])
+    },
+    120000
+  )
+})
