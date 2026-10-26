@@ -11960,7 +11960,7 @@
             },
             {
               "id": "ATTACK-16.T1b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "ATTACK-16.1"
               ],
@@ -11972,7 +11972,9 @@
                 "after": []
               },
               "text": "Rule-owned action source: an optional combat rule can raise a RESOLVE_ACTION root whose source is the rule (not a Creature passive), for Creatures and Characters, so authored outcomes (timed CONDITION, APPLY_GRANT, STABILIZE) run through the compiled graph path.",
-              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray)."
+              "note": "Re-planned 2026-10-25: full automation of the system-shock result measured at 21 against 6; user ruling accepted +15 (roll-table execution also serves Prismatic Spray). Merged in m457.",
+              "mergedAt": "2026-10-26T02:35:54Z",
+              "proof": "Tests 40258088405 and Live 40258088442 green on 658a31962; reviewed (ruling A); merged in m457 fast path"
             },
             {
               "id": "ATTACK-16.T1c1",
