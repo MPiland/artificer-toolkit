@@ -13,8 +13,7 @@ import {
   buildEncounterSaveD20Evidence,
   deriveEncounterActionD20Policy,
   nestedOutcomeD20Policy,
-  policyAddedDice,
-  policyFoldedBonuses,
+  policyAuditDice,
   requireEncounterSaveD20EvidenceTrace
 } from './encounterMovementReactionActionExecution.js'
 import {
@@ -1368,8 +1367,7 @@ export async function advanceNativeActionGraphs(input: {
           contributorChecksum: audit.contributorChecksum,
           modifier: audit.modifier,
           dc: audit.defenseOrDc,
-          ...policyAddedDice(audit.addedDice),
-          ...policyFoldedBonuses(audit.foldedBonuses)
+          ...policyAuditDice(audit)
         },
         requestId: roll.requestId,
         faces: roll.rawFaces,

@@ -105,7 +105,6 @@ export function smiterWeaponAttack(
     classLevels: character.facts.grantFoldFacts.base.classes,
     automationMode: 'ASSISTED',
     trackAmmunition: false,
-    automaticCover: true,
     ammunition: null,
     overridable: false
   })

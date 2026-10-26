@@ -111,7 +111,7 @@ import {
 } from './identity.js'
 import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode, derivedAddedDice } from './d20AddedDiceGraph.js'
 import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import { d20FoldedBonusTotal } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
+import { foldD20Operands } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
 import { incomingDamageProfileDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import {
   attackCriticalRulesDtoSchema,
@@ -3689,9 +3689,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     conditionImmunityIds,
     targetDamageTypesTaken
   }) => {
-    const foldedDefenseOrDc = d20FoldedBonusTotal(foldedBonuses, 'defenseOrDc')
-    const foldedModifier = d20FoldedBonusTotal(foldedBonuses, 'modifier')
-    const foldedAudit = foldedBonuses && foldedBonuses.length > 0 ? { foldedBonuses } : {}
     const resolvedDamageExpressionFacts: Record<string, string> = {}
     const resolvedDamageOutcomeExpressions: Record<string, string> = {}
     const weaponDamageDieFacts: Record<string, number> = {}
@@ -4002,6 +3999,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       const attackKind = attackKindSchema.safeParse(action.attackKind)
       const attackDomain = attackKind.success ? dnd5eAttackModifierDomain(attackKind.data) : 'MELEE'
       const addedDice = derivedAddedDice(sourceDerivedFacts.attackAddedDice, attackDomain)
+      const folded = foldD20Operands(foldedBonuses, action.attackBonus, armorClass, addedDice)
       const contributors = (sourceContributorEvidence?.attacks?.[attackDomain] ?? []).map(
         ({ sourceId, grantId, domainKey, influence, source, positional }) => ({
           sourceId,
@@ -4037,8 +4035,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ...(criticalRules.extraDice > 0
             ? { [DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]: criticalRules.extraDice }
             : {}),
-          [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus + foldedModifier,
-          [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass + foldedDefenseOrDc,
+          [DND5E_ATTACK_MODIFIER_FACT_KEY]: folded.modifier,
+          [DND5E_TARGET_DEFENSE_FACT_KEY]: folded.defenseOrDc,
           ...(typeof targetDerivedFacts.creatureTypeId === 'string'
             ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
             : {}),
@@ -4060,10 +4058,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         d20Audit: {
           contributors: allContributors,
           contributorChecksum,
-          modifier: action.attackBonus + foldedModifier,
-          defenseOrDc: armorClass + foldedDefenseOrDc,
-          addedDice,
-          ...foldedAudit
+          ...folded
         }
       }
     }
@@ -4106,12 +4101,13 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         targetDerivedFacts.savingThrowAddedDice,
         save.abilityDefinitionId
       )
+      const folded = foldD20Operands(foldedBonuses, modifier, save.dc, addedDice)
       return {
         facts: {
           ...baseFacts,
           ...dnd5eAddedDiceFacts(addedDice),
-          [DND5E_SAVE_MODIFIER_FACT_KEY]: modifier + foldedModifier,
-          [DND5E_SAVE_DC_FACT_KEY]: save.dc + foldedDefenseOrDc,
+          [DND5E_SAVE_MODIFIER_FACT_KEY]: folded.modifier,
+          [DND5E_SAVE_DC_FACT_KEY]: folded.defenseOrDc,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
             conditionOutcomeRules,
@@ -4124,10 +4120,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         d20Audit: {
           contributors,
           contributorChecksum,
-          modifier: modifier + foldedModifier,
-          defenseOrDc: save.dc + foldedDefenseOrDc,
-          addedDice,
-          ...foldedAudit,
+          ...folded,
           savingThrowAbilityDefinitionId: save.abilityDefinitionId
         }
       }

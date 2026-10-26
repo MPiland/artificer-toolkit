@@ -39,3 +39,21 @@ export function formatD20FoldedBonus(bonus: D20FoldedBonusDto): string {
     ? `${bonus.label} ${signed}`
     : `${bonus.label}: target's defense ${signed}`
 }
+
+/**
+ * A d20 test's audit operands with its folded bonuses added, and the list that names where they
+ * came from (omitted when empty).
+ */
+export function foldD20Operands<AddedDice>(
+  bonuses: readonly D20FoldedBonusDto[] | undefined,
+  modifier: number,
+  defenseOrDc: number,
+  addedDice: AddedDice
+) {
+  return {
+    modifier: modifier + d20FoldedBonusTotal(bonuses, 'modifier'),
+    defenseOrDc: defenseOrDc + d20FoldedBonusTotal(bonuses, 'defenseOrDc'),
+    addedDice,
+    ...(bonuses && bonuses.length > 0 ? { foldedBonuses: [...bonuses] } : {})
+  }
+}

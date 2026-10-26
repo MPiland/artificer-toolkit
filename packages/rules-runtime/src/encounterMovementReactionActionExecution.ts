@@ -93,18 +93,22 @@ export function deriveEncounterActionD20Policy(input: {
     modifier: input.bound.d20Audit.modifier,
     dc: input.bound.d20Audit.defenseOrDc,
     ...savingThrowAbility(input.bound.d20Audit),
-    ...policyAddedDice(input.bound.d20Audit.addedDice),
-    ...policyFoldedBonuses(input.bound.d20Audit.foldedBonuses)
+    ...policyAuditDice(input.bound.d20Audit)
   })
 }
 
-/** A policy names its added dice only when the test rolls some (D156). */
-export function policyAddedDice(addedDice: readonly D20AddedDieDto[]) {
-  return addedDice.length > 0 ? { addedDice: [...addedDice] } : {}
+/** A policy names its added dice (D156) and folded bonuses (cover) only when the test has some. */
+export function policyAuditDice(audit: {
+  addedDice: readonly D20AddedDieDto[]
+  foldedBonuses?: readonly D20FoldedBonusDto[]
+}) {
+  return {
+    ...(audit.addedDice.length > 0 ? { addedDice: [...audit.addedDice] } : {}),
+    ...policyFoldedBonuses(audit.foldedBonuses)
+  }
 }
 
-/** A policy names its folded bonuses only when the test folds some (cover). */
-export function policyFoldedBonuses(foldedBonuses: readonly D20FoldedBonusDto[] | undefined) {
+function policyFoldedBonuses(foldedBonuses: readonly D20FoldedBonusDto[] | undefined) {
   return foldedBonuses && foldedBonuses.length > 0 ? { foldedBonuses: [...foldedBonuses] } : {}
 }
 
@@ -143,8 +147,7 @@ export function nestedOutcomeD20Policy(input: {
     modifier: audit.modifier,
     dc: audit.defenseOrDc,
     ...savingThrowAbility(audit),
-    ...policyAddedDice(audit.addedDice),
-    ...policyFoldedBonuses(audit.foldedBonuses)
+    ...policyAuditDice(audit)
   })
 }
 
