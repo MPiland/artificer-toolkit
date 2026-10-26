@@ -7,18 +7,19 @@ import type {
   PlaceZoneInputDto,
   RevertLastEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { SceneGrid, ScenePoint, SpatialPointAreaShape } from '@artificer-toolkit/shared/vtt'
+import type { SceneGrid, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { useAppForm } from '#forms/app-form/AppForm'
 import { AuthoringFormProvider } from '#forms/layout/AuthoringFormProvider'
 import { FormRenderer } from '#forms/rendering/FormRenderer'
 import {
   createPlacedZoneDraft,
-  placedZoneOf,
+  isPlacedZone,
   placedZoneSize,
-  placeZoneCommand
+  placeZoneCommand,
+  type ZonePointPick
 } from './campaignTabletopZoneTool.model'
 
-// The renderer's values stay plain objects, as on the authoring pages; `placedZoneOf` validates them.
+// The renderer's values stay plain objects, as on the authoring pages; `isPlacedZone` validates them.
 const EMPTY_ZONE_VALUES: object = {}
 const ZoneRenderer = FormRenderer({ defaultValues: EMPTY_ZONE_VALUES })
 
@@ -28,27 +29,23 @@ const ZoneRenderer = FormRenderer({ defaultValues: EMPTY_ZONE_VALUES })
  * it is still the Run's last action.
  */
 export function CampaignTabletopZoneTool({
-  opened,
   connected,
   encounterId,
   encounterVersion,
   gameSystemId,
   grid,
-  onOpen,
-  onClose,
+  picking,
   onPickPoint,
   onSend
 }: {
-  opened: boolean
   connected: boolean
   encounterId: string
   encounterVersion: number
   gameSystemId: string
   grid: SceneGrid
-  onOpen: () => void
-  onClose: () => void
-  /** Aims an area of `size` on the map; `onPicked` receives its center. */
-  onPickPoint: (size: SpatialPointAreaShape, onPicked: (point: ScenePoint) => void) => void
+  /** The GM is picking the zone's center on the map; the drawer steps aside meanwhile. */
+  picking: boolean
+  onPickPoint: (pick: ZonePointPick) => void
   onSend: (
     command: PlaceZoneInputDto | RevertLastEncounterActionInputDto
   ) => Promise<EncounterCommandResultDto>
@@ -56,7 +53,8 @@ export function CampaignTabletopZoneTool({
   const [defaultValues] = useState<object>(createPlacedZoneDraft)
   const form = useAppForm({ defaultValues })
   const values = useSelector(form.store, (state) => state.values)
-  const zone = useMemo(() => placedZoneOf(values), [values])
+  const zone = useMemo(() => (isPlacedZone(values) ? values : null), [values])
+  const [opened, setOpened] = useState(false)
   const [point, setPoint] = useState<ScenePoint | null>(null)
   // The Run version the placement committed at; undo applies while it is still the last action.
   const [placedVersion, setPlacedVersion] = useState<number | null>(null)
@@ -110,18 +108,18 @@ export function CampaignTabletopZoneTool({
   return (
     <>
       <Tooltip label='Place a zone'>
-        <ActionIcon aria-label='Place a zone' variant='default' onClick={onOpen}>
+        <ActionIcon aria-label='Place a zone' variant='default' onClick={() => setOpened(true)}>
           <CircleDashed aria-hidden size={18} />
         </ActionIcon>
       </Tooltip>
       <Drawer
         closeButtonProps={{ 'aria-label': 'Close zone tool' }}
-        opened={opened}
+        opened={opened && !picking}
         position='right'
         size='min(36rem, 100vw)'
         title='Place a zone'
         zIndex={400}
-        onClose={onClose}
+        onClose={() => setOpened(false)}
       >
         <Stack gap='md' aria-busy={submitting || undefined}>
           <Text c='dimmed' size='sm'>
@@ -155,7 +153,7 @@ export function CampaignTabletopZoneTool({
               disabled={busy || !size}
               size='xs'
               variant='default'
-              onClick={() => size && onPickPoint(size, setPoint)}
+              onClick={() => size && onPickPoint({ size, onPicked: setPoint })}
             >
               Pick on map
             </Button>

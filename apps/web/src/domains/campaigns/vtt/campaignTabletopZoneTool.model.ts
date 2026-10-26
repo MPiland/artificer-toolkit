@@ -12,6 +12,12 @@ import {
 } from '@artificer-toolkit/schema/api/encounters'
 import { manifestDtoSchema } from '@artificer-toolkit/schema/effects/manifest'
 
+/** A zone the GM aims on the map: its area, and where its picked center goes. */
+export type ZonePointPick = {
+  size: SpatialPointAreaShape
+  onPicked: (point: ScenePoint) => void
+}
+
 /**
  * The zone a GM starts from (MOVE-3.2): a placed-space zone with a 10-foot radius and no
  * components yet. The GM authors it through the same zone node map as authored content.
@@ -43,13 +49,17 @@ export function placedZoneSize(
  * The form's values as a placed-space zone, once they are a complete zone the room accepts. The
  * schema check is what makes the authored type safe to read.
  */
-export function placedZoneOf(values: object): ManifestAuthored | null {
-  if (!manifestDtoSchema.safeParse(values).success) return null
-  const zone = values as ManifestAuthored
-  return zone.manifestKind === 'ZONE' && zone.attachmentKind === 'PLACED_SPACE' ? zone : null
+export function isPlacedZone(values: object): values is ManifestAuthored {
+  return (
+    manifestDtoSchema.safeParse(values).success &&
+    'manifestKind' in values &&
+    values.manifestKind === 'ZONE' &&
+    'attachmentKind' in values &&
+    values.attachmentKind === 'PLACED_SPACE'
+  )
 }
 
-/** The command that places a zone `placedZoneOf` accepted at `point`. */
+/** The command that places a zone `isPlacedZone` accepted at `point`. */
 export function placeZoneCommand(input: {
   zone: ManifestAuthored
   point: ScenePoint

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { useQueryClient } from '@tanstack/react-query'
 import { type ReactNode, useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
@@ -25,9 +26,7 @@ describe('CampaignTabletopZoneTool (MOVE-3.2)', () => {
             encounterVersion={3}
             gameSystemId={srdSystemRecord.id}
             grid={{ kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' }}
-            opened
-            onClose={vi.fn()}
-            onOpen={vi.fn()}
+            picking={false}
             onPickPoint={vi.fn()}
             onSend={vi.fn()}
           />
@@ -35,6 +34,7 @@ describe('CampaignTabletopZoneTool (MOVE-3.2)', () => {
       </TestRouterProvider>
     )
 
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Place a zone' }))
     const tool = await screen.findByRole('dialog', { name: 'Place a zone' })
     expect(await screen.findByText('Attachment', {}, { timeout: 10_000 })).toBeInTheDocument()
     expect(screen.getByText('Shape')).toBeInTheDocument()

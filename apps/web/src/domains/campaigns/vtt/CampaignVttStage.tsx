@@ -12,7 +12,7 @@ import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { Crosshair, Eye, EyeOff, Gamepad2, Undo2 } from 'lucide-react'
+import { Crosshair, Gamepad2, Undo2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   CampaignSceneStateDto,
@@ -23,8 +23,7 @@ import {
   createUniformSceneFogLayer,
   projectSceneForViewer,
   sceneFogOwnerFailure,
-  type ScenePoint,
-  type SpatialPointAreaShape
+  type ScenePoint
 } from '@artificer-toolkit/shared/vtt'
 import { getCampaignLiveScenes } from '#app/data/campaigns/scenes'
 import { loadCampaignSceneEncounterBindings } from '#app/data/campaigns/liveScenes'
@@ -66,8 +65,7 @@ import {
   isFogTool,
   playTools,
   readActiveTurn,
-  resolveMainCharacterId,
-  type CampaignVttToolDefinition
+  resolveMainCharacterId
 } from './CampaignVttStage.model'
 import { CampaignLiveLootPanel } from '../loot/CampaignLiveLootPanel'
 import { useCampaignLiveLoot } from '../loot/useCampaignLiveLoot'
@@ -75,6 +73,8 @@ import { useVttTokenArtUrls } from './useVttTokenArtUrls'
 import { CampaignTabletopEncounterDrawer } from './CampaignTabletopEncounterDrawer'
 import { CampaignTabletopActionDrawer } from './CampaignTabletopActionDrawer'
 import { CampaignTabletopZoneTool } from './CampaignTabletopZoneTool'
+import type { ZonePointPick } from './campaignTabletopZoneTool.model'
+import { CampaignVttGmViewControls } from './CampaignVttGmViewControls'
 import { CampaignTabletopActionConfirmation } from './CampaignTabletopActionConfirmation'
 import { LiveSessionCommandRejectedError } from './liveSessionClient'
 import { CampaignTabletopDecisionDrawer } from './CampaignTabletopDecisionDrawer'
@@ -83,6 +83,7 @@ import { selectMovementAllowance } from './CampaignTabletopMovementReadout.model
 import { CampaignEncounterDecision } from '../components/CampaignEncounterDecision'
 import { CampaignLiveSceneObjectEditor } from './CampaignLiveSceneObjectEditor'
 import { CampaignVttSceneEnvironmentControls } from './CampaignVttSceneEnvironmentControls'
+import { VttToolButton } from './VttToolButton'
 import { VttZoomControl } from './VttZoomControl'
 import { readStoredVttZoom, vttZoomStorageKey, writeStoredVttZoom } from './vttZoom.model'
 import * as styles from './CampaignVttStage.css'
@@ -138,12 +139,8 @@ export function CampaignVttStage({
   const [areaAim, setAreaAim] = useState<VttAreaAim | null>(null)
   const [areaSize, setAreaSize] = useState<VttAreaSize | null>(null)
   const [aimingArea, setAimingArea] = useState(false)
-  // The GM zone tool's open state, and the zone it aims on the map with where its center goes.
-  const [zoneToolOpened, setZoneToolOpened] = useState(false)
-  const [zoneAim, setZoneAim] = useState<{
-    size: SpatialPointAreaShape
-    onPicked: (point: ScenePoint) => void
-  } | null>(null)
+  // The zone the GM zone tool aims on the map, with where its picked center goes.
+  const [zoneAim, setZoneAim] = useState<ZonePointPick | null>(null)
   const zoneAimRef = useRef(zoneAim)
   const [actionPreview, setActionPreview] = useState<VttActionPreview | null>(null)
   // The action the caster is picking a target for on the map or in the turn-order list (ATTACK-17.1).
@@ -1424,24 +1421,16 @@ export function CampaignVttStage({
           ) : null}
           {campaign.role === 'OWNER' ? (
             <>
-              <Select
-                aria-label='GM vision preview'
-                data={[
-                  { label: 'Full GM view', value: 'GM' },
-                  ...campaign.memberships
-                    .filter((membership) => membership.role === 'PLAYER')
-                    .map((membership) => ({
-                      label: `Preview ${membership.username}`,
-                      value: membership.userId
-                    }))
-                ]}
-                size='xs'
-                value={gmPreviewUserId ?? 'GM'}
-                onChange={(value) => {
-                  setGmPreviewUserId(value && value !== 'GM' ? value : null)
+              <CampaignVttGmViewControls
+                memberships={campaign.memberships}
+                previewUserId={gmPreviewUserId}
+                sharePreviews={sharePreviews}
+                onPreviewUserChange={(userId) => {
+                  setGmPreviewUserId(userId)
                   setMode('PLAY')
                   setTool('SELECT')
                 }}
+                onSharePreviewsChange={setSharePreviews}
               />
               <CampaignVttSceneEnvironmentControls
                 disabled={live.status !== 'CONNECTED'}
@@ -1452,22 +1441,7 @@ export function CampaignVttStage({
                   if (isFogTool(tool)) setTool('SELECT')
                 }}
               />
-              <Tooltip
-                label={
-                  sharePreviews
-                    ? 'Players see your previews and pings'
-                    : 'Previews and pings are private'
-                }
-              >
-                <ActionIcon
-                  aria-label='Show my previews to players'
-                  aria-pressed={sharePreviews}
-                  variant={sharePreviews ? 'filled' : 'default'}
-                  onClick={() => setSharePreviews((current) => !current)}
-                >
-                  {sharePreviews ? <Eye aria-hidden size={18} /> : <EyeOff aria-hidden size={18} />}
-                </ActionIcon>
-              </Tooltip>
+
               <Tooltip label='Undo last token move'>
                 <ActionIcon
                   aria-label='Undo last token move'
@@ -1501,10 +1475,8 @@ export function CampaignVttStage({
               encounterVersion={activeEncounter.version}
               gameSystemId={campaign.gameSystemId}
               grid={encounterScene.grid}
-              opened={zoneToolOpened && !zoneAim}
-              onClose={() => setZoneToolOpened(false)}
-              onOpen={() => setZoneToolOpened(true)}
-              onPickPoint={(size, onPicked) => setZoneAim({ size, onPicked })}
+              picking={zoneAim !== null}
+              onPickPoint={setZoneAim}
               onSend={(command) => encounterCommand.mutateAsync(command)}
             />
           ) : null}
@@ -1909,31 +1881,5 @@ function VttEmpty({ body, title }: { body?: string; title: string }) {
         ) : null}
       </div>
     </section>
-  )
-}
-
-function VttToolButton({
-  definition,
-  onSelect,
-  selected
-}: {
-  definition: CampaignVttToolDefinition
-  onSelect: (tool: CampaignVttTool) => void
-  selected: boolean
-}) {
-  const Icon = definition.icon
-  return (
-    <Tooltip label={definition.label} position='right'>
-      <ActionIcon
-        aria-label={definition.label}
-        aria-pressed={selected}
-        color={selected ? 'brand' : undefined}
-        size='lg'
-        variant={selected ? 'filled' : 'subtle'}
-        onClick={() => onSelect(definition.value)}
-      >
-        <Icon aria-hidden size={19} />
-      </ActionIcon>
-    </Tooltip>
   )
 }

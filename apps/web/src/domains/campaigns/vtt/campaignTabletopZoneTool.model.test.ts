@@ -3,7 +3,7 @@ import { environmentalZones } from '@artificer-toolkit/rules-runtime/testing/aut
 import { resolveFixtureNodeRuntime } from '#test/nodeRuntimeResolver'
 import {
   createPlacedZoneDraft,
-  placedZoneOf,
+  isPlacedZone,
   placedZoneSize,
   placeZoneCommand
 } from './campaignTabletopZoneTool.model'
@@ -29,16 +29,16 @@ describe('the GM zone tool model (MOVE-3.2)', () => {
 
   it('accepts the starting draft and the authored environmental zones as placed zones', () => {
     const draft = createPlacedZoneDraft()
-    expect(placedZoneOf(draft)).toBe(draft)
-    for (const zone of Object.values(environmentalZones())) expect(placedZoneOf(zone)).toBe(zone)
+    expect(isPlacedZone(draft)).toBe(true)
+    for (const zone of Object.values(environmentalZones())) expect(isPlacedZone(zone)).toBe(true)
   })
 
   it('refuses a manifest that is not a placed-space zone, or incomplete form values', () => {
     const draft = createPlacedZoneDraft()
-    expect(placedZoneOf({ ...draft, attachmentKind: 'SOURCE' })).toBeNull()
-    expect(placedZoneOf({ ...draft, manifestKind: 'OBJECT' })).toBeNull()
-    expect(placedZoneOf({ ...draft, id: undefined })).toBeNull()
-    expect(placedZoneOf({})).toBeNull()
+    expect(isPlacedZone({ ...draft, attachmentKind: 'SOURCE' })).toBe(false)
+    expect(isPlacedZone({ ...draft, manifestKind: 'OBJECT' })).toBe(false)
+    expect(isPlacedZone({ ...draft, id: undefined })).toBe(false)
+    expect(isPlacedZone({})).toBe(false)
   })
 
   it('sizes a circle as a radius and a cube as a square in Scene units', () => {
