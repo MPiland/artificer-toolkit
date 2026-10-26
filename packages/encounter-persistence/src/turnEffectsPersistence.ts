@@ -229,6 +229,7 @@ export async function persistEncounterTurnEffects(
                 'HEAL',
                 'TEMPORARY_HIT_POINTS',
                 'DAMAGE',
+                'HIT_POINT_LOSS',
                 'CONDITION_APPLY',
                 'CONDITION_REMOVE'
               ].includes(application.kind) ||

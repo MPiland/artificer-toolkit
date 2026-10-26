@@ -369,6 +369,7 @@ export function prepareNativeActionEffectsPlan<
         application.sourceNodeId === plan?.frozenGraphNodeId &&
         (application.kind === 'HEAL' ||
           application.kind === 'DAMAGE' ||
+          application.kind === 'HIT_POINT_LOSS' ||
           application.kind === 'TEMPORARY_HIT_POINTS')
     )
   // A grant, concealment, link, form or deferred recurrence applies no stored state at cast, so its

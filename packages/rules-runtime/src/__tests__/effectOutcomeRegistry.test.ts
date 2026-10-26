@@ -11,7 +11,7 @@ import {
   TRIGGER
 } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument, type RuleGraphDefinition } from '@artificer-toolkit/shared/rules'
-import { SRD_ABILITIES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_ABILITIES, SRD_DAMAGE_TYPES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { executeNativeActionGraphs } from '../encounterActionExecution.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
@@ -33,6 +33,7 @@ import {
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
+  DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_OUTCOME_RULE_FACT_KEY
 } from '../systems/dnd5e/effectActionContracts.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
@@ -119,8 +120,10 @@ function graphOf(
   }
 }
 
-/** The outcome proposed with no test. */
-function directGraph(outcome: Dnd5eRegisteredOutcome) {
+type ProposalInputs = RuleGraphDefinition['nodes'][number]['inputs']
+
+/** The outcome proposed with no test; xtraInputs bind what its dice would roll. */
+function directGraph(outcome: Dnd5eRegisteredOutcome, extraInputs?: ProposalInputs) {
   const definition = dnd5eOutcomeDefinition(outcome.kind)
   return graphOf(
     [
@@ -130,7 +133,8 @@ function directGraph(outcome: Dnd5eRegisteredOutcome) {
         outcome,
         context: { conditionImmuneFactKey: DND5E_TARGET_CONDITION_IMMUNE_FACT_KEY },
         target: TARGET,
-        phase: { kind: 'DIRECT', contractVersion: 1 }
+        phase: { kind: 'DIRECT', contractVersion: 1 },
+        extraInputs
       })
     ],
     effectOutcomeProposalOutputs(definition, 'proposal')
@@ -140,7 +144,8 @@ function directGraph(outcome: Dnd5eRegisteredOutcome) {
 /** A Constitution save whose outcome is proposed, gated on the save's result path, on `authoredPath`. */
 function saveGraph(
   outcome: Dnd5eRegisteredOutcome,
-  authoredPath: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS'
+  authoredPath: 'ON_SAVE_FAIL' | 'ON_SAVE_SUCCESS',
+  extraInputs?: ProposalInputs
 ) {
   return graphOf(
     [
@@ -173,7 +178,8 @@ function saveGraph(
           kind: 'PATH_GATED',
           resolvedPath: { kind: 'NODE_OUTPUT', nodeId: 'test', port: 'resultPath' },
           authoredPath
-        }
+        },
+        extraInputs
       })
     ],
     {
@@ -186,8 +192,16 @@ function saveGraph(
   )
 }
 
-/** Runs one graph against a dying target that cannot make its save, through the native action executor. */
-function run(graph: RuleGraphDefinition) {
+type RunBinding = Parameters<typeof executeNativeActionGraphs>[0]['binding']
+
+/**
+ * Runs one graph against a target that cannot make its save, through the native action executor:
+ * a dying one unless 	arget gives it hit points or defenses.
+ */
+function run(
+  graph: RuleGraphDefinition,
+  target: Partial<Pick<RunBinding, 'currentHitPoints' | 'temporaryHitPoints' | 'defenses'>> = {}
+) {
   return executeNativeActionGraphs({
     runtime: createPlatformRulesRuntime({
       definitions: {
@@ -221,7 +235,8 @@ function run(graph: RuleGraphDefinition) {
       temporaryHitPoints: 0,
       maximumHitPoints: 20,
       targetScalarValues: { [STRENGTH]: 10 },
-      defenses: []
+      defenses: [],
+      ...target
     },
     afterTest: async () => undefined
   })
@@ -311,6 +326,77 @@ describe('the effect outcome registry (RULES-2.T6c1)', () => {
       expect(proposalAuthorized(execution, 'proposal-on_save_success')).toBe(false)
       expect(applications).toEqual([])
     })
+  })
+})
+
+describe('hit points lost directly (SPELLS-33.T6n2b)', () => {
+  const loss = {
+    kind: 'ENTRY_DICE_HIT_POINT_LOSS',
+    diceConfig: '2d6',
+    entryId: testUuid(0x6c30),
+    multiplier: 1
+  } as const
+  /** What the loss's dice rolled. */
+  const rolled = (value: number) => ({ amount: { kind: 'LITERAL', value } }) as const
+  const healthy = { currentHitPoints: 10, temporaryHitPoints: 3 }
+
+  it.each(['RESISTANCE', 'VULNERABILITY', 'IMMUNITY'] as const)(
+    'loses every hit point against %s to every damage type, temporary hit points first',
+    async (kind) => {
+      const defenses = SRD_DAMAGE_TYPES.map(({ id }) => ({ kind, damageTypeId: id }))
+      const { applications } = await run(directGraph(loss, rolled(5)), { ...healthy, defenses })
+      expect(applications).toEqual([
+        expect.objectContaining({
+          kind: 'HIT_POINT_LOSS',
+          requestedAmount: 5,
+          resolvedAmount: 5,
+          appliedAmount: 5,
+          beforeTemporaryHitPoints: 3,
+          afterTemporaryHitPoints: 0,
+          beforeCurrentHitPoints: 10,
+          afterCurrentHitPoints: 8,
+          maximumHitPoints: 20
+        })
+      ])
+    }
+  )
+
+  it('halves the same roll as resisted damage, which the loss never is', async () => {
+    const defenses = [{ kind: 'RESISTANCE', damageTypeId: FIRE_DAMAGE_TYPE_ID }] as const
+    const { applications } = await run(
+      directGraph({ kind: 'DAMAGE', amount: 5, damageTypeId: FIRE_DAMAGE_TYPE_ID }),
+      { ...healthy, defenses: [...defenses] }
+    )
+    expect(applications).toMatchObject([{ kind: 'DAMAGE', requestedAmount: 5, resolvedAmount: 2 }])
+  })
+
+  it('loses no more hit points than the target has', async () => {
+    const { applications } = await run(directGraph(loss, rolled(20)), healthy)
+    expect(applications).toMatchObject([
+      {
+        kind: 'HIT_POINT_LOSS',
+        requestedAmount: 20,
+        appliedAmount: 13,
+        afterTemporaryHitPoints: 0,
+        afterCurrentHitPoints: 0
+      }
+    ])
+  })
+
+  it('loses the hit points on a failed save and none on a made one', async () => {
+    const failed = await run(saveGraph(loss, 'ON_SAVE_FAIL', rolled(5)), healthy)
+    expect(failed.applications).toMatchObject([
+      {
+        kind: 'HIT_POINT_LOSS',
+        appliedAmount: 5,
+        authoredPath: 'ON_SAVE_FAIL',
+        resolvedPath: 'ON_SAVE_FAIL',
+        sourceOperationKey: DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY
+      }
+    ])
+    const made = await run(saveGraph(loss, 'ON_SAVE_SUCCESS', rolled(5)), healthy)
+    expect(proposalAuthorized(made.execution, 'proposal-on_save_success')).toBe(false)
+    expect(made.applications).toEqual([])
   })
 })
 

@@ -38,6 +38,8 @@ export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
 export const DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY = 'dnd5e.play-absence-proposal'
 export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-concealed-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
+/** Hit points lost directly: no damage type, so no resistance, vulnerability or damage rider. */
+export const DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY = 'dnd5e.hit-point-loss-proposal'
 export const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
   'dnd5e.hit-point-maximum-reduction-proposal'
 export const DND5E_DAMAGE_DERIVED_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-derived-heal-proposal'
@@ -183,6 +185,7 @@ export const DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.test-heal-proposal'
 export const DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
   'dnd5e.test-temporary-hit-points-proposal'
 export const DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.test-damage-proposal'
+export const DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY = 'dnd5e.test-hit-point-loss-proposal'
 export const DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY = 'dnd5e.test-condition-proposal'
 export const DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY =
   'dnd5e.test-scalar-reduction-proposal'
@@ -231,17 +234,25 @@ export type Outcome =
       terminalConsequence: 'TARGET_DIED'
     }
 /**
- * Damage whose dice the test graph itself rolls, only when the test resolves to the authored path
- * (a placed zone's failed entry save). The dice are evidence requests of the one frozen graph.
+ * Hit points lost to dice the test graph itself rolls, only when the test resolves to the authored
+ * path (a placed zone's failed entry save). The dice are evidence requests of the one frozen graph.
  */
-export type EntryDiceDamageOutcome = {
-  kind: 'ENTRY_DICE_DAMAGE'
+type EntryDiceShare = {
   diceConfig: string
-  damageTypeId: string
   /** The compiled entry this result's proposal node is bound to. */
   entryId: string
   /** The share of the roll this result deals: 1 for the failed save, one half for the made save. */
   multiplier: number
+}
+export type EntryDiceDamageOutcome = EntryDiceShare & {
+  kind: 'ENTRY_DICE_DAMAGE'
+  damageTypeId: string
+}
+/** Entry dice taken as hit points lost directly, which no damage type, defense or save multiplier touches. */
+export type EntryDiceHitPointLossOutcome = EntryDiceShare & { kind: 'ENTRY_DICE_HIT_POINT_LOSS' }
+export type EntryDiceOutcome = EntryDiceDamageOutcome | EntryDiceHitPointLossOutcome
+export function isEntryDiceOutcome(outcome: { kind: string }): outcome is EntryDiceOutcome {
+  return outcome.kind === 'ENTRY_DICE_DAMAGE' || outcome.kind === 'ENTRY_DICE_HIT_POINT_LOSS'
 }
 /** The ids of the entry dice damage nodes: the executor reads the dice as these graph nodes. */
 export const ENTRY_DAMAGE_NODE_PREFIX = 'damage-'

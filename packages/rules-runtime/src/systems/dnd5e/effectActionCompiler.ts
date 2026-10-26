@@ -66,6 +66,7 @@ import { entryOwed } from './effectActionEntryOwed.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import { saveDamageMultiplierFacts, withSaveDamageMultiplier } from './effectActionSaveDamage.js'
 import {
+  relationshipOperationKey,
   relationshipRecurrenceGraph,
   relationshipRecurrencePlan,
   relationshipStateGraph
@@ -133,7 +134,6 @@ import {
   DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
   DND5E_HEAL_TOTAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
-  DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
   DND5E_CONDITION_DURATION_OPERATION_KEY,
   DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
   DND5E_TARGET_ACTOR_FACT_KEY,
@@ -3266,11 +3266,7 @@ function dnd5eActiveEffectPlans(
   const recurringOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : null
   const testOutcomeKind = test && recurringOutcome ? boundedTestOutcome(firstEntry!).kind : null
   const expectedOperation = relationship
-    ? relationship.frozenGraphNodeId === 'proposal-on_save_fail'
-      ? DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY
-      : relationship.recurrenceStage === 'START_OF_TURN'
-        ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-        : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
+    ? relationshipOperationKey(action)
     : savePlan
       ? DND5E_SAVE_TEST_OPERATION_KEY
       : timedPlan

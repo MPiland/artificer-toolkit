@@ -437,6 +437,8 @@ interface CharacterHitPointOutcomeApplicationBase {
 
 export type CharacterHitPointOutcomeApplication =
   | (CharacterHitPointOutcomeApplicationBase & { kind: 'HEAL' })
+  /** Hit points lost directly, with no damage type: temporary hit points absorb it first. */
+  | (CharacterHitPointOutcomeApplicationBase & { kind: 'HIT_POINT_LOSS' })
   | (CharacterHitPointOutcomeApplicationBase & {
       kind: 'TEMPORARY_HIT_POINTS'
       /** The active effect the temporary hit points belong to, absent when none (D156). */

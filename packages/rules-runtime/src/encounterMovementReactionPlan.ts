@@ -9,8 +9,8 @@ import {
   resolveEncounterActionPhaseExecution
 } from './encounterActionPhaseExecution.js'
 import {
-  encounterRuleUsageUsed,
-  withEncounterRuleUsageUsed,
+  encounterAllowanceUsed,
+  withEncounterAllowanceUsed,
   featureChargeUsed,
   withFeatureChargeUsed
 } from './encounterActorState.js'
@@ -241,9 +241,14 @@ function movementReactionActors<
 ) {
   const { prepared } = input
   const execution = requireCompletedMovementReaction(input)
+  const allowance = {
+    definitionId: prepared.allowance.definitionId,
+    refreshBoundary: prepared.option.policy.allowanceRefreshBoundary
+  }
+  const { turnSequence } = prepared.prepared.state
 
   if (
-    encounterRuleUsageUsed(settled.settledSource, prepared.allowance.definitionId) !==
+    encounterAllowanceUsed(settled.settledSource, allowance, turnSequence) !==
       prepared.allowance.beforeUsed ||
     prepared.allowance.afterUsed !== prepared.allowance.beforeUsed + 1 ||
     prepared.allowance.afterUsed > prepared.allowance.maximum
@@ -251,9 +256,10 @@ function movementReactionActors<
     throw new Error('The movement reaction allowance changed before settlement.')
   const sourceActor = encounterRunActorStateSchema.parse({
     ...settled.settledSource,
-    resources: withEncounterRuleUsageUsed(
+    resources: withEncounterAllowanceUsed(
       settled.settledSource,
-      prepared.allowance.definitionId,
+      allowance,
+      turnSequence,
       prepared.allowance.afterUsed
     )
   })

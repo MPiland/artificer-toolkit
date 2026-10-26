@@ -15,7 +15,8 @@ import {
   DND5E_TEST_OUTCOME_RULE_FACT_KEY,
   type TestKind,
   type Outcome,
-  type EntryDiceDamageOutcome
+  type EntryDiceOutcome,
+  isEntryDiceOutcome
 } from './effectActionContracts.js'
 import {
   pathGatedProposalNode,
@@ -42,7 +43,7 @@ import { saveDamageMultiplied } from './effectActionSaveDamage.js'
 
 export interface TestPlan {
   kind: TestKind
-  branches: ReadonlyMap<string, Outcome | EntryDiceDamageOutcome>
+  branches: ReadonlyMap<string, Outcome | EntryDiceOutcome>
   /** A condition a result path applies beside its branch, from a proposal of its own (D142). */
   conditions?: ReadonlyMap<string, { outcome: Outcome; entryId: string }>
 }
@@ -50,7 +51,7 @@ export interface TestPlan {
 /** A result path's outcome inside a test graph: proposed only when the test resolves to that path. */
 function proposalNode(
   pathCode: string,
-  outcome: Outcome | EntryDiceDamageOutcome,
+  outcome: Outcome | EntryDiceOutcome,
   suffix = '',
   savesForHalf = false
 ) {
@@ -61,10 +62,9 @@ function proposalNode(
     outcome,
     conditionImmuneFactKey:
       DND5E_CONDITION_IMMUNE_FACT_KEYS[pathCode as keyof typeof DND5E_CONDITION_IMMUNE_FACT_KEYS],
-    amount:
-      outcome.kind === 'ENTRY_DICE_DAMAGE'
-        ? entryDiceDamageGraph(pathCode, outcome, savesForHalf).amount
-        : undefined
+    amount: isEntryDiceOutcome(outcome)
+      ? entryDiceDamageGraph(pathCode, outcome, savesForHalf).amount
+      : undefined
   })
 }
 
@@ -74,11 +74,7 @@ function proposalNode(
  * dealt through the damage multiplier, then, for a save the target makes for half, through the
  * target's own save-damage multiplier.
  */
-function entryDiceDamageGraph(
-  pathCode: string,
-  outcome: EntryDiceDamageOutcome,
-  savesForHalf: boolean
-) {
+function entryDiceDamageGraph(pathCode: string, outcome: EntryDiceOutcome, savesForHalf: boolean) {
   const prefix = entryDamagePrefix(pathCode)
   const enabledNodeId = `${prefix}enabled`
   const totalNodeId = `${prefix}total`
@@ -122,17 +118,18 @@ function entryDiceDamageGraph(
     ...totalNodes,
     ...multiplied.nodes
   ]
-  if (!savesForHalf || (pathCode !== 'ON_SAVE_FAIL' && pathCode !== 'ON_SAVE_SUCCESS'))
+  // A save multiplier (Evasion) changes damage, never hit points lost directly.
+  if (
+    !savesForHalf ||
+    outcome.kind !== 'ENTRY_DICE_DAMAGE' ||
+    (pathCode !== 'ON_SAVE_FAIL' && pathCode !== 'ON_SAVE_SUCCESS')
+  )
     return { nodes, amount: multiplied.amount }
   const saved = saveDamageMultiplied(`${prefix}save-multiplied`, multiplied.amount, pathCode)
   return { nodes: [...nodes, saved.node], amount: saved.amount }
 }
 
-function entryDiceDamageNodes(
-  pathCode: string,
-  outcome: EntryDiceDamageOutcome,
-  savesForHalf: boolean
-) {
+function entryDiceDamageNodes(pathCode: string, outcome: EntryDiceOutcome, savesForHalf: boolean) {
   return [
     ...entryDiceDamageGraph(pathCode, outcome, savesForHalf).nodes,
     proposalNode(pathCode, outcome, '', savesForHalf)
@@ -155,7 +152,7 @@ export function compileTestDefinition(
     plan.kind === 'SAVE' && plan.branches.get('ON_SAVE_SUCCESS')?.kind === 'ENTRY_DICE_DAMAGE'
   const proposalNodes: RuleGraphDefinition['nodes'] = [
     ...[...plan.branches].flatMap(([pathCode, outcome]) =>
-      outcome.kind === 'ENTRY_DICE_DAMAGE'
+      isEntryDiceOutcome(outcome)
         ? entryDiceDamageNodes(pathCode, outcome, savesForHalf)
         : [proposalNode(pathCode, outcome)]
     ),
@@ -228,7 +225,7 @@ export function compileTestDefinition(
             },
             // A zone's made save deals its own damage from its own proposal node.
             ...[...plan.branches].flatMap(([pathCode, outcome]) =>
-              outcome.kind === 'ENTRY_DICE_DAMAGE' &&
+              isEntryDiceOutcome(outcome) &&
               `proposal-${pathCode.toLowerCase()}` !== recurringPlan.frozenGraphNodeId
                 ? [
                     {

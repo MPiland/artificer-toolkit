@@ -21,3 +21,26 @@ Proofs: `rules-runtime/src/__tests__/encounterAttackAppliedEffects.test.ts` (mel
 exclusivity, tick count, cross- and same-holder replacement, homebrew parity);
 `session-worker/test/nativeRoomMarking.test.ts` (room journey: lasts through next turn, moves and
 undo restores, none while off).
+
+## T2: marked opportunity attack with advantage, free once per turn (AC ATTACK-13.2)
+
+Ruling A (orchestrator): a turn-scoped record keyed by `turnSequence` (the zoneApplications pattern),
+no refresh writes; it lapses on any new `turnSequence`, GM turn moves included; named by capability
+definition id; no compatibility shim.
+
+- New `ENABLE` domain `FREE_OPPORTUNITY_REACTION` on the SRD mark; `encounterGrantsFreeOpportunityReaction`
+  scopes it per reactor by the effect's event scope (`fromSourceOnly` = the marker only).
+- New refresh boundary `EACH_TURN`; SRD capability "Free reaction allowance" (`...00d9`, maximum 1),
+  suppressed by the same conditions as the reaction.
+- The D&D eligibility op outputs `freeReaction`; the adapter maps it to the chosen allowance's id,
+  maximum and refresh boundary, which the prepare, plan and live persistence spend sites read.
+- Undo: a move that settled a reaction cannot be undone (Scene undo refused, action undo
+  unavailable), so there is no revert path to restore; the journey proves the refusal keeps the record.
+  A write of 0 removes the entry, so a future restore would store the prior row exactly.
+
+Proofs: `rules-runtime/src/__tests__/dnd5eMovementReactionEligibility.test.ts` (granted, free used,
+reaction spent, suppressed, cannot act); `encounterTurnUsage.test.ts` (lapse on a new turn, stale
+entries dropped, empty record removed, START_OF_TURN unchanged); `encounterAttackAppliedEffects.test.ts`
+(marker only; homebrew without `fromSourceOnly` frees anyone); `nativeRoomMarking.test.ts` (room
+journey: free advantaged OA, Scene undo refused, second OA spends the reaction, third has none,
+PREVIOUS_TURN renews the free one).

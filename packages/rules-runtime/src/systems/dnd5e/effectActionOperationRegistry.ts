@@ -63,6 +63,7 @@ import {
   DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY,
   DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
+  DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_DERIVED_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -113,6 +114,7 @@ import {
   DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
+  DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
   UUID,
@@ -163,6 +165,9 @@ export function simpleOperation(key: string): ProposalRuleOperationContract {
   }
 }
 export const dnd5eHealProposalOperation = simpleOperation(DND5E_HEAL_PROPOSAL_OPERATION_KEY)
+export const dnd5eHitPointLossProposalOperation = simpleOperation(
+  DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY
+)
 /**
  * A proposal that applies one fixed outcome to the target and carries no amount. With
  * `changesTargetState` false the outcome stores nothing on the target (an Active Effect owns it), so
@@ -1208,6 +1213,10 @@ export const dnd5eTestDamageProposalOperation = testProposalOperation(
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
   { amount: RULE_VALUE_KIND.NUMBER, damageTypeId: RULE_VALUE_KIND.TEXT }
 )
+export const dnd5eTestHitPointLossProposalOperation = testProposalOperation(
+  DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
+  { amount: RULE_VALUE_KIND.NUMBER }
+)
 export const dnd5eTestConditionProposalOperation = testProposalOperation(
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   { conditionId: RULE_VALUE_KIND.TEXT },
@@ -1234,6 +1243,7 @@ export const dnd5ePathGatedProposalOperations = [
   dnd5eTestHealProposalOperation,
   dnd5eTestTemporaryHitPointsProposalOperation,
   dnd5eTestDamageProposalOperation,
+  dnd5eTestHitPointLossProposalOperation,
   dnd5eTestScalarReductionProposalOperation,
   dnd5eTestConditionProposalOperation,
   dnd5eTestMarginConditionProposalOperation,
@@ -1395,6 +1405,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
     DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
+    DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
     DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_DERIVED_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -1410,6 +1421,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
+    DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
     ...dnd5ePathGatedTargetProposalOperations.map(({ key }) => key),
