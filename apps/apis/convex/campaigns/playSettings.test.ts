@@ -746,13 +746,13 @@ describe('native Campaign play settings', () => {
     const disarm = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
       (definition) => definition.document.kind === 'DISARM'
     )
-    const mark = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
-      (definition) => definition.document.kind === 'MARK'
+    const climb = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+      (definition) => definition.document.kind === 'CLIMB_ONTO_LARGER_CREATURE'
     )
-    if (!disarm || !mark) throw new Error('Missing optional combat fixtures.')
+    if (!disarm || !climb) throw new Error('Missing optional combat fixtures.')
     await t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: [disarm, mark]
+      definitions: [disarm, climb]
     })
     const saved = await owner.caller.mutation(save, {
       ...input(settings),
@@ -761,7 +761,7 @@ describe('native Campaign play settings', () => {
     expect(saved.optionalCombatRuleDefinitionIds).toEqual([disarm.id])
     const before = await stored(t)
     await expect(
-      owner.caller.mutation(save, { ...input(saved), optionalCombatRuleDefinitionIds: [mark.id] })
+      owner.caller.mutation(save, { ...input(saved), optionalCombatRuleDefinitionIds: [climb.id] })
     ).rejects.toThrow('not available for Encounter execution')
     await expect(
       owner.caller.mutation(save, {

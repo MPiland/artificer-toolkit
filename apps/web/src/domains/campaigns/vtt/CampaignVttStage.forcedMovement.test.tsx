@@ -138,6 +138,7 @@ function renderStage(
       turnMovement: [],
       halfSpeedFields: [],
       movementCostZones: [],
+      placedZones: [],
       auras: []
     },
     preparedPending: [],

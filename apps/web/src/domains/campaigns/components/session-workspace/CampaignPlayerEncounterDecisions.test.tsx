@@ -152,7 +152,8 @@ describe('CampaignPlayerEncounterDecisions', () => {
           turnMovement: [],
           halfSpeedFields: [],
           auras: [],
-          movementCostZones: []
+          movementCostZones: [],
+          placedZones: []
         },
         preparedPending: [{ encounter: prepared, pending }],
         actorSides: null,

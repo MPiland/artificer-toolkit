@@ -195,7 +195,8 @@ describe('CampaignEncounterWorkspace controls', () => {
         turnMovement: [],
         halfSpeedFields: [],
         auras: [],
-        movementCostZones: []
+        movementCostZones: [],
+        placedZones: []
       },
       preparedPending: [],
       actorSides: null,
@@ -334,7 +335,8 @@ describe('CampaignEncounterWorkspace controls', () => {
           turnMovement: [],
           halfSpeedFields: [],
           auras: [],
-          movementCostZones: []
+          movementCostZones: [],
+          placedZones: []
         },
         preparedPending: [],
         actorSides: null,

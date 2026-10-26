@@ -50,6 +50,7 @@ import {
   spatialGeometryDtoSchema,
   spatialPersistedGeometryDtoSchema,
   spatialPositiveDistanceDtoSchema,
+  zoneDcDtoSchema,
   zoneMovementCostMultiplierSchema
 } from '../shared/spatial.js'
 import {
@@ -651,7 +652,7 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
     /**
      * The visible fields in the Run's Scene that a voluntary mover may cross carefully: double the
      * movement cost for no entry save. A dragged path that enters one offers that choice. A hidden
-     * field is never listed.
+     * field is never listed, nor one concealed from the member (MOVE-3.3).
      */
     halfSpeedFields: z
       .array(
@@ -684,7 +685,8 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
      * The visible, active zones that raise what moving through them costs (D154, D156), so the map
      * can price a dragged path as the room will. A token-anchored zone is carried only when the
      * member's projection lists its source, and `unaffectedActorIds` names only listed actors.
-     * Shown, never enforced: the room charges the movement.
+     * Shown, never enforced: the room charges the movement. A zone concealed from the member is not
+     * carried (MOVE-3.3).
      */
     movementCostZones: z
       .array(
@@ -695,6 +697,25 @@ export const encounterSessionStateDtoSchema = lazySchema(() =>
           geometry: spatialPersistedGeometryDtoSchema,
           sourceTokenId: z.nullable(postgresUuidSchema),
           unaffectedActorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+        })
+      )
+      .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE)),
+    /**
+     * The visible zones fixed to the Run's Scene, whose outlines the member's map draws. A zone
+     * concealed from the member is not listed: the GM sees every zone, a player only those one of
+     * their Characters knows of (MOVE-3.3). The spot and disarm DCs reach only the GM; a player reads
+     * null.
+     */
+    placedZones: z
+      .array(
+        z.strictObject({
+          id: postgresUuidSchema,
+          label: z.nullable(
+            z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240))
+          ),
+          shape: spatialGeometryDtoSchema,
+          spotDc: z.nullable(zoneDcDtoSchema),
+          disarmDc: z.nullable(zoneDcDtoSchema)
         })
       )
       .check(z.maxLength(MAX_SPATIAL_RULE_EFFECTS_PER_SCENE))

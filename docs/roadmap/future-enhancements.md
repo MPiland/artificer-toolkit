@@ -83,6 +83,15 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 - **Tracking:** this is a business plan, kept here and out of the Phase 8.2 work-slice registry, whose dashboard tracks dev completion only (user, 2026-10-01). Audience-building comes first. React Flow prototypes may serve as campaign footage; the features themselves keep the schedule in the node-based section above.
 - **Next step:** Claude drafts a campaign plan for the user's review. It covers the goal built from real costs, the reward tiers, a timeline tied to the Phase 8.2 and 8.3 finish, a page outline, a video shot list, the waitlist and the risks.
 
+## Work tracking after Phase 8 (user direction, 2026-10-26)
+
+- **Hierarchy:** feature → PBI → task, plus a separate **bug** item type. A bug belongs to a feature (and names the PBI it regresses, when there is one), has a severity, and blocks that feature's UAT until it is fixed. A bug is never registered as a PBI.
+- **UAT per feature, not per phase:** each feature owns written UAT scenarios: setup, ordered GM and player steps, expected results, and which steps a CI browser proof automates. The scenarios are written when the feature's PBIs are refined, so its acceptance is defined before the build, not at the end. A feature stays IN_PROGRESS until its scenarios pass and the owner accepts them; then it is DONE and promotable. UAT is not a PBI or task; the orchestrator runs it.
+- **Independent features:** after Phase 8, features are vertical slices that work without other unfinished features; Phase 8's interconnected VTT work is the foundation they build on. Each feature is promoted to production on its own once its UAT is accepted.
+- **Feature branches and staging:** a feature's PBIs merge to its own feature branch. The feature branch deploys to staging, which mimics production, and UAT runs there. Once the owner accepts it, the feature merges and promotes to production. An accepted feature may also ship behind a feature flag and stay off until a planned release; this adds to the flow and doesn't replace it.
+- **Open before adopting:** there is one staging environment, so two features in UAT at once need a queue or per-feature preview environments. Staging is Convex Cloud, so each UAT deploy needs the owner's approval (ADR 0035) and counts against the free plan. A feature branch that waits on UAT rebases onto production before its staging deploy.
+- **Journeys that cross features** (for example an Encounter that uses ATTACK and MOVE) belong to the feature that completes last, which reruns the earlier features' affected scenarios as regression.
+
 ## Post-launch
 
 - **Costly and consumed material components (D171):** authored `materialCost` and `consumed` fields on spells, checked against the caster's inventory and deducted on cast, for example Revivify's 300 gp diamond. Today the material description is shown only.
@@ -91,6 +100,7 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
+- **Area attacks do not mark under Marking (ATTACK-13.T3):** an area action with an attack roll (rare in melee) gives no mark, because its targets settle in one command and each would replace the attacker's mark against the effects held before the command, leaving several marks from one attacker. The GM marks by hand. The fix is to apply area marks after the command's grants settle, keeping only the last target's.
 - **Massive damage from forced-movement damage (ATTACK-16.T1c1):** damage a creature takes during forced movement (falling, a hazard on the path) goes through the movement damage chain, which holds only Concentration saves, so it never owes a massive-damage save. Attack, area, cleave and turn damage all do. A single movement hit of half a creature's maximum hit points is rare, and the GM can apply System Shock by hand.
 - **Incoming damage reduction on a multi-type hit (SPELLS-31.T5b):** an INCOMING_DAMAGE REDUCE (Deflect Missiles) reduces only the attack's primary damage, before halving and resistance; a reduction larger than the primary damage does not spill over to the attack's other damage types. A ranged weapon attack with a second damage type is rare (a flame tongue thrown weapon, a creature's poisoned arrow). The GM takes the rest off the other type. The fix is to spread the remaining reduction over the other damage proposals in order.
 - **Source backfill near the 1s mutation limit (SPELLS-4.T2lb2d):** `content/sourceMigrations` rewrites one root per mutation, and the largest roots (Barbarian, about 123 KB) take about 260 ms cold in Node. 80% of that is the `authoredDocumentVersionSchema.parse` at `apps/apis/convex/content/sourceMigrations.ts:22`, which may repeat the write path's own validation. On the local backend a run timed out at 1s. It only matters when stored sources go stale; pre-launch, a reseed replaces them. If it recurs, drop the extra parse or split the largest roots.
@@ -582,6 +592,15 @@ These rare riders ship as description with a GM ruling. Each item names the engi
 - **Maze escape as a spell-held effect.**
 - **Holy Aura blinding attackers who hit the holder:** retaliation for multi-target holders.
 - **Jumping and elevation (3D movement):** the engine has no vertical position, so Jump, Levitate and Reverse Gravity ship as GM rulings (SPELLS-4.T2o, D187a), and Second-Story Work and Step of the Wind wait on it. The speed-equal-to-another-speed value source shipped in SPELLS-4.T2o.
+  - **Verticality, well after launch (user direction, 2026-10-26):** prove the 2D system in live play first. Direction, to be split into features later:
+    - **Rules model ("2.5D"):** an elevation number on each token and a ground height on each grid cell. No meshes or prefab buildings.
+    - **What it unlocks:** flying, falling damage, Jump, Levitate, Spider Climb, high ground, and cover and line of sight over terrain.
+    - **Spatial rules that gain a dimension:** distance, reach, range, climbing movement cost, and area shapes (sphere versus cylinder, cones aimed up or down).
+    - **Authoring:** a height brush painted over the existing 2D map image (raise, lower, flatten, fill a region). Every cell is ground level by default, so flat maps cost nothing extra.
+    - **Top-down view (stays the default):** a height tint or contour lines on cells and an elevation badge on tokens.
+    - **Tilted view (optional, Final Fantasy Tactics style):** the same data with cells extruded to their height and textured from the map image, and flying tokens shown with a ground shadow. It is a view only, so it needs no new data. It needs a 3D renderer, and phones and weak machines keep the top-down view.
+    - **Limits:** a height grid cannot represent overhangs, bridges or upper floors. Those need levels per Scene (one map per floor). Build levels only if tables ask for them. Foundry core has only a token elevation number, and levels need its Levels add-on.
+    - **Main cost:** the spatial engine, not the rendering.
 - **Damage MULTIPLY:** Ray of Enfeeblement (SPELLS-4.T2p ships it as a GM ruling with the end-of-turn Constitution save).
 - **Forced push along a line and doubled movement cost:** Gust of Wind and Telekinesis ship as GM rulings (SPELLS-4.T2p).
 - **Re-aimable line and creature-type save disadvantage:** Sunbeam's fresh line each turn and the undead and ooze disadvantage (SPELLS-4.T2p).
