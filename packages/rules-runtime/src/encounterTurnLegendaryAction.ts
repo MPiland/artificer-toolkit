@@ -426,9 +426,13 @@ export async function prepareTurnLegendaryActions<
               })()
           }
         : { kind: 'ENCOUNTER_ACTOR' as const, encounterId: state.id, targetActorId: target.id }
-    // A hit on one of the target's decoys destroys it, so later windows see what is left.
+    // A hit on one of the target's decoys destroys it, so later windows see what is left. The effects
+    // the action ended or a grant replaced are deleted before the new ones are created, so those are
+    // numbered after what the target keeps.
     const targetEffects = withDecoyStrikeApplied(
-      prepared.targetFacts.activeEffects,
+      prepared.targetFacts.activeEffects.filter(
+        ({ id }) => !damageEnded.endedEffects.some((ended) => ended.id === id)
+      ),
       decoyStrikeEffects(prepared.attackDecoy, result.d20?.resultPath)
     )
     const createdEffects: ActiveRuleEffectRecord[] = []

@@ -53,6 +53,9 @@ PREVIOUS_TURN renews the free one).
   `prepareAttackTargetGrantTriggers`, so they mark; replaced marks join the ended grants.
 - Legendary persistence (`turnResourcesPersistence.ts`) reads the grant ids from both mechanics batch
   kinds (Character targets too) and ends the owner's earlier `PER_SOURCE` mark on other holders.
+- Fix: the Legendary plan numbers its new effects (`createdOrdinal`) after the effects the target
+  keeps, since persistence deletes the ended and replaced ones before creating; a Character re-marked
+  by the same owner was rejected ("Created action effect changed before settlement").
 - Deferred: area attacks with an attack roll do not mark (rare; several targets in one command would
   each replace against pre-command effects). Logged in future-enhancements Deferred edge cases.
 - Unintegrated fixture in the settings tests moved from MARK to CLIMB_ONTO_LARGER_CREATURE.
