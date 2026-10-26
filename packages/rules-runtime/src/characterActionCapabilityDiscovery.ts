@@ -15,6 +15,7 @@ export interface EffectActionCapabilityDescriptor {
     | 'ENCOUNTER_FEATURE'
     | 'BASIC_ACTION'
     | 'REPEAT_PATH'
+    | 'RULE'
   gameSystemId: string
   authoredRootKind: 'effect'
   entryPointDefinitionId: string
