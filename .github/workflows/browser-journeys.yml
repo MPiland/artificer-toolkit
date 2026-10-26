@@ -63,6 +63,9 @@ jobs:
           exit 1
       - name: Provision the throwaway env
         run: node scripts/throwawayConvexStack.mjs --secrets-file="$RUNNER_TEMP/throwaway-secrets"
+      # Seeding builds Content snapshots into the R2 substitute; runLocalBrowserProof reuses it.
+      - name: Start the local Convex fixtures
+        run: pwsh -NoProfile -File scripts/localConvexFixtures.ps1 -Action start
       - name: Deploy and seed
         run: node scripts/liveBackendValidation.mjs --steps=deploy,seed --log-dir=browser-journey-logs/live-backend
       - name: Run player-browser
