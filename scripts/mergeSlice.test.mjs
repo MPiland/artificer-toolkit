@@ -8,6 +8,7 @@ import {
   mergeSizeBudgets,
   mergeSlice,
   parseSlices,
+  READ_TRIES,
   MergeRefused,
   nextMergeNumber,
   runsVerdict,
@@ -337,27 +338,39 @@ describe('mergeSlice waiting on dispatched runs', () => {
     await expect(mergeSlice(input(tip), tools)).rejects.toThrow(/did not finish/)
   })
 
-  it('retries a GitHub 5xx while waiting and still merges', async () => {
-    const { work, tip, origin } = repo()
-    const { tools } = platform(work, { failReads: ['HTTP 504: Gateway Timeout'] })
-    await mergeSlice(input(tip), tools)
-    expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
-  })
+  // Real gh stderr from the failed merge runs m470 (HTTP 500) and m472 (HTTP 504).
+  const HTTP_500 =
+    'failed to get run: HTTP 500 (https://api.github.com/repos/MPiland/artificer-toolkit/actions/workflows/367981974)'
+  const HTTP_504 = "failed to get run: HTTP 504: We couldn't respond to your request in time."
 
-  it('fails with the error once a 5xx persists past the retry window', async () => {
+  it.each([HTTP_500, HTTP_504])(
+    'retries a transient GitHub error and still merges: %s',
+    async (stderr) => {
+      const { work, tip, origin } = repo()
+      const failReads = [stderr]
+      const { tools } = platform(work, { failReads })
+      await mergeSlice(input(tip), tools)
+      expect(failReads).toHaveLength(0)
+      expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
+    }
+  )
+
+  it('fails with the error after exactly READ_TRIES attempts when a 5xx persists', async () => {
     const { work, tip, origin } = repo()
     const before = sh(origin, 'rev-parse', PHASE)
-    const { tools } = platform(work, { failReads: Array(20).fill('HTTP 500: Server Error') })
+    const failReads = Array(READ_TRIES + 5).fill(HTTP_500)
+    const { tools } = platform(work, { failReads })
     await expect(mergeSlice(input(tip), tools)).rejects.toThrow(/HTTP 500/)
+    expect(READ_TRIES + 5 - failReads.length).toBe(READ_TRIES)
     expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
   })
 
-  it('fails at once on a 4xx without retrying', async () => {
+  it('fails at once on a 4xx with a single attempt', async () => {
     const { work, tip } = repo()
-    const failReads = ['HTTP 404: Not Found', 'HTTP 404: Not Found']
+    const failReads = Array(READ_TRIES).fill('failed to get run: HTTP 404: Not Found')
     const { tools } = platform(work, { failReads })
     await expect(mergeSlice(input(tip), tools)).rejects.toThrow(/HTTP 404/)
-    expect(failReads).toHaveLength(1)
+    expect(failReads).toHaveLength(READ_TRIES - 1)
   })
 
   describe('batching several slices', () => {

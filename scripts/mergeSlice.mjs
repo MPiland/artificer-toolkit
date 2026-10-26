@@ -27,10 +27,10 @@ const DISPATCH_SKEW_MS = 60_000
 const LISTING_TRIES = 4
 const LISTING_RETRY_MS = 5_000
 // A read that fails with a GitHub 5xx or a network timeout is retried for about 2.5 minutes.
-const READ_TRIES = 6
+export const READ_TRIES = 6
 const READ_RETRY_MS = 30_000
 const TRANSIENT_GH_ERROR =
-  /HTTP 5dd|timed? ?out|timeout|connection reset|ECONNRESET|unexpected EOF/i
+  /HTTP 5\d\d|timed? ?out|timeout|connection reset|ECONNRESET|unexpected EOF/i
 
 export class MergeRefused extends Error {}
 
