@@ -8,6 +8,7 @@ import type {
   ManifestComponentAuthored,
   ManifestDestructionCriterionAuthored,
   ManifestLightAuthored,
+  ManifestCamouflageAuthored,
   ManifestOccupantSaveBonusAuthored,
   ManifestProximityRuleAuthored,
   PathLifecycleAuthored,
@@ -103,6 +104,7 @@ import {
   FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
   FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
 } from './followUpSaveRepeat.js'
+import { HELD_ESCAPE_DC_NODE_MAP } from './check.js'
 import {
   PATH_LIFECYCLE_ESCAPE_NODE_MAP,
   PATH_LIFECYCLE_ON_END_NODE_MAP,
@@ -136,6 +138,7 @@ type FollowUpSaveAttemptsNode = AllUnionFields<FollowUpSaveAuthored['attempts']>
 type ManifestDestructionCriterionNode = AllUnionFields<ManifestDestructionCriterionAuthored>
 type ManifestProximityRuleNode = ManifestProximityRuleAuthored
 type ManifestOccupantSaveBonusNode = AllUnionFields<ManifestOccupantSaveBonusAuthored>
+type ManifestCamouflageNode = ManifestCamouflageAuthored
 type ManifestComponentRegionNode = NonNullable<ManifestComponentAuthored['region']>
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
 type NodeMapBuildApi<NLocal extends object> = Parameters<
@@ -209,6 +212,7 @@ const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNo
 const manifestLight = buildNodeMap<ManifestLightAuthored>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
 const manifestOccupantSaveBonus = buildNodeMap<ManifestOccupantSaveBonusNode>()
+const manifestCamouflage = buildNodeMap<ManifestCamouflageNode>()
 const resultBlock = buildNodeMap<ResultBlockAuthored>()
 const nonManifestResultBlock = buildNodeMap<ResultBlockAuthored<NonManifestOutcomeAuthored>>()
 const hitPointTierRow = buildNodeMap<PathHitPointTierRowAuthored>()
@@ -713,6 +717,19 @@ const MANIFEST_LIGHT_NODE_MAP: NodeMap<ManifestLightAuthored> = manifestLight.de
           requiredIf: true
         })
       )
+  }
+)
+
+const MANIFEST_CAMOUFLAGE_NODE_MAP: NodeMap<ManifestCamouflageNode> = manifestCamouflage.define(
+  'manifestCamouflage',
+  ({ map, nodes }) => {
+    map.set(
+      'spotDc',
+      nodes.groupObject(['spotDc'], 'Spot DC', () => HELD_ESCAPE_DC_NODE_MAP, {
+        presentation: 'inline',
+        requiredIf: true
+      })
+    )
   }
 )
 
@@ -2300,6 +2317,16 @@ function registerOutcomeFields(
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
         }
       )
+    )
+    .set(
+      'camouflage',
+      groupObject(['camouflage'], 'Camouflage', () => MANIFEST_CAMOUFLAGE_NODE_MAP, {
+        presentation: 'inline',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.ZONE)
+        ])
+      })
     )
     .set(
       'destructionMustResolveInOrder',

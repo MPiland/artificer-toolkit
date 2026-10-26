@@ -386,6 +386,7 @@ function zoneComponentPlan(
     label: zone.label,
     shape: zone.shape,
     ...(zone.ringThickness ? { ringThickness: zone.ringThickness } : {}),
+    ...(zone.camouflage ? { camouflage: zone.camouflage } : {}),
     ...triggers,
     bypassAtHalfSpeed: component.bypassAtHalfSpeed === true,
     ...(component.choosesUnaffected ? { choosesUnaffected: true } : {}),

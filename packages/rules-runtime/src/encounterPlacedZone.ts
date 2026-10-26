@@ -19,6 +19,7 @@ import {
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { compileEffectGraph } from './encounterActionEffectPlans.js'
+import { withZoneDcs } from './encounterZoneConcealment.js'
 import { selectScalingRow } from './scalingRowSelection.js'
 
 type ZoneRegionComponent = NonNullable<CompiledActionZonePlacement['regionComponents']>[number]
@@ -141,7 +142,7 @@ function placedZoneRecord(
   input: PlacedZoneInput,
   id: string,
   zone: Omit<ZoneRegionComponent, 'region'> &
-    Pick<CompiledActionZonePlacement, 'retaliatesMeleeHits' | 'occupantSaveBonus'>,
+    Pick<CompiledActionZonePlacement, 'retaliatesMeleeHits' | 'occupantSaveBonus' | 'camouflage'>,
   anchor: ReturnType<typeof zoneAnchor>,
   distanceStep?: number
 ): LiveSessionPlacedSpatialEffect {
@@ -246,7 +247,22 @@ function placedZoneRecord(
         ? { unaffectedActorIds: [...input.unaffectedActorIds] }
         : {})
     }),
-    spatialState: { schemaVersion: 1, revealed: true }
+    spatialState: withZoneDcs(
+      { schemaVersion: 1, revealed: true },
+      {
+        spotDc: zone.camouflage
+          ? {
+              value:
+                zone.camouflage.spotDc.kind === 'FIXED'
+                  ? zone.camouflage.spotDc.value
+                  : castSaveDc(input.saveDc),
+              source: 'FLAT'
+            }
+          : null,
+        disarmDc: null,
+        placerActorId: input.sourceActorId
+      }
+    )
   }
 }
 
