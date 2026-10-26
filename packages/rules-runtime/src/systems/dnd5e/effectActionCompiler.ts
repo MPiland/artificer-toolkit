@@ -57,7 +57,11 @@ import {
   isGrantConsumeEvent,
   maintenancePlan
 } from './effectActionLifetime.js'
-import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
+import {
+  modifierGrantEntryPlan,
+  passiveDamageGrantPlan,
+  standingEffectPlan
+} from './effectActionModifierGrants.js'
 import { entryOwed } from './effectActionEntryOwed.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
 import { saveDamageMultiplierFacts, withSaveDamageMultiplier } from './effectActionSaveDamage.js'
@@ -3797,38 +3801,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       return { kind: 'ATTEMPT_GATE', allow, requirement: pinned }
     throw new Dnd5eEffectActionCompilerError('D&D recurring perception is not fully pinned.')
   },
-  passiveDamageGrantPlan: ({ action }) => {
-    const { invocation, entries } = action.compiledEffect
-    const [entry] = entries
-    if (
-      invocation.kind !== 'PASSIVE' ||
-      invocation.triggerCode !== 'INCOMING_DAMAGE' ||
-      entries.length !== 1 ||
-      !entry ||
-      entry.pathCode !== 'PASSIVE'
-    )
-      unsupported('D&D passive damage trigger must author one passive result.')
-    const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
-    if (!plan?.modifierGrantContribution)
-      unsupported('D&D passive damage trigger must give a timed modifier grant.')
-    return { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
-  },
-  standingEffectPlan: ({ action }) => {
-    const { invocation, entries } = action.compiledEffect
-    const [entry] = entries
-    if (invocation.kind !== 'PASSIVE' || entries.length !== 1 || !entry)
-      unsupported('D&D standing effect must author one passive result.')
-    const plan = modifierGrantEntryPlan({
-      action,
-      entry,
-      resultGated: false,
-      untilEndEvent: false,
-      standing: true
-    })
-    if (!plan?.modifierGrantContribution)
-      unsupported('D&D standing effect must give an untimed modifier grant that something ends.')
-    return { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
-  },
+  passiveDamageGrantPlan,
+  standingEffectPlan,
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
     const rows = rollTableRowActions(action)

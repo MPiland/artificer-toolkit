@@ -38,7 +38,7 @@ export function standingEffectReturnsOn(
 ): PathLifecycleReturnsOn | null {
   if (effect.invocation.kind !== 'PASSIVE') return null
   for (const entry of effect.entries)
-    if (entry.lifecycle?.returnsOn) return entry.lifecycle.returnsOn
+    if ('lifecycle' in entry && entry.lifecycle?.returnsOn) return entry.lifecycle.returnsOn
   return null
 }
 

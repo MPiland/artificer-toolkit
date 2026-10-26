@@ -410,3 +410,41 @@ export const PATH_LIFECYCLE_EXCLUSIVITY_OPTIONS: readonly CoreMeta<PathLifecycle
     description: 'A new one from the same source ends its earlier one, on any creature.'
   }
 ]
+
+/** How a path picks its result: direct, a choice, a roll table or hit point tiers. */
+export const PATH_SELECTION_KIND_OPTIONS = [
+  {
+    code: 'FIXED',
+    label: 'Direct',
+    description: 'Direct result.'
+  },
+  {
+    code: 'CHOICE',
+    label: 'Choose One',
+    description: 'Choose one option.'
+  },
+  {
+    code: 'ROLL_TABLE',
+    label: 'Roll Table',
+    description: 'Roll for a result.'
+  },
+  {
+    code: 'HIT_POINT_TIERS',
+    label: 'Hit Point Tiers',
+    description: "The lowest tier the target's current hit points satisfy applies."
+  }
+] as const
+
+/** Whether a result block holds one outcome or outcomes resolved in order. */
+export const PATH_RESULT_KIND_OPTIONS = [
+  {
+    code: 'SINGLE',
+    label: 'Single',
+    description: 'Single outcome.'
+  },
+  {
+    code: 'SEQUENCE',
+    label: 'Resolve In Order',
+    description: 'Sequential outcomes.'
+  }
+] as const

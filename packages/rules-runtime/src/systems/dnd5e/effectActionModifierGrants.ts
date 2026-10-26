@@ -1,12 +1,20 @@
 import { compileModifierGrant, type CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
-import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
+import type {
+  CharacterRuleActionActiveEffectPlan,
+  CharacterRuleActionSystemAdapter
+} from '../../characterRuleActionSystemAdapter.js'
 import { conditionDurationTurns, planTickAnchor } from './effectActionFollowUp.js'
-import { UUID, DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION } from './effectActionContracts.js'
+import {
+  UUID,
+  DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+  unsupported
+} from './effectActionContracts.js'
 import { canonicalEndTriggers } from './effectActionBandConditions.js'
 import { buildCharacterGrantFoldModifierFacts } from '../../character/characterGrantFoldSourceFacts.js'
 import { dnd5eResultGate } from './effectActionOperationRegistry.js'
 import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
 import {
+  durationPublishedGraph,
   isGrantConsumeEvent,
   isGrantEndEvent,
   GRANT_END_TRIGGER_EVENTS,
@@ -206,4 +214,44 @@ export function modifierGrantEntryPlan(input: {
     maintenance: maintenancePlan(action, entry),
     marginRiders: []
   }
+}
+
+/** The timed grant a passive "when this creature takes damage" feature gives its holder. */
+export const passiveDamageGrantPlan: NonNullable<
+  CharacterRuleActionSystemAdapter['passiveDamageGrantPlan']
+> = ({ action }) => {
+  const { invocation, entries } = action.compiledEffect
+  const [entry] = entries
+  if (
+    invocation.kind !== 'PASSIVE' ||
+    invocation.triggerCode !== 'INCOMING_DAMAGE' ||
+    entries.length !== 1 ||
+    !entry ||
+    entry.pathCode !== 'PASSIVE'
+  )
+    unsupported('D&D passive damage trigger must author one passive result.')
+  const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
+  if (!plan?.modifierGrantContribution)
+    unsupported('D&D passive damage trigger must give a timed modifier grant.')
+  return { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
+}
+
+/** A standing effect's untimed grant: one passive result that an End On trigger ends (SPELLS-31.2). */
+export const standingEffectPlan: NonNullable<
+  CharacterRuleActionSystemAdapter['standingEffectPlan']
+> = ({ action }) => {
+  const { invocation, entries } = action.compiledEffect
+  const [entry] = entries
+  if (invocation.kind !== 'PASSIVE' || entries.length !== 1 || !entry)
+    unsupported('D&D standing effect must author one passive result.')
+  const plan = modifierGrantEntryPlan({
+    action,
+    entry,
+    resultGated: false,
+    untilEndEvent: false,
+    standing: true
+  })
+  if (!plan?.modifierGrantContribution)
+    unsupported('D&D standing effect must give an untimed modifier grant that something ends.')
+  return { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
 }
