@@ -92,7 +92,7 @@ export function foldDnd5eCreatureFeatureGrants(
     }),
     equipment: [],
     equipmentItems: []
-  })
+  }).modifiers
 }
 
 /**
