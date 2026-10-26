@@ -1197,7 +1197,7 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `effectEventScope` (whose events and turn an effect meets), `damageTriggerMet` and `damagerOnSourceSide` live here too.
   Given the holder's `reactions` too, it returns the reactions the events offer, in held order, each once with the first
   hook met. A reaction's authored `reactionTrigger` is its subscription, already structural, so no vocabulary reads it:
-  `ATTACKED_SELF` meets a hit its qualifiers admit (melee only, attacker seen), `DAMAGE_TAKEN` a hit dealing a type it
+  `ATTACKED_SELF` meets a hit its qualifiers admit (melee or ranged, weapon only, attacker seen), `DAMAGE_TAKEN` a hit dealing a type it
   names (it names the types that triggered it), `SPELL_CAST` another's cast when the reaction cancels it, and
   `TARGETED_SELF` being chosen by a cast of a listed spell (any, unlisted). The holder's reactions are listed by
   `encounterReactors.ts` (a Creature's feature actions, a Character's actions and castable spells), and whether one is
@@ -1335,9 +1335,12 @@ A Creature reactor is discovered the same way (`encounterReactorCandidates`): it
 checks the reactor is the batch target, and undo restores the allowance as for a Character. A Creature reaction
 that spends a feature resource is not offered yet.
 
-`ATTACKED_SELF` takes two optional qualifiers: `attackRange: 'MELEE'` admits only a hit whose trigger is an
-installed melee attack trigger (`isInstalledMeleeAttackTrigger`), and `requiresSight` only a hit whose attacker
-the reactor sees, read from the attack's perception (`attackSight.actual.targetSeesAttacker`). Parry is authored
+`ATTACKED_SELF` takes three optional qualifiers: `attackRange: 'MELEE'` admits only a hit whose trigger is an
+installed melee attack trigger (`isInstalledMeleeAttackTrigger`) and `'RANGED'` only one whose trigger is not;
+`weaponOnly` admits only a hit whose trigger is not an installed spell attack trigger (`isInstalledSpellAttackTrigger`,
+the event's `weapon`); and `requiresSight` only a hit whose attacker the reactor sees, read from the attack's
+perception (`attackSight.actual.targetSeesAttacker`). Deflect Missiles (SPELLS-31.T5b) is authored `RANGED` and
+`weaponOnly`, and grants an `INCOMING_DAMAGE` REDUCE that the answered attack's OUTCOME takes off its primary damage. Parry is authored
 with both (`parryReaction` in the SRD creature data) and grants an `ARMOR_CLASS` bonus whose lifecycle is
 consumed `ON_ATTACKED`. Such an effect counts against the answered attack's TEST and is never kept when that
 action makes an attack roll (its `ATTACKED` end subscription, `endSubscriptions`), so the receipt's `activeEffectTransitions`

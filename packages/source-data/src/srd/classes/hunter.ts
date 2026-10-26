@@ -21,7 +21,13 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_CONDITION_TYPES, SRD_SYSTEM_ID, SRD_USER_ID, ABILITY_CODE } from '../vocabulary.js'
-import { closedRuleEffect, evasionGrant, gmRulingEffect, uncannyDodgeEffect } from './mechanics.js'
+import {
+  closedRuleEffect,
+  evasionGrant,
+  gmRulingEffect,
+  incomingDamageReactionEffect,
+  uncannyDodgeReaction
+} from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -359,14 +365,17 @@ export const hunterConclave: ClassAuthored = {
             "When an attacker that you can see hits you with an attack, you can use your reaction to halve the attack's damage against you.",
           order: 2,
           effects: [
-            uncannyDodgeEffect({
-              effect: classRowId(RA, 20, 10),
-              range: classRowId(RA, 21, 10),
-              path: classRowId(RA, 24, 1),
-              duration: classRowId(RA, 24, 2),
-              outcome: classRowId(RA, 24, 3),
-              grant: classRowId(RA, 24, 4)
-            })
+            incomingDamageReactionEffect(
+              {
+                effect: classRowId(RA, 20, 10),
+                range: classRowId(RA, 21, 10),
+                path: classRowId(RA, 24, 1),
+                duration: classRowId(RA, 24, 2),
+                outcome: classRowId(RA, 24, 3),
+                grant: classRowId(RA, 24, 4)
+              },
+              uncannyDodgeReaction
+            )
           ]
         }
       ]

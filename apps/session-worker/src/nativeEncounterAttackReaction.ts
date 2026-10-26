@@ -22,7 +22,10 @@ import {
   encounterReactionEffectId,
   type EncounterAttackReactionCandidate
 } from '@artificer-toolkit/rules-runtime/encounterReactionChoice'
-import { isInstalledMeleeAttackTrigger } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import {
+  isInstalledMeleeAttackTrigger,
+  isInstalledSpellAttackTrigger
+} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rulesRuntimeService'
 import type { CompiledSpell } from '@artificer-toolkit/shared/subjects/compilers'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
@@ -98,6 +101,10 @@ export function discoverNativeAttackReaction(input: {
           kind: 'HIT_BY_ATTACK',
           damageTypeIds: attackHitDamageTypeIds(attackFacts, hit.critical),
           melee: isInstalledMeleeAttackTrigger(
+            input.state.gameSystemId,
+            attackFacts.invocation.triggerCode
+          ),
+          weapon: !isInstalledSpellAttackTrigger(
             input.state.gameSystemId,
             attackFacts.invocation.triggerCode
           ),

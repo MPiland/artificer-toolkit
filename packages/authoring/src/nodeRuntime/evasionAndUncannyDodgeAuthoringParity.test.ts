@@ -12,7 +12,10 @@ import type { FeatureAuthored } from '@artificer-toolkit/shared/authored'
 import type { ClassAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import { getValueAtPath } from '@artificer-toolkit/shared/utils'
 import { hunterConclave } from '@artificer-toolkit/source-data/srd/classes/hunter.js'
-import { uncannyDodgeEffect } from '@artificer-toolkit/source-data/srd/classes/mechanics.js'
+import {
+  incomingDamageReactionEffect,
+  uncannyDodgeReaction
+} from '@artificer-toolkit/source-data/srd/classes/mechanics.js'
 import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
 import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
@@ -81,20 +84,31 @@ function braceForImpact(): FeatureAuthored {
     availableAtLevel: 1,
     order: 100,
     effects: [
-      uncannyDodgeEffect({
-        effect: idFor(0x53, 1),
-        range: idFor(0x53, 2),
-        path: idFor(0x53, 3),
-        duration: idFor(0x53, 4),
-        outcome: idFor(0x53, 5),
-        grant: idFor(0x53, 6)
-      })
+      incomingDamageReactionEffect(
+        {
+          effect: idFor(0x53, 1),
+          range: idFor(0x53, 2),
+          path: idFor(0x53, 3),
+          duration: idFor(0x53, 4),
+          outcome: idFor(0x53, 5),
+          grant: idFor(0x53, 6)
+        },
+        uncannyDodgeReaction
+      )
     ]
   }
 }
 
+/** None of these features reads a holder bonus. */
+const noBonusHolder = {
+  abilityModifier: () => null,
+  proficiencyBonus: null,
+  classLevel: () => null
+}
+
 const evasionProfile = {
   halved: false,
+  reductions: [],
   saveForHalf: [
     {
       incomingDamageKind: 'SAVE_FOR_HALF',
@@ -134,7 +148,7 @@ describe('Evasion and Uncanny Dodge (SPELLS-31.T5a)', () => {
       classes: [{ label: classLabel, level }],
       features: [srdFeature({ owner: 'CLASS', classLabel, featureLabel: 'Evasion', level })]
     })
-    expect(incomingDamageProfile(output.grantFold.modifiers)).toEqual(evasionProfile)
+    expect(incomingDamageProfile(output.grantFold.modifiers, noBonusHolder)).toEqual(evasionProfile)
   })
 
   it("gives the Hunter's Evasion option the same adjustment", () => {
@@ -151,7 +165,7 @@ describe('Evasion and Uncanny Dodge (SPELLS-31.T5a)', () => {
         })
       ]
     })
-    expect(incomingDamageProfile(output.grantFold.modifiers)).toEqual(evasionProfile)
+    expect(incomingDamageProfile(output.grantFold.modifiers, noBonusHolder)).toEqual(evasionProfile)
   })
 
   it('folds the homebrew ward for its own save and results', () => {
@@ -169,8 +183,9 @@ describe('Evasion and Uncanny Dodge (SPELLS-31.T5a)', () => {
         }
       ]
     })
-    expect(incomingDamageProfile(output.grantFold.modifiers)).toEqual({
+    expect(incomingDamageProfile(output.grantFold.modifiers, noBonusHolder)).toEqual({
       halved: false,
+      reductions: [],
       saveForHalf: [
         {
           incomingDamageKind: 'SAVE_FOR_HALF',

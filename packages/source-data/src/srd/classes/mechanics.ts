@@ -12,6 +12,7 @@ import {
   TRIGGER,
   VALUE_DOMAIN_CODE,
   type ActivationCode,
+  type ModifierIncomingDamageAuthored,
   type AuthoringConstraintCode,
   type DamageDefenseBypassCode,
   type EquipmentCategoryCode,
@@ -22,7 +23,8 @@ import type {
   EffectAuthored,
   FacetAuthored,
   ModifierGrantAuthored,
-  OptionAuthored
+  OptionAuthored,
+  ReactionAttackedSelfTriggerBindingAuthored
 } from '@artificer-toolkit/shared/authored'
 import { ABILITY_CODE, type SrdAbilityCode } from '../vocabulary.js'
 
@@ -83,26 +85,31 @@ export function gmRulingEffect(input: {
   instructions: string
   reasonCode: ManualAdjudicationReason
   resourceUse?: { chargeId: string; cost: number }
+  /** The action the ruling takes; one with a resource cost and no action given is free. */
+  activationCode?: Exclude<ActivationCode, 'FREE'>
 }): EffectAuthored {
   const range = { id: input.ids.range, rangeKind: RANGE_KIND.SELF } as const
   return {
     id: input.ids.effect,
     order: 1,
-    invocation: input.resourceUse
-      ? {
-          kind: 'ACTION',
-          triggerCode: TRIGGER.ACTIVATED,
-          resourceUse: input.resourceUse,
-          activation: { code: ACTIVATION_CODE.FREE },
-          range,
-          targeting: { selectionKind: 'SELF' }
-        }
-      : {
-          kind: 'PASSIVE',
-          triggerCode: TRIGGER.ACTIVATED,
-          range,
-          targeting: { selectionKind: 'SELF' }
-        },
+    invocation:
+      input.resourceUse || input.activationCode
+        ? {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            ...(input.resourceUse ? { resourceUse: input.resourceUse } : {}),
+            activation: input.activationCode
+              ? { code: input.activationCode, amount: 1 }
+              : { code: ACTIVATION_CODE.FREE },
+            range,
+            targeting: { selectionKind: 'SELF' }
+          }
+        : {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range,
+            targeting: { selectionKind: 'SELF' }
+          },
     paths: [
       {
         id: input.ids.path,
@@ -353,18 +360,32 @@ export function evasionGrant(id: string): ModifierGrantAuthored {
   }
 }
 
+type IncomingDamageReaction = {
+  trigger: ReactionAttackedSelfTriggerBindingAuthored
+  payload: ModifierIncomingDamageAuthored
+}
+
+/** Uncanny Dodge: answers a hit by an attacker the holder sees by halving that attack's damage. */
+export const uncannyDodgeReaction = {
+  trigger: { kind: 'ATTACKED_SELF', requiresSight: true },
+  payload: { incomingDamageKind: 'HALVE' }
+} as const satisfies IncomingDamageReaction
+
 /**
- * Uncanny Dodge: a reaction to a hit by an attacker the holder sees that halves that attack's
- * damage against it (used up by the attack), on the same path as Parry. The caller supplies every id.
+ * A reaction to a hit that changes how the holder takes that attack's damage (used up by the
+ * attack), on the same path as Parry. The caller supplies every id.
  */
-export function uncannyDodgeEffect(ids: {
-  effect: string
-  range: string
-  path: string
-  duration: string
-  outcome: string
-  grant: string
-}): EffectAuthored {
+export function incomingDamageReactionEffect(
+  ids: {
+    effect: string
+    range: string
+    path: string
+    duration: string
+    outcome: string
+    grant: string
+  },
+  reaction: IncomingDamageReaction
+): EffectAuthored {
   return {
     id: ids.effect,
     order: 1,
@@ -372,7 +393,7 @@ export function uncannyDodgeEffect(ids: {
       kind: 'ACTION',
       triggerCode: TRIGGER.ACTIVATED,
       activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-      reactionTrigger: { kind: 'ATTACKED_SELF', requiresSight: true },
+      reactionTrigger: reaction.trigger,
       range: { id: ids.range, rangeKind: RANGE_KIND.SELF },
       targeting: { selectionKind: 'SELF' }
     },
@@ -406,7 +427,7 @@ export function uncannyDodgeEffect(ids: {
                     modifierKind: MODIFIER_KIND.ENABLE,
                     scope: MODIFIER_SCOPE_KIND.GLOBAL,
                     selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-                    payload: { incomingDamageKind: 'HALVE' },
+                    payload: reaction.payload,
                     order: 1
                   }
                 ]

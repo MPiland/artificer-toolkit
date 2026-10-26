@@ -269,7 +269,7 @@ describe('Creature movement target', () => {
       grantedAttackTraits: [],
       movementPassage: movementPassageOfModifiers(DND5E_SYSTEM_ID, []),
       featureModifiers: [],
-      incomingDamage: { halved: false, saveForHalf: [] },
+      incomingDamage: { halved: false, saveForHalf: [], reductions: [] },
       innateConditionIds: [],
       targetDerivedFacts: {
         actorId: CREATURE_ID,
@@ -280,7 +280,7 @@ describe('Creature movement target', () => {
         savingThrowAddedDice: {},
         healingMaximized: false,
         featureResources: [],
-        incomingDamage: { halved: false, saveForHalf: [] },
+        incomingDamage: { halved: false, saveForHalf: [], reductions: [] },
         targetProtection,
         statBlock: {
           armorClass: 12,

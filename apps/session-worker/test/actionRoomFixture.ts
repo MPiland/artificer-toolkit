@@ -54,11 +54,14 @@ export function biteWolf(
   {
     damage = 1,
     reachFeet,
+    ranged = false,
     save = { ability: 'DEXTERITY' },
     spellCast
   }: {
     damage?: number
     reachFeet?: number
+    /** The ATTACK Bite is a ranged weapon attack instead of a melee one. */
+    ranged?: boolean
     /** The ability the SAVE Bite rolls and, when set, the damage type it deals instead of the SRD's. */
     save?: {
       ability: 'DEXTERITY' | 'CONSTITUTION'
@@ -127,7 +130,11 @@ export function biteWolf(
                         baseDc: 10
                       }
                     }
-                  : { triggerCode: 'MELEE_WEAPON_ATTACK' as const })
+                  : {
+                      triggerCode: ranged
+                        ? ('RANGED_WEAPON_ATTACK' as const)
+                        : ('MELEE_WEAPON_ATTACK' as const)
+                    })
               },
               paths: effect.paths.slice(0, 1).map((path) => {
                 if (!('resultBlock' in path)) return path

@@ -135,8 +135,10 @@ export const reactionTriggerBindingDtoSchema = lazySchema(() =>
     reactionMovementTriggerBindingDtoSchema,
     z.strictObject({
       kind: z.literal('ATTACKED_SELF'),
-      /** Answers only a melee attack. */
-      attackRange: z.optional(z.literal('MELEE')),
+      /** Answers only a melee, or only a ranged, attack. */
+      attackRange: z.optional(z.enum(['MELEE', 'RANGED'])),
+      /** Answers only a weapon attack, never a spell attack. */
+      weaponOnly: z.optional(z.boolean()),
       /** Answers only an attacker the reactor sees. */
       requiresSight: z.optional(z.boolean())
     }),

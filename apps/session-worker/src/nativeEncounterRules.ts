@@ -1176,10 +1176,26 @@ export async function planNativeLiveEncounterAction(
     currentReaction,
     onHitNow
   })
+  const retained = resume?.pending.twoPhase ?? forcedMovementAnswer?.outcomePhase
+  const heldReaction = settled?.heldReaction ?? null
+  const retainedReaction = settled?.reaction
+    ? null
+    : (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
+  const replayedReaction =
+    settled?.heldReactionNow ??
+    (retainedReaction
+      ? await currentReaction(
+          retainedReaction.reaction!.selection === 'USE',
+          retainedReaction.reaction!.reaction.actionId,
+          retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
+        )
+      : null)
   const execution =
     settled?.execution ??
     (await advanceNativeActionGraphs({
       ...actionSource,
+      // A paused OUTCOME resumes against the hit as the reaction it kept left it.
+      ...(replayedReaction ? { binding: replayedReaction.adjustedBinding } : {}),
       attackSight: prepared.attackSight,
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
@@ -1190,7 +1206,6 @@ export async function planNativeLiveEncounterAction(
         targetStateChecksum
       }
     }))
-  const retained = resume?.pending.twoPhase ?? forcedMovementAnswer?.outcomePhase
   const resistance =
     settled?.resistance ??
     (execution.kind !== 'PENDING' && retained?.phase === 'OUTCOME' && retained.legendaryResistance
@@ -1199,20 +1214,6 @@ export async function planNativeLiveEncounterAction(
           outcome: retained,
           ...(await currentResistance())
         })
-      : null)
-  const heldReaction = settled?.heldReaction ?? null
-  const retainedReaction =
-    execution.kind !== 'PENDING' && !settled?.reaction
-      ? (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
-      : null
-  const replayedReaction =
-    settled?.heldReactionNow ??
-    (retainedReaction
-      ? await currentReaction(
-          retainedReaction.reaction!.selection === 'USE',
-          retainedReaction.reaction!.reaction.actionId,
-          retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
-        )
       : null)
   const reaction =
     execution.kind === 'PENDING'

@@ -218,7 +218,7 @@ type ReactionCandidate = Pick<CharacterActionCandidate, 'mechanicFacts'>
 
 /**
  * The hook an event meets in a held reaction: an authored reaction whose trigger the event meets with
- * the qualifiers it adds (a melee attack, an attacker the holder sees, a damage type the hit deals, a
+ * the qualifiers it adds (a melee or ranged attack, a weapon attack, an attacker the holder sees, a damage type the hit deals, a
  * cast of a listed spell). A cast reaction answers a cast only by cancelling it. A movement reaction
  * meets none here: the movement path discovers it from the reach it is moved through.
  */
@@ -231,7 +231,8 @@ function reactionHookMet(
   switch (trigger.kind) {
     case 'ATTACKED_SELF':
       return event.kind === 'HIT_BY_ATTACK' &&
-        (trigger.attackRange !== 'MELEE' || event.melee) &&
+        (trigger.attackRange === undefined || (trigger.attackRange === 'MELEE') === event.melee) &&
+        (!trigger.weaponOnly || event.weapon) &&
         (!trigger.requiresSight || event.attackerSeen)
         ? { event: event.kind, trigger: trigger.kind, triggerDamageTypeIds: [] }
         : null

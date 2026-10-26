@@ -92,10 +92,14 @@ export type EncounterEvent =
   | { kind: 'MOVED' }
   /** The holder leaves the area holding the effect. */
   | { kind: 'AREA_LEFT' }
-  /** An attack hits the holder: melee or not, by an attacker it sees or not, dealing these damage types. */
+  /**
+   * An attack hits the holder: melee or ranged, a weapon or a spell attack, by an attacker it sees or
+   * not, dealing these damage types.
+   */
   | {
       kind: 'HIT_BY_ATTACK'
       melee: boolean
+      weapon: boolean
       attackerSeen: boolean
       damageTypeIds: ReadonlySet<string>
     }

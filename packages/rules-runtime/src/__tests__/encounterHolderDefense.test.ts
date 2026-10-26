@@ -171,7 +171,7 @@ function characterHolder(
     effectiveRulePolicyOutput,
     targetDerivedFacts: { ...effectiveRulePolicyOutput },
     defenses: [],
-    incomingDamage: { halved: false, saveForHalf: [] },
+    incomingDamage: { halved: false, saveForHalf: [], reductions: [] },
     qualifiedDefenses: [],
     conditionImmunityIds: [],
     sourceConditionImmunities: [],

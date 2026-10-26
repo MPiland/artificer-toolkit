@@ -32,6 +32,7 @@ const meleeSeenHit = {
   kind: 'HIT_BY_ATTACK',
   damageTypeIds: new Set<string>(),
   melee: true,
+  weapon: true,
   attackerSeen: true
 } as const
 
@@ -155,6 +156,7 @@ describe('damage-type reaction discovery (REACTION-4.2)', () => {
       kind: 'HIT_BY_ATTACK',
       damageTypeIds: new Set(damageTypeIds),
       melee: false,
+      weapon: true,
       attackerSeen: false
     }) as const
 
@@ -169,6 +171,34 @@ describe('damage-type reaction discovery (REACTION-4.2)', () => {
   })
 })
 
+/**
+ * SPELLS-31.T5b: a held `ATTACKED_SELF` reaction limited to ranged weapon attacks (Deflect
+ * Missiles) answers a ranged weapon hit, never a melee hit or a spell attack.
+ */
+describe('ranged weapon attack reaction discovery (SPELLS-31.T5b)', () => {
+  const deflect = () =>
+    candidate(
+      'feature:deflect',
+      'REACTION',
+      { kind: 'ATTACKED_SELF', attackRange: 'RANGED', weaponOnly: true } as { kind: string },
+      'GRANT_MODIFIER'
+    )
+  const rangedWeaponHit = { ...meleeSeenHit, melee: false, attackerSeen: false } as const
+
+  it('offers the reaction against a ranged weapon hit, seen or not', () => {
+    expect(heldReactionsTo([deflect()], rangedWeaponHit)).toEqual([
+      expect.objectContaining({ trigger: 'ATTACKED_SELF' })
+    ])
+  })
+
+  it('offers nothing against a melee hit', () => {
+    expect(heldReactionsTo([deflect()], { ...rangedWeaponHit, melee: true })).toEqual([])
+  })
+
+  it('offers nothing against a ranged spell attack', () => {
+    expect(heldReactionsTo([deflect()], { ...rangedWeaponHit, weapon: false })).toEqual([])
+  })
+})
 /** REACTION-4.3: only a held SPELL_CAST reaction that cancels the cast is offered when a creature casts a spell. */
 describe('cast reaction discovery', () => {
   const cast = { kind: 'SPELL_CAST_BY_OTHER' } as const

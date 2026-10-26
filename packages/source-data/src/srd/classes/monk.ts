@@ -51,6 +51,7 @@ import {
   equippedCategoryRestriction,
   evasionGrant,
   gmRulingEffect,
+  incomingDamageReactionEffect,
   MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
 } from './mechanics.js'
 
@@ -557,19 +558,40 @@ export const monk: ClassAuthored = {
         'Starting at 3rd level, you can use your reaction to deflect or catch the missile when you are hit by a ranged weapon attack. When you do so, the damage you take from the attack is reduced by 1d10 + your Dexterity modifier + your monk level. If you reduce the damage to 0, you can catch the missile if it is small enough for you to hold in one hand and you have at least one hand free. If you catch a missile in this way, you can spend 1 ki point to make a ranged attack with the weapon or piece of ammunition you just caught, as part of the same reaction. You make this attack with proficiency, regardless of your weapon proficiencies, and the missile counts as a monk weapon for the attack, which has a normal range of 20 feet and a long range of 60 feet.',
       availableAtLevel: 3,
       order: 5,
+      // Catching and throwing the missile waits on a deferred rules piece (future-enhancements).
       effects: [
-        closedRuleEffect({
-          id: classRowId(M, 0x60, 6),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_DEFLECT_MISSILES,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-            range: { id: classRowId(M, 0x69, 6), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+        incomingDamageReactionEffect(
+          {
+            effect: classRowId(M, 0x60, 6),
+            range: classRowId(M, 0x69, 6),
+            path: classRowId(M, 0x80, 6),
+            duration: classRowId(M, 0x81, 6),
+            outcome: classRowId(M, 0x6c, 6),
+            grant: classRowId(M, 0x82, 6)
+          },
+          {
+            trigger: { kind: 'ATTACKED_SELF', attackRange: 'RANGED', weaponOnly: true },
+            payload: {
+              incomingDamageKind: 'REDUCE',
+              count: 1,
+              faces: 10,
+              bonuses: [
+                {
+                  id: classRowId(M, 0x83, 6),
+                  bonusKind: 'ABILITY_BONUS',
+                  ability: ABILITY_CODE.DEXTERITY,
+                  order: 1
+                },
+                {
+                  id: classRowId(M, 0x84, 6),
+                  bonusKind: 'CLASS_LEVEL',
+                  classId: CLASS_IDS.MONK,
+                  order: 2
+                }
+              ]
+            }
           }
-        })
+        )
       ]
     },
     {
@@ -592,8 +614,22 @@ export const monk: ClassAuthored = {
         'Beginning at 4th level, you can use your reaction when you fall to reduce any falling damage you take by an amount equal to five times your monk level.',
       availableAtLevel: 4,
       order: 7,
+      // The engine has no falling damage to reduce, so the reduction is a GM ruling (future-enhancements).
       effects: [
-        selfClassRuleEffect(8, CLOSED_RULE_KIND.CLASS_MONK_SLOW_FALL, ACTIVATION_CODE.REACTION)
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(M, 0x60, 8),
+            range: classRowId(M, 0x69, 8),
+            path: classRowId(M, 0x80, 8),
+            result: classRowId(M, 0x81, 8),
+            outcome: classRowId(M, 0x6c, 8)
+          },
+          label: 'Slow Fall',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
+          instructions:
+            'Use this when you fall: the falling damage you take is reduced by five times your monk level. The GM applies the reduced damage.',
+          activationCode: ACTIVATION_CODE.REACTION
+        })
       ]
     },
     {

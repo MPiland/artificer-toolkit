@@ -251,9 +251,23 @@ const REACTION_TRIGGER_NODE_MAP = reactionTrigger.define(
         selectSingle(
           ['attackRange'],
           'Only against',
-          { kind: 'INLINE_OPTIONS', options: [{ code: 'MELEE', label: 'A melee attack' }] },
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'MELEE', label: 'A melee attack' },
+              { code: 'RANGED', label: 'A ranged attack' }
+            ]
+          },
           { order: 8, showIf: isAttackedSelf, hiddenBehavior: 'CLEAR' }
         )
+      )
+      .set(
+        'weaponOnly',
+        toggle(['weaponOnly'], 'Only against a weapon attack', {
+          order: 10,
+          showIf: isAttackedSelf,
+          hiddenBehavior: 'CLEAR'
+        })
       )
       .set(
         'requiresSight',

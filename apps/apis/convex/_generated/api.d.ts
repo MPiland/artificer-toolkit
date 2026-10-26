@@ -27214,9 +27214,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -30836,9 +30837,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -37999,9 +38001,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -41557,9 +41560,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -47670,9 +47674,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -51228,9 +51233,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -57500,9 +57506,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -61122,9 +61129,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -68285,9 +68293,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -71843,9 +71852,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -77956,9 +77966,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -81514,9 +81525,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -87795,9 +87807,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -91417,9 +91430,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -98580,9 +98594,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -102138,9 +102153,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -108251,9 +108267,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -111809,9 +111826,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -118081,9 +118099,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -121703,9 +121722,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -128866,9 +128886,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -132424,9 +132445,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -138537,9 +138559,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -142095,9 +142118,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -148402,9 +148426,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -152024,9 +152049,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -159187,9 +159213,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -162745,9 +162772,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -168858,9 +168886,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -172416,9 +172445,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -178688,9 +178718,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -182310,9 +182341,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -189473,9 +189505,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -193031,9 +193064,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -199144,9 +199178,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -202702,9 +202737,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -208964,9 +209000,10 @@ export declare const api: {
                                     stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                   }
                                 | {
-                                    attackRange?: "MELEE";
+                                    attackRange?: "MELEE" | "RANGED";
                                     kind: "ATTACKED_SELF";
                                     requiresSight?: boolean;
+                                    weaponOnly?: boolean;
                                   }
                                 | {
                                     higherLevelCheck?: {
@@ -212570,9 +212607,10 @@ export declare const api: {
                                     stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                   }
                                 | {
-                                    attackRange?: "MELEE";
+                                    attackRange?: "MELEE" | "RANGED";
                                     kind: "ATTACKED_SELF";
                                     requiresSight?: boolean;
+                                    weaponOnly?: boolean;
                                   }
                                 | {
                                     higherLevelCheck?: {
@@ -219636,9 +219674,10 @@ export declare const api: {
                               stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                             }
                           | {
-                              attackRange?: "MELEE";
+                              attackRange?: "MELEE" | "RANGED";
                               kind: "ATTACKED_SELF";
                               requiresSight?: boolean;
+                              weaponOnly?: boolean;
                             }
                           | {
                               higherLevelCheck?: {
@@ -223145,9 +223184,10 @@ export declare const api: {
                               stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                             }
                           | {
-                              attackRange?: "MELEE";
+                              attackRange?: "MELEE" | "RANGED";
                               kind: "ATTACKED_SELF";
                               requiresSight?: boolean;
+                              weaponOnly?: boolean;
                             }
                           | {
                               higherLevelCheck?: {
@@ -229176,9 +229216,10 @@ export declare const api: {
                               stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                             }
                           | {
-                              attackRange?: "MELEE";
+                              attackRange?: "MELEE" | "RANGED";
                               kind: "ATTACKED_SELF";
                               requiresSight?: boolean;
+                              weaponOnly?: boolean;
                             }
                           | {
                               higherLevelCheck?: {
@@ -232685,9 +232726,10 @@ export declare const api: {
                               stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                             }
                           | {
-                              attackRange?: "MELEE";
+                              attackRange?: "MELEE" | "RANGED";
                               kind: "ATTACKED_SELF";
                               requiresSight?: boolean;
+                              weaponOnly?: boolean;
                             }
                           | {
                               higherLevelCheck?: {
@@ -238951,9 +238993,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -242573,9 +242616,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -249736,9 +249780,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -253294,9 +253339,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -259407,9 +259453,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -262965,9 +263012,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -269237,9 +269285,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -272859,9 +272908,10 @@ export declare const api: {
                                         "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                                     }
                                   | {
-                                      attackRange?: "MELEE";
+                                      attackRange?: "MELEE" | "RANGED";
                                       kind: "ATTACKED_SELF";
                                       requiresSight?: boolean;
+                                      weaponOnly?: boolean;
                                     }
                                   | {
                                       higherLevelCheck?: {
@@ -280022,9 +280072,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -283580,9 +283631,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -289693,9 +289745,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {
@@ -293251,9 +293304,10 @@ export declare const api: {
                                 stage: "BEFORE_LEAVE_REACH" | "ENTER_REACH";
                               }
                             | {
-                                attackRange?: "MELEE";
+                                attackRange?: "MELEE" | "RANGED";
                                 kind: "ATTACKED_SELF";
                                 requiresSight?: boolean;
+                                weaponOnly?: boolean;
                               }
                             | {
                                 higherLevelCheck?: {

@@ -152,6 +152,8 @@ export const DND5E_ATTACK_MOVE_TOWARD_FACT_KEY = 'dnd5e.attack-move-toward'
 export const DND5E_ATTACK_TURN_USES_FACT_KEY = 'dnd5e.attack-turn-uses'
 /** The dice active grants add to, or take from, this source's damage to this target (D156). */
 export const DND5E_DAMAGE_ADDED_DICE_FACT_KEY = 'dnd5e.damage-added-dice'
+/** The reductions the target's `INCOMING_DAMAGE` grants take from an attack's damage (Deflect Missiles). */
+export const DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY = 'dnd5e.incoming-damage-reductions'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =

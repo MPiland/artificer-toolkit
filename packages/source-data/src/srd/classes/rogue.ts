@@ -44,7 +44,8 @@ import {
   closedRuleEffect,
   evasionGrant,
   gmRulingEffect,
-  uncannyDodgeEffect
+  incomingDamageReactionEffect,
+  uncannyDodgeReaction
 } from './mechanics.js'
 
 function skillId(code: string): string {
@@ -742,14 +743,17 @@ export const rogue: ClassAuthored = {
       description:
         "Starting at 5th level, when an attacker that you can see hits you with an attack, you can use your reaction to halve the attack's damage against you.",
       effects: [
-        uncannyDodgeEffect({
-          effect: classRowId(R, 0x60, 7),
-          range: classRowId(R, 0x69, 7),
-          path: classRowId(R, 0x8c, 1),
-          duration: classRowId(R, 0x8c, 2),
-          outcome: classRowId(R, 0x8c, 3),
-          grant: classRowId(R, 0x8c, 4)
-        })
+        incomingDamageReactionEffect(
+          {
+            effect: classRowId(R, 0x60, 7),
+            range: classRowId(R, 0x69, 7),
+            path: classRowId(R, 0x8c, 1),
+            duration: classRowId(R, 0x8c, 2),
+            outcome: classRowId(R, 0x8c, 3),
+            grant: classRowId(R, 0x8c, 4)
+          },
+          uncannyDodgeReaction
+        )
       ],
       availableAtLevel: 5,
       order: 6
