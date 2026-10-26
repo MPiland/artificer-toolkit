@@ -207,7 +207,13 @@ const climbOntoLargerCreatureDocument =
       policyModuleKey: DND5E_CLIMB_ONTO_LARGER_CREATURE_OPERATION_KEY,
       contractVersion: 1
     },
-    parameters: { kind: 'CLIMB_ONTO_LARGER_CREATURE' },
+    parameters: {
+      kind: 'CLIMB_ONTO_LARGER_CREATURE',
+      initiatorCheckDefinitionIds: [SRD_ATHLETICS_SKILL_ID, SRD_ACROBATICS_SKILL_ID],
+      targetCheckDefinitionId: SRD_ACROBATICS_SKILL_ID,
+      minimumTargetSizeSteps: 1,
+      economies: ['ACTION']
+    },
     mutuallyExclusiveGroup: null
   })
 

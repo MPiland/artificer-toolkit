@@ -410,8 +410,11 @@ const serverKernelRuleExecutionPendingSnapshotObjectSchema = lazySchema(() =>
 const optionalCombatPassageChoiceOptionDtoSchema = lazySchema(() =>
   z.strictObject({
     optionId: checksumSchema,
-    ruleKind: z.enum(['OVERRUN', 'TUMBLE']),
+    ruleKind: z.enum(['OVERRUN', 'TUMBLE', 'CLIMB_ONTO_LARGER_CREATURE']),
     economy: z.enum(['ACTION', 'BONUS_ACTION']),
+    /** The check the mover rolls, for a rule that lets it choose between authored checks. */
+    initiatorCheckDefinitionId: uuidSchema,
+    initiatorCheckLabel: identifierSchema,
     definitionId: uuidSchema,
     definitionVersion: positiveIntegerSchema,
     definitionChecksum: checksumSchema,
@@ -432,7 +435,7 @@ const optionalCombatPassageChoicePendingContextDtoSchema = lazySchema(() =>
       options: z
         .array(optionalCombatPassageChoiceOptionDtoSchema)
         .check(z.minLength(1))
-        .check(z.maxLength(4)),
+        .check(z.maxLength(16)),
       optionsChecksum: checksumSchema
     })
     .check(

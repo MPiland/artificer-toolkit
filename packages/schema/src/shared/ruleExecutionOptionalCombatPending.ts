@@ -188,18 +188,28 @@ export const optionalCombatPassageContinuationDtoSchema = lazySchema(() =>
     )
 )
 
+/**
+ * A movement passage contest's sealed choice. `successMovement` is what the rule's policy has a won
+ * contest do to the movement: pass through the blocker and continue, or stop at the contact point.
+ */
+function movementPassageSelectionDtoSchema<
+  const TKind extends 'OVERRUN' | 'TUMBLE' | 'CLIMB_ONTO_LARGER_CREATURE'
+>(kind: TKind) {
+  return z.strictObject({
+    kind: z.literal(kind),
+    economy: z.enum(['ACTION', 'BONUS_ACTION']),
+    initiatorCheckDefinitionId: uuidSchema,
+    initiatorCheckLabel: identifierSchema,
+    defenderCheckDefinitionId: uuidSchema,
+    successMovement: z.enum(['PASS_THROUGH', 'STOP_AT_CONTACT'])
+  })
+}
+
 const optionalCombatPassageSelectionDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('OVERRUN'),
-      economy: z.enum(['ACTION', 'BONUS_ACTION']),
-      defenderCheckDefinitionId: uuidSchema
-    }),
-    z.strictObject({
-      kind: z.literal('TUMBLE'),
-      economy: z.enum(['ACTION', 'BONUS_ACTION']),
-      defenderCheckDefinitionId: uuidSchema
-    }),
+    movementPassageSelectionDtoSchema('OVERRUN'),
+    movementPassageSelectionDtoSchema('TUMBLE'),
+    movementPassageSelectionDtoSchema('CLIMB_ONTO_LARGER_CREATURE'),
     z.strictObject({
       kind: z.literal('DISARM'),
       heldItemId: uuidSchema,
@@ -228,7 +238,13 @@ const contestCheckOriginDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
       kind: z.literal('OPTIONAL_COMBAT'),
-      actionKind: z.enum(['DISARM', 'SHOVE_ASIDE', 'OVERRUN', 'TUMBLE']),
+      actionKind: z.enum([
+        'DISARM',
+        'SHOVE_ASIDE',
+        'OVERRUN',
+        'TUMBLE',
+        'CLIMB_ONTO_LARGER_CREATURE'
+      ]),
       pin: z.strictObject({
         snapshotChecksum: checksumSchema,
         definitionId: uuidSchema,
@@ -416,7 +432,7 @@ export const serverContestCheckPendingContextDtoSchema = lazySchema(() =>
               message: 'Optional-combat contest action and selection kinds must match.'
             })
           }
-          const passageAction = origin.actionKind === 'OVERRUN' || origin.actionKind === 'TUMBLE'
+          const passageAction = 'successMovement' in origin.selection
           if (
             passageAction !==
             (origin.movementContinuation !== null && origin.movementContinuation !== undefined)

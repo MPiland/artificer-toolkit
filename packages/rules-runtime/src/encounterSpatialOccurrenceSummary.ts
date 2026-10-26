@@ -60,11 +60,14 @@ export function projectEncounterSpatialOccurrenceSummary(
             occurrenceVersion: occurrence.version,
             encounterVersion,
             sourceActorId: context.sourceActorId,
-            options: context.options.map(({ economy, optionId, ruleKind }) => ({
-              economy,
-              optionId,
-              ruleKind
-            })),
+            options: context.options.map(
+              ({ economy, initiatorCheckLabel, optionId, ruleKind }) => ({
+                economy,
+                initiatorCheckLabel,
+                optionId,
+                ruleKind
+              })
+            ),
             allowedResponses: ['DECLINE', 'OPTION']
           }
         : null

@@ -87,6 +87,20 @@ export interface OverrunContestProposal extends TumbleContestProposal {
   }
 }
 
+/** Climb-onto facts; the initiator check is the climber's pick from the rule's authored checks. */
+export interface ClimbOntoPreparationInput extends TumblePreparationInput {
+  readonly initiatorCheckDefinitionId: string
+  readonly initiatorSizeRank: number | null
+  readonly targetSizeRank: number | null
+}
+
+/** A sealed climb-onto contest before either participant rolls; winning stops at contact. */
+export interface ClimbOntoContestProposal {
+  readonly contest: TumbleContestProposal['contest']
+  readonly consumes: TumbleContestProposal['consumes']
+  readonly pin: OptionalCombatPolicyPin
+}
+
 export interface CleavingInput extends OptionalCombatPolicyInput {
   readonly attackKind: 'MELEE' | 'OTHER' | null
   readonly attackTotal: number | null
@@ -303,6 +317,9 @@ export interface OptionalCombatPolicyCapabilityAdapter {
   prepareTumbleContest(
     input: TumblePreparationInput
   ): OptionalCombatResolution<TumbleContestProposal>
+  prepareClimbOntoContest(
+    input: ClimbOntoPreparationInput
+  ): OptionalCombatResolution<ClimbOntoContestProposal>
   resolveCleaving(input: CleavingInput): OptionalCombatResolution<CleavingProposal>
   /** Triggers each actor may be checked for now; an actor with none is absent from the map. */
   offerMoraleTriggers(

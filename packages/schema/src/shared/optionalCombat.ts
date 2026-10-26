@@ -450,7 +450,25 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
         .check(z.maxLength(FACING_ARCS.length))
         .check(uniqueFacingArcs((arc) => arc))
     }),
-    z.strictObject({ kind: z.literal('CLIMB_ONTO_LARGER_CREATURE') }),
+    /**
+     * A contest to climb onto an adjacent creature at least `minimumTargetSizeSteps` sizes larger,
+     * spending one of `economies`; the climber picks one of its authored checks.
+     */
+    z.strictObject({
+      kind: z.literal('CLIMB_ONTO_LARGER_CREATURE'),
+      initiatorCheckDefinitionIds: boundedCheckDefinitionChoicesSchema,
+      targetCheckDefinitionId: serverUuidIdentityDtoSchema,
+      minimumTargetSizeSteps: z.number().check(z.int()).check(z.gte(1)).check(z.lte(5)),
+      economies: z
+        .array(z.enum(['ACTION', 'BONUS_ACTION']))
+        .check(z.minLength(1))
+        .check(z.maxLength(2))
+        .check(
+          z.refine((economies) => new Set(economies).size === economies.length, {
+            message: 'Climb economies must be unique.'
+          })
+        )
+    }),
     z.strictObject({
       kind: z.literal('DISARM'),
       defenderCheckDefinitionIds: boundedCheckDefinitionChoicesSchema

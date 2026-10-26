@@ -175,7 +175,7 @@ const movementPassageContestParticipantReceiptDtoSchema = lazySchema(() =>
 export const movementPassageContestReceiptDtoSchema = lazySchema(() =>
   z
     .strictObject({
-      actionKind: z.enum(['OVERRUN', 'TUMBLE']),
+      actionKind: z.enum(['OVERRUN', 'TUMBLE', 'CLIMB_ONTO_LARGER_CREATURE']),
       optionId: checksumSchema,
       outcome: z.enum(['SUCCESS', 'TIE_OR_FAILURE']),
       initiator: movementPassageContestParticipantReceiptDtoSchema,

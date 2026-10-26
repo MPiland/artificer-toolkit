@@ -9,7 +9,11 @@ import {
   resolveDnd5eFlankingContributor
 } from './flankingPolicy.js'
 import { prepareDnd5eDisarmContest } from './optionalActionPolicy.js'
-import { prepareDnd5eOverrunContest, prepareDnd5eTumbleContest } from './optionalMovementPolicy.js'
+import {
+  prepareDnd5eClimbOntoContest,
+  prepareDnd5eOverrunContest,
+  prepareDnd5eTumbleContest
+} from './optionalMovementPolicy.js'
 import {
   exactOptionalCombatDefinition,
   optionalCombatPolicyPin
@@ -177,6 +181,7 @@ export const dnd5eOptionalCombatPolicyCapabilityAdapter = {
   prepareDisarmContest: prepareDnd5eDisarmContest,
   prepareOverrunContest: prepareDnd5eOverrunContest,
   prepareTumbleContest: prepareDnd5eTumbleContest,
+  prepareClimbOntoContest: prepareDnd5eClimbOntoContest,
   resolveCleaving: resolveDnd5eCleaving,
   offerMoraleTriggers: offerDnd5eMoraleTriggers,
   prepareMoraleSave: prepareDnd5eMoraleSave,

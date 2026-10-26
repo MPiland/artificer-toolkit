@@ -18,7 +18,8 @@ import type {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import {
   activeOptionalCombatDefinitions,
-  encounterOptionalCombatSnapshotDtoSchema
+  encounterOptionalCombatSnapshotDtoSchema,
+  type EncounterOptionalCombatSnapshotDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
 import { systemCoreCodeSchema } from '@artificer-toolkit/schema/shared/systemCoreCode'
@@ -40,6 +41,7 @@ import type { CharacterMovementFacts, MovementTarget } from './encounterMovement
 import { EncounterValidationError } from './encounterErrors.js'
 import { prepareEncounterContestPendingContext } from './encounterContestPendingContext.js'
 import { sizeRank } from './systemSizes.js'
+import type { OptionalMovementContributor } from './optionalCombatPolicyCapability.js'
 import {
   contestCheckCapabilityRegistry,
   optionalCombatPolicyCapabilityRegistry
@@ -351,20 +353,58 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     targets: input.targets
   }).size
   const policy = optionalCombatPolicyCapabilityRegistry.require(input.state.gameSystemId)
-  const preliminary =
-    option.ruleKind === 'OVERRUN'
-      ? policy.prepareOverrunContest({
+  const sizes = (initiatorSize: string | null, targetSize: string | null) => ({
+    initiatorSizeRank: sizeRank(input.state.gameSystemId, initiatorSize),
+    targetSizeRank: sizeRank(input.state.gameSystemId, targetSize)
+  })
+  // Each passage rule's policy seals its contest and says what winning does to the movement.
+  const propose = (
+    initiatorSize: string | null,
+    targetSize: string | null,
+    qualifiedInitiatorContributors: readonly OptionalMovementContributor[]
+  ) => {
+    switch (option.ruleKind) {
+      case 'OVERRUN': {
+        const result = policy.prepareOverrunContest({
           ...common,
-          initiatorSizeRank: sizeRank(input.state.gameSystemId, sourceSize),
-          targetSizeRank: sizeRank(input.state.gameSystemId, blockerSize),
-          qualifiedInitiatorContributors: []
+          ...sizes(initiatorSize, targetSize),
+          qualifiedInitiatorContributors
         })
-      : policy.prepareTumbleContest(common)
-  if (preliminary.kind !== 'PROPOSED') throw new Error('Movement passage policy is unavailable.')
+        return result.kind === 'PROPOSED'
+          ? {
+              proposal: result.proposal,
+              successMovement: 'PASS_THROUGH' as const,
+              initiatorD20: {
+                contributors: result.proposal.contest.initiatorContributors,
+                rollMode: result.proposal.contest.initiatorMode
+              }
+            }
+          : null
+      }
+      case 'TUMBLE': {
+        const result = policy.prepareTumbleContest(common)
+        return result.kind === 'PROPOSED'
+          ? { proposal: result.proposal, successMovement: 'PASS_THROUGH' as const }
+          : null
+      }
+      case 'CLIMB_ONTO_LARGER_CREATURE': {
+        const result = policy.prepareClimbOntoContest({
+          ...common,
+          ...sizes(initiatorSize, targetSize),
+          initiatorCheckDefinitionId: option.initiatorCheckDefinitionId
+        })
+        return result.kind === 'PROPOSED'
+          ? { proposal: result.proposal, successMovement: 'STOP_AT_CONTACT' as const }
+          : null
+      }
+    }
+  }
+  const preliminary = propose(sourceSize, blockerSize, [])
+  if (!preliminary) throw new Error('Movement passage policy is unavailable.')
   const initiator = actorContestFacts({
     actorId: source.actor.id,
     checkKind: 'SKILL',
-    checkDefinitionId: preliminary.proposal.contest.initiatorCheckDefinitionId,
+    checkDefinitionId: option.initiatorCheckDefinitionId,
     gameSystemId: input.state.gameSystemId,
     system,
     targets: input.targets
@@ -379,60 +419,48 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
   })
   if (initiator.modifier === null || defender.modifier === null)
     throw new Error('Movement passage contest facts are unavailable.')
-  const resolved =
-    option.ruleKind === 'OVERRUN'
-      ? {
-          ruleKind: 'OVERRUN' as const,
-          result: policy.prepareOverrunContest({
-            ...common,
-            initiatorSizeRank: sizeRank(input.state.gameSystemId, initiator.size),
-            targetSizeRank: sizeRank(input.state.gameSystemId, defender.size),
-            qualifiedInitiatorContributors: initiator.contributors.map((contributor) => ({
-              id: contributor.sourceId,
-              influence: contributor.influence,
-              reason: 'EXISTING_QUALIFIED_FACT' as const
-            }))
-          })
-        }
-      : { ruleKind: 'TUMBLE' as const, result: policy.prepareTumbleContest(common) }
-  if (resolved.result.kind !== 'PROPOSED')
-    throw new Error('Movement passage policy changed before contest.')
-  const proposal = resolved.result.proposal
+  const resolved = propose(
+    initiator.size,
+    defender.size,
+    initiator.contributors.map((contributor) => ({
+      id: contributor.sourceId,
+      influence: contributor.influence,
+      reason: 'EXISTING_QUALIFIED_FACT' as const
+    }))
+  )
+  if (!resolved) throw new Error('Movement passage policy changed before contest.')
+  const proposal = resolved.proposal
   if (
     proposal.pin.definitionId !== option.definitionId ||
     proposal.pin.definitionVersion !== option.definitionVersion ||
     proposal.pin.definitionChecksum !== option.definitionChecksum ||
     proposal.pin.moduleKey !== option.moduleKey ||
-    proposal.pin.moduleContractVersion !== option.moduleContractVersion
+    proposal.pin.moduleContractVersion !== option.moduleContractVersion ||
+    proposal.contest.initiatorCheckDefinitionId !== option.initiatorCheckDefinitionId
   )
     throw new Error('Movement passage definition is stale.')
   let initiatorContributors = initiator.contributors
   let initiatorRollMode = initiator.rollMode
-  if (resolved.ruleKind === 'OVERRUN') {
-    const overrun = resolved
-    if (overrun.result.kind !== 'PROPOSED')
-      throw new Error('Movement passage policy changed before contest.')
+  if ('initiatorD20' in resolved) {
     // Keep a qualified contributor's grant, domain and source, so a condition still names its holder
-    // (D94); the Overrun rule's own size relation is sourced to the rule's definition.
-    initiatorContributors = overrun.result.proposal.contest.initiatorContributors.map(
-      (contributor) => {
-        const qualified = initiator.contributors.find(
-          (candidate) => candidate.sourceId === contributor.id
-        )
-        return {
-          sourceId: contributor.id,
-          grantId: qualified?.grantId ?? null,
-          domainKey: qualified?.domainKey ?? null,
-          influence: contributor.influence,
-          source: qualified?.source ?? {
-            kind: 'AUTHORED' as const,
-            id: option.definitionId,
-            holderActorId: null
-          }
+    // (D94); the rule's own size relation is sourced to the rule's definition.
+    initiatorContributors = resolved.initiatorD20.contributors.map((contributor) => {
+      const qualified = initiator.contributors.find(
+        (candidate) => candidate.sourceId === contributor.id
+      )
+      return {
+        sourceId: contributor.id,
+        grantId: qualified?.grantId ?? null,
+        domainKey: qualified?.domainKey ?? null,
+        influence: contributor.influence,
+        source: qualified?.source ?? {
+          kind: 'AUTHORED' as const,
+          id: option.definitionId,
+          holderActorId: null
         }
       }
-    )
-    initiatorRollMode = overrun.result.proposal.contest.initiatorMode
+    })
+    initiatorRollMode = resolved.initiatorD20.rollMode
   }
   const graph = contestCheckCapabilityRegistry
     .require(input.state.gameSystemId)
@@ -452,18 +480,14 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
       optionId: option.optionId,
       selectionContractChecksum: checksumRuleDocument(option),
       resolvedSelectionChecksum: checksumRuleDocument({ optionId: option.optionId }),
-      selection:
-        option.ruleKind === 'OVERRUN'
-          ? {
-              kind: 'OVERRUN',
-              economy: option.economy,
-              defenderCheckDefinitionId: proposal.contest.targetCheckDefinitionId
-            }
-          : {
-              kind: 'TUMBLE',
-              economy: option.economy,
-              defenderCheckDefinitionId: proposal.contest.targetCheckDefinitionId
-            },
+      selection: {
+        kind: option.ruleKind,
+        economy: option.economy,
+        initiatorCheckDefinitionId: option.initiatorCheckDefinitionId,
+        initiatorCheckLabel: option.initiatorCheckLabel,
+        defenderCheckDefinitionId: proposal.contest.targetCheckDefinitionId,
+        successMovement: resolved.successMovement
+      },
       movementContinuation: input.choice.movement
     },
     actionId: option.optionId,
@@ -531,8 +555,28 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
   })
 }
 
-/** Issues only optional-passage choices that can be prepared from current actor facts. */
-export async function availableEncounterMovementPassageChoice<
+/** The passage rule a definition authors and the checks its mover may roll; null for others. */
+function passageRule(
+  parameters: EncounterOptionalCombatSnapshotDto['definitions'][number]['document']['parameters']
+) {
+  switch (parameters.kind) {
+    case 'OVERRUN':
+    case 'TUMBLE':
+      return {
+        ruleKind: parameters.kind,
+        initiatorCheckDefinitionIds: [parameters.initiatorCheckDefinitionId]
+      }
+    case 'CLIMB_ONTO_LARGER_CREATURE':
+      return {
+        ruleKind: parameters.kind,
+        initiatorCheckDefinitionIds: parameters.initiatorCheckDefinitionIds
+      }
+    default:
+      return null
+  }
+}
+
+/** Issues only optional-passage choices that can be prepared from current actor facts. */ export async function availableEncounterMovementPassageChoice<
   TCharacterFacts extends CharacterMovementFacts
 >(
   reads: PassageReads<TCharacterFacts>,
@@ -571,24 +615,41 @@ export async function availableEncounterMovementPassageChoice<
       }
     })
   )
+  let system: SystemAuthoredDto
+  try {
+    system = await reads.loadSystem()
+    if (system.id !== input.state.gameSystemId) return null
+  } catch {
+    return null
+  }
   const options = definitions.flatMap((definition) => {
-    const ruleKind = definition.document.kind
-    if (ruleKind !== 'OVERRUN' && ruleKind !== 'TUMBLE') return []
-    return economies.flatMap((economy) =>
-      economy
-        ? [
-            {
-              ruleKind,
-              economy: economy.code,
-              definitionId: definition.definitionId,
-              definitionVersion: definition.definitionVersion,
-              definitionChecksum: definition.definitionChecksum,
-              moduleKey: definition.document.module.policyModuleKey,
-              moduleContractVersion: definition.document.module.contractVersion
-            }
-          ]
-        : []
-    )
+    const rule = passageRule(definition.document.parameters)
+    if (!rule) return []
+    return rule.initiatorCheckDefinitionIds.flatMap((initiatorCheckDefinitionId) => {
+      let initiatorCheckLabel: string
+      try {
+        initiatorCheckLabel = encounterBasicActionCheckLabel(system, initiatorCheckDefinitionId)
+      } catch {
+        return []
+      }
+      return economies.flatMap((economy) =>
+        economy
+          ? [
+              {
+                ruleKind: rule.ruleKind,
+                economy: economy.code,
+                initiatorCheckDefinitionId,
+                initiatorCheckLabel,
+                definitionId: definition.definitionId,
+                definitionVersion: definition.definitionVersion,
+                definitionChecksum: definition.definitionChecksum,
+                moduleKey: definition.document.module.policyModuleKey,
+                moduleContractVersion: definition.document.module.contractVersion
+              }
+            ]
+          : []
+      )
+    })
   })
   if (options.length === 0) return null
   const choice = createEncounterMovementPassageChoice({
@@ -598,14 +659,8 @@ export async function availableEncounterMovementPassageChoice<
       source.actor.kind === 'CHARACTER' ? (source.characterFacts?.active.id ?? null) : null,
     options
   })
-  let system: SystemAuthoredDto
-  try {
-    system = await reads.loadSystem()
-    if (system.id !== input.state.gameSystemId) return null
-  } catch {
-    return null
-  }
   const executable = new Set<string>()
+
   for (const option of choice.options) {
     try {
       const economy = economies.find((candidate) => candidate?.code === option.economy)
@@ -632,7 +687,8 @@ export async function availableEncounterMovementPassageChoice<
         option.definitionId === candidate.definitionId &&
         option.definitionVersion === candidate.definitionVersion &&
         option.economy === candidate.economy &&
-        option.ruleKind === candidate.ruleKind
+        option.ruleKind === candidate.ruleKind &&
+        option.initiatorCheckDefinitionId === candidate.initiatorCheckDefinitionId
     )
   )
   return accepted.length === 0

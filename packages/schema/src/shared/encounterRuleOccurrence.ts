@@ -512,8 +512,9 @@ export const pendingEncounterRuleOccurrenceSummaryDtoSchema = lazySchema(() =>
           .array(
             z.strictObject({
               optionId: z.string().check(z.regex(/^[a-f0-9]{64}$/)),
-              ruleKind: z.enum(['OVERRUN', 'TUMBLE']),
-              economy: z.enum(['ACTION', 'BONUS_ACTION'])
+              ruleKind: z.enum(['OVERRUN', 'TUMBLE', 'CLIMB_ONTO_LARGER_CREATURE']),
+              economy: z.enum(['ACTION', 'BONUS_ACTION']),
+              initiatorCheckLabel: z.string().check(z.minLength(1)).check(z.maxLength(240))
             })
           )
           .check(z.minLength(1))

@@ -17,7 +17,7 @@ import {
   validateOptionalCombatCheckDefinitions
 } from './optionalCombatCheckDefinitions.js'
 
-function srdDocument(kind: 'OVERRUN' | 'SHOVE_ASIDE' | 'TUMBLE') {
+function srdDocument(kind: 'CLIMB_ONTO_LARGER_CREATURE' | 'OVERRUN' | 'SHOVE_ASIDE' | 'TUMBLE') {
   const definition = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
     (candidate) => candidate.document.kind === kind
   )
@@ -73,6 +73,41 @@ describe('the SRD movement contests, as authored optional-combat definitions (MO
         systemVocabulary: { ...srdSystemRecord, id: '00000000-0000-4000-8000-00000000fffe' }
       })
     ).toThrow('Optional combat check definitions must use the same Game System vocabulary.')
+  })
+
+  it('pins the climb-onto checks: Athletics or Acrobatics for the climber, Acrobatics for the target', () => {
+    const document = srdDocument('CLIMB_ONTO_LARGER_CREATURE')
+    expect(optionalCombatCheckDefinitionIds(document)).toEqual([
+      SRD_ATHLETICS_SKILL_ID,
+      SRD_ACROBATICS_SKILL_ID,
+      SRD_ACROBATICS_SKILL_ID
+    ])
+    expect(document.parameters).toMatchObject({ minimumTargetSizeSteps: 1, economies: ['ACTION'] })
+    expect(() => validate(document)).not.toThrow()
+  })
+
+  it('publishes a homebrew climb-onto built from the same parameters, and refuses a broken one', () => {
+    const document = srdDocument('CLIMB_ONTO_LARGER_CREATURE')
+    if (document.parameters.kind !== 'CLIMB_ONTO_LARGER_CREATURE')
+      throw new Error('Climb onto must author its checks.')
+    document.parameters.initiatorCheckDefinitionIds = [SRD_ATHLETICS_SKILL_ID]
+    document.parameters.targetCheckDefinitionId = SRD_ATHLETICS_SKILL_ID
+    document.parameters.minimumTargetSizeSteps = 2
+    document.parameters.economies = ['ACTION', 'BONUS_ACTION']
+    expect(() =>
+      validate(dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse(document))
+    ).not.toThrow()
+    const parses = (parameters: Record<string, unknown>) =>
+      dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.safeParse({
+        ...document,
+        parameters: { ...document.parameters, ...parameters }
+      }).success
+    expect(parses({ minimumTargetSizeSteps: 0 })).toBe(false)
+    expect(parses({ economies: [] })).toBe(false)
+    expect(parses({ economies: ['ACTION', 'ACTION'] })).toBe(false)
+    expect(parses({ initiatorCheckDefinitionIds: [] })).toBe(false)
+    document.parameters.initiatorCheckDefinitionIds = ['00000000-0000-4000-8000-00000000ffff']
+    expect(() => validate(document)).toThrow(OptionalCombatCheckDefinitionError)
   })
 
   it('accepts only the closed parameter arm of each movement contest', () => {
