@@ -190,14 +190,14 @@ function ruleRun(actor: EncounterRunActorState, rule: 'ON' | 'OFF' | 'MANUAL' = 
 async function fighterFacts() {
   const { character, documents } = readyFighterFixture()
   const sheet = await prepareFixtureSheet({ character, documents })
-  return {
+  const facts: CharacterMovementFacts = {
     active: { id: character.id, checksum: 'a'.repeat(64), play: { streamVersion: 1 } },
     character: sheet.prepared.character,
     campaignContext: { conditions: [], adjustments: [], attunementSlotOverride: null },
     prepared: sheet.prepared,
-    ruleEvaluation: sheet.ruleEvaluation,
-    sheetState: sheet.sheetState
-  } satisfies CharacterMovementFacts
+    ruleEvaluation: sheet.ruleEvaluation
+  }
+  return { ...facts, sheetState: sheet.sheetState }
 }
 
 type FighterFacts = Awaited<ReturnType<typeof fighterFacts>>
