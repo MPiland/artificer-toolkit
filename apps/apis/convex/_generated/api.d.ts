@@ -22324,7 +22324,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -52616,7 +52622,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -82917,7 +82929,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -113209,7 +113227,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -143536,7 +143560,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -173828,7 +173858,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -204122,7 +204158,13 @@ export declare const api: {
                         "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                       >;
                     }
-                  | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                  | {
+                      economies: Array<"ACTION" | "BONUS_ACTION">;
+                      initiatorCheckDefinitionIds: Array<string>;
+                      kind: "CLIMB_ONTO_LARGER_CREATURE";
+                      minimumTargetSizeSteps: number;
+                      targetCheckDefinitionId: string;
+                    }
                   | {
                       defenderCheckDefinitionIds: Array<string>;
                       kind: "DISARM";
@@ -234103,7 +234145,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -264395,7 +264443,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -299978,8 +300032,9 @@ export declare const api: {
                 occurrenceVersion: number;
                 options: Array<{
                   economy: "ACTION" | "BONUS_ACTION";
+                  initiatorCheckLabel: string;
                   optionId: string;
-                  ruleKind: "OVERRUN" | "TUMBLE";
+                  ruleKind: "OVERRUN" | "TUMBLE" | "CLIMB_ONTO_LARGER_CREATURE";
                 }>;
                 sourceActorId: string;
               }
@@ -300419,8 +300474,10 @@ export declare const api: {
                   occurrenceVersion: number;
                   options: Array<{
                     economy: "ACTION" | "BONUS_ACTION";
+                    initiatorCheckLabel: string;
                     optionId: string;
-                    ruleKind: "OVERRUN" | "TUMBLE";
+                    ruleKind:
+                      "OVERRUN" | "TUMBLE" | "CLIMB_ONTO_LARGER_CREATURE";
                   }>;
                   sourceActorId: string;
                 }
@@ -301482,8 +301539,9 @@ export declare const api: {
             occurrenceVersion: number;
             options: Array<{
               economy: "ACTION" | "BONUS_ACTION";
+              initiatorCheckLabel: string;
               optionId: string;
-              ruleKind: "OVERRUN" | "TUMBLE";
+              ruleKind: "OVERRUN" | "TUMBLE" | "CLIMB_ONTO_LARGER_CREATURE";
             }>;
             sourceActorId: string;
           }
@@ -302640,8 +302698,9 @@ export declare const api: {
                 occurrenceVersion: number;
                 options: Array<{
                   economy: "ACTION" | "BONUS_ACTION";
+                  initiatorCheckLabel: string;
                   optionId: string;
-                  ruleKind: "OVERRUN" | "TUMBLE";
+                  ruleKind: "OVERRUN" | "TUMBLE" | "CLIMB_ONTO_LARGER_CREATURE";
                 }>;
                 sourceActorId: string;
               }
