@@ -6,7 +6,6 @@ import {
   deriveSquareGridForcedMovementDestinations,
   deriveSquareGridShoveAsideDestinations,
   enumerateSquareGridFootprint,
-  findSquareGridCreatureCoverIntervenors,
   findSquareGridFlankingPairs,
   SQUARE_GRID_COMPASS_RAYS,
   traceSquareGridForcedMovementRay
@@ -218,40 +217,6 @@ describe('optional combat square-grid geometry', () => {
     ).toBeNull()
   })
 
-  it('returns deterministic intervening creature cells while excluding endpoints and corner touches', () => {
-    const attacker = {
-      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 5, y: 15 }))),
-      tokenId: 'attacker'
-    }
-    const target = {
-      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 45, y: 15 }))),
-      tokenId: 'target'
-    }
-    const middleB = {
-      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 25, y: 15 }))),
-      tokenId: 'b'
-    }
-    const middleA = {
-      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 15, y: 15 }))),
-      tokenId: 'a'
-    }
-    const corner = {
-      footprint: footprint(enumerateSquareGridFootprint(grid, token({ x: 25, y: 25 }))),
-      tokenId: 'corner'
-    }
-    expect(
-      findSquareGridCreatureCoverIntervenors({
-        attacker,
-        candidates: [middleB, target, corner, attacker, middleA],
-        grid,
-        target
-      })
-    ).toEqual([
-      { cell: expect.objectContaining({ id: '1:1' }), tokenId: 'a' },
-      { cell: expect.objectContaining({ id: '2:1' }), tokenId: 'b' }
-    ])
-  })
-
   it('fails closed for forged or stale grid footprints', () => {
     const attacker = footprint(enumerateSquareGridFootprint(grid, token({ x: -5, y: 5 })))
     const allied = footprint(enumerateSquareGridFootprint(grid, token({ x: 25, y: 5 })))
@@ -275,29 +240,6 @@ describe('optional combat square-grid geometry', () => {
         target
       })
     ).toEqual([])
-    const malformedCandidate = {
-      footprint: {
-        ...attacker,
-        cells: [{ ...attacker.cells[0]!, id: 'wrong-id' }]
-      },
-      tokenId: 'candidate'
-    }
-    expect(
-      findSquareGridCreatureCoverIntervenors({
-        attacker: { footprint: attacker, tokenId: 'attacker' },
-        candidates: [malformedCandidate],
-        grid,
-        target: { footprint: target, tokenId: 'target' }
-      })
-    ).toEqual([])
-    expect(
-      findSquareGridCreatureCoverIntervenors({
-        attacker: { footprint: attacker, tokenId: 'attacker' },
-        candidates: [],
-        grid,
-        target: { footprint: { ...target, cells: target.cells.slice(0, -1) }, tokenId: 'target' }
-      })
-    ).toEqual([])
   })
 
   it('fails closed for invalid inputs', () => {
@@ -317,14 +259,6 @@ describe('optional combat square-grid geometry', () => {
         target: token({ x: 5, y: 5 })
       })
     ).toBeNull()
-    expect(
-      findSquareGridCreatureCoverIntervenors({
-        attacker: { footprint: target, tokenId: 'a' },
-        candidates: [],
-        grid: { kind: 'GRIDLESS', pixelsPerUnit: 10, unit: 'FEET' },
-        target: { footprint: target, tokenId: 't' }
-      })
-    ).toEqual([])
   })
 
   it('derives canonical legal Shove Aside destinations and rejects collision, map, and barrier paths', () => {

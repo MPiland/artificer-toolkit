@@ -1,5 +1,10 @@
 import type { SceneGrid, ScenePoint, SceneToken } from './scene.js'
-import { canTokenFootprintMoveBetween, measureSceneDistance } from './geometry.js'
+import {
+  canMoveBetween,
+  canTokenFootprintMoveBetween,
+  measureSceneDistance,
+  SceneBarrierIndex
+} from './geometry.js'
 import { measureSceneTokenFootprintDistance } from './sceneCombatPerception.js'
 import type { CampaignSceneState } from './scene.js'
 import type { FacingArc, FacingArcRange } from './facingArc.js'
@@ -53,11 +58,6 @@ export interface SquareGridFlankingPair {
 interface SquareGridFootprintFacingArcs {
   readonly sourceToTarget: FacingArc | null
   readonly targetToSource: FacingArc | null
-}
-
-interface SquareGridCoverIntervenor {
-  readonly cell: SquareGridCell
-  readonly tokenId: string
 }
 
 interface SquareGridTokenFootprint {
@@ -802,65 +802,203 @@ function segmentCrossesCellInterior(
   return minimum < maximum - EPSILON && maximum > EPSILON && minimum < 1 - EPSILON
 }
 
+/** A System cover tier as the geometry ranks it; the System's data owns the codes and thresholds. */
+export interface CoverTierRule {
+  readonly code: string
+  /** The fewest blocked lines, of the four to a target square's corners, that give this tier. */
+  readonly minBlockedLines: number
+}
+
+export interface CoverRules<Tier extends CoverTierRule> {
+  /** Ascending by `minBlockedLines`. */
+  readonly tiers: readonly Tier[]
+  /** The highest tier creatures can give on their own; null when creatures give no cover. */
+  readonly creatureMaxTierCode: string | null
+}
+
+type CoverSpace = Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>
+
+/** Where an attack or effect comes from: an attacker's space, or an area's point of origin. */
+export type SquareGridCoverOrigin =
+  | { readonly kind: 'TOKEN'; readonly token: CoverSpace }
+  | { readonly kind: 'POINT'; readonly point: ScenePoint }
+
+export interface SquareGridCover<Tier extends CoverTierRule> {
+  /** Null when the chosen lines give no cover. */
+  readonly tier: Tier | null
+  readonly blockedLines: number
+  readonly wallBlockedLines: number
+  /** Creatures that block at least one of the chosen lines, by token id. */
+  readonly creatureTokenIds: readonly string[]
+  readonly originCorner: ScenePoint
+  readonly targetCellId: string
+}
+
+/** The highest index of the ascending tiers that `lines` reaches, or -1 for none. */
+function coverTierIndex(tiers: readonly CoverTierRule[], lines: number): number {
+  return tiers.filter((tier) => tier.minBlockedLines <= lines).length - 1
+}
+
+function validCoverRules(rules: CoverRules<CoverTierRule>): boolean {
+  return (
+    rules.tiers.length > 0 &&
+    rules.tiers.every(
+      (tier, index) =>
+        Number.isSafeInteger(tier.minBlockedLines) &&
+        tier.minBlockedLines >= 1 &&
+        tier.minBlockedLines <= 4 &&
+        (index === 0 || tier.minBlockedLines > rules.tiers[index - 1]!.minBlockedLines)
+    ) &&
+    (rules.creatureMaxTierCode === null ||
+      rules.tiers.some((tier) => tier.code === rules.creatureMaxTierCode))
+  )
+}
+
+/** A rectangle's corners, moved a hair inside it so a line from a wall-side corner still crosses the wall. */
+function insetCorners(bounds: SquareGridFootprint['bounds'], inset: number): readonly ScenePoint[] {
+  const left = bounds.left + inset
+  const right = bounds.right - inset
+  const top = bounds.top + inset
+  const bottom = bounds.bottom - inset
+  return [
+    { x: left, y: top },
+    { x: right, y: top },
+    { x: right, y: bottom },
+    { x: left, y: bottom }
+  ]
+}
+
+function boundsOverlap(
+  left: SquareGridFootprint['bounds'],
+  right: SquareGridFootprint['bounds']
+): boolean {
+  return (
+    left.right > right.left + EPSILON &&
+    left.left < right.right - EPSILON &&
+    left.bottom > right.top + EPSILON &&
+    left.top < right.bottom - EPSILON
+  )
+}
+
 /**
- * Finds candidate creature cells crossed by an occupied-cell line. This is geometry evidence
- * only: systems decide whether the evidence yields cover and what that cover means.
+ * Works out a target's cover on a square grid by the corner method: from the origin corner that
+ * leaves the least cover, a line to each corner of the target's least-covered square. A barrier
+ * that stops movement along a line blocks it, and so does another creature's space. Walls give
+ * the tier their lines reach; creatures add lines only up to the System's creature cap. Returns
+ * null, rather than guessing, when the grid is not square or a space is not cell-aligned.
  */
-export function findSquareGridCreatureCoverIntervenors(input: {
-  readonly attacker: SquareGridTokenFootprint
-  readonly candidates: readonly SquareGridTokenFootprint[]
-  readonly grid: SceneGrid
-  readonly target: SquareGridTokenFootprint
-}): readonly SquareGridCoverIntervenor[] {
-  const grid = input.grid
+export function resolveSquareGridCover<Tier extends CoverTierRule>(input: {
+  readonly creatures: readonly CoverSpace[]
+  readonly origin: SquareGridCoverOrigin
+  readonly rules: CoverRules<Tier>
+  readonly state: Pick<CampaignSceneState, 'barriers' | 'doorStates' | 'grid'>
+  readonly target: CoverSpace
+}): SquareGridCover<Tier> | null {
+  const grid = input.state.grid
   if (
     !validSquareGrid(grid) ||
-    !validSquareGridFootprint(grid, input.attacker.footprint) ||
-    !validSquareGridFootprint(grid, input.target.footprint) ||
-    input.candidates.length > MAX_SQUARE_GRID_INTERACTION_EVIDENCE
+    !validCoverRules(input.rules) ||
+    input.creatures.length > MAX_SQUARE_GRID_INTERACTION_EVIDENCE
   ) {
-    return []
+    return null
   }
-  const excluded = new Set([input.attacker.tokenId, input.target.tokenId])
-  const candidates = input.candidates.filter((candidate) => !excluded.has(candidate.tokenId))
-  const candidateIds = new Set<string>()
-  let candidateCellCount = 0
-  for (const candidate of candidates) {
-    if (
-      candidate.tokenId.length === 0 ||
-      candidateIds.has(candidate.tokenId) ||
-      !validSquareGridFootprint(grid, candidate.footprint)
-    ) {
-      return []
+  const inset = grid.cellSize / 1_000
+  const target = enumerateSquareGridFootprint(grid, input.target)
+  const originFootprint =
+    input.origin.kind === 'TOKEN' ? enumerateSquareGridFootprint(grid, input.origin.token) : null
+  if (!target || (input.origin.kind === 'TOKEN' && !originFootprint)) return null
+  if (input.origin.kind === 'POINT' && !isFinitePoint(input.origin.point)) return null
+  const originCorners = originFootprint
+    ? insetCorners(originFootprint.bounds, inset)
+    : [input.origin.kind === 'POINT' ? input.origin.point : target.center]
+
+  // Only a space overlapping the box around both ends can lie across a line between them.
+  const xs = [...originCorners.map(({ x }) => x), target.bounds.left, target.bounds.right]
+  const ys = [...originCorners.map(({ y }) => y), target.bounds.top, target.bounds.bottom]
+  const box = {
+    bottom: Math.max(...ys),
+    left: Math.min(...xs),
+    right: Math.max(...xs),
+    top: Math.min(...ys)
+  }
+  const originTokenId = input.origin.kind === 'TOKEN' ? input.origin.token.id : null
+  const blockers: { readonly cells: readonly SquareGridCell[]; readonly tokenId: string }[] = []
+  let blockerCellCount = 0
+  for (const creature of input.creatures) {
+    if (creature.id === input.target.id || creature.id === originTokenId) continue
+    const halfWidth = creature.width / 2
+    const halfHeight = creature.height / 2
+    const extent = {
+      bottom: creature.position.y + halfHeight,
+      left: creature.position.x - halfWidth,
+      right: creature.position.x + halfWidth,
+      top: creature.position.y - halfHeight
     }
-    candidateIds.add(candidate.tokenId)
-    candidateCellCount += candidate.footprint.cells.length
-    if (candidateCellCount > MAX_SQUARE_GRID_INTERACTION_EVIDENCE) return []
+    // A space clear of the box cannot block; an unaligned or malformed one inside it fails closed.
+    if (Object.values(extent).every(Number.isFinite) && !boundsOverlap(extent, box)) continue
+    const footprint = enumerateSquareGridFootprint(grid, creature)
+    if (!footprint) return null
+    blockers.push({ cells: footprint.cells, tokenId: creature.id })
+    blockerCellCount += footprint.cells.length
   }
-  const attackerTargetPairs =
-    input.attacker.footprint.cells.length * input.target.footprint.cells.length
+  const lineCount = originCorners.length * target.cells.length * 4
   if (
-    !Number.isSafeInteger(attackerTargetPairs) ||
-    attackerTargetPairs > MAX_SQUARE_GRID_LINE_CHECKS ||
-    !productWithinLimit(candidateCellCount, attackerTargetPairs, MAX_SQUARE_GRID_LINE_CHECKS)
+    blockerCellCount > 0 &&
+    !productWithinLimit(lineCount, blockerCellCount, MAX_SQUARE_GRID_LINE_CHECKS)
   ) {
-    return []
+    return null
   }
-  const result = candidates.flatMap((candidate) => {
-    return candidate.footprint.cells.flatMap((cell) =>
-      input.attacker.footprint.cells.some((attackerCell) =>
-        input.target.footprint.cells.some((targetCell) =>
-          segmentCrossesCellInterior(attackerCell.center, targetCell.center, cell, grid)
+
+  const barriers = new SceneBarrierIndex(input.state.barriers)
+  const { creatureMaxTierCode, tiers } = input.rules
+  const creatureCap =
+    creatureMaxTierCode === null ? -1 : tiers.findIndex(({ code }) => code === creatureMaxTierCode)
+  const half = grid.cellSize / 2
+  let best: { readonly cover: SquareGridCover<Tier>; readonly tierIndex: number } | null = null
+  for (const originCorner of originCorners) {
+    for (const cell of target.cells) {
+      const cellBounds = {
+        bottom: cell.center.y + half,
+        left: cell.center.x - half,
+        right: cell.center.x + half,
+        top: cell.center.y - half
+      }
+      let wallBlockedLines = 0
+      let blockedLines = 0
+      const creatureTokenIds = new Set<string>()
+      for (const corner of insetCorners(cellBounds, inset)) {
+        const walled = !canMoveBetween(input.state, originCorner, corner, barriers)
+        const crossed = blockers.filter((blocker) =>
+          blocker.cells.some((blockerCell) =>
+            segmentCrossesCellInterior(originCorner, corner, blockerCell, grid)
+          )
         )
+        for (const blocker of crossed) creatureTokenIds.add(blocker.tokenId)
+        if (walled) wallBlockedLines += 1
+        if (walled || crossed.length > 0) blockedLines += 1
+      }
+      const tierIndex = Math.max(
+        coverTierIndex(tiers, wallBlockedLines),
+        Math.min(coverTierIndex(tiers, blockedLines), creatureCap)
       )
-        ? [{ cell, tokenId: candidate.tokenId }]
-        : []
-    )
-  })
-  return result.sort(
-    (left, right) =>
-      left.tokenId.localeCompare(right.tokenId) ||
-      left.cell.row - right.cell.row ||
-      left.cell.column - right.cell.column
-  )
+      if (
+        best === null ||
+        tierIndex < best.tierIndex ||
+        (tierIndex === best.tierIndex && blockedLines < best.cover.blockedLines)
+      ) {
+        best = {
+          cover: {
+            blockedLines,
+            creatureTokenIds: [...creatureTokenIds].sort(),
+            originCorner,
+            targetCellId: cell.id,
+            tier: tierIndex < 0 ? null : tiers[tierIndex]!,
+            wallBlockedLines
+          },
+          tierIndex
+        }
+      }
+    }
+  }
+  return best?.cover ?? null
 }
