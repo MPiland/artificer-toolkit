@@ -117,8 +117,30 @@ const passagePending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)
   encounterVersion: tabletopGmEncounter.version,
   sourceActorId: tabletopGmEncounter.actors[0]!.id,
   options: [
-    { optionId: 'a'.repeat(64), ruleKind: 'OVERRUN' as const, economy: 'ACTION' as const },
-    { optionId: 'b'.repeat(64), ruleKind: 'TUMBLE' as const, economy: 'BONUS_ACTION' as const }
+    {
+      optionId: 'a'.repeat(64),
+      ruleKind: 'OVERRUN' as const,
+      economy: 'ACTION' as const,
+      initiatorCheckLabel: 'Strength (Athletics)'
+    },
+    {
+      optionId: 'b'.repeat(64),
+      ruleKind: 'TUMBLE' as const,
+      economy: 'BONUS_ACTION' as const,
+      initiatorCheckLabel: 'Dexterity (Acrobatics)'
+    },
+    {
+      optionId: 'c'.repeat(64),
+      ruleKind: 'CLIMB_ONTO_LARGER_CREATURE' as const,
+      economy: 'ACTION' as const,
+      initiatorCheckLabel: 'Strength (Athletics)'
+    },
+    {
+      optionId: 'd'.repeat(64),
+      ruleKind: 'CLIMB_ONTO_LARGER_CREATURE' as const,
+      economy: 'ACTION' as const,
+      initiatorCheckLabel: 'Dexterity (Acrobatics)'
+    }
   ],
   allowedResponses: ['DECLINE', 'OPTION']
 })
@@ -478,9 +500,17 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
 
     await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
     expect(screen.getByText('Passage choice')).toBeVisible()
-    await user.click(screen.getByRole('button', { name: 'Overrun · Action' }))
+    await user.click(
+      screen.getByRole('button', { name: 'Overrun · Strength (Athletics) · Action' })
+    )
     expect(onResolve).toHaveBeenCalledWith(
       expect.objectContaining({ resolution: { kind: 'PASSAGE_OPTION', optionId: 'a'.repeat(64) } })
+    )
+    await user.click(
+      screen.getByRole('button', { name: 'Climb onto · Dexterity (Acrobatics) · Action' })
+    )
+    expect(onResolve).toHaveBeenCalledWith(
+      expect.objectContaining({ resolution: { kind: 'PASSAGE_OPTION', optionId: 'd'.repeat(64) } })
     )
 
     await user.click(screen.getByRole('button', { name: 'Decline passage' }))
@@ -506,7 +536,9 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
     )
 
     await user.click(screen.getByRole('button', { name: 'Open pending decision' }))
-    expect(screen.getByRole('button', { name: 'Overrun · Action' })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'Overrun · Strength (Athletics) · Action' })
+    ).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Decline passage' })).toBeDisabled()
 
     rerender(
@@ -521,7 +553,9 @@ describe('CampaignTabletopDecisionDrawer passage choice', () => {
         onResolve={onResolve}
       />
     )
-    expect(screen.getByRole('button', { name: 'Tumble · Bonus action' })).toBeDisabled()
+    expect(
+      screen.getByRole('button', { name: 'Tumble · Dexterity (Acrobatics) · Bonus action' })
+    ).toBeDisabled()
 
     rerender(
       <CampaignTabletopDecisionDrawer

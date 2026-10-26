@@ -25,6 +25,7 @@ export function createEncounterMovementPassageChoice(input: {
         blockerActorId: input.movement.blockerActorId,
         ruleKind: option.ruleKind,
         economy: option.economy,
+        initiatorCheckDefinitionId: option.initiatorCheckDefinitionId,
         definitionId: option.definitionId,
         definitionVersion: option.definitionVersion,
         definitionChecksum: option.definitionChecksum

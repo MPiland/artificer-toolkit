@@ -13,7 +13,10 @@ import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projectio
 import { withEncounterRuleUsageUsed } from './encounterActorState.js'
 import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import type { EncounterActionEconomyConsumption } from './encounterActionEconomyConsumption.js'
-import { evaluateEncounterMovementPassageContest } from './encounterMovementPassageExecution.js'
+import {
+  evaluateEncounterMovementPassageContest,
+  passesThrough
+} from './encounterMovementPassageExecution.js'
 import { stopSceneMovementResult } from './encounterMovementContinuation.js'
 import { readEncounterMovementPendingContext } from './encounterMovementPendingContext.js'
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
@@ -221,7 +224,7 @@ export async function evaluateEncounterMovementPassageResponse<
       })
     )
   }
-  if (evaluated.kind === 'DECLINED' || evaluated.execution.outcome === 'TIE_OR_FAILURE')
+  if (evaluated.kind === 'DECLINED' || !passesThrough(evaluated.pending, evaluated.execution))
     return {
       outcome: {
         kind: 'TERMINAL' as const,

@@ -88,8 +88,18 @@ const passagePending = validated(pendingEncounterRuleOccurrenceSummaryDtoSchema)
   encounterVersion: tabletopGmEncounter.version,
   sourceActorId: tabletopGmEncounter.actors[0]!.id,
   options: [
-    { optionId: 'a'.repeat(64), ruleKind: 'OVERRUN' as const, economy: 'ACTION' as const },
-    { optionId: 'b'.repeat(64), ruleKind: 'TUMBLE' as const, economy: 'BONUS_ACTION' as const }
+    {
+      optionId: 'a'.repeat(64),
+      ruleKind: 'OVERRUN' as const,
+      economy: 'ACTION' as const,
+      initiatorCheckLabel: 'Strength (Athletics)'
+    },
+    {
+      optionId: 'b'.repeat(64),
+      ruleKind: 'TUMBLE' as const,
+      economy: 'BONUS_ACTION' as const,
+      initiatorCheckLabel: 'Dexterity (Acrobatics)'
+    }
   ],
   allowedResponses: ['DECLINE', 'OPTION']
 })
@@ -247,7 +257,9 @@ export const PassageChoice: Story = {
     resolveDecision.mockClear()
     const page = within(canvasElement.ownerDocument.body)
     const drawer = await openDecision(page)
-    await userEvent.click(drawer.getByRole('button', { name: 'Overrun · Action' }))
+    await userEvent.click(
+      drawer.getByRole('button', { name: 'Overrun · Strength (Athletics) · Action' })
+    )
     await waitFor(() => expect(resolveDecision).toHaveBeenCalledTimes(1))
     await expect(resolveDecision).toHaveBeenCalledWith(
       expect.objectContaining({

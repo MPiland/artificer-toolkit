@@ -22,13 +22,15 @@ const baseContext: CharacterSheetCampaignContext = {
   conditions: []
 }
 
-async function endActiveEffects(context: Partial<CharacterSheetCampaignContext>) {
+async function capabilities(context: Partial<CharacterSheetCampaignContext>) {
   const fixture = readyFighterFixture()
   const { character } = await prepareFixtureBuilder(fixture)
   const { sheet } = await prepareFixtureSheet({ ...fixture, character })
   return projectCharacterSheetForViewer(sheet, { ...baseContext, ...context }).meta.capabilities
-    .endActiveEffects
 }
+
+const endActiveEffects = async (context: Partial<CharacterSheetCampaignContext>) =>
+  (await capabilities(context)).endActiveEffects
 
 describe('Character Sheet end-effect capability', () => {
   it('lets the Campaign owner end effects on their own Character (D92, D99)', async () => {
@@ -47,6 +49,27 @@ describe('Character Sheet end-effect capability', () => {
   it('withholds it from the Campaign owner on an archived Campaign', async () => {
     expect(
       await endActiveEffects({
+        viewer: 'CAMPAIGN_OWNER',
+        isCampaignOwner: true,
+        campaignStatus: 'ARCHIVED'
+      })
+    ).toBe(false)
+  })
+})
+
+describe('Character Sheet consequence removal capability (ATTACK-15.2)', () => {
+  const removeConsequences = async (context: Partial<CharacterSheetCampaignContext>) =>
+    (await capabilities(context)).removeConsequences
+
+  it('offers removal to the Campaign owner on an active Campaign only', async () => {
+    expect(await removeConsequences({ viewer: 'CAMPAIGN_OWNER', isCampaignOwner: true })).toBe(true)
+    expect(await removeConsequences({ viewer: 'CHARACTER_OWNER', isCampaignOwner: true })).toBe(
+      true
+    )
+    expect(await removeConsequences({ viewer: 'CHARACTER_OWNER' })).toBe(false)
+    expect(await removeConsequences({ viewer: 'PARTY_MEMBER' })).toBe(false)
+    expect(
+      await removeConsequences({
         viewer: 'CAMPAIGN_OWNER',
         isCampaignOwner: true,
         campaignStatus: 'ARCHIVED'

@@ -261,6 +261,18 @@ export function validateSpellSource(
   }
 }
 
+/**
+ * Removing a recorded consequence is the GM's alone: every recovery the table names is a judgment
+ * call (ATTACK-15.2, D187a), so the Character's owner cannot clear it.
+ */
+export function assertGmOnlySheetCommandAllowed(
+  command: CharacterSheetCommandInputDto,
+  isCampaignGm: boolean
+): void {
+  if (command.type === 'REMOVE_CONSEQUENCE' && !isCampaignGm)
+    throw new CharacterSheetCommandError('Only the GM removes a recorded consequence.')
+}
+
 export function assertCampaignGmSheetCommandAllowed(command: CharacterSheetCommandInputDto): void {
   switch (command.type) {
     case 'SET_INSPIRATION':
@@ -277,6 +289,7 @@ export function assertCampaignGmSheetCommandAllowed(command: CharacterSheetComma
     case 'SET_EXHAUSTION':
     case 'ADD_CONDITION':
     case 'REMOVE_CONDITION':
+    case 'REMOVE_CONSEQUENCE':
     case 'USE_RESOURCE':
     case 'RESTORE_RESOURCE':
     case 'USE_SHEET_RESOURCE':
