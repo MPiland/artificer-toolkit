@@ -17,6 +17,8 @@ import {
   type EncounterFeatureActionDiscovery
 } from './encounterFeatureActionCapabilityDiscovery.js'
 import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
+import { compileStandingEffect } from './standingEffectPlans.js'
+import type { StandingEffect } from './standingEffects.js'
 
 /** A zone a Creature's passive feature keeps around it while it is in the Encounter (D144). */
 export interface EncounterPassiveZone {
@@ -61,12 +63,14 @@ export function discoverEncounterFeatureActions(
   | 'passiveHpZeroCapabilities'
   | 'passiveWeaponHitCapabilities'
   | 'passiveStartOfTurnCapabilities'
+  | 'passiveStandingCapabilities'
 > & {
   passiveZones: readonly EncounterPassiveZone[]
   passiveDamageGrants: readonly EncounterPassiveDamageGrant[]
   passiveHpZeroEffects: readonly EncounterPassiveHpZeroEffect[]
   passiveWeaponHits: readonly EncounterPassiveWeaponHit[]
   passiveStartOfTurnEffects: readonly EncounterPassiveStartOfTurnEffect[]
+  standingEffects: readonly StandingEffect[]
 } {
   const discovered = discoverUncompiledEncounterFeatureActions(input)
   const available: EncounterFeatureActionCapabilityDescriptor[] = []
@@ -75,6 +79,7 @@ export function discoverEncounterFeatureActions(
   const passiveHpZeroEffects: EncounterPassiveHpZeroEffect[] = []
   const passiveWeaponHits: EncounterPassiveWeaponHit[] = []
   const passiveStartOfTurnEffects: EncounterPassiveStartOfTurnEffect[] = []
+  const standingEffects: StandingEffect[] = []
   const unavailable = [...discovered.unavailable]
   const compiles = (
     capability: EncounterFeatureActionCapabilityDescriptor,
@@ -124,6 +129,10 @@ export function discoverEncounterFeatureActions(
       compileEncounterFeatureActionPlan(adapter, capability)
       passiveStartOfTurnEffects.push({ capability })
     })
+  for (const capability of discovered.passiveStandingCapabilities)
+    compiles(capability, (adapter) => {
+      standingEffects.push(compileStandingEffect(adapter, capability, capability.label))
+    })
   return {
     available,
     unavailable,
@@ -131,7 +140,8 @@ export function discoverEncounterFeatureActions(
     passiveDamageGrants,
     passiveHpZeroEffects,
     passiveWeaponHits,
-    passiveStartOfTurnEffects
+    passiveStartOfTurnEffects,
+    standingEffects
   }
 }
 

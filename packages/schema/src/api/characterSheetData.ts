@@ -10,6 +10,7 @@ import {
   activationCodeSchema,
   authoredRecordStatusSchema,
   equipmentPropertyCodeSchema,
+  pathLifecycleReturnsOnSchema,
   spellAttributeSchema,
   spellComponentSchema
 } from '../shared/enums.js'
@@ -176,6 +177,18 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
     ),
     /** Active grants (Antitoxin, Aid) with their source and time left; a hidden source's label is null for players (D99). */
     activeGrants: z.array(activeGrantListingDtoSchema),
+    /**
+     * The always-on effects of the Character's features (SPELLS-31.2): held, or ended until the rest
+     * they return on. They are never uses.
+     */
+    standingEffects: z.array(
+      z.strictObject({
+        effectId: z.guid(),
+        label: stringSchema,
+        returnsOn: pathLifecycleReturnsOnSchema,
+        held: booleanSchema
+      })
+    ),
     /**
      * A Concentration this Character cast whose grants a finished Run carried onto the Campaign clock
      * (SPELLS-5.11); the caster ends it with END_CONCENTRATION. Null for a viewer who does not control

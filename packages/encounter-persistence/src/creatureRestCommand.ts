@@ -10,8 +10,13 @@ import {
 import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { planCreatureRest } from '@artificer-toolkit/rules-runtime/encounterCreatureRest'
+import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
+import { prepareRestStandingEffects } from '@artificer-toolkit/rules-runtime/standingEffectPlans'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
 import { readEncounterGmProjection } from './nativeProjection.js'
 import type { EncounterWriteTransaction } from './ports.js'
 import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
@@ -19,8 +24,10 @@ import { insertRunCommand, requireUnusedEvidenceCommandId } from './timelineEntr
 
 /**
  * The GM rests creature actors: each one's spent feature charges and spell slot rows that reset on
- * that rest come back (a long rest also recovers short-rest ones). A Character rests through its
- * Sheet. The receipt keeps what each row had spent, so the GM's undo spends it again.
+ * that rest come back (a long rest also recovers short-rest ones), and each ended standing effect
+ * that returns on that rest is held again (SPELLS-31.2). A Character rests through its Sheet. The
+ * receipt keeps what each row had spent and the effects the rest made, so the GM's undo spends the
+ * rows again and ends those effects.
  */
 export async function restEncounterCreatures(
   ctx: EncounterWriteTransaction,
@@ -68,19 +75,61 @@ export async function restEncounterCreatures(
     rejectDomain('TARGET_UNAVAILABLE', 'Each creature can rest once per command.')
 
   const now = new Date().toISOString()
-  const rested: { actorId: string; resets: { key: string; beforeUsed: number }[] }[] = []
+  const effectStore = createActiveRuleEffectStore(ctx)
+  const rested: {
+    actorId: string
+    resets: { key: string; beforeUsed: number }[]
+    armedEffectIds: string[]
+  }[] = []
   for (const actorId of input.actorIds) {
     const { row, actor } = await readRunActorWithRow(ctx, state, actorId)
     if (actor.kind === 'CHARACTER')
       rejectDomain('TARGET_UNAVAILABLE', 'A Character rests through its Character Sheet.')
     const { resets, resources } = planCreatureRest(actor, input.restKind)
-    if (!resets.length) continue
-    await writeRunActor(
-      ctx,
-      row._id,
-      encounterRunActorStateSchema.parse({ ...actor, resources, updatedAt: now })
-    )
-    rested.push({ actorId, resets })
+    const owner = turnEffectOwner(actor, state.id)
+    const held = actor.kind === 'CREATURE' ? await effectStore.list(owner) : []
+    const armed =
+      actor.kind === 'CREATURE'
+        ? prepareRestStandingEffects({
+            standing: discoverEncounterFeatureActions({
+              actor,
+              conditionDefinitionIds: [],
+              abilityDefinitions: [],
+              spells: new Map()
+            }).standingEffects,
+            restKind: input.restKind,
+            holder: {
+              actorId,
+              conditionIds: readEncounterActorConditionState(actor.conditions ?? []).ids,
+              effectiveSize: null,
+              lifetimeScope: 'ENCOUNTER',
+              hidden: !actor.public,
+              held
+            },
+            origin: {
+              encounterId: state.id,
+              currentActorId: state.currentActorId,
+              occurrenceId: input.commandId,
+              commandId: input.commandId
+            }
+          })
+        : []
+    if (!resets.length && !armed.length) continue
+    if (resets.length)
+      await writeRunActor(
+        ctx,
+        row._id,
+        encounterRunActorStateSchema.parse({ ...actor, resources, updatedAt: now })
+      )
+    for (const effect of armed)
+      await effectStore.create({
+        id: effect.id,
+        owner,
+        definition: effect.definition,
+        lifecycle: effect.lifecycle,
+        occurredAt: now
+      })
+    rested.push({ actorId, resets, armedEffectIds: armed.map(({ id }) => id) })
   }
   if (!rested.length)
     rejectDomain('TARGET_UNAVAILABLE', 'Those creatures have nothing to recover from this rest.')

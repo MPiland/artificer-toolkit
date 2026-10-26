@@ -17940,7 +17940,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-25 (user yes): standing effects replace Design B for Tranquility; ending and undo reuse consumedGrantPersistence (no per-path edits)."
+              "note": "Registered 2026-10-25 (user yes): standing effects replace Design B for Tranquility; ending and undo reuse consumedGrantPersistence (no per-path edits). T4k2d1 proofs (m459): packages/rules-runtime/src/__tests__/standingEffects.test.ts, apps/session-worker/test/nativeRoomStandingEffect.test.ts, apps/apis/convex/characters/sheetRestStandingEffect.test.ts, packages/authoring/src/nodeRuntime/standingEffectAuthoringParity.test.ts, apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx; closes with T4k2d2."
             }
           ],
           "tasks": [
@@ -18376,7 +18376,7 @@
             },
             {
               "id": "SPELLS-31.T4k2d1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.2"
               ],
@@ -18389,7 +18389,10 @@
                   "SPELLS-31.T4k2b"
                 ]
               },
-              "text": "Generic standing effect: a 'Returns on' lifecycle option (LONG_REST / SHORT_REST) beside endOnEvents on a passive feature effect; compiler plan for its passive APPLY_GRANT; arming at Character COMPLETE_REST and the Creature rest; incoming-gate owner fix for non-ENCOUNTER origins (encounterIncomingAttackGate.ts:55); Sheet 'ended until <rest>' row; authoring parity. Ending and undo go through consumedGrantPersistence. Tests: rest arms it, an action ends it, undo restores it, it stays ended until the rest."
+              "text": "Generic standing effect: a 'Returns on' lifecycle option (LONG_REST / SHORT_REST) beside endOnEvents on a passive feature effect; compiler plan for its passive APPLY_GRANT; arming at Character COMPLETE_REST and the Creature rest; incoming-gate owner fix for non-ENCOUNTER origins (encounterIncomingAttackGate.ts:55); Sheet 'ended until <rest>' row; authoring parity. Ending and undo go through consumedGrantPersistence. Tests: rest arms it, an action ends it, undo restores it, it stays ended until the rest.",
+              "mergedAt": "2026-10-26T03:44:36Z",
+              "proof": "Tests 40263992692 and Live 40263992693 green on e577e0d50; reviewed; merged in m459 fast path",
+              "note": " Merged in m459."
             },
             {
               "id": "SPELLS-31.T4k2d2",
@@ -23764,6 +23767,14 @@
               ],
               "origin": [],
               "note": "Registered 2026-10-25 (user yes): fileSizeBudget.json refused 3 of 4 m442 attempts because sourceRatchets.mjs makes every slice that shrinks a listed file lower its cap line. Closed 2026-10-24 by RELIABILITY-19.T1."
+            },
+            {
+              "id": "RELIABILITY-19.2",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "text": "When two merged slices both shrink a file listed in scripts/fileSizeBudget.json and the merged file ends up below both caps, merge-slice lowers that entry to the merged size and continues; a merged file above its resolved cap still refuses. The ADR 0039 shrink-only ratchet is unchanged.",
+              "note": "Registered 2026-10-25 (user yes): the SPELLS-31.T5b + T4k2d1 batch (run 40262719408) was refused because effectActionCompiler.ts shrank to 4172 under the 4182 cap."
             }
           ],
           "tasks": [
@@ -23783,6 +23794,23 @@
               "mergedAt": "2026-10-26T00:39:21Z",
               "proof": "Tests 40247096640 green on 108828c79 (Live path-filtered); red proof RED 5/44; reviewed; merged by hand (workflow change) in m452 with ci/merge-m452 backstop.",
               "note": " Merged in m452."
+            },
+            {
+              "id": "RELIABILITY-19.T2",
+              "status": "TODO",
+              "closes": [
+                "RELIABILITY-19.2"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 8,
+                "rr": 8,
+                "size": 2,
+                "after": [
+                  "RELIABILITY-19.T1"
+                ]
+              },
+              "text": "In scripts/mergeSlice.mjs resolveBudgetConflict, after the per-entry minimum, lower each entry the ratchet reports as shrunk to its merged code-line count and re-run ratchetProblems; refuse on growth or any other problem. Unit-test both paths against real git merges in a temp repo; update docs/architecture/ci-validation.md (approved merges)."
             }
           ]
         }

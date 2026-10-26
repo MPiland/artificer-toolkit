@@ -80,7 +80,7 @@ Totals: **C 28, A 13, B 123** (B: 58 join a SPELLS-4.T2 group, 65 need a class-o
 | ROGUE_ELUSIVE                                | rogue.ts:923                                      | no attack roll has advantage vs you unless incapacitated                                                 | none; ATTACKS_AGAINST takes ADV/DIS only                                                          | B     | T4k2a: ATTACKS_AGAINST NEGATE_ADVANTAGE per attack domain, under CAN_ACT                                                              |
 | HUNTER_ESCAPE_THE_HORDE                      | hunter.ts:182                                     | opportunity attacks vs you have disadvantage                                                             | none; no attack-kind field                                                                        | B     | T4k2a: ATTACKS_AGAINST DISADVANTAGE with attackOccasion OPPORTUNITY                                                                   |
 | CIRCLE_OF_THE_LAND_NATURES_SANCTUARY         | circle-of-the-land.ts:359, :378                   | beast or plant attacking you: Wis save or pick another target; success immune 24 h                       | none                                                                                              | B     | T4k2b: INCOMING_ATTACK_GATE holder-owned fold grant, attackerCreatureTypeIds; success immunity runtime = T4k2c                        |
-| WAY_OF_THE_OPEN_HAND_TRANQUILITY             | way-of-the-open-hand.ts:181                       | Sanctuary on you from long rest to long rest                                                             | derived save DC                                                                                   | B     | T4k2d: see Tranquility resume                                                                                                         |
+| WAY_OF_THE_OPEN_HAND_TRANQUILITY             | way-of-the-open-hand.ts:181                       | Sanctuary on you from long rest to long rest                                                             | derived save DC                                                                                   | B     | T4k2d2: see Tranquility resume                                                                                                        |
 | ROGUE_CUNNING_ACTION                         | rogue.ts:668                                      | bonus action Dash, Disengage or Hide                                                                     | none                                                                                              | B     | T4l1 (after T2l)                                                                                                                      |
 | THIEF_FAST_HANDS                             | thief.ts:50                                       | Cunning Action also Sleight of Hand, thieves' tools, Use an Object                                       | none                                                                                              | B     | T4l1 (after T2l)                                                                                                                      |
 | RANGER_VANISH                                | ranger.ts:946, :947                               | Hide as a bonus action; can't be tracked                                                                 | none                                                                                              | B     | T4l1 (after T2l; tracking stays description)                                                                                          |
@@ -429,28 +429,25 @@ Gate One with Shadows (`warlock.ts`, `classRowId(W,5,18)`, effect `classRowId(W,
 - Reactions end it only through the paths that call `actionEndedEffects` (the cast reaction today); wire any other reaction path there and drop the description's caveat.
 - Proof: extend `endEventAuthoringParity.test.ts` with the gated authoring and `nativeRoomOneWithShadows.test.ts` with a lit and a dim scene.
 
-### Tranquility resume (T4k2d, ruled 2026-10-19)
+### Tranquility resume (T4k2d2, standing effect; ruled 2026-10-25)
 
-The LONG_REST_FINISHED trigger ruling is withdrawn; do not add it. `CLASS_WAY_OF_THE_OPEN_HAND_TRANQUILITY` (`way-of-the-open-hand.ts`, feature `classRowId(M,11,3)`) is still a closed rule.
+> **Supersedes Design B (2026-10-19) and its unspent-charge gate.** SPELLS-31.2 (user yes 2026-10-25) builds a generic standing effect in T4k2d1; T4k2d2 converts Tranquility to it. "Never returns" and arm-on-obtain are deferred in future-enhancements.
 
-Findings that ruled out a rest-time invocation:
+`CLASS_WAY_OF_THE_OPEN_HAND_TRANQUILITY` (`way-of-the-open-hand.ts`, feature `classRowId(M,11,3)`) is still a closed rule until T4k2d2.
 
-1. Active effects are created only by the encounter planner (`prepareRecurringActiveEffect`), which stamps an ENCOUNTER origin and needs an encounter, occurrence and source actor. COMPLETE_REST in `sheetCommands.ts` has none, so a Sheet-side Character-origin planner would be new.
-2. The `activeRuleEffects.ts` superrefine rejects `endOnTriggers` on a CHARACTER origin.
-3. `heldIncomingGate` throws for an effect ward without an ENCOUNTER origin and `sourceActorId`; only the feature-fold (holder-owned) ward avoids that.
+The standing effect (T4k2d1, generic, data-authored):
 
-Design B (ruled): no rest hook, no planner, no schema relaxation.
+- A PASSIVE effect whose result-block lifecycle names `returnsOn` (`LONG_REST` or `SHORT_REST`) and at least one End On trigger, with an APPLY_GRANT outcome. A `returnsOn` with no end compiles to no standing effect. Discovery lists it as `standingEffects`, never as an action or a use (`rules-runtime/src/standingEffects.ts`).
+- Held means an Active Rule Effect with its `authoredEffectId` exists. A rest whose recovery triggers include `returnsOn` re-creates it when absent (`prepareRestStandingEffects`, `standingEffectPlans.ts`): Character COMPLETE_REST (`sheetCommands.ts`, CHARACTER origin, OWNER scope, INDEFINITE) and the Creature rest (`creatureRestCommand.ts`, ENCOUNTER origin and scope; the receipt records `armedEffectIds`, which `actionRevert.ts` removes on undo). A held effect is never re-armed, and a rest with only an ended standing effect to restore counts as a recovery.
+- It ends on its End On triggers through `consumedGrantPersistence`, so undoing the ending action restores it; once ended it stays ended until its rest.
+- An INCOMING_ATTACK_GATE ward with a CHARACTER origin is owned by its holder (`encounterIncomingAttackGate.ts`), with a DERIVED_DC save.
+- The Sheet lists a held one with the active grants and an ended one as "Ended until long rest" or "short rest" (`overview.standingEffects`, from `listStandingEffects` in the browser-safe `standingEffects.ts`).
+- Proofs: `standingEffects.test.ts`, `nativeRoomStandingEffect.test.ts`, `sheetRestStandingEffect.test.ts`, `standingEffectAuthoringParity.test.ts` and `CharacterSheetStatus.test.tsx`, on the homebrew `standingWardFeature` fixture.
 
-- Tranquility is a holder-owned INCOMING_ATTACK_GATE feature grant (the Nature's Sanctuary shape), DERIVED_DC Wisdom: 8 + Wisdom modifier + proficiency bonus, owner = holder.
-- It is active only while a LONG_REST-reset feature charge (FIXED 1) is unspent, so a long rest restores it and the ward lasts from one long rest to the next.
-- It ends early when the holder makes an attack roll or casts a spell against an enemy (Sanctuary's end triggers): that act spends the charge.
-- Needed as generic core options with an authoring-parity proof, if absent: (a) a modifier grant gated on an unspent resource; (b) spending a resource on a hostile act. No Tranquility branch in code. Then delete the kind and add a room test (the ward stops an attacker; the holder's attack ends it; a long rest restores it).
+T4k2d2 (Tranquility conversion, size 2, after d1):
 
-**Product ruling (user, 2026-10-25) withdraws the 2026-10-19 "spend the use at rest end" wording; build Design B:**
-
-- The SRD text has no use or charge: the ward is passive from the end of one long rest to the start of the next, and ends early as Sanctuary does (the monk attacks or casts a spell affecting an enemy).
-- Design B's LONG_REST-reset charge is internal state for "broken since the last long rest", not a player-facing use. No rest trigger and no Sheet-side planner.
-- The Sheet shows the ward as active, or ended until the next long rest; never as a use or charge.
+- Author Tranquility as a standing effect: an INCOMING_ATTACK_GATE grant, DERIVED_DC Wisdom (8 + Wisdom modifier + proficiency bonus), End On an attack roll or a spell cast against an enemy (Sanctuary's end), `returnsOn: LONG_REST`.
+- Delete the closed rule kind and add a room test on the SRD feature (the ward stops an attacker; the Monk's attack ends it; a long rest restores it).
 
 ### T5o2 seam notes (Thief's Reflexes, `CLASS_THIEF_THIEFS_REFLEXES`; size 3, depends on T5o)
 

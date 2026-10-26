@@ -765,6 +765,13 @@ export interface CharacterRuleActionSystemAdapter {
     action: EffectActionCapabilityDescriptor
   }): CharacterRuleActionActiveEffectPlan | null
   /**
+   * The untimed grant a standing feature (a passive Effect whose result `returnsOn` a rest) gives its
+   * holder while it is on. An unsupported grant throws the unsupported-compilation error.
+   */
+  standingEffectPlan?(input: {
+    action: EffectActionCapabilityDescriptor
+  }): CharacterRuleActionActiveEffectPlan
+  /**
    * The immunity a creature that passes a holder's ward leaves on that holder (Nature's Sanctuary),
    * keyed by the ward's grant, or null when the System cannot count the duration.
    */

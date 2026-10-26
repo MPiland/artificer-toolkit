@@ -50,6 +50,7 @@ import {
   pathLifecycleConsumeEventSchema,
   pathLifecycleEndEventSchema,
   pathLifecycleRecurringKindSchema,
+  pathLifecycleReturnsOnSchema,
   pathLifecycleExclusivitySchema,
   pathLifecycleTurnAnchorDtoSchema,
   pathOriginKindSchema,
@@ -157,6 +158,8 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
     endOnTriggers: z.optional(pathLifecycleEndTriggersDtoSchema),
     /** Condition type ids; the effect ends early while its holder has any of them. */
     endOnConditionIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema)),
+    /** See `PathLifecycleAuthored.returnsOn`. */
+    returnsOn: z.optional(pathLifecycleReturnsOnSchema),
     /** The holder may end the effect themselves, at the cost of this activation. */
     holderEnd: z.optional(z.strictObject({ activation: activationCodeSchema })),
     /** See `PathLifecycleAuthored.endsWithHeldEffectId`. */

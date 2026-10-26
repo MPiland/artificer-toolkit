@@ -3663,6 +3663,12 @@ export declare const api: {
               skillId: string;
               total: number;
             }>;
+            standingEffects: Array<{
+              effectId: string;
+              held: boolean;
+              label: string;
+              returnsOn: "LONG_REST" | "SHORT_REST";
+            }>;
             tempHitPoints: number;
           };
           publicId?: string;
@@ -18096,6 +18102,12 @@ export declare const api: {
               skillId: string;
               total: number;
             }>;
+            standingEffects: Array<{
+              effectId: string;
+              held: boolean;
+              label: string;
+              returnsOn: "LONG_REST" | "SHORT_REST";
+            }>;
             tempHitPoints: number;
           };
           publicId?: string;
@@ -20194,6 +20206,12 @@ export declare const api: {
                   rollMode: string;
                   skillId: string;
                   total: number;
+                }>;
+                standingEffects: Array<{
+                  effectId: string;
+                  held: boolean;
+                  label: string;
+                  returnsOn: "LONG_REST" | "SHORT_REST";
                 }>;
                 tempHitPoints: number;
               };

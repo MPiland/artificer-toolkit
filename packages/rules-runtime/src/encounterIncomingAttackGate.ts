@@ -52,11 +52,13 @@ export function heldIncomingGate(input: {
     for (const { modifiers } of listActiveEffectGrants([effect])) {
       for (const modifier of modifiers) {
         if (modifier.valueDomainCode !== 'INCOMING_ATTACK_GATE') continue
-        if (origin.kind !== 'ENCOUNTER' || origin.sourceActorId === null)
+        // A Character's own effect (a standing ward its rest turned on) is owned by its holder.
+        const ownerActorId =
+          origin.kind === 'CHARACTER' ? input.holderActorId : origin.sourceActorId
+        if (ownerActorId === null)
           throw new EncounterValidationError('An incoming attack gate needs its caster.')
         const payload = incomingAttackGatePayloadDtoSchema.parse(modifier.payload)
-        if (!passed(effect.id))
-          held.push({ wardId: effect.id, ownerActorId: origin.sourceActorId, payload })
+        if (!passed(effect.id)) held.push({ wardId: effect.id, ownerActorId, payload })
       }
     }
   }

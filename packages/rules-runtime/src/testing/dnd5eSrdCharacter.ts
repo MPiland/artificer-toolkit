@@ -165,6 +165,7 @@ export type SrdCharacter = {
   passiveZoneSources: ReturnType<typeof buildCharacterActionRuleFacts>['passiveZones']
   /** Server-only initiative restore sources, as the Character's rule evaluation carries them. */
   initiativeRestoreSources: ReturnType<typeof buildCharacterActionRuleFacts>['initiativeRestores']
+  standingEffectSources: ReturnType<typeof buildCharacterActionRuleFacts>['standingEffects']
   snapshot: CharacterBuildSnapshot
   output: CharacterRulePolicyOutput
   itemInstanceId: (label: string) => string
@@ -282,6 +283,7 @@ export function evaluateSrdCharacter(input: SrdCharacterInput): SrdCharacter {
     entryPoints: actionFacts.entryPoints,
     passiveZoneSources: actionFacts.passiveZones,
     initiativeRestoreSources: actionFacts.initiativeRestores,
+    standingEffectSources: actionFacts.standingEffects,
     snapshot,
     output: resolveCharacterRulePolicyRollModes(
       evaluateDnd5e2014CharacterPolicy(facts),

@@ -37,9 +37,12 @@ import {
 } from '#authored'
 import {
   PATH_ORIGIN_KIND_OPTIONS,
+  PATH_RESULT_KIND_OPTIONS,
+  PATH_SELECTION_KIND_OPTIONS,
   PATH_USAGE_OPTIONS,
   PATH_LIFECYCLE_RECURRING_KIND_OPTIONS,
   PATH_LIFECYCLE_EXCLUSIVITY_OPTIONS,
+  PATH_LIFECYCLE_RETURNS_ON_OPTIONS,
   PATH_CODE_OPTIONS,
   PATH_GROUP_TYPE_OPTIONS,
   PATH_ROLL_TABLE_KIND_OPTIONS,
@@ -144,42 +147,6 @@ type ScalarReductionNodeMapApi = NodeMapBuildApi<ScalarReductionAuthored>
 
 /** The columns a select drawn from a System code list shows. */
 const CODE_COLUMNS = ['id', 'label', 'description'] as const
-
-const PATH_SELECTION_KIND_OPTIONS = [
-  {
-    code: 'FIXED',
-    label: 'Direct',
-    description: 'Direct result.'
-  },
-  {
-    code: 'CHOICE',
-    label: 'Choose One',
-    description: 'Choose one option.'
-  },
-  {
-    code: 'ROLL_TABLE',
-    label: 'Roll Table',
-    description: 'Roll for a result.'
-  },
-  {
-    code: 'HIT_POINT_TIERS',
-    label: 'Hit Point Tiers',
-    description: "The lowest tier the target's current hit points satisfy applies."
-  }
-] as const
-
-const RESULT_KIND_OPTIONS = [
-  {
-    code: 'SINGLE',
-    label: 'Single',
-    description: 'Single outcome.'
-  },
-  {
-    code: 'SEQUENCE',
-    label: 'Resolve In Order',
-    description: 'Sequential outcomes.'
-  }
-] as const
 
 const ROLL_TABLE_ROW_RESOLUTION_OPTIONS = [
   { code: 'RESULT', label: 'Result' },
@@ -455,6 +422,10 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
             selectColumns: ['id', 'label', 'description']
           })
         })
+      )
+      .set(
+        'returnsOn',
+        selectSingle(['returnsOn'], 'Returns On', inlineOptions(PATH_LIFECYCLE_RETURNS_ON_OPTIONS))
       )
       .set(
         'holderEnd',
@@ -2560,7 +2531,7 @@ const FOLLOW_UP_SAVE_BRANCH_NODE_MAP: NodeMap<FollowUpSaveBranchNode> = followUp
       )
       .set(
         'resultKind',
-        selectSingle(['resultKind'], 'Outcome Type', inlineOptions(RESULT_KIND_OPTIONS), {
+        selectSingle(['resultKind'], 'Outcome Type', inlineOptions(PATH_RESULT_KIND_OPTIONS), {
           requiredIf: true,
           showIf: local.field(['kind']).eq('OUTCOMES')
         })
@@ -2623,7 +2594,7 @@ const RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored> = resultBlock.define(
       .set('id', text(['id'], 'ID'))
       .set(
         'resultKind',
-        selectSingle(['resultKind'], 'Outcome Type', inlineOptions(RESULT_KIND_OPTIONS), {
+        selectSingle(['resultKind'], 'Outcome Type', inlineOptions(PATH_RESULT_KIND_OPTIONS), {
           requiredIf: true
         })
       )
@@ -2677,7 +2648,7 @@ const NON_MANIFEST_RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored<NonManifes
       .set('id', text(['id'], 'ID'))
       .set(
         'resultKind',
-        selectSingle(['resultKind'], 'Outcome Type', inlineOptions(RESULT_KIND_OPTIONS), {
+        selectSingle(['resultKind'], 'Outcome Type', inlineOptions(PATH_RESULT_KIND_OPTIONS), {
           requiredIf: true
         })
       )

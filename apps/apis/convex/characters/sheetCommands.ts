@@ -53,6 +53,10 @@ import {
 } from '@artificer-toolkit/rules-runtime/character/sheetCommandValidation'
 import { characterSheetAdjustmentMatchesPanelTarget } from '@artificer-toolkit/rules-runtime/character/sheetPanelTarget'
 import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/encounterActionMaintenance'
+import {
+  characterStandingEffects,
+  prepareRestStandingEffects
+} from '@artificer-toolkit/rules-runtime/standingEffectPlans'
 import { compileCharacterSpellCasts } from '@artificer-toolkit/rules-runtime/character/characterSpellCastActions'
 import { sheetSpellCastSummonPlacement } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
 import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
@@ -496,6 +500,42 @@ export async function executeCharacterSheetCommand(
           // A rest happens outside a Run: no turn counts down a follow-on grant.
           removal: 'REMOVED'
         })
+    // The rest turns each ended standing effect that returns on it back on (SPELLS-31.2).
+    const armed = prepareRestStandingEffects({
+      standing: characterStandingEffects({
+        sources: initial.ruleEvaluation.standingEffectSources,
+        gameSystemId: initial.character.systemId,
+        conditionDefinitionIds: (initial.resolution.registry.system?.conditionTypes ?? []).map(
+          (condition) => condition.id
+        ),
+        abilityDefinitions: initial.ruleEvaluation.facts.abilityDefinitions
+      }),
+      restKind: command.restKind,
+      holder: {
+        actorId: initial.active.id,
+        conditionIds: (updated.state.conditions ?? []).map(
+          ({ conditionTypeId }) => conditionTypeId
+        ),
+        effectiveSize: null,
+        lifetimeScope: 'OWNER',
+        hidden: false,
+        held: await effectStore.list(owner)
+      },
+      origin: {
+        characterId: initial.active.id,
+        // Effect provenance holds canonical lowercase ids.
+        occurrenceId: command.commandId.toLowerCase(),
+        commandId: command.commandId.toLowerCase()
+      }
+    })
+    for (const effect of armed)
+      await effectStore.create({
+        id: effect.id,
+        owner,
+        definition: effect.definition,
+        lifecycle: effect.lifecycle,
+        occurredAt
+      })
   }
 
   if (
