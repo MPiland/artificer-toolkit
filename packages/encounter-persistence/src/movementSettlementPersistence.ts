@@ -5,6 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SceneStoredGeometrySave } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type {
   MovementConcentrationEndDto,
@@ -166,6 +167,37 @@ type MovementSettlementCallbacks = {
   applyMechanics: Parameters<typeof persistLiveMovementSpatial>[2]['applyMechanics']
 }
 
+/** Refuses an effect a PASSAGE step carries unless it is held by the blocker and sourced by the passage. */
+export function assertPassageEffectMatches(
+  effect: ActiveRuleEffectRecord,
+  expected: {
+    blocker: EncounterRunActorState | undefined
+    encounterId: string
+    gameSystemId: string
+    sourceActorId: string
+    occurrenceId: string
+    commandId: string
+  }
+) {
+  const origin = effect.definition.origin
+  if (
+    !expected.blocker ||
+    checksumCanonicalJson(effect.owner) !==
+      checksumCanonicalJson(turnEffectOwner(expected.blocker, expected.encounterId)) ||
+    origin.kind !== 'ENCOUNTER' ||
+    origin.sourceAggregateId !== expected.encounterId ||
+    origin.sourceActorId !== expected.sourceActorId ||
+    origin.sourceOccurrenceId !== expected.occurrenceId ||
+    origin.rootCommandId !== expected.commandId ||
+    effect.definition.frozenGraph.source.gameSystemId !== expected.gameSystemId ||
+    effect.maintainedEffectStateId !== null ||
+    effect.sourceEncounterId !==
+      (effect.owner.kind === 'CHARACTER'
+        ? sourceEncounterIdForDefinition(effect.definition, null)
+        : null)
+  )
+    throw new Error('Movement passage effect does not match its blocker and source.')
+}
 /** Settles retained movement contacts and their children in the parent's transaction. */
 export function persistMovementSettlements(
   ctx: EncounterPersistenceTransaction,
@@ -458,24 +490,14 @@ export async function persistMovementContacts(
       }
       const effectStore = createActiveRuleEffectStore(ctx)
       for (const effect of step.createdEffects) {
-        const origin = effect.definition.origin
-        if (
-          !blocker ||
-          checksumCanonicalJson(effect.owner) !==
-            checksumCanonicalJson(turnEffectOwner(blocker, input.state.id)) ||
-          origin.kind !== 'ENCOUNTER' ||
-          origin.sourceAggregateId !== input.state.id ||
-          origin.sourceActorId !== step.actorId ||
-          origin.sourceOccurrenceId !== preparation.occurrenceId ||
-          origin.rootCommandId !== save.commandId ||
-          effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId ||
-          effect.maintainedEffectStateId !== null ||
-          effect.sourceEncounterId !==
-            (effect.owner.kind === 'CHARACTER'
-              ? sourceEncounterIdForDefinition(effect.definition, null)
-              : null)
-        )
-          throw new Error('Movement passage effect does not match its blocker and source.')
+        assertPassageEffectMatches(effect, {
+          blocker,
+          encounterId: input.state.id,
+          gameSystemId: input.state.gameSystemId,
+          sourceActorId: step.actorId,
+          occurrenceId: preparation.occurrenceId,
+          commandId: save.commandId
+        })
         const created = await effectStore.create({
           id: effect.id,
           owner: effect.owner,
