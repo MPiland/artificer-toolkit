@@ -9,10 +9,8 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  damageSaveCheckMutatesRun,
-  type ConcentrationEndReason
-} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { type ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { damageSaveCheckMutatesRun } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import {
   ENDED_EFFECT_RELEASE_OPERATION_KEY,
@@ -947,7 +945,7 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
       unsupported.add(CONCENTRATION_END_LIMIT[outputs.reason])
     } else if (outputs.kind === 'DAMAGE_SAVE_CHECK') {
       // A failed Concentration save ended a maintained effect, and a made repeat save released a
-      // turn effect; the receipt keeps the contents of neither.
+      // turn effect; the receipt keeps the contents of neither. A massive-damage save only records.
       if (damageSaveCheckMutatesRun(outputs))
         unsupported.add(
           outputs.source === 'CONCENTRATION' ? 'lost Concentration' : 'a released effect'

@@ -51,6 +51,8 @@ function placement() {
 function effectDefinition() {
   return {
     schemaVersion: 2 as const,
+    linkedEffectId: null,
+    originLevel: null,
     stateContributions: [],
     origin: {
       kind: 'ENCOUNTER' as const,
@@ -77,6 +79,7 @@ function effectDefinition() {
       outputs: { result: { kind: 'LITERAL', value: true } }
     },
     adapterFacts: {},
+    perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE' as const,
       anchor: 'HOLDER' as const,

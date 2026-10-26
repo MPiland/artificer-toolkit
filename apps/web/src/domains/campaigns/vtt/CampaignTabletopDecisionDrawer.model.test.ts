@@ -33,6 +33,17 @@ describe('rollPromptText', () => {
     ).toBe('First Aid: Wisdom (Medicine) DC 10')
   })
 
+  it('names a massive damage save with the damage that prompted it and its DC', () => {
+    expect(
+      rollPromptText('Aria', {
+        kind: 'MASSIVE_DAMAGE',
+        damage: { amount: 18, typeLabel: 'Fire' },
+        sourceLabel: 'Fire Bolt',
+        dc: 15
+      })
+    ).toBe('Massive damage save for Aria: took 18 fire from Fire Bolt (DC 15)')
+  })
+
   it('falls back to naming the roller', () => {
     expect(rollPromptText('Aria', undefined)).toBe('Roll for Aria')
   })

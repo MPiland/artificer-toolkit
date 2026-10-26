@@ -1099,7 +1099,7 @@ settled entry never rerolls. `retainedSpatialReplayFaces` also replays the dice,
 today. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
 removes the zone with its spreading Action, as for every placed zone.
 
-**GM environmental zones (MOVE-3.2, ADR 0038, server current; tabletop tool MOVE-3.T1b pending).** The GM command
+**GM environmental zones (MOVE-3.2, ADR 0038, current).** The GM command
 `PLACE_ZONE` carries an authored `MANIFEST` `ZONE` `PLACED_SPACE` outcome (the zone `outcome` node map's values) and a
 Scene point. `planEncounterEnvironmentalZone` (`encounterEnvironmentalZone.ts`) wraps it in the passive Effect an item
 leaving it authors and runs the same `compileEffect`, `bindEncounterEffect`, `compilePassiveZone`,
@@ -1108,6 +1108,11 @@ No creature stands behind it, so a zone that needs one (maintenance, a cast save
 unaffected picks, required sight, a non-fixed escape DC, a source-turn trigger or a source-ability save bonus) is
 refused as `TARGET_UNAVAILABLE`. `placeEnvironmentalZone` (`encounter-persistence`) stores it with receipt
 `{ spatialEffectId }`, and GM undo (`REVERT_LAST_ACTION`) deletes it. Entries then settle as every placed zone's do.
+On the tabletop, `CampaignTabletopZoneTool` (`apps/web`) authors the zone through the shared `FormRenderer` on the
+`outcome` node map, sizes it with `pointAreaOfShape` (`shared/vtt`, the same reading the area actions use), aims it
+through the stage's point-area pick and sends `PLACE_ZONE`. It offers undo while the placement is still the Run's last
+action, sending `REVERT_LAST_ACTION` at the placement's committed version so a later command makes the undo stale.
+The stage does not yet draw a placed zone's outline.
 
 **Concealed zones (MOVE-3.3, server current; GM DC input and map outline on web pending).** A zone fixed to the Scene
 may carry a spot DC and a disarm DC, each a flat number (`FLAT`) or the placer's Stealth or Sleight of Hand roll result
