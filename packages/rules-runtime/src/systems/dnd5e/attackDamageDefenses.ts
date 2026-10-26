@@ -21,6 +21,7 @@ import {
 } from './attackRestrictions.js'
 import { dnd5eAttackCriticalRules } from './characterCriticalRules.js'
 import { dnd5eAttackRollContributors } from './characterRollModes.js'
+import { resolveDnd5eCreatureWeaponBonuses } from './creatureFeatureGrantFold.js'
 import { DND5E_SYSTEM_ID } from './identity.js'
 import {
   dnd5eAcceptedModifierApplicability,
@@ -173,6 +174,7 @@ export const dnd5eAttackProfileCapabilityAdapter = {
   characterAttackRollContributors: (policy, domain, attack) =>
     dnd5eAttackRollContributors(policy, domain, dnd5eCharacterAttackTarget(attack)),
   attackDamageDefenses: dnd5eAttackDamageDefenses,
+  creatureWeaponBonuses: resolveDnd5eCreatureWeaponBonuses,
   reduceItemlessAttackRestrictions: (effect) => reduceEffectRestrictions(effect, null),
   compiledAttackReads: (compiledEffect) => {
     const effect = compiledEffect as CompiledEffectGroup

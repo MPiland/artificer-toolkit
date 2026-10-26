@@ -287,8 +287,9 @@ function templateIdentity(template: Dnd5eEffectActionTemplate) {
  * Resolves the bounded Creature-only `XdY + ability modifier` source form
  * from immutable stat-block facts.  This happens while facts are bound under
  * the Encounter lock; the authored outcome still owns every die, bonus, and
- * bound.  Character callers continue to supply their already-resolved
- * expressions through their policy output.
+ * bound, plus the `damageBonus` its bound loadout weapon adds (ATTACK-6.3).
+ * Character callers continue to supply their already-resolved expressions
+ * through their policy output.
  */
 export function resolveCreatureDamageExpression(input: {
   outcome: Record<string, unknown>
@@ -308,16 +309,15 @@ export function resolveCreatureDamageExpression(input: {
     if (!input.sourceHitPoints) return null
     if (2 * input.sourceHitPoints.current <= input.sourceHitPoints.maximum) dice = halfHitPointsDice
   }
-  const bonuses = input.outcome.bonuses
-  if (!Array.isArray(bonuses) || bonuses.length === 0) return dice
-  const statBlock = input.sourceDerivedFacts.statBlock
-  const abilityScores =
-    statBlock && typeof statBlock === 'object' && !Array.isArray(statBlock)
-      ? (statBlock as { abilityScores?: unknown }).abilityScores
-      : null
-  if (!abilityScores || typeof abilityScores !== 'object' || Array.isArray(abilityScores))
-    return null
-  let modifier = 0
+  const weaponDamageBonus = input.outcome.damageBonus ?? 0
+  const bonuses = input.outcome.bonuses ?? []
+  if (typeof weaponDamageBonus !== 'number' || !Array.isArray(bonuses)) return null
+  const abilityScores = (input.sourceDerivedFacts.statBlock as { abilityScores?: unknown } | null)
+    ?.abilityScores
+  const scoresRead =
+    abilityScores && typeof abilityScores === 'object' && !Array.isArray(abilityScores)
+  if (bonuses.length > 0 && !scoresRead) return null
+  let modifier = weaponDamageBonus
   for (const bonus of bonuses) {
     if (!bonus || typeof bonus !== 'object' || Array.isArray(bonus)) return null
     const row = bonus as Record<string, unknown>
