@@ -160,6 +160,7 @@ export function tracerEncounterState(input: {
     status: input.status ?? 'ACTIVE',
     automationMode: 'ASSISTED',
     trackAmmunition: false,
+    zoneNoticing: 'GM_PROMPT',
     healthDisplayDefault: 'HIDDEN',
     version: 0,
     round: input.status === 'PREPARED' ? 0 : 1,

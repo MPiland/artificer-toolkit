@@ -369,6 +369,7 @@ export function srdEncounterState(input: {
     status: input.status ?? 'ACTIVE',
     automationMode: input.automationMode ?? 'ASSISTED',
     trackAmmunition: input.trackAmmunition ?? false,
+    zoneNoticing: 'GM_PROMPT',
     healthDisplayDefault: 'HIDDEN',
     version: input.version ?? 7,
     round: input.round ?? 1,

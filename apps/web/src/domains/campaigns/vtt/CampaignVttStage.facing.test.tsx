@@ -89,7 +89,8 @@ function heldRoom(): HeldEncounterSession {
       halfSpeedFields: [],
       auras: [],
       movementCostZones: [],
-      placedZones: []
+      placedZones: [],
+      pendingZoneSightings: []
     },
     preparedPending: [],
     actorSides: null,

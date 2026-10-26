@@ -63,6 +63,7 @@ export async function snapshotEncounterPolicies(
   return {
     automationMode: settings.automationMode,
     trackAmmunition: settings.trackAmmunition,
+    zoneNoticing: settings.zoneNoticing,
     initiativePolicySnapshot,
     initiativePolicySnapshotChecksum:
       initiativePolicySnapshot === null ? null : checksumCanonicalJson(initiativePolicySnapshot),

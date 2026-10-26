@@ -43,6 +43,7 @@ function settingsAtVersion(version: number, normalCadenceDays: number) {
     liveSafetyMethod: null,
     automationMode: 'ASSISTED',
     trackAmmunition: false,
+    zoneNoticing: 'GM_PROMPT',
     initiativePolicyDefinitionId: null,
     initiativeTieDefinitionId: null,
     optionalCombatRuleDefinitionIds: [],

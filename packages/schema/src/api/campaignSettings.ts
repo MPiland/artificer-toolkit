@@ -28,6 +28,9 @@ const optionalCombatDefinitionIdsDtoSchema = lazySchema(() =>
 )
 export const automationModeDtoSchema = lazySchema(() => z.enum(['ASSISTED', 'MANUAL']))
 export type AutomationModeDto = z.infer<typeof automationModeDtoSchema>
+/** How concealed zones are noticed: the GM is prompted on a sighting, or only a Search finds them (MOVE-3.5). */
+export const zoneNoticingModeDtoSchema = lazySchema(() => z.enum(['GM_PROMPT', 'SEARCH_ONLY']))
+export type ZoneNoticingModeDto = z.infer<typeof zoneNoticingModeDtoSchema>
 
 const campaignPlaySettingsBaseDtoSchema = lazySchema(() =>
   z.strictObject({
@@ -49,6 +52,7 @@ const campaignPlaySettingsBaseDtoSchema = lazySchema(() =>
     automationMode: z._default(automationModeDtoSchema, 'ASSISTED'),
     /** When on, each ammunition attack draws its pieces from the chosen stack (ATTACK-19.4, D4). */
     trackAmmunition: z._default(z.boolean(), false),
+    zoneNoticing: z._default(zoneNoticingModeDtoSchema, 'GM_PROMPT'),
     initiativePolicyDefinitionId: z._default(z.nullable(uuidSchema), null),
     initiativeTieDefinitionId: z._default(z.nullable(uuidSchema), null),
     optionalCombatRuleDefinitionIds: optionalCombatDefinitionIdsDtoSchema,

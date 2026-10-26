@@ -154,7 +154,8 @@ it('reads the active projection and pending decision together with existing visi
     halfSpeedFields: [],
     auras: [],
     movementCostZones: [],
-    placedZones: []
+    placedZones: [],
+    pendingZoneSightings: []
   })
   await expect(base.t.query(activeState, input)).rejects.toThrow('Unauthenticated')
   await expect(base.other.caller.query(activeState, input)).rejects.toThrow('Campaign not found')
@@ -263,7 +264,8 @@ it('reads the active projection and pending decision together with existing visi
     halfSpeedFields: [],
     auras: [],
     movementCostZones: [],
-    placedZones: []
+    placedZones: [],
+    pendingZoneSightings: []
   })
   expect(ownerState.turnMovement).toHaveLength(2)
   expect(ownerState.pending).toMatchObject({ encounterVersion: ownerState.encounter?.version })
@@ -279,7 +281,8 @@ it('reads the active projection and pending decision together with existing visi
     halfSpeedFields: [],
     auras: [],
     movementCostZones: [],
-    placedZones: []
+    placedZones: [],
+    pendingZoneSightings: []
   })
   expect(playerState.pending).toBeNull()
   expect(playerState.encounter?.actors).toHaveLength(1)

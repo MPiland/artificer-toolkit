@@ -244,6 +244,7 @@ describe('native Campaign play settings', () => {
       })
     expect(await read()).toMatchObject({
       automationMode: settings.automationMode,
+      zoneNoticing: 'GM_PROMPT',
       initiativePolicySnapshot: null,
       initiativePolicySnapshotChecksum: null,
       optionalCombatSnapshot: { definitions: [] }
@@ -260,6 +261,7 @@ describe('native Campaign play settings', () => {
       ...input(settings),
       automationMode: 'MANUAL',
       trackAmmunition: true,
+      zoneNoticing: 'SEARCH_ONLY',
       initiativePolicyDefinitionId: policy.id,
       initiativeTieDefinitionId: score.id,
       optionalCombatRuleDefinitionIds: [optional.id]
@@ -268,6 +270,7 @@ describe('native Campaign play settings', () => {
     expect(frozen).toMatchObject({
       automationMode: 'MANUAL',
       trackAmmunition: true,
+      zoneNoticing: 'SEARCH_ONLY',
       initiativePolicySnapshot: {
         gameSystemId: campaign.gameSystemId,
         policy: {
@@ -307,10 +310,19 @@ describe('native Campaign play settings', () => {
     await owner.caller.mutation(save, {
       ...input(saved),
       automationMode: 'ASSISTED',
-      trackAmmunition: false
+      trackAmmunition: false,
+      zoneNoticing: 'GM_PROMPT'
     })
-    expect(await read()).toMatchObject({ automationMode: 'ASSISTED', trackAmmunition: false })
-    expect(frozen).toMatchObject({ automationMode: 'MANUAL', trackAmmunition: true })
+    expect(await read()).toMatchObject({
+      automationMode: 'ASSISTED',
+      trackAmmunition: false,
+      zoneNoticing: 'GM_PROMPT'
+    })
+    expect(frozen).toMatchObject({
+      automationMode: 'MANUAL',
+      trackAmmunition: true,
+      zoneNoticing: 'SEARCH_ONLY'
+    })
     await t.run(async (ctx) => {
       const graph = await ctx.db
         .query('reusableDefinitions')

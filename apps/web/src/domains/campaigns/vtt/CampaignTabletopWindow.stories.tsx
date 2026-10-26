@@ -1222,7 +1222,8 @@ function renderWindow(
     halfSpeedFields: [],
     auras: [],
     movementCostZones: [],
-    placedZones: []
+    placedZones: [],
+    pendingZoneSightings: []
   }
   queryClient.setQueryDefaults(activeEncounterQuery.queryKey, {
     queryFn: async () => activeState

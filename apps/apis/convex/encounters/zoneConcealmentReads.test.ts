@@ -84,8 +84,24 @@ it('reads a concealed zone only for the GM and the players whose Characters know
   // Three half-speed, double-cost zones: one the player's actor knows of, one only another actor
   // knows of, and one in plain sight with a disarm DC.
   const states: SpatialRuleEffectStateDto[] = [
-    { schemaVersion: 1, revealed: true, concealment: { spotDc, knownByActorIds: [known.id] } },
-    { schemaVersion: 1, revealed: true, concealment: { spotDc, knownByActorIds: [unknown.id] } },
+    {
+      schemaVersion: 1,
+      revealed: true,
+      concealment: {
+        spotDc,
+        knownByActorIds: [known.id],
+        sightings: [{ actorId: unknown.id, status: 'PROMPTED' }]
+      }
+    },
+    {
+      schemaVersion: 1,
+      revealed: true,
+      concealment: {
+        spotDc,
+        knownByActorIds: [unknown.id],
+        sightings: [{ actorId: known.id, status: 'DISMISSED' }]
+      }
+    },
     { schemaVersion: 1, revealed: true, disarmDc }
   ]
   await base.t.run(async (ctx) => {
@@ -145,6 +161,8 @@ it('reads a concealed zone only for the GM and the players whose Characters know
     zone(1, { spotDc, disarmDc: null }),
     zone(2, { spotDc: null, disarmDc })
   ])
+  // Only the GM reads a pending sighting; a dismissed one is settled and is not listed.
+  expect(gm.pendingZoneSightings).toEqual([{ spatialEffectId: effectId(20), actorId: unknown.id }])
   expect(zoneIds(gm)).toEqual({
     halfSpeedFields: [effectId(20), effectId(21), effectId(22)],
     movementCostZones: [effectId(20), effectId(21), effectId(22)]
@@ -153,6 +171,7 @@ it('reads a concealed zone only for the GM and the players whose Characters know
   const player = await base.owner.caller.query(activeState, input)
   const noDcs = { spotDc: null, disarmDc: null }
   expect(player.placedZones).toEqual([zone(0, noDcs), zone(2, noDcs)])
+  expect(player.pendingZoneSightings).toEqual([])
   expect(zoneIds(player)).toEqual({
     halfSpeedFields: [effectId(20), effectId(22)],
     movementCostZones: [effectId(20), effectId(22)]
