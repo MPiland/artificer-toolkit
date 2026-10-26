@@ -291941,6 +291941,12 @@ export declare const api: {
                       kind: "EFFECT_REPEAT_SAVE";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -292107,6 +292113,12 @@ export declare const api: {
                       damage: { amount: number; typeLabel: string | null };
                       dc: number;
                       kind: "EFFECT_REPEAT_SAVE";
+                      sourceLabel: string | null;
+                    }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
                       sourceLabel: string | null;
                     }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
@@ -292372,6 +292384,12 @@ export declare const api: {
                         sourceLabel: string | null;
                       }
                     | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "MASSIVE_DAMAGE";
+                        sourceLabel: string | null;
+                      }
+                    | {
                         failures: number;
                         kind: "DEATH_SAVE";
                         successes: number;
@@ -292545,6 +292563,12 @@ export declare const api: {
                         damage: { amount: number; typeLabel: string | null };
                         dc: number;
                         kind: "EFFECT_REPEAT_SAVE";
+                        sourceLabel: string | null;
+                      }
+                    | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "MASSIVE_DAMAGE";
                         sourceLabel: string | null;
                       }
                     | {
@@ -293453,6 +293477,12 @@ export declare const api: {
                   kind: "EFFECT_REPEAT_SAVE";
                   sourceLabel: string | null;
                 }
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "MASSIVE_DAMAGE";
+                  sourceLabel: string | null;
+                }
               | { failures: number; kind: "DEATH_SAVE"; successes: number }
               | {
                   actionLabel: string;
@@ -293614,6 +293644,12 @@ export declare const api: {
                   damage: { amount: number; typeLabel: string | null };
                   dc: number;
                   kind: "EFFECT_REPEAT_SAVE";
+                  sourceLabel: string | null;
+                }
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "MASSIVE_DAMAGE";
                   sourceLabel: string | null;
                 }
               | { failures: number; kind: "DEATH_SAVE"; successes: number }
@@ -294607,6 +294643,12 @@ export declare const api: {
                       kind: "EFFECT_REPEAT_SAVE";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -294773,6 +294815,12 @@ export declare const api: {
                       damage: { amount: number; typeLabel: string | null };
                       dc: number;
                       kind: "EFFECT_REPEAT_SAVE";
+                      sourceLabel: string | null;
+                    }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
                       sourceLabel: string | null;
                     }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }

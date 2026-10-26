@@ -206,6 +206,8 @@ export type ResultBlockAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthor
 
 export type PathChoiceOptionAuthored<TOutcome extends OutcomeAuthored = OutcomeAuthored> =
   PathEntryWithMetadata & {
+    /** The option is offered only in an Encounter whose optional combat rules include this one. */
+    requiresOptionalRule?: { definitionId: string }
     resultBlock: ResultBlockAuthored<TOutcome>
   }
 

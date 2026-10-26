@@ -784,6 +784,55 @@ describe('native Campaign play settings', () => {
     expect(await stored(t)).toEqual(before)
   })
 
+  it('offers and saves Injuries only while its System policy resolves it (ATTACK-15.3)', async () => {
+    const { t, owner, campaign, settings } = await setup()
+    const injuries = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+      (definition) => definition.document.kind === 'INJURIES'
+    )
+    if (!injuries) throw new Error('Missing Injuries fixture.')
+    const unresolvedDocument = {
+      ...injuries.document,
+      id: crypto.randomUUID(),
+      module: {
+        ...injuries.document.module,
+        contractVersion: injuries.document.module.contractVersion + 1
+      }
+    }
+    const unresolved = {
+      ...injuries,
+      id: unresolvedDocument.id,
+      label: 'Injuries, unsupported contract',
+      document: unresolvedDocument,
+      checksum: checksumRuleDocument(unresolvedDocument)
+    }
+    await t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: [injuries, unresolved]
+    })
+    const offered = await owner.caller.query(options, { campaignId: campaign.id })
+    expect(offered.optionalCombatRules).toContainEqual({
+      definitionId: injuries.id,
+      label: injuries.label,
+      kind: 'INJURIES'
+    })
+    expect(offered.optionalCombatRules.map(({ definitionId }) => definitionId)).not.toContain(
+      unresolved.id
+    )
+    const saved = await owner.caller.mutation(save, {
+      ...input(settings),
+      optionalCombatRuleDefinitionIds: [injuries.id]
+    })
+    expect(saved.optionalCombatRuleDefinitionIds).toEqual([injuries.id])
+    const before = await stored(t)
+    await expect(
+      owner.caller.mutation(save, {
+        ...input(saved),
+        optionalCombatRuleDefinitionIds: [unresolved.id]
+      })
+    ).rejects.toThrow('not available for Encounter execution')
+    expect(await stored(t)).toEqual(before)
+  })
+
   it('fails closed for missing native settings instead of manufacturing a second lifecycle', async () => {
     const { t, owner, campaign, settings } = await setup()
     await t.run(async (ctx) => {

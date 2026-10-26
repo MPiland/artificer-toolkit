@@ -50,7 +50,8 @@ import {
 } from './encounterWeaponDraw.js'
 import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
 import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
-import { pickedCastChoiceEffect } from './encounterCastChoice.js'
+import { offeredCastChoiceOptions, pickedCastChoiceEffect } from './encounterCastChoice.js'
+import { activeOptionalCombatDefinitions } from '@artificer-toolkit/schema/shared/optionalCombat'
 import {
   attackAgainstHolds,
   encounterAttackSightContributors,
@@ -212,15 +213,23 @@ export async function prepareEncounterActionSource<
       )
     : undefined
   // The one place a cast's pick swaps its option's plans in, before anything runs (D148). A zone
-  // action places the zone its caster picked instead.
+  // action places the zone its caster picked instead. Only the options this Encounter's optional
+  // combat rules offer can be picked, and a no-prompt flow runs the first of them.
+  const activeOptionalRules = activeOptionalCombatDefinitions({
+    automationMode: state.automationMode,
+    snapshot: state.optionalCombatSnapshot
+  })
   const compilation = entry?.schemaVersion === 4 ? entry.compilation : null
-  const picked = compilation?.choice?.options.find(
-    ({ optionId }) => optionId === input.choiceOptionId
-  )
+  const offered = compilation?.choice
+    ? offeredCastChoiceOptions(compilation.choice.options, activeOptionalRules)
+    : []
+  const picked =
+    offered.find(({ optionId }) => optionId === input.choiceOptionId) ??
+    (fallsBackToFirst ? offered[0] : undefined)
   if (
     entry &&
     (compilation?.choice
-      ? !picked && !fallsBackToFirst
+      ? !picked
       : input.choiceOptionId !== undefined && !compilation?.zonePlacement)
   )
     throw new CastChoiceUnavailableError()
@@ -276,6 +285,7 @@ export async function prepareEncounterActionSource<
           pickedCastChoiceEffect(
             loaded.capability.compiledEffect,
             input.choiceOptionId,
+            activeOptionalRules,
             fallsBackToFirst
           )
         )
