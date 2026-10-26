@@ -359,6 +359,36 @@ describe('Character Sheet status', () => {
     })
   })
 
+  it('shows an ended standing effect as ended until its rest, never as a use (SPELLS-31.2)', () => {
+    const sheet = createSheet()
+    sheet.overview.standingEffects = [
+      {
+        effectId: '33333333-3333-4333-8333-333333333303',
+        label: 'Standing Ward',
+        returnsOn: 'LONG_REST',
+        held: false
+      },
+      {
+        effectId: '33333333-3333-4333-8333-333333333304',
+        label: 'Held Ward',
+        returnsOn: 'SHORT_REST',
+        held: true
+      }
+    ]
+
+    renderWithAppProviders(
+      <CharacterSheetOverviewStatusStrip pending={false} sheet={sheet} submitCommand={vi.fn()} />
+    )
+
+    const ended = screen.getByRole('list', { name: 'Ended standing effects' })
+    expect(
+      within(ended)
+        .getAllByRole('listitem')
+        .map((item) => item.textContent)
+    ).toEqual(['Standing Ward · Ended until long rest'])
+    expect(screen.queryByText(/Held Ward/)).not.toBeInTheDocument()
+  })
+
   it('lets the caster end a carried Concentration with no other input (SPELLS-5.11)', async () => {
     const user = userEvent.setup()
     const submitCommand = vi.fn()

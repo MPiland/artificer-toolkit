@@ -19,6 +19,7 @@ import type {
   PathGroupType,
   PathLifecycleExclusivity,
   PathLifecycleRecurringKind,
+  PathLifecycleReturnsOn,
   PathLifecycleTurnActor,
   PathLifecycleTurnBoundary,
   PathOriginKind,
@@ -69,6 +70,12 @@ export type PathLifecycleAuthored = {
   )[]
   /** Condition types that end the effect early while its holder has any of them. */
   endOnConditionIds?: string[]
+  /**
+   * A standing effect: a passive Effect with no duration that its holder has from the finish of this
+   * rest until one of its end events or triggers ends it; once ended it stays ended until this rest
+   * turns it back on. A long rest also turns on a `SHORT_REST` one.
+   */
+  returnsOn?: PathLifecycleReturnsOn
   /** The holder may end the effect themselves, at the cost of this activation. */
   holderEnd?: { activation: ActivationCode }
   /**

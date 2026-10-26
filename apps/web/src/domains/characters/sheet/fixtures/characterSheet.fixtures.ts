@@ -104,6 +104,7 @@ export const characterSheetFixture = {
     maxHitPointsModifierAdjustmentId: null,
     maxHitPointsReductions: [],
     activeGrants: [],
+    standingEffects: [],
     concentration: null,
     exhaustion: {
       label: 'Exhaustion',

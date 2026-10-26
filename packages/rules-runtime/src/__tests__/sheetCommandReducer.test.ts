@@ -84,6 +84,7 @@ function sheet(extras: readonly SheetExtra[] = []): CharacterSheetResponseDto {
       maxHitPointsModifierAdjustmentId: null,
       maxHitPointsReductions: [],
       activeGrants: [],
+      standingEffects: [],
       concentration: null,
       maxHitPointsOverride: null,
       savingThrows: [],

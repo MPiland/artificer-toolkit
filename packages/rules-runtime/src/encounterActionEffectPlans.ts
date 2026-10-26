@@ -359,9 +359,19 @@ function bindTriggerDamageTypes(
 export function prepareRecurringActiveEffect(
   input: Omit<
     Parameters<typeof prepareEncounterActionEffectPlans>[0],
-    'execution' | 'applications'
+    'execution' | 'applications' | 'encounterId' | 'occurrenceId' | 'commandId'
   > &
-    Partial<Pick<Parameters<typeof prepareEncounterActionEffectPlans>[0], 'execution'>>
+    Partial<Pick<Parameters<typeof prepareEncounterActionEffectPlans>[0], 'execution'>> &
+    (
+      | Pick<
+          Parameters<typeof prepareEncounterActionEffectPlans>[0],
+          'encounterId' | 'occurrenceId' | 'commandId'
+        >
+      | {
+          /** A Character's own effect made outside a Run, as its rest turns a standing effect on. */
+          characterOrigin: { characterId: string; occurrenceId: string; commandId: string }
+        }
+    )
 ): EffectPlan | null {
   const plan = input.activeEffectPlan
   if (!plan) return null
@@ -543,13 +553,21 @@ export function prepareRecurringActiveEffect(
     linkedEffectId: endsWithHeld?.id ?? null,
     ...(grantContribution?.exclusivity && { exclusivity: grantContribution.exclusivity }),
     originLevel: input.spellCastLevel ?? null,
-    origin: {
-      kind: 'ENCOUNTER',
-      sourceAggregateId: input.encounterId,
-      sourceOccurrenceId: input.occurrenceId,
-      rootCommandId: input.commandId,
-      sourceActorId: input.sourceActorId
-    },
+    origin:
+      'characterOrigin' in input
+        ? {
+            kind: 'CHARACTER',
+            sourceAggregateId: input.characterOrigin.characterId,
+            sourceOccurrenceId: input.characterOrigin.occurrenceId,
+            rootCommandId: input.characterOrigin.commandId
+          }
+        : {
+            kind: 'ENCOUNTER',
+            sourceAggregateId: input.encounterId,
+            sourceOccurrenceId: input.occurrenceId,
+            rootCommandId: input.commandId,
+            sourceActorId: input.sourceActorId
+          },
     authoredEffectId: plan.authoredEffectId,
     compiledEntryId: plan.compiledEntryId,
     frozenGraphNodeId: plan.frozenGraphNodeId,

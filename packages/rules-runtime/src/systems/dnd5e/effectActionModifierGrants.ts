@@ -72,7 +72,8 @@ function amountAtCastLevel<M extends { payload?: unknown }>(modifier: M, castLev
  * The plan of one APPLY_GRANT entry. With `untilEndEvent` the grant has no counted duration and
  * lasts until one of its authored end events (a speed penalty that lasts until the creature
  * regains Hit Points); without it the grant must be timed, and may also end early on an event
- * (Rage ends when its holder is incapacitated).
+ * (Rage ends when its holder is incapacitated). A `standing` grant is a passive one that lasts until
+ * any of its end events, triggers or conditions, and its authored `returnsOn` rest turns it back on.
  */
 export function modifierGrantEntryPlan(input: {
   action: Dnd5eCompiledEffectActionSource
@@ -80,8 +81,9 @@ export function modifierGrantEntryPlan(input: {
   /** The grant applies only on its authored result path: an attack's hit or a save's failure. */
   resultGated: boolean
   untilEndEvent: boolean
+  standing?: boolean
 }): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const { action, entry, resultGated, untilEndEvent } = input
+  const { action, entry, resultGated, untilEndEvent, standing = false } = input
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
   const { spellCastLevel } = action
@@ -105,6 +107,7 @@ export function modifierGrantEntryPlan(input: {
     onEnd,
     grantedActions,
     effectOffers,
+    returnsOn,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
   const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
@@ -143,9 +146,12 @@ export function modifierGrantEntryPlan(input: {
         isSlotLevelAmount(payload) ||
         (typeof payload === 'object' && payload !== null && 'countPerCastLevelAbove' in payload)
     ) ||
-    (untilEndEvent
+    standing !== (returnsOn !== undefined) ||
+    (untilEndEvent || standing
       ? entry.duration !== undefined ||
-        endEvents.length === 0 ||
+        (standing
+          ? endEvents.length + endOnTriggers.length + endOnConditionIds.length
+          : endEvents.length) === 0 ||
         turnAnchor !== undefined ||
         activeOnlyOnFinalAnchorTurn
       : initialRemaining === null) ||
@@ -164,7 +170,7 @@ export function modifierGrantEntryPlan(input: {
       lifecycle: { endOnTriggers: canonicalEndTriggers(endOnTriggers) }
     }),
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: untilEndEvent ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
+    recurrenceStage: untilEndEvent || standing ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
     ...(endsWithHeldEffectId !== undefined && { endsWithHeldEffectId }),
     tickAnchor: planTickAnchor(turnAnchor),

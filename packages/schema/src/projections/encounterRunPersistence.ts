@@ -619,7 +619,10 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('CREATURE_REST'),
-      /** The feature charges and spell slot rows each creature got back, so the GM's undo spends them again. */
+      /**
+       * The feature charges and spell slot rows each creature got back and the standing effects the
+       * rest turned back on, so the GM's undo spends the rows again and ends those effects.
+       */
       receipt: z.strictObject({
         restKind: z.enum(['SHORT', 'LONG']),
         actors: z
@@ -631,7 +634,10 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
                   key: z.string().check(z.trim()).check(z.minLength(1)),
                   beforeUsed: z.number().check(z.int()).check(z.positive())
                 })
-              )
+              ),
+              armedEffectIds: z
+                .array(postgresUuidSchema)
+                .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
             })
           )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS))

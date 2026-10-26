@@ -1345,7 +1345,8 @@ async function revertConcealmentObservers(
 
 /**
  * Undoes the GM's creature rest: each recovered charge or slot row is spent again, only while the
- * row is still at the zero the rest left it.
+ * row is still at the zero the rest left it, and each standing effect the rest turned back on that
+ * is still held ends again.
  */
 async function revertCreatureRest(
   ctx: EncounterCharacterWriteTransaction,
@@ -1354,9 +1355,21 @@ async function revertCreatureRest(
   const { state, root } = input
   const actors = await readRunActors(ctx, state)
   const restored = new Map<string, EncounterRunActorState>()
-  for (const { actorId, resets } of root.receipt.actors) {
+  const store = createActiveRuleEffectStore(ctx)
+  for (const { actorId, resets, armedEffectIds } of root.receipt.actors) {
     const actor = actors.find((entry) => entry.id === actorId)
     if (!actor) revertUnavailable('A creature left the Encounter; adjust manually.')
+    const owner = turnEffectOwner(actor, state.id)
+    for (const id of armedEffectIds) {
+      const effect = await store.findById(owner, id)
+      if (effect)
+        await store.deleteCas({
+          id,
+          owner,
+          expectedVersion: effect.version,
+          removal: 'REMOVED'
+        })
+    }
     let resources: unknown = actor.resources
     for (const { key, beforeUsed } of resets) {
       if (featureChargeUsed({ resources }, key) !== 0)

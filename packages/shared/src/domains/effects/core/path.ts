@@ -375,6 +375,27 @@ export const PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS = valuesOf(
   PATH_LIFECYCLE_TURN_BOUNDARY_REGISTRY
 ) as readonly PathLifecycleTurnBoundaryOption[]
 
+/** The rest whose finish turns a standing effect back on once it has ended. */
+export const PATH_LIFECYCLE_RETURNS_ON = {
+  LONG_REST: 'LONG_REST',
+  SHORT_REST: 'SHORT_REST'
+} as const
+
+export type PathLifecycleReturnsOn = keyof typeof PATH_LIFECYCLE_RETURNS_ON
+
+export const PATH_LIFECYCLE_RETURNS_ON_OPTIONS: readonly CoreMeta<PathLifecycleReturnsOn>[] = [
+  {
+    code: PATH_LIFECYCLE_RETURNS_ON.LONG_REST,
+    label: 'Long Rest',
+    description: 'Comes back when its holder finishes a long rest.'
+  },
+  {
+    code: PATH_LIFECYCLE_RETURNS_ON.SHORT_REST,
+    label: 'Short Rest',
+    description: 'Comes back when its holder finishes a short or long rest.'
+  }
+]
+
 /** Which earlier effects a new one ends: `PER_SOURCE`, its source's from the same Effect on any holder. */
 export const PATH_LIFECYCLE_EXCLUSIVITY = {
   PER_SOURCE: 'PER_SOURCE'

@@ -42,6 +42,7 @@ import {
   PATH_USAGE_OPTIONS,
   PATH_LIFECYCLE_RECURRING_KIND_OPTIONS,
   PATH_LIFECYCLE_EXCLUSIVITY_OPTIONS,
+  PATH_LIFECYCLE_RETURNS_ON_OPTIONS,
   PATH_CODE_OPTIONS,
   PATH_GROUP_TYPE_OPTIONS,
   PATH_ROLL_TABLE_KIND_OPTIONS,
@@ -458,6 +459,10 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
             selectColumns: ['id', 'label', 'description']
           })
         })
+      )
+      .set(
+        'returnsOn',
+        selectSingle(['returnsOn'], 'Returns On', inlineOptions(PATH_LIFECYCLE_RETURNS_ON_OPTIONS))
       )
       .set(
         'holderEnd',
