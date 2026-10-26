@@ -4,9 +4,10 @@ import { auditCreatureEquipmentLoadouts } from './audit.js'
 import { srdBaselineContent } from './index.js'
 
 const { creatures, equipment } = srdBaselineContent.subjects
-const goblin = creatures.find((creature) => creature.label === 'Goblin')
-if (!goblin?.equipmentLoadout) throw new Error('The SRD Goblin has no loadout.')
-const goblinLoadout = goblin.equipmentLoadout
+const srdGoblin = creatures.find((creature) => creature.label === 'Goblin')
+if (!srdGoblin?.equipmentLoadout) throw new Error('The SRD Goblin has no loadout.')
+const goblin = srdGoblin
+const goblinLoadout = srdGoblin.equipmentLoadout
 const equipmentIdOf = (label: string) => {
   const record = equipment.find((candidate) => candidate.label === label)
   if (!record) throw new Error(`SRD Equipment ${label} is missing.`)
