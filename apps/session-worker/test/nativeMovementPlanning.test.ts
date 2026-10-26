@@ -353,6 +353,7 @@ describe('movement through a hostile creature', () => {
         creature: plainWolf,
         vocabulary: SRD_VOCABULARY
       })
+      if (!checkTotals) throw new Error('The Wolf must compile its check totals.')
       // Both contestants are Wolves, whose Athletics and Acrobatics differ, so each total names its check.
       expect(checkTotals[SRD_ATHLETICS_SKILL_ID]).not.toBe(checkTotals[SRD_ACROBATICS_SKILL_ID])
       const room = await passageRoom({ laterBlocker: true, rolls: [19, 0] })
