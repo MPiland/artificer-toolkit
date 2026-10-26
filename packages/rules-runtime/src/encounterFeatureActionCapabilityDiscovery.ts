@@ -209,7 +209,10 @@ function boundWeaponBonuses(
     loadoutEntryId: weapon.loadoutEntryId,
     attackKind: weapon.attackKind,
     grip: entry.effect.grip ?? null,
-    activation: compiledEffect.invocation.activation?.code ?? null
+    activation:
+      'activation' in compiledEffect.invocation
+        ? (compiledEffect.invocation.activation?.code ?? null)
+        : null
   })
 }
 
