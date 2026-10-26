@@ -28,6 +28,7 @@ import {
 } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
+  DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
@@ -812,6 +813,29 @@ export function interpretDirectProposal(
         afterCurrentHitPoints,
         beforeTemporaryHitPoints: input.temporaryHitPoints,
         afterTemporaryHitPoints: input.temporaryHitPoints,
+        maximumHitPoints: input.maximumHitPoints,
+        targetActorId: input.targetActorId,
+        sourceNodeId: trace.nodeId,
+        sourceOperationKey: trace.operation.key,
+        authoredPath: null,
+        resolvedPath: null
+      }
+    ]
+  }
+  // Hit points lost directly: no damage type, so no defense; temporary hit points absorb it first.
+  if (trace.operation.key === DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY) {
+    const temporaryLost = Math.min(input.temporaryHitPoints, requestedAmount)
+    const currentLost = Math.min(input.currentHitPoints, requestedAmount - temporaryLost)
+    return [
+      {
+        kind: 'HIT_POINT_LOSS',
+        requestedAmount,
+        resolvedAmount: requestedAmount,
+        appliedAmount: temporaryLost + currentLost,
+        beforeCurrentHitPoints: input.currentHitPoints,
+        afterCurrentHitPoints: input.currentHitPoints - currentLost,
+        beforeTemporaryHitPoints: input.temporaryHitPoints,
+        afterTemporaryHitPoints: input.temporaryHitPoints - temporaryLost,
         maximumHitPoints: input.maximumHitPoints,
         targetActorId: input.targetActorId,
         sourceNodeId: trace.nodeId,

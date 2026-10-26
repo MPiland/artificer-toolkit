@@ -102,14 +102,22 @@ export const actorRelationshipDtoSchema = lazySchema(() =>
         .check(z.maxLength(32)),
       conditions: z.optional(authoredNestedCollectionSchema(conditionDtoSchema)),
       /**
-       * Damage dealt at each counted turn boundary while the hold stands, to the held creature; with
-       * a saving throw, only when it fails that save. The hold stands either way.
+       * The outcome the held creature suffers at each counted turn boundary while the hold stands:
+       * damage, or hit points lost directly (no damage type, so resistance and vulnerability never
+       * apply). With a saving throw, only when it fails that save. The hold stands either way.
        */
       recurrence: z.optional(
         z.object({
           turnAnchor: pathLifecycleTurnAnchorDtoSchema,
           savingThrow: z.optional(savingThrowDtoSchema),
-          damage: damageDtoSchema
+          outcome: z.union([
+            damageDtoSchema,
+            z.object({
+              id: authoredIdentifierSchema,
+              effectKind: z.literal('HIT_POINT_LOSS'),
+              diceConfig: authoredIdentifierSchema
+            })
+          ])
         })
       )
     })

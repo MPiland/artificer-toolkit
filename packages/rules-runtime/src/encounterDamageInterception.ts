@@ -473,6 +473,24 @@ export function applyDamageInterceptions(input: {
       pool = { amount: result.afterTemporaryHitPoints, sourceEffectId: granted.sourceEffectId }
       return result
     }
+    // Hit points lost directly are no damage, so no interception answers them; they still rebase.
+    if (application.kind === 'HIT_POINT_LOSS') {
+      const temporaryLost = Math.min(pool.amount, application.requestedAmount)
+      const currentLost = Math.min(current, application.requestedAmount - temporaryLost)
+      const result = rebased
+        ? {
+            ...application,
+            appliedAmount: temporaryLost + currentLost,
+            beforeCurrentHitPoints: current,
+            afterCurrentHitPoints: current - currentLost,
+            beforeTemporaryHitPoints: pool.amount,
+            afterTemporaryHitPoints: pool.amount - temporaryLost
+          }
+        : application
+      current = result.afterCurrentHitPoints
+      pool = temporaryHitPointsAfterLoss(pool, temporaryLost)
+      return result
+    }
     if (application.kind !== 'DAMAGE') return application
     // A planned interception is decided again here, against the pools this batch leaves.
     const {

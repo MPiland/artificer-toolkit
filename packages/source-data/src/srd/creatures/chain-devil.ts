@@ -149,7 +149,7 @@ export const chainDevil: CreatureAuthored = {
                     untilEnds: ['RESTRAINED'],
                     recurrence: {
                       turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
-                      damage: {
+                      outcome: {
                         id: S.actionId(61, 112),
                         effectKind: S.EFFECT_KIND.DAMAGE,
                         damageTypeId: S.damageTypeId('PIERCING'),

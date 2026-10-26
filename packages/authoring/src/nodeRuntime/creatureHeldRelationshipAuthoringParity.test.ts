@@ -86,7 +86,7 @@ describe('held-creature riders from core options (D187a)', () => {
     expect(hold).toMatchObject({
       recurrence: {
         turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
-        damage: { effectKind: 'DAMAGE', diceConfig: '2d6' }
+        outcome: { effectKind: 'DAMAGE', diceConfig: '2d6' }
       }
     })
   })
@@ -124,6 +124,23 @@ describe('held-creature riders from core options (D187a)', () => {
     }
   )
 
+  it('authors a hold recurrence that loses hit points directly from core options (SPELLS-33.T6n2b)', async () => {
+    const creature = structuredClone(chainDevil)
+    const hold = featureOutcomes(creature, 'Chain').find(
+      (outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP'
+    )
+    if (hold?.effectKind !== 'ACTOR_RELATIONSHIP' || !hold.recurrence)
+      throw new Error('The Chain Devil’s Chain must recur.')
+    hold.recurrence.outcome = {
+      id: hold.recurrence.outcome.id,
+      effectKind: 'HIT_POINT_LOSS',
+      diceConfig: '1d4+3'
+    }
+    const result = await normalize(creature)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
+  })
+
   it('engulfs with a DC 14 Constitution save or 2d8+4 bludgeoning at the start of each of the Shambling Mound’s turns (SPELLS-33.T6n2)', async () => {
     const engulf = featureOutcomes(shamblingMound, 'Engulf').find(
       (outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP'
@@ -136,7 +153,7 @@ describe('held-creature riders from core options (D187a)', () => {
           abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
           baseDc: 14
         },
-        damage: { effectKind: 'DAMAGE', diceConfig: '2d8+4' }
+        outcome: { effectKind: 'DAMAGE', diceConfig: '2d8+4' }
       }
     })
     const result = await normalize(shamblingMound)

@@ -157,6 +157,16 @@ export const characterMechanicsApplicationDtoSchema = lazySchema(() =>
       ...characterMechanicsHitPointAmountsDtoSchema.shape,
       ...characterMechanicsApplicationTraceDtoSchema.shape
     }),
+    /**
+     * Hit points lost directly (SRD: no damage type), so no defense, interception or concentration
+     * check touches it; temporary hit points absorb it first.
+     */
+    z.strictObject({
+      ordinal: receiptOrdinalSchema,
+      kind: z.literal('HIT_POINT_LOSS'),
+      ...characterMechanicsHitPointAmountsDtoSchema.shape,
+      ...characterMechanicsApplicationTraceDtoSchema.shape
+    }),
     z.strictObject({
       ordinal: receiptOrdinalSchema,
       kind: z.literal('TEMPORARY_HIT_POINTS'),
