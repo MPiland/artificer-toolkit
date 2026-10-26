@@ -9,7 +9,6 @@ import type {
 import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import type { EncounterActionChoiceDto } from '@artificer-toolkit/schema/api/encounterActionChoices'
 import type { ResolveEncounterActionTargetDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
-import type { ShapeDto } from '@artificer-toolkit/schema/shared/shape'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   authoredLengthInSceneCoordinates,
@@ -18,6 +17,7 @@ import {
   lengthMeasurementInSceneUnits,
   measureSceneDistance,
   pointAreaInSceneCoordinates,
+  pointAreaOfShape,
   sceneFootprintMeasureHalfExtent,
   sceneTokenFootprintsOverlap,
   wallAreaBoundsInSceneCoordinates,
@@ -213,18 +213,6 @@ function authoredPointArea(policy: CompiledActionTargetPolicy): PointArea | null
 }
 
 type PointArea = Extract<EncounterActionChoiceDto['target'], { kind: 'POINT' }>['area']
-
-/** A sphere, cylinder or circle as its radius and a cube as its edge; null for any other shape. */
-function pointAreaOfShape(shape: ShapeDto): PointArea | null {
-  if (shape.shapeKind === 'CUBE') return { kind: 'CUBE', edgeLength: shape.edgeLength }
-  if (
-    shape.shapeKind === 'SPHERE' ||
-    shape.shapeKind === 'CYLINDER' ||
-    shape.shapeKind === 'CIRCLE'
-  )
-    return { kind: 'RADIUS', radius: shape.radius }
-  return null
-}
 
 type ZoneRegionComponent = NonNullable<CompiledActionZonePlacement['regionComponents']>[number]
 

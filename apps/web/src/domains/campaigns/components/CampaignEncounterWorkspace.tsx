@@ -689,6 +689,7 @@ function encounterCommandLabel(commandType: string): string {
   if (commandType === 'VOID_RULE_OCCURRENCE') return 'Voided by the GM'
   if (commandType === 'REVERT_LAST_ACTION') return 'Undone by the GM'
   if (commandType === 'SET_CONCEALMENT_OBSERVERS') return 'Concealment corrected by the GM'
+  if (commandType === 'PLACE_ZONE') return 'Zone placed by the GM'
   if (commandType === 'MORALE_SAVE') return 'Morale checked'
   if (commandType === 'CONFIRM_MORALE') return 'Morale outcome confirmed'
   if (commandType === 'RESOLVE_CONSEQUENCE_ROLL_OFFER') return 'Table roll resolved'
