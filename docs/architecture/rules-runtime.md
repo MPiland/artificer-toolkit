@@ -1826,8 +1826,21 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   lists ascending tiers with their blocked-line threshold, bonus and whether they block targeting, plus the highest tier creatures
   give on their own. Walls give the tier their lines reach; creatures add lines only up to that cap. The SRD authors half (1 line,
   +2), three-quarters (3 lines, +5) and total (4 lines, blocks targeting), creatures capped at half. The result names the blocking
-  creatures for Hitting Cover (ATTACK-14). It returns null off a square grid or for an unaligned space. Applying the bonus to
-  attacks and area saves is SPELLS-14.T2.
+  creatures for Hitting Cover (ATTACK-14). It returns null off a square grid or for an unaligned space.
+- **Cover applied (SPELLS-14.T2).** The Campaign setting `automaticCover` (default on, an automation setting beside
+  `trackAmmunition`) is frozen into the Run with the policy snapshot; off means no automatic cover (the GM's tier is T3). When on,
+  `prepareEncounterActionMechanics` asks its `loadCover` port for `EncounterCoverFacts` (`encounterCover.ts`, wrapping
+  `resolveSquareGridCover`). The Worker reads the live Scene for it (`nativeLiveCover.ts`: attack and cast preparation, the area
+  action's per-target preparation, an opportunity attack's reactor→mover lines); the encounter-persistence preview host has no
+  barrier reader, so it computes no cover and its previews show the uncovered d20. A tier that blocks targeting is a hard
+  `EncounterValidationError` in prepare for a single target, and an area leaves that creature out of the caught set
+  (`nativeEncounterAreaRules.ts`, lines from the area's origin point). Any other tier folds into the d20 as generic, labelled
+  `foldedBonuses` (`packages/schema/src/shared/d20FoldedBonuses.ts`): an attack's `defenseOrDc` operand, or the saver's `modifier`
+  for the abilities the System's `cover.saveAbilityDefinitionIds` names (the SRD names Dexterity). The compiler adds the folded
+  amounts to the attack/save facts and the `d20Audit`, so the evidence's `modifier` and `defenseOrDc` hold what the roll used and
+  `foldedBonuses` names where the difference came from; the roll record carries the list and the card shows "Half cover +2" (a save)
+  or "Half cover: target's defense +2" (an attack). Nothing in code names a cover tier or number. Paths whose host has no Scene
+  context (the counterspell cast pause, area collision revalidation) apply no cover.
 - **Forced movement (ATTACK-7.T5a/T5b/T5d, D139, D157).** A `FORCED_MOVEMENT` outcome in any direction (`AWAY_FROM_SOURCE`,
   `TOWARD_SOURCE`, `ASIDE` within the action's reach, `ANY`) with an `EXACT` or `UP_TO` distance compiles to `dnd5e.forced-movement-proposal` on its result path (no applications; the Balor's Whip and the Bronze
   Repulsion Breath use it, nothing creature-specific). `interpretSpatial` turns an authorized proposal into a `FORCED_MOVEMENT` directive,

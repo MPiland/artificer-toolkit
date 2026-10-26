@@ -159,6 +159,13 @@ function CampaignTableSettingsForm({
           label='Track ammunition'
           onChange={(event) => set('trackAmmunition', event.currentTarget.checked)}
         />
+        <Checkbox
+          checked={draft.automaticCover}
+          description='Attacks and area saves gain half or three-quarters cover from walls and creatures on the Scene, and total cover blocks the target. Off, no cover is applied automatically.'
+          disabled={!editable}
+          label='Automatic cover'
+          onChange={(event) => set('automaticCover', event.currentTarget.checked)}
+        />
         <Select
           clearable
           data={options.initiativePolicies.map((policy) => ({

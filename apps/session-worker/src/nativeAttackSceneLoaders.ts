@@ -13,6 +13,7 @@ import { loadEncounterFlankingFacts } from '@artificer-toolkit/rules-runtime/enc
 import type { CurrentReusableDefinitionSource } from '@artificer-toolkit/rules-runtime/ruleCapabilityStateService'
 import type { SceneGrid } from '@artificer-toolkit/shared/vtt'
 import { captureActionSceneTokens } from './nativeAttackEnemyProximity.js'
+import { readNativeLiveCover } from './nativeLiveCover.js'
 import {
   readNativeLiveAttackPerception,
   readNativeLiveObserversSeeing,
@@ -20,7 +21,7 @@ import {
 } from './nativeAttackPerception.js'
 
 /**
- * The perception and Flanking loaders an action's mechanics read from the live Scene it locked
+ * The perception, cover and Flanking loaders an action's mechanics read from the live Scene it locked
  * (none apply to an action without Scene positions). Each creature's sight is read as the
  * attack's own is, and a creature already loaded for the action is not loaded again.
  */
@@ -59,6 +60,15 @@ export function nativeLiveAttackSceneLoaders(input: {
         ...facts,
         actors,
         loadTarget,
+        sceneContext,
+        capture
+      }),
+    loadCover: (facts: { sourceFacts: MovementTarget; targetFacts: MovementTarget }) =>
+      readNativeLiveCover({
+        state,
+        system,
+        sourceActorId: facts.sourceFacts.actor.id,
+        targetActorId: facts.targetFacts.actor.id,
         sceneContext,
         capture
       }),

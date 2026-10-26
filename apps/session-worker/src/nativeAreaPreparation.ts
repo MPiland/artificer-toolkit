@@ -64,6 +64,7 @@ import {
   snapshotCreatureTypeId
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
+import { readNativeLiveCover } from './nativeLiveCover.js'
 import {
   readNativeLivePointPerception,
   readNativeLivePointSight
@@ -594,6 +595,24 @@ export function prepareCasterActionOnTarget(
               capture: input.capture
             })
         : undefined,
+    loadCover: sceneContext
+      ? ({ sourceFacts, targetFacts }) =>
+          readNativeLiveCover({
+            state: input.state,
+            system: input.system,
+            sourceActorId: sourceFacts.actor.id,
+            targetActorId: targetFacts.actor.id,
+            originPoint: origin?.point,
+            sceneContext: origin
+              ? {
+                  sceneId: origin.sceneId,
+                  sceneVersion: origin.sceneVersion,
+                  grid: sceneContext.grid
+                }
+              : sceneContext,
+            capture: input.capture
+          })
+      : undefined,
     loadSource: async (source) =>
       capability
         ? { kind: 'BASIC_ACTION', actor: action.caster, capability }

@@ -11,6 +11,7 @@ import {
   resolveEncounterBelievedAttackPerception,
   resolveEncounterObserversSeeing
 } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
+import { resolveEncounterCover } from '@artificer-toolkit/rules-runtime/encounterCover'
 import { loadEncounterFlankingFacts } from '@artificer-toolkit/rules-runtime/encounterPositionalContributors'
 import { createEncounterMovementReactionPerception } from '@artificer-toolkit/rules-runtime/encounterMovementReactionPerception'
 import {
@@ -289,6 +290,23 @@ export async function prepareNativeLiveMovement(
                     })
                   }
                 }),
+              // The reactor's cover against the mover is judged with the mover at the contact point.
+              loadCover: async ({ sourceFacts, targetFacts }) => {
+                const reactorToken = contactTokens.find(
+                  ({ actorId }) => actorId === sourceFacts.actor.id
+                )
+                const movingToken = contactTokens.find(
+                  ({ actorId }) => actorId === targetFacts.actor.id
+                )
+                if (!reactorToken || !movingToken)
+                  throw new Error('Movement reaction perception facts are stale.')
+                return resolveEncounterCover({
+                  system,
+                  scene: { ...captured.perceptionScene, tokens: contactTokens },
+                  origin: { kind: 'TOKEN', token: reactorToken },
+                  targetTokenId: movingToken.id
+                })
+              },
               loadTurnUses: () => readNativeLiveTurnUses(capture, mechanics.actor.id),
               loadTargetHasNotTakenTurn: ({ targetFacts }) =>
                 readNativeLiveHasNotTakenTurn(capture, targetFacts.actor.id),

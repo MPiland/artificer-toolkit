@@ -114,8 +114,8 @@ const systemInitiativePolicyDtoSchema = lazySchema(() =>
 
 /**
  * A System's cover tiers, ascending. A tier applies when at least `minBlockedLines` of the four
- * lines to a target square's corners are blocked; it adds `bonus` to AC and Dexterity saves, or
- * blocks targeting outright. Creatures alone give at most `creatureMaxTierCode`.
+ * lines to a target square's corners are blocked; it adds `bonus` to AC and to saves of the abilities
+ * in `saveAbilityDefinitionIds`, or blocks targeting outright. Creatures alone give at most `creatureMaxTierCode`.
  */
 const systemCoverRulesDtoSchema = lazySchema(() =>
   z
@@ -132,7 +132,9 @@ const systemCoverRulesDtoSchema = lazySchema(() =>
         )
         .check(z.minLength(1))
         .check(z.maxLength(4)),
-      creatureMaxTierCode: z.nullable(z.string())
+      creatureMaxTierCode: z.nullable(z.string()),
+      /** The abilities whose saving throws a tier's bonus adds to; every other save ignores cover. */
+      saveAbilityDefinitionIds: z.array(postgresUuidSchema).check(z.maxLength(6))
     })
     .check(
       z.superRefine((rules, context) => {

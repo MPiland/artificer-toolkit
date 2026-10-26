@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { d20FoldedBonusesDtoSchema } from '../shared/d20FoldedBonuses.js'
 import {
   rollModeKeepSchema,
   systemCoreCodeEntrySchema,
@@ -201,7 +202,8 @@ export const rollRecordDtoSchema = lazySchema(() =>
     }),
     createdAt: z.string(),
     /** Present when a rule rolled automatically or settled a prompted roll. */
-    ruleCheck: z.optional(rollRuleCheckDtoSchema)
+    ruleCheck: z.optional(rollRuleCheckDtoSchema),
+    foldedBonuses: z.optional(d20FoldedBonusesDtoSchema)
   })
 )
 

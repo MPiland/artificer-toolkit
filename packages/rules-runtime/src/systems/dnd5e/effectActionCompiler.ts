@@ -111,6 +111,7 @@ import {
 } from './identity.js'
 import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode, derivedAddedDice } from './d20AddedDiceGraph.js'
 import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import { d20FoldedBonusTotal } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
 import { incomingDamageProfileDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import {
   attackCriticalRulesDtoSchema,
@@ -3683,10 +3684,14 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     maximumHitPoints,
     targetScalarValues,
     targetConditionIds,
+    foldedBonuses,
     conditionOutcomeRules,
     conditionImmunityIds,
     targetDamageTypesTaken
   }) => {
+    const foldedDefenseOrDc = d20FoldedBonusTotal(foldedBonuses, 'defenseOrDc')
+    const foldedModifier = d20FoldedBonusTotal(foldedBonuses, 'modifier')
+    const foldedAudit = foldedBonuses && foldedBonuses.length > 0 ? { foldedBonuses } : {}
     const resolvedDamageExpressionFacts: Record<string, string> = {}
     const resolvedDamageOutcomeExpressions: Record<string, string> = {}
     const weaponDamageDieFacts: Record<string, number> = {}
@@ -4032,8 +4037,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           ...(criticalRules.extraDice > 0
             ? { [DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]: criticalRules.extraDice }
             : {}),
-          [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus,
-          [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass,
+          [DND5E_ATTACK_MODIFIER_FACT_KEY]: action.attackBonus + foldedModifier,
+          [DND5E_TARGET_DEFENSE_FACT_KEY]: armorClass + foldedDefenseOrDc,
           ...(typeof targetDerivedFacts.creatureTypeId === 'string'
             ? { [DND5E_TARGET_CREATURE_TYPE_FACT_KEY]: targetDerivedFacts.creatureTypeId }
             : {}),
@@ -4055,9 +4060,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         d20Audit: {
           contributors: allContributors,
           contributorChecksum,
-          modifier: action.attackBonus,
-          defenseOrDc: armorClass,
-          addedDice
+          modifier: action.attackBonus + foldedModifier,
+          defenseOrDc: armorClass + foldedDefenseOrDc,
+          addedDice,
+          ...foldedAudit
         }
       }
     }
@@ -4104,8 +4110,8 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         facts: {
           ...baseFacts,
           ...dnd5eAddedDiceFacts(addedDice),
-          [DND5E_SAVE_MODIFIER_FACT_KEY]: modifier,
-          [DND5E_SAVE_DC_FACT_KEY]: save.dc,
+          [DND5E_SAVE_MODIFIER_FACT_KEY]: modifier + foldedModifier,
+          [DND5E_SAVE_DC_FACT_KEY]: save.dc + foldedDefenseOrDc,
           [DND5E_ROLL_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
           [DND5E_TEST_OUTCOME_RULE_FACT_KEY]: dnd5eSaveOutcomeRule(
             conditionOutcomeRules,
@@ -4118,9 +4124,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         d20Audit: {
           contributors,
           contributorChecksum,
-          modifier,
-          defenseOrDc: save.dc,
+          modifier: modifier + foldedModifier,
+          defenseOrDc: save.dc + foldedDefenseOrDc,
           addedDice,
+          ...foldedAudit,
           savingThrowAbilityDefinitionId: save.abilityDefinitionId
         }
       }
