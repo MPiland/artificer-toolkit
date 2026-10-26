@@ -57,10 +57,6 @@ import { overridesActionEconomy } from '@artificer-toolkit/rules-runtime/encount
 import { EncounterValidationError } from '@artificer-toolkit/rules-runtime/encounterErrors'
 import { withEncounterAppRoll } from '@artificer-toolkit/rules-runtime/encounterEvidenceAnswer'
 import {
-  holdForForcedMovementDestination,
-  settleForcedMovementDestination
-} from '@artificer-toolkit/rules-runtime/encounterForcedMovementChoice'
-import {
   contestDefenderPicksCheck,
   contestDefenderPolicy,
   executeEncounterOptionalContestAction
@@ -71,6 +67,7 @@ import type { RulesRuntimeService } from '@artificer-toolkit/rules-runtime/rules
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { LiveSessionDomainRejectionError } from './liveSessionRoutes.js'
 import type { ForcedMovementPick } from './nativeAreaPreparation.js'
+import { planForcedMovementDestination } from './nativeForcedMovementDestination.js'
 import { requireEncounterD20Evidence } from './nativeD20Evidence.js'
 import type { PreparedLiveCharacterSheet } from './nativeCharacterRules.js'
 import { evaluateNativeLiveActionEconomy } from './nativeEncounterActionEconomy.js'
@@ -774,41 +771,29 @@ export async function planNativeLiveContestRolls(input: {
       rollerActorId: contest.initiator.actorId
     })
   const settledOutcome = outcome?.kind === 'SETTLED' ? outcome : null
-  const { owed: owedPick } =
-    settledOutcome?.forcedMovements.length && settlement.kind === 'ACTION'
-      ? await settlement.forcedMovementPick({
-          encounterId: state.id,
-          sourceActorId: actor.id,
-          movements: settledOutcome.forcedMovements
-        })
-      : { owed: null }
   // A movement with two or more legal squares waits for its source to pick one (D157).
-  if (owedPick && settledOutcome && !destinationAnswered) {
-    const held = await holdForForcedMovementDestination({
-      runtime: input.runtime,
-      occurrenceId,
-      completion: settledOutcome.completion,
-      outcomePhase: null,
-      targetActorId: owedPick.targetActorId,
-      positions: owedPick.positions
-    })
-    return pendingContest(held.continuation, {
+  const destination = await planForcedMovementDestination({
+    runtime: input.runtime,
+    occurrenceId,
+    encounterId: state.id,
+    sourceActorId: actor.id,
+    outcomePhase: null,
+    settled:
+      settledOutcome && settlement.kind === 'ACTION'
+        ? {
+            pick: settlement.forcedMovementPick,
+            movements: settledOutcome.forcedMovements,
+            completion: settledOutcome.completion
+          }
+        : null,
+    answer: destinationAnswered
+  })
+  if (destination.kind === 'HELD')
+    return pendingContest(destination.held.continuation, {
       contestPhase: 'DESTINATION',
       rollerActorId: contest.initiator.actorId,
-      pause: held.pause
+      pause: destination.held.pause
     })
-  }
-  if (destinationAnswered && !owedPick)
-    throw new Error('The forced-movement destination is no longer owed.')
-  const chosenPosition =
-    destinationAnswered && owedPick
-      ? await settleForcedMovementDestination({
-          runtime: input.runtime,
-          continuation: destinationAnswered.continuation,
-          offer: destinationAnswered.offer,
-          position: destinationAnswered.position
-        })
-      : null
   const settledTarget =
     success?.kind === 'CREATURE' ? success.actor : (hold?.actor ?? outcome?.actor ?? target)
   // A won escape frees its source from the holding effect and the conditions only it held.
@@ -894,11 +879,7 @@ export async function planNativeLiveContestRolls(input: {
         }).ended
       ],
       createdEffect: hold?.record ?? null,
-      forcedMovements: (settledOutcome?.forcedMovements ?? []).map((movement) =>
-        movement.targetActorId === owedPick?.targetActorId
-          ? { ...movement, position: chosenPosition }
-          : movement
-      ),
+      forcedMovements: destination.movements,
       execution: storedRuleExecutionResultDtoSchema.parse({
         status: 'COMPLETE',
         occurrenceId,

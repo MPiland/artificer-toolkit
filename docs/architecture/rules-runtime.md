@@ -1863,7 +1863,8 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   straight square-grid ray from the source's token for away and toward, stopping before the first barrier or occupied square, or any
   free square within the distance for `ANY` (and within the source's reach for `ASIDE`), as a `FORCED` Scene move: no opportunity
   attack, no movement spent. When a single-target action's movement has two or more legal squares, the planner holds the settled
-  outcome (`holdForForcedMovementDestination`, a bounded-choice continuation over the squares with the sealed completion and its
+  outcome (`planForcedMovementDestination` in `nativeForcedMovementDestination.ts`, shared with a won contest, over
+  `holdForForcedMovementDestination`, a bounded-choice continuation over the squares with the sealed completion and its
   OUTCOME phase) on a `FORCED_MOVEMENT_DESTINATION` pending; the source's controller or the GM answers `FORCED_MOVEMENT`
   `{requestId, position}`, the planner restores the completion without running a graph again
   (`restoreHeldNativeActionCompletion`, its retained OUTCOME replaying resistance, reaction and on-hit audits) and the commit

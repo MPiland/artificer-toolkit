@@ -178,7 +178,9 @@ describe('a won contest whose outcome moves its target aside, in the room (MOVE-
     expect(await room.room.pending()).toBeNull()
 
     const history = await readRoomHistory(room.room.base.stub)
+    // The contest's own command receipt; the answer's receipt carries the same settled execution.
     const outputs = history.receipts.flatMap((receipt) => {
+      if (receipt.commandType !== 'RESOLVE_ACTION') return []
       const execution = parseReceiptExecution(receipt)
       return execution.status === 'COMPLETE' &&
         execution.applicationOutputs?.kind === 'CONTESTED_ACTION'
