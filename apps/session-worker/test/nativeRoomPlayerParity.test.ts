@@ -9,6 +9,9 @@ import type { RoomNativeEncounterCommand } from '@artificer-toolkit/schema/api/l
 import { encounterActorTokenBindingCommandInputDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { zoneParts } from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
+import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
@@ -288,6 +291,17 @@ const PARITY: Record<CommandType, Entry> = {
       activeEffectId: SOME_ID,
       add: [],
       remove: []
+    })
+  },
+  PLACE_ZONE: {
+    access: 'TABLE',
+    rule: table('ADR 0038: the GM places environmental zones on the Scene and can undo them'),
+    actorScoped: false,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'PLACE_ZONE',
+      zone: zoneParts(caltropsBagOf20).zone,
+      point: { x: 0, y: 0 }
     })
   },
   MORALE_SAVE: {

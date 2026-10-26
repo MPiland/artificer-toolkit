@@ -16,6 +16,7 @@ export interface EffectActionCapabilityDescriptor {
     | 'BASIC_ACTION'
     | 'REPEAT_PATH'
     | 'RULE'
+    | 'ENVIRONMENTAL_ZONE'
   gameSystemId: string
   authoredRootKind: 'effect'
   entryPointDefinitionId: string

@@ -21,6 +21,7 @@ import {
   DND5E_DEPART_PROPOSAL_OPERATION_KEY,
   DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
+  DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   DND5E_REVIVE_PROPOSAL_OPERATION_KEY,
@@ -31,9 +32,10 @@ import {
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
+  DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
-  type EntryDiceDamageOutcome,
+  type EntryDiceOutcome,
   type Outcome,
   unsupported
 } from './effectActionContracts.js'
@@ -43,7 +45,7 @@ import { DND5E_TELEPORT_ALLOWANCE_PROPOSAL_OPERATION_KEY } from './teleportAllow
 /** The outcomes one proposal node applies; forced movement is settled on the Scene by its own node. */
 export type Dnd5eRegisteredOutcome =
   | Exclude<Outcome, { kind: 'FORCED_MOVEMENT' }>
-  | EntryDiceDamageOutcome
+  | EntryDiceOutcome
 /** The immunity fact a condition reads, which its phase selects: undefined past a path's last condition. */
 export type Dnd5eOutcomeContext = { conditionImmuneFactKey: string | undefined }
 // An intersection, not Extract: heal and temporary hit points share one variant.
@@ -109,6 +111,13 @@ export const DND5E_EFFECT_OUTCOMES: { [Kind in Dnd5eRegisteredOutcome['kind']]: 
       pathGatedOperationKey: DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
       payloadInputs: (outcome) => ({ damageTypeId: literal(outcome.damageTypeId) }),
       payloadOutputs: ['amount', 'damageTypeId'],
+      changesTargetState: true
+    },
+    ENTRY_DICE_HIT_POINT_LOSS: {
+      operationKey: DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
+      pathGatedOperationKey: DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
+      payloadInputs: () => ({}),
+      payloadOutputs: ['amount'],
       changesTargetState: true
     },
     CONDITION_APPLY: {

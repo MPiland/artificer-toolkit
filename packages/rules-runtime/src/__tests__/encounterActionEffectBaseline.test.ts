@@ -31,7 +31,9 @@ import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
-  DND5E_SAVE_DC_FACT_KEY
+  DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
+  DND5E_SAVE_DC_FACT_KEY,
+  DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY
 } from '../systems/dnd5e/effectActionContracts.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import {
@@ -77,7 +79,10 @@ type RelationshipDefinition = Extract<
 >
 
 type RecurrenceOverrides = Partial<
-  Pick<NonNullable<ActorRelationshipAuthored['recurrence']>, 'turnAnchor' | 'savingThrow'>
+  Pick<
+    NonNullable<ActorRelationshipAuthored['recurrence']>,
+    'turnAnchor' | 'savingThrow' | 'outcome'
+  >
 >
 
 function rugSmotherCapability(heldAtOnce = 1, recurrence: RecurrenceOverrides = {}) {
@@ -139,15 +144,15 @@ function rugSmotherCapability(heldAtOnce = 1, recurrence: RecurrenceOverrides = 
               ],
               recurrence: {
                 turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
-                ...recurrence,
-                damage: {
+                outcome: {
                   id: rugIds.recurrenceDamage,
                   effectKind: EFFECT_KIND.DAMAGE,
                   damageTypeId: rugIds.bludgeoning,
                   valueKind: 'DICE',
                   scalingKind: 'NONE',
                   diceConfig: '2d6+3'
-                }
+                },
+                ...recurrence
               }
             }
           ]
@@ -509,6 +514,51 @@ describe('a held creature’s relationship recurrence (SPELLS-33.T6n1)', () => {
       })
     }
   )
+
+  describe('as hit points lost directly (SPELLS-33.T6n2b)', () => {
+    const hitPointLoss = {
+      id: rugIds.recurrenceDamage,
+      effectKind: 'HIT_POINT_LOSS',
+      diceConfig: '2d6+3'
+    } as const
+    /** The plan's frozen graph nodes that propose an outcome to the held creature. */
+    const proposals = (plan: ReturnType<typeof recurrencePlan>) =>
+      plan.frozenGraph.definition.nodes.filter(({ operation }) =>
+        operation.key.endsWith('-proposal')
+      )
+
+    it('proposes the loss, with no damage type, without a saving throw', () => {
+      const plan = recurrencePlan({ outcome: hitPointLoss })
+      expect(plan).toMatchObject({ frozenGraphNodeId: 'relationship-recurrence' })
+      const [proposal, ...others] = proposals(plan)
+      expect(others).toEqual([])
+      expect(proposal).toMatchObject({
+        id: 'relationship-recurrence',
+        operation: { key: DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY }
+      })
+      expect(proposal!.inputs).not.toHaveProperty('damageTypeId')
+      expect(plan.frozenGraph.definition.outputs).not.toHaveProperty('damageTypeId')
+    })
+
+    it('proposes the loss, unhalved and with no damage type, only on a failed save', () => {
+      const plan = recurrencePlan({ outcome: hitPointLoss, savingThrow: fixedSave })
+      expect(plan).toMatchObject({ frozenGraphNodeId: 'proposal-on_save_fail' })
+      const [proposal, ...others] = proposals(plan)
+      expect(others).toEqual([])
+      expect(proposal).toMatchObject({
+        id: 'proposal-on_save_fail',
+        operation: { key: DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY },
+        inputs: { authoredPath: { kind: 'LITERAL', value: 'ON_SAVE_FAIL' } }
+      })
+      expect(proposal!.inputs).not.toHaveProperty('damageTypeId')
+      // 2d6+3: the failed save's dice total takes the authored modifier.
+      expect(
+        plan.frozenGraph.definition.nodes.find(
+          ({ operation }) => operation.key === DND5E_DAMAGE_TOTAL_OPERATION_KEY
+        )?.inputs.modifier
+      ).toEqual({ kind: 'LITERAL', value: 3 })
+    })
+  })
 
   it('refuses a recurrence at the end of a turn', () => {
     expect(() =>

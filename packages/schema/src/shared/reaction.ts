@@ -9,6 +9,7 @@ import {
   pathLifecycleEndTriggerBySchema
 } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
+import { ruleCapabilityRefreshBoundaryDtoSchema } from './ruleState.js'
 import { systemCoreCodeSchema } from './systemCoreCode.js'
 import { spatialPointDtoSchema } from './spatialFacts.js'
 import {
@@ -170,7 +171,7 @@ export const movementReactionEligibilityOutputDtoSchema = lazySchema(() =>
       eligible: z.boolean(),
       allowanceDefinitionId: postgresUuidSchema,
       allowanceMaximum: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
-      allowanceRefreshBoundary: z.literal('START_OF_TURN'),
+      allowanceRefreshBoundary: ruleCapabilityRefreshBoundaryDtoSchema,
       selectionPolicy: z.enum(['AUTOMATIC', 'CHOICE']),
       choiceDefinitionId: z.nullable(postgresUuidSchema),
       targetPolicy: z.literal('MOVER')

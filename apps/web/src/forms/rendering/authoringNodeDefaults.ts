@@ -201,15 +201,10 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
     case 'actorRelationshipRecurrence':
       return {
         turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
-        damage: {
-          id: crypto.randomUUID(),
-          effectKind: 'DAMAGE',
-          damageTypeId: '',
-          valueKind: 'DICE',
-          diceConfig: '1d6',
-          scalingKind: 'NONE'
-        }
+        outcome: createRecurrenceOutcome()
       } satisfies NonNullable<ActorRelationshipAuthored['recurrence']>
+    case 'actorRelationshipRecurrenceOutcome':
+      return createRecurrenceOutcome()
     case 'check':
       return {
         checks: createCheckChoice(),
@@ -1168,6 +1163,17 @@ function createScalingGrant<TGrantKind extends ScalingGrantAuthored['grantKind']
 
 function createCheckChoice() {
   return { skillIds: [], abilityDefinitionIds: [] } satisfies CheckChoiceAuthored
+}
+
+function createRecurrenceOutcome() {
+  return {
+    id: crypto.randomUUID(),
+    effectKind: 'DAMAGE',
+    damageTypeId: '',
+    valueKind: 'DICE',
+    diceConfig: '1d6',
+    scalingKind: 'NONE'
+  } satisfies NonNullable<ActorRelationshipAuthored['recurrence']>['outcome']
 }
 
 function createCheckDc() {

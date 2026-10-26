@@ -562,6 +562,21 @@ export function foldCharacterMechanicsApplications<
         throw new EncounterValidationError(
           'The Character temporary hit-point application is invalid.'
         )
+    } else if (application.kind === 'HIT_POINT_LOSS') {
+      // Not damage: no defense, interception or death save failure; temporary hit points go first.
+      const temporaryLost = Math.min(temporary, application.requestedAmount)
+      temporarySource = temporaryHitPointsAfterLoss(
+        { amount: temporary, sourceEffectId: temporarySource },
+        temporaryLost
+      ).sourceEffectId
+      const currentLost = Math.min(current, application.requestedAmount - temporaryLost)
+      if (
+        application.resolvedAmount !== application.requestedAmount ||
+        application.appliedAmount !== temporaryLost + currentLost ||
+        application.afterCurrentHitPoints !== current - currentLost ||
+        application.afterTemporaryHitPoints !== temporary - temporaryLost
+      )
+        throw new EncounterValidationError('The Character hit-point loss application is invalid.')
     } else if (application.kind === 'DAMAGE') {
       const resolvedAmount = resolveIncomingDamage(application)
       const temporaryLost = Math.min(temporary, resolvedAmount)

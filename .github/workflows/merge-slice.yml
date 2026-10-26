@@ -60,6 +60,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+      # A fileSizeBudget.json conflict is resolved only into a tree that passes scripts/sourceRatchets.mjs,
+      # which parses modules with oxc-parser.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.yarn/berry/cache
+          key: yarn-${{ runner.os }}-${{ hashFiles('yarn.lock') }}
+          restore-keys: yarn-${{ runner.os }}-
+      - name: Install
+        run: corepack enable && yarn install --immutable
       - name: Merge
         env:
           GH_TOKEN: ${{ github.token }}

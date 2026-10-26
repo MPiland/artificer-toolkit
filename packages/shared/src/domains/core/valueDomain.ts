@@ -18,6 +18,7 @@ export const VALUE_DOMAIN_CODE = {
   CRITICAL_HIT_THRESHOLD: 'CRITICAL_HIT_THRESHOLD',
   CRITICAL_EXTRA_DICE: 'CRITICAL_EXTRA_DICE',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
+  FREE_OPPORTUNITY_REACTION: 'FREE_OPPORTUNITY_REACTION',
   SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
   ATTACK_DECOYS: 'ATTACK_DECOYS',
@@ -141,6 +142,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     code: VALUE_DOMAIN_CODE.OPPORTUNITY_ATTACK_IMMUNITY,
     label: 'Opportunity Attack Immunity',
     description: "The holder's movement provokes no opportunity attacks."
+  },
+
+  [VALUE_DOMAIN_CODE.FREE_OPPORTUNITY_REACTION]: {
+    code: VALUE_DOMAIN_CODE.FREE_OPPORTUNITY_REACTION,
+    label: 'Free Opportunity Reaction',
+    description:
+      "A reactor in the effect's event scope may make one opportunity reaction against the holder each turn without spending its reaction."
   },
 
   [VALUE_DOMAIN_CODE.SPELLCASTING_LOCK]: {
@@ -494,6 +502,10 @@ export type ValueDomainParamByCode = {
 
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject
+
+  // A reactor in the effect's event scope makes one opportunity reaction against the holder
+  // each turn without spending its reaction (Mark).
+  FREE_OPPORTUNITY_REACTION: EmptyObject
 
   // The holder can't cast spells or hold Concentration.
   SPELLCASTING_LOCK: EmptyObject

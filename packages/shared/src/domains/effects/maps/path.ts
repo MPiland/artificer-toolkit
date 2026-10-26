@@ -1,8 +1,6 @@
 import type {
   ApplyGrantAuthored,
-  ActorRelationshipAuthored,
   ConditionAuthored,
-  DamageAuthored,
   FailureMarginRiderAuthored,
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
@@ -97,6 +95,7 @@ import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { ATTACK_SLOT_CONDITION_NODE_MAP } from '../../features/maps/attackSlots.js'
 import { ACTOR_RELATIONSHIP_MODULE_NODE_MAP } from './actorRelationshipModule.js'
 import { PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP } from './pathLifecycleTurnAnchor.js'
+import { ACTOR_RELATIONSHIP_RECURRENCE_NODE_MAP } from './actorRelationshipRecurrence.js'
 import {
   FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP,
   FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
@@ -135,7 +134,6 @@ type ManifestProximityRuleNode = ManifestProximityRuleAuthored
 type ManifestOccupantSaveBonusNode = AllUnionFields<ManifestOccupantSaveBonusAuthored>
 type ManifestComponentRegionNode = NonNullable<ManifestComponentAuthored['region']>
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
-type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
 type NodeMapBuildApi<NLocal extends object> = Parameters<
   BuildNodeMap<NLocal>['define']
 >[1] extends (api: infer TApi) => void
@@ -262,7 +260,6 @@ const hitPointMaximumReductionAmountSource =
   buildNodeMap<HitPointMaximumReductionAuthored['amountSource']>()
 const degradeEquipmentDestroyWhen = buildNodeMap<DegradeEquipmentDestroyWhenAuthored>()
 const scalarReductionAmount = buildNodeMap<ScalarReductionAuthored['amount']>()
-const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode>()
 /** The rider's conditions are edited as outcome rows; the schema admits only CONDITION outcomes. */
 type FollowUpSaveFailureMarginRiderNode = Omit<FailureMarginRiderAuthored, 'outcomes'> & {
   outcomes: OutcomeNode[]
@@ -1166,36 +1163,6 @@ const TELEPATHIC_LINK_ABILITY_FLOOR_NODE_MAP = telepathicLinkAbilityFloor.define
       .set(
         'score',
         number(['score'], 'At or Below', { constraints: { minimum: 0 }, requiredIf: true })
-      )
-  }
-)
-
-const ACTOR_RELATIONSHIP_RECURRENCE_NODE_MAP = actorRelationshipRecurrence.define(
-  'actorRelationshipRecurrence',
-  ({ map, nodes }) => {
-    const { groupObject } = nodes
-    map
-      .set(
-        'turnAnchor',
-        groupObject(['turnAnchor'], 'Turn Anchor', () => PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
-      .set(
-        'savingThrow',
-        groupObject(['savingThrow'], 'Held Creature Save', () => SAVING_THROW_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'damage',
-        groupObject(
-          ['damage'],
-          'Damage',
-          () => OUTCOME_NODE_MAP as unknown as NodeMap<DamageAuthored>,
-          { presentation: 'inline' }
-        )
       )
   }
 )
