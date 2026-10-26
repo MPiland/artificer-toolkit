@@ -336,9 +336,14 @@ function requireSupportedApplications(input: {
         !sourceNodeIds.has(application.sourceNodeId) ||
         (application.kind === 'CONDITION_REMOVE' &&
           application.sourceActiveEffectId !== activeEffectId) ||
-        !['HEAL', 'TEMPORARY_HIT_POINTS', 'DAMAGE', 'CONDITION_APPLY', 'CONDITION_REMOVE'].includes(
-          application.kind
-        )
+        ![
+          'HEAL',
+          'TEMPORARY_HIT_POINTS',
+          'DAMAGE',
+          'HIT_POINT_LOSS',
+          'CONDITION_APPLY',
+          'CONDITION_REMOVE'
+        ].includes(application.kind)
     )
   ) {
     throw new CharacterActiveRuleEffectExecutionError(

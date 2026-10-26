@@ -60,6 +60,15 @@ function onTheDevilsTurns(recurrence: NonNullable<ActorRelationshipAuthored['rec
   recurrence.turnAnchor = { actor: 'SOURCE', boundary: 'START_OF_TURN' }
 }
 
+/** The hold's 2d6 are hit points lost directly instead of piercing damage. */
+function asHitPointLoss(recurrence: NonNullable<ActorRelationshipAuthored['recurrence']>) {
+  recurrence.outcome = {
+    id: recurrence.outcome.id,
+    effectKind: 'HIT_POINT_LOSS',
+    diceConfig: '2d6'
+  }
+}
+
 /**
  * The Chain Devil's Chain hits and holds the Character; the GM's dice roll automatically, the
  * Character's do not.
@@ -142,6 +151,17 @@ async function incomingExecutions(room: HeldCharacterRoom, commandId: string) {
 function damageOf(execution: Awaited<ReturnType<typeof incomingExecutions>>[number] | undefined) {
   return execution?.applications.flatMap((application) =>
     application.kind === 'DAMAGE' ? [[application.requestedAmount, application.damageTypeId]] : []
+  )
+}
+
+/** The HIT_POINT_LOSS applications of one execution, as [requested, applied] pairs. */
+function hitPointLossOf(
+  execution: Awaited<ReturnType<typeof incomingExecutions>>[number] | undefined
+) {
+  return execution?.applications.flatMap((application) =>
+    application.kind === 'HIT_POINT_LOSS'
+      ? [[application.requestedAmount, application.appliedAmount]]
+      : []
   )
 }
 
@@ -256,6 +276,57 @@ describe('a held creature’s relationship recurrence on its holder’s turns (S
       expect(others).toEqual([])
       expect(execution).toMatchObject({ targetActorId: CHARACTER_ACTOR_ID, stage: 'START_OF_TURN' })
       expect(damageOf(execution)).toEqual(damage)
+      expect((await readRoomHistory(room.room.base.stub)).characterEffects).toHaveLength(1)
+    }
+  )
+})
+
+describe('a held creature’s recurrence as hit points lost directly (SPELLS-33.T6n2b)', () => {
+  it('takes the hold’s 2d6 from the held Character’s hit points, with no damage, at its turn start', async () => {
+    const room = await heldCharacterRoom(chainDevilWith(asHitPointLoss))
+
+    const charactersTurn = await advance(room)
+    expect(charactersTurn.pending).toBeNull()
+    const [execution, ...others] = await incomingExecutions(room, charactersTurn.commandId)
+    expect(others).toEqual([])
+    expect(execution).toMatchObject({ targetActorId: CHARACTER_ACTOR_ID, stage: 'START_OF_TURN' })
+    expect(damageOf(execution)).toEqual([])
+    expect(hitPointLossOf(execution)).toEqual([[2, 2]])
+    expect((await readRoomHistory(room.room.base.stub)).characterEffects).toHaveLength(1)
+
+    await expectNothingOnTheDevilsTurn(room)
+  })
+
+  it.each([
+    { label: 'fails', face: 1, loss: [[2, 2]] },
+    { label: 'makes', face: 20, loss: [] }
+  ])(
+    'loses the hit points only when the held Character  its save, and the hold stands',
+    async ({ face, loss }) => {
+      const room = await heldCharacterRoom(
+        chainDevilWith((recurrence) => {
+          withHoldSave(recurrence)
+          asHitPointLoss(recurrence)
+        })
+      )
+
+      const charactersTurn = await advance(room)
+      const save = charactersTurn.pending
+      if (save?.kind !== 'D20_EVIDENCE') throw new Error('Expected the Character’s save prompt.')
+      expect(save.rollerActorId).toBe(CHARACTER_ACTOR_ID)
+      expect(
+        await answer(room, save, {
+          kind: 'ENTER_DICE',
+          requestId: save.request.requestId,
+          rawFaces: save.request.rollMode === 'NORMAL' ? [face] : [face, face],
+          rollMode: save.request.rollMode
+        })
+      ).toBeNull()
+
+      const [execution, ...others] = await incomingExecutions(room, charactersTurn.commandId)
+      expect(others).toEqual([])
+      expect(damageOf(execution)).toEqual([])
+      expect(hitPointLossOf(execution)).toEqual(loss)
       expect((await readRoomHistory(room.room.base.stub)).characterEffects).toHaveLength(1)
     }
   )

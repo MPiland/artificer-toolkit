@@ -2513,6 +2513,17 @@ this Run falls back to its holder (D151). The kernel then runs one mechanics bat
 held creature's controllers, the damage dice to the source's. Shambling Mound Engulf (2d8+4 bludgeoning, DC 14
 Constitution) is the SRD case; dev data was migrated by `rules/recurrenceAnchorMigration`.
 
+**Hit-point loss recurrences (current, SPELLS-33.T6n2b).** A hold's `recurrence.outcome` is one exact dice
+outcome: `DAMAGE` (one damage type, `DICE`, no scaling or bonuses) or `HIT_POINT_LOSS` (`{ id, effectKind,
+diceConfig }`, no damage type). `relationshipRecurrencePlan` (`effectActionRelationshipGraphs`) returns a null
+`damageTypeId` for a loss; the graph then proposes `dnd5e.hit-point-loss-proposal` (no save) or, behind a fixed-DC
+save, the registry's `ENTRY_DICE_HIT_POINT_LOSS` outcome (`dnd5e.test-hit-point-loss-proposal`), which shares the
+entry-dice nodes of `ENTRY_DICE_DAMAGE` but takes no save multiplier or Evasion. `interpretDirectProposal` settles it
+as a `HIT_POINT_LOSS` application (the hit-point amount shape: temporary hit points absorb it first, current hit
+points take the rest, capped at what the target has). It is not damage: no defense resolves it, no interception
+answers it (`applyDamageInterceptions` only rebases it), and it adds no death-save failure, Concentration check or
+massive-damage kill. The fold (`foldCharacterMechanicsApplications`) and both receipt validators recheck its
+arithmetic. The Stirge's Blood Drain is the SRD case (converted in T6n3).
 `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
 such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next

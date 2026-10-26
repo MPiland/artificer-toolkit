@@ -954,6 +954,33 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
                 path: ['applications', index],
                 message: 'Temporary hit-point receipt arithmetic is invalid.'
               })
+          } else if (application.kind === 'HIT_POINT_LOSS') {
+            // Not damage: no defense or death save failure; temporary hit points absorb it first.
+            const temporaryLost = Math.min(
+              application.beforeTemporaryHitPoints,
+              application.requestedAmount
+            )
+            temporarySource = temporaryHitPointsAfterLoss(
+              { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
+              temporaryLost
+            ).sourceEffectId
+            const currentLost = Math.min(
+              application.beforeCurrentHitPoints,
+              application.requestedAmount - temporaryLost
+            )
+            if (
+              application.resolvedAmount !== application.requestedAmount ||
+              application.appliedAmount !== temporaryLost + currentLost ||
+              application.afterCurrentHitPoints !==
+                application.beforeCurrentHitPoints - currentLost ||
+              application.afterTemporaryHitPoints !==
+                application.beforeTemporaryHitPoints - temporaryLost
+            )
+              context.addIssue({
+                code: 'custom',
+                path: ['applications', index],
+                message: 'Hit-point loss receipt arithmetic is invalid.'
+              })
           } else if (application.kind === 'DAMAGE') {
             const resolved = resolveIncomingDamage(application)
             const temporaryLost = Math.min(application.beforeTemporaryHitPoints, resolved)

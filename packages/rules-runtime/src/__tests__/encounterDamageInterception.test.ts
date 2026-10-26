@@ -261,6 +261,56 @@ describe.each([
     expect(folded.after.currentHitPoints).toBe(5)
   })
 
+  /** `amount` hit points lost directly from `state` (SPELLS-33.T6n2b): temporary hit points first. */
+  const hitPointLoss = (
+    amount: number,
+    state: { current: number; temporary: number }
+  ): CharacterRuleActionApplication => {
+    const temporaryLost = Math.min(state.temporary, amount)
+    const currentLost = Math.min(state.current, amount - temporaryLost)
+    return {
+      ...trace,
+      kind: 'HIT_POINT_LOSS',
+      requestedAmount: amount,
+      resolvedAmount: amount,
+      appliedAmount: temporaryLost + currentLost,
+      beforeCurrentHitPoints: state.current,
+      afterCurrentHitPoints: state.current - currentLost,
+      beforeTemporaryHitPoints: state.temporary,
+      afterTemporaryHitPoints: state.temporary - temporaryLost,
+      maximumHitPoints: 30
+    }
+  }
+
+  it('loses hit points directly past every interception, temporary hit points first', () => {
+    const state = { current: 10, temporary: 5 }
+    const folded = fold([hitPointLoss(40, state)], [ward], state)
+    expect(folded.applications).toMatchObject([{ kind: 'HIT_POINT_LOSS', appliedAmount: 15 }])
+    expect(folded.applications[0]).not.toHaveProperty('interceptedBy')
+    expect(folded.after).toMatchObject({ currentHitPoints: 0, temporaryHitPoints: 0, deathSaves })
+  })
+
+  it('rebases hit points lost after an interception onto the hit points it left', () => {
+    const folded = fold(
+      [damage(40, { current: 10, maximum: 30 }), hitPointLoss(3, { current: 0, temporary: 0 })],
+      [ward]
+    )
+    expect(folded.applications[1]).toMatchObject({
+      kind: 'HIT_POINT_LOSS',
+      beforeCurrentHitPoints: 1,
+      afterCurrentHitPoints: 0,
+      appliedAmount: 1
+    })
+    expect(folded.after.currentHitPoints).toBe(0)
+  })
+
+  it('refuses hit points lost whose arithmetic does not add up', () => {
+    const state = { current: 10, temporary: 5 }
+    expect(() =>
+      foldApplied([{ ...hitPointLoss(4, state), afterTemporaryHitPoints: 5 }], [], state)
+    ).toThrow('The Character hit-point loss application is invalid.')
+  })
+
   it('rebases temporary hit points granted after an interception onto the pools it left', () => {
     const grant: CharacterRuleActionApplication = {
       ...trace,

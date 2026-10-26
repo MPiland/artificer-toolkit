@@ -201,7 +201,7 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
     case 'actorRelationshipRecurrence':
       return {
         turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
-        damage: {
+        outcome: {
           id: crypto.randomUUID(),
           effectKind: 'DAMAGE',
           damageTypeId: '',

@@ -2,7 +2,6 @@ import type {
   ApplyGrantAuthored,
   ActorRelationshipAuthored,
   ConditionAuthored,
-  DamageAuthored,
   FailureMarginRiderAuthored,
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
@@ -136,6 +135,9 @@ type ManifestOccupantSaveBonusNode = AllUnionFields<ManifestOccupantSaveBonusAut
 type ManifestComponentRegionNode = NonNullable<ManifestComponentAuthored['region']>
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
 type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
+type ActorRelationshipRecurrenceOutcomeNode = AllUnionFields<
+  ActorRelationshipRecurrenceNode['outcome']
+>
 type NodeMapBuildApi<NLocal extends object> = Parameters<
   BuildNodeMap<NLocal>['define']
 >[1] extends (api: infer TApi) => void
@@ -263,6 +265,7 @@ const hitPointMaximumReductionAmountSource =
 const degradeEquipmentDestroyWhen = buildNodeMap<DegradeEquipmentDestroyWhenAuthored>()
 const scalarReductionAmount = buildNodeMap<ScalarReductionAuthored['amount']>()
 const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode>()
+const actorRelationshipRecurrenceOutcome = buildNodeMap<ActorRelationshipRecurrenceOutcomeNode>()
 /** The rider's conditions are edited as outcome rows; the schema admits only CONDITION outcomes. */
 type FollowUpSaveFailureMarginRiderNode = Omit<FailureMarginRiderAuthored, 'outcomes'> & {
   outcomes: OutcomeNode[]
@@ -1170,6 +1173,66 @@ const TELEPATHIC_LINK_ABILITY_FLOOR_NODE_MAP = telepathicLinkAbilityFloor.define
   }
 )
 
+/** The one exact dice roll a hold recurs: damage of one type, or hit points lost directly. */
+const ACTOR_RELATIONSHIP_RECURRENCE_OUTCOME_NODE_MAP = actorRelationshipRecurrenceOutcome.define(
+  'actorRelationshipRecurrenceOutcome',
+  ({ map, nodes, cond, data }) => {
+    const { text, selectSingle } = nodes
+    const local = cond.local()
+    const dealsDamage = local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE)
+    map
+      .set('id', text(['id'], 'ID'))
+      .set(
+        'effectKind',
+        selectSingle(
+          ['effectKind'],
+          'Outcome',
+          inlineOptions([
+            { code: EFFECT_KIND.DAMAGE, label: 'Damage' },
+            { code: 'HIT_POINT_LOSS', label: 'Hit Point Loss' }
+          ]),
+          { requiredIf: true }
+        )
+      )
+      .set(
+        'damageTypeId',
+        selectSingle(
+          ['damageTypeId'],
+          'Damage Type',
+          {
+            kind: 'DATA',
+            relationship: data.table('damage_types', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          { requiredIf: dealsDamage, showIf: dealsDamage }
+        )
+      )
+      .set(
+        'valueKind',
+        selectSingle(
+          ['valueKind'],
+          'Value Kind',
+          inlineOptions([{ code: 'DICE', label: 'Dice' }]),
+          {
+            requiredIf: dealsDamage,
+            showIf: dealsDamage
+          }
+        )
+      )
+      .set(
+        'scalingKind',
+        selectSingle(
+          ['scalingKind'],
+          'Scaling Kind',
+          inlineOptions([{ code: 'NONE', label: 'None' }]),
+          { requiredIf: dealsDamage, showIf: dealsDamage }
+        )
+      )
+      .set('diceConfig', text(['diceConfig'], 'Dice Config', { requiredIf: true }))
+  }
+)
+
 const ACTOR_RELATIONSHIP_RECURRENCE_NODE_MAP = actorRelationshipRecurrence.define(
   'actorRelationshipRecurrence',
   ({ map, nodes }) => {
@@ -1189,13 +1252,11 @@ const ACTOR_RELATIONSHIP_RECURRENCE_NODE_MAP = actorRelationshipRecurrence.defin
         })
       )
       .set(
-        'damage',
-        groupObject(
-          ['damage'],
-          'Damage',
-          () => OUTCOME_NODE_MAP as unknown as NodeMap<DamageAuthored>,
-          { presentation: 'inline' }
-        )
+        'outcome',
+        groupObject(['outcome'], 'Outcome', () => ACTOR_RELATIONSHIP_RECURRENCE_OUTCOME_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true
+        })
       )
   }
 )
