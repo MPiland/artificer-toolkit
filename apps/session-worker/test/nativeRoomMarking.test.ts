@@ -1,4 +1,5 @@
 import { runInDurableObject } from 'cloudflare:test'
+import { readRunState } from '@artificer-toolkit/encounter-persistence/documents'
 import {
   DND5E_FREE_REACTION_ALLOWANCE_DEFINITION_ID,
   DND5E_REACTION_ALLOWANCE_DEFINITION_ID
@@ -196,7 +197,7 @@ async function fighterReactions(room: MarkingRoom) {
     }
   }
   return {
-    turnSequence: runs[0]!.turnSequence,
+    turnSequence: readRunState(runs[0]!).turnSequence,
     reactionUsed: resources.ruleUsage?.[DND5E_REACTION_ALLOWANCE_DEFINITION_ID] ?? 0,
     freeReaction: resources.turnUsage?.[DND5E_FREE_REACTION_ALLOWANCE_DEFINITION_ID] ?? null
   }

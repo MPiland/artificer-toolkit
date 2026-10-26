@@ -226,7 +226,7 @@ describe('the free opportunity reaction a mark gives its attacker (ATTACK-13.T2)
       effect: {
         ...parameters.effect,
         paths: parameters.effect.paths.map((path) => {
-          if (path.selectionKind !== 'FIXED') return path
+          if (path.selectionKind !== 'FIXED' || !path.resultBlock.lifecycle) return path
           const { fromSourceOnly: _fromSourceOnly, ...lifecycle } = path.resultBlock.lifecycle
           return { ...path, resultBlock: { ...path.resultBlock, lifecycle } }
         })
