@@ -101,7 +101,7 @@ export function planEncounterEnvironmentalZone(input: {
     )
   const area = evaluateEncounterZoneTarget({
     zone: compiled,
-    range: { rangeKind: 'UNLIMITED' },
+    range: { id: effectId, rangeKind: 'UNLIMITED' },
     target: { kind: 'POINT', point: input.point },
     grid: input.grid,
     sourceToken: null,

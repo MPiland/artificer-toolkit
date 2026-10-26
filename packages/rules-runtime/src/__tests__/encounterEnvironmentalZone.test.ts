@@ -54,7 +54,7 @@ function placeByItem(zone: Parameters<typeof carryingZone>[0]) {
   const compiled = zonePlacementOf(carryingZone(zone))
   const area = evaluateEncounterZoneTarget({
     zone: compiled,
-    range: { rangeKind: 'UNLIMITED' },
+    range: { id: testUuid(0x3a06), rangeKind: 'UNLIMITED' },
     target: { kind: 'POINT', point: POINT },
     grid: GRID,
     sourceToken: null,

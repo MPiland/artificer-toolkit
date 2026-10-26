@@ -140,11 +140,10 @@ describe('a GM environmental zone on the Scene (MOVE-3.2)', () => {
     const sourceDc = structuredClone(pit)
     const behavior = sourceDc.components?.[0]?.behaviors?.[0]
     if (!behavior || !('savingThrow' in behavior.invocation))
-      throw new Error('The pit must author a saving throw.')
-    behavior.invocation.savingThrow = {
-      ...behavior.invocation.savingThrow,
-      dcMethod: 'SOURCE_SAVE_DC'
-    }
+      throw new Error('The pit must author a behavior.')
+    const { id, abilityDefinitionId } = behavior.invocation.savingThrow ?? {}
+    if (!id || !abilityDefinitionId) throw new Error('The pit must author a saving throw.')
+    behavior.invocation.savingThrow = { id, abilityDefinitionId, dcMethod: 'SOURCE_SAVE_DC' }
 
     const refused = await gmPlaces(room, sourceDc)
 
