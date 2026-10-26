@@ -287083,6 +287083,16 @@ export declare const api: {
             short?: string | null;
             unseen?: boolean;
           }>;
+          cover?: {
+            creatureMaxTierCode: string | null;
+            tiers: Array<{
+              blocksTargeting: boolean;
+              bonus: number;
+              code: string;
+              label: string;
+              minBlockedLines: number;
+            }>;
+          };
           creatureTypes: Array<{
             code: string;
             description?: string | null;
