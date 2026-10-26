@@ -703,42 +703,75 @@ describe('availableEncounterMovementPassageChoice', () => {
   })
 })
 
+/** Seals the mover's `ruleKind` contest, paid with its Action, against the first blocker. */
+async function contest(ruleKind: 'OVERRUN' | 'TUMBLE', contestants: EncounterRunActorState[]) {
+  const input = passageInput(runState(), contestants)
+  const targets = new Map(
+    await Promise.all(
+      [...input.targets].map(
+        async ([actorId, target]) =>
+          [
+            actorId,
+            await withEncounterConditionMechanics({
+              target,
+              gameSystemId: SRD_SYSTEM_ID,
+              definitions: srdConditionDefinitionSource()
+            })
+          ] as const
+      )
+    )
+  )
+  const choice = await availableEncounterMovementPassageChoice(reads(), { ...input, targets })
+  const option = choice?.options.find(
+    (candidate) => candidate.ruleKind === ruleKind && candidate.economy === 'ACTION'
+  )
+  if (!choice || !option) throw new Error('Expected a passage option.')
+  return prepareEncounterMovementPassageContest(reads(), {
+    state: input.state,
+    choice,
+    optionId: option.optionId,
+    targets
+  })
+}
+
+describe('the sealed passage contest of the SRD Overrun and Tumble (MOVE-2)', () => {
+  const sized = (size: string) => creature({ id: ids.source, disposition: 'FRIENDLY', size })
+
+  it.each([
+    ['LARGE', 'ADVANTAGE'],
+    ['SMALL', 'DISADVANTAGE']
+  ] as const)(
+    'a %s mover overruns a Medium blocker with %s, sourced to the Overrun definition',
+    async (size, influence) => {
+      const prepared = await contest('OVERRUN', [sized(size), first])
+      expect(prepared.initiator).toMatchObject({
+        rollMode: influence,
+        contributors: [
+          { influence, source: { kind: 'AUTHORED', id: overrun.id, holderActorId: null } }
+        ]
+      })
+      expect(prepared.defender.checks).toMatchObject([{ rollMode: 'NORMAL', contributors: [] }])
+    }
+  )
+
+  it('an equal-size Overrun, and a Tumble of any size, rolls normally', async () => {
+    expect((await contest('OVERRUN', [source, first])).initiator).toMatchObject({
+      rollMode: 'NORMAL',
+      contributors: []
+    })
+    expect((await contest('TUMBLE', [sized('LARGE'), first])).initiator).toMatchObject({
+      rollMode: 'NORMAL',
+      contributors: []
+    })
+  })
+})
+
 describe("passage contests under the contestants' conditions (D94)", () => {
   const POISONED = SRD_CONDITION_TYPES.find((condition) => condition.code === 'POISONED')!.id
   const poisoned = (actor: EncounterRunActorState): EncounterRunActorState => {
     // A Character actor's conditions live on its Character, which the Run reads.
     if (actor.kind === 'CHARACTER') throw new Error('Expected a Creature contestant.')
     return { ...actor, conditions: [POISONED] }
-  }
-
-  async function contest(ruleKind: 'OVERRUN' | 'TUMBLE', contestants: EncounterRunActorState[]) {
-    const input = passageInput(runState(), contestants)
-    const targets = new Map(
-      await Promise.all(
-        [...input.targets].map(
-          async ([actorId, target]) =>
-            [
-              actorId,
-              await withEncounterConditionMechanics({
-                target,
-                gameSystemId: SRD_SYSTEM_ID,
-                definitions: srdConditionDefinitionSource()
-              })
-            ] as const
-        )
-      )
-    )
-    const choice = await availableEncounterMovementPassageChoice(reads(), { ...input, targets })
-    const option = choice?.options.find(
-      (candidate) => candidate.ruleKind === ruleKind && candidate.economy === 'ACTION'
-    )
-    if (!choice || !option) throw new Error('Expected a passage option.')
-    return prepareEncounterMovementPassageContest(reads(), {
-      state: input.state,
-      choice,
-      optionId: option.optionId,
-      targets
-    })
   }
 
   const poisonedBy = (holderActorId: string) => ({
