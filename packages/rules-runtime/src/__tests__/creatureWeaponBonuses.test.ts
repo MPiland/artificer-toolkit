@@ -84,11 +84,10 @@ describe('a Creature’s bound weapon bonuses match a Character’s (ATTACK-6.3)
 })
 
 describe('the Ogre’s printed Greatclub attack with its loadout weapon (ATTACK-6.3)', () => {
-  const seededOgre = creatureAuthoredDtoSchema.parse(
-    prepareSrdImport().subjects.find(
-      (subject) => subject.subjectKind === 'CREATURE' && subject.document.label === 'Ogre'
-    )?.document
-  )
+  const seededOgre = prepareSrdImport()
+    .subjects.filter((subject) => subject.subjectKind === 'CREATURE')
+    .map((subject) => creatureAuthoredDtoSchema.parse(subject.document) as CreatureAuthored)
+    .find((creature) => creature.label === 'Ogre')!
 
   /** The Ogre holding `weaponId` in place of its Greatclub. */
   function ogreHolding(weaponId: string): CreatureAuthored {
