@@ -8352,7 +8352,22 @@
               "activeWorkbook": "docs/handoffs/slice-attack-6.md"
             },
             {
-              "id": "ATTACK-6.T4",
+              "id": "ATTACK-6.T4a",
+              "status": "TODO",
+              "closes": ["ATTACK-6.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 2,
+                "rr": 1,
+                "size": 8,
+                "after": ["ATTACK-6.T2"]
+              },
+              "text": "One shared Equipment fold and Armor Class path for Creatures and Characters: a Creature's loadout folds through the Character grant fold (restrictions included) and the extracted Character Armor Class block; the Creature-only while-equipped Armor Class path is deleted.",
+              "note": "Split from ATTACK-6.T4 (size 13) on 2026-10-26 after a seam audit (orchestrator approved).",
+              "activeWorkbook": "docs/handoffs/slice-attack-6.md"
+            },
+            {
+              "id": "ATTACK-6.T4b",
               "status": "TODO",
               "closes": ["ATTACK-6.3"],
               "wsjf": {
@@ -8360,10 +8375,10 @@
                 "tc": 2,
                 "rr": 1,
                 "size": 13,
-                "after": ["ATTACK-6.T2"]
+                "after": ["ATTACK-6.T4a"]
               },
-              "text": "One shared modular-equipment derivation for Creatures and Characters: Creatures use the Character restriction evaluator and the same armor class and attack paths, so magic weapons and armor apply to Creatures.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
+              "text": "A Creature's bound weapon adds its applicable attack-roll and damage modifiers as a Character's does, with the room journey proof.",
+              "note": "Split from ATTACK-6.T4 (size 13) on 2026-10-26 after a seam audit (orchestrator approved)."
             }
           ]
         },

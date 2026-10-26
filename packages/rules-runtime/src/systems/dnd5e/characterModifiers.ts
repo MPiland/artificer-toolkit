@@ -28,8 +28,20 @@ export type CharacterResolvedModifierGroup = Omit<
       Required<Pick<Contribution, 'source' | 'acceptedModifierIndex' | 'grantId' | 'domainKey'>>)[]
   }
 
+type DerivedBaseFacts = CharacterRulePolicyInput['derivedBaseFacts']
+
+/**
+ * Resolves folded modifiers into valued groups from the holder facts they read; a Creature supplies
+ * its own (ATTACK-6.3).
+ */
 export function evaluateDnd5eCharacterModifiers(
-  input: CharacterRulePolicyInput,
+  input: Pick<CharacterRulePolicyInput, 'totalLevel'> & {
+    grantFoldFacts: { base: Pick<CharacterRulePolicyInput['grantFoldFacts']['base'], 'classes'> }
+    derivedBaseFacts: {
+      abilities: readonly Pick<DerivedBaseFacts['abilities'][number], 'abilityId' | 'baseScore'>[]
+      spellcasting: Pick<NonNullable<DerivedBaseFacts['spellcasting']>, 'abilityId'> | null
+    }
+  },
   grantFold: CharacterGrantFoldOutput
 ): CharacterResolvedModifierGroup[] {
   type Group = CharacterGrantFoldOutput['modifierGroups'][number]

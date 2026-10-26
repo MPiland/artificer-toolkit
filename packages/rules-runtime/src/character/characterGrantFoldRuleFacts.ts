@@ -6,11 +6,10 @@ import type {
 import { buildSkillSubjectAliasMap, resolveSkillAlias } from '@artificer-toolkit/shared/character'
 import { getCharacterProvenanceIdentityKey } from '@artificer-toolkit/shared/subjects/authored'
 
-import { normalizeCharacterGrantRestrictions } from './characterGrantFoldRestrictionFacts.js'
 import {
   buildCharacterGrantFoldProficiencyFacts,
   buildCharacterGrantFoldSourceFacts,
-  compiledEquipmentParentIds,
+  buildGrantFoldEquipmentFacts,
   getCharacterGrantFoldSelectedOptionIds
 } from './characterGrantFoldSourceFacts.js'
 
@@ -175,59 +174,16 @@ export function compileCharacterGrantFoldRuleFacts(params: {
     }
   })
 
-  const equipmentItems = snapshot.equipmentItems.map((item) => {
-    const source = {
-      kind: 'EQUIPMENT_INSTANCE' as const,
-      equipmentId: item.contentRef.definitionId,
-      itemInstanceId: item.instanceId
-    }
-    const sourceState = {
-      carried: true,
-      equipped: Boolean(item.equippedState),
-      attuned: item.attuned
-    }
-    const rootSource = buildCharacterGrantFoldSourceFacts({
-      definition: item.compiledItem,
-      owner: { kind: 'FEATURE', featureId: item.compiledItem.id },
-      definitionId: item.compiledItem.id,
-      snapshot,
-      normalizeProficiencyTarget,
-      sourceState,
-      equipmentSource: source
-    })
-    return {
+  const { equipment, equipmentItems } = buildGrantFoldEquipmentFacts({
+    items: snapshot.equipmentItems.map((item) => ({
       instanceId: item.instanceId,
       equipmentId: item.contentRef.definitionId,
-      requiresAttunement: Boolean(item.compiledItem.requiresAttunement),
-      equipped: sourceState.equipped,
-      attuned: item.attuned,
-      restrictions: normalizeCharacterGrantRestrictions(
-        item.compiledItem.restrictions,
-        normalizeProficiencyTarget
-      ),
-      rootSourceId: rootSource.sourceId,
-      rootModifiers: rootSource.modifiers,
-      chargeId: item.compiledItem.charges?.id ?? null,
-      features: (item.compiledItem.features ?? []).map((feature) => ({
-        source: buildCharacterGrantFoldSourceFacts({
-          definition: feature,
-          owner: { kind: 'FEATURE', featureId: feature.id },
-          definitionId: feature.id,
-          sourceId: `${rootSource.sourceId}:FEATURE:${encodeURIComponent(feature.id)}`,
-          snapshot,
-          normalizeProficiencyTarget,
-          sourceState,
-          equipmentSource: source
-        }),
-        sourceChargeUse: feature.charges
-          ? {
-              featureId: feature.id,
-              limitKind: feature.charges.limitKind,
-              cost: 'cost' in feature.charges ? feature.charges.cost : 0
-            }
-          : null
-      }))
-    }
+      compiledItem: item.compiledItem,
+      equipped: Boolean(item.equippedState),
+      attuned: item.attuned
+    })),
+    snapshot,
+    normalizeProficiencyTarget
   })
 
   const heritageRaceId = snapshot.subraceId ?? snapshot.raceId
@@ -249,14 +205,7 @@ export function compileCharacterGrantFoldRuleFacts(params: {
         level: entry.level,
         spellcasting: Boolean(registry.classes[entry.classId]?.spellcasting)
       })),
-      equipment: snapshot.equipmentItems.map((item) => ({
-        equipmentId: item.contentRef.definitionId,
-        parentEquipmentIds: compiledEquipmentParentIds(item.compiledItem),
-        category: item.compiledItem.category ?? null,
-        properties: [...(item.compiledItem.properties ?? [])],
-        equipped: Boolean(item.equippedState),
-        attuned: item.attuned
-      }))
+      equipment
     },
     // The parent character policy resolves included spell access before invoking
     // the locked grant-fold model and replaces this placeholder in that eval.

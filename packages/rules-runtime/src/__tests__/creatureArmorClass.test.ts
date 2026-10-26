@@ -7,7 +7,7 @@ import type { EquipmentSlotCode } from '@artificer-toolkit/shared/core'
 import { srdEquipment } from '@artificer-toolkit/source-data/srd/equipment/index.js'
 import { describe, expect, it } from 'vitest'
 
-import { resolveDnd5eCreatureArmorClass } from '../systems/dnd5e/armorClass.js'
+import { resolveDnd5eCreatureArmorClass } from '../systems/dnd5e/characterVitals.js'
 import { evaluateSrdCharacter } from '../testing/dnd5eSrdCharacter.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 
@@ -31,17 +31,31 @@ function entry(label: string, useState: EquipmentSlotCode, id = `${label}:${useS
 
 function armorClassOf(input: Parameters<typeof resolveDnd5eCreatureArmorClass>[0]): number {
   const result = resolveDnd5eCreatureArmorClass(input)
+  if (result === null) throw new Error('Expected a Dexterity score.')
   if (!result.ok) throw new Error(result.reason)
   return result.armorClass
 }
 
-const goblin = { dexterityScore: 14, naturalArmorBonus: 0 }
+/** A Fighter's Armor Class with quipment equipped; Equipment beyond the SRD is registered. */
+function characterArmorClass(
+  abilities: { DEXTERITY: number },
+  equipment: readonly EquipmentAuthored[]
+): number {
+  return evaluateSrdCharacter({
+    abilities,
+    classes: [{ label: 'Fighter', level: 1 }],
+    items: equipment.map(({ label }) => ({ label, equipped: true })),
+    extraEquipment: equipment.filter((document) => !srdEquipment.includes(document))
+  }).output.derivedStats.armorClass.effective
+}
+
+const goblin = { abilityScores: { DEXTERITY: 14 }, naturalArmorBonus: 0 }
 
 describe('resolveDnd5eCreatureArmorClass', () => {
   it('adds the natural armor bonus to 10 plus Dexterity', () => {
     expect(
       armorClassOf({
-        dexterityScore: 15,
+        abilityScores: { DEXTERITY: 15 },
         naturalArmorBonus: 1,
         equipment: []
       })
@@ -107,14 +121,14 @@ describe('resolveDnd5eCreatureArmorClass', () => {
   it('caps Dexterity for medium armor and ignores it for heavy armor', () => {
     expect(
       armorClassOf({
-        dexterityScore: 18,
+        abilityScores: { DEXTERITY: 18 },
         naturalArmorBonus: 0,
         equipment: [entry('Scale Mail', 'WORN')]
       })
     ).toBe(16)
     expect(
       armorClassOf({
-        dexterityScore: 18,
+        abilityScores: { DEXTERITY: 18 },
         naturalArmorBonus: 0,
         equipment: [entry('Chain Mail', 'WORN')]
       })
@@ -130,24 +144,29 @@ describe('resolveDnd5eCreatureArmorClass', () => {
     ).toBe(12)
   })
 
-  it('returns a failure for a modifier whose restriction is not the while-equipped form', () => {
+  // ATTACK-6.T4a: a Creature folds Equipment as a Character does, so an unrestricted modifier on a
+  // held item applies instead of refusing the Creature's Armor Class.
+  it('applies a held magic shield modifier that carries no restriction', () => {
     const shield = entry('Shield +1', 'OFF_HAND')
     const [modifier] = shield.compiled.modifiers ?? []
     if (!modifier) throw new Error('Expected the magic shield to carry a modifier.')
-    const result = resolveDnd5eCreatureArmorClass({
-      ...goblin,
-      equipment: [
-        {
-          ...shield,
-          compiled: { ...shield.compiled, modifiers: [{ ...modifier, restrictions: undefined }] }
-        }
-      ]
-    })
-    expect(result).toEqual({
-      ok: false,
-      equipmentId: shield.compiled.id,
-      reason: expect.stringMatching(/while-equipped/)
-    })
+    expect(
+      armorClassOf({
+        ...goblin,
+        equipment: [
+          {
+            ...shield,
+            compiled: { ...shield.compiled, modifiers: [{ ...modifier, restrictions: undefined }] }
+          }
+        ]
+      })
+    ).toBe(15)
+  })
+
+  it('has no Armor Class without a Dexterity score', () => {
+    expect(
+      resolveDnd5eCreatureArmorClass({ abilityScores: {}, naturalArmorBonus: 0, equipment: [] })
+    ).toBeNull()
   })
 
   it('returns a failure for worn armor or a held shield without an armor class', () => {
@@ -164,6 +183,100 @@ describe('resolveDnd5eCreatureArmorClass', () => {
         })
       ).toMatchObject({ ok: false, equipmentId: item.compiled.id })
     }
+  })
+})
+
+/**
+ * ATTACK-6.3: a Creature folds its loadout through the Character grant fold and Armor Class path,
+ * so a magic item's bonus and an item restriction that refuses it decide alike for both.
+ */
+describe('a Character and a Creature with the same magic item (ATTACK-6.3)', () => {
+  const abilityScores = { DEXTERITY: 16 }
+
+  function creature(
+    items: readonly { document: EquipmentAuthored; useState: EquipmentSlotCode }[]
+  ) {
+    return armorClassOf({
+      abilityScores,
+      naturalArmorBonus: 0,
+      equipment: items.map(({ document, useState }, index) => ({
+        id: `${document.id}:${index}`,
+        useState,
+        compiled: compileResolvedEquipment(
+          resolveEquipmentAuthored(document, (parentId) => equipmentById.get(parentId))
+        )
+      }))
+    })
+  }
+
+  /** An SRD magic item whose modifiers apply only while the holder wears armor. */
+  function onlyWhileWearingArmor(label: string): EquipmentAuthored {
+    const document = srd(label)
+    if (!('modifiers' in document) || !document.modifiers?.length)
+      throw new Error(`SRD Equipment "${label}" carries no modifier.`)
+    return {
+      ...document,
+      id: testUuid(0x5e0),
+      label: `Armor-bound ${label}`,
+      modifiers: document.modifiers.map((modifier, index) => ({
+        ...modifier,
+        restrictions: {
+          id: testUuid(0x5e1 + index * 4),
+          groups: [
+            {
+              id: testUuid(0x5e2 + index * 4),
+              order: 0,
+              contexts: [
+                {
+                  id: testUuid(0x5e3 + index * 4),
+                  order: 0,
+                  subject: 'CHARACTER',
+                  conditions: [
+                    {
+                      id: testUuid(0x5e4 + index * 4),
+                      order: 0,
+                      kind: 'PREDICATE',
+                      constraint: 'INCLUDE',
+                      predicateCode: 'EQUIPMENT_EQUIPPED',
+                      authoringModeKind: 'ALL',
+                      category: 'ARMOR'
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }))
+    } as EquipmentAuthored
+  }
+
+  it('gives both the same Armor Class for magic armor and a magic shield', () => {
+    const armor = srd('Breastplate +2')
+    const shield = srd('Shield +1')
+    expect(creature([{ document: armor, useState: 'WORN' }])).toBe(18)
+    expect(characterArmorClass(abilityScores, [armor])).toBe(18)
+    expect(
+      creature([
+        { document: armor, useState: 'WORN' },
+        { document: shield, useState: 'OFF_HAND' }
+      ])
+    ).toBe(21)
+    expect(characterArmorClass(abilityScores, [armor, shield])).toBe(21)
+  })
+
+  it('refuses a restricted magic bonus for both until the restriction holds', () => {
+    const shield = onlyWhileWearingArmor('Shield +1')
+    const leather = srd('Leather Armor')
+    expect(creature([{ document: shield, useState: 'OFF_HAND' }])).toBe(15)
+    expect(characterArmorClass(abilityScores, [shield])).toBe(15)
+    expect(
+      creature([
+        { document: leather, useState: 'WORN' },
+        { document: shield, useState: 'OFF_HAND' }
+      ])
+    ).toBe(17)
+    expect(characterArmorClass(abilityScores, [leather, shield])).toBe(17)
   })
 })
 
@@ -199,15 +312,6 @@ describe('a Character and a Creature holding the same equipment (D143)', () => {
     })
   }
 
-  function character(equipment: readonly EquipmentAuthored[]) {
-    return evaluateSrdCharacter({
-      abilities: { DEXTERITY: goblin.dexterityScore },
-      classes: [{ label: 'Fighter', level: 1 }],
-      items: equipment.map(({ label }) => ({ label, equipped: true })),
-      extraEquipment: equipment.filter(({ label }) => label.startsWith('Unrated'))
-    }).output.derivedStats.armorClass.effective
-  }
-
   it('gives both the same Armor Class for authored armor and a shield', () => {
     const equipment = cases.map(({ label }) => srd(label))
     expect(
@@ -217,7 +321,7 @@ describe('a Character and a Creature holding the same equipment (D143)', () => {
       )
     ).toEqual({
       ok: true,
-      armorClass: character(equipment)
+      armorClass: characterArmorClass(goblin.abilityScores, equipment)
     })
   })
 
@@ -229,6 +333,8 @@ describe('a Character and a Creature holding the same equipment (D143)', () => {
       equipmentId: document.id,
       reason: `Equipment "${document.id}" is armor or a shield without an armor class.`
     })
-    expect(() => character([document])).toThrow(refusal.ok ? 'expected a refusal' : refusal.reason)
+    expect(() => characterArmorClass(goblin.abilityScores, [document])).toThrow(
+      refusal?.ok === false ? refusal.reason : 'expected a refusal'
+    )
   })
 })
