@@ -8453,7 +8453,7 @@
             "bv": 8,
             "tc": 3,
             "rr": 3,
-            "size": 13,
+            "size": 20,
             "after": [
               "SPELLS-17",
               "SPELLS-20"
@@ -8461,7 +8461,8 @@
           },
           "tasks": [
             {
-              "id": "MOVE-3.T1",
+              "id": "MOVE-3.T1a",
+              "text": "Server GM PLACE_ZONE command that places a zone built from the zone node map on the Scene; GM undo removes it. Authoring-parity test: a GM-built pit and caltrop field resolve like authored zones. Split from T1 2026-10-25 (user yes, +5).",
               "status": "TODO",
               "closes": [
                 "MOVE-3.2"
@@ -8471,9 +8472,24 @@
                 "tc": 3,
                 "rr": 3,
                 "size": 5
-              },
-              "text": "GM zone tool that renders the zone node map and places it on the Scene; GM undo removes it. Authoring-parity test: GM-built pit and caltrop field resolve like authored zones.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              }
+            },
+            {
+              "id": "MOVE-3.T1b",
+              "text": "Tabletop GM zone tool that renders the zone `outcome` node map through the shared renderer and places the zone via PLACE_ZONE; journey test of placing and undoing a zone.",
+              "status": "TODO",
+              "closes": [
+                "MOVE-3.2"
+              ],
+              "wsjf": {
+                "bv": 8,
+                "tc": 3,
+                "rr": 3,
+                "size": 5,
+                "after": [
+                  "MOVE-3.T1a"
+                ]
+              }
             },
             {
               "id": "MOVE-3.T2",
@@ -8487,7 +8503,7 @@
                 "rr": 3,
                 "size": 8,
                 "after": [
-                  "MOVE-3.T1"
+                  "MOVE-3.T1a"
                 ]
               },
               "text": "Optional spot DC and disarm DC on a placed zone (flat or typed roll result); concealed zones redacted per viewer on the server following the ATTACK-17.3 pattern; Convex and Worker redaction tests.",
@@ -18528,13 +18544,13 @@
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
-                "size": 2,
+                "size": 3,
                 "after": [
                   "SPELLS-31.T1",
                   "SPELLS-31.T5a"
                 ]
               },
-              "text": "New option: incoming damage reduction by an expression; Deflect Missiles, Slow Fall. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling)."
+              "text": "New option: incoming damage reduction by an expression; Deflect Missiles, Slow Fall. Each conversion has an authoring-parity proof and deletes its kind (D156 SPELLS-31.T1 ruling). Ruled 2026-10-25 (user yes, size 2 to 3): Deflect Missiles reduces ranged weapon damage in the attack OUTCOME graph (dnd5e.damage-reduction), once per attack, before halving and resistance; catch/throw and Slow Fall are GM rulings."
             },
             {
               "id": "SPELLS-31.T5c",
