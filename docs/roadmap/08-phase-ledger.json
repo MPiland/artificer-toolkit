@@ -11762,12 +11762,14 @@
           "acs": [
             {
               "text": "With Injuries enabled, the authored triggers (taking a critical hit, dropping to 0 HP, failing a death save by 5 or more) offer the GM a roll on the authored lingering-injury table.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomConsequenceRolls.test.ts"
+              ],
               "origin": [
                 "G2-OPTIONAL-COMBAT"
               ],
-              "note": "2014 DMG variant, approved for Phase 8. The death-save trigger needs SPELLS-3. The removed resolver is in 437b2dd15 (optionalResolutionPolicy.ts). Token presentation is VTT_UI-2.1.",
+              "note": "2014 DMG variant, approved for Phase 8. The death-save trigger needs SPELLS-3. The removed resolver is in 437b2dd15 (optionalResolutionPolicy.ts). Token presentation is VTT_UI-2.1. Closed 2026-10-24 by ATTACK-15.T1, ATTACK-15.T1g.",
               "id": "ATTACK-15.1"
             },
             {
@@ -11815,7 +11817,7 @@
             },
             {
               "id": "ATTACK-15.T1g",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "ATTACK-15.1"
               ],
@@ -11829,7 +11831,9 @@
                 ]
               },
               "text": "Move the consequence-roll offer write into the shared mechanics batch seam (applyRoomEncounterMechanicsBatch / persistEncounterMechanicsBatchPlan), deleting the per-path call sites, so voluntary zone entry, forced-movement zone damage, melee retaliation during movement, contest/basic-action outcomes and damage mirrors offer too. Room tests for zone entry and forced movement. Manual Sheet HP adjustments do not offer (user ruling 2026-10-25: automation only).",
-              "note": "Registered 2026-10-25 (user ruling, D187 growth +2): T1 audit found 5 HP-lowering paths outside its call sites; all write through the mechanics batch seam."
+              "note": "Registered 2026-10-25 (user ruling, D187 growth +2): T1 audit found 5 HP-lowering paths outside its call sites; all write through the mechanics batch seam. Merged in m453.",
+              "mergedAt": "2026-10-26T00:46:49Z",
+              "proof": "Tests 40249381423 and Live 40249381409 green on ec044886b; reviewed (offer write in persistEncounterMechanicsBatchPlan, 4 call sites deleted); merged in m453."
             },
             {
               "id": "ATTACK-15.T2",
