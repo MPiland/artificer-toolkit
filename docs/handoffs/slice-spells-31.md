@@ -80,7 +80,7 @@ Totals: **C 28, A 13, B 123** (B: 58 join a SPELLS-4.T2 group, 65 need a class-o
 | ROGUE_ELUSIVE                                | rogue.ts:923                                      | no attack roll has advantage vs you unless incapacitated                                                 | none; ATTACKS_AGAINST takes ADV/DIS only                                                          | B     | T4k2a: ATTACKS_AGAINST NEGATE_ADVANTAGE per attack domain, under CAN_ACT                                                              |
 | HUNTER_ESCAPE_THE_HORDE                      | hunter.ts:182                                     | opportunity attacks vs you have disadvantage                                                             | none; no attack-kind field                                                                        | B     | T4k2a: ATTACKS_AGAINST DISADVANTAGE with attackOccasion OPPORTUNITY                                                                   |
 | CIRCLE_OF_THE_LAND_NATURES_SANCTUARY         | circle-of-the-land.ts:359, :378                   | beast or plant attacking you: Wis save or pick another target; success immune 24 h                       | none                                                                                              | B     | T4k2b: INCOMING_ATTACK_GATE holder-owned fold grant, attackerCreatureTypeIds; success immunity runtime = T4k2c                        |
-| WAY_OF_THE_OPEN_HAND_TRANQUILITY             | way-of-the-open-hand.ts:181                       | Sanctuary on you from long rest to long rest                                                             | derived save DC                                                                                   | B     | T4k2d2: see Tranquility resume                                                                                                        |
+| WAY_OF_THE_OPEN_HAND_TRANQUILITY             | way-of-the-open-hand.ts:136                       | Sanctuary on you from long rest to long rest                                                             | derived save DC                                                                                   | B     | DONE T4k2d2: standing effect                                                                                                          |
 | ROGUE_CUNNING_ACTION                         | rogue.ts:668                                      | bonus action Dash, Disengage or Hide                                                                     | none                                                                                              | B     | T4l1 (after T2l)                                                                                                                      |
 | THIEF_FAST_HANDS                             | thief.ts:50                                       | Cunning Action also Sleight of Hand, thieves' tools, Use an Object                                       | none                                                                                              | B     | T4l1 (after T2l)                                                                                                                      |
 | RANGER_VANISH                                | ranger.ts:946, :947                               | Hide as a bonus action; can't be tracked                                                                 | none                                                                                              | B     | T4l1 (after T2l; tracking stays description)                                                                                          |
@@ -433,7 +433,7 @@ Gate One with Shadows (`warlock.ts`, `classRowId(W,5,18)`, effect `classRowId(W,
 
 > **Supersedes Design B (2026-10-19) and its unspent-charge gate.** SPELLS-31.2 (user yes 2026-10-25) builds a generic standing effect in T4k2d1; T4k2d2 converts Tranquility to it. "Never returns" and arm-on-obtain are deferred in future-enhancements.
 
-`CLASS_WAY_OF_THE_OPEN_HAND_TRANQUILITY` (`way-of-the-open-hand.ts`, feature `classRowId(M,11,3)`) is still a closed rule until T4k2d2.
+`CLASS_WAY_OF_THE_OPEN_HAND_TRANQUILITY` is deleted (T4k2d2); Tranquility (`way-of-the-open-hand.ts`, feature `classRowId(M,11,3)`) is a standing effect authored in data only.
 
 The standing effect (T4k2d1, generic, data-authored):
 
@@ -448,6 +448,14 @@ T4k2d2 (Tranquility conversion, size 2, after d1):
 
 - Author Tranquility as a standing effect: an INCOMING_ATTACK_GATE grant, DERIVED_DC Wisdom (8 + Wisdom modifier + proficiency bonus), End On an attack roll or a spell cast against an enemy (Sanctuary's end), `returnsOn: LONG_REST`.
 - Delete the closed rule kind and add a room test on the SRD feature (the ward stops an attacker; the Monk's attack ends it; a long rest restores it).
+
+T4k2d2 built (closes SPELLS-31.1 and SPELLS-31.2):
+
+- Tranquility's effect `classRowId(M,20,2)` is a PASSIVE ACTIVATED self effect whose ON_USE result block carries Sanctuary's End On triggers (ATTACK_ROLL and SPELL_CAST against ENEMY), `returnsOn: LONG_REST` and an APPLY_GRANT INCOMING_ATTACK_GATE whose save is DERIVED_DC Wisdom, 8 + Wisdom modifier + proficiency bonus. No code names it.
+- The effect-compile golden line now reads "not the supported activated self action shape": a standing effect is never an action.
+- Proofs: `standingEffects.test.ts` (an SRD Open Hand Monk 11 discovers it as a long-rest standing effect whose armed ward is holder-owned at DERIVED_DC Wisdom) and `nativeRoomTranquility.test.ts` (a Wolf that fails the Monk's save loses the attack on the Monk's rested ward; a Creature holding the SRD feature has it turned on by a room long rest, ended by its own Bite on an enemy, and restored by the next long rest). The Sheet long rest for a Character is the generic `sheetRestStandingEffect.test.ts` path.
+- Found: a Creature owner of a DERIVED_DC gate has no proficiency bonus for the DC, so the room test gates on the Monk and proves end and return on the Creature. Deferred in future-enhancements (Deferred edge cases); no SRD Creature hits it.
+- Dev data: the SRD Tranquility record changed shape; reseed the local SRD (`yarn seed:srd:local`) after the merge so stored records match.
 
 ### T5o2 seam notes (Thief's Reflexes, `CLASS_THIEF_THIEFS_REFLEXES`; size 3, depends on T5o)
 
