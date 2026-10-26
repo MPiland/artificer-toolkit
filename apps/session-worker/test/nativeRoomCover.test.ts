@@ -51,7 +51,7 @@ function coverRoom() {
           b: { x: 450, y: 800 },
           blocksLight: true,
           blocksMovement: true,
-          id: 'wall',
+          id: testUuid(0xc10),
           kind: 'WALL'
         }
       ]
