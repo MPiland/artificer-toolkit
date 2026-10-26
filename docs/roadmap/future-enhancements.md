@@ -91,8 +91,6 @@ The user wants a Kickstarter campaign with realistic goals to fund finishing the
 
 ### Deferred edge cases (watch for in real use)
 
-- **Standing effect its System can't build (SPELLS-31.T4k2d1):** the Sheet lists standing effects from their sources without compiling them. A standing effect whose System has no plan for it would show "Ended until <rest>", but no rest would ever turn it back on. No current data hits this. The fix is to have the Sheet listing skip sources whose plan fails to compile, matching `characterStandingEffects`.
-
 - **Speed Factor and undeclared basic actions (ENCOUNTER-4.T1):** basic actions (Dash, Dodge, Disengage and others) can't be declared, so enforcement doesn't cover them. A creature could declare a light action for its initiative bonus and then Dodge. The gain is small and the GM sees the declarations. The fix is to make basic actions declarable and enforce them like any other declared action.
 
 - **A conjured creature outlives its carrier until the next Encounter command (SPELLS-4.T2v2a2c3):** the sweep that removes a conjured creature whose carrier effect ended runs after Encounter commands and standalone Sheet commands. Voluntary movement (a removal there would change the Scene after its frozen prediction) and actor departures do not sweep, so a carrier those paths end leaves its creature on the Scene until the next Encounter command, which removes it. Rare, and recoverable by that next command.
