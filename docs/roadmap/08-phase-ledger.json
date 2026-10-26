@@ -17940,7 +17940,7 @@
               "status": "TODO",
               "proof": [],
               "origin": [],
-              "note": "Registered 2026-10-25 (user yes): standing effects replace Design B for Tranquility; ending and undo reuse consumedGrantPersistence (no per-path edits)."
+              "note": "Registered 2026-10-25 (user yes): standing effects replace Design B for Tranquility; ending and undo reuse consumedGrantPersistence (no per-path edits). T4k2d1 proofs (m459): packages/rules-runtime/src/__tests__/standingEffects.test.ts, apps/session-worker/test/nativeRoomStandingEffect.test.ts, apps/apis/convex/characters/sheetRestStandingEffect.test.ts, packages/authoring/src/nodeRuntime/standingEffectAuthoringParity.test.ts, apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx; closes with T4k2d2."
             }
           ],
           "tasks": [
@@ -18376,7 +18376,7 @@
             },
             {
               "id": "SPELLS-31.T4k2d1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-31.2"
               ],
@@ -18389,7 +18389,10 @@
                   "SPELLS-31.T4k2b"
                 ]
               },
-              "text": "Generic standing effect: a 'Returns on' lifecycle option (LONG_REST / SHORT_REST) beside endOnEvents on a passive feature effect; compiler plan for its passive APPLY_GRANT; arming at Character COMPLETE_REST and the Creature rest; incoming-gate owner fix for non-ENCOUNTER origins (encounterIncomingAttackGate.ts:55); Sheet 'ended until <rest>' row; authoring parity. Ending and undo go through consumedGrantPersistence. Tests: rest arms it, an action ends it, undo restores it, it stays ended until the rest."
+              "text": "Generic standing effect: a 'Returns on' lifecycle option (LONG_REST / SHORT_REST) beside endOnEvents on a passive feature effect; compiler plan for its passive APPLY_GRANT; arming at Character COMPLETE_REST and the Creature rest; incoming-gate owner fix for non-ENCOUNTER origins (encounterIncomingAttackGate.ts:55); Sheet 'ended until <rest>' row; authoring parity. Ending and undo go through consumedGrantPersistence. Tests: rest arms it, an action ends it, undo restores it, it stays ended until the rest.",
+              "mergedAt": "2026-10-26T03:44:36Z",
+              "proof": "Tests 40263992692 and Live 40263992693 green on e577e0d50; reviewed; merged in m459 fast path",
+              "note": " Merged in m459."
             },
             {
               "id": "SPELLS-31.T4k2d2",
