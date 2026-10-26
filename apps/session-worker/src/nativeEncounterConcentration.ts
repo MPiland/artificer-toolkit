@@ -49,8 +49,16 @@ import {
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import {
   concentrationCommandId,
-  concentrationOccurrenceId
+  concentrationOccurrenceId,
+  damageSaveContextBoundApplication
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
+import {
+  completeMassiveDamageSaveResult,
+  createMassiveDamageSaveContext,
+  encounterMassiveDamageRule,
+  evaluateMassiveDamageSaveEvidence,
+  massiveDamageSaveApplications
+} from '@artificer-toolkit/rules-runtime/encounterMassiveDamage'
 import { requireInstalledConcentrationMaintenanceDefinitionId } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import {
   deadCharacterIdsOfTargets,
@@ -406,40 +414,46 @@ export async function planNativeLiveConcentration(input: {
     const loaded = await current(targetActorId)
     if (loaded) bindings.set(targetActorId, loaded.maintained.id)
   }
-  // Who dealt the damage when its chain can hold effect repeat saves; a resumed chain keeps its own.
+  // Who dealt the damage when its chain can hold effect repeat and massive-damage saves; a resumed
+  // chain keeps its own.
   const repeatSaveDamager = input.resume
     ? input.resume.context.repeatSaveDamagerActorId
     : input.repeatSaves?.damagerActorId
   const dispositions = new Map(projection.actors.map(({ id, disposition }) => [id, disposition]))
-  const effectItems: DamageSaveApplicationDto[] =
+  const massiveRule = encounterMassiveDamageRule(state)
+  const holders = new Map(
+    [...new Set(selectedApplications.map(({ targetActorId }) => targetActorId))].map((actorId) => {
+      const actor = projection.actors.find(({ id }) => id === actorId)
+      const target = projection.projectedTargets.get(actorId)
+      return [
+        actorId,
+        {
+          defeated:
+            !actor ||
+            isEncounterActorDefeated(actor, deadCharacterIdsOfTargets(target ? [target] : [])),
+          effects: projection.activeEffectsByActorId.get(actorId) ?? [],
+          maximumHitPoints: target?.effectiveMaximumHitPoints ?? 0
+        }
+      ] as const
+    })
+  )
+  const boundItems: DamageSaveApplicationDto[] =
     repeatSaveDamager === undefined
       ? []
-      : effectRepeatSaveApplications({
-          applications: selectedApplications,
-          parentOccurrenceId: input.parentOccurrenceId,
-          damagerActorId: repeatSaveDamager,
-          dispositions,
-          holders: new Map(
-            [...new Set(selectedApplications.map(({ targetActorId }) => targetActorId))].map(
-              (actorId) => {
-                const actor = projection.actors.find(({ id }) => id === actorId)
-                const target = projection.projectedTargets.get(actorId)
-                return [
-                  actorId,
-                  {
-                    defeated:
-                      !actor ||
-                      isEncounterActorDefeated(
-                        actor,
-                        deadCharacterIdsOfTargets(target ? [target] : [])
-                      ),
-                    effects: projection.activeEffectsByActorId.get(actorId) ?? []
-                  }
-                ] as const
-              }
-            )
-          )
-        })
+      : [
+          ...effectRepeatSaveApplications({
+            applications: selectedApplications,
+            parentOccurrenceId: input.parentOccurrenceId,
+            damagerActorId: repeatSaveDamager,
+            dispositions,
+            holders
+          }),
+          ...massiveDamageSaveApplications({
+            rule: massiveRule,
+            applications: selectedApplications,
+            holders
+          })
+        ]
   let remaining: DamageSaveApplicationDto[] = [
     ...concentrationSaveApplications({
       gameSystemId: state.gameSystemId,
@@ -448,16 +462,10 @@ export async function planNativeLiveConcentration(input: {
       damagerActorId: repeatSaveDamager ?? null,
       dispositions
     }),
-    ...effectItems
+    ...boundItems
   ].sort(compareDamageSaveApplications)
   if (input.resume) {
-    const sealed = input.resume.context
-    const answered = {
-      ...sealed.application,
-      ...(sealed.source === 'CONCENTRATION'
-        ? { maintainedStateId: sealed.maintainedState.id }
-        : { activeEffectId: sealed.activeEffect.id })
-    }
+    const answered = damageSaveContextBoundApplication(input.resume.context)
     remaining = remaining.filter((entry) => compareDamageSaveApplications(entry, answered) >= 0)
     if (!remaining[0] || compareDamageSaveApplications(remaining[0], answered) !== 0)
       throw new Error('The concentration damage does not match its finalized parent receipt.')
@@ -654,11 +662,156 @@ export async function planNativeLiveConcentration(input: {
     return 'SETTLED' as const
   }
 
+  /**
+   * Pauses for or settles one massive-damage save (ATTACK-16) against the rule's own save graph. It
+   * records its outcome and changes nothing else.
+   */
+  async function settleMassiveDamageSave(
+    item: Extract<DamageSaveApplicationDto, { optionalCombatDefinitionId: string }>
+  ) {
+    const { optionalCombatDefinitionId, ...application } = item
+    const target = projection.projectedTargets.get(application.targetActorId)
+    if (!massiveRule || massiveRule.pin.definitionId !== optionalCombatDefinitionId || !target)
+      throw new Error('The massive-damage rule changed before its save.')
+    // A die an earlier check of this batch spent (D156) is gone for this one.
+    const unspent = spentDiceIds.size
+      ? {
+          ...target,
+          targetDerivedFacts: {
+            ...target.targetDerivedFacts,
+            savingThrowAddedDice: encounterSavingThrowAddedDice(
+              state.gameSystemId,
+              target.activeEffects.filter(({ id }) => !spentDiceIds.has(id))
+            )
+          }
+        }
+      : target
+    const vocabularySnapshot = await readVocabulary()
+    if (!('damageTypes' in vocabularySnapshot.document))
+      throw new Error('The massive-damage save vocabulary is unavailable.')
+    const { context, facts } = createMassiveDamageSaveContext({
+      gameSystemId: state.gameSystemId,
+      rule: massiveRule,
+      target: unspent,
+      maximumHitPoints: target.effectiveMaximumHitPoints,
+      systemVocabularySnapshot: {
+        id: vocabularySnapshot.snapshotId,
+        version: vocabularySnapshot.snapshotVersion,
+        checksum: vocabularySnapshot.checksum
+      },
+      damageTypes: vocabularySnapshot.document.damageTypes,
+      parentOccurrenceId: input.parentOccurrenceId,
+      parentCommandFingerprint: input.parentCommandFingerprint,
+      application,
+      remaining,
+      finalizedDamageEnvelopeChecksum: envelope,
+      sourceLabels: input.sourceLabels,
+      damagerActorId: repeatSaveDamager ?? null
+    })
+    const { published } = massiveRule
+    const occurrenceId = concentrationOccurrenceId(input.parentOccurrenceId, item)
+    const resume = resumed === null ? input.resume : undefined
+    if (resume && resume.context.source !== 'MASSIVE_DAMAGE')
+      throw new Error('The massive-damage save occurrence is stale.')
+    const started = resume
+      ? null
+      : await input.runtime.executeResolved({
+          command: { definitionId: published.id, occurrenceId, facts },
+          published
+        })
+    if (started && started.status !== 'PAUSED')
+      throw new Error('The massive-damage save did not request bounded d20 evidence.')
+    if (started && !input.autoRollByActorId[application.targetActorId]) {
+      pending = serverKernelRuleExecutionPendingSnapshotDtoSchema.parse({
+        ...started.continuation,
+        snapshotKind: 'KERNEL_EVIDENCE',
+        applicationContext: context,
+        optionalCombatSnapshotChecksum: input.state.optionalCombatSnapshotChecksum
+      })
+      return 'PAUSED' as const
+    }
+    const continuation = (() => {
+      if (resume) {
+        const {
+          snapshotKind: _snapshotKind,
+          applicationContext: sealed,
+          optionalCombatSnapshotChecksum: _optionalCombatSnapshotChecksum,
+          phaseReceipts: _phaseReceipts,
+          deferredCleaving: _deferredCleaving,
+          ...stored
+        } = resume.snapshot
+        if (
+          checksumRuleDocument(sealed) !== checksumRuleDocument(resume.context) ||
+          checksumRuleDocument(context) !== checksumRuleDocument(resume.context) ||
+          stored.graph.source.definitionId !== published.id ||
+          stored.graph.source.checksum !== published.checksum ||
+          checksumRuleDocument(stored.facts) !== checksumRuleDocument(facts) ||
+          stored.occurrenceId !== occurrenceId
+        )
+          throw new Error('The massive-damage save occurrence is stale.')
+        return stored
+      }
+      if (!started) throw new Error('The massive-damage save did not request bounded d20 evidence.')
+      return started.continuation
+    })()
+    const resolution = bindEncounterD20Evidence({
+      response: resume ? { resolution: resume.response.resolution, appRoll: resume.appRoll } : null,
+      autoRollRequestId: continuation.request.requestId,
+      refusal: 'The massive-damage save request is unavailable.'
+    })
+    const evidence = await evaluateMassiveDamageSaveEvidence({
+      gameSystemId: state.gameSystemId,
+      runtime: input.runtime,
+      random: input.random ?? nextRollInt,
+      context,
+      rule: massiveRule,
+      continuation,
+      resolution,
+      expectedOccurrenceId: occurrenceId
+    })
+    for (const die of savingThrowSpentEffects(
+      unspent.activeEffects,
+      abilityScoreCapabilityRegistry
+        .require(state.gameSystemId)
+        .abilityCode(context.save.savingThrowAbilityDefinitionId)
+    )) {
+      spentDiceIds.add(die.id)
+      endedGrants.push(die)
+    }
+    const result = completeMassiveDamageSaveResult({
+      context,
+      continuation,
+      evidence,
+      occurrenceVersion: resume ? resume.response.expectedOccurrenceVersion + 1 : 1,
+      initialFactsChecksum: checksumRuleDocument(facts)
+    })
+    if (resume) resumed = { result, mutated: false, selectedNatural: evidence.selectedNatural }
+    else
+      settled.push({
+        result,
+        commandId: concentrationCommandId(occurrenceId),
+        correlationId,
+        fingerprint: checksumRuleDocument({
+          parentOccurrenceId: input.parentOccurrenceId,
+          application,
+          contextChecksum: context.contextChecksum
+        }),
+        definitionId: published.id,
+        factsChecksum: checksumRuleDocument(facts)
+      })
+    correlationId = occurrenceId
+    return 'SETTLED' as const
+  }
+
   while (remaining.length) {
     const item = remaining[0]!
     remaining = remaining.slice(1)
-    if (!isMaintainedDamageApplication(item)) {
+    if ('activeEffectId' in item) {
       if ((await settleEffectRepeatSave(item)) === 'PAUSED') break
+      continue
+    }
+    if ('optionalCombatDefinitionId' in item) {
+      if ((await settleMassiveDamageSave(item)) === 'PAUSED') break
       continue
     }
     const { maintainedStateId, ...application } = item

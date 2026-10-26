@@ -37,7 +37,6 @@ import {
   characterSpellSlotConsumptionReceiptDtoSchema,
   cleavingDamageApplicationOutputDtoSchema,
   concealmentCheckApplicationOutputDtoSchema,
-  damageSaveCheckApplicationOutputDtoSchema,
   concentrationEndApplicationOutputDtoSchema,
   contestedActionApplicationOutputDtoSchema,
   encounterActionEconomyTransitionDtoSchema,
@@ -46,6 +45,7 @@ import {
   escapeCheckApplicationOutputDtoSchema,
   sourceItemDrawDtoSchema
 } from './ruleExecutionEncounterApplications.js'
+import { damageSaveCheckApplicationOutputDtoSchema } from './ruleExecutionDamageSaveOutputs.js'
 import { checkActionApplicationOutputDtoSchema } from './ruleExecutionCheckAction.js'
 import {
   serverRuleExecutionD20EvidenceDtoSchema,

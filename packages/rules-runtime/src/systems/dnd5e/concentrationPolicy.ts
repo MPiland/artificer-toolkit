@@ -36,20 +36,20 @@ export const DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY =
   'dnd5e.concentration-contributor-checksum'
 
 /** Rejects noncanonical or altered contributor evidence before it enters a child receipt. */
-function validateDnd5eConcentrationContributors(
+function validateDnd5eSaveContributors(
   contributors: readonly ReceiptD20ContributorDto[],
   contributorChecksum: string
 ): void {
   if (contributors.length > RULE_GRAPH_LIMITS.NODES)
-    throw new Error('D&D concentration saving-throw contributors exceed the rules-runtime limit.')
+    throw new Error('D&D saving-throw contributors exceed the rules-runtime limit.')
   let prior: ReceiptD20ContributorDto | null = null
   for (const contributor of contributors) {
     if (prior !== null && compareCanonicalD20Contributors(prior, contributor) >= 0)
-      throw new Error('D&D concentration saving-throw contributors are not canonical.')
+      throw new Error('D&D saving-throw contributors are not canonical.')
     prior = contributor
   }
   if (checksumRuleDocument(contributors) !== contributorChecksum)
-    throw new Error('D&D concentration saving-throw contributor evidence is invalid.')
+    throw new Error('D&D saving-throw contributor evidence is invalid.')
 }
 
 function positiveSafeInteger(value: RuleValue | undefined, label: string): number {
@@ -135,25 +135,82 @@ export function dnd5eConcentrationHolderSaves(target: {
   )
 }
 
+type Dnd5eHolderSaveRows = {
+  savingThrowDefinitions?: readonly {
+    abilityDefinitionId: string
+    ruleDefinitionId?: string
+    conditionTypeId?: string
+    modifier: number
+    rollMode: string
+    contributors: readonly ReceiptD20ContributorDto[]
+  }[]
+}
+
+/**
+ * The holder's one saving throw of an ability for a rule: the save scoped to that rule when the
+ * holder has one, else its unscoped save; null when it has no single such save. No default
+ * modifier, contributor set or code is permitted.
+ */
+export function resolveDnd5eHolderSave(input: {
+  abilityDefinitionId: string
+  ruleDefinitionId: string
+  rulePolicyOutput: Dnd5eHolderSaveRows
+}): {
+  rollMode: string
+  keep: RollModeKeep
+  modifier: number
+  contributors: ReadonlyArray<ReceiptD20ContributorDto>
+  contributorChecksum: string
+} | null {
+  const abilitySaves = (input.rulePolicyOutput.savingThrowDefinitions ?? []).filter(
+    (candidate) => candidate.abilityDefinitionId === input.abilityDefinitionId
+  )
+  const scopedSaves = abilitySaves.filter(
+    (candidate) => candidate.ruleDefinitionId === input.ruleDefinitionId
+  )
+  const savingThrow =
+    scopedSaves.length > 0
+      ? scopedSaves
+      : abilitySaves.filter(
+          (candidate) =>
+            candidate.ruleDefinitionId === undefined && candidate.conditionTypeId === undefined
+        )
+  if (savingThrow.length !== 1 || !Number.isSafeInteger(savingThrow[0]!.modifier)) return null
+  const rollMode = savingThrow[0]!.rollMode
+  if (rollMode !== 'NORMAL' && rollMode !== 'ADVANTAGE' && rollMode !== 'DISADVANTAGE')
+    throw new Error('D&D saving-throw roll mode is unavailable.')
+  const contributors = savingThrow[0]!.contributors
+  if (!Array.isArray(contributors))
+    throw new Error('D&D saving-throw contributors are unavailable.')
+  const normalizedContributors = contributors
+    .map(({ sourceId, grantId, domainKey, influence, source }) => ({
+      sourceId,
+      grantId,
+      domainKey,
+      influence,
+      source
+    }))
+    .sort(compareCanonicalD20Contributors)
+  const contributorChecksum = checksumRuleDocument(normalizedContributors)
+  validateDnd5eSaveContributors(normalizedContributors, contributorChecksum)
+  return {
+    rollMode,
+    keep: DND5E_KEEP_BY_ROLL_MODE[rollMode],
+    modifier: savingThrow[0]!.modifier,
+    contributors: normalizedContributors,
+    contributorChecksum
+  }
+}
+
 /**
  * Derives the D&D-specific saving-throw facts consumed by the portable
  * concentration graph. The D&D policy binding supplies the exact ability
- * identity; no default modifier, contributor set, code, or display label is
- * permitted here.
+ * identity.
  */
 export function resolveDnd5eConcentrationSaveFacts(input: {
   appliedDamage: number
   targetActorId: string
-  rulePolicyOutput: {
-    savingThrowDefinitions?: readonly {
-      abilityDefinitionId: string
-      ruleDefinitionId?: string
-      conditionTypeId?: string
-      modifier: number
-      rollMode: string
-      contributors: readonly ReceiptD20ContributorDto[]
-    }[]
-  }
+  rulePolicyOutput: Dnd5eHolderSaveRows
   /** The dice the holder rolls with the save (D156). */
   addedDice: readonly D20AddedDieDto[]
 }): {
@@ -165,51 +222,21 @@ export function resolveDnd5eConcentrationSaveFacts(input: {
   contributorChecksum: string
 } {
   const appliedDamage = positiveSafeInteger(input.appliedDamage, 'Applied damage')
-  const constitutionSaves = (input.rulePolicyOutput.savingThrowDefinitions ?? []).filter(
-    (candidate) => candidate.abilityDefinitionId === DND5E_CONSTITUTION_ABILITY_DEFINITION_ID
-  )
-  const scopedSaves = constitutionSaves.filter(
-    (candidate) => candidate.ruleDefinitionId === DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID
-  )
-  const savingThrow =
-    scopedSaves.length > 0
-      ? scopedSaves
-      : constitutionSaves.filter(
-          (candidate) =>
-            candidate.ruleDefinitionId === undefined && candidate.conditionTypeId === undefined
-        )
-  if (savingThrow.length !== 1 || !Number.isSafeInteger(savingThrow[0]!.modifier))
-    throw new Error('D&D concentration saving throw is unavailable.')
-  const rollMode = savingThrow[0]!.rollMode
-  if (rollMode !== 'NORMAL' && rollMode !== 'ADVANTAGE' && rollMode !== 'DISADVANTAGE')
-    throw new Error('D&D concentration saving-throw roll mode is unavailable.')
-  const contributors = savingThrow[0]!.contributors
-  if (!Array.isArray(contributors))
-    throw new Error('D&D concentration saving-throw contributors are unavailable.')
-  const normalizedContributors = contributors
-    .map(({ sourceId, grantId, domainKey, influence, source }) => ({
-      sourceId,
-      grantId,
-      domainKey,
-      influence,
-      source
-    }))
-    .sort(compareCanonicalD20Contributors)
-  const contributorChecksum = checksumRuleDocument(normalizedContributors)
-  validateDnd5eConcentrationContributors(normalizedContributors, contributorChecksum)
+  const save = resolveDnd5eHolderSave({
+    abilityDefinitionId: DND5E_CONSTITUTION_ABILITY_DEFINITION_ID,
+    ruleDefinitionId: DND5E_CONCENTRATION_MAINTENANCE_DEFINITION_ID,
+    rulePolicyOutput: input.rulePolicyOutput
+  })
+  if (!save) throw new Error('D&D concentration saving throw is unavailable.')
   return {
     facts: {
       [DND5E_CONCENTRATION_TARGET_ACTOR_FACT_KEY]: input.targetActorId,
       [DND5E_CONCENTRATION_APPLIED_DAMAGE_FACT_KEY]: appliedDamage,
-      [DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY]: savingThrow[0]!.modifier,
-      [DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY]: contributorChecksum,
+      [DND5E_CONCENTRATION_SAVE_MODIFIER_FACT_KEY]: save.modifier,
+      [DND5E_CONCENTRATION_CONTRIBUTOR_CHECKSUM_FACT_KEY]: save.contributorChecksum,
       ...dnd5eAddedDiceFacts(input.addedDice)
     },
-    rollMode,
-    keep: DND5E_KEEP_BY_ROLL_MODE[rollMode],
-    modifier: savingThrow[0]!.modifier,
-    contributors: normalizedContributors,
-    contributorChecksum
+    ...save
   }
 }
 
