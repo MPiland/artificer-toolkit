@@ -189,6 +189,8 @@ const SUMMON_VISIBILITY_OPTIONS = [
 
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
+const choiceOptionRequiredRule =
+  buildNodeMap<NonNullable<PathChoiceOptionAuthored['requiresOptionalRule']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const pathLifecycleGrantedAction =
   buildNodeMap<NonNullable<PathLifecycleAuthored['grantedActions']>[number]>()
@@ -2735,6 +2737,26 @@ const NON_MANIFEST_HIT_POINT_TIER_ROW_NODE_MAP: NodeMap<
     )
 })
 
+const CHOICE_OPTION_REQUIRED_RULE_NODE_MAP: NodeMap<
+  NonNullable<PathChoiceOptionAuthored['requiresOptionalRule']>
+> = choiceOptionRequiredRule.define('choiceOptionRequiredRule', ({ map, nodes, data }) => {
+  const { selectSingle } = nodes
+  const { table } = data
+
+  map.set(
+    'definitionId',
+    selectSingle(
+      ['definitionId'],
+      'Optional Rule',
+      {
+        kind: 'DATA',
+        relationship: table('reusable_definitions', { selectColumns: ['id', 'label'] })
+      },
+      { requiredIf: true }
+    )
+  )
+})
+
 const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.define(
   'choiceOption',
   ({ map, nodes }) => {
@@ -2759,6 +2781,15 @@ const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.d
         richText(['description'], 'Description', {
           requiredIf: true
         })
+      )
+      .set(
+        'requiresOptionalRule',
+        groupObject(
+          ['requiresOptionalRule'],
+          'Requires Optional Rule',
+          () => CHOICE_OPTION_REQUIRED_RULE_NODE_MAP,
+          { presentation: 'inline' }
+        )
       )
       .set(
         'resultBlock',
@@ -2794,6 +2825,15 @@ const NON_MANIFEST_CHOICE_OPTION_NODE_MAP: NodeMap<
       richText(['description'], 'Description', {
         requiredIf: true
       })
+    )
+    .set(
+      'requiresOptionalRule',
+      groupObject(
+        ['requiresOptionalRule'],
+        'Requires Optional Rule',
+        () => CHOICE_OPTION_REQUIRED_RULE_NODE_MAP,
+        { presentation: 'inline' }
+      )
     )
     .set(
       'resultBlock',
