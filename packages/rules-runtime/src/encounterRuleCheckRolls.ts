@@ -233,6 +233,7 @@ export function actionD20RollRecord(input: {
     },
     ruleset: input.ruleset,
     createdAt: input.createdAt,
+    ...(d20.foldedBonuses ? { foldedBonuses: d20.foldedBonuses } : {}),
     ...(adjustment
       ? {
           ruleCheck: {

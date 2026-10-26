@@ -186,6 +186,7 @@ export interface MovementRoomConfig {
   automationMode?: AutomationModeDto
   /** The Campaign's ammunition tracking option, frozen on the Run (ATTACK-19.4). */
   trackAmmunition?: boolean
+  automaticCover?: boolean
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
   /** The Run's sides; the SRD fixture's single side when omitted. */
   sides?: readonly { id: string; label: string }[]
@@ -322,6 +323,7 @@ export async function movementRoom(config: MovementRoomConfig) {
       }),
       automationMode: config.automationMode,
       trackAmmunition: config.trackAmmunition,
+      automaticCover: config.automaticCover,
       optionalCombatKinds: config.optionalCombatKinds,
       sides: config.sides
     }),

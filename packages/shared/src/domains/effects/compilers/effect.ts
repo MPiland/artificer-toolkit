@@ -128,6 +128,8 @@ export type CompiledEffect = {
       groupKind: keyof typeof PATH_GROUP_TYPE
       /** A CHOICE option's own result kind, which the entry keeps once the option is picked (D148). */
       optionGroupKind?: typeof PATH_GROUP_TYPE.SINGLE | typeof PATH_GROUP_TYPE.SEQUENTIAL
+      /** A CHOICE option's System roll influence on the initiator's contest check when it is picked. */
+      initiatorCheckInfluence?: string
     }
   | ({
       resolutionKind: typeof PATH_RESOLUTION_KIND.ROLL_TABLE
@@ -487,6 +489,7 @@ function compileResultBlock(
     label?: string
     description?: string
     hitPointTier?: { atMost: number }
+    initiatorCheckInfluence?: string
     requiresOptionalRule?: { definitionId: string }
   },
   rollTableMeta?: {
@@ -581,7 +584,10 @@ function compileResultBlock(
         ...(path.selectionKind === 'CHOICE'
           ? {
               groupKind: PATH_GROUP_TYPE.CHOICE,
-              optionGroupKind: groupKindFromResultKind(resultBlock.resultKind)
+              optionGroupKind: groupKindFromResultKind(resultBlock.resultKind),
+              ...(meta?.initiatorCheckInfluence !== undefined
+                ? { initiatorCheckInfluence: meta.initiatorCheckInfluence }
+                : {})
             }
           : { groupKind: groupKindFromResultKind(resultBlock.resultKind) })
       })
@@ -616,6 +622,9 @@ export function compileEffectResult<
               entryOrderBase: option.order * 1000,
               ...(option.label !== undefined ? { label: option.label } : {}),
               ...(option.description !== undefined ? { description: option.description } : {}),
+              ...(option.initiatorCheckInfluence !== undefined
+                ? { initiatorCheckInfluence: option.initiatorCheckInfluence }
+                : {}),
               ...(option.requiresOptionalRule
                 ? { requiresOptionalRule: option.requiresOptionalRule }
                 : {})

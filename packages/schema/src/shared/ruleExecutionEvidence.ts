@@ -24,6 +24,7 @@ import {
   d20RolledAddedDiceDtoSchema,
   type D20RolledAddedDieDto
 } from './d20AddedDice.js'
+import { d20FoldedBonusesDtoSchema, type D20FoldedBonusDto } from './d20FoldedBonuses.js'
 import {
   rollModeKeepFaceCount,
   rollModeKeepSchema,
@@ -132,6 +133,8 @@ export const serverRuleExecutionD20PolicyDtoSchema = lazySchema(() =>
       dc: integerSchema,
       /** Dice the test rolls beside its d20 (D156), from the roller's active effects. */
       addedDice: z.optional(d20AddedDiceDtoSchema),
+      /** Labelled bonuses already folded into `modifier` and `dc` (cover). */
+      foldedBonuses: z.optional(d20FoldedBonusesDtoSchema),
       /** The ability a saving throw is made with; absent on every other test. */
       savingThrowAbilityDefinitionId: z.optional(uuidSchema)
     })
@@ -266,6 +269,8 @@ const serverRuleExecutionD20EvidenceShape = lazySchema(() =>
     modeAdjustment: z.optional(serverRuleExecutionD20ModeAdjustmentDtoSchema),
     /** The added dice with the faces they rolled; `total` includes their signed sum. */
     addedDice: z.optional(d20RolledAddedDiceDtoSchema),
+    /** Labelled bonuses already folded into `modifier` and `defenseOrDc`. */
+    foldedBonuses: z.optional(d20FoldedBonusesDtoSchema),
     /**
      * The ability a saving throw was made with, which narrows the dice its holder's effects
      * spend (D156); absent on every other test.
@@ -369,6 +374,7 @@ export type ServerRuleExecutionD20EvidenceDto = {
   resultPath: string
   modeAdjustment?: ServerRuleExecutionD20ModeAdjustmentDto
   addedDice?: D20RolledAddedDieDto[]
+  foldedBonuses?: D20FoldedBonusDto[]
   savingThrowAbilityDefinitionId?: string
 }
 export type ServerRuleExecutionNestedD20EvidenceDto = ServerRuleExecutionD20EvidenceDto & {

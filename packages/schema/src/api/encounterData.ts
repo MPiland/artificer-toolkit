@@ -309,6 +309,8 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
     automationMode: automationModeDtoSchema,
     /** Frozen from the Campaign at Run start: ammunition attacks draw pieces from the chosen stack. */
     trackAmmunition: z._default(z.boolean(), false),
+    /** Frozen from the Campaign at Run start: cover is worked out from the Scene for attacks and area saves. */
+    automaticCover: z._default(z.boolean(), true),
     /** What players see of enemies' and NPCs' health unless an actor overrides it. */
     healthDisplayDefault: healthDisplayLevelDtoSchema,
     initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),

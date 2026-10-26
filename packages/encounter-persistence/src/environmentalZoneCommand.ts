@@ -98,7 +98,7 @@ export async function placeEnvironmentalZone(
     zone: {
       ...zone,
       spatialState: withZoneDcs(zone.spatialState, {
-        spotDc: input.spotDc ?? null,
+        spotDc: input.spotDc ?? zone.spatialState.concealment?.spotDc ?? null,
         disarmDc: input.disarmDc ?? null,
         placerActorId: null
       })

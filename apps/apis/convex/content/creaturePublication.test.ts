@@ -97,11 +97,12 @@ const referencedEquipment = srdEquipment.filter((equipment) => equipmentIds.has(
 if (referencedSpells.length !== spellIds.size || referencedEquipment.length !== equipmentIds.size)
   throw new Error('Creature fixture references missing canonical source records.')
 
-// A magic shield whose armor class modifier is not the while-equipped form a Creature can evaluate.
-const unevaluableShield = {
+// A magic shield whose armor class modifier carries no restriction: a Creature folds it as a
+// Character does, so it applies while held (ATTACK-6.T4a).
+const unrestrictedShield = {
   ...shieldWoodPlus1,
   id: '00000000-0000-0000-0050-0ff000000000',
-  label: 'Unevaluable Shield',
+  label: 'Unrestricted Shield',
   modifiers: shieldWoodPlus1.modifiers?.map((modifier) => ({
     ...modifier,
     restrictions: undefined
@@ -109,7 +110,7 @@ const unevaluableShield = {
 }
 const fixtureEquipment = [
   ...new Map(
-    [...referencedEquipment, greatclub, shieldWood, unevaluableShield].map(
+    [...referencedEquipment, greatclub, shieldWood, unrestrictedShield].map(
       (equipment) => [equipment.id, equipment] as const
     )
   ).values()
@@ -930,8 +931,8 @@ describe('native Creature publication', () => {
     expect(await versionsBefore()).toHaveLength(1)
   })
 
-  it('reads a null armor class, and refuses publication, for Equipment a Creature cannot evaluate', async () => {
-    const { t, first } = await fixture()
+  it('reads and publishes the armor class of a held shield whose modifier carries no restriction', async () => {
+    const { first } = await fixture()
     const draft = await copyDraft(first.caller, archmage.id)
     const copied = creatureAuthoredDtoSchema.parse(draft.payload)
     const saved = await first.caller.mutation(api.content.drafts.save, {
@@ -944,7 +945,7 @@ describe('native Creature publication', () => {
         equipmentLoadout: [
           {
             id: crypto.randomUUID(),
-            equipmentId: unevaluableShield.id,
+            equipmentId: unrestrictedShield.id,
             quantity: 1,
             useState: 'OFF_HAND',
             attuned: false,
@@ -959,19 +960,16 @@ describe('native Creature publication', () => {
       id: draft.subjectId,
       view: 'draft'
     })
-    expect(creatureResponseDtoSchema.parse(detail)?.armorClass).toBeNull()
+    // The archmage's 14 Dexterity, the shield's 2 and its unrestricted +1.
+    expect(creatureResponseDtoSchema.parse(detail)?.armorClass).toBe(15)
 
-    await expect(first.caller.mutation(publish, creaturePublicationInput(saved))).rejects.toThrow(
-      `Equipment "${unevaluableShield.id}" has an armor class modifier that is not the while-equipped form, which a Creature cannot evaluate.`
-    )
-    expect(
-      await t.run((ctx) =>
-        ctx.db
-          .query('authoredVersions')
-          .withIndex('by_id_version', (q) => q.eq('id', draft.subjectId))
-          .take(1)
-      )
-    ).toEqual([])
+    await first.caller.mutation(publish, creaturePublicationInput(saved))
+    const published = await first.caller.query(details, {
+      subjectKind: 'CREATURE',
+      id: draft.subjectId,
+      view: 'active'
+    })
+    expect(creatureResponseDtoSchema.parse(published)?.armorClass).toBe(15)
   })
 
   it('denies unauthorized or conflicting Creature publication and preserves the conflicting draft', async () => {
