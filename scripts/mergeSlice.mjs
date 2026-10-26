@@ -26,6 +26,11 @@ const WAIT_MS = 90 * 60_000
 const DISPATCH_SKEW_MS = 60_000
 const LISTING_TRIES = 4
 const LISTING_RETRY_MS = 5_000
+// A read that fails with a GitHub 5xx or a network timeout is retried for about 2.5 minutes.
+const READ_TRIES = 6
+const READ_RETRY_MS = 30_000
+const TRANSIENT_GH_ERROR =
+  /HTTP 5dd|timed? ?out|timeout|connection reset|ECONNRESET|unexpected EOF/i
 
 export class MergeRefused extends Error {}
 
@@ -126,6 +131,22 @@ const gh = (tools, ...args) => {
   return result.stdout.trim()
 }
 
+// Reads only (list, view): repeating them is harmless. Writes (dispatch) use `gh` and never retry. A 4xx
+// or any other failure throws at once.
+async function ghRead(tools, ...args) {
+  for (let attempt = 1; ; attempt += 1) {
+    const result = tools.run('gh', args)
+    if (result.status === 0) return result.stdout.trim()
+    if (attempt === READ_TRIES || !TRANSIENT_GH_ERROR.test(result.stderr))
+      throw new Error(`gh ${args.join(' ')} failed:
+${result.stderr}`)
+    tools.log(
+      `gh ${args[0]} ${args[1]} hit a transient error, retrying (${attempt}/${READ_TRIES}).`
+    )
+    await tools.sleep(READ_RETRY_MS)
+  }
+}
+
 const lines = (text) => text.split('\n').filter(Boolean)
 
 const remoteSha = (tools, branch) =>
@@ -138,7 +159,7 @@ const RUN_FIELDS = 'databaseId,workflowName,status,conclusion,createdAt'
 // it is retried, and only a listing that stays empty counts as empty.
 async function listRuns(tools, ...args) {
   for (let attempt = 1; ; attempt += 1) {
-    const listed = JSON.parse(gh(tools, 'run', 'list', ...args, '--json', RUN_FIELDS))
+    const listed = JSON.parse(await ghRead(tools, 'run', 'list', ...args, '--json', RUN_FIELDS))
     if (listed.length > 0 || attempt === LISTING_TRIES) return listed
     await tools.sleep(LISTING_RETRY_MS)
   }
@@ -185,9 +206,13 @@ async function waitForGreen(tools, sha, branch) {
   for (;;) {
     for (const [name, entry] of dispatched)
       entry.id ??= await findDispatchedId(tools, branch, name, entry.startedAt)
-    const dispatchedRuns = [...dispatched.values()]
-      .filter((entry) => entry.id)
-      .map((entry) => JSON.parse(gh(tools, 'run', 'view', entry.id, '--json', RUN_FIELDS)))
+    const dispatchedRuns = await Promise.all(
+      [...dispatched.values()]
+        .filter((entry) => entry.id)
+        .map(async (entry) =>
+          JSON.parse(await ghRead(tools, 'run', 'view', entry.id, '--json', RUN_FIELDS))
+        )
+    )
     const listedRuns = (await runsOn(tools, sha)).filter((run) => !dispatched.has(run.workflowName))
     const verdict = runsVerdict([...listedRuns, ...dispatchedRuns])
     if (verdict.state === 'green') return tools.log(`Green on ${sha}: ${verdict.detail}.`)

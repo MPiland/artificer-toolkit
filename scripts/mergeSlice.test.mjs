@@ -221,7 +221,8 @@ describe('mergeSlice waiting on dispatched runs', () => {
       conclusion = 'success',
       finishAfterPolls = 2,
       commitRuns = [],
-      emptyCommitListings = Infinity
+      emptyCommitListings = Infinity,
+      failReads = []
     } = {}
   ) => {
     const calls = []
@@ -268,10 +269,15 @@ describe('mergeSlice waiting on dispatched runs', () => {
       }
       throw new Error(`unexpected gh ${args.join(' ')}`)
     }
+    // failReads: stderr texts returned, in order, by the next gh reads (list/view) before they succeed.
+    const ghResult = (args) =>
+      args[0] === 'run' && failReads.length > 0
+        ? { status: 1, stdout: '', stderr: failReads.shift() }
+        : { status: 0, stdout: gh(args), stderr: '' }
     const tools = {
       run: (command, args) =>
         command === 'gh'
-          ? { status: 0, stdout: gh(args), stderr: '' }
+          ? ghResult(args)
           : spawnSync('git', args, { cwd: work, encoding: 'utf8', env: gitEnv }),
       sleep: async (ms) => {
         clock += ms
@@ -329,6 +335,29 @@ describe('mergeSlice waiting on dispatched runs', () => {
     const { work, tip } = repo()
     const { tools } = platform(work, { finishAfterPolls: Infinity })
     await expect(mergeSlice(input(tip), tools)).rejects.toThrow(/did not finish/)
+  })
+
+  it('retries a GitHub 5xx while waiting and still merges', async () => {
+    const { work, tip, origin } = repo()
+    const { tools } = platform(work, { failReads: ['HTTP 504: Gateway Timeout'] })
+    await mergeSlice(input(tip), tools)
+    expect(sh(origin, 'log', '-1', '--format=%P', PHASE)).toContain(tip)
+  })
+
+  it('fails with the error once a 5xx persists past the retry window', async () => {
+    const { work, tip, origin } = repo()
+    const before = sh(origin, 'rev-parse', PHASE)
+    const { tools } = platform(work, { failReads: Array(20).fill('HTTP 500: Server Error') })
+    await expect(mergeSlice(input(tip), tools)).rejects.toThrow(/HTTP 500/)
+    expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+  })
+
+  it('fails at once on a 4xx without retrying', async () => {
+    const { work, tip } = repo()
+    const failReads = ['HTTP 404: Not Found', 'HTTP 404: Not Found']
+    const { tools } = platform(work, { failReads })
+    await expect(mergeSlice(input(tip), tools)).rejects.toThrow(/HTTP 404/)
+    expect(failReads).toHaveLength(1)
   })
 
   describe('batching several slices', () => {
