@@ -329,11 +329,35 @@ export const spatialRuleEffectPlacementDtoSchema = lazySchema(() =>
     )
 )
 
-/** Mutable presentation state; execution lifecycle remains separately frozen. */
+/**
+ * A placed zone's spot or disarm DC (MOVE-3.3), which the GM types: a flat number, or the result of
+ * the placer's roll (Stealth to hide it, Sleight of Hand to make it hard to disarm).
+ */
+export const zoneDcDtoSchema = lazySchema(() =>
+  z.strictObject({
+    value: z.number().check(z.int()).check(z.positive()),
+    source: z.enum(['FLAT', 'PLACER_ROLL'])
+  })
+)
+
+/**
+ * Mutable presentation state; execution lifecycle remains separately frozen. A zone with
+ * `concealment` is drawn and listed only for the GM and the Characters in `knownByActorIds`; one
+ * without it is in plain sight (MOVE-3.3).
+ */
 export const spatialRuleEffectStateDtoSchema = lazySchema(() =>
   z.strictObject({
     schemaVersion: z.literal(1),
-    revealed: z.boolean()
+    revealed: z.boolean(),
+    concealment: z.optional(
+      z.strictObject({
+        spotDc: zoneDcDtoSchema,
+        /** The Characters that know of the zone: its placer, sorted. */
+        knownByActorIds: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      })
+    ),
+    /** Shown only to the GM. */
+    disarmDc: z.optional(zoneDcDtoSchema)
   })
 )
 
@@ -356,6 +380,23 @@ export const spatialRuleEffectCurrentStateDtoSchema = lazySchema(() =>
             code: 'custom',
             path: ['spatialState', 'revealed'],
             message: 'Public spatial effects must remain revealed.'
+          })
+        const { concealment, disarmDc } = current.spatialState
+        if ((concealment || disarmDc) && current.placement.anchorKind !== 'FIXED')
+          context.addIssue({
+            code: 'custom',
+            path: ['spatialState'],
+            message: 'Only a zone fixed to the Scene has a spot or disarm DC.'
+          })
+        if (
+          concealment?.knownByActorIds.some(
+            (id, index) => index > 0 && concealment.knownByActorIds[index - 1]! >= id
+          )
+        )
+          context.addIssue({
+            code: 'custom',
+            path: ['spatialState', 'concealment', 'knownByActorIds'],
+            message: 'The Characters that know of a zone must be unique and sorted.'
           })
       })
     )
@@ -485,6 +526,7 @@ export type SpatialGeometryDto = z.infer<typeof spatialGeometryDtoSchema>
 export type SpatialPersistedGeometryDto = z.infer<typeof spatialPersistedGeometryDtoSchema>
 export type SpatialRuleEffectPlacementDto = z.infer<typeof spatialRuleEffectPlacementDtoSchema>
 export type SpatialRuleEffectStateDto = z.infer<typeof spatialRuleEffectStateDtoSchema>
+export type ZoneDcDto = z.infer<typeof zoneDcDtoSchema>
 export type SpatialRuleEffectCurrentStateDto = z.infer<
   typeof spatialRuleEffectCurrentStateDtoSchema
 >

@@ -129,6 +129,7 @@ function heldRoom(
       turnMovement: [],
       halfSpeedFields: [],
       movementCostZones: [],
+      placedZones: [],
       auras: []
     },
     preparedPending: [],
