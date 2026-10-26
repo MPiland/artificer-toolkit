@@ -187,7 +187,7 @@ function ruleRun(actor: EncounterRunActorState, rule: 'ON' | 'OFF' | 'MANUAL' = 
 }
 
 /** A Fighter whose sheet the real fact builders produced. */
-async function fighterFacts(): Promise<CharacterMovementFacts> {
+async function fighterFacts() {
   const { character, documents } = readyFighterFixture()
   const sheet = await prepareFixtureSheet({ character, documents })
   return {
@@ -195,14 +195,17 @@ async function fighterFacts(): Promise<CharacterMovementFacts> {
     character: sheet.prepared.character,
     campaignContext: { conditions: [], adjustments: [], attunementSlotOverride: null },
     prepared: sheet.prepared,
-    ruleEvaluation: sheet.ruleEvaluation
-  }
+    ruleEvaluation: sheet.ruleEvaluation,
+    sheetState: sheet.sheetState
+  } satisfies CharacterMovementFacts
 }
+
+type FighterFacts = Awaited<ReturnType<typeof fighterFacts>>
 
 /** Prepares the rule's Effect as the actor's own action, as the room prepares a rule-raised root. */
 async function prepareRuleAction(input: {
   actor: EncounterRunActorState
-  characterFacts: CharacterMovementFacts | null
+  characterFacts: FighterFacts | null
   effectId: string
   rule?: 'ON' | 'OFF' | 'MANUAL'
 }) {
@@ -270,7 +273,7 @@ async function execute(prepared: Awaited<ReturnType<typeof prepareRuleAction>>) 
 /** The shock and the exposure each last until the end of their holder's next turn. */
 async function expectTimedOutcomes(
   actor: EncounterRunActorState,
-  characterFacts: CharacterMovementFacts | null
+  characterFacts: FighterFacts | null
 ) {
   const shock = await prepareRuleAction({ actor, characterFacts, effectId: SHOCK_EFFECT_ID })
   const shockRun = await execute(shock)
@@ -296,6 +299,12 @@ async function expectTimedOutcomes(
   return shock
 }
 
+function ruleCapability(prepared: Awaited<ReturnType<typeof prepareRuleAction>>) {
+  if (prepared.source.kind !== 'RULE')
+    throw new Error(`Expected a RULE source, got ${prepared.source.kind}.`)
+  return prepared.source.capability
+}
+
 describe('a rule-owned action source (ATTACK-16.T1b)', () => {
   const ogre = srdCreatureActor({ id: CREATURE_ID, creature: srdByLabel(SRD.creatures, 'Ogre') })
 
@@ -312,8 +321,7 @@ describe('a rule-owned action source (ATTACK-16.T1b)', () => {
 
   it('runs a Creature’s timed condition and grant through the compiled graph, at no cost', async () => {
     const prepared = await expectTimedOutcomes(ogre, null)
-    expect(prepared.source.kind).toBe('RULE')
-    expect(prepared.source.capability).toMatchObject({
+    expect(ruleCapability(prepared)).toMatchObject({
       kind: 'RULE',
       sourceId: RULE_ID,
       definitionId: RULE_ID,
@@ -326,7 +334,7 @@ describe('a rule-owned action source (ATTACK-16.T1b)', () => {
     const characterFacts = await fighterFacts()
     const actor = characterActor({ id: CHARACTER_ACTOR_ID, characterId: characterFacts.active.id })
     const shock = await expectTimedOutcomes(actor, characterFacts)
-    expect(shock.source.capability).toMatchObject({ kind: 'RULE', sourceId: RULE_ID })
+    expect(ruleCapability(shock)).toMatchObject({ kind: 'RULE', sourceId: RULE_ID })
     const stabilize = await prepareRuleAction({
       actor,
       characterFacts,

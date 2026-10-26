@@ -534,7 +534,6 @@ export async function planNativeLiveEncounterAction(
           activeEffectsByActorId
         })),
         system,
-        rules: state,
         spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({
           actorId: input.actor.id,
