@@ -49,6 +49,7 @@ import { raiseRoomStartOfTurnEffects } from './roomEncounterStartOfTurnTriggers.
 import { executeRoomEncounterContest } from './roomEncounterContest.js'
 import {
   executeRoomEncounterBasicActionResponse,
+  executeRoomEncounterChangeFacing,
   executeRoomEncounterEscape,
   executeRoomEncounterEndHeldGrant,
   executeRoomEncounterEscapeResponse,
@@ -61,6 +62,7 @@ import {
   recordRuleOccurrenceVoid
 } from '@artificer-toolkit/encounter-persistence/occurrenceVoid'
 import type {
+  ChangeFacingInputDto,
   EndHeldGrantInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
@@ -74,6 +76,7 @@ import { parseSceneLiveEntity } from '@artificer-toolkit/encounter-persistence/s
 import type { EncounterActorTokenBindingCommandInputDto } from '@artificer-toolkit/schema/api/vttScenes'
 import { roomSceneTokenReaders } from './roomActionSceneInputs.js'
 import { endRoomOrphanedSummons, removeRoomSummonTokens } from './roomActionSummonTokens.js'
+import { restoreRoomActorFacing } from './roomActionFacing.js'
 import { readRoomScene, readRoomSceneState } from './roomSceneRead.js'
 import { publishRoomSceneUndo } from './roomSceneUndo.js'
 
@@ -117,6 +120,7 @@ export async function executeRoomEncounterCommand(input: {
     ...written,
     ports: {
       ...written.ports,
+      sceneReaders: { readScene: async (sceneId) => readRoomScene(transaction, sceneId) },
       restoreActionForcedMovements: async ({ encounterId, commandId, movements }) => {
         for (const { sceneId, sceneCommandId } of [...movements].reverse()) {
           const { scene } = await readRoomSceneState(transaction, sceneId)
@@ -137,6 +141,14 @@ export async function executeRoomEncounterCommand(input: {
           })
         }
       },
+      restoreActionFacing: ({ encounterId, commandId, sceneId, sceneCommandId }) =>
+        restoreRoomActorFacing({
+          transaction,
+          userId,
+          sceneId,
+          sceneCommandId,
+          origin: { encounterId, commandId }
+        }),
       removeSummonTokens: ({ encounterId, commandId, tokens }) =>
         removeRoomSummonTokens({ transaction, userId, encounterId, commandId, tokens }),
       // A GM's Sheet command on an Encounter Character commits on the Run's held play (R06.3); a
@@ -305,10 +317,12 @@ export async function executeRoomEncounterCommand(input: {
                     ? await executeMoveHeldEffect(command)
                     : command.type === 'RELEASE_RELATIONSHIP'
                       ? await executeReleaseRelationship(command)
-                      : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
-                          command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
-                        ? await executeTokenBinding(command)
-                        : await recordEncounterCommand(context, command, userId, input.random)
+                      : command.type === 'CHANGE_FACING'
+                        ? await executeChangeFacing(command)
+                        : command.type === 'SET_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING' ||
+                            command.type === 'REMOVE_ENCOUNTER_SCENE_ACTOR_TOKEN_BINDING'
+                          ? await executeTokenBinding(command)
+                          : await recordEncounterCommand(context, command, userId, input.random)
   const parsedGm = encounterGmProjectionDtoSchema.safeParse(rawResult.projection)
   const currentRun = await context.db
     .query('encounterRuns')
@@ -549,6 +563,29 @@ export async function executeRoomEncounterCommand(input: {
     if (!input.turnExecution) throw new Error('Room end-grant execution is unavailable.')
     const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
     return executeRoomEncounterEndHeldGrant({
+      ...input.turnExecution,
+      ctx: context,
+      store,
+      transaction,
+      inputs,
+      observed,
+      random: input.random,
+      scope: {
+        campaignId,
+        authorityEpoch: epoch,
+        expectedUserId: userId,
+        expectedRole: membership.role,
+        encounterId: command.encounterId.toLowerCase(),
+        expectedVersion: command.expectedVersion
+      },
+      command
+    })
+  }
+
+  async function executeChangeFacing(command: ChangeFacingInputDto) {
+    if (!input.turnExecution) throw new Error('Room facing-change execution is unavailable.')
+    const { membership } = await context.ports.requireCampaignAuthority(campaignId, userId)
+    return executeRoomEncounterChangeFacing({
       ...input.turnExecution,
       ctx: context,
       store,

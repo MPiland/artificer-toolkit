@@ -124,6 +124,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],
@@ -133,8 +134,7 @@ it('admits native turn scopes and pages the selected actor effects without a bac
       expiration: {
         kind: 'TICKS',
         initialRemaining: 3,
-        decrementStage: 'END_OF_TURN',
-        anchor: 'HOLDER'
+        decrementStage: 'END_OF_TURN'
       }
     }
   })

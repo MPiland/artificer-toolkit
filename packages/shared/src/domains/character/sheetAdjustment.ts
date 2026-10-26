@@ -1,6 +1,4 @@
-import type { AbilityCode } from '../core/ability.js'
 import type { LengthUnitCode } from '../core/measurement.js'
-import type { SizeCode } from '../core/size.js'
 import type { CharacterSpellSourceRef } from './sheetResource.js'
 
 export const CHARACTER_PROFICIENCY_LEVEL = {
@@ -72,19 +70,19 @@ export interface CharacterSheetAdjustmentMetadata {
 type AbilityAdjustmentValue =
   | {
       family: 'ABILITY'
-      ability: AbilityCode
+      ability: string
       field: 'OTHER_MODIFIER' | 'SCORE_OVERRIDE'
       value: number
     }
   | {
       family: 'SAVING_THROW'
-      ability: AbilityCode
+      ability: string
       field: 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE'
       value: number
     }
   | {
       family: 'SAVING_THROW'
-      ability: AbilityCode
+      ability: string
       field: 'PROFICIENCY_OVERRIDE'
       value: CharacterProficiencyLevel
     }
@@ -106,7 +104,7 @@ type SkillAdjustmentValue =
       family: 'SKILL'
       skillId: string
       field: 'GOVERNING_ABILITY_OVERRIDE'
-      value: AbilityCode
+      value: string
     }
 
 type NumericAdjustmentValue =
@@ -177,7 +175,7 @@ type CompanionAdjustmentValue =
       family: 'COMPANION'
       companionInstanceId: string
       field: 'SIZE_OVERRIDE'
-      value: SizeCode
+      value: string
     }
 
 type AdditionAdjustmentValue =

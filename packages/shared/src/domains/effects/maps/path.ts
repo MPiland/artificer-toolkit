@@ -1,9 +1,6 @@
 import type {
   ApplyGrantAuthored,
-  ActorRelationshipAuthored,
-  ActorRelationshipModuleAuthored,
   ConditionAuthored,
-  DamageAuthored,
   FailureMarginRiderAuthored,
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
@@ -26,7 +23,8 @@ import type {
   ResultBlockAuthored,
   DegradeEquipmentDestroyWhenAuthored,
   ScalarReductionAuthored,
-  SummonStatBlockAuthored
+  SummonStatBlockAuthored,
+  TelepathicLinkAbilityFloorAuthored
 } from '#authored'
 import {
   MANIFEST_BLOCKING_RULE_OPTIONS,
@@ -39,10 +37,12 @@ import {
 } from '#authored'
 import {
   PATH_ORIGIN_KIND_OPTIONS,
+  PATH_RESULT_KIND_OPTIONS,
+  PATH_SELECTION_KIND_OPTIONS,
   PATH_USAGE_OPTIONS,
   PATH_LIFECYCLE_RECURRING_KIND_OPTIONS,
-  PATH_LIFECYCLE_TURN_ACTOR_OPTIONS,
-  PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS,
+  PATH_LIFECYCLE_EXCLUSIVITY_OPTIONS,
+  PATH_LIFECYCLE_RETURNS_ON_OPTIONS,
   PATH_CODE_OPTIONS,
   PATH_GROUP_TYPE_OPTIONS,
   PATH_ROLL_TABLE_KIND_OPTIONS,
@@ -63,14 +63,13 @@ import {
   MOVEMENT_RULE_KIND_OPTIONS,
   NON_MANIFEST_EFFECT_KIND_OPTIONS,
   SCALING_AMOUNT_OPTIONS,
-  ABILITY_OPTIONS,
   ACTION_ECONOMY_RULE_KIND_OPTIONS,
   CLOSED_RULE_KIND_OPTIONS,
-  SIZE_OPTIONS,
   ACTIVATION_OPTIONS,
   EQUIPMENT_CATEGORY_OPTIONS,
   EQUIPMENT_PROPERTY_OPTIONS,
-  type Trigger
+  type Trigger,
+  type CoreMeta
 } from '#core'
 import {
   AUTHORED_LIMITS,
@@ -94,10 +93,12 @@ import {
 import { MODIFIER_GRANT_NODE_MAP } from '../../grants/maps/modifier.js'
 import { PROFICIENCY_NODE_MAP } from '../../grants/maps/proficiency.js'
 import { SENSE_GRANT_NODE_MAP } from '../../grants/maps/sense.js'
-import { CHECK_CHOICE_NODE_MAP, ESCAPE_DC_NODE_MAP } from './check.js'
 import { ACTIVATION_NODE_MAP, INVOCATION_NODE_MAP } from './invocation.js'
 import { OUTCOME_BONUS_NODE_MAP } from './outcomeBonus.js'
 import { ATTACK_SLOT_CONDITION_NODE_MAP } from '../../features/maps/attackSlots.js'
+import { ACTOR_RELATIONSHIP_MODULE_NODE_MAP } from './actorRelationshipModule.js'
+import { PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP } from './pathLifecycleTurnAnchor.js'
+import { ACTOR_RELATIONSHIP_RECURRENCE_NODE_MAP } from './actorRelationshipRecurrence.js'
 import {
   FOLLOW_UP_SAVE_REPEAT_ATTEMPT_GATE_NODE_MAP,
   FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
@@ -116,6 +117,12 @@ import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
+/** A select source listing fixed options. */
+const inlineOptions = (options: readonly CoreMeta[]) => ({
+  kind: 'INLINE_OPTIONS' as const,
+  options
+})
+
 type OutcomeNode = AllUnionFields<OutcomeAuthored>
 type NonManifestOutcomeNode = AllUnionFields<NonManifestOutcomeAuthored>
 type OutcomeBreakpointNode = NonNullable<OutcomeNode['breakpoints']>[number]
@@ -130,8 +137,6 @@ type ManifestProximityRuleNode = ManifestProximityRuleAuthored
 type ManifestOccupantSaveBonusNode = AllUnionFields<ManifestOccupantSaveBonusAuthored>
 type ManifestComponentRegionNode = NonNullable<ManifestComponentAuthored['region']>
 type RollTableRepeatNode = NonNullable<AllUnionFields<PathRollTableRowAuthored>['repeat']>
-type ActorRelationshipModuleNode = AllUnionFields<ActorRelationshipModuleAuthored>
-type ActorRelationshipRecurrenceNode = NonNullable<ActorRelationshipAuthored['recurrence']>
 type NodeMapBuildApi<NLocal extends object> = Parameters<
   BuildNodeMap<NLocal>['define']
 >[1] extends (api: infer TApi) => void
@@ -142,42 +147,6 @@ type ScalarReductionNodeMapApi = NodeMapBuildApi<ScalarReductionAuthored>
 
 /** The columns a select drawn from a System code list shows. */
 const CODE_COLUMNS = ['id', 'label', 'description'] as const
-
-const PATH_SELECTION_KIND_OPTIONS = [
-  {
-    code: 'FIXED',
-    label: 'Direct',
-    description: 'Direct result.'
-  },
-  {
-    code: 'CHOICE',
-    label: 'Choose One',
-    description: 'Choose one option.'
-  },
-  {
-    code: 'ROLL_TABLE',
-    label: 'Roll Table',
-    description: 'Roll for a result.'
-  },
-  {
-    code: 'HIT_POINT_TIERS',
-    label: 'Hit Point Tiers',
-    description: "The lowest tier the target's current hit points satisfy applies."
-  }
-] as const
-
-const RESULT_KIND_OPTIONS = [
-  {
-    code: 'SINGLE',
-    label: 'Single',
-    description: 'Single outcome.'
-  },
-  {
-    code: 'SEQUENCE',
-    label: 'Resolve In Order',
-    description: 'Sequential outcomes.'
-  }
-] as const
 
 const ROLL_TABLE_ROW_RESOLUTION_OPTIONS = [
   { code: 'RESULT', label: 'Result' },
@@ -220,12 +189,12 @@ const SUMMON_VISIBILITY_OPTIONS = [
 
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
-const pathLifecycleTurnAnchor = buildNodeMap<NonNullable<PathLifecycleAuthored['turnAnchor']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const pathLifecycleGrantedAction =
   buildNodeMap<NonNullable<PathLifecycleAuthored['grantedActions']>[number]>()
 const applyGrants = buildNodeMap<ApplyGrantsNode>()
 const summonAbilityScores = buildNodeMap<SummonAbilityScoresNode>()
+const telepathicLinkAbilityFloor = buildNodeMap<TelepathicLinkAbilityFloorAuthored>()
 const summonStatBlock = buildNodeMap<SummonStatBlockAuthored>()
 const outcome = buildNodeMap<OutcomeNode>()
 const nonManifestOutcome = buildNodeMap<NonManifestOutcomeNode>()
@@ -258,9 +227,6 @@ const hitPointMaximumReductionAmountSource =
   buildNodeMap<HitPointMaximumReductionAuthored['amountSource']>()
 const degradeEquipmentDestroyWhen = buildNodeMap<DegradeEquipmentDestroyWhenAuthored>()
 const scalarReductionAmount = buildNodeMap<ScalarReductionAuthored['amount']>()
-const actorRelationshipModule = buildNodeMap<ActorRelationshipModuleNode>()
-const actionEffectId = buildNodeMap<{ value: string }>()
-const actorRelationshipRecurrence = buildNodeMap<ActorRelationshipRecurrenceNode>()
 /** The rider's conditions are edited as outcome rows; the schema admits only CONDITION outcomes. */
 type FollowUpSaveFailureMarginRiderNode = Omit<FailureMarginRiderAuthored, 'outcomes'> & {
   outcomes: OutcomeNode[]
@@ -352,44 +318,13 @@ const FORCED_MOVEMENT_COLLISION_NODE_MAP: NodeMap<ForcedMovementCollisionAuthore
       )
   })
 
-const PATH_LIFECYCLE_TURN_ANCHOR_NODE_MAP: NodeMap<
-  NonNullable<PathLifecycleAuthored['turnAnchor']>
-> = pathLifecycleTurnAnchor.define('pathLifecycleTurnAnchor', ({ map, nodes }) => {
-  const { selectSingle } = nodes
-
-  map
-    .set(
-      'actor',
-      selectSingle(
-        ['actor'],
-        'Counted On',
-        { kind: 'INLINE_OPTIONS', options: PATH_LIFECYCLE_TURN_ACTOR_OPTIONS },
-        { requiredIf: true }
-      )
-    )
-    .set(
-      'boundary',
-      selectSingle(
-        ['boundary'],
-        'Counted At',
-        { kind: 'INLINE_OPTIONS', options: PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS },
-        { requiredIf: true }
-      )
-    )
-})
-
 const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>> =
   pathLifecycleHolderEnd.define('pathLifecycleHolderEnd', ({ map, nodes }) => {
     const { selectSingle } = nodes
 
     map.set(
       'activation',
-      selectSingle(
-        ['activation'],
-        'Costs',
-        { kind: 'INLINE_OPTIONS', options: ACTIVATION_OPTIONS },
-        { requiredIf: true }
-      )
+      selectSingle(['activation'], 'Costs', inlineOptions(ACTIVATION_OPTIONS), { requiredIf: true })
     )
   })
 
@@ -441,17 +376,17 @@ const PATH_LIFECYCLE_GRANTED_ACTION_NODE_MAP: NodeMap<
 
 const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.define(
   'pathLifecycle',
-  ({ map, nodes, data }) => {
-    const { selectSingle, selectMulti, groupObject, groupArray, toggle, number } = nodes
-    const { table } = data
+  ({ map, nodes, data: { table } }) => {
+    const { selectSingle, selectMulti, groupObject, groupArray, toggle, number, text } = nodes
 
     map
       .set(
         'recurringKind',
-        selectSingle(['recurringKind'], 'Recurring', {
-          kind: 'INLINE_OPTIONS',
-          options: PATH_LIFECYCLE_RECURRING_KIND_OPTIONS
-        })
+        selectSingle(
+          ['recurringKind'],
+          'Recurring',
+          inlineOptions(PATH_LIFECYCLE_RECURRING_KIND_OPTIONS)
+        )
       )
       .set(
         'turnAnchor',
@@ -489,12 +424,25 @@ const PATH_LIFECYCLE_NODE_MAP: NodeMap<PathLifecycleAuthored> = pathLifecycle.de
         })
       )
       .set(
+        'returnsOn',
+        selectSingle(['returnsOn'], 'Returns On', inlineOptions(PATH_LIFECYCLE_RETURNS_ON_OPTIONS))
+      )
+      .set(
         'holderEnd',
         groupObject(['holderEnd'], 'Holder Can End', () => PATH_LIFECYCLE_HOLDER_END_NODE_MAP, {
           presentation: 'inline'
         })
       )
+      .set('endsWithHeldEffectId', text(['endsWithHeldEffectId'], 'Ends With Held Effect ID'))
       .set('fromSourceOnly', toggle(['fromSourceOnly'], 'From Source Only'))
+      .set(
+        'exclusivity',
+        selectSingle(
+          ['exclusivity'],
+          'Exclusivity',
+          inlineOptions(PATH_LIFECYCLE_EXCLUSIVITY_OPTIONS)
+        )
+      )
       .set(
         'uses',
         number(['uses'], 'Uses before it ends', { constraints: { minimum: 1, maximum: 255 } })
@@ -570,48 +518,18 @@ const APPLY_GRANTS_NODE_MAP: NodeMap<ApplyGrantsNode> = applyGrants.define(
   }
 )
 
-const SUMMON_ABILITY_SCORES_NODE_MAP: NodeMap<SummonAbilityScoresNode> = summonAbilityScores.define(
-  'summonAbilityScores',
-  ({ map, nodes }) => {
-    const { groupObject } = nodes
-
-    map
-      .set(
-        'STRENGTH',
-        groupObject(['STRENGTH'], 'Strength', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'DEXTERITY',
-        groupObject(['DEXTERITY'], 'Dexterity', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'CONSTITUTION',
-        groupObject(['CONSTITUTION'], 'Constitution', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'INTELLIGENCE',
-        groupObject(['INTELLIGENCE'], 'Intelligence', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-      .set(
-        'WISDOM',
-        groupObject(['WISDOM'], 'Wisdom', () => NUMERIC_EXPR_NODE_MAP, { presentation: 'inline' })
-      )
-      .set(
-        'CHARISMA',
-        groupObject(['CHARISMA'], 'Charisma', () => NUMERIC_EXPR_NODE_MAP, {
-          presentation: 'inline'
-        })
-      )
-  }
-)
+const SUMMON_ABILITY_SCORES_NODE_MAP: NodeMap<SummonAbilityScoresNode> =
+  summonAbilityScores.defineKeyed('summonAbilityScores', {
+    rows: summonAbilityScores.data.table('abilities', {
+      selectColumns: ['id', 'label', 'description']
+    }),
+    entry: {
+      kind: 'GROUP',
+      groupKind: 'OBJECT',
+      presentation: 'inline',
+      nodes: () => NUMERIC_EXPR_NODE_MAP
+    }
+  })
 
 const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatBlock.define(
   'summonStatBlock',
@@ -623,8 +541,8 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
       .set(
         'size',
         selectSingle(['size'], 'Size', {
-          kind: 'INLINE_OPTIONS',
-          options: SIZE_OPTIONS
+          kind: 'DATA',
+          relationship: table('sizes', { selectColumns: CODE_COLUMNS })
         })
       )
       .set('occupiesSpace', toggle(['occupiesSpace'], 'Occupies Space'))
@@ -709,17 +627,15 @@ const SUMMON_STAT_BLOCK_NODE_MAP: NodeMap<SummonStatBlockAuthored> = summonStatB
       )
       .set(
         'damageabilityKind',
-        selectSingle(['damageabilityKind'], 'Damageability', {
-          kind: 'INLINE_OPTIONS',
-          options: SUMMON_DAMAGEABILITY_OPTIONS
-        })
+        selectSingle(
+          ['damageabilityKind'],
+          'Damageability',
+          inlineOptions(SUMMON_DAMAGEABILITY_OPTIONS)
+        )
       )
       .set(
         'visibilityKind',
-        selectSingle(['visibilityKind'], 'Visibility', {
-          kind: 'INLINE_OPTIONS',
-          options: SUMMON_VISIBILITY_OPTIONS
-        })
+        selectSingle(['visibilityKind'], 'Visibility', inlineOptions(SUMMON_VISIBILITY_OPTIONS))
       )
   }
 )
@@ -737,12 +653,9 @@ const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriter
         .set('order', number(['order'], 'Order', { requiredIf: true }))
         .set(
           'kind',
-          selectSingle(
-            ['kind'],
-            'Criterion',
-            { kind: 'INLINE_OPTIONS', options: MANIFEST_DESTRUCTION_KIND_OPTIONS },
-            { requiredIf: true }
-          )
+          selectSingle(['kind'], 'Criterion', inlineOptions(MANIFEST_DESTRUCTION_KIND_OPTIONS), {
+            requiredIf: true
+          })
         )
         .set(
           'damageTypeId',
@@ -788,7 +701,7 @@ const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriter
           selectSingle(
             ['capability'],
             'Spell Capability',
-            { kind: 'INLINE_OPTIONS', options: MANIFEST_SPELL_CAPABILITY_OPTIONS },
+            inlineOptions(MANIFEST_SPELL_CAPABILITY_OPTIONS),
             {
               requiredIf: true,
               showIf: local.field(['kind']).eq('SPELL_CAPABILITY')
@@ -849,7 +762,7 @@ const MANIFEST_LIGHT_NODE_MAP: NodeMap<ManifestLightAuthored> = manifestLight.de
 )
 
 const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNode> =
-  manifestOccupantSaveBonus.define('manifestOccupantSaveBonus', ({ map, nodes, cond }) => {
+  manifestOccupantSaveBonus.define('manifestOccupantSaveBonus', ({ map, nodes, cond, data }) => {
     const { text, number, selectSingle } = nodes
     const local = cond.local()
     const isAbilityModifier = local.field(['amountKind']).eq('SOURCE_ABILITY_MODIFIER')
@@ -896,7 +809,7 @@ const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNo
         selectSingle(
           ['ability'],
           'Ability',
-          { kind: 'INLINE_OPTIONS', options: ABILITY_OPTIONS },
+          { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
           { requiredIf: true, showIf: isAbilityModifier }
         )
       )
@@ -997,10 +910,11 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
       .set('requiresFullyWithin', toggle(['requiresFullyWithin'], 'Requires Fully Within'))
       .set(
         'requiredSight',
-        selectMulti(['requiredSight'], 'Requires Sight', {
-          kind: 'INLINE_OPTIONS',
-          options: MANIFEST_REQUIRED_SIGHT_OPTIONS
-        })
+        selectMulti(
+          ['requiredSight'],
+          'Requires Sight',
+          inlineOptions(MANIFEST_REQUIRED_SIGHT_OPTIONS)
+        )
       )
       .set(
         'automaticSaveSuccessImmunityDamageTypeId',
@@ -1043,10 +957,7 @@ const MANIFEST_COMPONENT_NODE_MAP: NodeMap<ManifestComponentAuthored> = manifest
       .set('hitPoints', number(['hitPoints'], 'Hit Points', { constraints: { minimum: 0 } }))
       .set(
         'blockingRules',
-        selectMulti(['blockingRules'], 'Blocks', {
-          kind: 'INLINE_OPTIONS',
-          options: MANIFEST_BLOCKING_RULE_OPTIONS
-        })
+        selectMulti(['blockingRules'], 'Blocks', inlineOptions(MANIFEST_BLOCKING_RULE_OPTIONS))
       )
       .set(
         'destructionCriteria',
@@ -1144,10 +1055,6 @@ const DEGRADE_EQUIPMENT_DESTROY_WHEN_NODE_MAP = degradeEquipmentDestroyWhen.defi
   }
 )
 
-const ACTION_EFFECT_ID_NODE_MAP = actionEffectId.define('actionEffectId', ({ map, nodes }) => {
-  map.set('value', nodes.text(['value'], 'Effect ID'))
-})
-
 const SCALAR_REDUCTION_AMOUNT_NODE_MAP = scalarReductionAmount.define(
   'scalarReductionAmount',
   ({ map, nodes }) => {
@@ -1209,176 +1116,24 @@ const FOLLOW_UP_SAVE_FAILURE_MARGIN_RIDER_NODE_MAP = followUpSaveFailureMarginRi
   }
 )
 
-const ACTOR_RELATIONSHIP_MODULE_NODE_MAP = actorRelationshipModule.define(
-  'actorRelationshipModule',
-  ({ map, nodes, cond, logic: { or }, data }) => {
-    const { text, number, selectSingle, selectMulti, groupObject, groupArray } = nodes
-    const local = cond.local()
-    const { table } = data
-    const releaseCost = local.field(['kind']).eq('SOURCE_RELEASE_MOVEMENT_COST')
-    const isActionEffectModule = or([
-      local.field(['kind']).eq('SOURCE_ACTION_TARGET_RESTRICTION'),
-      local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE')
-    ])
-    const isCapabilityModule = or([
-      local.field(['kind']).eq('TARGET_CAPABILITY_SUPPRESSION'),
-      local.field(['kind']).eq('CONDITIONAL_TARGET_STATE')
-    ])
+const TELEPATHIC_LINK_ABILITY_FLOOR_NODE_MAP = telepathicLinkAbilityFloor.define(
+  'telepathicLinkAbilityFloor',
+  ({ map, nodes, data }) => {
+    const { number, selectSingle } = nodes
 
     map
-      .set('id', text(['id'], 'ID'))
-      .set('order', number(['order'], 'Order'))
       .set(
-        'kind',
-        selectSingle(['kind'], 'Module', {
-          kind: 'INLINE_OPTIONS',
-          options: [
-            { code: 'TARGET_SIZE_MAXIMUM', label: 'Target Size Maximum' },
-            { code: 'SOURCE_ACTION_TARGET_RESTRICTION', label: 'Source Action Restriction' },
-            { code: 'SOURCE_ATTACK_ROLL_INFLUENCE', label: 'Source Attack Influence' },
-            { code: 'SOURCE_FOLLOWS_TARGET', label: 'Source Follows Target' },
-            { code: 'SOURCE_OCCUPIES_HAND', label: 'Source Occupies Hand' },
-            { code: 'SOURCE_INDEPENDENT_HOLD', label: 'Source Independent Hold' },
-            { code: 'TARGET_DRAGGED', label: 'Target Dragged' },
-            { code: 'SOURCE_RELEASE_MOVEMENT_COST', label: 'Release Movement Cost' },
-            { code: 'ESCAPE_CHECK', label: 'Escape Check' },
-            { code: 'TARGET_CAPABILITY_SUPPRESSION', label: 'Capability Suppression' },
-            { code: 'CONDITIONAL_TARGET_STATE', label: 'Conditional Target State' }
-          ]
-        })
-      )
-      .set(
-        'sizeCode',
+        'ability',
         selectSingle(
-          ['sizeCode'],
-          'Maximum Size',
-          { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
-          { showIf: local.field(['kind']).eq('TARGET_SIZE_MAXIMUM') }
+          ['ability'],
+          'Ability',
+          { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
+          { requiredIf: true }
         )
       )
       .set(
-        'actionEffectIds',
-        groupArray(['actionEffectIds'], 'Action Effects', () => ACTION_EFFECT_ID_NODE_MAP, {
-          presentation: 'inline',
-          showIf: isActionEffectModule
-        })
-      )
-      .set(
-        'influence',
-        selectSingle(
-          ['influence'],
-          'Influence',
-          { kind: 'DATA', relationship: table('roll_influences', { selectColumns: CODE_COLUMNS }) },
-          { showIf: local.field(['kind']).eq('SOURCE_ATTACK_ROLL_INFLUENCE') }
-        )
-      )
-      .set(
-        'amount',
-        number(['amount'], 'Movement Cost', { constraints: { minimum: 0 }, showIf: releaseCost })
-      )
-      .set(
-        'unit',
-        selectSingle(
-          ['unit'],
-          'Unit',
-          { kind: 'INLINE_OPTIONS', options: LENGTH_UNIT_OPTIONS },
-          { showIf: releaseCost }
-        )
-      )
-      .set(
-        'activation',
-        groupObject(['activation'], 'Activation', () => ACTIVATION_NODE_MAP, {
-          presentation: 'inline',
-          showIf: local.field(['kind']).eq('ESCAPE_CHECK')
-        })
-      )
-      .set(
-        'checks',
-        groupObject(['checks'], 'Escape Checks', () => CHECK_CHOICE_NODE_MAP, {
-          presentation: 'inline',
-          showIf: local.field(['kind']).eq('ESCAPE_CHECK')
-        })
-      )
-      .set(
-        'dc',
-        groupObject(['dc'], 'Escape DC', () => ESCAPE_DC_NODE_MAP, {
-          presentation: 'inline',
-          showIf: local.field(['kind']).eq('ESCAPE_CHECK')
-        })
-      )
-      .set(
-        'actorKinds',
-        selectMulti(
-          ['actorKinds'],
-          'Eligible Actors',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: [
-              { code: 'TARGET', label: 'Target' },
-              { code: 'CREATURE_WITHIN_REACH', label: 'Creature Within Reach' }
-            ]
-          },
-          { showIf: local.field(['kind']).eq('ESCAPE_CHECK') }
-        )
-      )
-      .set(
-        'capabilityDefinitionIds',
-        selectMulti(
-          ['capabilityDefinitionIds'],
-          'Capabilities',
-          {
-            kind: 'DATA',
-            relationship: table('reusable_definitions', { selectColumns: ['id', 'label'] })
-          },
-          { showIf: isCapabilityModule }
-        )
-      )
-      .set(
-        'conditionIds',
-        selectMulti(
-          ['conditionIds'],
-          'Conditions',
-          {
-            kind: 'DATA',
-            relationship: table('condition_types', {
-              selectColumns: ['id', 'label', 'description']
-            })
-          },
-          { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
-        )
-      )
-      .set(
-        'whenResolvedAttackD20Mode',
-        selectSingle(
-          ['whenResolvedAttackD20Mode'],
-          'When Attack Mode Is',
-          { kind: 'DATA', relationship: table('roll_modes', { selectColumns: CODE_COLUMNS }) },
-          { showIf: local.field(['kind']).eq('CONDITIONAL_TARGET_STATE') }
-        )
-      )
-  }
-)
-
-const ACTOR_RELATIONSHIP_RECURRENCE_NODE_MAP = actorRelationshipRecurrence.define(
-  'actorRelationshipRecurrence',
-  ({ map, nodes }) => {
-    const { selectSingle, groupObject } = nodes
-    map
-      .set(
-        'stage',
-        selectSingle(['stage'], 'Stage', {
-          kind: 'INLINE_OPTIONS',
-          options: [{ code: 'START_OF_TURN', label: 'Start of Turn' }]
-        })
-      )
-      .set(
-        'damage',
-        groupObject(
-          ['damage'],
-          'Damage',
-          () => OUTCOME_NODE_MAP as unknown as NodeMap<DamageAuthored>,
-          { presentation: 'inline' }
-        )
+        'score',
+        number(['score'], 'At or Below', { constraints: { minimum: 0 }, requiredIf: true })
       )
   }
 )
@@ -1407,17 +1162,9 @@ function registerOutcomeFields(
     .set('id', text(['id'], 'ID'))
     .set(
       'effectKind',
-      selectSingle(
-        ['effectKind'],
-        'Effect Kind',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: effectKindOptions
-        },
-        {
-          requiredIf: true
-        }
-      )
+      selectSingle(['effectKind'], 'Effect Kind', inlineOptions(effectKindOptions), {
+        requiredIf: true
+      })
     )
     .set(
       'hitPointMaximumReductionAmountSource',
@@ -1642,18 +1389,10 @@ function registerOutcomeFields(
     )
     .set(
       'valueKind',
-      selectSingle(
-        ['valueKind'],
-        'Value Kind',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: DAMAGE_VALUE_OPTIONS
-        },
-        {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE)
-        }
-      )
+      selectSingle(['valueKind'], 'Value Kind', inlineOptions(DAMAGE_VALUE_OPTIONS), {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE)
+      })
     )
     .set(
       'scalingKind',
@@ -1679,17 +1418,9 @@ function registerOutcomeFields(
     )
     .set(
       'amountKind',
-      selectSingle(
-        ['amountKind'],
-        'Amount Modifier',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: SCALING_AMOUNT_OPTIONS
-        },
-        {
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE)
-        }
-      )
+      selectSingle(['amountKind'], 'Amount Modifier', inlineOptions(SCALING_AMOUNT_OPTIONS), {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.DAMAGE)
+      })
     )
     .set(
       'damageAmount',
@@ -1939,28 +1670,17 @@ function registerOutcomeFields(
     )
     .set(
       'direction',
-      selectSingle(
-        ['direction'],
-        'Direction',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: FORCED_MOVEMENT_DIRECTION_OPTIONS
-        },
-        {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT)
-        }
-      )
+      selectSingle(['direction'], 'Direction', inlineOptions(FORCED_MOVEMENT_DIRECTION_OPTIONS), {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT)
+      })
     )
     .set(
       'distanceMode',
       selectSingle(
         ['distanceMode'],
         'Distance Mode',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: FORCED_MOVEMENT_DISTANCE_MODE_OPTIONS
-        },
+        inlineOptions(FORCED_MOVEMENT_DISTANCE_MODE_OPTIONS),
         {
           requiredIf: true,
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT)
@@ -1979,36 +1699,25 @@ function registerOutcomeFields(
     )
     .set(
       'movementUnit',
-      selectSingle(
-        ['unit'],
-        'Distance Unit',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: LENGTH_UNIT_OPTIONS
-        },
-        {
-          requiredIf: true,
-          showIf: or([
-            and([
-              local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT),
-              or([
-                local.field(['distanceMode']).eq('EXACT'),
-                local.field(['distanceMode']).eq('UP_TO')
-              ])
+      selectSingle(['unit'], 'Distance Unit', inlineOptions(LENGTH_UNIT_OPTIONS), {
+        requiredIf: true,
+        showIf: or([
+          and([
+            local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT),
+            or([
+              local.field(['distanceMode']).eq('EXACT'),
+              local.field(['distanceMode']).eq('UP_TO')
             ])
           ])
-        }
-      )
+        ])
+      })
     )
     .set(
       'actionEconomy',
       selectSingle(
         ['actionEconomy'],
         'Action Economy',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: FORCED_MOVEMENT_ACTION_ECONOMY_OPTIONS
-        },
+        inlineOptions(FORCED_MOVEMENT_ACTION_ECONOMY_OPTIONS),
         {
           requiredIf: true,
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FORCED_MOVEMENT)
@@ -2024,28 +1733,17 @@ function registerOutcomeFields(
     )
     .set(
       'targetKind',
-      selectSingle(
-        ['targetKind'],
-        'Target',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: TELEPORT_TARGET_KIND_OPTIONS
-        },
-        {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPORT)
-        }
-      )
+      selectSingle(['targetKind'], 'Target', inlineOptions(TELEPORT_TARGET_KIND_OPTIONS), {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPORT)
+      })
     )
     .set(
       'destinationKind',
       selectSingle(
         ['destinationKind'],
         'Destination',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: TELEPORT_DESTINATION_KIND_OPTIONS
-        },
+        inlineOptions(TELEPORT_DESTINATION_KIND_OPTIONS),
         {
           requiredIf: true,
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPORT)
@@ -2061,18 +1759,10 @@ function registerOutcomeFields(
     )
     .set(
       'manifestKind',
-      selectSingle(
-        ['manifestKind'],
-        'Manifest Kind',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: MANIFEST_KIND_OPTIONS
-        },
-        {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
-        }
-      )
+      selectSingle(['manifestKind'], 'Manifest Kind', inlineOptions(MANIFEST_KIND_OPTIONS), {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
     )
     .set(
       'manifestMaxApplicationsPerTurn',
@@ -2151,18 +1841,10 @@ function registerOutcomeFields(
     )
     .set(
       'reasonCode',
-      selectSingle(
-        ['reasonCode'],
-        'Reason',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: MANUAL_ADJUDICATION_REASON_OPTIONS
-        },
-        {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANUAL_ADJUDICATION)
-        }
-      )
+      selectSingle(['reasonCode'], 'Reason', inlineOptions(MANUAL_ADJUDICATION_REASON_OPTIONS), {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANUAL_ADJUDICATION)
+      })
     )
     .set(
       'instructions',
@@ -2173,15 +1855,10 @@ function registerOutcomeFields(
     )
     .set(
       'followUpTiming',
-      selectSingle(
-        ['timing'],
-        'Timing',
-        { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_SAVE_TIMING_OPTIONS },
-        {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
-        }
-      )
+      selectSingle(['timing'], 'Timing', inlineOptions(FOLLOW_UP_SAVE_TIMING_OPTIONS), {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_SAVE)
+      })
     )
     .set(
       'savingThrow',
@@ -2258,7 +1935,7 @@ function registerOutcomeFields(
       selectSingle(
         ['ability'],
         'Ability',
-        { kind: 'INLINE_OPTIONS', options: ABILITY_OPTIONS },
+        { kind: 'DATA', relationship: data.table('abilities', { selectColumns: CODE_COLUMNS }) },
         {
           requiredIf: true,
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)
@@ -2296,12 +1973,9 @@ function registerOutcomeFields(
     )
     .set(
       'actorKinds',
-      selectMulti(
-        ['actorKinds'],
-        'Who Can Attempt',
-        { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_CHECK_ACTOR_OPTIONS },
-        { showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK) }
-      )
+      selectMulti(['actorKinds'], 'Who Can Attempt', inlineOptions(FOLLOW_UP_CHECK_ACTOR_OPTIONS), {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.FOLLOW_UP_CHECK)
+      })
     )
     .set(
       'repeatable',
@@ -2311,15 +1985,10 @@ function registerOutcomeFields(
     )
     .set(
       'ruleKind',
-      selectSingle(
-        ['ruleKind'],
-        'Movement Rule',
-        { kind: 'INLINE_OPTIONS', options: MOVEMENT_RULE_KIND_OPTIONS },
-        {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.MOVEMENT_RULE)
-        }
-      )
+      selectSingle(['ruleKind'], 'Movement Rule', inlineOptions(MOVEMENT_RULE_KIND_OPTIONS), {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MOVEMENT_RULE)
+      })
     )
     .set(
       'movementRuleDistance',
@@ -2474,12 +2143,16 @@ function registerOutcomeFields(
       })
     )
     .set(
-      'excludesIntelligenceAtOrBelow',
-      number(['excludesIntelligenceAtOrBelow'], 'Exclude Intelligence At or Below', {
-        constraints: { minimum: 0 },
-        requiredIf: true,
-        showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPATHIC_LINK)
-      })
+      'excludesAbilityAtOrBelow',
+      groupObject(
+        ['excludesAbilityAtOrBelow'],
+        'Excludes Ability Score',
+        () => TELEPATHIC_LINK_ABILITY_FLOOR_NODE_MAP,
+        {
+          presentation: 'inline',
+          showIf: local.field(['effectKind']).eq(EFFECT_KIND.TELEPATHIC_LINK)
+        }
+      )
     )
     .set(
       'anyDistance',
@@ -2504,7 +2177,7 @@ function registerOutcomeFields(
       selectSingle(
         ['minimumPlantSize'],
         'Minimum Plant Size',
-        { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
+        { kind: 'DATA', relationship: table('sizes', { selectColumns: CODE_COLUMNS }) },
         {
           requiredIf: true,
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.PLANT_PORTAL)
@@ -2595,22 +2268,17 @@ function registerOutcomeFields(
     )
     .set(
       'closedRuleKind',
-      selectSingle(
-        ['ruleKind'],
-        'Closed Rule',
-        { kind: 'INLINE_OPTIONS', options: CLOSED_RULE_KIND_OPTIONS },
-        {
-          requiredIf: true,
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.CLOSED_RULE)
-        }
-      )
+      selectSingle(['ruleKind'], 'Closed Rule', inlineOptions(CLOSED_RULE_KIND_OPTIONS), {
+        requiredIf: true,
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.CLOSED_RULE)
+      })
     )
     .set(
       'actionEconomyRuleKind',
       selectSingle(
         ['ruleKind'],
         'Action Economy Rule',
-        { kind: 'INLINE_OPTIONS', options: ACTION_ECONOMY_RULE_KIND_OPTIONS },
+        inlineOptions(ACTION_ECONOMY_RULE_KIND_OPTIONS),
         {
           requiredIf: true,
           showIf: local.field(['effectKind']).eq(EFFECT_KIND.ACTION_ECONOMY_RULE)
@@ -2713,7 +2381,7 @@ function registerOutcomeFields(
       selectSingle(
         ['maximumTargetSize'],
         'Maximum Target Size',
-        { kind: 'INLINE_OPTIONS', options: SIZE_OPTIONS },
+        { kind: 'DATA', relationship: table('sizes', { selectColumns: CODE_COLUMNS }) },
         { showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST) }
       )
     )
@@ -2766,17 +2434,9 @@ function registerOutcomeFields(
     )
     .set(
       'properties',
-      selectMulti(
-        ['properties'],
-        'Properties',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: MANIFEST_PROPERTY_OPTIONS
-        },
-        {
-          showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
-        }
-      )
+      selectMulti(['properties'], 'Properties', inlineOptions(MANIFEST_PROPERTY_OPTIONS), {
+        showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
+      })
     )
     .set(
       'proximityRule',
@@ -2802,10 +2462,7 @@ function registerOutcomeFields(
       selectMulti(
         ['suppressionImmunities'],
         'Suppression Immunities',
-        {
-          kind: 'INLINE_OPTIONS',
-          options: MANIFEST_SUPPRESSION_IMMUNITY_OPTIONS
-        },
+        inlineOptions(MANIFEST_SUPPRESSION_IMMUNITY_OPTIONS),
         { showIf: manifestsOther }
       )
     )
@@ -2819,12 +2476,9 @@ const FOLLOW_UP_SAVE_ATTEMPTS_NODE_MAP: NodeMap<FollowUpSaveAttemptsNode> =
     map
       .set(
         'kind',
-        selectSingle(
-          ['kind'],
-          'Attempts',
-          { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_SAVE_ATTEMPT_KIND_OPTIONS },
-          { requiredIf: true }
-        )
+        selectSingle(['kind'], 'Attempts', inlineOptions(FOLLOW_UP_SAVE_ATTEMPT_KIND_OPTIONS), {
+          requiredIf: true
+        })
       )
       .set(
         'successesToEnd',
@@ -2865,12 +2519,9 @@ const FOLLOW_UP_SAVE_BRANCH_NODE_MAP: NodeMap<FollowUpSaveBranchNode> = followUp
     map
       .set(
         'kind',
-        selectSingle(
-          ['kind'],
-          'Result',
-          { kind: 'INLINE_OPTIONS', options: FOLLOW_UP_SAVE_BRANCH_KIND_OPTIONS },
-          { requiredIf: true }
-        )
+        selectSingle(['kind'], 'Result', inlineOptions(FOLLOW_UP_SAVE_BRANCH_KIND_OPTIONS), {
+          requiredIf: true
+        })
       )
       .set(
         'endCurrent',
@@ -2880,15 +2531,10 @@ const FOLLOW_UP_SAVE_BRANCH_NODE_MAP: NodeMap<FollowUpSaveBranchNode> = followUp
       )
       .set(
         'resultKind',
-        selectSingle(
-          ['resultKind'],
-          'Outcome Type',
-          { kind: 'INLINE_OPTIONS', options: RESULT_KIND_OPTIONS },
-          {
-            requiredIf: true,
-            showIf: local.field(['kind']).eq('OUTCOMES')
-          }
-        )
+        selectSingle(['resultKind'], 'Outcome Type', inlineOptions(PATH_RESULT_KIND_OPTIONS), {
+          requiredIf: true,
+          showIf: local.field(['kind']).eq('OUTCOMES')
+        })
       )
       .set(
         'gate',
@@ -2948,17 +2594,9 @@ const RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored> = resultBlock.define(
       .set('id', text(['id'], 'ID'))
       .set(
         'resultKind',
-        selectSingle(
-          ['resultKind'],
-          'Outcome Type',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: RESULT_KIND_OPTIONS
-          },
-          {
-            requiredIf: true
-          }
-        )
+        selectSingle(['resultKind'], 'Outcome Type', inlineOptions(PATH_RESULT_KIND_OPTIONS), {
+          requiredIf: true
+        })
       )
       .set(
         'duration',
@@ -3010,17 +2648,9 @@ const NON_MANIFEST_RESULT_BLOCK_NODE_MAP: NodeMap<ResultBlockAuthored<NonManifes
       .set('id', text(['id'], 'ID'))
       .set(
         'resultKind',
-        selectSingle(
-          ['resultKind'],
-          'Outcome Type',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: RESULT_KIND_OPTIONS
-          },
-          {
-            requiredIf: true
-          }
-        )
+        selectSingle(['resultKind'], 'Outcome Type', inlineOptions(PATH_RESULT_KIND_OPTIONS), {
+          requiredIf: true
+        })
       )
       .set(
         'duration',
@@ -3226,7 +2856,7 @@ const ROLL_TABLE_ROW_NODE_MAP: NodeMap<PathRollTableRowAuthored> = rollRow.defin
         selectSingle(
           ['resolutionKind'],
           'Resolution',
-          { kind: 'INLINE_OPTIONS', options: ROLL_TABLE_ROW_RESOLUTION_OPTIONS },
+          inlineOptions(ROLL_TABLE_ROW_RESOLUTION_OPTIONS),
           { requiredIf: true }
         )
       )
@@ -3290,7 +2920,7 @@ const NON_MANIFEST_ROLL_TABLE_ROW_NODE_MAP: NodeMap<
       selectSingle(
         ['resolutionKind'],
         'Resolution',
-        { kind: 'INLINE_OPTIONS', options: ROLL_TABLE_ROW_RESOLUTION_OPTIONS },
+        inlineOptions(ROLL_TABLE_ROW_RESOLUTION_OPTIONS),
         { requiredIf: true }
       )
     )
@@ -3342,24 +2972,23 @@ const PATH_CHOSEN_ITEM_NODE_MAP: NodeMap<PathChosenItemAuthored> = pathChosenIte
     map
       .set(
         'category',
-        selectSingle(['category'], 'Category', {
-          kind: 'INLINE_OPTIONS',
-          options: EQUIPMENT_CATEGORY_OPTIONS
-        })
+        selectSingle(['category'], 'Category', inlineOptions(EQUIPMENT_CATEGORY_OPTIONS))
       )
       .set(
         'requiredProperties',
-        selectMulti(['requiredProperties'], 'Required Properties', {
-          kind: 'INLINE_OPTIONS',
-          options: EQUIPMENT_PROPERTY_OPTIONS
-        })
+        selectMulti(
+          ['requiredProperties'],
+          'Required Properties',
+          inlineOptions(EQUIPMENT_PROPERTY_OPTIONS)
+        )
       )
       .set(
         'excludedProperties',
-        selectMulti(['excludedProperties'], 'Excluded Properties', {
-          kind: 'INLINE_OPTIONS',
-          options: EQUIPMENT_PROPERTY_OPTIONS
-        })
+        selectMulti(
+          ['excludedProperties'],
+          'Excluded Properties',
+          inlineOptions(EQUIPMENT_PROPERTY_OPTIONS)
+        )
       )
       .set(
         'equipmentIds',
@@ -3387,41 +3016,22 @@ export const PATH_NODE_MAP: NodeMap<EffectPathAuthored> = effectPath.define(
       )
       .set(
         'pathCode',
-        selectSingle(
-          ['pathCode'],
-          'Outcome Path',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: PATH_CODE_OPTIONS
-          },
-          {
-            requiredIf: true
-          }
-        )
+        selectSingle(['pathCode'], 'Outcome Path', inlineOptions(PATH_CODE_OPTIONS), {
+          requiredIf: true
+        })
       )
       .set(
         'groupType',
-        selectSingle(
-          ['groupType'],
-          'Outcome Group',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: PATH_GROUP_TYPE_OPTIONS
-          },
-          {
-            requiredIf: true
-          }
-        )
+        selectSingle(['groupType'], 'Outcome Group', inlineOptions(PATH_GROUP_TYPE_OPTIONS), {
+          requiredIf: true
+        })
       )
       .set(
         'selectionKind',
         selectSingle(
           ['selectionKind'],
           'Selection Model',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: PATH_SELECTION_KIND_OPTIONS
-          },
+          inlineOptions(PATH_SELECTION_KIND_OPTIONS),
           {
             requiredIf: true
           }
@@ -3429,10 +3039,7 @@ export const PATH_NODE_MAP: NodeMap<EffectPathAuthored> = effectPath.define(
       )
       .set(
         'originKind',
-        selectSingle(['originKind'], 'Starts From', {
-          kind: 'INLINE_OPTIONS',
-          options: PATH_ORIGIN_KIND_OPTIONS
-        })
+        selectSingle(['originKind'], 'Starts From', inlineOptions(PATH_ORIGIN_KIND_OPTIONS))
       )
       .set(
         'restrictions',
@@ -3449,13 +3056,7 @@ export const PATH_NODE_MAP: NodeMap<EffectPathAuthored> = effectPath.define(
           }
         })
       )
-      .set(
-        'usage',
-        selectSingle(['usage'], 'Usage Limit', {
-          kind: 'INLINE_OPTIONS',
-          options: PATH_USAGE_OPTIONS
-        })
-      )
+      .set('usage', selectSingle(['usage'], 'Usage Limit', inlineOptions(PATH_USAGE_OPTIONS)))
       .set(
         'rangeOverride',
         groupObject(['rangeOverride'], 'Range Override', () => RANGE_NODE_MAP, {
@@ -3493,10 +3094,7 @@ export const PATH_NODE_MAP: NodeMap<EffectPathAuthored> = effectPath.define(
         selectSingle(
           ['rollTableKind'],
           'Match Rolls By',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: PATH_ROLL_TABLE_KIND_OPTIONS
-          },
+          inlineOptions(PATH_ROLL_TABLE_KIND_OPTIONS),
           {
             requiredIf: true,
             showIf: local.field(['selectionKind']).eq('ROLL_TABLE')
@@ -3550,41 +3148,22 @@ export const MANIFEST_BEHAVIOR_PATH_NODE_MAP: NodeMap<
       )
       .set(
         'pathCode',
-        selectSingle(
-          ['pathCode'],
-          'Behavior Path',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: PATH_CODE_OPTIONS
-          },
-          {
-            requiredIf: true
-          }
-        )
+        selectSingle(['pathCode'], 'Behavior Path', inlineOptions(PATH_CODE_OPTIONS), {
+          requiredIf: true
+        })
       )
       .set(
         'groupType',
-        selectSingle(
-          ['groupType'],
-          'Outcome Group',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: PATH_GROUP_TYPE_OPTIONS
-          },
-          {
-            requiredIf: true
-          }
-        )
+        selectSingle(['groupType'], 'Outcome Group', inlineOptions(PATH_GROUP_TYPE_OPTIONS), {
+          requiredIf: true
+        })
       )
       .set(
         'selectionKind',
         selectSingle(
           ['selectionKind'],
           'Selection Model',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: PATH_SELECTION_KIND_OPTIONS
-          },
+          inlineOptions(PATH_SELECTION_KIND_OPTIONS),
           {
             requiredIf: true
           }
@@ -3592,10 +3171,7 @@ export const MANIFEST_BEHAVIOR_PATH_NODE_MAP: NodeMap<
       )
       .set(
         'originKind',
-        selectSingle(['originKind'], 'Starts From', {
-          kind: 'INLINE_OPTIONS',
-          options: PATH_ORIGIN_KIND_OPTIONS
-        })
+        selectSingle(['originKind'], 'Starts From', inlineOptions(PATH_ORIGIN_KIND_OPTIONS))
       )
       .set(
         'restrictions',
@@ -3612,13 +3188,7 @@ export const MANIFEST_BEHAVIOR_PATH_NODE_MAP: NodeMap<
           }
         })
       )
-      .set(
-        'usage',
-        selectSingle(['usage'], 'Usage Limit', {
-          kind: 'INLINE_OPTIONS',
-          options: PATH_USAGE_OPTIONS
-        })
-      )
+      .set('usage', selectSingle(['usage'], 'Usage Limit', inlineOptions(PATH_USAGE_OPTIONS)))
       .set(
         'rangeOverride',
         groupObject(['rangeOverride'], 'Range Override', () => RANGE_NODE_MAP, {
@@ -3650,10 +3220,7 @@ export const MANIFEST_BEHAVIOR_PATH_NODE_MAP: NodeMap<
         selectSingle(
           ['rollTableKind'],
           'Match Rolls By',
-          {
-            kind: 'INLINE_OPTIONS',
-            options: PATH_ROLL_TABLE_KIND_OPTIONS
-          },
+          inlineOptions(PATH_ROLL_TABLE_KIND_OPTIONS),
           {
             requiredIf: true,
             showIf: local.field(['selectionKind']).eq('ROLL_TABLE')

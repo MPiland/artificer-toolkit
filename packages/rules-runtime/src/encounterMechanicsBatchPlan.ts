@@ -1,3 +1,4 @@
+import { v5 as uuidv5 } from 'uuid'
 import { encounterActorBody } from './encounterActorBody.js'
 import { withDamageTypesTaken } from './encounterDamageTypesSinceTurnStart.js'
 import { characterAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/character'
@@ -43,6 +44,7 @@ import {
 import { nextEncounterActorDefeated } from './encounterActorDefeat.js'
 import {
   applyDamageInterceptions,
+  interceptionChargesSpent,
   withInterceptionChargesSpent,
   type HeldDamageInterception
 } from './encounterDamageInterception.js'
@@ -65,6 +67,8 @@ import {
 } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 
 type EncounterActor = EncounterRunActorState
+// Names the Sheet usage row a Character's first interception charge spend creates, so replays agree.
+const interceptionUsageNamespace = '0d6f3c8e-2b41-4f7a-9c55-7e1a4b9d3f20'
 type LoadedCharacterSheetFacts = {
   active: { id: string; play: { streamVersion: number } }
   character: CharacterAuthored
@@ -586,6 +590,35 @@ export function planEncounterMechanicsBatch(input: {
     ownConditionIds,
     campaignConditionIds
   })
+  // A feature-held interception spends its feature's Sheet pool in the same Character version.
+  const interceptionCharges = interceptionChargesSpent(folded.applications)
+  for (const { poolId, beforeUsed, afterUsed } of interceptionCharges) {
+    const owner = batch.damageInterceptions?.find(
+      ({ charge }) =>
+        charge?.owner !== undefined && createCharacterResourceOwnerKey(charge.owner) === poolId
+    )?.charge?.owner
+    const matchingUsage = nextResourceUsage.filter(
+      (usage) => createCharacterResourceOwnerKey(usage.owner) === poolId
+    )
+    const [existingUsage] = matchingUsage
+    if (!owner || matchingUsage.length > 1 || (existingUsage?.used ?? 0) !== beforeUsed)
+      throw new Error('Encounter Character resource usage is stale.')
+    nextResourceUsage = [
+      ...nextResourceUsage.filter((usage) => usage !== existingUsage),
+      {
+        ...(existingUsage ?? {
+          id: uuidv5(`${loaded.active.id}:${poolId}`, interceptionUsageNamespace),
+          characterId: loaded.active.id,
+          owner,
+          createdBy: userId,
+          createdAt: batch.occurredAt
+        }),
+        used: afterUsed,
+        updatedBy: userId,
+        updatedAt: batch.occurredAt
+      }
+    ]
+  }
   const existingConditionIds = new Set(ownConditionIds)
   const nextConditionIds = new Set(folded.afterOwnConditionIds)
   // D63: dropping to 0 adds the System's 0 hit point condition and regaining any removes it. It
@@ -618,6 +651,7 @@ export function planEncounterMechanicsBatch(input: {
   const sheetStateChanged =
     resourceConsumption !== undefined ||
     batch.characterResourceRestores !== undefined ||
+    interceptionCharges.length > 0 ||
     itemConsumption !== undefined ||
     itemDegradationTransition !== null
   const sheetHitPointsChanged =
@@ -799,6 +833,7 @@ function foldCharacterBatch(input: {
           {
             ...lastDamage,
             damageDisposition: 'NORMAL',
+            incomingHalved: false,
             critical: false,
             requestedAmount: excessDamage,
             resolvedAmount: excessDamage,

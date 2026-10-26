@@ -6,6 +6,10 @@ import type {
   CharacterGrantFoldSource
 } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
+import {
+  incomingDamagePayloadDtoSchema,
+  type IncomingDamageProfileDto
+} from '@artificer-toolkit/schema/grants/modifier'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { attackDomainCodeSchema } from '@artificer-toolkit/schema/shared/enums'
@@ -33,7 +37,11 @@ import {
   record
 } from './character/activeEffectGrantTotals.js'
 import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
-import { effectEventScope, type EffectEventScope } from './events/encounterEventHooks.js'
+import {
+  effectEventScope,
+  isInEffectEventScope,
+  type EffectEventScope
+} from './events/encounterEventHooks.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
 import {
@@ -263,6 +271,8 @@ export type EncounterHolderState = {
    * which `TURN_MOVEMENT` weighs; both 0 off its turn.
    */
   turnMovement: { usedFeet: number; speedFeet: number }
+  /** The authored ids of the holder's live active effects, which HOLDER_ACTIVE_EFFECT reads. */
+  activeAuthoredEffectIds: readonly string[]
   /**
    * When no hand is free, the held weapon a Character can stow for free to free one (its off hand
    * first, never a shield, D152); null otherwise.
@@ -292,22 +302,33 @@ function creatureTypeConditionMatches(
   )
 }
 
-/** Whether the holder meets a condition, or `undefined` when it cannot be decided here. */
+/**
+ * Whether the holder meets a condition, or `undefined` when it cannot be decided here: it is no
+ * holder condition, or the part of the holder state it reads is not known.
+ */
 function holderConditionMatches(
   condition: ModifierRestrictions[number]['conditions'][number],
-  holderState: EncounterHolderState
+  holderState: Partial<EncounterHolderState>
 ): boolean | undefined {
   switch (condition.kind) {
     case 'HOLDER_KIND':
-      return condition.requiredIds.includes(holderState.kind)
+      return holderState.kind && condition.requiredIds.includes(holderState.kind)
     case 'CREATURE_TYPE':
-      return creatureTypeConditionMatches(condition, holderState.creatureTypeIds)
+      return (
+        holderState.creatureTypeIds &&
+        creatureTypeConditionMatches(condition, holderState.creatureTypeIds)
+      )
     case 'TURN_MOVEMENT': {
+      if (!holderState.turnMovement) return undefined
       const { usedFeet, speedFeet } = holderState.turnMovement
       return (
         (condition.max === null || usedFeet <= condition.max) &&
         (condition.speedFraction === null || usedFeet <= speedFeet * condition.speedFraction)
       )
+    }
+    case 'HOLDER_ACTIVE_EFFECT': {
+      const activeIds = holderState.activeAuthoredEffectIds
+      return activeIds && condition.requiredIds.some((id) => activeIds.includes(id))
     }
     default:
       return isHolderStateKind(condition.kind)
@@ -318,12 +339,12 @@ function holderConditionMatches(
 
 /**
  * Whether a modifier's holder restrictions hold: some group has only holder conditions and every
- * one is met. Any other condition cannot be decided here and fails closed, so the group does not
- * hold.
+ * one is met. Any other condition, or one reading holder state not given, cannot be decided here
+ * and fails closed, so the group does not hold.
  */
 export function holderStateRestrictionsHold(
   restrictions: ModifierRestrictions,
-  holderState: EncounterHolderState
+  holderState: Partial<EncounterHolderState>
 ): boolean {
   return (
     restrictions.length === 0 ||
@@ -409,7 +430,10 @@ function hasSourceRestriction(restrictions: ModifierRestrictions): boolean {
 function hasHolderStateRestriction(restrictions: ModifierRestrictions): boolean {
   return restrictions.some((group) =>
     group.conditions.some(
-      (condition) => isHolderStateKind(condition.kind) || condition.kind === 'TURN_MOVEMENT'
+      (condition) =>
+        isHolderStateKind(condition.kind) ||
+        condition.kind === 'TURN_MOVEMENT' ||
+        condition.kind === 'HOLDER_ACTIVE_EFFECT'
     )
   )
 }
@@ -440,6 +464,7 @@ export function encounterGrantsEnabledDomain(
   domain: Extract<
     ValueDomainCode,
     | 'OPPORTUNITY_ATTACK_IMMUNITY'
+    | 'FREE_OPPORTUNITY_REACTION'
     | 'SPELLCASTING_LOCK'
     | 'ACTION_BONUS_ACTION_EXCLUSIVITY'
     | 'HEALING_RECEIVED'
@@ -450,6 +475,89 @@ export function encounterGrantsEnabledDomain(
       (modifier) => modifier.valueDomainCode === domain && modifier.modifierKind === 'ENABLE'
     )
   )
+}
+
+/**
+ * Whether the holder's active effects let this reactor make an opportunity reaction against it
+ * without its reaction (`FREE_OPPORTUNITY_REACTION`), on the reactors and turns each effect's event
+ * scope admits: only the source of an effect limited to its source (a Mark), anyone otherwise.
+ */
+export function encounterGrantsFreeOpportunityReaction(input: {
+  holderActorId: string
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>[]
+  reactorActorId: string
+  turnActorId: string | null
+}): boolean {
+  return input.effects.some((effect) => {
+    const scope = effectEventScope(effect, input.holderActorId)
+    return (
+      scope !== null &&
+      isInEffectEventScope(scope, {
+        actorId: input.reactorActorId,
+        turnActorId: input.turnActorId
+      }) &&
+      encounterGrantsEnabledDomain([effect], 'FREE_OPPORTUNITY_REACTION')
+    )
+  })
+}
+
+/**
+ * What a holder's amount bonuses read; null where the holder has no such value (a Creature has no
+ * class levels or proficiency bonus in its facts), and such a bonus adds nothing.
+ */
+export type IncomingDamageHolder = {
+  abilityModifier(ability: string): number | null
+  proficiencyBonus: number | null
+  classLevel(classId: string): number | null
+}
+
+/**
+ * How a holder takes damage, from its held modifiers (a Character's fold, or a Creature's features
+ * and active grants): any `INCOMING_DAMAGE` `HALVE` halves each damage application, each
+ * `SAVE_FOR_HALF` replaces what a save-for-half effect deals it on a save of its abilities, and each
+ * `REDUCE` takes its die plus its bonuses, resolved for the holder now, from an attack's damage.
+ */
+export function incomingDamageProfile(
+  modifiers: readonly {
+    modifierKind: string
+    valueDomainCode: string
+    payload?: object | undefined
+  }[],
+  holder: IncomingDamageHolder
+): IncomingDamageProfileDto {
+  const payloads = modifiers
+    .filter(
+      ({ modifierKind, valueDomainCode }) =>
+        modifierKind === 'ENABLE' && valueDomainCode === 'INCOMING_DAMAGE'
+    )
+    .map(({ payload }) => incomingDamagePayloadDtoSchema.parse(payload))
+  return {
+    halved: payloads.some(({ incomingDamageKind }) => incomingDamageKind === 'HALVE'),
+    saveForHalf: payloads.flatMap((payload) =>
+      payload.incomingDamageKind === 'SAVE_FOR_HALF' ? [payload] : []
+    ),
+    reductions: payloads.flatMap((payload) => {
+      if (payload.incomingDamageKind !== 'REDUCE') return []
+      const flat = payload.bonuses.reduce((sum, bonus) => {
+        const value =
+          bonus.bonusKind === 'ABILITY_BONUS'
+            ? holder.abilityModifier(bonus.ability)
+            : bonus.bonusKind === 'CLASS_LEVEL'
+              ? holder.classLevel(bonus.classId)
+              : holder.proficiencyBonus
+        if (value === null) return sum
+        const scaled = value * (bonus.multiplier ?? 1)
+        return sum + Math.min(bonus.max ?? scaled, Math.max(bonus.min ?? scaled, scaled))
+      }, 0)
+      const { count, faces } = payload
+      return [
+        {
+          die: count === undefined || faces === undefined ? null : { count, faces },
+          flat: Math.max(0, Math.floor(flat))
+        }
+      ]
+    })
+  }
 }
 
 /** An `ATTACKS_AGAINST` grant the target holds, for attacks of one attack domain against it. */
@@ -620,7 +728,7 @@ export function encounterFeatureSkillCheckContributors(input: {
   )
 }
 
-/** A holder's condition immunity that holds only against sources of certain creature types. */
+/** A holder's restricted condition immunity: against the sources its qualifier admits (all when empty). */
 export type EncounterSourceConditionImmunity = {
   conditionTypeId: string
   sourceQualifier: SourceCreatureQualifier
@@ -629,7 +737,8 @@ export type EncounterSourceConditionImmunity = {
 /**
  * The condition immunities a holder's active effects and own features (a Character's folded
  * features, a Creature's feature modifiers) give only against some sources (Protection from Evil
- * and Good, Purity of Spirit, Fey Ancestry's magical sleep), whose holder restrictions hold now. Unqualified immunities fold as plain ones.
+ * and Good, Purity of Spirit, Fey Ancestry's magical sleep) or only in some holder state (Mindless
+ * Rage while raging), whose holder restrictions hold now. Unqualified immunities fold as plain ones.
  */
 export function encounterSourceConditionImmunities(input: {
   effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition'>[]
@@ -653,7 +762,7 @@ export function encounterSourceConditionImmunities(input: {
     if (
       modifier.valueDomainCode !== 'CONDITION_IMMUNITY' ||
       modifier.modifierKind !== 'ADD_OPTION' ||
-      !hasSourceRestriction(restrictions) ||
+      !(hasSourceRestriction(restrictions) || hasHolderStateRestriction(restrictions)) ||
       payload === undefined ||
       !('conditionTypeId' in payload)
     )
@@ -725,6 +834,18 @@ export function hasFeatureSourceRestrictedGrants(
     (modifier) =>
       modifier.source.kind !== 'ACTIVE_EFFECT' &&
       hasSourceRestriction(modifier.deferredRequirements)
+  )
+}
+
+/** Whether a Character's own features carry a condition immunity its holder state decides (Mindless Rage). */
+export function hasFeatureHolderStateConditionImmunities(
+  grantFold: Pick<CharacterGrantFoldOutput, 'modifiers'> | null
+): boolean {
+  return (grantFold?.modifiers ?? []).some(
+    (modifier) =>
+      modifier.valueDomainCode === 'CONDITION_IMMUNITY' &&
+      modifier.source.kind !== 'ACTIVE_EFFECT' &&
+      hasHolderStateRestriction(modifier.deferredRequirements)
   )
 }
 

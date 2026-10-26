@@ -1,7 +1,7 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
+  DURATION_KIND,
   EFFECT_KIND,
   GRANT_KIND,
   MODIFIER_KIND,
@@ -11,8 +11,8 @@ import {
   RANGE_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type AbilityCode,
   type ActivationCode,
+  type ModifierIncomingDamageAuthored,
   type AuthoringConstraintCode,
   type DamageDefenseBypassCode,
   type EquipmentCategoryCode,
@@ -23,8 +23,10 @@ import type {
   EffectAuthored,
   FacetAuthored,
   ModifierGrantAuthored,
-  OptionAuthored
+  OptionAuthored,
+  ReactionAttackedSelfTriggerBindingAuthored
 } from '@artificer-toolkit/shared/authored'
+import { ABILITY_CODE, type SrdAbilityCode } from '../vocabulary.js'
 
 export { closedRuleEffect } from '../closed-rule-effect.js'
 
@@ -73,24 +75,41 @@ export function selfActionEffect(input: {
 }
 
 /**
- * A passive class feature whose whole rule is a ruling the GM makes at the table (D187a). The
- * caller supplies every id so each feature keeps its own.
+ * A class feature whose whole rule is a ruling the GM makes at the table (D187a): passive, or,
+ * with `resourceUse`, a free action that spends the feature's charge and hands its effect to the
+ * table (Indomitable's reroll). The caller supplies every id so each feature keeps its own.
  */
 export function gmRulingEffect(input: {
   ids: { effect: string; range: string; path: string; result: string; outcome: string }
   label: string
   instructions: string
   reasonCode: ManualAdjudicationReason
+  resourceUse?: { chargeId: string; cost: number }
+  /** The action the ruling takes; one with a resource cost and no action given is free. */
+  activationCode?: Exclude<ActivationCode, 'FREE'>
 }): EffectAuthored {
+  const range = { id: input.ids.range, rangeKind: RANGE_KIND.SELF } as const
   return {
     id: input.ids.effect,
     order: 1,
-    invocation: {
-      kind: 'PASSIVE',
-      triggerCode: TRIGGER.ACTIVATED,
-      range: { id: input.ids.range, rangeKind: RANGE_KIND.SELF },
-      targeting: { selectionKind: 'SELF' }
-    },
+    invocation:
+      input.resourceUse || input.activationCode
+        ? {
+            kind: 'ACTION',
+            triggerCode: TRIGGER.ACTIVATED,
+            ...(input.resourceUse ? { resourceUse: input.resourceUse } : {}),
+            activation: input.activationCode
+              ? { code: input.activationCode, amount: 1 }
+              : { code: ACTIVATION_CODE.FREE },
+            range,
+            targeting: { selectionKind: 'SELF' }
+          }
+        : {
+            kind: 'PASSIVE',
+            triggerCode: TRIGGER.ACTIVATED,
+            range,
+            targeting: { selectionKind: 'SELF' }
+          },
     paths: [
       {
         id: input.ids.path,
@@ -276,7 +295,7 @@ export function conditionSaveAdvantageGrants(
  */
 export function magicSaveAdvantageGrants(
   makeId: (entry: number) => string,
-  abilities: readonly AbilityCode[],
+  abilities: readonly SrdAbilityCode[],
   firstOrder = 0
 ): ModifierGrantAuthored[] {
   return abilities.map((ability, index) => ({
@@ -315,6 +334,109 @@ export function magicConditionImmunityGrant(
     payload: { conditionTypeId },
     restrictions: sourceTraitRestriction((entry) => makeId(1 + entry), 'INCLUDE', ['MAGICAL']),
     order
+  }
+}
+
+/**
+ * Evasion: against an effect that deals half its damage on a successful Dexterity save, the holder
+ * takes none on a success and half on a failure.
+ */
+export function evasionGrant(id: string): ModifierGrantAuthored {
+  return {
+    id,
+    grantKind: GRANT_KIND.MODIFIER_GRANT,
+    valueDomainCode: VALUE_DOMAIN_CODE.INCOMING_DAMAGE,
+    domain: {},
+    modifierKind: MODIFIER_KIND.ENABLE,
+    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+    payload: {
+      incomingDamageKind: 'SAVE_FOR_HALF',
+      saveAbilities: [ABILITY_CODE.DEXTERITY],
+      onSaveSuccess: 'NONE',
+      onSaveFailure: 'HALF'
+    },
+    order: 0
+  }
+}
+
+type IncomingDamageReaction = {
+  trigger: ReactionAttackedSelfTriggerBindingAuthored
+  payload: ModifierIncomingDamageAuthored
+}
+
+/** Uncanny Dodge: answers a hit by an attacker the holder sees by halving that attack's damage. */
+export const uncannyDodgeReaction = {
+  trigger: { kind: 'ATTACKED_SELF', requiresSight: true },
+  payload: { incomingDamageKind: 'HALVE' }
+} as const satisfies IncomingDamageReaction
+
+/**
+ * A reaction to a hit that changes how the holder takes that attack's damage (used up by the
+ * attack), on the same path as Parry. The caller supplies every id.
+ */
+export function incomingDamageReactionEffect(
+  ids: {
+    effect: string
+    range: string
+    path: string
+    duration: string
+    outcome: string
+    grant: string
+  },
+  reaction: IncomingDamageReaction
+): EffectAuthored {
+  return {
+    id: ids.effect,
+    order: 1,
+    invocation: {
+      kind: 'ACTION',
+      triggerCode: TRIGGER.ACTIVATED,
+      activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
+      reactionTrigger: reaction.trigger,
+      range: { id: ids.range, rangeKind: RANGE_KIND.SELF },
+      targeting: { selectionKind: 'SELF' }
+    },
+    paths: [
+      {
+        id: ids.path,
+        order: 1,
+        pathCode: PATH_CODE.ON_USE,
+        groupType: PATH_GROUP_TYPE.SINGLE,
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: `${ids.path}__result`,
+          resultKind: 'SINGLE',
+          duration: { id: ids.duration, durationKind: DURATION_KIND.ROUND, amount: 1 },
+          lifecycle: {
+            turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+            consumeOnFirstEvents: ['ON_ATTACKED']
+          },
+          outcomes: [
+            {
+              id: ids.outcome,
+              effectKind: EFFECT_KIND.APPLY_GRANT,
+              grants: {
+                modifiers: [
+                  {
+                    id: ids.grant,
+                    grantKind: GRANT_KIND.MODIFIER_GRANT,
+                    valueDomainCode: VALUE_DOMAIN_CODE.INCOMING_DAMAGE,
+                    domain: {},
+                    modifierKind: MODIFIER_KIND.ENABLE,
+                    scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                    selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                    payload: reaction.payload,
+                    order: 1
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
   }
 }
 

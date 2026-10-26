@@ -398,6 +398,7 @@ describe('encounter action rule warning gate', () => {
             target: prepared.target,
             targetPolicy: prepared.targetPolicy,
             makesAttackRoll: prepared.makesAttackRoll,
+            facing: null,
             sceneContext: farApart
           },
           targetDefeated: false,
@@ -461,6 +462,7 @@ describe('encounter action rule warning gate', () => {
             pathOverrides: []
           },
           makesAttackRoll: false,
+          facing: null,
           sceneContext: farApart
         },
         targetDefeated: false,
@@ -510,9 +512,10 @@ describe('encounter action rule warning gate', () => {
             pathOverrides: []
           },
           makesAttackRoll: false,
+          facing: null,
           sceneContext: null
         },
-        ...sizes,
+        sizes: { gameSystemId: SRD_SYSTEM_ID, actor: sizes.actorSize, target: sizes.targetSize },
         targetDefeated: false,
         targetPreconditions: { declared: [], target: undefined },
         actionEconomy: null,
@@ -581,6 +584,7 @@ describe('encounter action rule warning gate', () => {
         target: { id, disposition: 'FRIENDLY' as const },
         targetPolicy: chosenPolicy(shape),
         makesAttackRoll: false,
+        facing: null,
         sceneContext
       },
       targetDefeated: false,
@@ -611,24 +615,24 @@ describe('encounter action rule warning gate', () => {
       })
     })
 
-    it('warns once for each bonded creature whose Intelligence is at or under the floor (SPELLS-28)', () => {
+    it('warns once for each bonded creature whose floored ability score is at or under the floor (SPELLS-28)', () => {
       const nextDoor = { grid, sourceToken: square(0), targetToken: square(1) }
-      const bond = (intelligences: (number | null)[]) =>
+      const bond = (scores: (number | null)[]) =>
         evaluateEncounterActorsRuleWarnings({
           preparedWarnings: [],
-          targets: intelligences.map((targetIntelligence, index) => ({
+          targets: scores.map((targetLinkAbilityScore, index) => ({
             ...entry(`00000000-0000-4000-8000-0000000b01${index}0`, nextDoor, null),
-            targetIntelligence
+            targetLinkAbilityScore
           })),
           areaWarnings: [],
           actionEconomy: null,
           activationCode: 'ACTION',
-          linkIntelligenceFloor: 2,
+          linkAbilityFloor: 2,
           acknowledged: []
         })
       const dullWarning: EncounterRuleWarningDto = {
-        code: 'TARGET_INTELLIGENCE_EXCLUDED',
-        message: 'This creature has too little Intelligence to join the bond.'
+        code: 'TARGET_ABILITY_EXCLUDED',
+        message: 'This creature’s ability score is too low to join the bond.'
       }
       expect(bond([2, 1, 3, null])).toEqual({ kind: 'UNACKNOWLEDGED', warnings: [dullWarning] })
       expect(bond([3, null])).toEqual({ kind: 'ACCEPTED', overrides: [] })
@@ -697,6 +701,7 @@ describe('encounter action rule warning gate', () => {
           target: prepared.target,
           targetPolicy: prepared.targetPolicy,
           makesAttackRoll: false,
+          facing: null,
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
         targetDefeated: false,
@@ -745,6 +750,7 @@ describe('encounter action rule warning gate', () => {
           target: prepared.target,
           targetPolicy: prepared.targetPolicy,
           makesAttackRoll: false,
+          facing: null,
           sceneContext: { grid, sourceToken: square(0), targetToken: square(targetColumn) }
         },
         targetDefeated: false,
@@ -771,6 +777,7 @@ describe('encounter action rule warning gate', () => {
             pathOverrides: []
           },
           makesAttackRoll: false,
+          facing: null,
           sceneContext: null
         },
         targetDefeated: true,
@@ -807,6 +814,7 @@ describe('encounter action rule warning gate', () => {
             pathOverrides: []
           },
           makesAttackRoll: false,
+          facing: null,
           sceneContext: null
         },
         targetDefeated: true,
@@ -881,6 +889,7 @@ describe('encounter action rule warning gate', () => {
               pathOverrides: []
             },
             makesAttackRoll: false,
+            facing: null,
             sceneContext: null
           },
           targetCreatureTypeId,
@@ -950,7 +959,14 @@ describe('encounter action rule warning gate', () => {
     expect(
       evaluateEncounterActionRuleWarnings({
         preparedWarnings: [],
-        target: { actor, target, targetPolicy, makesAttackRoll: false, sceneContext: null },
+        target: {
+          actor,
+          target,
+          targetPolicy,
+          makesAttackRoll: false,
+          sceneContext: null,
+          facing: null
+        },
         targetDefeated: false,
         targetPreconditions: { declared: [], target: undefined },
         actionEconomy: null,
@@ -966,6 +982,7 @@ describe('encounter action rule warning gate', () => {
           target,
           targetPolicy: { ...targetPolicy, targeting: null },
           makesAttackRoll: false,
+          facing: null,
           sceneContext: null
         },
         targetDefeated: false,

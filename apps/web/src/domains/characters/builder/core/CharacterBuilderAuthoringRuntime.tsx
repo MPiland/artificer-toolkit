@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Stack, Text } from '@mantine/core'
+import { SystemChoiceAlert } from '#forms/layout/SystemChoiceAlert'
 import { notifications } from '@mantine/notifications'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import {
@@ -136,7 +137,7 @@ export function CharacterBuilderAuthoringRuntime({
   if (session.systemRequired) {
     return (
       <Stack>
-        <Alert color='yellow'>A system is required before creating characters.</Alert>
+        <SystemChoiceAlert subjectPlural='characters' systems={session.systems} />
         <Button onClick={() => void handleCancel()}>Back to characters</Button>
       </Stack>
     )

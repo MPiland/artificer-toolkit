@@ -1221,6 +1221,8 @@ export type NodeDataSource = {
   kind: 'DATA'
   relationship: RelationshipPlan
   preserveUnknownOptions?: boolean
+  /** Narrows the table's options to the values another relationship allows or denies. */
+  filter?: InlineFilter
 }
 
 export type NodeLocalCollectionSource = {
@@ -1329,6 +1331,24 @@ export type NodeMap<NLocal extends object> = {
   schemaVersion: 1
   mapId: string
   nodes: Record<NodeId, NodeEntry<NLocal>>
+  /** Set on a map keyed by a System table's rows; its `nodes` are empty until the resolver expands it. */
+  keyedBy?: NodeKeyedBy
+}
+
+/**
+ * A map whose keys are the rows of a System table (D193): the resolver adds one `entry` per row of
+ * the request's System, keyed by the row code, labelled by the row and in row order.
+ */
+export type NodeKeyedBy = {
+  rows: TablePlan
+  entry:
+    | { kind: typeof NODE_KIND.INPUT; type: 'NUMBER'; constraints?: AuthoringInputConstraints }
+    | {
+        kind: typeof NODE_KIND.GROUP
+        groupKind: 'OBJECT'
+        presentation: ObjectGroupPresentation
+        nodes: Lazy<RuntimeNodeMap>
+      }
 }
 
 /** Any node map with its document type erased, for code that walks maps generically (registries, masking). */
@@ -1623,6 +1643,7 @@ export type BuildNodeMap<NLocal extends object> = {
     build: (api: BuildApi<NLocal>) => void,
     authoring?: NodeMapAuthoringMeta
   ): NodeMap<NLocal>
+  defineKeyed(mapId: string, keyedBy: NodeKeyedBy): NodeMap<NLocal>
   logic: Logic
   cond: ConditionIfBuilder<NLocal>
   data: DataBuilder
@@ -1645,6 +1666,7 @@ export function buildNodeMap<NLocalIn extends object = EmptyObject>(): BuildNode
       build({ logic, cond, data, nodes, map })
       return { schemaVersion: 1, mapId, nodes: map.build(), authoring }
     },
+    defineKeyed: (mapId, keyedBy) => ({ schemaVersion: 1, mapId, nodes: {}, keyedBy }),
     logic,
     cond,
     data,

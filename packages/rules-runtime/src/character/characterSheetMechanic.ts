@@ -1,5 +1,3 @@
-import type { AbilityCode } from '@artificer-toolkit/shared/core'
-
 export type CharacterSheetProjectedOutcome =
   | {
       kind: 'DAMAGE'
@@ -45,7 +43,7 @@ export interface CharacterSheetProjectedMechanic {
   attackBonus?: number
   attackRollMode?: string
   save?: {
-    ability: AbilityCode
+    ability: string
     dc?: number
   }
   outcomes: CharacterSheetProjectedOutcome[]

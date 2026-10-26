@@ -161,7 +161,8 @@ export async function planNativeTargetOutcome(
     temporaryHitPoints: binding.temporaryHitPoints,
     maximumHitPoints: binding.maximumHitPoints,
     defenses: binding.defenses,
-    conditionImmunityIds: binding.conditionImmunityIds
+    conditionImmunityIds: binding.conditionImmunityIds,
+    incomingHalved: binding.incomingHalved
   })
   const forcedMovements = interpretForcedMovements(prepared, {
     execution,

@@ -9,6 +9,8 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { MAX_SPATIAL_RULE_EFFECTS_PER_SCENE } from '../shared/spatial.js'
 import { encounterInitiativePolicySnapshotDtoSchema } from '../shared/initiativePolicySnapshot.js'
 import { encounterOptionalCombatSnapshotDtoSchema } from '../shared/optionalCombat.js'
+import { encounterActorMoraleDtoSchema } from '../shared/encounterMorale.js'
+import { encounterConsequenceRollOffersDtoSchema } from '../shared/consequenceRolls.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
 import { jsonValueSchema, projectionChecksumSchema } from './identity.js'
 
@@ -31,10 +33,17 @@ const encounterRunActorStateBaseSchema = lazySchema(() =>
       activeGrants: true,
       concentration: true,
       concealment: true,
-      defeated: true
+      defeated: true,
+      morale: true,
+      moraleOffers: true,
+      consequenceRollOffers: true
     }),
     {
       sideId: postgresUuidSchema,
+      /** The actor's latest morale check (ENCOUNTER-6.2), absent when none was made. */
+      morale: z.optional(encounterActorMoraleDtoSchema),
+      /** The open consequence-table roll offers (ATTACK-15), absent when none. */
+      consequenceRollOffers: z.optional(encounterConsequenceRollOffersDtoSchema),
       snapshot: jsonValueSchema,
       resources: jsonValueSchema,
       createdAt: z.iso.datetime(),
@@ -176,7 +185,6 @@ export const encounterRunActorStateSchema = lazySchema(() =>
 
 const encounterActorProjectionFactsBaseSchema = lazySchema(() =>
   z.omit(encounterRunActorStateBaseSchema, {
-    sideId: true,
     snapshot: true,
     createdAt: true,
     updatedAt: true
@@ -273,7 +281,8 @@ export const encounterRunStateSchema = lazySchema(() =>
     z.omit(encounterGmProjectionDtoSchema, {
       actors: true,
       initiativePolicy: true,
-      optionalCombatRules: true
+      optionalCombatRules: true,
+      facingStepDegrees: true
     }),
     {
       actorIds: z.array(postgresUuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS)),

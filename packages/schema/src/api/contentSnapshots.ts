@@ -12,9 +12,9 @@ import {
   creatureCategoryCodeSchema,
   equipmentCategoryCodeSchema,
   equipmentPropertyCodeSchema,
-  sizeCodeSchema,
   vehicleCategoryCodeSchema
 } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { speedDtoSchema } from '../shared/speed.js'
 import { proficiencyGrantDtoSchema } from '../grants/proficiency.js'
@@ -85,9 +85,15 @@ export function parseContentSnapshotObjectKey(
 
 const identityShape = () => ({ id: authoredIdentifierSchema, label: authoredShortTextSchema })
 
+// A fixed increase names its System ability code, which the reader labels; a summary fact
+// ("All abilities", "Choose 2 abilities") carries its own label.
 const abilityScoreIncreaseFactSchema = lazySchema(() =>
-  z.strictObject({ label: z.string(), value: z.string() })
+  z.union([
+    z.strictObject({ ability: systemCoreCodeSchema, value: z.string() }),
+    z.strictObject({ label: z.string(), value: z.string() })
+  ])
 )
+export type ContentSnapshotAbilityScoreIncreaseFact = z.infer<typeof abilityScoreIncreaseFactSchema>
 
 // Index entries hold each root's own picker facts. Labels resolved through the System vocabulary
 // or another root (speed names, proficiency targets, a subrace's inherited facts) are joined by
@@ -99,7 +105,7 @@ export const contentSnapshotRaceIndexEntrySchema = lazySchema(() =>
       category: z.literal('BASE'),
       description: z.optional(authoredRichTextSchema),
       selectionMode: baseRaceAuthoredDtoSchema.shape.selectionMode,
-      size: sizeCodeSchema,
+      size: systemCoreCodeSchema,
       speeds: authoredNestedCollectionSchema(speedDtoSchema),
       abilityScoreIncreaseFacts: z.array(abilityScoreIncreaseFactSchema)
     }),

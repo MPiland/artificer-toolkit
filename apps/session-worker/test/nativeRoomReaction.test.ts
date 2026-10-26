@@ -13,6 +13,8 @@ import { joltingGauntlet } from '@artificer-toolkit/rules-runtime/testing/joltin
 import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
 import { encounterActionPendingContextDtoSchema } from '@artificer-toolkit/schema/shared/encounterActionPending'
 import { creatureAuthoredDtoSchema } from '@artificer-toolkit/schema/subjects/creature'
+import { monk } from '@artificer-toolkit/source-data/srd/classes/monk.js'
+import { rogue } from '@artificer-toolkit/source-data/srd/classes/rogue.js'
 import { shield } from '@artificer-toolkit/source-data/srd/spells/shield.js'
 import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -116,6 +118,12 @@ function characterBatch(history: Awaited<ReturnType<typeof readRoomHistory>>) {
 
 const hitPointsLost = (batch: ReturnType<typeof characterBatch>) =>
   batch.targetTransition.before.currentHitPoints - batch.targetTransition.after.currentHitPoints
+
+function biteDamage(batch: ReturnType<typeof characterBatch>) {
+  const damage = batch.applications.find((application) => application.kind === 'DAMAGE')
+  if (damage?.kind !== 'DAMAGE') throw new Error('The Bite dealt no damage.')
+  return damage
+}
 
 /** The Character's spent spell slots as the Sheet's play state records them. */
 const readSpellSlots = (room: Room) =>
@@ -921,5 +929,167 @@ describe('room reaction menu for one hit (REACTION-4.2)', () => {
         }
       })
     ).toBe(false)
+  })
+})
+
+/**
+ * SPELLS-31.T5a (D156): the Rogue's Uncanny Dodge, authored as an `ATTACKED_SELF` reaction that
+ * needs sight and grants an `INCOMING_DAMAGE` HALVE adjustment, halves the hit that triggered it.
+ */
+describe('room Uncanny Dodge reaction to a hit (SPELLS-31.1)', () => {
+  /** The SRD Uncanny Dodge feature, acquired by the fixture Character at its first level. */
+  const uncannyDodge = (): ClassFeature => {
+    const feature = rogue.features?.find((entry) => entry.label === 'Uncanny Dodge')
+    if (!feature) throw new Error('The SRD Rogue must author Uncanny Dodge.')
+    return { ...feature, availableAtLevel: 1 }
+  }
+
+  const dodgeRoom = (options: Pick<Parameters<typeof actionRoom>[0], 'characterPlay'> = {}) =>
+    actionRoom({
+      ...options,
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: attackBite }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(attackBite, 'Bite').id,
+      characterClassFeatures: [uncannyDodge()]
+    })
+
+  it('halves the hit when used, spends the reaction, and undoes with it', async () => {
+    const room = await dodgeRoom()
+    const before = await readRoomHistory(room.room.base.stub)
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    expect(pending.targetActorId).toBe(CHARACTER_ACTOR_ID)
+
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+
+    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
+    const damage = biteDamage(batch)
+    expect(damage.incomingHalved).toBe(true)
+    expect(damage.resolvedAmount).toBe(Math.floor(damage.requestedAmount / 2))
+    expect(hitPointsLost(batch)).toBe(damage.resolvedAmount)
+    expect(batch.reaction).toMatchObject({
+      selection: 'USE',
+      reaction: { trigger: 'ATTACKED_SELF' },
+      actionEconomyTransition: { beforeUsed: 0, afterUsed: 1 }
+    })
+
+    await undoLastAction(room)
+    expect((await readRoomHistory(room.room.base.stub)).actors).toEqual(before.actors)
+    await strike(room, 0)
+    await offeredReaction(room)
+  })
+
+  it('takes the whole hit when declined, spending nothing', async () => {
+    const room = await dodgeRoom()
+    await strike(room, 0)
+    const { decision } = await offeredReaction(room)
+    const declined = await room.resolve(decision, { kind: 'DECLINE' })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+
+    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
+    const damage = biteDamage(batch)
+    expect(damage.incomingHalved).toBe(false)
+    expect(damage.resolvedAmount).toBe(damage.requestedAmount)
+    expect(batch.reaction).toMatchObject({ selection: 'DECLINE' })
+  })
+
+  it('is not offered to a Character who cannot see the attacker', async () => {
+    const room = await dodgeRoom({
+      characterPlay: {
+        conditions: [{ conditionTypeId: conditionId('BLINDED'), label: 'Blinded' }]
+      }
+    })
+    await strike(room, 0)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(
+      biteDamage(characterBatch(await readRoomHistory(room.room.base.stub))).incomingHalved
+    ).toBe(false)
+  })
+})
+
+/**
+ * SPELLS-31.T5b (D156): the Monk's Deflect Missiles, authored as an `ATTACKED_SELF` reaction to a
+ * ranged weapon attack that grants an `INCOMING_DAMAGE` REDUCE of 1d10 + Dexterity modifier + monk
+ * level, takes the reduction off the hit that triggered it.
+ */
+describe('room Deflect Missiles reaction to a ranged weapon hit (SPELLS-31.1)', () => {
+  const BITE_DAMAGE = 10
+  /** The SRD Deflect Missiles feature, acquired by the fixture Fighter at its first level. */
+  const deflectMissiles = (): ClassFeature => {
+    const feature = monk.features?.find((entry) => entry.label === 'Deflect Missiles')
+    if (!feature) throw new Error('The SRD Monk must author Deflect Missiles.')
+    return { ...feature, availableAtLevel: 1 }
+  }
+
+  const deflectRoom = (ranged: boolean) => {
+    const bite = biteWolf('ATTACK', { damage: BITE_DAMAGE, ranged })
+    return actionRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: bite }),
+        characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID })
+      ],
+      ownerFeatureId: creatureFeature(bite, 'Bite').id,
+      characterClassFeatures: [deflectMissiles()]
+    })
+  }
+
+  it('reduces the ranged hit by 1d10 + Dexterity + monk level when used, and spends the reaction', async () => {
+    const room = await deflectRoom(true)
+    await strike(room, 0)
+    const { decision, pending } = await offeredReaction(room)
+    const used = await room.resolve(decision, {
+      kind: 'OPTION',
+      optionId: pending.options[0].optionId
+    })
+    expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    // The reduction's d10 waits on the attacker's roller, who enters a 5.
+    const dice = await room.pendingDecision()
+    if (dice.pending.kind !== 'ACTION_OUTCOME_EVIDENCE')
+      throw new Error(`Expected the reduction die, got ${dice.pending.kind}.`)
+    expect(dice.pending.request).toMatchObject({ min: 1, max: 10 })
+    const rolled = await room.resolve(dice, {
+      kind: 'ENTER_INTEGER',
+      requestId: dice.pending.request.requestId,
+      value: 5
+    })
+    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
+
+    const batch = characterBatch(await readRoomHistory(room.room.base.stub))
+    const damage = biteDamage(batch)
+    // A 5 on the d10, Dexterity +2, and no Monk levels on the fixture Fighter: 10 - 7.
+    expect(damage.requestedAmount).toBe(BITE_DAMAGE - 7)
+    expect(damage.incomingHalved).toBe(false)
+    expect(hitPointsLost(batch)).toBe(damage.resolvedAmount)
+    expect(batch.reaction).toMatchObject({
+      selection: 'USE',
+      reaction: { trigger: 'ATTACKED_SELF' },
+      actionEconomyTransition: { beforeUsed: 0, afterUsed: 1 }
+    })
+  })
+
+  it('takes the whole hit when declined', async () => {
+    const room = await deflectRoom(true)
+    await strike(room, 0)
+    const { decision } = await offeredReaction(room)
+    const declined = await room.resolve(decision, { kind: 'DECLINE' })
+    expect(declined.type, JSON.stringify(declined)).toBe('COMMAND_COMMITTED')
+    expect(
+      biteDamage(characterBatch(await readRoomHistory(room.room.base.stub))).requestedAmount
+    ).toBe(BITE_DAMAGE)
+  })
+
+  it('is not offered against a melee hit', async () => {
+    const room = await deflectRoom(false)
+    await strike(room, 0)
+    expect(await readPendingActionDecision(room.room.base.stub)).toBeNull()
+    expect(
+      biteDamage(characterBatch(await readRoomHistory(room.room.base.stub))).requestedAmount
+    ).toBe(BITE_DAMAGE)
   })
 })

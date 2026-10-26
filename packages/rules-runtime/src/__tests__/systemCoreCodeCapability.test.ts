@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { SRD_ABILITIES } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 
 import {
   eventVocabularyCapabilityRegistry,
@@ -54,6 +56,29 @@ describe('System vocabulary registry', () => {
         }
       ])
     ).toThrow('Duplicate roll-mode influence code.')
+    expect(() =>
+      createSystemCoreCodeRegistry([
+        { ...dnd5eCoreCodeAdapter, abilities: ['STRENGTH', 'STRENGTH'] }
+      ])
+    ).toThrow('Duplicate ability code.')
+  })
+})
+
+describe('System ability codes', () => {
+  it('lists the codes the SRD System record keys its abilities by, in its order', () => {
+    expect(systemCoreCodeRegistry.abilityCodes(DND5E_SYSTEM_ID)).toEqual(
+      SRD_ABILITIES.map(({ code }) => code)
+    )
+  })
+
+  it('refuses an ability code the System does not list', () => {
+    expect(() => systemCoreCodeRegistry.requireAbility(DND5E_SYSTEM_ID, 'STRENGTH')).not.toThrow()
+    expect(() => systemCoreCodeRegistry.requireAbility(DND5E_SYSTEM_ID, 'SANITY')).toThrow(
+      'The Game System does not define the ability "SANITY".'
+    )
+    expect(() =>
+      systemCoreCodeRegistry.requireAbility(DND5E_SYSTEM_ID, SPELLCASTING_ABILITY_REFERENCE)
+    ).toThrow('The Game System does not define the ability "SPELLCASTING".')
   })
 })
 

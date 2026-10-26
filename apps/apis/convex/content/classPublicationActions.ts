@@ -3,7 +3,7 @@ import { zodToConvex, zodToConvexFields } from 'convex-helpers/server/zod4'
 import { z } from 'zod'
 import {
   authoredSourceFacts,
-  normalizeNodeRuntimeValues,
+  normalizeIngressValues,
   type NodeRuntimeQueryRow,
   type NodeRuntimeSourceReader,
   type NodeRuntimeSourceTable
@@ -73,7 +73,7 @@ export const publishDraft = action({
         Object.fromEntries(columns.map((column) => [column, row[column] ?? null]))
       )
     }
-    const normalized = await normalizeNodeRuntimeValues(reader, {
+    const normalized = await normalizeIngressValues(reader, {
       mapId: 'class',
       systemId: prepared.systemId,
       values: authored.document

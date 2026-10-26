@@ -3,6 +3,8 @@ import { movementPassageOfModifiers } from '../encounterMovementPassagePolicy.js
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/identity.js'
 import { ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
 import { createCharacterMechanicSourceKey } from '@artificer-toolkit/shared/character'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
+import { RAGE_EFFECT_ID } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
   SRD_SPEEDS
@@ -29,11 +31,19 @@ import {
   srdDefinitions,
   testUuid
 } from '../testing/dnd5eSrdEncounter.js'
-import { dodgeEffect } from './antitoxinEffectFixture.js'
-import { SRD, evaluateSrdCharacter, srdByLabel, vocabulary } from '../testing/dnd5eSrdCharacter.js'
+import { dodgeEffect, rageEffect } from './antitoxinEffectFixture.js'
+import {
+  SRD,
+  evaluateSrdCharacter,
+  srdByLabel,
+  srdFeature,
+  vocabulary,
+  type SrdCharacter
+} from '../testing/dnd5eSrdCharacter.js'
 
 const HOLDER_ID = testUuid(0xd5a1)
 const DODGE_ID = testUuid(0xd5a2)
+const RAGE_ID = testUuid(0xd5a5)
 const { DEXTERITY } = SRD_ABILITY_DEFINITION_IDS
 const ATTACK_DOMAINS = Object.values(ATTACK_DOMAIN_CODE)
 const WALK_ID = SRD_SPEEDS.find((speed) => speed.code === 'WALK')?.id ?? ''
@@ -136,6 +146,49 @@ describe('ATTACKS_AGAINST on a Creature holder', () => {
   })
 })
 
+/** The Character target the Encounter builds: its policy folds the holder's active grants. */
+function characterHolder(
+  character: SrdCharacter,
+  activeEffects: ActiveRuleEffectRecord[],
+  conditionIds: readonly string[] = []
+): MovementTarget {
+  const effectiveRulePolicyOutput = resolveCharacterRulePolicyRollModes(
+    evaluateDnd5e2014CharacterPolicy(withCharacterActiveGrants(character.facts, activeEffects)),
+    vocabulary
+  )
+  return {
+    characterFacts: null,
+    actor: characterActor({ id: HOLDER_ID, characterId: testUuid(0xd5a3) }),
+    activeEffects,
+    state: { current: 10, temporary: 0, conditions: [...conditionIds], deathSaves: null },
+    initialConditionRows: null,
+    effectiveMaximumHitPoints: 10,
+    damageInterceptions: [],
+    baseScalarValues: {},
+    effectiveScalarValues: {},
+    baseRulePolicyOutput: null,
+    perceptionSenses: [],
+    effectiveRulePolicyOutput,
+    targetDerivedFacts: { ...effectiveRulePolicyOutput },
+    defenses: [],
+    incomingDamage: { halved: false, saveForHalf: [], reductions: [] },
+    qualifiedDefenses: [],
+    conditionImmunityIds: [],
+    sourceConditionImmunities: [],
+    sourceSaves: [],
+    spellSchoolImmunityIds: [],
+    characterCurrentness: null,
+    attackAgainstContributors: [],
+    sourceSightSaves: [],
+    conditionDefinitions: [],
+    conditionMechanics: [],
+    grantedAttackTraits: [],
+    movementPassage: movementPassageOfModifiers(DND5E_SYSTEM_ID, []),
+    featureModifiers: [],
+    innateConditionIds: []
+  }
+}
+
 describe('ATTACKS_AGAINST on a Character holder', () => {
   const fighter = evaluateSrdCharacter({
     race: 'Human',
@@ -143,47 +196,12 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
     classes: [{ label: 'Fighter', level: 1 }]
   })
 
-  /** The Character target the Encounter builds: its policy folds the holder's active grants. */
-  function characterHolder(conditionIds: readonly string[] = []): MovementTarget {
-    const effectiveRulePolicyOutput = resolveCharacterRulePolicyRollModes(
-      evaluateDnd5e2014CharacterPolicy(withCharacterActiveGrants(fighter.facts, [dodge()])),
-      vocabulary
-    )
-    return {
-      characterFacts: null,
-      actor: characterActor({ id: HOLDER_ID, characterId: testUuid(0xd5a3) }),
-      activeEffects: [dodge()],
-      state: { current: 10, temporary: 0, conditions: [...conditionIds], deathSaves: null },
-      initialConditionRows: null,
-      effectiveMaximumHitPoints: 10,
-      damageInterceptions: [],
-      baseScalarValues: {},
-      effectiveScalarValues: {},
-      baseRulePolicyOutput: null,
-      perceptionSenses: [],
-      effectiveRulePolicyOutput,
-      targetDerivedFacts: { ...effectiveRulePolicyOutput },
-      defenses: [],
-      qualifiedDefenses: [],
-      conditionImmunityIds: [],
-      sourceConditionImmunities: [],
-      sourceSaves: [],
-      spellSchoolImmunityIds: [],
-      characterCurrentness: null,
-      attackAgainstContributors: [],
-      sourceSightSaves: [],
-      conditionDefinitions: [],
-      conditionMechanics: [],
-      grantedAttackTraits: [],
-      movementPassage: movementPassageOfModifiers(DND5E_SYSTEM_ID, []),
-      featureModifiers: [],
-      innateConditionIds: []
-    }
-  }
+  const holder = (conditionIds: readonly string[] = []) =>
+    characterHolder(fighter, [dodge()], conditionIds)
 
   it("does not fold the restricted grants into the Character's own policy", () => {
-    const { effectiveRulePolicyOutput } = characterHolder()
-    expect(dexteritySave(characterHolder())).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
+    const { effectiveRulePolicyOutput } = holder()
+    expect(dexteritySave(holder())).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
     expect(effectiveRulePolicyOutput?.rollModes.attacks).toMatchObject({
       MELEE: 'NORMAL',
       RANGED: 'NORMAL'
@@ -191,7 +209,7 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
   })
 
   it('gives attacks against it disadvantage and its Dexterity save advantage', async () => {
-    const defended = await defend(characterHolder())
+    const defended = await defend(holder())
     expect(
       defended.attackAgainstContributors.map(({ attackDomain }) => attackDomain).sort()
     ).toEqual([...ATTACK_DOMAINS].sort())
@@ -202,9 +220,54 @@ describe('ATTACKS_AGAINST on a Character holder', () => {
   })
 
   it('applies nothing while it cannot act', async () => {
-    const defended = await defend(characterHolder([srdCondition('Incapacitated')]))
+    const defended = await defend(holder([srdCondition('Incapacitated')]))
     expect(defended.attackAgainstContributors).toEqual([])
     expect(dexteritySave(defended)).toMatchObject({ rollMode: 'NORMAL' })
+  })
+})
+
+describe('holder-state predicate HOLDER_ACTIVE_EFFECT (Mindless Rage)', () => {
+  const berserker = evaluateSrdCharacter({
+    classes: [{ label: 'Barbarian', level: 6, subclass: 'Path of the Berserker' }],
+    features: [
+      srdFeature({
+        owner: 'SUBCLASS',
+        classLabel: 'Barbarian',
+        subclassLabel: 'Path of the Berserker',
+        featureLabel: 'Mindless Rage',
+        level: 6
+      })
+    ]
+  })
+  /** Rage as the Encounter holds it: the active effect keeps its authored effect id. */
+  const rage = () => {
+    const effect = rageEffect({ id: RAGE_ID, holderActorId: HOLDER_ID })
+    return { ...effect, definition: { ...effect.definition, authoredEffectId: RAGE_EFFECT_ID } }
+  }
+  const immunities = async (activeEffects: ActiveRuleEffectRecord[]) =>
+    (await defend(characterHolder(berserker, activeEffects))).sourceConditionImmunities
+      .map(({ conditionTypeId }) => conditionTypeId)
+      .sort()
+
+  it('reads the authored ids of the effects the holder carries', async () => {
+    const state = await encounterHolderState({
+      target: characterHolder(berserker, [rage()]),
+      gameSystemId: SRD_SYSTEM_ID,
+      definitions: srdDefinitions,
+      speedDefinitions: SRD_SPEEDS,
+      runEffectsByActorId: new Map(),
+      readTurnMovedFeet: async () => 0
+    })
+    expect(state.activeAuthoredEffectIds).toEqual([RAGE_EFFECT_ID])
+  })
+
+  it('makes the raging Berserker immune to charm and fright, and only while raging', async () => {
+    expect(await immunities([rage()])).toEqual(
+      [srdCondition('Charmed'), srdCondition('Frightened')].sort()
+    )
+    expect(await immunities([])).toEqual([])
+    // Another effect the holder carries is not Rage.
+    expect(await immunities([dodge()])).toEqual([])
   })
 })
 
@@ -339,7 +402,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
           speedAboveZero: true,
           freeHand: true,
           stowableHeldItemInstanceId: null,
-          turnMovement: { usedFeet: 0, speedFeet: 30 }
+          turnMovement: { usedFeet: 0, speedFeet: 30 },
+          activeAuthoredEffectIds: []
         }
       })
     ).toEqual([])
@@ -355,7 +419,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
           speedAboveZero: true,
           freeHand: true,
           stowableHeldItemInstanceId: null,
-          turnMovement: { usedFeet: 0, speedFeet: 30 }
+          turnMovement: { usedFeet: 0, speedFeet: 30 },
+          activeAuthoredEffectIds: []
         }
       })
     ).toHaveLength(ATTACK_DOMAINS.length)
@@ -375,7 +440,8 @@ describe('holder-state predicates CAN_ACT and SPEED_ABOVE_ZERO', () => {
           speedAboveZero,
           freeHand: true,
           stowableHeldItemInstanceId: null,
-          turnMovement: { usedFeet: 0, speedFeet: 30 }
+          turnMovement: { usedFeet: 0, speedFeet: 30 },
+          activeAuthoredEffectIds: []
         }
       }).length > 0
     expect(holds(true, true)).toBe(true)

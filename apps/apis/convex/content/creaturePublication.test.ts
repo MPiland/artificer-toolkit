@@ -206,6 +206,23 @@ describe('native Creature publication', () => {
     ).toEqual(withoutAttackRoll)
   })
 
+  it('refuses to publish a Creature size the System does not list', async () => {
+    const { first } = await fixture()
+    const draft = await copyDraft(first.caller)
+    const copied = creatureAuthoredDtoSchema.parse(draft.payload)
+    const enormous = await first.caller.mutation(api.content.drafts.save, {
+      subjectKind: 'CREATURE',
+      subjectId: draft.subjectId,
+      systemId: draft.systemId,
+      label: 'Homebrew Warhorse',
+      payload: { ...copied, size: 'ENORMOUS' }
+    })
+
+    await expect(
+      first.caller.mutation(publish, creaturePublicationInput(enormous))
+    ).rejects.toThrow('The Game System does not define "ENORMOUS" at size.')
+  })
+
   it('publishes a Creature sense and refuses a sense the room could not run', async () => {
     const { first, t } = await fixture()
     const draft = await copyDraft(first.caller)

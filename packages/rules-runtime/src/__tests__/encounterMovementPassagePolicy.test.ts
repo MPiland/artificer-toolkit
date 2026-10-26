@@ -203,7 +203,7 @@ describe('movementPassageAdmits', () => {
   ] as const)(
     '$relation lets a $mover mover into a $blocker blocker: $admits',
     ({ relation, mover, blocker, admits }) => {
-      expect(movementPassageAdmits(relation, mover, blocker)).toBe(admits)
+      expect(movementPassageAdmits(DND5E_SYSTEM_ID, relation, mover, blocker)).toBe(admits)
     }
   )
 })

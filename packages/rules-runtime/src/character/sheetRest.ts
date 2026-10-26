@@ -320,6 +320,10 @@ export async function buildCharacterRestPreview(params: {
     characterResources.length > 0 ||
     spellSlots.length > 0 ||
     selectedCompanionRecoveries.length > 0 ||
+    // An ended standing effect this rest turns back on (SPELLS-31.2).
+    sheet.overview.standingEffects.some(
+      ({ held, returnsOn }) => !held && getRestRecoveryTriggers(input.restKind).has(returnsOn)
+    ) ||
     (input.resetMaximumHitPointModifier && canResetMaximumModifier) ||
     (input.restKind === 'LONG' &&
       (currentHitPoints !== effectiveMaximum ||

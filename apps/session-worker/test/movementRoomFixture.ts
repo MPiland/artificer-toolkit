@@ -137,6 +137,7 @@ export function dependentEffectDefinition(input: { encounterId: string; sourceAc
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],
@@ -146,8 +147,7 @@ export function dependentEffectDefinition(input: { encounterId: string; sourceAc
       expiration: {
         kind: 'TICKS',
         initialRemaining: 3,
-        decrementStage: 'END_OF_TURN',
-        anchor: 'HOLDER'
+        decrementStage: 'END_OF_TURN'
       }
     }
   })
@@ -187,6 +187,8 @@ export interface MovementRoomConfig {
   /** The Campaign's ammunition tracking option, frozen on the Run (ATTACK-19.4). */
   trackAmmunition?: boolean
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
+  /** The Run's sides; the SRD fixture's single side when omitted. */
+  sides?: readonly { id: string; label: string }[]
   /** Whose stored preference rolls dice automatically: the GM's, the Character player's, or the other player's. */
   autoRoll?: 'GAME_MASTER' | 'PLAYER' | 'BOTH' | 'EVERYONE'
   /** The actors the room's player controls, besides any Character assigned to them. */
@@ -266,6 +268,8 @@ export interface MovementRoomConfig {
    * START command rolls initiative (d20 + modifier, once at the start) and opens the first turn.
    */
   status?: 'PREPARED'
+  /** The initiative policy a PREPARED Run freezes, where it is not d20 + modifier once at the start. */
+  initiativePolicy?: ReturnType<typeof initiativePolicySnapshot>
   /** The Campaign clock's absolute minute the room reads (D151); null when the Campaign has none. */
   campaignClockMinute?: number | null
 }
@@ -312,14 +316,14 @@ export async function movementRoom(config: MovementRoomConfig) {
         status: 'PREPARED' as const,
         round: 0,
         turnSequence: 0,
-        initiativePolicy: initiativePolicySnapshot({
-          procedure: 'ACTOR_ROLL',
-          cadence: 'ENCOUNTER_START'
-        })
+        initiativePolicy:
+          config.initiativePolicy ??
+          initiativePolicySnapshot({ procedure: 'ACTOR_ROLL', cadence: 'ENCOUNTER_START' })
       }),
       automationMode: config.automationMode,
       trackAmmunition: config.trackAmmunition,
-      optionalCombatKinds: config.optionalCombatKinds
+      optionalCombatKinds: config.optionalCombatKinds,
+      sides: config.sides
     }),
     id: encounterId,
     campaignId

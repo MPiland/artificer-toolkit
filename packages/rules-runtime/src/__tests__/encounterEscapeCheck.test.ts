@@ -411,19 +411,8 @@ describe('Escape check', () => {
     expect(abilityContext.check.label).toBe('Strength')
   })
 
-  it('resolves a Character’s ability check through one canonical key when the System spells it short', async () => {
+  it('refuses a Character’s ability check when the System spells the ability with another code', async () => {
     const { effect, target } = await fighterHolder()
-    const policy = target.effectiveRulePolicyOutput
-    if (!policy) throw new Error('The fixture Character has no rule policy.')
-    const strength = policy.derivedStats.abilities.find((entry) => entry.abilityId === 'STRENGTH')
-    if (!strength) throw new Error('The fixture Character has no Strength.')
-    const contributor = {
-      sourceId: 'source-help',
-      source: { kind: 'AUTHORED' as const, id: 'system', holderActorId: null },
-      grantId: 'grant-help',
-      domainKey: 'ability-check',
-      influence: 'ADVANTAGE' as const
-    }
     const { characterFacts } = target
     if (!characterFacts) throw new Error('The fixture Character has no facts.')
     const shortCoded = {
@@ -442,38 +431,11 @@ describe('Escape check', () => {
             )
           }
         }
-      },
-      effectiveRulePolicyOutput: {
-        ...policy,
-        rollModes: {
-          ...policy.rollModes,
-          abilityChecks: { ...policy.rollModes.abilityChecks, STRENGTH: 'ADVANTAGE' as const }
-        },
-        rollContributorEvidence: {
-          ...policy.rollContributorEvidence,
-          abilityChecks: {
-            ...policy.rollContributorEvidence.abilityChecks,
-            STRENGTH: [contributor]
-          }
-        }
       }
     }
-    const context = prepare({
-      holder: shortCoded,
-      activeEffectId: effect.id,
-      checkDefinitionId: STRENGTH
-    })
-    expect(context.d20.modifier).toBe(strength.modifier.effective)
-    expect(context.d20.rollMode).toBe('ADVANTAGE')
-    expect(context.d20.contributors).toEqual([
-      {
-        domainKey: contributor.domainKey,
-        grantId: contributor.grantId,
-        influence: 'ADVANTAGE',
-        source: contributor.source,
-        sourceId: contributor.sourceId
-      }
-    ])
+    expect(() =>
+      prepare({ holder: shortCoded, activeEffectId: effect.id, checkDefinitionId: STRENGTH })
+    ).toThrow('This actor has no total for the check.')
   })
 
   it('reaching the DC escapes and a miss does not', async () => {

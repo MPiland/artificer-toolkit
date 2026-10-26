@@ -877,13 +877,11 @@ export async function persistEncounterAreaCommit(
       occurredAt: input.occurredAt
     })
   // One Concentration check per damaged creature, against the damage the root recorded.
-  const damage = nativeConcentrationDamageApplications(
-    children.map(({ actor, batch }) => ({
-      targetActorId: actor.id,
-      applications: batch.applications
-    })),
-    false
-  )
+  const damageBatches = children.map(({ actor, batch }) => ({
+    targetActorId: actor.id,
+    applications: batch.applications
+  }))
+  const damage = nativeConcentrationDamageApplications(damageBatches, false)
   if (checksumCanonicalJson(damage) !== checksumCanonicalJson(root.damage))
     throw new Error('Live Session area damage envelope mismatch.')
   const settledChildren = await callbacks.persistConcentrationChildren({

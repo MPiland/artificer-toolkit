@@ -6,7 +6,6 @@ import type {
   StartingEquipmentAuthored
 } from '#authored'
 import type {
-  AbilityCode,
   AuthoredRecordStatus,
   ScalingAmountKind,
   RoundingCode,
@@ -27,7 +26,6 @@ export interface ClassResourceAuthored {
 }
 
 export interface ClassHitpointAuthored {
-  ability: AbilityCode
   dieConfig: string
 }
 
@@ -67,7 +65,7 @@ export interface ClassSpellcastingAuthored {
   details?: DetailAuthored[]
   magicName?: string
   availableSpellIds?: string[]
-  ability?: AbilityCode
+  ability?: string
   maxSpellLevel: number // int
   attributes?: SpellcastingAttribute[]
   charges: ChargeAuthored
@@ -76,7 +74,7 @@ export interface ClassSpellcastingAuthored {
 
 export type ClassMulticlassRequirementAuthored = {
   id: string
-  ability: AbilityCode
+  ability: string
   min: number // minimum score required
 }
 

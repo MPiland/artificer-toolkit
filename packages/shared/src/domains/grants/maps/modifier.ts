@@ -1,7 +1,5 @@
 import type { ModifierGrantAuthored } from '#authored'
 import {
-  ABILITY_MODIFIER_REFERENCE_OPTIONS,
-  ABILITY_OPTIONS,
   ATTACK_DOMAIN_OPTIONS,
   ATTACK_OCCASION_OPTIONS,
   AUTHORING_SELECTION_REGISTRY,
@@ -23,7 +21,9 @@ import {
   SHAPE_KIND_OPTIONS,
   VALUE_DOMAIN_OPTIONS
 } from '#core'
+import { OUTCOME_BONUS_NODE_MAP } from '../../effects/maps/outcomeBonus.js'
 import { DURATION_NODE_MAP } from '../../shared/maps/duration.js'
+import { EFFECT_ID_NODE_MAP } from '../../shared/maps/effectId.js'
 import { FACET_NODE_MAP } from '../../shared/maps/facet.js'
 import { SAVING_THROW_NODE_MAP } from '../../shared/maps/savingThrow.js'
 import { AUTHORED_LENGTH_AMOUNT_MAX, AUTHORING_ACTION_PRESENTATIONS, buildNodeMap } from '#utils'
@@ -59,8 +59,8 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
           ['ability'],
           'Ability',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
           },
           {
             showIf: or([
@@ -190,6 +190,15 @@ const MODIFIER_GRANT_DOMAIN_NODE_MAP = modifierGrantDomain.define(
         })
       )
       .set(
+        'proficientOnly',
+        toggle(['proficientOnly'], 'Only Checks Adding Proficiency', {
+          showIf: and([
+            parent.field(['valueDomainCode']).eq('ABILITY_CHECK'),
+            parent.field(['modifierKind']).eq('MINIMUM_ROLL')
+          ])
+        })
+      )
+      .set(
         'requiresHolderSeesSource',
         toggle(['requiresHolderSeesSource'], 'Only Effects Whose Source The Holder Can See', {
           showIf: and([
@@ -270,14 +279,14 @@ const attackDecoyArmorClass = buildNodeMap<AttackDecoyArmorClass>()
 
 const MODIFIER_ATTACK_DECOY_ARMOR_CLASS_NODE_MAP = attackDecoyArmorClass.define(
   'modifierAttackDecoyArmorClass',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     const { number, selectMulti } = nodes
 
     map.set('amount', number(['amount'], 'Amount')).set(
       'abilities',
       selectMulti(['abilities'], 'Abilities', {
-        kind: 'INLINE_OPTIONS',
-        options: ABILITY_OPTIONS
+        kind: 'DATA',
+        relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
       })
     )
   }
@@ -348,17 +357,23 @@ const DAMAGE_INTERCEPTION_SAVE_DC_NODE_MAP = buildNodeMap<
   map
     .set('base', nodes.number(['base'], 'Base DC', { constraints: { minimum: 0, maximum: 100 } }))
     .set('plusDamageTaken', nodes.toggle(['plusDamageTaken'], 'Add The Damage Taken'))
+    .set(
+      'plusPerChargeUsed',
+      nodes.number(['plusPerChargeUsed'], 'Add Per Charge Already Used', {
+        constraints: { minimum: 0, maximum: 100 }
+      })
+    )
 })
 
 const DAMAGE_INTERCEPTION_SAVE_NODE_MAP = damageInterceptionSave.define(
   'damageInterceptionSave',
-  ({ map, nodes }) => {
+  ({ map, nodes, data }) => {
     map
       .set(
         'ability',
         nodes.selectSingle(['ability'], 'Save Ability', {
-          kind: 'INLINE_OPTIONS',
-          options: ABILITY_OPTIONS
+          kind: 'DATA',
+          relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set(
@@ -367,6 +382,10 @@ const DAMAGE_INTERCEPTION_SAVE_NODE_MAP = damageInterceptionSave.define(
           presentation: 'inline',
           requiredIf: true
         })
+      )
+      .set(
+        'spendsUseOnFailure',
+        nodes.toggle(['spendsUseOnFailure'], 'A Failed Save Still Spends A Use')
       )
   }
 )
@@ -402,6 +421,15 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
     const isMovementPassage = parent.field(['valueDomainCode']).eq('MOVEMENT_PASSAGE')
     const isRolledDie = parent.field(['modifierKind']).eq('ADD_BONUS_DIE')
     const isDamageDie = and([parent.field(['valueDomainCode']).eq('DAMAGE'), isRolledDie])
+    const isSaveForHalf = and([
+      parent.field(['valueDomainCode']).eq('INCOMING_DAMAGE'),
+      local.field(['incomingDamageKind']).eq('SAVE_FOR_HALF')
+    ])
+    const isIncomingReduction = and([
+      parent.field(['valueDomainCode']).eq('INCOMING_DAMAGE'),
+      local.field(['incomingDamageKind']).eq('REDUCE')
+    ])
+    const hasDie = or([isRolledDie, isIncomingReduction])
     // A speed or sense range is a typed length, never a value source (D111); a fraction is not.
     const isLength = and([
       or([
@@ -448,8 +476,8 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           ['ability'],
           'Ability',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('abilities', { selectColumns: ['id', 'label', 'description'] })
           },
           {
             showIf: or([
@@ -538,14 +566,14 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         'count',
         number(['count'], 'Dice', {
           constraints: { minimum: 1, maximum: MAX_ROLLED_DIE_COUNT },
-          showIf: isRolledDie
+          showIf: hasDie
         })
       )
       .set(
         'faces',
         number(['faces'], 'Die Faces', {
           constraints: { minimum: ROLLED_DIE_FACES[0], maximum: Math.max(...ROLLED_DIE_FACES) },
-          showIf: isRolledDie
+          showIf: hasDie
         })
       )
       .set(
@@ -795,8 +823,10 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
           ['abilities'],
           'Abilities',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_MODIFIER_REFERENCE_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('ability_modifier_references', {
+              selectColumns: ['id', 'label', 'description']
+            })
           },
           {
             // An armor class formula adds each listed ability modifier to its amount; only the best-of
@@ -1087,6 +1117,123 @@ const MODIFIER_GRANT_PAYLOAD_NODE_MAP = modifierPayload.define(
         number(['maxDamageTaken'], 'Only Damage Of At Most', {
           constraints: { minimum: 1 },
           showIf: parent.field(['valueDomainCode']).eq('DAMAGE_INTERCEPTION')
+        })
+      )
+      .set(
+        'events',
+        selectMulti(
+          ['events'],
+          'Events They No Longer End On',
+          {
+            kind: 'DATA',
+            relationship: table('effect_end_events', {
+              selectColumns: ['id', 'label', 'description']
+            })
+          },
+          {
+            requiredIf: true,
+            showIf: parent.field(['valueDomainCode']).eq('END_EVENT_EXEMPTION')
+          }
+        )
+      )
+      .set(
+        'effectIds',
+        groupArray(['effectIds'], 'Exempt Active Effects', () => EFFECT_ID_NODE_MAP, {
+          presentation: 'inline',
+          showIf: parent.field(['valueDomainCode']).eq('END_EVENT_EXEMPTION')
+        })
+      )
+      .set(
+        'incomingDamageKind',
+        selectSingle(
+          ['incomingDamageKind'],
+          'Incoming Damage',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              {
+                code: 'HALVE',
+                label: 'Halve it',
+                description:
+                  'Each damage application the holder takes is halved, before resistance.'
+              },
+              {
+                code: 'SAVE_FOR_HALF',
+                label: 'Save-for-half bands',
+                description:
+                  'Damage from an effect that allows a save for half damage uses these bands instead.'
+              },
+              {
+                code: 'REDUCE',
+                label: 'Reduce attack damage',
+                description:
+                  'The damage of each attack that hits the holder is reduced by the dice and bonuses, before halving and resistance.'
+              }
+            ]
+          },
+          {
+            requiredIf: true,
+            showIf: parent.field(['valueDomainCode']).eq('INCOMING_DAMAGE')
+          }
+        )
+      )
+      .set(
+        'saveAbilities',
+        selectMulti(
+          ['saveAbilities'],
+          'Save Abilities',
+          {
+            kind: 'DATA',
+            relationship: table('abilities', { selectColumns: ['id', 'label', 'description'] })
+          },
+          {
+            requiredIf: true,
+            showIf: isSaveForHalf
+          }
+        )
+      )
+      .set(
+        'onSaveSuccess',
+        selectSingle(
+          ['onSaveSuccess'],
+          'On A Successful Save',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'NONE', label: 'No damage', description: 'The holder takes no damage.' },
+              { code: 'HALF', label: 'Half damage', description: 'The holder takes half damage.' }
+            ]
+          },
+          {
+            requiredIf: true,
+            showIf: isSaveForHalf
+          }
+        )
+      )
+      .set(
+        'onSaveFailure',
+        selectSingle(
+          ['onSaveFailure'],
+          'On A Failed Save',
+          {
+            kind: 'INLINE_OPTIONS',
+            options: [
+              { code: 'HALF', label: 'Half damage', description: 'The holder takes half damage.' },
+              { code: 'FULL', label: 'Full damage', description: 'The holder takes full damage.' }
+            ]
+          },
+          {
+            requiredIf: true,
+            showIf: isSaveForHalf
+          }
+        )
+      )
+      .set(
+        'bonuses',
+        groupArray(['bonuses'], 'Reduction Bonuses', () => OUTCOME_BONUS_NODE_MAP, {
+          presentation: 'inline',
+          requiredIf: true,
+          showIf: isIncomingReduction
         })
       )
       .set(

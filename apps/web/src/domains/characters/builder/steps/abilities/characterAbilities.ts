@@ -27,6 +27,7 @@ export function syncHitpointLevels({
   )
   const orderedRows = getOrderedHitpointRows(character.intent.classes, rows)
   const progression = characterProgressionCapabilityRegistry.require(character.systemId)
+  const modifier = getHitpointAbilityModifier({ character, resolvedAbilityScores })
 
   return orderedRows.map((orderedRow, index) => {
     const characterLevel = index + 1
@@ -42,14 +43,6 @@ export function syncHitpointLevels({
       }
     }
 
-    const hitpointAbility = classReference?.hitpoint?.ability
-    const modifier = hitpointAbility
-      ? getHitpointAbilityModifier({
-          ability: hitpointAbility,
-          character,
-          resolvedAbilityScores
-        })
-      : 0
     const fixed = character.intent.hitpoints.method === HITPOINT_CALCULATION_METHOD_CODE.FIXED
     const rolled = orderedRow.rolls?.[0]?.value
     const roll = typeof rolled === 'number' && Number.isInteger(rolled) ? rolled : null
@@ -155,19 +148,21 @@ export function isHitpointProgressionComplete(
     })
 }
 
+/** The modifier of the System's hit point ability, which every class level adds (D193). */
 export function getHitpointAbilityModifier({
-  ability,
   character,
   resolvedAbilityScores
 }: {
-  ability: string
   character: CharacterFormValues
   resolvedAbilityScores: Record<string, number>
 }): number {
+  const abilityScores = abilityScoreCapabilityRegistry.require(character.systemId)
+  const ability = characterProgressionCapabilityRegistry.require(character.systemId)
+    .derivedStatisticAbilityCodes.hitPoints
   const score = resolvedAbilityScores[ability] ?? getIntentAbilityScore(character, ability)
 
   return typeof score === 'number' && Number.isFinite(score)
-    ? abilityScoreCapabilityRegistry.require(character.systemId).abilityModifier(score)
+    ? abilityScores.abilityModifier(score)
     : 0
 }
 

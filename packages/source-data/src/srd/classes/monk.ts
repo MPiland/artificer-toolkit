@@ -1,7 +1,6 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { ABILITY_CODE } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
-  ABILITY_CODE,
   ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
@@ -22,7 +21,6 @@ import {
   PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
   RANGE_KIND,
-  SAVING_THROW_DC_METHOD,
   SCALING,
   SCALING_AMOUNT_KIND,
   STARTING_EQUIPMENT_KIND,
@@ -51,6 +49,9 @@ import {
   attacksPerAttackActionGrant,
   closedRuleEffect,
   equippedCategoryRestriction,
+  evasionGrant,
+  gmRulingEffect,
+  incomingDamageReactionEffect,
   MUSICAL_INSTRUMENT_EQUIPMENT_INDEXES
 } from './mechanics.js'
 
@@ -192,7 +193,6 @@ export const monk: ClassAuthored = {
   systemId: SRD_SYSTEM_ID,
 
   hitpoint: {
-    ability: ABILITY_CODE.CONSTITUTION,
     dieConfig: 'd8'
   },
 
@@ -558,19 +558,40 @@ export const monk: ClassAuthored = {
         'Starting at 3rd level, you can use your reaction to deflect or catch the missile when you are hit by a ranged weapon attack. When you do so, the damage you take from the attack is reduced by 1d10 + your Dexterity modifier + your monk level. If you reduce the damage to 0, you can catch the missile if it is small enough for you to hold in one hand and you have at least one hand free. If you catch a missile in this way, you can spend 1 ki point to make a ranged attack with the weapon or piece of ammunition you just caught, as part of the same reaction. You make this attack with proficiency, regardless of your weapon proficiencies, and the missile counts as a monk weapon for the attack, which has a normal range of 20 feet and a long range of 60 feet.',
       availableAtLevel: 3,
       order: 5,
+      // Catching and throwing the missile waits on a deferred rules piece (future-enhancements).
       effects: [
-        closedRuleEffect({
-          id: classRowId(M, 0x60, 6),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_DEFLECT_MISSILES,
-          pathCode: PATH_CODE.ON_HIT,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.RANGED_WEAPON_ATTACK,
-            activation: { code: ACTIVATION_CODE.REACTION, amount: 1 },
-            range: { id: classRowId(M, 0x69, 6), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+        incomingDamageReactionEffect(
+          {
+            effect: classRowId(M, 0x60, 6),
+            range: classRowId(M, 0x69, 6),
+            path: classRowId(M, 0x80, 6),
+            duration: classRowId(M, 0x81, 6),
+            outcome: classRowId(M, 0x6c, 6),
+            grant: classRowId(M, 0x82, 6)
+          },
+          {
+            trigger: { kind: 'ATTACKED_SELF', attackRange: 'RANGED', weaponOnly: true },
+            payload: {
+              incomingDamageKind: 'REDUCE',
+              count: 1,
+              faces: 10,
+              bonuses: [
+                {
+                  id: classRowId(M, 0x83, 6),
+                  bonusKind: 'ABILITY_BONUS',
+                  ability: ABILITY_CODE.DEXTERITY,
+                  order: 1
+                },
+                {
+                  id: classRowId(M, 0x84, 6),
+                  bonusKind: 'CLASS_LEVEL',
+                  classId: CLASS_IDS.MONK,
+                  order: 2
+                }
+              ]
+            }
           }
-        })
+        )
       ]
     },
     {
@@ -593,8 +614,22 @@ export const monk: ClassAuthored = {
         'Beginning at 4th level, you can use your reaction when you fall to reduce any falling damage you take by an amount equal to five times your monk level.',
       availableAtLevel: 4,
       order: 7,
+      // The engine has no falling damage to reduce, so the reduction is a GM ruling (future-enhancements).
       effects: [
-        selfClassRuleEffect(8, CLOSED_RULE_KIND.CLASS_MONK_SLOW_FALL, ACTIVATION_CODE.REACTION)
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(M, 0x60, 8),
+            range: classRowId(M, 0x69, 8),
+            path: classRowId(M, 0x80, 8),
+            result: classRowId(M, 0x81, 8),
+            outcome: classRowId(M, 0x6c, 8)
+          },
+          label: 'Slow Fall',
+          reasonCode: MANUAL_ADJUDICATION_REASON.EXTERNAL_WORLD_STATE,
+          instructions:
+            'Use this when you fall: the falling damage you take is reduced by five times your monk level. The GM applies the reduced damage.',
+          activationCode: ACTIVATION_CODE.REACTION
+        })
       ]
     },
     {
@@ -672,63 +707,7 @@ export const monk: ClassAuthored = {
         "At 7th level, your instinctive agility lets you dodge out of the way of certain area effects, such as a blue dragon's lightning breath or a fireball spell. When you are subjected to an effect that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail.",
       availableAtLevel: 7,
       order: 12,
-      effects: [
-        {
-          id: classRowId(M, 0x60, 13),
-          order: 1,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: classRowId(M, 0x6e, 13),
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.DEXTERITY,
-              dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
-            },
-            range: { id: classRowId(M, 0x69, 13), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          },
-          paths: [
-            {
-              id: classRowId(M, 0x70, 13),
-              order: 1,
-              pathCode: PATH_CODE.ON_SAVE_SUCCESS,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: classRowId(M, 0x71, 13),
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(M, 0x72, 13),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_MONK_EVASION
-                  }
-                ]
-              }
-            },
-            {
-              id: classRowId(M, 0x73, 13),
-              order: 2,
-              pathCode: PATH_CODE.ON_SAVE_FAIL,
-              groupType: PATH_GROUP_TYPE.SINGLE,
-              originKind: 'SOURCE',
-              selectionKind: 'FIXED',
-              resultBlock: {
-                id: classRowId(M, 0x74, 13),
-                resultKind: 'SINGLE',
-                outcomes: [
-                  {
-                    id: classRowId(M, 0x75, 13),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_MONK_EVASION
-                  }
-                ]
-              }
-            }
-          ]
-        }
-      ]
+      grants: { modifiers: [evasionGrant(classRowId(M, 0x96, 1))] }
     },
     {
       id: classRowId(M, 3, 14),
@@ -877,35 +856,23 @@ export const monk: ClassAuthored = {
         'Beginning at 14th level, your mastery of ki grants you proficiency in all saving throws. Additionally, whenever you make a saving throw and fail, you can spend 1 ki point to reroll it and take the second result.',
       availableAtLevel: 14,
       order: 20,
+      // The ki spend is automated; the reroll waits on a save-result window (future-enhancements).
       effects: [
-        ABILITY_CODE.STRENGTH,
-        ABILITY_CODE.DEXTERITY,
-        ABILITY_CODE.CONSTITUTION,
-        ABILITY_CODE.INTELLIGENCE,
-        ABILITY_CODE.WISDOM,
-        ABILITY_CODE.CHARISMA
-      ].map((ability, index) =>
-        closedRuleEffect({
-          id: index === 0 ? classRowId(M, 0x60, 21) : classRowId(M, 0x76, index + 1),
-          ruleKind: CLOSED_RULE_KIND.CLASS_MONK_DIAMOND_SOUL_REROLL,
-          pathCode: PATH_CODE.ON_SAVE_FAIL,
-          invocation: {
-            kind: 'ACTION',
-            triggerCode: TRIGGER.SAVING_THROW,
-            activation: { code: ACTIVATION_CODE.FREE },
-            savingThrow: {
-              id: classRowId(M, 0x78, index + 1),
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS[ability],
-              dcMethod: SAVING_THROW_DC_METHOD.SOURCE_SAVE_DC
-            },
-            range: {
-              id: index === 0 ? classRowId(M, 0x69, 21) : classRowId(M, 0x77, index + 1),
-              rangeKind: RANGE_KIND.SELF
-            },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
-          }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(M, 0x60, 21),
+            range: classRowId(M, 0x69, 21),
+            path: classRowId(M, 0x80, 21),
+            result: classRowId(M, 0x81, 21),
+            outcome: classRowId(M, 0x6c, 21)
+          },
+          label: 'Diamond Soul',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'Use this right after you fail a saving throw: reroll that saving throw and take the second result. The GM applies the new result in place of the failed one.',
+          resourceUse: { chargeId: kiCharge.id, cost: 1 }
         })
-      ),
+      ],
       grants: {
         proficiencies: [
           {

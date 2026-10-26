@@ -25,12 +25,10 @@ import {
   characterSpellReferenceMechanicsSchema
 } from './characterActionRules.js'
 import {
-  abilityCodeSchema,
   damageDefenseBypassCodeSchema,
   equipmentCategoryCodeSchema,
   lengthUnitCodeSchema,
-  measurementUnitCodeSchema,
-  sizeCodeSchema
+  measurementUnitCodeSchema
 } from '../shared/enums.js'
 import {
   characterSpellAccessCandidatesSchema,
@@ -313,7 +311,6 @@ const characterHitPointFactsSchema = lazySchema(() =>
                 classId: boundedIdentitySchema,
                 classLevel: integerSchema.check(z.gte(1)).check(z.lte(20)),
                 die: z.nullable(integerSchema.check(z.positive())),
-                abilityIndex: z.nullable(integerSchema.check(z.gte(0)).check(z.lte(31))),
                 fallbackValue: integerSchema,
                 rollValue: z.nullable(integerSchema)
               })
@@ -740,7 +737,7 @@ const characterCompanionMechanicsCompanionSchema = lazySchema(() =>
     abilityScores: z.record(boundedIdentitySchema, finiteNumberSchema),
     armorClass: finiteNumberSchema,
     maxHitPoints: finiteNumberSchema,
-    size: z.nullable(sizeCodeSchema),
+    size: z.nullable(systemCoreCodeSchema),
     alignmentId: z.nullable(boundedIdentitySchema),
     creatureTypeId: z.nullable(boundedIdentitySchema)
   })
@@ -764,7 +761,7 @@ const characterCompanionMechanicsAdjustmentSchema = lazySchema(() =>
       id: boundedIdentitySchema,
       companionInstanceId: boundedIdentitySchema,
       field: z.literal('SIZE_OVERRIDE'),
-      value: sizeCodeSchema
+      value: systemCoreCodeSchema
     })
   ])
 )
@@ -1077,15 +1074,13 @@ const characterRuleSenseSchema = lazySchema(() =>
     range: characterRuleSenseRangeSchema
   })
 )
+/** Keyed by the System's ability codes. */
 const characterAbilityRollModesSchema = lazySchema(() =>
-  z.strictObject({
-    STRENGTH: systemCoreCodeSchema,
-    DEXTERITY: systemCoreCodeSchema,
-    CONSTITUTION: systemCoreCodeSchema,
-    INTELLIGENCE: systemCoreCodeSchema,
-    WISDOM: systemCoreCodeSchema,
-    CHARISMA: systemCoreCodeSchema
-  })
+  z.record(systemCoreCodeSchema, systemCoreCodeSchema).check(
+    z.refine((record) => Object.keys(record).length <= 64, {
+      message: 'Ability roll modes support at most 64 abilities.'
+    })
+  )
 )
 
 const characterRollContributorSchema = lazySchema(() =>
@@ -1131,25 +1126,20 @@ const characterRollContributorRecordSchema = lazySchema(() =>
   )
 )
 
+/** Keyed by the System's ability codes. */
+const characterAbilityRollContributorsSchema = lazySchema(() =>
+  z.record(systemCoreCodeSchema, characterRollContributorsSchema).check(
+    z.refine((record) => Object.keys(record).length <= 64, {
+      message: 'Ability roll contributors support at most 64 abilities.'
+    })
+  )
+)
+
 const characterRollContributorEvidenceSchema = lazySchema(() =>
   z.strictObject({
     initiative: characterRollContributorsSchema,
-    abilityChecks: z.strictObject({
-      STRENGTH: characterRollContributorsSchema,
-      DEXTERITY: characterRollContributorsSchema,
-      CONSTITUTION: characterRollContributorsSchema,
-      INTELLIGENCE: characterRollContributorsSchema,
-      WISDOM: characterRollContributorsSchema,
-      CHARISMA: characterRollContributorsSchema
-    }),
-    savingThrows: z.strictObject({
-      STRENGTH: characterRollContributorsSchema,
-      DEXTERITY: characterRollContributorsSchema,
-      CONSTITUTION: characterRollContributorsSchema,
-      INTELLIGENCE: characterRollContributorsSchema,
-      WISDOM: characterRollContributorsSchema,
-      CHARISMA: characterRollContributorsSchema
-    }),
+    abilityChecks: characterAbilityRollContributorsSchema,
+    savingThrows: characterAbilityRollContributorsSchema,
     skillChecks: characterRollContributorRecordSchema,
     attacks: z.strictObject({
       MELEE: characterRollContributorsSchema,
@@ -1162,22 +1152,8 @@ const characterRollContributorEvidenceSchema = lazySchema(() =>
 
 const emptyCharacterRollContributors = () => ({
   initiative: [],
-  abilityChecks: {
-    STRENGTH: [],
-    DEXTERITY: [],
-    CONSTITUTION: [],
-    INTELLIGENCE: [],
-    WISDOM: [],
-    CHARISMA: []
-  },
-  savingThrows: {
-    STRENGTH: [],
-    DEXTERITY: [],
-    CONSTITUTION: [],
-    INTELLIGENCE: [],
-    WISDOM: [],
-    CHARISMA: []
-  },
+  abilityChecks: {},
+  savingThrows: {},
   skillChecks: {},
   attacks: { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
 })
@@ -1370,7 +1346,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
           acquisition: z.enum(['KNOWN', 'ALWAYS_PREPARED', 'GRANTED']),
           castMode: z.enum(['SPELL_SLOT', 'AT_WILL', 'RITUAL', 'FIXED_LEVEL', 'LIMITED_USE']),
           castAtLevel: z.nullable(integerSchema.check(z.gte(1)).check(z.lte(9))),
-          castingAbility: z.nullable(abilityCodeSchema),
+          castingAbility: z.nullable(systemCoreCodeSchema),
           charge: characterSpellChargeDescriptorSchema,
           learned: booleanSchema,
           prepared: booleanSchema
@@ -1425,7 +1401,7 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
           abilityScores: z.record(boundedIdentitySchema, finiteNumberSchema),
           armorClass: finiteNumberSchema,
           maxHitPoints: finiteNumberSchema,
-          size: z.optional(sizeCodeSchema),
+          size: z.optional(systemCoreCodeSchema),
           alignmentId: z.optional(boundedIdentitySchema),
           creatureTypeId: z.optional(boundedIdentitySchema),
           calculations: z.strictObject({
@@ -1433,13 +1409,13 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
             maxHitPoints: characterDerivedNumericCalculationSchema,
             size: z.optional(
               z.extend(characterDerivedSelectionCalculationSchema, {
-                base: sizeCodeSchema,
-                effective: sizeCodeSchema,
+                base: systemCoreCodeSchema,
+                effective: systemCoreCodeSchema,
                 override: z.nullable(
                   z.strictObject({
                     sourceId: boundedIdentitySchema,
                     source: characterMechanicSourceSchema,
-                    value: sizeCodeSchema
+                    value: systemCoreCodeSchema
                   })
                 )
               })
@@ -1496,17 +1472,19 @@ export const characterRulePolicyOutputSchema = lazySchema(() =>
         })
       ),
       /** One entry per System slot pool the Character casts from beside its standard slots. */
-      slotPools: z.array(
-        z.strictObject({
-          poolCode: boundedIdentitySchema,
-          sourceClassId: boundedIdentitySchema,
-          slots: integerSchema.check(z.gte(0)),
-          level: integerSchema.check(z.gte(1)).check(z.lte(9)),
-          rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647)),
-          effectiveUsed: integerSchema.check(z.gte(0)),
-          remaining: integerSchema.check(z.gte(0))
-        })
-      ),
+      slotPools: z
+        .array(
+          z.strictObject({
+            poolCode: boundedIdentitySchema,
+            sourceClassId: boundedIdentitySchema,
+            slots: integerSchema.check(z.gte(0)),
+            level: integerSchema.check(z.gte(1)).check(z.lte(9)),
+            rawUsed: integerSchema.check(z.gte(0)).check(z.lte(2_147_483_647)),
+            effectiveUsed: integerSchema.check(z.gte(0)),
+            remaining: integerSchema.check(z.gte(0))
+          })
+        )
+        .check(z.maxLength(20)),
       fusionStrategy: z.enum(['NONE', 'SINGLE_CLASS', 'MULTICLASS_FUSED'])
     }),
     chargeMaximums: z.array(

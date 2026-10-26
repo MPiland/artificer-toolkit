@@ -5,9 +5,10 @@ import {
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
 import {
   damageDispositionOf,
-  resolveDispositionDamage
+  resolveIncomingDamage
 } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import {
+  addNumbersRuleOperation,
   compareThresholdRuleOperation,
   type CompiledRuleGraph,
   type RuleValue
@@ -27,6 +28,7 @@ import {
 } from './dnd5eTestOperationKeys.js'
 import {
   DND5E_HEAL_PROPOSAL_OPERATION_KEY,
+  DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_STABILIZE_PROPOSAL_OPERATION_KEY,
   DND5E_KILL_PROPOSAL_OPERATION_KEY,
@@ -61,6 +63,8 @@ import {
   decodeForcedMovementCollision,
   NESTED_SAVE_MARGIN_NODE_ID,
   DND5E_NESTED_SAVE_GATE_OPERATION_KEY,
+  DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY,
+  ROLL_TABLE_DICE_NODE_PREFIX,
   proposalNodePathCode,
   positive
 } from './effectActionContracts.js'
@@ -77,6 +81,7 @@ import {
   dnd5eSaveTestOperation,
   dnd5eMovementInterruptionAuthorizationOperation,
   dnd5eNestedSaveGateOperation,
+  dnd5eRollTableRowGateOperation,
   dnd5ePathGatedProposalOperations,
   dnd5eTestMarginConditionProposalOperation,
   dnd5eResultPathSatisfies
@@ -817,6 +822,29 @@ export function interpretDirectProposal(
       }
     ]
   }
+  // Hit points lost directly: no damage type, so no defense; temporary hit points absorb it first.
+  if (trace.operation.key === DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY) {
+    const temporaryLost = Math.min(input.temporaryHitPoints, requestedAmount)
+    const currentLost = Math.min(input.currentHitPoints, requestedAmount - temporaryLost)
+    return [
+      {
+        kind: 'HIT_POINT_LOSS',
+        requestedAmount,
+        resolvedAmount: requestedAmount,
+        appliedAmount: temporaryLost + currentLost,
+        beforeCurrentHitPoints: input.currentHitPoints,
+        afterCurrentHitPoints: input.currentHitPoints - currentLost,
+        beforeTemporaryHitPoints: input.temporaryHitPoints,
+        afterTemporaryHitPoints: input.temporaryHitPoints - temporaryLost,
+        maximumHitPoints: input.maximumHitPoints,
+        targetActorId: input.targetActorId,
+        sourceNodeId: trace.nodeId,
+        sourceOperationKey: trace.operation.key,
+        authoredPath: null,
+        resolvedPath: null
+      }
+    ]
+  }
   if (trace.operation.key === DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY) {
     const afterTemporaryHitPoints = Math.max(input.temporaryHitPoints, requestedAmount)
     return [
@@ -846,7 +874,12 @@ export function interpretDirectProposal(
     throw new Dnd5eEffectActionCompilerError('The committed D&D damage proposal trace is invalid.')
   uuid(outputs.damageTypeId, 'D&D damage type identity')
   const damageDisposition = damageDispositionOf(input.defenses, outputs.damageTypeId)
-  const resolvedAmount = resolveDispositionDamage(damageDisposition, requestedAmount)
+  const incomingHalved = input.incomingHalved === true
+  const resolvedAmount = resolveIncomingDamage({
+    requestedAmount,
+    incomingHalved,
+    damageDisposition
+  })
   if (!Number.isSafeInteger(resolvedAmount))
     throw new Dnd5eEffectActionCompilerError(
       'D&D vulnerable damage exceeds the supported safe integer range.'
@@ -867,6 +900,7 @@ export function interpretDirectProposal(
       targetActorId: input.targetActorId,
       damageTypeId: outputs.damageTypeId,
       damageDisposition,
+      incomingHalved,
       critical: false,
       sourceNodeId: trace.nodeId,
       sourceOperationKey: trace.operation.key,
@@ -874,6 +908,62 @@ export function interpretDirectProposal(
       resolvedPath: null
     }
   ]
+}
+
+/** A committed node, its trace and the pure operation whose re-execution must reproduce it. */
+type VerifiedStep = readonly [
+  Pick<CompiledRuleGraph, 'nodes'>['nodes'][number],
+  DirectInterpretationInput['execution']['evidence']['trace'][number],
+  { execute: (inputs: Readonly<Record<string, RuleValue>>) => Record<string, RuleValue> }
+]
+
+const ROLL_TABLE_DICE_NODE = new RegExp(`^${ROLL_TABLE_DICE_NODE_PREFIX}(die|sum)-\\d+$`)
+
+/**
+ * What proves a roll table row gate: the table's dice, each settled by its own integer evidence,
+ * their running sums and the gate, all to be re-executed. Null when a die or the gate's roll is not
+ * the table's own.
+ */
+function rollTableGateSteps(
+  input: DirectInterpretationInput,
+  graph: Pick<CompiledRuleGraph, 'nodes'>,
+  gateNode: VerifiedStep[0]
+): readonly VerifiedStep[] | null {
+  const traceOf = (nodeId: string) =>
+    input.execution.evidence.trace.find((entry) => entry.nodeId === nodeId)
+  const steps: VerifiedStep[] = []
+  for (const node of graph.nodes.filter(({ id }) => ROLL_TABLE_DICE_NODE.test(id))) {
+    const trace = traceOf(node.id)
+    if (!trace) return null
+    if (
+      node.operation.key === addNumbersRuleOperation.key &&
+      node.operation.contractVersion === addNumbersRuleOperation.contractVersion
+    ) {
+      steps.push([node, trace, addNumbersRuleOperation])
+      continue
+    }
+    const max = node.inputs.max
+    if (
+      node.operation.key !== 'evidence.integer-range' ||
+      trace.evidence?.kind !== 'INTEGER_RANGE' ||
+      trace.inputs.min !== 1 ||
+      max?.kind !== 'LITERAL' ||
+      trace.inputs.max !== max.value ||
+      trace.outputs.value !== trace.evidence.value
+    )
+      return null
+  }
+  const roll = gateNode.inputs.roll
+  const gateTrace = traceOf(gateNode.id)
+  if (
+    !gateTrace ||
+    gateNode.operation.contractVersion !== dnd5eRollTableRowGateOperation.contractVersion ||
+    roll?.kind !== 'NODE_OUTPUT' ||
+    roll.port !== 'value' ||
+    !ROLL_TABLE_DICE_NODE.test(roll.nodeId)
+  )
+    return null
+  return [...steps, [gateNode, gateTrace, dnd5eRollTableRowGateOperation]]
 }
 
 export function interpretDirect(
@@ -924,16 +1014,19 @@ export function interpretDirect(
     let proposal = originalProposal
     let nestedPaths: { authoredPath: string; resolvedPath: string } | null = null
     const proposalNode = graph.nodes.find((node) => node.id === proposal.nodeId)
-    // A gated nested save band reads the save's path through its gate node.
+    // A gated nested save band reads the save's path through its gate node, a roll table row
+    // through its row gate.
     const gatedPath = proposalNode?.inputs.resolvedPath
     const gateNode =
       gatedPath?.kind === 'NODE_OUTPUT'
         ? graph.nodes.find(
             (node) =>
               node.id === gatedPath.nodeId &&
-              node.operation.key === DND5E_NESTED_SAVE_GATE_OPERATION_KEY
+              (node.operation.key === DND5E_NESTED_SAVE_GATE_OPERATION_KEY ||
+                node.operation.key === DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY)
           )
         : undefined
+    const rowGate = gateNode?.operation.key === DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY
     const directOperation = DND5E_DIRECT_OPERATION_BY_PATH_GATED_OPERATION.get(
       proposal.operation.key
     )
@@ -964,6 +1057,7 @@ export function interpretDirect(
       const margin = input.execution.evidence.trace.find((entry) => entry.nodeId === marginNode?.id)
       const marginCleared = proposalNode?.inputs.marginCleared
       const marginTotal = marginNode?.inputs.value
+      const rowSteps = rowGate && gateNode ? rollTableGateSteps(input, graph, gateNode) : null
       if (
         !proposalNode ||
         !operation ||
@@ -979,24 +1073,27 @@ export function interpretDirect(
             marginCleared?.kind !== 'NODE_OUTPUT' ||
             marginCleared.nodeId !== marginNode.id ||
             marginCleared.port !== 'passed')) ||
-        !saveNode ||
-        saveNode.operation.key !== DND5E_SAVE_TEST_OPERATION_KEY ||
-        !save ||
-        die?.operation.key !== 'evidence.integer-range' ||
-        die.evidence?.kind !== 'INTEGER_RANGE' ||
-        die.inputs.min !== 1 ||
-        die.inputs.max !== 20 ||
-        die.outputs.value !== die.evidence.value ||
         path?.kind !== 'NODE_OUTPUT' ||
         path.port !== 'resultPath' ||
-        (gateNode
-          ? gateNode.operation.contractVersion !== dnd5eNestedSaveGateOperation.contractVersion ||
-            !gateTrace ||
-            gateSource?.kind !== 'NODE_OUTPUT' ||
-            gateSource.nodeId !== saveNode.id ||
-            gateSource.port !== 'resultPath' ||
-            !gateEvidenceIsValid(input, gateNode, gateTrace)
-          : path.nodeId !== saveNode.id) ||
+        (rowGate
+          ? !rowSteps
+          : !saveNode ||
+            saveNode.operation.key !== DND5E_SAVE_TEST_OPERATION_KEY ||
+            !save ||
+            die?.operation.key !== 'evidence.integer-range' ||
+            die.evidence?.kind !== 'INTEGER_RANGE' ||
+            die.inputs.min !== 1 ||
+            die.inputs.max !== 20 ||
+            die.outputs.value !== die.evidence.value ||
+            (gateNode
+              ? gateNode.operation.contractVersion !==
+                  dnd5eNestedSaveGateOperation.contractVersion ||
+                !gateTrace ||
+                gateSource?.kind !== 'NODE_OUTPUT' ||
+                gateSource.nodeId !== saveNode.id ||
+                gateSource.port !== 'resultPath' ||
+                !gateEvidenceIsValid(input, gateNode, gateTrace)
+              : path.nodeId !== saveNode.id)) ||
         (nestedCondition &&
           (protection?.kind !== 'FACT' ||
             input.execution.evidence.facts[protection.factKey] !==
@@ -1010,24 +1107,22 @@ export function interpretDirect(
           'The committed D&D nested condition binding is invalid.'
         )
       const addedDiceNodeId = 'nested-save-d20-added-dice'
-      requireDnd5eAddedDiceTotal({
-        trace: input.execution.evidence.trace.find((entry) => entry.nodeId === addedDiceNodeId),
-        facts: input.execution.evidence.facts,
-        d20NodeId: 'nested-save-d20',
-        nodeIndex: graph.nodes.findIndex((node) => node.id === addedDiceNodeId),
-        occurrenceId: input.occurrenceId,
-        invalid: () =>
-          new Dnd5eEffectActionCompilerError(
-            'The committed D&D nested condition evidence is invalid.'
-          )
-      })
-      const verified: readonly (readonly [
-        typeof saveNode,
-        typeof save,
-        { execute: (inputs: Readonly<Record<string, RuleValue>>) => Record<string, RuleValue> }
-      ])[] = [
-        [saveNode, save, dnd5eSaveTestOperation],
-        ...(gateNode && gateTrace
+      if (!rowSteps)
+        requireDnd5eAddedDiceTotal({
+          trace: input.execution.evidence.trace.find((entry) => entry.nodeId === addedDiceNodeId),
+          facts: input.execution.evidence.facts,
+          d20NodeId: 'nested-save-d20',
+          nodeIndex: graph.nodes.findIndex((node) => node.id === addedDiceNodeId),
+          occurrenceId: input.occurrenceId,
+          invalid: () =>
+            new Dnd5eEffectActionCompilerError(
+              'The committed D&D nested condition evidence is invalid.'
+            )
+        })
+      const verified: readonly VerifiedStep[] = [
+        ...(rowSteps ??
+          (saveNode && save ? [[saveNode, save, dnd5eSaveTestOperation] as const] : [])),
+        ...(!rowSteps && gateNode && gateTrace
           ? [[gateNode, gateTrace, dnd5eNestedSaveGateOperation] as const]
           : []),
         ...(marginNode && margin

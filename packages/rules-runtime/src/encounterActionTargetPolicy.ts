@@ -7,13 +7,22 @@ import type { EncounterRuleWarningDto } from '@artificer-toolkit/schema/shared/e
 import { lengthMeasurementInFeet, type LengthUnitCode } from '@artificer-toolkit/shared/core'
 import { ROLL_MODE_RULE_SOURCE_IDS } from '@artificer-toolkit/shared/rules'
 import {
+  classifySquareGridFacingArc,
+  classifySquareGridFootprintFacingArcs,
+  enumerateSquareGridFootprint,
   lengthMeasurementInSceneUnits,
   measureSceneTokenFootprintDistance,
   sceneRangeBand,
   type SceneGrid,
   type SceneToken
 } from '@artificer-toolkit/shared/vtt'
+import {
+  facingArcLabel,
+  type FacingArc,
+  type FacingArcRange
+} from '@artificer-toolkit/shared/vtt/facingArc'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
+import type { FacingRule } from './optionalCombatPolicyCapability.js'
 import {
   ENCOUNTER_LONG_RANGE_CONTRIBUTOR_SOURCE_ID,
   encounterRuleContributorSource
@@ -33,6 +42,41 @@ export type EncounterActionSceneContext = {
   grid: SceneGrid
   sourceToken: SceneTokenGeometry
   targetToken: SceneTokenGeometry
+}
+
+/**
+ * The arc of each token's facing the other stands in. A square grid measures from the closest
+ * occupied cells, so a large token's contact point decides; elsewhere the token centres do.
+ */
+export function encounterFacingArcs(
+  arcs: readonly FacingArcRange[],
+  scene: EncounterActionSceneContext
+): { sourceToTarget: FacingArc | null; targetToSource: FacingArc | null } | null {
+  const { grid, sourceToken, targetToken } = scene
+  if (grid.kind === 'SQUARE') {
+    const source = enumerateSquareGridFootprint(grid, sourceToken)
+    const target = enumerateSquareGridFootprint(grid, targetToken)
+    return source && target
+      ? classifySquareGridFootprintFacingArcs({
+          arcs,
+          grid,
+          source: { footprint: source, rotationDegrees: sourceToken.rotationDegrees },
+          target: { footprint: target, rotationDegrees: targetToken.rotationDegrees }
+        })
+      : null
+  }
+  return {
+    sourceToTarget: classifySquareGridFacingArc({
+      arcs,
+      subject: targetToken.position,
+      target: sourceToken
+    }),
+    targetToSource: classifySquareGridFacingArc({
+      arcs,
+      subject: sourceToken.position,
+      target: targetToken
+    })
+  }
 }
 
 /** A single-target Touch action reaches an adjacent creature: a 5-foot range that only warns. */
@@ -169,6 +213,8 @@ export function evaluateEncounterActionTargetPolicy(input: {
   sceneContext: EncounterActionSceneContext | null
   /** The action makes an attack roll; an attack never targets its own user (D99). */
   makesAttackRoll: boolean
+  /** The Encounter's Facing rule (ATTACK-12): a creature cannot target into the arcs it names. */
+  facing: Pick<FacingRule, 'arcs' | 'sourceCannotTargetInOwnArcs'> | null
 }): EncounterRuleWarningDto[] | null {
   // An actor out of play, however it left, is no legal target (D178).
   if (input.target.absence != null) return null
@@ -192,6 +238,15 @@ export function evaluateEncounterActionTargetPolicy(input: {
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action needs a willing target.' })
   else if (dispositionKind === 'HOSTILE' && relationship === 'ALLIED')
     warnings.push({ code: 'TARGET_DISPOSITION', message: 'This action targets hostile creatures.' })
+  const facingArc =
+    input.facing && input.sceneContext && !targetsSelf
+      ? encounterFacingArcs(input.facing.arcs, input.sceneContext)?.sourceToTarget
+      : null
+  if (facingArc && input.facing?.sourceCannotTargetInOwnArcs.includes(facingArc))
+    warnings.push({
+      code: 'TARGET_FACING_ARC',
+      message: `The target is in this creature's ${facingArcLabel(facingArc)} arc.`
+    })
   if (range.rangeKind === 'UNLIMITED') return warnings
   // A ranged weapon attack reaches its long range, at disadvantage beyond its normal range.
   const band = input.sceneContext

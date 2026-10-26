@@ -5,7 +5,6 @@ import clsx from 'clsx'
 import * as overviewStyles from './overview.css'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import { formatSigned } from '../core/characterSheet.utils'
-import { getAbilityShortLabel } from './characterSheetOverview.utils'
 import { CharacterSheetRollValue } from '../dice/CharacterSheetRollValue'
 import { withRollModifier } from '../dice/dice.utils'
 
@@ -17,15 +16,6 @@ const ABILITY_ICONS: Partial<Record<string, typeof Dumbbell>> = {
   WISDOM: Eye,
   CHARISMA: Smile
 }
-
-const ABILITY_LABELS = {
-  STRENGTH: 'Strength',
-  DEXTERITY: 'Dexterity',
-  CONSTITUTION: 'Constitution',
-  INTELLIGENCE: 'Intelligence',
-  WISDOM: 'Wisdom',
-  CHARISMA: 'Charisma'
-} as const
 
 export function CharacterSheetOverviewAbilities({
   abilities,
@@ -45,13 +35,13 @@ export function CharacterSheetOverviewAbilities({
             ) : null
           })()}
           <button
-            aria-label={`Inspect ${ABILITY_LABELS[ability.ability]} ability`}
+            aria-label={`Inspect ${ability.label} ability`}
             className={clsx(overviewStyles.abilityLabel, overviewStyles.abilityInspectorTrigger)}
             disabled={!openPanel}
             type='button'
             onClick={() => openPanel?.({ kind: 'ABILITY', ability: ability.ability })}
           >
-            {getAbilityShortLabel(ability.ability)}
+            {ability.short}
           </button>
           <div
             aria-label={`Score ${ability.score}, modifier ${formatSigned(ability.modifier)}`}
@@ -68,7 +58,7 @@ export function CharacterSheetOverviewAbilities({
                   rollMode: ability.rollMode,
                   source: {
                     kind: 'ABILITY_CHECK',
-                    label: `${ABILITY_LABELS[ability.ability]} check`
+                    label: `${ability.label} check`
                   }
                 }}
               >

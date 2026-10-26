@@ -5,7 +5,7 @@ import { withForm } from '#forms/app-form/AppForm'
 import type { CharacterBuilderGrantSummaryItemDto } from '@artificer-toolkit/schema/api/characters'
 import { AppSelect } from '#ui/primitives/Select'
 import type { CharacterFormValues } from '../../core/characterBuilder.types'
-import { createFallbackCharacterFormValues } from '../../shared/formNormalization'
+import { EMPTY_CHARACTER_FORM_VALUES } from '../../shared/formNormalization'
 import { clearRaceDependents } from '../../shared/dependencyClearing'
 import { choiceOptions, getAllChosenGrantChoices } from '../../choices/choiceOptions'
 import * as styles from '../../shared/builderShared.css'
@@ -23,7 +23,7 @@ import { mergeRaceFeaturePresentation } from './raceFeaturePresentation'
 import type { CharacterBuilderStepProps } from '../../core/CharacterBuilderStep.types'
 
 export const CharacterRaceStep = withForm({
-  defaultValues: createFallbackCharacterFormValues(),
+  defaultValues: EMPTY_CHARACTER_FORM_VALUES,
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterRace({ form, payload, readOnly }) {
     const [raceChooserOpened, setRaceChooserOpened] = useState(false)

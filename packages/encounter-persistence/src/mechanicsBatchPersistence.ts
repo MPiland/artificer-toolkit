@@ -1,4 +1,9 @@
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
+import {
+  consequenceRollDamageFacts,
+  offerConsequenceRolls,
+  withDeathSaveFacts
+} from '@artificer-toolkit/rules-runtime/encounterConsequenceRolls'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -128,31 +133,36 @@ async function endGrantsOnRegain<CharacterSources>(
 }
 
 /**
- * Spends the damage interceptions the plan's receipt names (`DAMAGE.interceptedBy`,
- * `KILL_NEGATED.negatedBy`): each spends one use of its holding effect and the last use ends it. The
- * records come back as they were so an undoable root gives the uses back (`restoreConsumedGrants`).
+ * Spends the effect-held damage interceptions the plan's receipt names (`DAMAGE.interceptedBy`, a
+ * failed save that still spent its use, `KILL_NEGATED.negatedBy`): each spends one use of its holding
+ * effect and the last use ends it. A feature-held one names a feature, not a held effect: its charge
+ * is already in the plan's actor or Sheet. The plan was derived from these same held effects in this
+ * transaction. The records come back as they were so an undoable root gives the uses back
+ * (`restoreConsumedGrants`).
  */
 async function spendDamageInterceptions<CharacterSources>(
   ctx: EncounterCharacterWriteTransaction<CharacterSources>,
   target: Awaited<ReturnType<typeof readEncounterMechanicsBatchTarget>>,
   receiptApplications: EncounterMechanicsBatchPlan['receiptApplications']
 ) {
-  const spentEffectIds = receiptApplications.flatMap((application) =>
-    application.kind === 'DAMAGE' && application.interceptedBy !== undefined
-      ? [application.interceptedBy]
+  const namedIds = receiptApplications.flatMap((application) =>
+    application.kind === 'DAMAGE'
+      ? [
+          ...(application.interceptionSaves ?? []).flatMap(({ effectId, spent }) =>
+            spent ? [effectId] : []
+          ),
+          ...(application.interceptedBy === undefined ? [] : [application.interceptedBy])
+        ]
       : application.kind === 'KILL_NEGATED'
         ? [application.negatedBy]
         : []
   )
-  if (!spentEffectIds.length) return []
+  if (!namedIds.length) return []
   const held = await createActiveRuleEffectStore(ctx).list(
     turnEffectOwner(target.actor, target.state.id)
   )
-  const effects = [...new Set(spentEffectIds)].map((effectId) => {
-    const effect = held.find(({ id }) => id === effectId)
-    if (!effect) throw new Error('The damage interception effect is no longer held.')
-    return effect
-  })
+  const spentEffectIds = namedIds.filter((id) => held.some((effect) => effect.id === id))
+  const effects = held.filter(({ id }) => spentEffectIds.includes(id))
   for (const effect of effects) {
     const spent = spentEffectIds.filter((effectId) => effectId === effect.id).length
     if ((effect.lifecycle.remainingUses ?? 0) <= spent) await deleteGrants(ctx, [effect])
@@ -188,11 +198,26 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     actor.form?.effectId !== plan.updatedActor.form?.effectId
   const { before, after } = plan.targetTransition
   // Damage engages an actor armed for an idle-bound grant (SRD Rage); every other actor is untouched.
-  const updatedActor =
+  const engagedActor =
     after.currentHitPoints < before.currentHitPoints ||
     after.temporaryHitPoints < before.temporaryHitPoints
       ? engageIdleTurnActor(plan.updatedActor)
       : plan.updatedActor
+  // Every automated outcome settles here, so its consequence roll offers do too (ATTACK-15); a
+  // manual hit point change never reaches this seam and offers nothing.
+  const damageFacts = consequenceRollDamageFacts([
+    { targetActorId: actor.id, applications: plan.receiptApplications }
+  ])
+  const [offered] = offerConsequenceRolls({
+    state: target.state,
+    actors: [engagedActor],
+    facts: input.deathSave
+      ? withDeathSaveFacts(damageFacts, { actorId: actor.id, ...input.deathSave })
+      : damageFacts,
+    sourceCommandId: input.sourceCommandId,
+    occurredAt: input.occurredAt
+  })
+  const updatedActor = offered?.after ?? engagedActor
   const [currentRun, currentActor] = await Promise.all([
     ctx.db.get(target.runRow._id),
     ctx.db.get(actorRow._id)

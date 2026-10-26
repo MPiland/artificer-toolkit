@@ -6,10 +6,8 @@ import {
   type CharacterSheetPanelTargetDto
 } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import {
-  ABILITIES,
   FEATURE_ATTRIBUTE,
   roundLengthForDisplay,
-  SIZE_OPTIONS,
   type CharacterCalculation,
   type CharacterMechanicSourceRef
 } from '@artificer-toolkit/shared/core'
@@ -25,6 +23,7 @@ import {
 } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import type { CharacterPresentationLookup } from './characterRuleContext.js'
 import { characterSourceActionIdPrefix } from './characterActionRuleFacts.js'
@@ -42,11 +41,6 @@ const PROFICIENCY_OPTIONS = [
   { value: 'FULL', label: 'Proficient' },
   { value: 'DOUBLE', label: 'Expertise' }
 ]
-
-const ABILITY_OPTIONS = Object.values(ABILITIES).map((ability) => ({
-  value: ability.code,
-  label: ability.label
-}))
 
 function formatCode(value: string): string {
   return value
@@ -119,6 +113,10 @@ function findCompanionAdjustment(
       adjustment.companionInstanceId === companionInstanceId &&
       adjustment.field === field
   )
+}
+
+function vocabularyOptions(records: readonly { id: string; label: string }[] = []) {
+  return records.map(({ id, label }) => ({ value: id, label }))
 }
 
 function findSourceLabel(params: {
@@ -276,12 +274,18 @@ function getProficiencyLabel(
   )
 }
 
+function requireSystemAbility(params: BuildCharacterSheetPanelParams, code: string) {
+  const ability = params.resolution.registry.system?.abilities.find((entry) => entry.code === code)
+  if (!ability) throw new Error(`Ability "${code}" is not available on this character sheet.`)
+  return ability
+}
+
 function buildAbilityPanel(
   params: BuildCharacterSheetPanelParams,
   ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'ABILITY' }>
 ): CharacterSheetPanelDto {
-  const ability = ABILITIES[target.ability]
+  const ability = requireSystemAbility(params, target.ability)
   const matching = params.adjustments.filter(
     (adjustment) => adjustment.family === 'ABILITY' && adjustment.ability === target.ability
   )
@@ -342,7 +346,7 @@ function buildSavingThrowPanel(
   ruleProjection: CharacterSheetRuleProjection,
   target: Extract<CharacterSheetPanelTargetDto, { kind: 'SAVING_THROW' }>
 ): CharacterSheetPanelDto {
-  const ability = ABILITIES[target.ability]
+  const ability = requireSystemAbility(params, target.ability)
   const getNumeric = (field: 'MAGIC_BONUS' | 'MISC_BONUS' | 'TOTAL_OVERRIDE') =>
     findAdjustment(
       params.adjustments,
@@ -477,7 +481,7 @@ function buildSkillPanel(
       label: 'Governing ability',
       value:
         governingAbility?.field === 'GOVERNING_ABILITY_OVERRIDE' ? governingAbility.value : null,
-      options: ABILITY_OPTIONS,
+      options: params.sheet.overview.abilities.map((a) => ({ value: a.ability, label: a.label })),
       commitIntent: 'IMMEDIATE',
       ...adjustmentEditorMetadata(governingAbility)
     }
@@ -1561,7 +1565,9 @@ function buildCompanionPanel(
         field: 'SIZE_OVERRIDE',
         label: 'Override size',
         value: size?.field === 'SIZE_OVERRIDE' ? size.value : null,
-        options: SIZE_OPTIONS.map((option) => ({ value: option.code, label: option.label })),
+        options: systemCoreCodeRegistry
+          .entries(params.character.systemId, 'size')
+          .map(({ code, label }) => ({ value: code, label })),
         commitIntent: 'IMMEDIATE' as const,
         ...adjustmentEditorMetadata(size)
       },
@@ -1570,11 +1576,7 @@ function buildCompanionPanel(
         field: 'ALIGNMENT_OVERRIDE',
         label: 'Override alignment',
         value: alignment?.field === 'ALIGNMENT_OVERRIDE' ? alignment.value : null,
-        options:
-          params.resolution.registry.system?.alignments.map((option) => ({
-            value: option.id,
-            label: option.label
-          })) ?? [],
+        options: vocabularyOptions(params.resolution.registry.system?.alignments),
         commitIntent: 'IMMEDIATE' as const,
         ...adjustmentEditorMetadata(alignment)
       },
@@ -1583,11 +1585,7 @@ function buildCompanionPanel(
         field: 'CREATURE_TYPE_OVERRIDE',
         label: 'Override creature type',
         value: creatureType?.field === 'CREATURE_TYPE_OVERRIDE' ? creatureType.value : null,
-        options:
-          params.resolution.registry.system?.creatureTypes.map((option) => ({
-            value: option.id,
-            label: option.label
-          })) ?? [],
+        options: vocabularyOptions(params.resolution.registry.system?.creatureTypes),
         commitIntent: 'IMMEDIATE' as const,
         ...adjustmentEditorMetadata(creatureType)
       }

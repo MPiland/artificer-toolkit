@@ -14,7 +14,14 @@ const uuidSchema = lazySchema(() =>
 )
 const checksumSchema = lazySchema(() => z.string().check(z.regex(/^[a-f0-9]{64}$/)))
 
-export const ruleCapabilityRefreshBoundaryDtoSchema = lazySchema(() => z.literal('START_OF_TURN'))
+/**
+ * When a capability's usage comes back: `START_OF_TURN` is refreshed at its holder's turn start;
+ * `EACH_TURN` lapses by itself when any turn starts, since its usage is kept with the turn it was
+ * spent on (`resources.turnUsage`).
+ */
+export const ruleCapabilityRefreshBoundaryDtoSchema = lazySchema(() =>
+  z.enum(['START_OF_TURN', 'EACH_TURN'])
+)
 
 /** A System-owned capability with optional bounded aggregate usage. */
 export const ruleCapabilityReusableDefinitionDocumentDtoSchema = lazySchema(() =>

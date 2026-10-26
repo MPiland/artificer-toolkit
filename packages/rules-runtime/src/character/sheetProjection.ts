@@ -5,7 +5,6 @@ import {
   currencyOptionIdentity
 } from '@artificer-toolkit/schema/shared/characterCurrency'
 import {
-  ABILITIES,
   AUTHORED_RECORD_STATUS,
   CHARACTER_EXTRA_KIND_OPTIONS,
   CHARACTER_EXTRA_KIND_REGISTRY,
@@ -42,10 +41,7 @@ import { listHitPointMaximumReductions } from './hitPointMaximumReductions.js'
 import { labelCharacterConditions } from './characterConditionLabels.js'
 import { effectiveHitPointMaximum } from './activeEffectGrantTotals.js'
 import {
-  CHARACTER_ABILITY_ALIASES,
   DND5E_2014_EXHAUSTION_PRESENTATION,
-  getAbilityDerivedTotal,
-  isAbilityCode,
   classSpellSelectionKey,
   createSkillReference,
   getClassSpellSelectionSources
@@ -63,8 +59,12 @@ import {
 } from './sheetCommandReducer.js'
 import type { CharacterSheetProjectedMechanic } from './characterSheetMechanic.js'
 import { projectCharacterSheetNotes } from './sheetNotes.js'
+import {
+  formatProficiencyKind,
+  formatProficiencyLabel,
+  formatProficiencyScaling
+} from './sheetProficiencyLabels.js'
 import type {
-  CharacterRuleProficiency,
   CharacterRuleSense,
   CharacterSheetRuleProjection
 } from './characterSheetRuleProjection.js'
@@ -78,6 +78,7 @@ import { projectCharacterRulePolicyToSheetProjection } from './characterRulePoli
 import { projectCharacterRuleResources } from './characterRuleResourceProjection.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
 import { getProficiencyTargetKind } from './sheetProficiency.js'
+import { holdsStandingEffect, listStandingEffects } from '../standingEffects.js'
 import { addClassRitualSources, type CharacterSheetSpellSource } from './sheetSpellSource.js'
 import {
   getPreparedAndKnownSpellIds,
@@ -95,82 +96,6 @@ function createVocabularyLabelMap(
     if (record.code) labels.set(record.code, record.label)
   }
   return labels
-}
-
-function formatProficiencyScaling(scaling: CharacterRuleProficiency['scaling']): string {
-  switch (scaling) {
-    case 'DOUBLE':
-      return 'Expertise'
-    case 'HALF':
-      return 'Half proficiency'
-    case 'FULL':
-      return 'Proficient'
-  }
-}
-
-function formatProficiencyKind(kind: string): string {
-  switch (kind) {
-    case 'EQUIPMENT':
-      return 'Equipment'
-    case 'EQUIPMENT_PROPERTY':
-      return 'Equipment property'
-    case 'LANGUAGE':
-      return 'Language'
-    case 'SAVE_ABILITY':
-      return 'Saving throw'
-    case 'SKILL':
-      return 'Skill'
-    default:
-      return formatCodeLabel(kind)
-  }
-}
-
-function formatAllProficiencyLabel(kind: string): string {
-  switch (kind) {
-    case 'EQUIPMENT':
-      return 'All equipment'
-    case 'EQUIPMENT_PROPERTY':
-      return 'All equipment properties'
-    case 'LANGUAGE':
-      return 'All languages'
-    case 'SAVE_ABILITY':
-      return 'All saving throws'
-    case 'SKILL':
-      return 'All skills'
-    default:
-      return `All ${formatCodeLabel(kind).toLowerCase()}`
-  }
-}
-
-function formatProficiencyLabel(params: {
-  equipmentLabels: ReadonlyMap<string, string>
-  languageLabels: ReadonlyMap<string, string>
-  proficiency: CharacterRuleProficiency
-  skillLabels: ReadonlyMap<string, string>
-}): string {
-  const { proficiency } = params
-  if (proficiency.subjectId === '*') return formatAllProficiencyLabel(proficiency.kind)
-
-  switch (proficiency.kind) {
-    case 'EQUIPMENT':
-      return params.equipmentLabels.get(proficiency.subjectId) ?? 'Unknown equipment'
-    case 'EQUIPMENT_PROPERTY': {
-      const propertyLabel = formatCodeLabel(proficiency.subjectId)
-      if (proficiency.category === 'ARMOR') return `${propertyLabel} Armor`
-      if (proficiency.category === 'WEAPON') return `${propertyLabel} Weapons`
-      return propertyLabel
-    }
-    case 'LANGUAGE':
-      return params.languageLabels.get(proficiency.subjectId) ?? 'Unknown language'
-    case 'SAVE_ABILITY':
-      return isAbilityCode(proficiency.subjectId)
-        ? `${ABILITIES[proficiency.subjectId].label} saves`
-        : 'Unknown saving throw'
-    case 'SKILL':
-      return params.skillLabels.get(proficiency.subjectId) ?? 'Unknown skill'
-    default:
-      return formatCodeLabel(proficiency.subjectId)
-  }
 }
 
 function formatSenseRange(sense: CharacterRuleSense): string {
@@ -553,6 +478,7 @@ function buildActiveSpellGroups(params: {
   ownedSlotLevels: ReadonlySet<number>
   castLevelReaderSpellIds: ReadonlySet<string>
   actionReferences: CharacterRuleActionPresentationReferences
+  abilityByCode: ReadonlyMap<string, { short: string }>
 }): CharacterSheetResponseDto['spells']['activeGroups'] {
   const { ownedSlotLevels, castLevelReaderSpellIds } = params
   const spellCastDecisionsByCandidateId = new Map(
@@ -632,7 +558,7 @@ function buildActiveSpellGroups(params: {
           hasAttack && attackBonus !== undefined
             ? formatModifier(attackBonus)
             : save && saveDc !== undefined
-              ? `${ABILITIES[save.ability].short} ${saveDc}`
+              ? `${params.abilityByCode.get(save.ability)?.short ?? save.ability} ${saveDc}`
               : undefined
         return {
           rowId: candidateId,
@@ -772,7 +698,10 @@ interface ProjectCharacterSheetBundleParams {
     SheetSpellSource,
     'source' | 'customName' | 'notes' | 'displayAsAttack'
   >[]
-  ruleEvaluation: Pick<CharacterRuleEvaluationResult, 'snapshot' | 'registry' | 'facts' | 'output'>
+  ruleEvaluation: Pick<
+    CharacterRuleEvaluationResult,
+    'snapshot' | 'registry' | 'facts' | 'output' | 'standingEffectSources'
+  >
   /** The Character's active effects; their hit point maximum reductions lower `maxHitPoints` and their grants are listed. */
   activeEffects: readonly Pick<
     ActiveRuleEffectRecord,
@@ -838,6 +767,16 @@ export function projectCharacterSheetBundle(
     resolution.catalog.equipment.map((equipment) => [equipment.id, equipment.label])
   )
   const skillLabels = createVocabularyLabelMap(resolution.registry.system?.skills)
+  // The System record owns ability labels and abbreviations; a System without an abbreviation shows the label.
+  const systemAbilities = (resolution.registry.system?.abilities ?? []).map(
+    ({ code, label, short }) => ({ code, label, short: short ?? label })
+  )
+  const abilityByCode = new Map(systemAbilities.map((ability) => [ability.code, ability]))
+  const requireSystemAbility = (code: string) => {
+    const ability = abilityByCode.get(code)
+    if (!ability) throw new Error(`The Game System does not define the ability "${code}".`)
+    return ability
+  }
   const languageLabels = createVocabularyLabelMap(resolution.registry.system?.languages)
   const senseLabels = createVocabularyLabelMap(resolution.registry.system?.senses)
   const damageTypeLabels = createVocabularyLabelMap(resolution.registry.system?.damageTypes)
@@ -855,7 +794,7 @@ export function projectCharacterSheetBundle(
       currency.label
     ])
   )
-  const skillReference = createSkillReference(resolution.registry.system)
+  const skillReference = createSkillReference(resolution.registry.system, character.systemId)
   const spellSlots = [
     ...ruleEvaluation.output.spellSlots.maxByLevel.map((slot) => ({
       slotKey: getSpellSlotKey(slot.spellLevel),
@@ -1038,6 +977,7 @@ export function projectCharacterSheetBundle(
         code: metadata.code,
         label: metadata.label,
         ability: metadata.ability,
+        abilityShort: requireSystemAbility(metadata.ability).short,
         total,
         rollMode: ruleProjection.rollModes.skillChecks[skill],
         proficiency: ruleProjection.calculations.skillProficiencyLevels[skill]?.effective ?? 'NONE'
@@ -1347,7 +1287,8 @@ export function projectCharacterSheetBundle(
     castLevelReaderSpellIds: getCastLevelReaderSpellIds(
       ruleEvaluation.output.spellReferenceMechanics
     ),
-    actionReferences: mechanicPresentation.actionReferences
+    actionReferences: mechanicPresentation.actionReferences,
+    abilityByCode
   })
   const displayedProficiencyKeys = new Set<string>()
 
@@ -1380,30 +1321,25 @@ export function projectCharacterSheetBundle(
     overview: {
       abilities: Object.keys(resolution.summary.abilities).map((ability) => {
         const abilityCode = ability as keyof typeof resolution.summary.abilities
+        const { label, short } = requireSystemAbility(abilityCode)
         return {
           ability: abilityCode,
-          score: getAbilityDerivedTotal(ruleProjection.derivedStats.abilityScores, abilityCode),
-          modifier: getAbilityDerivedTotal(
-            ruleProjection.derivedStats.abilityModifiers,
-            abilityCode
-          ),
+          label,
+          short,
+          score: ruleProjection.derivedStats.abilityScores[abilityCode] ?? 0,
+          modifier: ruleProjection.derivedStats.abilityModifiers[abilityCode] ?? 0,
           rollMode: ruleProjection.rollModes.abilityChecks[abilityCode]
         }
       }),
-      savingThrows: Object.keys(ABILITIES)
-        .filter((ability): ability is keyof typeof ABILITIES => isAbilityCode(ability))
-        .map((ability) => ({
-          ability,
-          label: ABILITIES[ability].label,
-          total: getAbilityDerivedTotal(ruleProjection.derivedStats.savingThrows, ability),
-          rollMode: ruleProjection.rollModes.savingThrows[ability],
-          proficiency:
-            ruleProjection.calculations.savingThrowProficiencyLevels[ability]?.effective ??
-            ruleProjection.calculations.savingThrowProficiencyLevels[
-              CHARACTER_ABILITY_ALIASES[ability] ?? ''
-            ]?.effective ??
-            'NONE'
-        })),
+      savingThrows: systemAbilities.map(({ code: ability, label, short }) => ({
+        ability,
+        label,
+        short,
+        total: ruleProjection.derivedStats.savingThrows[ability] ?? 0,
+        rollMode: ruleProjection.rollModes.savingThrows[ability],
+        proficiency:
+          ruleProjection.calculations.savingThrowProficiencyLevels[ability]?.effective ?? 'NONE'
+      })),
       skills: overviewSkills,
       facts: [
         { label: 'Initiative', value: formatModifier(ruleProjection.derivedStats.initiative) },
@@ -1446,6 +1382,12 @@ export function projectCharacterSheetBundle(
         recoveryTags: reduction.recoveryTags
       })),
       activeGrants: listActiveGrantListings(params.activeEffects),
+      standingEffects: listStandingEffects(ruleEvaluation.standingEffectSources).map(
+        (standing) => ({
+          ...standing,
+          held: holdsStandingEffect(standing, params.activeEffects)
+        })
+      ),
       // A Concentration summon the Sheet holds is the Sheet's Concentration when no Run carried one (D190).
       concentration:
         params.concentration ?? sheetSpellSummonConcentration(character.state.spellSummons),
@@ -1512,6 +1454,7 @@ export function projectCharacterSheetBundle(
       >((proficiencies, proficiency) => {
         const kind = getProficiencyTargetKind(proficiency, resolution)
         const label = formatProficiencyLabel({
+          abilityByCode,
           equipmentLabels,
           languageLabels,
           proficiency,

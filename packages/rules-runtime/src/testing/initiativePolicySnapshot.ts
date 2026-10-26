@@ -1,4 +1,7 @@
-import { ruleGraphDefinitionDtoSchema } from '@artificer-toolkit/schema/api/rulesRuntime'
+import {
+  ruleGraphDefinitionDtoSchema,
+  type RuleGraphDefinitionDto
+} from '@artificer-toolkit/schema/api/rulesRuntime'
 import {
   initiativePolicyReusableDefinitionDocumentDtoSchema,
   type InitiativePolicyReusableDefinitionDocumentDto
@@ -9,6 +12,7 @@ import {
 } from '@artificer-toolkit/schema/shared/initiativePolicySnapshot'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { SRD_INITIATIVE_POLICY_DEFINITIONS } from '@artificer-toolkit/source-data/srd/initiativePolicies.js'
 
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import { DND5E_INITIATIVE_FACT_KEYS } from '../systems/dnd5e/initiativeFactAdapter.js'
@@ -86,7 +90,7 @@ const orderChoiceGraph = ruleGraphDefinitionDtoSchema.parse({
   outputs: { selection: { kind: 'NODE_OUTPUT', nodeId: 'order', port: 'value' } }
 })
 
-function graphPin(graph: typeof evaluationGraph) {
+function graphPin(graph: RuleGraphDefinitionDto) {
   return {
     definitionId: graph.id,
     definitionVersion: 1,
@@ -109,39 +113,97 @@ function pinnedDefinition<TDocument>(id: string, label: string, document: TDocum
   }
 }
 
-/** A frozen Encounter initiative policy snapshot and its checksum, as Encounter admission pins it. */
+type LabelledGraph = { graph: RuleGraphDefinitionDto; label: string }
+
+/**
+ * A System's frozen Encounter initiative policy snapshot and its checksum, as Encounter admission
+ * pins it: the policy over its evaluation, tie and order-choice graphs.
+ */
+export function pinnedInitiativePolicySnapshot(input: {
+  gameSystemId: string
+  procedure: Procedure
+  cadence: Cadence
+  tie?: { repeatOnTie: boolean; maximumAttempts: number }
+  evaluation: LabelledGraph
+  tieResolver: LabelledGraph
+  orderChoice: LabelledGraph & { minimumIndexFact: string; maximumIndexFact: string }
+}): { snapshot: EncounterInitiativePolicySnapshotDto; checksum: string } {
+  const tie = input.tie ?? { repeatOnTie: false, maximumAttempts: 1 }
+  const { evaluation, tieResolver, orderChoice } = input
+  const policy = initiativePolicyReusableDefinitionDocumentDtoSchema.parse({
+    schemaVersion: 1,
+    kind: 'INITIATIVE_POLICY',
+    id: POLICY_ID,
+    gameSystemId: input.gameSystemId,
+    procedure: input.procedure,
+    cadence: input.cadence,
+    evaluationGraph: graphPin(evaluation.graph),
+    orderChoiceGraph: {
+      definitionId: orderChoice.graph.id,
+      definitionVersion: 1,
+      definitionChecksum: checksumRuleDocument(orderChoice.graph),
+      selectionOutput: 'selection',
+      minimumIndexFact: orderChoice.minimumIndexFact,
+      maximumIndexFact: orderChoice.maximumIndexFact
+    },
+    tieResolvers: [{ ...graphPin(tieResolver.graph), ...tie }],
+    defaultTieResolverDefinitionId: tieResolver.graph.id
+  })
+  const pin = ({ graph, label }: LabelledGraph) => pinnedDefinition(graph.id, label, graph)
+  const snapshot = encounterInitiativePolicySnapshotDtoSchema.parse({
+    schemaVersion: 1,
+    gameSystemId: input.gameSystemId,
+    policy: pinnedDefinition(POLICY_ID, 'Test initiative policy', policy),
+    evaluationGraph: pin(evaluation),
+    orderChoiceGraph: pin(orderChoice),
+    tieResolver: pin(tieResolver)
+  })
+  return { snapshot, checksum: checksumCanonicalJson(snapshot) }
+}
+
+/** A frozen D&D initiative policy snapshot: d20 + modifier, a d20 tie-breaker. */
 export function initiativePolicySnapshot(input: {
   procedure: Procedure
   cadence: Cadence
   tie?: { repeatOnTie: boolean; maximumAttempts: number }
 }): { snapshot: EncounterInitiativePolicySnapshotDto; checksum: string } {
-  const tie = input.tie ?? { repeatOnTie: false, maximumAttempts: 1 }
-  const policy = initiativePolicyReusableDefinitionDocumentDtoSchema.parse({
-    schemaVersion: 1,
-    kind: 'INITIATIVE_POLICY',
-    id: POLICY_ID,
+  return pinnedInitiativePolicySnapshot({
+    ...input,
     gameSystemId: DND5E_SYSTEM_ID,
-    procedure: input.procedure,
-    cadence: input.cadence,
-    evaluationGraph: graphPin(evaluationGraph),
-    orderChoiceGraph: {
-      definitionId: orderChoiceGraph.id,
-      definitionVersion: 1,
-      definitionChecksum: checksumRuleDocument(orderChoiceGraph),
-      selectionOutput: 'selection',
+    evaluation: { graph: evaluationGraph, label: 'd20 + modifier' },
+    tieResolver: { graph: tieGraph, label: 'd20 tie-breaker' },
+    orderChoice: {
+      graph: orderChoiceGraph,
+      label: 'Order choice',
       minimumIndexFact: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMinimumIndex,
       maximumIndexFact: DND5E_INITIATIVE_FACT_KEYS.orderChoiceMaximumIndex
-    },
-    tieResolvers: [{ ...graphPin(tieGraph), ...tie }],
-    defaultTieResolverDefinitionId: tieGraph.id
+    }
   })
+}
+
+/**
+ * The frozen snapshot of the seeded SRD initiative policy `policyDefinitionId` and the graphs it pins,
+ * built from the seed documents Campaigns select it from.
+ */
+export function seededInitiativePolicySnapshot(policyDefinitionId: string): {
+  snapshot: EncounterInitiativePolicySnapshotDto
+  checksum: string
+} {
+  const seeded = (id: string) => {
+    const definition = SRD_INITIATIVE_POLICY_DEFINITIONS.find((candidate) => candidate.id === id)
+    if (!definition) throw new Error(`The SRD seeds no initiative definition ${id}.`)
+    return pinnedDefinition(definition.id, definition.label, definition.document)
+  }
+  const policy = initiativePolicyReusableDefinitionDocumentDtoSchema.parse(
+    seeded(policyDefinitionId).document
+  )
   const snapshot = encounterInitiativePolicySnapshotDtoSchema.parse({
     schemaVersion: 1,
-    gameSystemId: DND5E_SYSTEM_ID,
-    policy: pinnedDefinition(POLICY_ID, 'Test initiative policy', policy),
-    evaluationGraph: pinnedDefinition(evaluationGraph.id, 'd20 + modifier', evaluationGraph),
-    orderChoiceGraph: pinnedDefinition(orderChoiceGraph.id, 'Order choice', orderChoiceGraph),
-    tieResolver: pinnedDefinition(tieGraph.id, 'd20 tie-breaker', tieGraph)
+    gameSystemId: policy.gameSystemId,
+    policy: seeded(policy.id),
+    evaluationGraph: seeded(policy.evaluationGraph.definitionId),
+    orderChoiceGraph: seeded(policy.orderChoiceGraph.definitionId),
+    tieResolver: seeded(policy.defaultTieResolverDefinitionId)
   })
   return { snapshot, checksum: checksumCanonicalJson(snapshot) }
 }

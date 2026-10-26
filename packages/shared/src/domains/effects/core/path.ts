@@ -374,3 +374,77 @@ export const PATH_LIFECYCLE_TURN_BOUNDARY_REGISTRY: Record<
 export const PATH_LIFECYCLE_TURN_BOUNDARY_OPTIONS = valuesOf(
   PATH_LIFECYCLE_TURN_BOUNDARY_REGISTRY
 ) as readonly PathLifecycleTurnBoundaryOption[]
+
+/** The rest whose finish turns a standing effect back on once it has ended. */
+export const PATH_LIFECYCLE_RETURNS_ON = {
+  LONG_REST: 'LONG_REST',
+  SHORT_REST: 'SHORT_REST'
+} as const
+
+export type PathLifecycleReturnsOn = keyof typeof PATH_LIFECYCLE_RETURNS_ON
+
+export const PATH_LIFECYCLE_RETURNS_ON_OPTIONS: readonly CoreMeta<PathLifecycleReturnsOn>[] = [
+  {
+    code: PATH_LIFECYCLE_RETURNS_ON.LONG_REST,
+    label: 'Long Rest',
+    description: 'Comes back when its holder finishes a long rest.'
+  },
+  {
+    code: PATH_LIFECYCLE_RETURNS_ON.SHORT_REST,
+    label: 'Short Rest',
+    description: 'Comes back when its holder finishes a short or long rest.'
+  }
+]
+
+/** Which earlier effects a new one ends: `PER_SOURCE`, its source's from the same Effect on any holder. */
+export const PATH_LIFECYCLE_EXCLUSIVITY = {
+  PER_SOURCE: 'PER_SOURCE'
+} as const
+
+export type PathLifecycleExclusivity = keyof typeof PATH_LIFECYCLE_EXCLUSIVITY
+
+export const PATH_LIFECYCLE_EXCLUSIVITY_OPTIONS: readonly CoreMeta<PathLifecycleExclusivity>[] = [
+  {
+    code: PATH_LIFECYCLE_EXCLUSIVITY.PER_SOURCE,
+    label: 'One Per Source',
+    description: 'A new one from the same source ends its earlier one, on any creature.'
+  }
+]
+
+/** How a path picks its result: direct, a choice, a roll table or hit point tiers. */
+export const PATH_SELECTION_KIND_OPTIONS = [
+  {
+    code: 'FIXED',
+    label: 'Direct',
+    description: 'Direct result.'
+  },
+  {
+    code: 'CHOICE',
+    label: 'Choose One',
+    description: 'Choose one option.'
+  },
+  {
+    code: 'ROLL_TABLE',
+    label: 'Roll Table',
+    description: 'Roll for a result.'
+  },
+  {
+    code: 'HIT_POINT_TIERS',
+    label: 'Hit Point Tiers',
+    description: "The lowest tier the target's current hit points satisfy applies."
+  }
+] as const
+
+/** Whether a result block holds one outcome or outcomes resolved in order. */
+export const PATH_RESULT_KIND_OPTIONS = [
+  {
+    code: 'SINGLE',
+    label: 'Single',
+    description: 'Single outcome.'
+  },
+  {
+    code: 'SEQUENCE',
+    label: 'Resolve In Order',
+    description: 'Sequential outcomes.'
+  }
+] as const

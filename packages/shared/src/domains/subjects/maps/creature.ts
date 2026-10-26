@@ -5,7 +5,6 @@ import {
   CREATURE_INITIATIVE_MODE_CODE,
   DAMAGE_DEFENSE_BYPASS_OPTIONS,
   MEASUREMENT_UNIT_OPTIONS,
-  SIZE_OPTIONS,
   type DiceExpression
 } from '#core'
 import {
@@ -302,6 +301,14 @@ export const CREATURE_SENSE_NODE_MAP = senseNode.define('creatureSense', ({ map,
     .set('qualifier', nodes.text(['qualifier'], 'Note', { order: 3 }))
 })
 
+const abilityScoresNode = buildNodeMap<Record<string, number>>()
+const ABILITY_SCORES_NODE_MAP = abilityScoresNode.defineKeyed('abilityScores', {
+  rows: abilityScoresNode.data.table('abilities', {
+    selectColumns: ['id', 'label', 'description']
+  }),
+  entry: { kind: 'INPUT', type: 'NUMBER' }
+})
+
 const diceExpressionNode = buildNodeMap<DiceExpression>()
 
 export const CREATURE_HIT_DICE_NODE_MAP = diceExpressionNode.define(
@@ -424,8 +431,8 @@ export const CREATURE_NODE_MAP = creatureNode.define(
           ['size'],
           'Size',
           {
-            kind: 'INLINE_OPTIONS',
-            options: SIZE_OPTIONS
+            kind: 'DATA',
+            relationship: table('sizes', { selectColumns: ['id', 'label', 'description'] })
           },
           { section: CREATURE_SECTIONS.basics, order: 70 }
         )
@@ -456,23 +463,11 @@ export const CREATURE_NODE_MAP = creatureNode.define(
       // Core stats
       .set(
         'abilityScores',
-        groupObject(
-          ['abilityScores'],
-          'Ability Scores',
-          () =>
-            buildNodeMap<Record<string, number>>().define(
-              'abilityScores',
-              ({ map: m, nodes: n }) => {
-                m.set('STRENGTH', n.number(['STRENGTH'], 'Strength'))
-                  .set('DEXTERITY', n.number(['DEXTERITY'], 'Dexterity'))
-                  .set('CONSTITUTION', n.number(['CONSTITUTION'], 'Constitution'))
-                  .set('INTELLIGENCE', n.number(['INTELLIGENCE'], 'Intelligence'))
-                  .set('WISDOM', n.number(['WISDOM'], 'Wisdom'))
-                  .set('CHARISMA', n.number(['CHARISMA'], 'Charisma'))
-              }
-            ),
-          { presentation: 'inline', section: CREATURE_SECTIONS.stats, order: 10 }
-        )
+        groupObject(['abilityScores'], 'Ability Scores', () => ABILITY_SCORES_NODE_MAP, {
+          presentation: 'inline',
+          section: CREATURE_SECTIONS.stats,
+          order: 10
+        })
       )
       .set(
         'naturalArmorBonus',

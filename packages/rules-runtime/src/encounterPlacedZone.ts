@@ -17,7 +17,6 @@ import {
   wallSideBandGeometry
 } from '@artificer-toolkit/shared/vtt'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import type { AbilityCode } from '@artificer-toolkit/shared/core'
 
 import { compileEffectGraph } from './encounterActionEffectPlans.js'
 import { selectScalingRow } from './scalingRowSelection.js'
@@ -30,7 +29,7 @@ type OccupantSaveBonus = NonNullable<CompiledActionZonePlacement['occupantSaveBo
  * and its level in each class. A source with no level in a class is at level 0 in it.
  */
 export interface PlacedZoneSource {
-  abilityModifier(ability: AbilityCode): number
+  abilityModifier(ability: string): number
   classLevel(classId: string): number
 }
 
@@ -116,7 +115,8 @@ type PlacedZoneInput = {
   encounterId: string
   occurrenceId: string
   rootCommandId: string
-  sourceActorId: string
+  /** The creature whose action placed the zone; null for a GM's environmental zone (MOVE-3.2). */
+  sourceActorId: string | null
   point: ScenePoint
   area: SpatialAreaShape
   /** The user's token; a SOURCE zone follows it. */
@@ -168,6 +168,7 @@ function placedZoneRecord(
     perceptionContributions: entry.perceptionContributions,
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],

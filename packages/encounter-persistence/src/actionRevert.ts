@@ -1,18 +1,14 @@
 import { resolveEncounterActionInputDtoSchema } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import {
-  encounterCommandResultDtoSchema,
   revertLastEncounterActionInputDtoSchema,
   type EncounterCommandResultDto,
   type RevertLastEncounterActionInputDto
 } from '@artificer-toolkit/schema/api/encounters'
-import type { z } from 'zod'
 import {
   encounterRunActorStateSchema,
-  encounterRunStateSchema,
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { encounterStoredRunCommandSchema } from '@artificer-toolkit/schema/projections/encounterRunPersistence'
 import {
   damageSaveCheckMutatesRun,
   type ConcentrationEndReason
@@ -20,13 +16,13 @@ import {
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import {
   ENDED_EFFECT_RELEASE_OPERATION_KEY,
-  isEndedEffectRelease
+  isEndedEffectRelease,
+  type DamageInterceptionChargeDto
 } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { interceptionChargesSpent } from '@artificer-toolkit/rules-runtime/encounterDamageInterception'
 import { withCharacterTemporaryHitPoints } from '@artificer-toolkit/schema/shared/temporaryHitPoints'
 import { storedRuleExecutionResultDtoSchema } from '@artificer-toolkit/schema/shared/ruleExecutionResults'
 import type { EncounterActionEconomyConsumption } from '@artificer-toolkit/rules-runtime/encounterActionEconomyConsumption'
-import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
-import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
 import {
   featureChargeUsed,
   encounterRuleUsageUsed,
@@ -48,7 +44,6 @@ import {
   revertEncounterActorItemRelease
 } from '@artificer-toolkit/rules-runtime/encounterActorOptionalContestContext'
 import { updateSpellSlotUsage } from '@artificer-toolkit/rules-runtime/character/sheetCommandReducer'
-import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { createCharacterResourceOwnerKey } from '@artificer-toolkit/shared/character'
 import { EQUIPPED_SLOT_CODES } from '@artificer-toolkit/shared/core'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -65,18 +60,19 @@ import {
 } from './targetMechanicsInverse.js'
 import { holdsActorForm } from './actorFormPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
-import { readRunActors, readRunActorWithRow, readRunState, replaceRunActor } from './documents.js'
+import { readRunActors, readRunActorWithRow, readRunState } from './documents.js'
+import { commitRevert, type RevertScope, type StoredCommand } from './revertCommit.js'
 import { removeConjuredActors } from './summonRemoval.js'
 import {
   removeTurnSpeedBonus,
   removeTurnTeleportAllowance,
   restoreTurnUses
 } from './turnMovement.js'
-import { projectNativeGm } from './nativeProjection.js'
-import { encounterReplayReceipt, replayEncounterCommandResult } from './replayReceipts.js'
-import { insertRunCommand, presentTimelineEntry } from './timelineEntries.js'
+import { replayEncounterCommandResult } from './replayReceipts.js'
+import { presentTimelineEntry } from './timelineEntries.js'
 import type { EncounterDocument } from './store.js'
 import type { EncounterCharacterWriteTransaction } from './ports.js'
+import { revertCreatureRestActor } from './creatureRestRevert.js'
 
 function replacesMaintainedEffect(
   maintenance: {
@@ -120,6 +116,8 @@ type CharacterInverse = {
   degradation: ActionBatch['sourceItemDegradation']
   /** Slot spends in the order they committed; one batch can carry several (the cast, then its counter). */
   spells: NonNullable<ActionBatch['spellCastConsumption']>[]
+  /** The Sheet pool charges the Character's feature-held damage interceptions spent, in spend order. */
+  interceptionCharges: DamageInterceptionChargeDto[]
   expectedStreamVersion: number
 }
 
@@ -147,6 +145,7 @@ function characterInverseAt(expectedStreamVersion: number): CharacterInverse {
     item: null,
     degradation: null,
     spells: [],
+    interceptionCharges: [],
     expectedStreamVersion
   }
 }
@@ -263,6 +262,10 @@ export async function revertLastEncounterAction(
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertConcealmentObservers(ctx, { ...scope, root })
   }
+  if (root?.commandType === 'PLACE_ZONE') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertPlaceZone(ctx, { ...scope, root })
+  }
   if (root?.commandType === 'CREATURE_REST') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertCreatureRest(ctx, { ...scope, root })
@@ -270,6 +273,10 @@ export async function revertLastEncounterAction(
   if (root?.commandType === 'MOVE_HELD_EFFECT') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertMoveHeldEffect(ctx, { ...scope, root })
+  }
+  if (root?.commandType === 'CHANGE_FACING') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertChangeFacing(ctx, { ...scope, root })
   }
   if (root?.commandType !== 'RESOLVE_ACTION')
     revertUnavailable(
@@ -490,6 +497,7 @@ export async function revertLastEncounterAction(
         inverse.hitPoints = inverted.sheet.hitPoints
         inverse.removedConditionIds = inverted.sheet.removedConditionIds
         if (reaction?.spellCastConsumption) inverse.spells.push(reaction.spellCastConsumption)
+        inverse.interceptionCharges.push(...interceptionChargesSpent(action.applications))
         if (action.targetItemUseStateTransition)
           inverse.unequipped = action.targetItemUseStateTransition
         inverse.degradation = action.targetItemDegradation
@@ -852,27 +860,6 @@ export async function revertLastEncounterAction(
   })
 }
 
-type StoredCommand = z.infer<typeof encounterStoredRunCommandSchema>
-type RevertScope = {
-  run: EncounterDocument<'encounterRuns'>
-  state: EncounterRunState
-  campaign: EncounterDocument<'campaigns'>
-  input: RevertLastEncounterActionInputDto
-  fingerprint: string
-  userId: string
-  root: Extract<
-    StoredCommand,
-    {
-      commandType:
-        | 'RESOLVE_ACTION'
-        | 'ESCAPE'
-        | 'SET_CONCEALMENT_OBSERVERS'
-        | 'CREATURE_REST'
-        | 'MOVE_HELD_EFFECT'
-    }
-  >
-}
-
 type RevertGroup = {
   root: Extract<StoredCommand, { commandType: 'RESOLVE_ACTION' }>
   ruleOccurrenceId: string
@@ -1041,67 +1028,6 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
   }
 }
 
-/** Writes the restored actors, the next Run version and the undo's own timeline entry. */
-async function commitRevert(
-  ctx: EncounterCharacterWriteTransaction,
-  input: RevertScope & {
-    actors: readonly EncounterRunActorState[]
-    nextActors: EncounterRunActorState[]
-    updatedAt: string
-  }
-): Promise<EncounterCommandResultDto> {
-  const { run, state, campaign, root, updatedAt, nextActors } = input
-  for (const [index, actor] of input.actors.entries()) {
-    const next = nextActors[index]!
-    if (next === actor) continue
-    await replaceRunActor(ctx, actor, next)
-  }
-  const nextState = encounterRunStateSchema.parse({
-    ...state,
-    version: state.version + 1,
-    updatedAt
-  })
-  const facts = buildEncounterActorRuleFacts({ actors: nextActors })
-  const rules = reconcileEncounterActorRuleOutput(
-    evaluateInstalledEncounterActors({ gameSystemId: state.gameSystemId, facts }),
-    facts
-  )
-  const projection = await projectNativeGm(ctx, nextState, nextActors, rules)
-  const result = encounterCommandResultDtoSchema.parse({
-    projection,
-    roll: null,
-    occurrence: null
-  })
-  await ctx.db.patch(run._id, {
-    version: nextState.version,
-    stateJson: JSON.stringify(nextState),
-    stateChecksum: checksumCanonicalJson(nextState),
-    updatedAt
-  })
-  await insertRunCommand(
-    ctx,
-    encounterStoredRunCommandSchema.parse({
-      id: crypto.randomUUID(),
-      campaignId: campaign.id,
-      encounterId: run.id,
-      commandId: input.input.commandId,
-      commandType: 'REVERT_LAST_ACTION',
-      revertedCommandId: root.commandId,
-      ruleOccurrenceId:
-        root.commandType === 'RESOLVE_ACTION' && root.root.kind === 'RULE_OCCURRENCE'
-          ? root.root.ruleOccurrenceId
-          : null,
-      commandFingerprint: input.fingerprint,
-      actorUserId: input.userId,
-      version: nextState.version,
-      commandJson: JSON.stringify(input.input),
-      ...encounterReplayReceipt(result),
-      createdAt: updatedAt
-    })
-  )
-  return result
-}
-
 /**
  * Undoes the Run's last CHECK action exactly from its receipt: its allowance use, the Creature
  * feature charges it spent, the grants its check used up and a won check's outcome on its target
@@ -1159,7 +1085,8 @@ async function revertCheckAction(
         inverse: {
           ...characterInverseAt(inverted.sheet.streamVersion),
           hitPoints: inverted.sheet.hitPoints,
-          removedConditionIds: inverted.sheet.removedConditionIds
+          removedConditionIds: inverted.sheet.removedConditionIds,
+          interceptionCharges: interceptionChargesSpent(mechanics.applications)
         },
         userId: input.userId,
         updatedAt,
@@ -1331,10 +1258,23 @@ async function revertConcealmentObservers(
   })
 }
 
-/**
- * Undoes the GM's creature rest: each recovered charge or slot row is spent again, only while the
- * row is still at the zero the rest left it.
- */
+/** Undoes the GM's environmental zone (MOVE-3.2): the zone leaves the Scene. */
+async function revertPlaceZone(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'PLACE_ZONE' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  await deletePlacedSpatialEffect(ctx, { encounterId: state.id, id: root.receipt.spatialEffectId })
+  const actors = await readRunActors(ctx, state)
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: [...actors],
+    updatedAt: new Date().toISOString()
+  })
+}
+
+/** Undoes the GM's creature rest, creature by creature (`revertCreatureRestActor`). */
 async function revertCreatureRest(
   ctx: EncounterCharacterWriteTransaction,
   input: RevertScope & { root: Extract<StoredCommand, { commandType: 'CREATURE_REST' }> }
@@ -1342,18 +1282,13 @@ async function revertCreatureRest(
   const { state, root } = input
   const actors = await readRunActors(ctx, state)
   const restored = new Map<string, EncounterRunActorState>()
-  for (const { actorId, resets } of root.receipt.actors) {
+  for (const { actorId, resets, armedEffectIds } of root.receipt.actors) {
     const actor = actors.find((entry) => entry.id === actorId)
     if (!actor) revertUnavailable('A creature left the Encounter; adjust manually.')
-    let resources: unknown = actor.resources
-    for (const { key, beforeUsed } of resets) {
-      if (featureChargeUsed({ resources }, key) !== 0)
-        revertUnavailable(
-          `${actor.label}'s feature charges changed after this rest; adjust manually.`
-        )
-      resources = withFeatureChargeUsed({ resources }, key, beforeUsed)
-    }
-    restored.set(actorId, encounterRunActorStateSchema.parse({ ...actor, resources }))
+    restored.set(
+      actorId,
+      await revertCreatureRestActor(ctx, { encounterId: state.id, actor, resets, armedEffectIds })
+    )
   }
   return commitRevert(ctx, {
     ...input,
@@ -1395,6 +1330,36 @@ async function revertMoveHeldEffect(
     lifecycle: receipt.before.lifecycle,
     maintainedEffectStateId: receipt.before.maintainedEffectStateId,
     restoredFrom: receipt.before
+  })
+  const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: actors.map((entry) => (entry.id === actor.id ? restored : entry)),
+    updatedAt: new Date().toISOString()
+  })
+}
+
+/**
+ * Undoes a Change facing reaction (ATTACK-12): the token turns back and the reaction returns, only
+ * while the token was not moved or turned since.
+ */
+async function revertChangeFacing(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'CHANGE_FACING' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  const { receipt } = root
+  const actors = await readRunActors(ctx, state)
+  const actor = actors.find((entry) => entry.id === receipt.actorId)
+  if (!actor) revertUnavailable('The actor left the Encounter; adjust manually.')
+  if (!ctx.ports.restoreActionFacing)
+    revertUnavailable('This action turned a token on the Scene; adjust manually.')
+  await ctx.ports.restoreActionFacing({
+    encounterId: state.id,
+    commandId: root.commandId,
+    sceneId: receipt.sceneId,
+    sceneCommandId: receipt.sceneCommandId
   })
   const restored = returnSpentActionEconomy(actor, receipt.actionEconomy)
   return commitRevert(ctx, {
@@ -1531,27 +1496,32 @@ async function restoreCharacter(
   const unequipped = inverse.unequipped
   if (unequipped) reequip(unequipped.itemInstanceId, unequipped.beforeStateChecksum)
   const sheetState = ctx.ports.readCharacterSheetState(row)
-  const resource = inverse.resource
-  const nextSheetState = resource
-    ? {
-        ...sheetState,
-        resourceUsage: sheetState.resourceUsage.map((usage) => {
-          if (createCharacterResourceOwnerKey(usage.owner) !== resource.poolId) return usage
-          if (usage.used !== resource.afterUsed)
-            revertUnavailable(
-              `${row.label}'s resources changed after this action; adjust manually.`
-            )
-          return {
-            ...usage,
-            used: resource.beforeUsed,
-            updatedBy: input.userId,
-            updatedAt: input.updatedAt
-          }
-        })
-      }
-    : null
+  let restoredSheetState: typeof sheetState | null = null
+  // Latest spend first, so each charge finds the usage its own spend left: the interceptions spent
+  // during settlement, then the action's own charge.
+  const charges = [...(inverse.resource ? [inverse.resource] : []), ...inverse.interceptionCharges]
+  for (const charge of charges.toReversed()) {
+    const base: typeof sheetState = restoredSheetState ?? sheetState
+    const usage = base.resourceUsage.find(
+      (entry) => createCharacterResourceOwnerKey(entry.owner) === charge.poolId
+    )
+    if (!usage || usage.used !== charge.afterUsed)
+      revertUnavailable(`${row.label}'s resources changed after this action; adjust manually.`)
+    restoredSheetState = {
+      ...base,
+      resourceUsage: base.resourceUsage.map((entry) =>
+        entry === usage
+          ? {
+              ...entry,
+              used: charge.beforeUsed,
+              updatedBy: input.userId,
+              updatedAt: input.updatedAt
+            }
+          : entry
+      )
+    }
+  }
   const item = inverse.item
-  let restoredSheetState = nextSheetState
   if (item) {
     const base = restoredSheetState ?? sheetState
     // The item is given back by lowering its usage; the stored row never left the Sheet.

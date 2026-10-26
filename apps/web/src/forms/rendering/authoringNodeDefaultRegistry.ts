@@ -4,6 +4,7 @@ type AuthoringDefaultKind =
   | 'applyGrants'
   | 'actorRelationshipModule'
   | 'actorRelationshipRecurrence'
+  | 'actorRelationshipRecurrenceOutcome'
   | 'capacity'
   | 'chargeBonus'
   | 'check'
@@ -33,12 +34,9 @@ type AuthoringDefaultKind =
   | 'attackSlotFiller'
   | 'attackSlotSet'
   | 'cost'
-  | 'creatureAction'
   | 'creatureCompanionProfile'
   | 'creatureEquipmentLoadout'
   | 'creatureHitDice'
-  | 'creatureLairProfile'
-  | 'creatureLegendaryProfile'
   | 'creatureMountProfile'
   | 'creatureNpcProfile'
   | 'creatureQualifiedDamageDefense'
@@ -97,6 +95,7 @@ type AuthoringDefaultKind =
   | 'damageInterceptionSave'
   | 'damageInterceptionSaveDc'
   | 'incomingGateSuccessImmunity'
+  | 'telepathicLinkAbilityFloor'
   | 'modifierAttackDecoyArmorClass'
   | 'modifierAttackDecoyThreshold'
   | 'modifierChargeLimitLevel'
@@ -176,6 +175,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   applyGrants: ['applyGrants'],
   actorRelationshipModule: ['actorRelationshipModule'],
   actorRelationshipRecurrence: ['actorRelationshipRecurrence'],
+  actorRelationshipRecurrenceOutcome: ['actorRelationshipRecurrenceOutcome'],
   capacity: ['capacity', 'creatureCapacity'],
   chargeBonus: ['chargeBonus'],
   check: ['check'],
@@ -207,12 +207,9 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   classStartingGold: ['classStartingGold'],
   contains: ['contains'],
   cost: ['cost', 'creatureCost'],
-  creatureAction: ['creatureAction'],
   creatureCompanionProfile: ['creatureCompanionProfile'],
   creatureEquipmentLoadout: ['creatureEquipmentLoadout'],
   creatureHitDice: ['creatureHitDice'],
-  creatureLairProfile: ['creatureLairProfile'],
-  creatureLegendaryProfile: ['creatureLegendaryProfile'],
   creatureMountProfile: ['creatureMountProfile'],
   creatureNpcProfile: ['creatureNpcProfile'],
   creatureQualifiedDamageDefense: ['creatureQualifiedDamageDefense'],
@@ -278,6 +275,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   damageInterceptionSave: ['damageInterceptionSave'],
   damageInterceptionSaveDc: ['damageInterceptionSaveDc'],
   incomingGateSuccessImmunity: ['incomingGateSuccessImmunity'],
+  telepathicLinkAbilityFloor: ['telepathicLinkAbilityFloor'],
   modifierAttackDecoyArmorClass: ['modifierAttackDecoyArmorClass'],
   modifierAttackDecoyThreshold: ['modifierAttackDecoyThreshold'],
   modifierChargeLimitLevel: ['modifierChargeLimitLevel'],
@@ -346,7 +344,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   startingEquipmentItem: ['startingEquipmentItem'],
   startingEquipmentOption: ['startingEquipmentOption'],
   startingEquipmentSet: ['startingEquipmentSet'],
-  string: ['actionEffectId', 'vehicleString', 'string', 'logisticsNote', 'regionalEffect', 'tag'],
+  string: ['effectId', 'vehicleString', 'string', 'logisticsNote', 'regionalEffect', 'tag'],
   summonStatBlock: ['summonStatBlock'],
   targetCount: ['targetCount'],
   targetRequirement: ['targetRequirement'],

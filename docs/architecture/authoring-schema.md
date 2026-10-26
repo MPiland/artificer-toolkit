@@ -86,7 +86,7 @@ dormant until its tick anchor's final counted turn and active only during it; SP
 `TURN_MOVEMENT` (a facet predicate: the holder has moved at most `maxFeet`, or `maxSpeedFraction` of its speed, this turn; decided live from the Encounter's turn movement),
 `ATTACK_ABILITY` / `ITEM_ATTACK_ABILITY` (gate a modifier on the ability an attack used), `ATTACK_ACTIVATION` / `ITEM_ACTIVATION` (gate it on the
 activation the attack is made with, such as the bonus action of an off-hand attack; ATTACK-9.T5b) and the `SPELLCASTING_LOCK` `ENABLE`
-domain (bars every spell cast) and the `ATTACK_DECOYS` `ENABLE` domain (an armor class and a threshold per decoys-left count, counted by the path lifecycle `uses`, with optional `exemptAttackerSenseDefinitionIds` for attackers that are unaffected; Mirror Image, SPELLS-4.T2k2), the `INCOMING_ATTACK_GATE` `ENABLE` domain (an attacker saving throw a creature must pass before a single-target attack or harmful spell targets the holder; SPELLS-4.T2k3), the `HEALING_RECEIVED` `ENABLE` domain (healing dice the holder receives take their maximum; Beacon of Hope, SPELLS-4.T2n1). Rage (ATTACK-9.T1) is authored with these and has parity with the authoring form.
+domain (bars every spell cast) and the `ATTACK_DECOYS` `ENABLE` domain (an armor class and a threshold per decoys-left count, counted by the path lifecycle `uses`, with optional `exemptAttackerSenseDefinitionIds` for attackers that are unaffected; Mirror Image, SPELLS-4.T2k2), the `INCOMING_ATTACK_GATE` `ENABLE` domain (an attacker saving throw a creature must pass before a single-target attack or harmful spell targets the holder; SPELLS-4.T2k3), the `HEALING_RECEIVED` `ENABLE` domain (healing dice the holder receives take their maximum; Beacon of Hope, SPELLS-4.T2n1), the `END_EVENT_EXEMPTION` `ENABLE` domain (`{ events, effectIds }`: the holder's own active effects with those authored ids no longer end on those lifecycle end events; Persistent Rage, SPELLS-31.T5f2). Rage (ATTACK-9.T1) is authored with these and has parity with the authoring form.
 
 Maps live in `packages/shared/src/domains/{subjects,features,grants,effects,shared}/maps`. The authoring package's `mapRegistry` registers roots and recursively registers child maps by `mapId`. Duplicate IDs with conflicting signatures fail inventory validation; unknown IDs are `NodeRuntimeInputError`. Add-enabled child maps must have an exact web default factory—there is no generic `{ id, order }` fallback.
 
@@ -113,7 +113,7 @@ System UUID; it is not a client-provided query or a new rules language. Code-own
   separate `tooltip` field on vocabulary records, code lists or the manifest. The web
   `AppSelect`/`AppMultiSelect` render a described option's text as a Mantine tooltip on the option;
 - returns the root runtime DTO plus paths that should be cleared when hidden;
-- recursively emits flat resolved scopes for every visible, populated nested object or array row, keyed by absolute path.
+- recursively emits flat resolved scopes for every visible, populated nested object or array row, keyed by absolute path (an empty object whose child map is keyed by a System table still gets a scope).
 
 The root and nested scopes are one authoritative resolution result. Rendering, structure-rail navigation, validation progress, and repair targeting consume those same scopes; production web code must not independently re-run the shared DSL. Step metadata may include an optional authored description, which the resolver preserves for platform-appropriate canvas guidance. This keeps parent/ancestor conditions and required state identical across every authoring surface while avoiding one request per nested branch.
 
@@ -130,6 +130,17 @@ Placed zones (SPELLS-17, [ADR 0038](../adr/0038-rules-authored-from-core-options
 Relationship execution is in `relationshipExecutor.ts`; it evaluates table/column plans, local values, parent/ancestor references, filters, and stream transformations. The shared `schema/api/nodeRuntimeSources` contract owns the exact table-to-column pairs reachable from the 11 active roots, re-exported by `nodeRuntimeSourceManifest.ts`. Its parity test derives shipped `DATA` descriptors and fails if a schema adds or removes a source without updating the adapter boundary. Trust is pairwise—a column allowed for one table is not allowed for every table. Add new relationship behavior here rather than embedding ad-hoc queries in a route.
 
 System-supplied vocabulary options (SPELLS-31.T5p, D175): a node whose codes belong to the Game System, not the platform (the spell slot pool `slotCost.poolCode`), reads a `DATA` source table (`spell_slot_pools`) that `systemCoreCodeRows` serves from the `coreCodes` the caller injects (`apps/apis/convex/authoring/systemSources.ts`, from the rules-runtime vocabulary registry). `packages/authoring` does not depend on `rules-runtime`.
+
+Maps keyed by a System table (RULES-2.T9f3b, D193): a record keyed by System codes, such as a
+Creature's `abilityScores` or a summoned stat block's `summonAbilityScores`, is declared with
+`buildNodeMap().defineKeyed(mapId, { rows, entry })`. Its static `nodes` are empty and its registry
+signature records the `rows` plan and `entry` contract. The resolver runs `rows` with the request's
+`systemId` and emits one `entry` node per row, with the row's value as its id and path and the row's
+label, in row order, so each System gets its own fields with no transport change. Normalization
+clears a key that is not one of those rows, and refuses it at ingress when the table is a System
+core-code table (`systemCoreCodeTables`). Only `requireAuthoredAbilities` (rules-runtime) requires a
+score for every System ability. `keyedNodeMaps.test.ts` proves the expansion for a second System
+and SRD parity.
 
 ## Frontend contract
 

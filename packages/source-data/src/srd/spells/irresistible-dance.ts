@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   ATTACK_DOMAIN_CODE,
   AUTHORING_SELECTION_KIND,
@@ -24,6 +23,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { ABILITY_CODE } from '../vocabulary.js'
 const grantId = (index: number) => spellChildId(SPELL_IDS.IRRESISTIBLE_DANCE, 0x216, index + 1)
 const grant = {
   grantKind: GRANT_KIND.MODIFIER_GRANT,

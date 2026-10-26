@@ -1,6 +1,5 @@
 import {
   ACTIVATION_CODE,
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
@@ -12,6 +11,7 @@ import {
   EQUIPMENT_PROPERTY_CODE,
   FEATURE_ATTRIBUTE,
   GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   PATH_CODE,
   PATH_GROUP_TYPE,
   PROFICIENCY_KIND,
@@ -19,7 +19,6 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   STARTING_EQUIPMENT_KIND,
-  TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
   MODIFIER_KIND,
@@ -39,13 +38,15 @@ import {
   SRD_SKILLS,
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
-  SRD_USER_ID
+  SRD_USER_ID,
+  ABILITY_CODE
 } from '../vocabulary.js'
 import {
   abilityScoreImprovementOptions,
   attacksPerAttackActionGrant,
   closedRuleEffect,
-  equippedCategoryRestriction
+  equippedCategoryRestriction,
+  gmRulingEffect
 } from './mechanics.js'
 
 function skillId(code: string): string {
@@ -70,6 +71,9 @@ function classRowId(classIndex: number, group: number, entry: number): string {
 }
 
 const B = 1 // Barbarian class index
+
+/** Rage's authored effect id, which features that work "while raging" require active. */
+export const RAGE_EFFECT_ID = classRowId(B, 0x60, 1)
 
 const abilityScoreImprovementDescription =
   "When you reach 4th level, and again at 8th, 12th, 16th, and 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature."
@@ -389,7 +393,7 @@ function rageEffect(): EffectAuthored {
     order: 8
   }
   return {
-    id: classRowId(B, 0x60, 1),
+    id: RAGE_EFFECT_ID,
     order: 1,
     invocation: {
       kind: 'ACTION',
@@ -445,7 +449,6 @@ export const barbarian: ClassAuthored = {
   systemId: SRD_SYSTEM_ID,
 
   hitpoint: {
-    ability: ABILITY_CODE.CONSTITUTION,
     dieConfig: 'd12'
   },
 
@@ -751,20 +754,20 @@ export const barbarian: ClassAuthored = {
       label: 'Reckless Attack',
       description:
         'Starting at 2nd level, you can throw aside all concern for defense to attack with fierce desperation. When you make your first attack on your turn, you can decide to attack recklessly. Doing so gives you advantage on melee weapon attack rolls using Strength during this turn, but attack rolls against you have advantage until your next turn.',
+      // Its two grants end on different turn boundaries, which one fixed self action cannot hold, so it is a GM ruling (D187a).
       effects: [
-        closedRuleEffect({
-          id: classRowId(B, 0x60, 4),
-          ruleKind: CLOSED_RULE_KIND.CLASS_BARBARIAN_RECKLESS_ATTACK,
-          pathCode: PATH_CODE.ON_ATTACK,
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            range: { id: classRowId(B, 0x69, 4), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'HOSTILE'
-            }
-          }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(B, 0x60, 4),
+            range: classRowId(B, 0x69, 4),
+            path: classRowId(B, 0x90, 1),
+            result: classRowId(B, 0x91, 1),
+            outcome: classRowId(B, 0x94, 1)
+          },
+          label: 'Reckless Attack',
+          instructions:
+            'When you make your first attack on your turn, you can attack recklessly. You then have advantage on melee weapon attack rolls using Strength this turn, and attack rolls against you have advantage until the start of your next turn. The GM applies both.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ],
       availableAtLevel: 2,
@@ -913,7 +916,63 @@ export const barbarian: ClassAuthored = {
       label: 'Relentless Rage',
       description:
         "Starting at 11th level, your rage can keep you fighting despite grievous wounds. If you drop to 0 hit points while you're raging and don't die outright, you can make a DC 10 Constitution saving throw. If you succeed, you drop to 1 hit point instead. Each time you use this feature after the first, the DC increases by 5. When you finish a short or long rest, the DC resets to 10.",
-      effects: [selfClassRuleEffect(14, CLOSED_RULE_KIND.CLASS_BARBARIAN_RELENTLESS_RAGE)],
+      // Each use raises the DC by 5 until a rest returns the uses; six bound it past any roll.
+      charges: {
+        id: classRowId(B, 0xb0, 1),
+        limitKind: 'FIXED_AMOUNT',
+        scalingKind: SCALING.NONE,
+        resetKind: 'SHORT_REST',
+        amount: 6
+      },
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(B, 0xb0, 2),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.DAMAGE_INTERCEPTION,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ENABLE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            payload: {
+              dropToHitPoints: 1,
+              negatesKill: false,
+              save: {
+                ability: 'CONSTITUTION',
+                dc: { base: 10, plusDamageTaken: false, plusPerChargeUsed: 5 },
+                spendsUseOnFailure: true
+              }
+            },
+            order: 0,
+            restrictions: {
+              id: classRowId(B, 0xb1, 0),
+              groups: [
+                {
+                  id: classRowId(B, 0xb1, 1),
+                  order: 0,
+                  contexts: [
+                    {
+                      id: classRowId(B, 0xb1, 2),
+                      order: 0,
+                      subject: 'CHARACTER',
+                      conditions: [
+                        {
+                          id: classRowId(B, 0xb1, 3),
+                          order: 0,
+                          kind: 'PREDICATE',
+                          constraint: 'INCLUDE',
+                          predicateCode: 'HOLDER_ACTIVE_EFFECT',
+                          effectIds: [RAGE_EFFECT_ID]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
       availableAtLevel: 11,
       order: 12
     },
@@ -946,7 +1005,22 @@ export const barbarian: ClassAuthored = {
       label: 'Persistent Rage',
       description:
         'Beginning at 15th level, your rage is so fierce that it ends early only if you fall unconscious or if you choose to end it.',
-      effects: [selfClassRuleEffect(17, CLOSED_RULE_KIND.CLASS_BARBARIAN_PERSISTENT_RAGE)],
+      grants: {
+        modifiers: [
+          {
+            id: classRowId(B, 0xb2, 1),
+            grantKind: GRANT_KIND.MODIFIER_GRANT,
+            valueDomainCode: VALUE_DOMAIN_CODE.END_EVENT_EXEMPTION,
+            domain: {},
+            modifierKind: MODIFIER_KIND.ENABLE,
+            scope: MODIFIER_SCOPE_KIND.GLOBAL,
+            selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+            // Rage still ends when the holder falls unconscious or chooses to end it.
+            payload: { events: ['ON_IDLE_TURN'], effectIds: [RAGE_EFFECT_ID] },
+            order: 0
+          }
+        ]
+      },
       availableAtLevel: 15,
       order: 15
     },
@@ -971,7 +1045,6 @@ export const barbarian: ClassAuthored = {
       label: 'Indomitable Might',
       description:
         'Beginning at 18th level, if your total for a Strength check is less than your Strength score, you can use that score in place of the total.',
-      effects: [selfClassRuleEffect(19, CLOSED_RULE_KIND.CLASS_BARBARIAN_INDOMITABLE_MIGHT)],
       availableAtLevel: 18,
       order: 17
     },

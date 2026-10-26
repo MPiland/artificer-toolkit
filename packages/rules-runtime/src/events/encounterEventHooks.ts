@@ -38,12 +38,11 @@ export function effectEventScope(
   if (recurrence.fromSourceOnly && sourceActorId === null) return null
   const actorId = recurrence.fromSourceOnly ? sourceActorId : null
   if (!recurrence.activeOnlyOnFinalAnchorTurn) return { actorId, turnActorId: null }
-  const { expiration } = recurrence
-  if (expiration.kind !== 'TICKS' || effect.lifecycle.remainingTicks !== 1) return null
+  if (recurrence.expiration.kind !== 'TICKS' || effect.lifecycle.remainingTicks !== 1) return null
   return {
     actorId,
     turnActorId:
-      expiration.anchor === 'SOURCE' && sourceActorId !== null ? sourceActorId : holderActorId
+      recurrence.anchor === 'SOURCE' && sourceActorId !== null ? sourceActorId : holderActorId
   }
 }
 
@@ -219,7 +218,7 @@ type ReactionCandidate = Pick<CharacterActionCandidate, 'mechanicFacts'>
 
 /**
  * The hook an event meets in a held reaction: an authored reaction whose trigger the event meets with
- * the qualifiers it adds (a melee attack, an attacker the holder sees, a damage type the hit deals, a
+ * the qualifiers it adds (a melee or ranged attack, a weapon attack, an attacker the holder sees, a damage type the hit deals, a
  * cast of a listed spell). A cast reaction answers a cast only by cancelling it. A movement reaction
  * meets none here: the movement path discovers it from the reach it is moved through.
  */
@@ -232,7 +231,8 @@ function reactionHookMet(
   switch (trigger.kind) {
     case 'ATTACKED_SELF':
       return event.kind === 'HIT_BY_ATTACK' &&
-        (trigger.attackRange !== 'MELEE' || event.melee) &&
+        (trigger.attackRange === undefined || (trigger.attackRange === 'MELEE') === event.melee) &&
+        (!trigger.weaponOnly || event.weapon) &&
         (!trigger.requiresSight || event.attackerSeen)
         ? { event: event.kind, trigger: trigger.kind, triggerDamageTypeIds: [] }
         : null
@@ -262,8 +262,30 @@ function reactionHookMet(
   }
 }
 
-/** A passive feature's subscription to its holder's damage: a grant it gives itself (see `targetEndedEffects`). */
-type DamageGrantSubscription = { damageTypeIds: readonly string[] }
+/**
+ * A grant's subscription to an event raised on its holder (see `targetEndedEffects`): damage of a
+ * listed type, or an attack roll against it, only a melee one when `meleeOnly`.
+ */
+export type EncounterGrantSubscription =
+  | { event: 'DAMAGED'; damageTypeIds: readonly string[] }
+  | { event: 'ATTACKED'; meleeOnly: boolean }
+
+/** Whether the event sets off a grant's subscription. */
+function grantSubscriptionMet(subscription: EncounterGrantSubscription, event: EncounterEvent) {
+  switch (subscription.event) {
+    case 'DAMAGED':
+      return (
+        event.kind === 'DAMAGED' &&
+        event.phase === 'AFTER' &&
+        event.damageTypeIds.some(
+          (damageTypeId) =>
+            damageTypeId !== null && subscription.damageTypeIds.includes(damageTypeId)
+        )
+      )
+    case 'ATTACKED':
+      return event.kind === 'ATTACKED' && (!subscription.meleeOnly || event.melee)
+  }
+}
 
 /**
  * Whether a damage interception intercepts the event: a kill it negates, or a blow about to drop its
@@ -314,8 +336,8 @@ function zoneHookMet(zone: ZoneEventSubscription, event: EncounterEvent) {
  * the holder of `effects` and `reactions`, set off. `ended` are the effects one of whose `END`
  * subscriptions an event meets, in held order, each once however many events it meets (a spell attack
  * is an attack roll and a cast). `repeatSaves` are the effects a `DAMAGED` event makes repeat their
- * save, with the first repeat trigger met. `grants` are the passive damage grants a `DAMAGED` event of
- * their types meets. `reactions` are the held reactions an event offers, in held order, each once
+ * save, with the first repeat trigger met. `grants` are the grants whose subscription an event meets.
+ * `reactions` are the held reactions an event offers, in held order, each once
  * with the first hook met; whether one is affordable is decided when it is prepared.
  * `damageInterceptions` and `incomingGates` are the held intercepts an event meets before it resolves,
  * in the order given (their spend order); the caller spends the first. `zones` are the zones a
@@ -324,7 +346,7 @@ function zoneHookMet(zone: ZoneEventSubscription, event: EncounterEvent) {
 export function discoverEncounterEventHooks<
   Event extends EncounterEvent,
   Effect extends HookedEffect = HookedEffect,
-  Grant extends DamageGrantSubscription = never,
+  Grant extends { subscription: EncounterGrantSubscription } = never,
   Reaction extends ReactionCandidate = never,
   Interception extends DamageInterceptionSubscription = never,
   Gate extends IncomingGateSubscription = never,
@@ -351,13 +373,8 @@ export function discoverEncounterEventHooks<
   }
   // An effect linked to an ended one ends with it (D172).
   const ended = withLinkedDependents(endedByEvent, input.effects ?? [])
-  const damageTypeIds = input.events.flatMap((event) =>
-    event.kind === 'DAMAGED' && event.phase === 'AFTER' ? event.damageTypeIds : []
-  )
   const grants = (input.grantSubscriptions ?? []).filter((grant) =>
-    damageTypeIds.some(
-      (damageTypeId) => damageTypeId !== null && grant.damageTypeIds.includes(damageTypeId)
-    )
+    input.events.some((event) => grantSubscriptionMet(grant.subscription, event))
   )
   const reactions = (input.reactions ?? []).flatMap((reaction) => {
     for (const event of input.events) {

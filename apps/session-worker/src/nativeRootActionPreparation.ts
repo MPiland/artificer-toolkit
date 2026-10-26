@@ -14,10 +14,7 @@ import { resolveEncounterActionSource } from '@artificer-toolkit/rules-runtime/e
 import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import { lockedRelationshipActionFacts } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
-import {
-  readNativeLiveAttackPerception,
-  readNativeLiveSourcesSeen
-} from './nativeAttackPerception.js'
+import { nativeLiveAttackSceneLoaders } from './nativeAttackSceneLoaders.js'
 import { captureActionEconomyDefinitions } from './nativeEncounterActionEconomy.js'
 import {
   readNativeLiveActorsAndEffects,
@@ -88,31 +85,21 @@ export async function prepareNativeLiveRootActionMechanics(input: {
     overridable: false,
     movementTargets,
     sceneContext,
-    loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
-      readNativeLiveAttackPerception({
-        state,
-        system,
-        attacker: sourceFacts,
-        target: targetFacts,
-        roller,
-        sceneContext,
-        capture
-      }),
-    loadSourcesSeen: ({ holder, sourceActorIds }) =>
-      readNativeLiveSourcesSeen({
-        state,
-        system,
-        holder,
-        sourceActorIds,
-        actors,
-        loadTarget: async (entry) => movementTargets.get(entry.id) ?? loadTarget(entry),
-        sceneContext,
-        capture
-      }),
+    ...nativeLiveAttackSceneLoaders({
+      state,
+      system,
+      actors,
+      movementTargets,
+      loadTarget,
+      definitions,
+      sceneContext,
+      capture
+    }),
     loadSource: async (source) =>
       resolveEncounterActionSource({
         ...source,
         system,
+        rules: state,
         spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({
           actorId: source.actor.id,

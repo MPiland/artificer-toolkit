@@ -136,6 +136,7 @@ function target(conditions: readonly string[], initialConditionRows: unknown[] |
       ]
     },
     defenses: [],
+    incomingDamage: { halved: false, saveForHalf: [], reductions: [] },
     qualifiedDefenses: [],
     conditionImmunityIds: [],
     sourceConditionImmunities: [],

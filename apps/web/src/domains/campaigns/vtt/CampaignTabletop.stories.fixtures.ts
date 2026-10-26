@@ -281,6 +281,7 @@ const encounterBase = {
   initiativePolicy: null,
   name: 'Vault confrontation',
   optionalCombatRules: [] as EncounterPlayerProjectionDto['optionalCombatRules'],
+  facingStepDegrees: null,
   round: 3,
   status: 'ACTIVE',
   blueprintId: '99999999-9999-4999-8999-999999999903',
@@ -302,6 +303,9 @@ export const tabletopGmEncounter = {
   actors: actorBases.map((actor, index) => ({
     ...actor,
     concealment: null,
+    morale: null,
+    moraleOffers: [],
+    consequenceRollOffers: [],
     currentHitPoints: index === 0 ? 36 : 47,
     features: [],
     gmNotes: null,

@@ -1,10 +1,8 @@
 import type {
-  AbilityCode,
   AttackDomainCode,
   EquipmentCategoryCode,
   LengthUnitCode,
   MeasurementUnitCode,
-  SizeCode,
   SpellGrantAttribute
 } from '@artificer-toolkit/shared/core'
 import type {
@@ -24,8 +22,8 @@ type CharacterRuleRollMode = string
 
 export interface CharacterRuleRollModes {
   initiative: CharacterRuleRollMode
-  abilityChecks: Record<AbilityCode, CharacterRuleRollMode>
-  savingThrows: Record<AbilityCode, CharacterRuleRollMode>
+  abilityChecks: Record<string, CharacterRuleRollMode>
+  savingThrows: Record<string, CharacterRuleRollMode>
   skillChecks: Record<string, CharacterRuleRollMode>
   attacks: Record<AttackDomainCode, CharacterRuleRollMode>
 }
@@ -146,7 +144,7 @@ export interface CharacterRuleSpellAccess {
   sourceInstanceId: string
   attributes?: SpellGrantAttribute[]
   castAtLevel?: number
-  castingAbility?: AbilityCode
+  castingAbility?: string
   charges?: CompiledChargeUse
 }
 
@@ -179,13 +177,13 @@ export interface CharacterRuleCompanionStats {
   abilityScores: Record<string, number>
   armorClass: number
   maxHitPoints: number
-  size?: SizeCode
+  size?: string
   alignmentId?: string
   creatureTypeId?: string
   calculations: {
     armorClass: CharacterCalculation<number>
     maxHitPoints: CharacterCalculation<number>
-    size?: CharacterCalculation<SizeCode>
+    size?: CharacterCalculation<string>
     alignmentId?: CharacterCalculation<string>
     creatureTypeId?: CharacterCalculation<string>
   }

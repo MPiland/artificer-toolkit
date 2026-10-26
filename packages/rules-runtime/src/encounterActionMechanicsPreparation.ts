@@ -78,15 +78,21 @@ import {
   encounterActionLongRangeContributor,
   type EncounterActionSceneContext
 } from './encounterActionTargetPolicy.js'
+import { encounterFacingRule } from './encounterFacing.js'
 import { activeAttackCriticalRules, activeDamageDice } from './character/activeEffectGrantTotals.js'
 import { attackDomainCodeSchema, attackKindSchema } from '@artificer-toolkit/schema/shared/enums'
 import { evaluateInstalledEncounterActors } from './platformRulesRuntime.js'
 import {
   attackProfileCapabilityRegistry,
-  characterRuleActionSystemAdapterRegistry
+  characterRuleActionSystemAdapterRegistry,
+  optionalCombatPolicyCapabilityRegistry
 } from './platformEncounterPolicy.js'
 import type { CharacterAttack } from './attackProfileCapability.js'
 import type { EnemyProximity } from './encounterEnemyProximity.js'
+import {
+  encounterActionPositionalContributors,
+  type EncounterFlankingFacts
+} from './encounterPositionalContributors.js'
 import type { MoveToward } from './encounterMoveToward.js'
 import {
   characterClassLevels,
@@ -373,6 +379,15 @@ export async function prepareEncounterActionMechanics<
   loadHolderLight?: (input: {
     sourceFacts: MovementTarget<TCharacterFacts>
   }) => Promise<EncounterHolderLight | null>
+  /**
+   * The Flanking facts of a melee attack (loadEncounterFlankingFacts), for its System's policy.
+   * Called only while the Encounter's Flanking rule is on; null when it has no Scene to judge on.
+   */
+  loadFlanking?: (input: {
+    sourceFacts: MovementTarget<TCharacterFacts>
+    targetFacts: MovementTarget<TCharacterFacts>
+    capabilityDefinitionId: string
+  }) => Promise<EncounterFlankingFacts | null>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   loadRelationshipFacts: (input: {
     state: EncounterRunState
@@ -728,6 +743,20 @@ export async function prepareEncounterActionMechanics<
     melee: attackKind === 'MELEE' || attackKind === 'UNARMED' || attackKind === 'MELEE_SPELL',
     sceneContext: input.sceneContext ?? null
   }
+  const flankingCapabilityId =
+    conditionAttack.melee && input.loadFlanking
+      ? (optionalCombatPolicyCapabilityRegistry
+          .find(state.gameSystemId)
+          ?.flankingParticipantCapabilityDefinitionId(state) ?? null)
+      : null
+  const flanking =
+    flankingCapabilityId !== null && input.loadFlanking
+      ? await input.loadFlanking({
+          sourceFacts,
+          targetFacts,
+          capabilityDefinitionId: flankingCapabilityId
+        })
+      : null
   const contributors = mergeCanonicalD20Contributors(
     await input.loadRelationshipFacts({
       state,
@@ -744,6 +773,20 @@ export async function prepareEncounterActionMechanics<
       ? attackSight.trueSight
       : attacksAgainst.flatMap(({ contributor }) => (contributor ? [contributor] : [])),
     longRange ? [longRange] : [],
+    attackKind === null
+      ? []
+      : encounterActionPositionalContributors({
+          facing: encounterFacingRule(state),
+          sceneContext: input.sceneContext ?? null,
+          flanking: flanking && {
+            automationMode: state.automationMode,
+            gameSystemId: state.gameSystemId,
+            optionalCombatSnapshot: state.optionalCombatSnapshot,
+            optionalCombatSnapshotChecksum: state.optionalCombatSnapshotChecksum,
+            melee: true,
+            ...flanking
+          }
+        }),
     attackDomain === null
       ? []
       : activeEffectSourceAttackContributors({
@@ -915,6 +958,7 @@ export async function prepareEncounterActionMechanics<
         attackSource,
         spellCastSystemId
       ),
+      incomingHalved: targetFacts.incomingDamage.halved,
       targetDamageTypesTaken: damageTypeIdsTaken(targetFacts.actor)
     }
   }

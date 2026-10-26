@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   DURATION_KIND,
@@ -23,6 +22,7 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
+import { ABILITY_CODE } from '../vocabulary.js'
 
 /** Each enhancement grants advantage on one ability's checks; Bear's Endurance adds temporary hit points. */
 const enhancements = [

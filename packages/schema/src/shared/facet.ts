@@ -8,7 +8,6 @@ import type { FacetBodyAuthored, FacetContextAuthored } from '@artificer-toolkit
 import { z, convexOpaqueSchema, lazySchema, lazySchemaParts } from '../zod.js'
 
 import {
-  abilityCodeSchema,
   activationCodeSchema,
   authoringConstraintCodeSchema,
   authoringModeKindSchema,
@@ -24,7 +23,6 @@ import {
   proficiencyKindSchema,
   rangeKindSchema,
   scalingAmountKindSchema,
-  sizeCodeSchema,
   vehicleCategoryCodeSchema
 } from './enums.js'
 import {
@@ -175,7 +173,7 @@ const predicatePayloadSchemas = lazySchemaParts(
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SIZE)
         }),
         selectableSchema({
-          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
+          sizes: authoredReferenceCollectionSchema(systemCoreCodeSchema)
         })
       ),
       FEATURE_OBTAINED: z.object({
@@ -200,7 +198,7 @@ const predicatePayloadSchemas = lazySchemaParts(
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SPELLCASTING_ABILITY)
         }),
         selectableSchema({
-          abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
+          abilities: authoredReferenceCollectionSchema(systemCoreCodeSchema)
         })
       ),
       SPELL_LEVEL: z.object({
@@ -213,7 +211,7 @@ const predicatePayloadSchemas = lazySchemaParts(
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.SAVING_THROW_ABILITY)
         }),
         selectableSchema({
-          abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
+          abilities: authoredReferenceCollectionSchema(systemCoreCodeSchema)
         })
       ),
       SAVING_THROW_DC: z.object({
@@ -243,7 +241,7 @@ const predicatePayloadSchemas = lazySchemaParts(
       }),
       ATTACK_ABILITY: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ABILITY),
-        ability: abilityCodeSchema
+        ability: systemCoreCodeSchema
       }),
       ATTACK_ACTIVATION: z.object({
         predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ACTIVATION),
@@ -306,7 +304,7 @@ const predicatePayloadSchemas = lazySchemaParts(
         }),
         selectableSchema(
           {
-            abilities: abilityCodeSchema
+            abilities: systemCoreCodeSchema
           },
           {
             level: scalingAmountKindSchema
@@ -394,6 +392,10 @@ const predicatePayloadSchemas = lazySchemaParts(
         maxFeet: z.optional(z.number()),
         maxSpeedFraction: z.optional(z.number())
       }),
+      HOLDER_ACTIVE_EFFECT: z.object({
+        predicateCode: z.literal(predicateCodeSchema._zod.def.entries.HOLDER_ACTIVE_EFFECT),
+        effectIds: authoredReferenceCollectionSchema(authoredIdentifierSchema)
+      }),
       ATTACK_ACTION_OTHER_WEAPON: z.intersection(
         z.object({
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.ATTACK_ACTION_OTHER_WEAPON)
@@ -456,7 +458,7 @@ const predicatePayloadSchemas = lazySchemaParts(
         }),
         selectableSchema(
           {
-            abilities: abilityCodeSchema
+            abilities: systemCoreCodeSchema
           },
           {
             min: z.number(),
@@ -470,7 +472,7 @@ const predicatePayloadSchemas = lazySchemaParts(
         }),
         selectableSchema(
           {
-            abilities: abilityCodeSchema
+            abilities: systemCoreCodeSchema
           },
           {
             min: z.number(),
@@ -521,7 +523,7 @@ const predicatePayloadSchemas = lazySchemaParts(
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.CREATURE_SIZE)
         }),
         selectableSchema({
-          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
+          sizes: authoredReferenceCollectionSchema(systemCoreCodeSchema)
         })
       ),
       CREATURE_IS_MOUNT: z.object({
@@ -543,7 +545,7 @@ const predicatePayloadSchemas = lazySchemaParts(
           predicateCode: z.literal(predicateCodeSchema._zod.def.entries.VEHICLE_SIZE)
         }),
         selectableSchema({
-          sizes: authoredReferenceCollectionSchema(sizeCodeSchema)
+          sizes: authoredReferenceCollectionSchema(systemCoreCodeSchema)
         })
       )
     }) satisfies {

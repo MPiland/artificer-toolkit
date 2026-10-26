@@ -3,7 +3,6 @@ import {
   Alert,
   Button,
   List,
-  Menu,
   SegmentedControl,
   Select,
   Text,
@@ -13,8 +12,8 @@ import { convexQuery } from '@convex-dev/react-query'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useConvex } from 'convex/react'
 import { api as convexApi } from '@artificer-toolkit/apis/convex/api'
-import { Check, Crosshair, Eye, EyeOff, Gamepad2, SlidersHorizontal, Undo2 } from 'lucide-react'
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { Crosshair, Eye, EyeOff, Gamepad2, Undo2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   CampaignSceneStateDto,
   SceneCommandInputDto
@@ -54,7 +53,6 @@ import { CampaignChatDrawer } from '../components/CampaignChatDrawer'
 import { withCharacterControllers } from '@artificer-toolkit/shared/campaign/characterControl'
 import {
   assignedCharacterTokenId,
-  canMoveSceneToken,
   characterControlAssignments,
   controlledCharacters,
   createSceneAnnotation,
@@ -65,12 +63,10 @@ import {
   describeVttPing,
   editTools,
   isFogTool,
-  nudgeSceneToken,
   playTools,
   readActiveTurn,
   resolveMainCharacterId,
-  type CampaignVttToolDefinition,
-  type SceneTokenNudgeDirection
+  type CampaignVttToolDefinition
 } from './CampaignVttStage.model'
 import { CampaignLiveLootPanel } from '../loot/CampaignLiveLootPanel'
 import { useCampaignLiveLoot } from '../loot/useCampaignLiveLoot'
@@ -101,13 +97,14 @@ import {
   type VttSceneRendererUpdate
 } from './vttSceneRenderer'
 import {
-  formatSceneMeasurement,
+  canControlSceneToken,
   resolveViewTokenId,
   stageOverlays,
   type VttActionPreview,
   type VttAreaAim,
   type VttAreaSize
 } from './vttSceneRenderer.model'
+import { travelFacingDegrees } from './vttFacing.model'
 import { useVttTokenPresentations } from './useVttTokenPresentations'
 import {
   buildTargetEntries,
@@ -117,6 +114,8 @@ import {
 import { CampaignVttTokenStatusList } from './CampaignVttTokenStatusList'
 import { halfSpeedFieldsEntered, type HalfSpeedField } from './CampaignVttCarefulMove.model'
 import { CampaignVttCarefulMoveChoice } from './CampaignVttCarefulMoveChoice'
+import { CampaignVttFacingChoice } from './CampaignVttFacingChoice'
+import { CampaignVttSceneObjectMenu } from './CampaignVttSceneObjectMenu'
 import { CampaignVttForcedMovementPick } from './CampaignVttForcedMovementPick'
 import {
   forcedMovementDestinationOverlays,
@@ -181,6 +180,14 @@ export function CampaignVttStage({
     path: ScenePoint[]
     fields: HalfSpeedField[]
   } | null>(null)
+  // A walked Encounter path waiting for its mover to choose the facing it ends in (ATTACK-12).
+  const [facingChoice, setFacingChoice] = useState<{
+    tokenId: string
+    path: ScenePoint[]
+    carefully: boolean | undefined
+  } | null>(null)
+  // The Encounter creature whose token turns as a reaction, waiting on its new facing.
+  const [reactionFacingTokenId, setReactionFacingTokenId] = useState<string | null>(null)
   // A move the room refused for the rule warnings it breaks, waiting on "Do it anyway" (ADR 0034).
   const [moveWarning, setMoveWarning] = useState<{
     command: Extract<SceneCommandInputDto, { type: 'MOVE_SCENE_TOKEN' }>
@@ -726,6 +733,26 @@ export function CampaignVttStage({
     ? targetEntries?.find((entry) => entry.tokenId === inspectedTokenId)
     : undefined
   const effectiveRole = gmPreviewUserId ? 'PLAYER' : campaign.role
+  // Under the Encounter's Facing rule a selected creature the member controls can turn as a reaction.
+  const facingStepDegrees = activeEncounterSceneBinding
+    ? (activeEncounter?.facingStepDegrees ?? null)
+    : null
+  const selectedSceneToken = scene?.tokens.find((token) => token.id === selectedSceneTokenId)
+  const turnableToken =
+    facingStepDegrees !== null &&
+    selectedSceneToken &&
+    actorIdByTokenId.has(selectedSceneToken.id) &&
+    canControlSceneToken(selectedSceneToken, {
+      boundTokenControl,
+      currentUserId: viewerUserId,
+      role: effectiveRole
+    })
+      ? selectedSceneToken
+      : null
+  const reactionFacingToken = scene?.tokens.find((token) => token.id === reactionFacingTokenId)
+  const reactionFacingActorId = reactionFacingToken
+    ? actorIdByTokenId.get(reactionFacingToken.id)
+    : undefined
   const effectivePreviewTokenId =
     campaign.role === 'OWNER' && !gmPreviewUserId ? previewTokenId : null
   // The tabletop is seen through one main Character's senses; selecting a controlled token overrides it.
@@ -1075,6 +1102,20 @@ export function CampaignVttStage({
     })
   }
 
+  // The creature turns as a reaction; the room spends it and turns the creature's bound token.
+  function changeFacing(actorId: string, rotationDegrees: number): void {
+    if (!activeEncounter) return
+    encounterCommand.mutate({
+      type: 'CHANGE_FACING',
+      encounterId: activeEncounter.id,
+      commandId: crypto.randomUUID(),
+      expectedVersion: activeEncounter.version,
+      actorId,
+      rotationDegrees,
+      acknowledgedWarnings: []
+    })
+  }
+
   function retryMap(): void {
     setMapLoadStatus('LOADING')
     mapDelivery.refresh()
@@ -1127,9 +1168,16 @@ export function CampaignVttStage({
   /**
    * Sends a move: a teleport from the origin to the drop while the mover holds a cast's allowance,
    * otherwise a voluntary walk. A walked path that enters a field allowing passage at half speed waits
-   * for the mover's choice to move carefully or normally, which re-enters with `carefully` set.
+   * for the mover's choice to move carefully or normally, which re-enters with `carefully` set. A
+   * walk under the Encounter's Facing rule then waits for the facing it ends in, which re-enters
+   * with `facingDegrees` set.
    */
-  function commitTokenMove(tokenId: string, path: ScenePoint[], carefully?: boolean): void {
+  function commitTokenMove(
+    tokenId: string,
+    path: ScenePoint[],
+    carefully?: boolean,
+    facingDegrees?: number
+  ): void {
     const current = sceneRef.current
     if (!current || path.length < 2) return
     if (
@@ -1157,8 +1205,18 @@ export function CampaignVttStage({
       setCarefulChoice({ tokenId, path, fields })
       return
     }
+    if (
+      mechanicsEncounter &&
+      mechanicsEncounter.facingStepDegrees !== null &&
+      !teleporting &&
+      facingDegrees === undefined
+    ) {
+      setFacingChoice({ tokenId, path, carefully })
+      return
+    }
     sendTokenMove({
       ...(carefully === undefined ? {} : { carefully }),
+      ...(facingDegrees === undefined ? {} : { facingDegrees }),
       acknowledgedWarnings: [],
       commandId: crypto.randomUUID(),
       correlationId: null,
@@ -1591,7 +1649,7 @@ export function CampaignVttStage({
               onCommand={dispatchSceneCommand}
             />
           ) : null}
-          <SceneObjectMenu
+          <CampaignVttSceneObjectMenu
             boundTokenControl={boundTokenControl}
             currentUserId={currentUserId}
             memberships={campaign.memberships}
@@ -1703,6 +1761,16 @@ export function CampaignVttStage({
               statuses={listedPresentation.statuses}
             />
           ) : null}
+          {turnableToken && !reactionFacingToken ? (
+            <Button
+              disabled={encounterCommand.isPending}
+              size='xs'
+              variant='default'
+              onClick={() => setReactionFacingTokenId(turnableToken.id)}
+            >
+              Change facing (reaction)
+            </Button>
+          ) : null}
           {carefulChoice ? (
             <CampaignVttCarefulMoveChoice
               fields={carefulChoice.fields}
@@ -1710,6 +1778,37 @@ export function CampaignVttStage({
               onChoose={(carefully) => {
                 setCarefulChoice(null)
                 commitTokenMove(carefulChoice.tokenId, carefulChoice.path, carefully)
+              }}
+            />
+          ) : null}
+          {facingChoice && facingStepDegrees !== null ? (
+            <CampaignVttFacingChoice
+              description='Choose the facing this move ends in. Its direction of travel is first.'
+              initialDegrees={travelFacingDegrees(facingChoice.path, facingStepDegrees)}
+              label='End facing'
+              stepDegrees={facingStepDegrees}
+              onCancel={() => setFacingChoice(null)}
+              onChoose={(degrees) => {
+                setFacingChoice(null)
+                commitTokenMove(
+                  facingChoice.tokenId,
+                  facingChoice.path,
+                  facingChoice.carefully,
+                  degrees
+                )
+              }}
+            />
+          ) : null}
+          {reactionFacingToken && reactionFacingActorId && facingStepDegrees !== null ? (
+            <CampaignVttFacingChoice
+              description='Turning now spends this creature’s reaction.'
+              initialDegrees={reactionFacingToken.rotationDegrees}
+              label='Change facing'
+              stepDegrees={facingStepDegrees}
+              onCancel={() => setReactionFacingTokenId(null)}
+              onChoose={(rotationDegrees) => {
+                setReactionFacingTokenId(null)
+                changeFacing(reactionFacingActorId, rotationDegrees)
               }}
             />
           ) : null}
@@ -1801,259 +1900,5 @@ function VttToolButton({
         <Icon aria-hidden size={19} />
       </ActionIcon>
     </Tooltip>
-  )
-}
-
-function SceneObjectMenu({
-  boundTokenControl,
-  currentUserId,
-  memberships,
-  onDoorState,
-  onFogLayer,
-  onMeasurement,
-  onInspectToken,
-  onMeasurementRemove,
-  onPreviewToken,
-  onSelectToken,
-  onTokenMove,
-  previewTokenId,
-  renderer,
-  role,
-  scene,
-  selectedTokenId
-}: {
-  boundTokenControl: ReadonlyMap<string, boolean>
-  currentUserId: string
-  memberships: CampaignDetailDto['memberships']
-  onDoorState: (barrierId: string, state: 'CLOSED' | 'LOCKED' | 'OPEN') => void
-  onFogLayer: (ownerUserId: string | null, explored: boolean) => void
-  onMeasurement: (path: ScenePoint[]) => void
-  onInspectToken: (tokenId: string | null) => void
-  onMeasurementRemove: (measurementId: string) => void
-  onPreviewToken: (tokenId: string | null) => void
-  onSelectToken: (tokenId: string | null) => void
-  onTokenMove: (tokenId: string, position: ScenePoint) => void
-  previewTokenId: string | null
-  selectedTokenId: string | null
-  renderer: RefObject<VttSceneRenderer | null>
-  role: 'OWNER' | 'PLAYER'
-  scene: CampaignSceneStateDto
-}) {
-  const [measurementOriginId, setMeasurementOriginId] = useState<string | null>(null)
-  const [measurementAnnouncement, setMeasurementAnnouncement] = useState('')
-  const doors = scene.barriers.filter((barrier) => barrier.kind === 'DOOR')
-  const fogOwners = memberships.filter((membership) => membership.role === 'PLAYER')
-  const measurementOrigin = scene.tokens.find((token) => token.id === measurementOriginId)
-
-  function moveToken(
-    token: (typeof scene.tokens)[number],
-    direction: SceneTokenNudgeDirection
-  ): void {
-    onTokenMove(token.id, nudgeSceneToken(scene, token, direction))
-  }
-
-  return (
-    <>
-      <span aria-atomic='true' aria-live='polite' className={styles.visuallyHidden}>
-        {measurementAnnouncement}
-      </span>
-      <Menu
-        classNames={{ dropdown: styles.menuDropdown, label: styles.menuLabel }}
-        position='bottom-end'
-        shadow='none'
-        width={260}
-        withInitialFocusPlaceholder={false}
-      >
-        <Menu.Target>
-          <Button
-            leftSection={<SlidersHorizontal aria-hidden size={16} />}
-            size='xs'
-            variant='default'
-          >
-            Scene controls
-          </Button>
-        </Menu.Target>
-        <Menu.Dropdown>
-          <div aria-label='Scene objects' className={styles.menuScroller} role='group' tabIndex={0}>
-            <Menu.Label>Tokens</Menu.Label>
-            {scene.tokens.length ? (
-              scene.tokens.map((token) => (
-                <Fragment key={token.id}>
-                  <Menu.Item
-                    onBlur={() => onInspectToken(null)}
-                    rightSection={
-                      selectedTokenId === token.id ? <Check aria-hidden size={14} /> : null
-                    }
-                    onClick={() => {
-                      onSelectToken(token.id)
-                      renderer.current?.focusToken(token)
-                    }}
-                    onFocus={() => onInspectToken(token.id)}
-                    onMouseEnter={() => onInspectToken(token.id)}
-                    onMouseLeave={() => onInspectToken(null)}
-                  >
-                    Focus {token.label}
-                  </Menu.Item>
-                  {role === 'OWNER' ? (
-                    <Menu.Item
-                      closeMenuOnClick={false}
-                      rightSection={
-                        previewTokenId === token.id ? <Check aria-hidden size={14} /> : null
-                      }
-                      onClick={() => onPreviewToken(previewTokenId === token.id ? null : token.id)}
-                    >
-                      {previewTokenId === token.id ? 'Stop previewing' : 'Preview view'}{' '}
-                      {token.label}
-                    </Menu.Item>
-                  ) : null}
-                  {canMoveSceneToken(token, { boundTokenControl, currentUserId, role })
-                    ? (
-                        [
-                          ['UP', 'up'],
-                          ['DOWN', 'down'],
-                          ['LEFT', 'left'],
-                          ['RIGHT', 'right']
-                        ] as const
-                      ).map(([direction, label]) => (
-                        <Menu.Item key={direction} onClick={() => moveToken(token, direction)}>
-                          Move {token.label} {label}
-                        </Menu.Item>
-                      ))
-                    : null}
-                  {scene.tokens.length > 1 ? (
-                    <Menu.Item onClick={() => setMeasurementOriginId(token.id)}>
-                      Measure from {token.label}
-                    </Menu.Item>
-                  ) : null}
-                </Fragment>
-              ))
-            ) : (
-              <Menu.Item disabled>No visible tokens</Menu.Item>
-            )}
-            {measurementOrigin ? (
-              <>
-                <Menu.Divider />
-                <Menu.Label>Measure from {measurementOrigin.label}</Menu.Label>
-                {scene.tokens
-                  .filter((token) => token.id !== measurementOrigin.id)
-                  .map((token) => (
-                    <Menu.Item
-                      key={token.id}
-                      onClick={() => {
-                        const distance = formatSceneMeasurement(scene.grid, [
-                          measurementOrigin.position,
-                          token.position
-                        ])
-                        onMeasurement([measurementOrigin.position, token.position])
-                        setMeasurementAnnouncement(
-                          `Measured from ${measurementOrigin.label} to ${token.label}: ${distance}.`
-                        )
-                        setMeasurementOriginId(null)
-                      }}
-                    >
-                      To {token.label} ·{' '}
-                      {formatSceneMeasurement(scene.grid, [
-                        measurementOrigin.position,
-                        token.position
-                      ])}
-                    </Menu.Item>
-                  ))}
-                <Menu.Item color='dimmed' onClick={() => setMeasurementOriginId(null)}>
-                  Cancel measurement
-                </Menu.Item>
-              </>
-            ) : null}
-            <Menu.Divider />
-            <Menu.Label>Measurements</Menu.Label>
-            {scene.measurements.length ? (
-              scene.measurements.map((measurement, index) => {
-                const label = measurement.label ?? `Measurement ${index + 1}`
-                const removable = role === 'OWNER' || measurement.createdByUserId === currentUserId
-                return (
-                  <Menu.Item
-                    disabled={!removable}
-                    key={measurement.id}
-                    onClick={() => onMeasurementRemove(measurement.id)}
-                  >
-                    {removable ? `Remove ${label}` : label} ·{' '}
-                    {formatSceneMeasurement(scene.grid, measurement.path)}
-                  </Menu.Item>
-                )
-              })
-            ) : (
-              <Menu.Item disabled>No measurements</Menu.Item>
-            )}
-            <Menu.Divider />
-            <Menu.Label>Doors</Menu.Label>
-            {doors.length ? (
-              doors.map((door, index) => {
-                const state = scene.doorStates[door.id] ?? door.initialState
-                return (
-                  <Fragment key={door.id}>
-                    <Menu.Item
-                      disabled={state === 'LOCKED' && role === 'PLAYER'}
-                      onClick={() =>
-                        onDoorState(
-                          door.id,
-                          state === 'OPEN' ? 'CLOSED' : state === 'LOCKED' ? 'CLOSED' : 'OPEN'
-                        )
-                      }
-                    >
-                      Door {index + 1}:{' '}
-                      {state === 'OPEN'
-                        ? 'Close'
-                        : state === 'LOCKED'
-                          ? role === 'OWNER'
-                            ? 'Unlock'
-                            : 'Locked'
-                          : 'Open'}
-                    </Menu.Item>
-                    {role === 'OWNER' && state !== 'LOCKED' ? (
-                      <Menu.Item onClick={() => onDoorState(door.id, 'LOCKED')}>
-                        Door {index + 1}: Lock
-                      </Menu.Item>
-                    ) : null}
-                  </Fragment>
-                )
-              })
-            ) : (
-              <Menu.Item disabled>No doors</Menu.Item>
-            )}
-            {role === 'OWNER' && scene.fogMode !== 'OFF' ? (
-              <>
-                <Menu.Divider />
-                <Menu.Label>Fog</Menu.Label>
-                {scene.fogMode === 'SHARED_PARTY' ? (
-                  <>
-                    <Menu.Item onClick={() => onFogLayer(null, true)}>Reveal entire map</Menu.Item>
-                    <Menu.Item onClick={() => onFogLayer(null, false)}>
-                      Reset all exploration
-                    </Menu.Item>
-                  </>
-                ) : fogOwners.length ? (
-                  fogOwners.map((membership) => (
-                    <Menu.Sub key={membership.userId} position='left-start'>
-                      <Menu.Sub.Target>
-                        <Menu.Sub.Item>Fog for @{membership.username}</Menu.Sub.Item>
-                      </Menu.Sub.Target>
-                      <Menu.Sub.Dropdown>
-                        <Menu.Item onClick={() => onFogLayer(membership.userId, true)}>
-                          Reveal entire map
-                        </Menu.Item>
-                        <Menu.Item onClick={() => onFogLayer(membership.userId, false)}>
-                          Reset exploration
-                        </Menu.Item>
-                      </Menu.Sub.Dropdown>
-                    </Menu.Sub>
-                  ))
-                ) : (
-                  <Menu.Item disabled>No active players</Menu.Item>
-                )}
-              </>
-            ) : null}
-          </div>
-        </Menu.Dropdown>
-      </Menu>
-    </>
   )
 }

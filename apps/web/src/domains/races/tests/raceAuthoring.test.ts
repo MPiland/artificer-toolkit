@@ -1,9 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import {
-  createEmptyBaseRace,
-  normalizeRaceForSubmit,
-  resolveCreateRaceSystemId
-} from '../raceAuthoring.utils'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
+import { createEmptyBaseRace, normalizeRaceForSubmit } from '../raceAuthoring.utils'
 
 const generatedId = '00000000-0000-4000-8000-000000000001'
 
@@ -15,24 +12,19 @@ describe('race authoring helpers', () => {
   it('creates editable base race drafts', () => {
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(generatedId)
 
-    expect(createEmptyBaseRace({ systemId: 'dnd-5e-srd' })).toMatchObject({
+    expect(createEmptyBaseRace({ systemId: DND5E_SYSTEM_ID })).toMatchObject({
       id: generatedId,
       label: '',
       status: 'DRAFT',
       category: 'BASE',
       selectionMode: 'DIRECT',
       size: 'MEDIUM',
-      systemId: 'dnd-5e-srd'
+      systemId: DND5E_SYSTEM_ID
     })
   })
 
-  it('uses only real system list data when creating races', () => {
-    expect(resolveCreateRaceSystemId([])).toBeNull()
-    expect(resolveCreateRaceSystemId([{ id: 'dnd-5e-srd' }])).toBe('dnd-5e-srd')
-  })
-
   it('normalizes category-specific payloads before save', () => {
-    const base = createEmptyBaseRace({ systemId: 'dnd-5e-srd' })
+    const base = createEmptyBaseRace({ systemId: DND5E_SYSTEM_ID })
     const subrace = {
       id: generatedId,
       label: '',
@@ -43,7 +35,7 @@ describe('race authoring helpers', () => {
       parentRaceId: '',
       details: [],
       features: [],
-      systemId: 'dnd-5e-srd'
+      systemId: DND5E_SYSTEM_ID
     }
 
     expect(
@@ -53,7 +45,7 @@ describe('race authoring helpers', () => {
         category: 'BASE'
       })
     ).toMatchObject({
-      label: 'Untitled Race',
+      label: '',
       category: 'BASE',
       selectionMode: 'DIRECT',
       size: 'MEDIUM',
@@ -79,7 +71,7 @@ describe('race authoring helpers', () => {
       parentRaceId: 'elf',
       details: [],
       features: [],
-      systemId: 'dnd-5e-srd'
+      systemId: DND5E_SYSTEM_ID
     })
   })
 })

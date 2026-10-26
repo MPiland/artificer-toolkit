@@ -5,61 +5,69 @@ import { useQuery } from '@tanstack/react-query'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { StartingEquipmentDto } from '@artificer-toolkit/schema/shared/startingEquipment'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { getEquipmentOptions } from '#app/data/equipment/options'
 import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import {
   createGuidedStartingEquipmentItem,
   isGuidedStartingEquipmentItem,
   type GuidedStartingEquipmentItem
 } from '#forms/guided/guidedStartingEquipment'
+import { createEmptyStartingEquipment } from '#forms/rendering/startingEquipmentDefaults'
 import {
   createEmptyDetail,
   getStartingEquipmentItems,
   type StartingEquipmentItemDto
 } from '../backgroundAuthoring.utils'
-import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
-import { readField } from '#forms/guided/guidedValues'
+import {
+  EMPTY_GUIDED_FORM_VALUES,
+  guidedField,
+  readGuidedValues,
+  toDetails,
+  toFeatures,
+  type GuidedValues
+} from '#forms/guided/guidedValues'
 
 const STEPS = ['Basics', 'Benefits', 'Starting gear', 'Features', 'Review'] as const
 
-type Props = {
-  session: AuthoredFormSession
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-}
-
 export const GuidedBackgroundAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as Props,
-  render: function RenderGuidedBackgroundAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedBackgroundAuthoring({
+    form,
+    onAdvanced,
+    onStateChange,
+    session,
+    system
+  }) {
     const [screen, setScreen] = useState(0)
     const values = useSelector(form.store, (state) => state.values)
-    const label = readString(values, 'label')
-    const details = readDetails(values)
-    const features = readFeatures(values)
-    const equipment = readEquipment(values)
+    const draft = readGuidedValues('background', values)
+    const label = draft.label ?? ''
+    const details = toDetails(draft.details)
+    const features = toFeatures(draft.features)
+    const equipment = draft.startingEquipment ?? createEmptyStartingEquipment()
 
     useEffect(() => {
       onStateChange({ isReview: screen === 4, showPreview: screen > 0 || Boolean(label) })
     }, [label, onStateChange, screen])
 
     const setFeatures = (next: FeatureDto[]) => {
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['features']), next)
+      form.setFieldValue(guidedField('background', 'features'), next)
     }
 
     const setDetails = (next: DetailDto[]) => {
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['details']), next)
+      form.setFieldValue(guidedField('background', 'details'), next)
     }
 
     const setEquipment = (next: StartingEquipmentDto) => {
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['startingEquipment']), next)
+      form.setFieldValue(guidedField('background', 'startingEquipment'), next)
     }
 
     const canContinue = screen === 0 ? Boolean(label.trim()) : true
@@ -82,14 +90,14 @@ export const GuidedBackgroundAuthoring = withForm({
       >
         {screen === 0 ? (
           <Stack gap='lg'>
-            {session.mode === 'edit' && hasUnsupportedContent(values) ? (
+            {session.mode === 'edit' && hasUnsupportedContent(draft) ? (
               <Alert color='blue' title='Some details require Advanced'>
                 This background contains detailed proficiency or equipment rules. Guided keeps them
                 intact while you edit the common description and features.
               </Alert>
             ) : null}
             <div className={styles.identityRow}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+              <form.AppField name={guidedField('background', 'label')}>
                 {(field) => (
                   <field.TextField
                     label='Background name'
@@ -100,7 +108,7 @@ export const GuidedBackgroundAuthoring = withForm({
               </form.AppField>
               <AuthoringArtworkControl />
             </div>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+            <form.AppField name={guidedField('background', 'description')}>
               {(field) => (
                 <field.RichTextField
                   label='Description'
@@ -129,33 +137,24 @@ export const GuidedBackgroundAuthoring = withForm({
         ) : null}
 
         {screen === 3 ? (
-          <GuidedFeatureAccordion
-            features={features}
-            system={session.system!}
-            onChange={setFeatures}
-          />
+          <GuidedFeatureAccordion features={features} system={system} onChange={setFeatures} />
         ) : null}
 
         {screen === 4 ? (
           <Stack gap='md'>
             <Text fw={600}>{label || 'Untitled Background'}</Text>
             <dl className={styles.summary}>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Benefits</dt>
-                <dd className={styles.summaryValue}>
-                  {details.filter((item) => item.label || item.description).length || 'None yet'}
-                </dd>
-              </div>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Starting gear</dt>
-                <dd className={styles.summaryValue}>
-                  {getStartingEquipmentItems(equipment).length || 'None yet'}
-                </dd>
-              </div>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Features</dt>
-                <dd className={styles.summaryValue}>{features.length || 'None yet'}</dd>
-              </div>
+              <GuidedSummaryRow
+                label='Benefits'
+                value={String(
+                  details.filter((item) => item.label || item.description).length || 'None yet'
+                )}
+              />
+              <GuidedSummaryRow
+                label='Starting gear'
+                value={String(getStartingEquipmentItems(equipment).length || 'None yet')}
+              />
+              <GuidedSummaryRow label='Features' value={String(features.length || 'None yet')} />
             </dl>
           </Stack>
         ) : null}
@@ -308,67 +307,16 @@ function replaceStartingEquipmentItemInPlace(
   }
 }
 
-function readString(values: object, key: string): string {
-  const value = readField(values, key)
-  return typeof value === 'string' ? value : ''
-}
-
-function readDetails(values: object): DetailDto[] {
-  const value = readField(values, 'details')
-  return Array.isArray(value) ? value.filter(isDetail) : []
-}
-
-function readFeatures(values: object): FeatureDto[] {
-  const value = readField(values, 'features')
-  return Array.isArray(value) ? value.filter(isFeature) : []
-}
-
-function readEquipment(values: object): StartingEquipmentDto {
-  const value = readField(values, 'startingEquipment')
-  return isEquipment(value) ? value : { id: crypto.randomUUID(), sets: [] }
-}
-
-function isDetail(value: unknown): value is DetailDto {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'label' in value &&
-    'description' in value
-  )
-}
-
-function isFeature(value: unknown): value is FeatureDto {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'label' in value &&
-    'order' in value
-  )
-}
-
-function isEquipment(value: unknown): value is StartingEquipmentDto {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    'sets' in value &&
-    Array.isArray(value.sets)
-  )
-}
-
-function hasUnsupportedContent(values: object): boolean {
-  const equipment = readEquipment(values)
-  const hasEquipmentBranches = equipment.sets.some(
+function hasUnsupportedContent(draft: GuidedValues<'background'>): boolean {
+  const sets = draft.startingEquipment?.sets ?? []
+  const hasEquipmentBranches = sets.some(
     (set) => set.groups.length > 1 || set.groups.some((group) => group.options.length > 1)
   )
-  const proficiencies = readField(values, 'proficiencies')
   return (
-    readDetails(values).length > 1 ||
+    toDetails(draft.details).length > 1 ||
     hasEquipmentBranches ||
-    equipment.sets.length > 1 ||
-    (Array.isArray(proficiencies) && proficiencies.length > 0)
+    sets.length > 1 ||
+    (draft.proficiencies?.length ?? 0) > 0
   )
 }
 

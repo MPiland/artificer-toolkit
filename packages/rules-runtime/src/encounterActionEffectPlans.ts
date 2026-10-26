@@ -7,7 +7,6 @@ import {
 } from '@artificer-toolkit/schema/shared/rulesExecution'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { CompiledRepeatSourcePathOffer } from '@artificer-toolkit/schema/effects/storedEffectOffer'
-import { sizeRank } from '@artificer-toolkit/shared/core'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
 import { compileRuleGraph, createRuleOperationRegistry } from '@artificer-toolkit/shared/rules'
 import { normalizeObserverActorIds } from './encounterConcealment.js'
@@ -15,6 +14,7 @@ import { attackProfileCapabilityRegistry } from './platformEncounterPolicy.js'
 import { attackSlotConditionHolds, type AttackSlotAttack } from './encounterAttackSlots.js'
 import { resolveCreatureFormDuration } from './encounterFormChoice.js'
 import { encounterSourceRelationships } from './encounterRelationshipActionFacts.js'
+import { sizeRank } from './systemSizes.js'
 import {
   installedGameSystemRuleOperations,
   requireInstalledGameSystemRuleCapability
@@ -359,9 +359,19 @@ function bindTriggerDamageTypes(
 export function prepareRecurringActiveEffect(
   input: Omit<
     Parameters<typeof prepareEncounterActionEffectPlans>[0],
-    'execution' | 'applications'
+    'execution' | 'applications' | 'encounterId' | 'occurrenceId' | 'commandId'
   > &
-    Partial<Pick<Parameters<typeof prepareEncounterActionEffectPlans>[0], 'execution'>>
+    Partial<Pick<Parameters<typeof prepareEncounterActionEffectPlans>[0], 'execution'>> &
+    (
+      | Pick<
+          Parameters<typeof prepareEncounterActionEffectPlans>[0],
+          'encounterId' | 'occurrenceId' | 'commandId'
+        >
+      | {
+          /** A Character's own effect made outside a Run, as its rest turns a standing effect on. */
+          characterOrigin: { characterId: string; occurrenceId: string; commandId: string }
+        }
+    )
 ): EffectPlan | null {
   const plan = input.activeEffectPlan
   if (!plan) return null
@@ -429,15 +439,20 @@ export function prepareRecurringActiveEffect(
       appliesWhen &&
       !(
         input.attacks &&
-        attackSlotConditionHolds(appliesWhen, input.attacks.current, input.attacks.earlier)
+        attackSlotConditionHolds(
+          input.published.gameSystemId,
+          appliesWhen,
+          input.attacks.current,
+          input.attacks.earlier
+        )
       )
     )
       return null
     const maximum = relationshipContribution.modules.find(
       (module) => module.kind === 'TARGET_SIZE_MAXIMUM'
     )
-    const targetRank = sizeRank(input.target.effectiveSize)
-    const maximumRank = maximum ? sizeRank(maximum.sizeCode) : null
+    const targetRank = sizeRank(input.published.gameSystemId, input.target.effectiveSize)
+    const maximumRank = maximum ? sizeRank(input.published.gameSystemId, maximum.sizeCode) : null
     if (maximum && (targetRank === null || maximumRank === null || targetRank > maximumRank))
       return null
     const sameSourceRelationships = encounterSourceRelationships(
@@ -497,14 +512,6 @@ export function prepareRecurringActiveEffect(
   )
   const ownsTemporaryHitPoints = plan.ownsTemporaryHitPoints === true
   const tickAnchor = plan.tickAnchor ?? 'HOLDER'
-  // The grant tick planner counts a grant, unless it repeats a save, and any other effect counted on
-  // its source's turns (Color Spray's blindness); the turn-effect kernel counts the rest.
-  const countedByGrantTicks = grantContribution
-    ? !grantContribution.countedByTurnEffects
-    : tickAnchor === 'SOURCE'
-  // An effect made on its anchor actor's own turn would otherwise lose a counted turn to the very
-  // end of turn it was made in, so "until the end of the next turn" counts one more. A duration
-  // "for the turn" already is that end of turn.
   const baseRemaining =
     plan.initialRemaining !== null && formContribution
       ? resolveCreatureFormDuration(
@@ -513,6 +520,15 @@ export function prepareRecurringActiveEffect(
           input.sourceClassLevels ?? {}
         )
       : plan.initialRemaining
+  // The grant tick planner counts a grant, unless it repeats a save, and any other effect counted on
+  // its source's turns (Color Spray's blindness); the turn-effect kernel counts the rest, and runs an
+  // indefinite effect that recurs on its source's turns (Engulf).
+  const countedByGrantTicks = grantContribution
+    ? !grantContribution.countedByTurnEffects
+    : tickAnchor === 'SOURCE' && baseRemaining !== null
+  // An effect made on its anchor actor's own turn would otherwise lose a counted turn to the very
+  // end of turn it was made in, so "until the end of the next turn" counts one more. A duration
+  // "for the turn" already is that end of turn.
   const initialRemaining =
     baseRemaining !== null &&
     countedByGrantTicks &&
@@ -521,17 +537,37 @@ export function prepareRecurringActiveEffect(
     input.currentActorId === (tickAnchor === 'SOURCE' ? input.sourceActorId : input.target.actorId)
       ? baseRemaining + 1
       : baseRemaining
+  // The held effect this one ends with (D172), as Frenzy ends with Rage; its action admits only a
+  // holder of it.
+  const endsWithHeld = plan.endsWithHeldEffectId
+    ? input.target.activeEffects.find(
+        ({ definition }) => definition.authoredEffectId === plan.endsWithHeldEffectId
+      )
+    : null
+  if (endsWithHeld === undefined)
+    throw new EncounterActionEffectPlanError(
+      'The effect ends with an effect its target does not hold.'
+    )
   const definition = activeRuleEffectDefinitionDtoSchema.parse({
     schemaVersion: 2,
-    linkedEffectId: null,
+    linkedEffectId: endsWithHeld?.id ?? null,
+    ...(grantContribution?.exclusivity && { exclusivity: grantContribution.exclusivity }),
     originLevel: input.spellCastLevel ?? null,
-    origin: {
-      kind: 'ENCOUNTER',
-      sourceAggregateId: input.encounterId,
-      sourceOccurrenceId: input.occurrenceId,
-      rootCommandId: input.commandId,
-      sourceActorId: input.sourceActorId
-    },
+    origin:
+      'characterOrigin' in input
+        ? {
+            kind: 'CHARACTER',
+            sourceAggregateId: input.characterOrigin.characterId,
+            sourceOccurrenceId: input.characterOrigin.occurrenceId,
+            rootCommandId: input.characterOrigin.commandId
+          }
+        : {
+            kind: 'ENCOUNTER',
+            sourceAggregateId: input.encounterId,
+            sourceOccurrenceId: input.occurrenceId,
+            rootCommandId: input.commandId,
+            sourceActorId: input.sourceActorId
+          },
     authoredEffectId: plan.authoredEffectId,
     compiledEntryId: plan.compiledEntryId,
     frozenGraphNodeId: plan.frozenGraphNodeId,
@@ -546,6 +582,7 @@ export function prepareRecurringActiveEffect(
       // An effect the grant tick planner counts stores no stage, so the turn-effect kernel never
       // selects it.
       recurrenceStage: countedByGrantTicks ? 'NONE' : plan.recurrenceStage,
+      anchor: tickAnchor,
       // A grant held beside conditions (Hypnotic Pattern's speed 0) ends with them, so the plan's
       // own lifecycle joins the grant's.
       consumeOnFirstEvents: sortedUnion(
@@ -592,8 +629,7 @@ export function prepareRecurringActiveEffect(
           : {
               kind: 'TICKS',
               initialRemaining,
-              decrementStage: plan.recurrenceStage,
-              anchor: tickAnchor
+              decrementStage: plan.recurrenceStage
             }
     },
     stateContributions: [
@@ -884,6 +920,7 @@ export function sourceImmunityEffect(input: {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: immunity.initialRemaining === null ? 'NONE' : 'END_OF_TURN',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],
@@ -897,8 +934,7 @@ export function sourceImmunityEffect(input: {
           : {
               kind: 'TICKS',
               initialRemaining: immunity.initialRemaining,
-              decrementStage: 'END_OF_TURN',
-              anchor: 'HOLDER'
+              decrementStage: 'END_OF_TURN'
             }
     },
     stateContributions: [
@@ -984,6 +1020,7 @@ function prepareTargetStateEffect(
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],

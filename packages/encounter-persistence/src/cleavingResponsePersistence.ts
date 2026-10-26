@@ -192,17 +192,10 @@ export async function persistEncounterCleavingResponse(
     version: state.version + 1,
     updatedAt: occurredAt
   })
-  const applications = mechanics
-    ? nativeConcentrationDamageApplications(
-        [
-          {
-            targetActorId: mechanics.updatedActor.id,
-            applications: mechanics.receiptApplications
-          }
-        ],
-        true
-      )
+  const damageBatches = mechanics
+    ? [{ targetActorId: mechanics.updatedActor.id, applications: mechanics.receiptApplications }]
     : []
+  const applications = nativeConcentrationDamageApplications(damageBatches, true)
   const damagedActors = actors.map((actor) =>
     actor.id === mechanics?.updatedActor.id ? mechanics.updatedActor : actor
   )

@@ -3,7 +3,6 @@ import type {
   EncounterRuleWarningDto
 } from '@artificer-toolkit/schema/shared/encounterRuleWarnings'
 import { isTargetDead } from '@artificer-toolkit/schema/shared/characterDeathSaves'
-import { sizeRank } from '@artificer-toolkit/shared/core'
 import type { evaluateEncounterActionEconomy } from './encounterActionEconomy.js'
 import { isEncounterTargetDying } from './encounterActorDefeat.js'
 import type { EffectOutcomeTargetPrecondition } from './effectOutcomeRegistry.js'
@@ -12,6 +11,7 @@ import {
   targetingExcludesCreatureType,
   withoutCreatureTypeRestrictions
 } from './encounterActionTargetPolicy.js'
+import { sizeRank } from './systemSizes.js'
 
 type OutcomeTarget = Parameters<typeof isEncounterTargetDying>[0]
 
@@ -60,18 +60,17 @@ type EncounterActionWarningInput = {
    */
   targetCreatureTypeId?: string | null
   /**
-   * The target's Intelligence when readable (a Creature's snapshot carries it; a Character's facts
-   * do not), judged against the Intelligence floor of an action that bonds its targets.
+   * The target's score in the ability a bonding action floors, when readable (a Creature's snapshot
+   * carries it; a Character's facts do not), judged against `linkAbilityFloor`.
    */
-  targetIntelligence?: number | null
+  targetLinkAbilityScore?: number | null
   /**
-   * The actor's and the target's sizes when readable, judged against the action's `sizeLimit`;
-   * either one unknown raises nothing.
+   * The actor's and the target's sizes when readable, judged against the action's `sizeLimit` on
+   * their System's size list; either one unknown raises nothing.
    */
-  actorSize?: string | null
-  targetSize?: string | null
-  /** Set when the action bonds its targets (Telepathic Bond): Intelligence at or below it is excluded. */
-  linkIntelligenceFloor?: number | null
+  sizes?: { gameSystemId: string; actor: string | null; target: string | null }
+  /** Set when the action bonds its targets: a score at or below it in the floored ability is excluded. */
+  linkAbilityFloor?: number | null
   /**
    * The target preconditions the action's outcomes declare (D173 Q1) and the loaded target judged
    * against them. Each one it fails warns in place of TARGET_DEFEATED, which a dying target is.
@@ -87,18 +86,14 @@ type EncounterActionWarningInput = {
 
 /** Whether the target is more size steps above the actor than a single-target `sizeLimit` allows. */
 function targetExceedsSizeLimit(
-  input: Pick<EncounterActionWarningInput, 'target' | 'actorSize' | 'targetSize'>
+  input: Pick<EncounterActionWarningInput, 'target' | 'sizes'>
 ): boolean {
   const { targeting } = input.target.targetPolicy
   const limit = targeting?.selectionKind === 'SINGLE_TARGET' ? targeting.sizeLimit : undefined
-  const actorRank = sizeRank(input.actorSize)
-  const targetRank = sizeRank(input.targetSize)
-  return (
-    limit !== undefined &&
-    actorRank !== null &&
-    targetRank !== null &&
-    targetRank - actorRank > limit.stepsAboveActor
-  )
+  if (limit === undefined || !input.sizes) return false
+  const actorRank = sizeRank(input.sizes.gameSystemId, input.sizes.actor)
+  const targetRank = sizeRank(input.sizes.gameSystemId, input.sizes.target)
+  return actorRank !== null && targetRank !== null && targetRank - actorRank > limit.stepsAboveActor
 }
 
 /** Every warning one target raises, or null when the target policy refuses the target outright. */
@@ -136,13 +131,13 @@ function encounterActionWarnings(input: EncounterActionWarningInput) {
           }
         ]
       : []),
-    ...(input.linkIntelligenceFloor != null &&
-    input.targetIntelligence != null &&
-    input.targetIntelligence <= input.linkIntelligenceFloor
+    ...(input.linkAbilityFloor != null &&
+    input.targetLinkAbilityScore != null &&
+    input.targetLinkAbilityScore <= input.linkAbilityFloor
       ? [
           {
-            code: 'TARGET_INTELLIGENCE_EXCLUDED' as const,
-            message: 'This creature has too little Intelligence to join the bond.'
+            code: 'TARGET_ABILITY_EXCLUDED' as const,
+            message: 'This creature’s ability score is too low to join the bond.'
           }
         ]
       : []),
@@ -180,14 +175,13 @@ export function evaluateEncounterActorsRuleWarnings(
     | 'target'
     | 'targetDefeated'
     | 'targetCreatureTypeId'
-    | 'targetIntelligence'
+    | 'targetLinkAbilityScore'
     | 'targetPreconditions'
-    | 'actorSize'
-    | 'targetSize'
+    | 'sizes'
   > & {
     targets: readonly Pick<
       EncounterActionWarningInput,
-      'target' | 'targetDefeated' | 'targetCreatureTypeId' | 'targetIntelligence'
+      'target' | 'targetDefeated' | 'targetCreatureTypeId' | 'targetLinkAbilityScore'
     >[]
     areaWarnings: readonly EncounterRuleWarningDto[]
   }

@@ -36,6 +36,7 @@ import { readEncounterSource, snapshotBlueprintEnemies } from './blueprintSnapsh
 import { readActorInitiativeRoll } from './initiativeSources'
 import { snapshotEncounterOptionalCombatPolicies } from './policySnapshots'
 import { retainUserRoll } from '../rollDocuments'
+import { readLiveScene } from '../scenes/liveDocuments'
 
 async function readContentLabel(ctx: QueryCtx, id: string) {
   const authored = await ctx.db
@@ -127,6 +128,7 @@ export function encounterWriteTransaction(
     db: createConvexEncounterStore(ctx),
     ports: {
       ...readPorts(ctx),
+      sceneReaders: { readScene: (sceneId) => readLiveScene(ctx, sceneId, 'MEMBER') },
       insertTableRoll: (authority, userId, clientNonce, roll) =>
         insertPreEvaluatedCampaignTableRoll(ctx, authority, userId, clientNonce, roll),
       retainPrivateRoll: async (userId, roll, gmCampaignRoll) => {

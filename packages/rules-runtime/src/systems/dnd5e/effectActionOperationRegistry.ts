@@ -63,6 +63,7 @@ import {
   DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY,
   DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
+  DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_DERIVED_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -75,6 +76,7 @@ import {
   DND5E_MOVEMENT_INTERRUPTION_AUTHORIZATION_OPERATION_KEY,
   DND5E_NESTED_SAVE_GATE_OPERATION_KEY,
   NESTED_SAVE_GATE_CLOSED_PATH,
+  DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY,
   DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
   DND5E_CONDITION_DURATION_OPERATION_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
@@ -94,6 +96,7 @@ import {
   MAX_CONDITIONS_PER_PATH,
   conditionImmuneFactKey,
   DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS,
+  DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS,
   DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY,
   DND5E_HEALING_MAXIMIZED_FACT_KEY,
   DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
@@ -107,10 +110,12 @@ import {
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
   DND5E_ATTACK_TURN_USES_FACT_KEY,
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
+  DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY,
   DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY,
   DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
+  DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
   UUID,
@@ -161,6 +166,9 @@ export function simpleOperation(key: string): ProposalRuleOperationContract {
   }
 }
 export const dnd5eHealProposalOperation = simpleOperation(DND5E_HEAL_PROPOSAL_OPERATION_KEY)
+export const dnd5eHitPointLossProposalOperation = simpleOperation(
+  DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY
+)
 /**
  * A proposal that applies one fixed outcome to the target and carries no amount. With
  * `changesTargetState` false the outcome stores nothing on the target (an Active Effect owns it), so
@@ -1054,6 +1062,38 @@ export const dnd5eNestedSaveGateOperation: PureRuleOperationContract = {
   }
 }
 
+/**
+ * A roll-table row's gate: hands its outcomes the result path when the table die rolled within the
+ * row's faces, and a path no authored outcome satisfies otherwise.
+ */
+export const dnd5eRollTableRowGateOperation: PureRuleOperationContract = {
+  key: DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY,
+  contractVersion: 1,
+  executionKind: 'PURE',
+  inputs: {
+    roll: RULE_VALUE_KIND.NUMBER,
+    rowMin: RULE_VALUE_KIND.NUMBER,
+    rowMax: RULE_VALUE_KIND.NUMBER,
+    resultPath: RULE_VALUE_KIND.TEXT
+  },
+  outputs: { authorized: RULE_VALUE_KIND.BOOLEAN, resultPath: RULE_VALUE_KIND.TEXT },
+  execute(inputs) {
+    const { roll, rowMin, rowMax, resultPath } = inputs
+    if (
+      typeof roll !== 'number' ||
+      typeof rowMin !== 'number' ||
+      typeof rowMax !== 'number' ||
+      ![roll, rowMin, rowMax].every(Number.isSafeInteger) ||
+      rowMin > rowMax ||
+      typeof resultPath !== 'string' ||
+      !isSpecializedPath(resultPath)
+    )
+      throw new Error('D&D roll table row gate requires a rolled face, its row and a result path.')
+    const authorized = roll >= rowMin && roll <= rowMax
+    return { authorized, resultPath: authorized ? resultPath : NESTED_SAVE_GATE_CLOSED_PATH }
+  }
+}
+
 /** A test's result path selects an outcome authored on it, and a critical hit also selects the hit's. */
 export function dnd5eResultPathSatisfies(resolvedPath: string, authoredPath: string): boolean {
   return resolvedPath === authoredPath || (resolvedPath === 'ON_CRIT' && authoredPath === 'ON_HIT')
@@ -1174,6 +1214,10 @@ export const dnd5eTestDamageProposalOperation = testProposalOperation(
   DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
   { amount: RULE_VALUE_KIND.NUMBER, damageTypeId: RULE_VALUE_KIND.TEXT }
 )
+export const dnd5eTestHitPointLossProposalOperation = testProposalOperation(
+  DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
+  { amount: RULE_VALUE_KIND.NUMBER }
+)
 export const dnd5eTestConditionProposalOperation = testProposalOperation(
   DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
   { conditionId: RULE_VALUE_KIND.TEXT },
@@ -1200,6 +1244,7 @@ export const dnd5ePathGatedProposalOperations = [
   dnd5eTestHealProposalOperation,
   dnd5eTestTemporaryHitPointsProposalOperation,
   dnd5eTestDamageProposalOperation,
+  dnd5eTestHitPointLossProposalOperation,
   dnd5eTestScalarReductionProposalOperation,
   dnd5eTestConditionProposalOperation,
   dnd5eTestMarginConditionProposalOperation,
@@ -1282,6 +1327,10 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
         valueKind: RULE_VALUE_KIND.BOOLEAN
       }))
     ),
+    ...Object.values(DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS).map((key) => ({
+      key,
+      valueKind: RULE_VALUE_KIND.NUMBER
+    })),
     ...Object.values(DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS).map((key) => ({
       key,
       valueKind: RULE_VALUE_KIND.TEXT
@@ -1317,6 +1366,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     { key: DND5E_ATTACK_MOVE_TOWARD_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_ATTACK_TURN_USES_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_DAMAGE_ADDED_DICE_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
+    { key: DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY, valueKind: RULE_VALUE_KIND.TEXT },
     { key: DND5E_REPEAT_SAVE_ATTEMPT_ALLOWED_FACT_KEY, valueKind: RULE_VALUE_KIND.BOOLEAN },
     ...dnd5eAddedDiceFactContracts,
     {
@@ -1357,6 +1407,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_CANCEL_TRIGGERING_EVENT_PROPOSAL_OPERATION_KEY,
     DND5E_END_EFFECTS_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
+    DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
     DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY,
     DND5E_DAMAGE_DERIVED_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
@@ -1372,6 +1423,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
     DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY,
+    DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY,
     DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY,
     ...dnd5ePathGatedTargetProposalOperations.map(({ key }) => key),
@@ -1389,6 +1441,7 @@ export const dnd5eEffectActionCapability: GameSystemRuleCapabilityContract = {
         dnd5eSaveTestOperation,
         dnd5eTestMarginConditionProposalOperation,
         dnd5eNestedSaveGateOperation,
+        dnd5eRollTableRowGateOperation,
         dnd5eHitPointGatedKillProposalOperation,
         dnd5eHitPointGatedHealProposalOperation,
         dnd5eHitPointGatedConditionApplyProposalOperation

@@ -14,7 +14,8 @@ import { savingThrowDtoSchema } from '../shared/savingThrow.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { rolledDieShape } from '../shared/d20AddedDice.js'
-import { MAX_ROLLED_DIE_COUNT } from '@artificer-toolkit/shared/core'
+import { MAX_ROLLED_DIE_COUNT, ROLLED_DIE_FACES } from '@artificer-toolkit/shared/core'
+import { amountBonusDtoSchema } from '../effects/heal.js'
 import {
   chargeLimitKindSchema,
   chargeResetKindSchema,
@@ -22,11 +23,10 @@ import {
   durationKindSchema,
   attackDomainCodeSchema,
   attackOccasionCodeSchema,
-  abilityCodeSchema,
-  abilityModifierReferenceSchema,
   modifierKindSchema,
   modifierScopeKindSchema,
   modifierValueKindSchema,
+  pathLifecycleEndEventSchema,
   rangeKindSchema,
   scalingKindSchema,
   shapeKindSchema
@@ -51,7 +51,7 @@ const optionalAttackDomainParamDtoSchema = lazySchema(() =>
 const attackRollRollModeParamDtoSchema = lazySchema(() =>
   z.object({
     attackDomain: attackDomainCodeSchema,
-    ability: z.optional(abilityCodeSchema),
+    ability: z.optional(systemCoreCodeSchema),
     /** Only attacks against the source of the effect holding the grant (Bestow Curse). */
     againstEffectSource: z.optional(z.boolean())
   })
@@ -78,20 +78,31 @@ const attackTraitParamDtoSchema = lazySchema(() =>
 
 const abilityParamDtoSchema = lazySchema(() =>
   z.object({
-    ability: abilityCodeSchema
+    ability: systemCoreCodeSchema
   })
 )
 
 /** One ability's tests, or every ability's when absent (a rolled die on every save covers death saves). */
 const optionalAbilityParamDtoSchema = lazySchema(() =>
   z.object({
-    ability: z.optional(abilityCodeSchema)
+    ability: z.optional(systemCoreCodeSchema)
+  })
+)
+
+/**
+ * A d20 floor's ability checks: one ability's or every ability's, and only those adding the
+ * holder's full proficiency bonus or more when `proficientOnly` (Reliable Talent).
+ */
+const abilityCheckFloorParamDtoSchema = lazySchema(() =>
+  z.object({
+    ability: z.optional(systemCoreCodeSchema),
+    proficientOnly: z.optional(z.boolean())
   })
 )
 
 const savingThrowParamDtoSchema = lazySchema(() =>
   z.object({
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     conditionTypeId: z.optional(authoredIdentifierSchema),
     ruleDefinitionId: z.optional(postgresUuidSchema),
     requiresHolderSeesSource: z.optional(z.boolean())
@@ -169,7 +180,7 @@ const modifierScalarValueDtoSchema = lazySchema(() =>
 
 const abilityModifierBonusPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
     multiplier: z.optional(z.number()),
     min: z.optional(z.number()),
     max: z.optional(z.number())
@@ -179,7 +190,7 @@ const abilityModifierBonusPayloadDtoSchema = lazySchema(() =>
 /** The best of several ability modifiers; `SPELLCASTING` is the holder's spellcasting ability. */
 const optionalAbilityModifierBonusPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
-    abilities: authoredReferenceCollectionSchema(abilityModifierReferenceSchema),
+    abilities: authoredReferenceCollectionSchema(systemCoreCodeSchema),
     min: z.optional(z.number()),
     max: z.optional(z.number())
   })
@@ -223,7 +234,7 @@ const modifyChargeLimitPayloadDtoSchema = lazySchema(() =>
     z.object({
       limitKind: z.literal(chargeLimitKindSchema._zod.def.entries.ABILITY_MODIFIER),
       scalingKind: z.literal(scalingKindSchema._zod.def.entries.NONE),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       multiplier: z.optional(z.number()),
       min: z.optional(z.number()),
       max: z.optional(z.number())
@@ -259,7 +270,7 @@ const weaponDamageDiePayloadDtoSchema = lazySchema(() =>
 const armorClassFormulaPayloadDtoSchema = lazySchema(() =>
   z.strictObject({
     amount: z.number(),
-    abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
+    abilities: authoredReferenceCollectionSchema(systemCoreCodeSchema)
   })
 )
 
@@ -283,13 +294,23 @@ export const attackDecoysPayloadDtoSchema = lazySchema(() =>
   })
 )
 
+/** The holder's own active effects with these authored ids do not end on these lifecycle events. */
+export const endEventExemptionPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    events: z.array(pathLifecycleEndEventSchema).check(z.minLength(1)),
+    effectIds: z.array(postgresUuidSchema).check(z.minLength(1))
+  })
+)
+
 /** Damage that would drop the holder to 0 hit points leaves it at `dropToHitPoints` instead. */
 export type DamageInterceptionPayloadDto = {
   dropToHitPoints: number
   negatesKill: boolean
   save?: {
-    ability: z.infer<typeof abilityCodeSchema>
-    dc: { base: number; plusDamageTaken: boolean }
+    ability: z.infer<typeof systemCoreCodeSchema>
+    dc: { base: number; plusDamageTaken: boolean; plusPerChargeUsed: number }
+    /** A pass always spends a use; when set, a failed save spends one too. */
+    spendsUseOnFailure: boolean
   }
   excludes?: { damageTypeIds: string[]; critical: boolean }
   maxDamageTaken?: number
@@ -303,11 +324,13 @@ export const damageInterceptionPayloadDtoSchema: z.ZodMiniType<DamageInterceptio
       negatesKill: z.boolean(),
       save: z.optional(
         z.strictObject({
-          ability: abilityCodeSchema,
+          ability: systemCoreCodeSchema,
           dc: z.strictObject({
             base: z.number().check(z.int()).check(z.gte(0)).check(z.lte(100)),
-            plusDamageTaken: z.boolean()
-          })
+            plusDamageTaken: z.boolean(),
+            plusPerChargeUsed: z.number().check(z.int()).check(z.gte(0)).check(z.lte(100))
+          }),
+          spendsUseOnFailure: z.boolean()
         })
       ),
       excludes: z.optional(
@@ -319,6 +342,73 @@ export const damageInterceptionPayloadDtoSchema: z.ZodMiniType<DamageInterceptio
       maxDamageTaken: z.optional(z.number().check(z.int()).check(z.gte(1)).check(z.lte(1000)))
     })
   )
+
+/**
+ * How the holder takes damage. `HALVE` halves every damage application before its defenses,
+ * rounding down (Uncanny Dodge). `SAVE_FOR_HALF` replaces what an effect that deals half its damage
+ * on a successful save deals the holder on a save of one of `saveAbilities` (Evasion: none on a
+ * success, half on a failure); any other save is untouched. `REDUCE` takes a rolled die plus the
+ * holder's `bonuses` from the primary damage of each attack that hits it, floored at 0, before halving
+ * and its defenses (Deflect Missiles).
+ */
+const incomingDamageDieShape = () => ({
+  count: z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ROLLED_DIE_COUNT)),
+  faces: z.literal(ROLLED_DIE_FACES)
+})
+const incomingSaveForHalfPayloadDtoSchema = lazySchema(() =>
+  z.strictObject({
+    incomingDamageKind: z.literal('SAVE_FOR_HALF'),
+    saveAbilities: z.array(systemCoreCodeSchema).check(z.minLength(1)).check(z.maxLength(6)),
+    onSaveSuccess: z.enum(['NONE', 'HALF']),
+    onSaveFailure: z.enum(['HALF', 'FULL'])
+  })
+)
+export const incomingDamagePayloadDtoSchema = lazySchema(() =>
+  z.union([
+    z.strictObject({ incomingDamageKind: z.literal('HALVE') }),
+    incomingSaveForHalfPayloadDtoSchema,
+    z
+      .strictObject({
+        incomingDamageKind: z.literal('REDUCE'),
+        count: z.optional(incomingDamageDieShape().count),
+        faces: z.optional(incomingDamageDieShape().faces),
+        bonuses: authoredNestedCollectionSchema(amountBonusDtoSchema)
+      })
+      .check(
+        z.refine(
+          ({ count, faces }) => (count === undefined) === (faces === undefined),
+          'A reduction die names both its count and its faces.'
+        )
+      )
+  ])
+)
+export type IncomingDamagePayloadDto = z.infer<typeof incomingDamagePayloadDtoSchema>
+
+/**
+ * A holder's `INCOMING_DAMAGE` grants, folded: whether it halves damage, its save-for-half
+ * replacements, and its attack damage reductions, each a die and the flat amount its bonuses resolve
+ * to for the holder.
+ */
+export const incomingDamageReductionsDtoSchema = lazySchema(() =>
+  z
+    .array(
+      z.strictObject({
+        die: z.nullable(z.strictObject(incomingDamageDieShape())),
+        flat: z.number().check(z.int()).check(z.gte(0))
+      })
+    )
+    .check(z.maxLength(16))
+)
+export type IncomingDamageReductionsDto = z.infer<typeof incomingDamageReductionsDtoSchema>
+
+export const incomingDamageProfileDtoSchema = lazySchema(() =>
+  z.strictObject({
+    halved: z.boolean(),
+    saveForHalf: z.array(incomingSaveForHalfPayloadDtoSchema),
+    reductions: incomingDamageReductionsDtoSchema
+  })
+)
+export type IncomingDamageProfileDto = z.infer<typeof incomingDamageProfileDtoSchema>
 
 /**
  * The save an attacker makes against the holder's source before a single-target attack or harmful spell lands.
@@ -480,6 +570,7 @@ export const modifierDomainParamsDtoSchema = lazySchema(() =>
       ...attacksAgainstParamDtoSchema.shape,
       ...attackRollRollModeParamDtoSchema.shape,
       ...attackTraitParamDtoSchema.shape,
+      ...abilityCheckFloorParamDtoSchema.shape,
       ...savingThrowParamDtoSchema.shape,
       ...skillParamDtoSchema.shape,
       ...speedParamDtoSchema.shape,
@@ -505,6 +596,8 @@ export const modifierPayloadDtoSchema = lazySchema(() =>
     armorClassFormulaPayloadDtoSchema,
     attackDecoysPayloadDtoSchema,
     damageInterceptionPayloadDtoSchema,
+    endEventExemptionPayloadDtoSchema,
+    incomingDamagePayloadDtoSchema,
     incomingAttackGatePayloadDtoSchema,
     abilityModifierBonusPayloadDtoSchema,
     optionalAbilityModifierBonusPayloadDtoSchema,
@@ -663,7 +756,7 @@ const buildModifierGrantVariants = () =>
     buildModifierGrantVariant(
       'ABILITY_CHECK',
       'MINIMUM_ROLL',
-      optionalAbilityParamDtoSchema,
+      abilityCheckFloorParamDtoSchema,
       minimumRollPayloadDtoSchema
     ),
     buildModifierGrantVariant(
@@ -777,6 +870,7 @@ const buildModifierGrantVariants = () =>
       weaponDamageDiePayloadDtoSchema
     ),
     buildModifierGrantVariant('OPPORTUNITY_ATTACK_IMMUNITY', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant('FREE_OPPORTUNITY_REACTION', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('SPELLCASTING_LOCK', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('HEALING_RECEIVED', 'ENABLE', emptyDomainDtoSchema),
     buildModifierGrantVariant('ACTION_BONUS_ACTION_EXCLUSIVITY', 'ENABLE', emptyDomainDtoSchema),
@@ -793,6 +887,18 @@ const buildModifierGrantVariants = () =>
       damageInterceptionPayloadDtoSchema
     ),
     buildModifierGrantVariant('DAMAGE_MIRROR', 'ENABLE', emptyDomainDtoSchema),
+    buildModifierGrantVariant(
+      'END_EVENT_EXEMPTION',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      endEventExemptionPayloadDtoSchema
+    ),
+    buildModifierGrantVariant(
+      'INCOMING_DAMAGE',
+      'ENABLE',
+      emptyDomainDtoSchema,
+      incomingDamagePayloadDtoSchema
+    ),
     buildModifierGrantVariant(
       'INCOMING_ATTACK_GATE',
       'ENABLE',

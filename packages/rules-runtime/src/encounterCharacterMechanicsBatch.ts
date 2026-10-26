@@ -16,7 +16,7 @@ import {
   reviveRestoredHitPoints,
   type CharacterDeathSaves
 } from '@artificer-toolkit/schema/shared/characterDeathSaves'
-import { resolveDispositionDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
+import { resolveIncomingDamage } from '@artificer-toolkit/schema/shared/ruleExecutionMechanics'
 import { serverUuidIdentityDtoSchema } from '@artificer-toolkit/schema/shared/serverUuidIdentity'
 import {
   temporaryHitPointsAfterGrant,
@@ -32,6 +32,7 @@ import {
   applyDamageInterceptions,
   hitPointsAfterDamage,
   interceptionChargeMatches,
+  interceptionSavesMatch,
   interceptionChargeReceipt,
   killInterception,
   type HeldDamageInterception
@@ -561,11 +562,23 @@ export function foldCharacterMechanicsApplications<
         throw new EncounterValidationError(
           'The Character temporary hit-point application is invalid.'
         )
-    } else if (application.kind === 'DAMAGE') {
-      const resolvedAmount = resolveDispositionDamage(
-        application.damageDisposition,
-        application.requestedAmount
+    } else if (application.kind === 'HIT_POINT_LOSS') {
+      // Not damage: no defense, interception or death save failure; temporary hit points go first.
+      const temporaryLost = Math.min(temporary, application.requestedAmount)
+      temporarySource = temporaryHitPointsAfterLoss(
+        { amount: temporary, sourceEffectId: temporarySource },
+        temporaryLost
+      ).sourceEffectId
+      const currentLost = Math.min(current, application.requestedAmount - temporaryLost)
+      if (
+        application.resolvedAmount !== application.requestedAmount ||
+        application.appliedAmount !== temporaryLost + currentLost ||
+        application.afterCurrentHitPoints !== current - currentLost ||
+        application.afterTemporaryHitPoints !== temporary - temporaryLost
       )
+        throw new EncounterValidationError('The Character hit-point loss application is invalid.')
+    } else if (application.kind === 'DAMAGE') {
+      const resolvedAmount = resolveIncomingDamage(application)
       const temporaryLost = Math.min(temporary, resolvedAmount)
       temporarySource = temporaryHitPointsAfterLoss(
         { amount: temporary, sourceEffectId: temporarySource },
@@ -575,7 +588,8 @@ export function foldCharacterMechanicsApplications<
       const {
         after: afterCurrent,
         interception,
-        saves
+        saves,
+        attempted
       } = hitPointsAfterDamage({
         current,
         currentLost,
@@ -586,24 +600,14 @@ export function foldCharacterMechanicsApplications<
         interceptions: unspentInterceptions
       })
       const intercepted = interception !== undefined
-      const recordedSaves = application.interceptionSaves ?? []
       if (
         intercepted !== (application.interceptedBy !== undefined) ||
         !interceptionChargeMatches(application.interceptionCharge, interception) ||
-        recordedSaves.length !== saves.length ||
-        saves.some((save, index) => {
-          const recorded = recordedSaves[index]
-          return (
-            recorded?.effectId !== save.effectId ||
-            recorded.rawDie !== save.rawDie ||
-            recorded.addedTotal !== save.addedTotal ||
-            recorded.dc !== save.dc ||
-            recorded.passed !== save.passed
-          )
-        })
+        !interceptionSavesMatch(application.interceptionSaves ?? [], saves)
       )
         throw new EncounterValidationError('The Character damage interception is invalid.')
-      if (intercepted) unspentInterceptions.splice(unspentInterceptions.indexOf(interception), 1)
+      for (const spent of attempted)
+        unspentInterceptions.splice(unspentInterceptions.indexOf(spent), 1)
       if (
         application.resolvedAmount !== resolvedAmount ||
         application.appliedAmount !== temporaryLost + current - afterCurrent ||

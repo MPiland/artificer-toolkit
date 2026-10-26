@@ -1,4 +1,3 @@
-import { SIZE_OPTIONS } from '@artificer-toolkit/shared/core'
 import {
   createCharacterSpellSourceKey,
   type CharacterSheetAdjustment
@@ -10,6 +9,7 @@ import type {
 import type { CharacterSheetAdjustmentCommandDto } from '@artificer-toolkit/schema/api/characterSheet'
 import type { CharacterSheetPanelTargetDto } from '@artificer-toolkit/schema/api/characterSheetPanel'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import { CharacterSheetCommandError, formatCodeLabel } from './sheetCommandReducer.js'
 
@@ -36,6 +36,10 @@ export function validateSheetAdjustmentTarget(
   switch (input.family) {
     case 'ABILITY':
     case 'SAVING_THROW':
+      if (!systemCoreCodeRegistry.abilityCodes(character.systemId).includes(input.ability)) {
+        throw new CharacterSheetCommandError(`Ability "${input.ability}" is not available.`)
+      }
+      return
     case 'HIT_POINTS':
       return
     case 'SKILL':
@@ -92,7 +96,9 @@ export function validateSheetAdjustmentTarget(
       }
       if (
         input.field === 'SIZE_OVERRIDE' &&
-        !SIZE_OPTIONS.some((size) => size.code === input.value)
+        !systemCoreCodeRegistry
+          .entries(character.systemId, 'size')
+          .some(({ code }) => code === input.value)
       ) {
         throw new CharacterSheetCommandError(`Size "${input.value}" is not available.`)
       }
@@ -105,6 +111,12 @@ export function validatePanelTarget(
   resolution: CharacterBuilderResolution,
   character: CharacterAuthored
 ): void {
+  if (
+    (target.kind === 'ABILITY' || target.kind === 'SAVING_THROW') &&
+    !systemCoreCodeRegistry.abilityCodes(character.systemId).includes(target.ability)
+  ) {
+    throw new CharacterSheetCommandError(`Ability "${target.ability}" is not available.`)
+  }
   if (
     target.kind === 'SKILL' &&
     !resolution.registry.system?.skills.some((skill) => skill.id === target.skillId)

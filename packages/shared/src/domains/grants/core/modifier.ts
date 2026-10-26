@@ -1,7 +1,10 @@
-import type { ChargeLimitPayload, DurationAuthored, SavingThrowAuthored } from '#authored'
 import type {
-  AbilityCode,
-  AbilityModifierReference,
+  ChargeLimitPayload,
+  DurationAuthored,
+  HealBonusAuthored,
+  SavingThrowAuthored
+} from '#authored'
+import type {
   AttackDomainCode,
   ChargeResetKind,
   DurationKind,
@@ -279,6 +282,8 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
 
   OPPORTUNITY_ATTACK_IMMUNITY: [MODIFIER_KIND.ENABLE],
 
+  FREE_OPPORTUNITY_REACTION: [MODIFIER_KIND.ENABLE],
+
   SPELLCASTING_LOCK: [MODIFIER_KIND.ENABLE],
 
   ACTION_BONUS_ACTION_EXCLUSIVITY: [MODIFIER_KIND.ENABLE],
@@ -288,6 +293,9 @@ export const MODIFIER_KINDS_BY_DOMAIN = {
   DAMAGE_INTERCEPTION: [MODIFIER_KIND.ENABLE],
 
   DAMAGE_MIRROR: [MODIFIER_KIND.ENABLE],
+
+  END_EVENT_EXEMPTION: [MODIFIER_KIND.ENABLE],
+  INCOMING_DAMAGE: [MODIFIER_KIND.ENABLE],
 
   INCOMING_ATTACK_GATE: [MODIFIER_KIND.ENABLE],
 
@@ -505,7 +513,7 @@ export type ModifierScalarValueAuthored =
   | { valueKind: 'PROFICIENCY_BONUS'; multiplier?: number }
   | {
       valueKind: 'ABILITY_MODIFIER'
-      ability: AbilityCode
+      ability: string
       multiplier?: number
       min?: number
       max?: number
@@ -611,18 +619,24 @@ export type ModifierDamageDieAuthored = Omit<ModifierRolledDieAuthored, 'sign' |
 /**
  * The domain a modifier kind is scoped by. A rolled die on saving throws may omit the ability, so
  * one grant covers every save, death saves included (D156); a rolled damage die may omit the attack
- * domain, so it joins every damage its recipient deals, spells included (Bestow Curse).
+ * domain, so it joins every damage its recipient deals, spells included (Bestow Curse). A d20 floor
+ * on ability checks may hold only for checks that add the holder's full proficiency bonus or more
+ * (`proficientOnly`, Reliable Talent); half proficiency does not count.
  */
 export type ModifierDomainFor<
   V extends ValueDomainCode,
   K extends ModifierKind
 > = K extends 'ADD_BONUS_DIE'
   ? V extends 'SAVING_THROW_MODIFIER'
-    ? { ability?: AbilityCode }
+    ? { ability?: string }
     : V extends 'DAMAGE'
       ? { attackDomain?: AttackDomainCode }
       : ValueDomainParam<V>
-  : ValueDomainParam<V>
+  : K extends 'MINIMUM_ROLL'
+    ? V extends 'ABILITY_CHECK'
+      ? ValueDomainParam<V> & { proficientOnly?: boolean }
+      : ValueDomainParam<V>
+    : ValueDomainParam<V>
 
 /** A fraction a value is multiplied by, rounded down (D94): "your speed is halved" is 1/2. */
 export type ModifierFractionAuthored = { numerator: number; denominator: number }
@@ -632,7 +646,7 @@ export type ModifierFractionAuthored = { numerator: number; denominator: number 
  * class formula, and the d20 roll an attack needs to target one while that many remain.
  */
 export type ModifierAttackDecoysAuthored = {
-  armorClass: { amount: number; abilities: AbilityCode[] }
+  armorClass: { amount: number; abilities: string[] }
   thresholds: { id: string; remaining: number; minimumRoll: number }[]
   exemptAttackerSenseDefinitionIds?: string[]
 }
@@ -647,13 +661,28 @@ export type ModifierDamageInterceptionAuthored = {
   negatesKill: boolean
   /**
    * The holder must pass this save to be intercepted (Undead Fortitude): the DC is `base`, plus the
-   * damage taken when `plusDamageTaken`. A failed save lets the damage land and spends no use.
+   * damage taken when `plusDamageTaken`, plus `plusPerChargeUsed` for each charge of the holding
+   * feature already used (Relentless Rage). A pass always spends a use; a failed save lets the
+   * damage land, and `spendsUseOnFailure` means it spends a use too.
    */
-  save?: { ability: AbilityCode; dc: { base: number; plusDamageTaken: boolean } }
+  save?: {
+    ability: string
+    dc: { base: number; plusDamageTaken: boolean; plusPerChargeUsed: number } // int, 0 to 100
+    spendsUseOnFailure: boolean
+  }
   /** Damage this interception does not meet: of these types, or from a critical hit. */
   excludes?: { damageTypeIds: string[]; critical: boolean }
   /** Only damage of at most this many hit points is intercepted (Relentless: 14). */
   maxDamageTaken?: number // int, at least 1
+}
+
+/**
+ * The holder's own active effects with these authored ids do not end on these lifecycle events
+ * (Persistent Rage: Rage no longer ends on `ON_IDLE_TURN`). Their other end conditions still apply.
+ */
+export type ModifierEndEventExemptionAuthored = {
+  events: string[]
+  effectIds: string[]
 }
 
 /**
@@ -668,6 +697,28 @@ export type ModifierIncomingAttackGateAuthored = {
   successImmunity?: { duration: DurationAuthored }
 }
 
+/**
+ * While held, `HALVE` halves every damage application the holder takes, before its resistances
+ * (Uncanny Dodge). `SAVE_FOR_HALF` replaces the bands of damage from an effect that allows one of
+ * `saveAbilities` saves for half damage (Evasion: a DEX success takes none, a failure takes half).
+ * `REDUCE` takes `count` dice of `faces` plus the holder's `bonuses` from the damage of each attack
+ * that hits it, before halving and resistances (Deflect Missiles).
+ */
+export type ModifierIncomingDamageAuthored =
+  | { incomingDamageKind: 'HALVE' }
+  | {
+      incomingDamageKind: 'SAVE_FOR_HALF'
+      saveAbilities: string[]
+      onSaveSuccess: 'NONE' | 'HALF'
+      onSaveFailure: 'HALF' | 'FULL'
+    }
+  | {
+      incomingDamageKind: 'REDUCE'
+      count?: number
+      faces?: (typeof ROLLED_DIE_FACES)[number]
+      bonuses: HealBonusAuthored[]
+    }
+
 export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind> =
   // numeric-like
   K extends 'ENABLE'
@@ -675,9 +726,13 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
       ? ModifierAttackDecoysAuthored
       : V extends 'DAMAGE_INTERCEPTION'
         ? ModifierDamageInterceptionAuthored
-        : V extends 'INCOMING_ATTACK_GATE'
-          ? ModifierIncomingAttackGateAuthored
-          : undefined
+        : V extends 'END_EVENT_EXEMPTION'
+          ? ModifierEndEventExemptionAuthored
+          : V extends 'INCOMING_ATTACK_GATE'
+            ? ModifierIncomingAttackGateAuthored
+            : V extends 'INCOMING_DAMAGE'
+              ? ModifierIncomingDamageAuthored
+              : undefined
     : K extends 'MULTIPLY'
       ? ModifierFractionAuthored
       : K extends 'BONUS' | 'PENALTY' | 'SET_VALUE' | 'CAP_VALUE'
@@ -694,11 +749,11 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
                   | { durationKind: Exclude<DurationKind, 'INSTANTANEOUS'>; amount: number }
               : V extends 'ARMOR_CLASS'
                 ? // An armor class formula: the amount plus each listed ability modifier.
-                  { amount: number; abilities: AbilityCode[] }
+                  { amount: number; abilities: string[] }
                 : { amount: number }
             : ModifierScalarValueAuthored
         : K extends 'ABILITY_MODIFIER_BONUS'
-          ? { ability: AbilityCode; multiplier?: number; min?: number; max?: number }
+          ? { ability: string; multiplier?: number; min?: number; max?: number }
           : K extends 'MODIFY_CHARGE_LIMIT'
             ? ChargeLimitPayload
             : K extends 'MINIMUM_ROLL'
@@ -723,7 +778,7 @@ export type ModifierPayloadFor<V extends ValueDomainCode, K extends ModifierKind
                               ? undefined
                               : K extends 'OPTIONAL_ABILITY_MODIFIER_BONUS'
                                 ? {
-                                    abilities: AbilityModifierReference[]
+                                    abilities: string[]
                                     min?: number
                                     max?: number
                                   }

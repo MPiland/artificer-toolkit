@@ -1,14 +1,61 @@
 import { describe, expect, it } from 'vitest'
-import { readField, toFeatures } from './guidedValues'
+import { DND5E_SYSTEM_ID } from '@artificer-toolkit/rules-runtime/systems/dnd5e/identity'
+import {
+  guidedField,
+  guidedSizeOptions,
+  readGuidedValues,
+  toDetails,
+  toFeatures,
+  toSelectOption
+} from './guidedValues'
 
-describe('readField', () => {
-  it('reads a field off in-progress values', () => {
-    expect(readField({ label: 'Fireball' }, 'label')).toBe('Fireball')
+describe('guidedSizeOptions', () => {
+  it('offers the System sizes a Scene models, smallest first, with their labels', () => {
+    expect(guidedSizeOptions(DND5E_SYSTEM_ID)).toEqual([
+      { label: 'Tiny', value: 'TINY' },
+      { label: 'Small', value: 'SMALL' },
+      { label: 'Medium', value: 'MEDIUM' },
+      { label: 'Large', value: 'LARGE' },
+      { label: 'Huge', value: 'HUGE' },
+      { label: 'Gargantuan', value: 'GARGANTUAN' }
+    ])
   })
 
-  it('returns undefined for a missing field or non-record values', () => {
-    expect(readField({}, 'label')).toBeUndefined()
-    expect(readField([], 'label')).toBeUndefined()
+  it('offers nothing before a System is chosen', () => {
+    expect(guidedSizeOptions(undefined)).toEqual([])
+  })
+})
+
+describe('toSelectOption', () => {
+  it('maps an id/label item onto a select option', () => {
+    expect(toSelectOption({ id: 'gp', label: 'Gold' })).toEqual({ label: 'Gold', value: 'gp' })
+  })
+})
+
+describe('readGuidedValues', () => {
+  it('reads in-progress values as the domain values', () => {
+    const values = { label: 'Fireball', level: 3 }
+
+    expect(readGuidedValues('spell', values).label).toBe('Fireball')
+  })
+
+  it('reads a partial draft without requiring every field', () => {
+    expect(readGuidedValues('feat', {}).label).toBeUndefined()
+  })
+
+  it('reads an array as an empty draft', () => {
+    expect(readGuidedValues('feat', []).label).toBeUndefined()
+  })
+})
+
+describe('guidedField', () => {
+  it('names a top-level field of the domain', () => {
+    expect(guidedField('feat', 'label')).toBe('label')
+  })
+
+  it('appends nested keys and array indexes', () => {
+    expect(guidedField('race', 'speeds', 0, 'speedId')).toBe('speeds[0].speedId')
+    expect(guidedField('vehicle', 'cost', 'amount')).toBe('cost.amount')
   })
 })
 
@@ -22,5 +69,17 @@ describe('toFeatures', () => {
   it('returns an empty list for a non-array', () => {
     expect(toFeatures(undefined)).toEqual([])
     expect(toFeatures({ id: 'f1', order: 1 })).toEqual([])
+  })
+})
+
+describe('toDetails', () => {
+  it('keeps detail-shaped rows and drops everything else', () => {
+    const detail = { id: 'd1', label: 'Core outcome', description: 'Gain a bonus.', order: 1 }
+
+    expect(toDetails([detail, { id: 'd2' }, 'x', null])).toEqual([detail])
+  })
+
+  it('returns an empty list for a non-array', () => {
+    expect(toDetails(undefined)).toEqual([])
   })
 })

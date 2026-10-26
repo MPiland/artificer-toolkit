@@ -110,6 +110,7 @@ export function CreatureDetailPage({
   const creatureModel = buildCreatureDetailModel(
     item,
     {
+      abilities: response?.meta?.abilities ?? [],
       challengeRatings: response?.meta?.challengeRatings ?? [],
       conditionTypes: response?.meta?.conditionTypes ?? [],
       creatureTypes: response?.meta?.creatureTypes ?? [],

@@ -81,6 +81,56 @@ export function isTurnEffectEligible(
   )
 }
 
+/**
+ * The actor whose turn boundaries count and run the effect: its holder, or the Encounter actor that
+ * applied it. A source-anchored effect carried in from an earlier Run has no source here, so its
+ * holder's turns count it (D151).
+ */
+export function effectAnchorActorId(
+  effect: ActiveRuleEffectRecord,
+  holderActorId: string,
+  encounterId: string
+) {
+  const { origin } = effect.definition
+  return effect.definition.recurrence.anchor === 'SOURCE' &&
+    origin.kind === 'ENCOUNTER' &&
+    origin.sourceAggregateId === encounterId
+    ? (origin.sourceActorId ?? holderActorId)
+    : holderActorId
+}
+
+export type TurnEffectCandidate = {
+  holder: EncounterRunActorState
+  effect: ActiveRuleEffectRecord
+}
+
+/**
+ * The effects a turn boundary runs: the turn actor's own, and those it holds other creatures with
+ * that are anchored to its turns (SPELLS-33.T6n2). Order is by creation across holders.
+ */
+export function selectTurnEffectCandidates(input: {
+  state: EncounterRunState
+  stage: TurnEffectBoundary['stage']
+  turnActorId: string
+  holders: readonly { actor: EncounterRunActorState; effects: readonly ActiveRuleEffectRecord[] }[]
+}): TurnEffectCandidate[] {
+  return input.holders
+    .flatMap(({ actor, effects }) =>
+      effects
+        .filter(
+          (effect) =>
+            isTurnEffectEligible(effect, actor, input.state, input.stage) &&
+            effectAnchorActorId(effect, actor.id, input.state.id) === input.turnActorId
+        )
+        .map((effect) => ({ holder: actor, effect }))
+    )
+    .sort(
+      (left, right) =>
+        left.effect.createdOrdinal - right.effect.createdOrdinal ||
+        left.effect.id.localeCompare(right.effect.id)
+    )
+}
+
 export function turnEffectRetainedConditions(
   effect: ActiveRuleEffectRecord,
   effects: readonly ActiveRuleEffectRecord[],
@@ -110,17 +160,16 @@ export function turnEffectRetainedConditions(
 export function turnEffectSelectionChecksum(
   commandType: TurnCoordinatorRootDto['commandType'],
   boundary: TurnEffectBoundary,
-  actor: EncounterRunActorState,
   encounterId: string,
-  candidates: readonly ActiveRuleEffectRecord[]
+  candidates: readonly TurnEffectCandidate[]
 ) {
   return checksumCanonicalJson({
     commandType,
-    boundaries: candidates.map((effect) => ({
+    boundaries: candidates.map(({ holder, effect }) => ({
       boundaryOrdinal: boundary.ordinal,
       stage: boundary.stage,
-      targetActorId: actor.id,
-      owner: turnEffectOwner(actor, encounterId),
+      targetActorId: holder.id,
+      owner: turnEffectOwner(holder, encounterId),
       activeEffectId: effect.id,
       createdOrdinal: effect.createdOrdinal
     }))
@@ -191,7 +240,7 @@ export function turnEffectDamageEnded(input: {
   return targetEndedEffects({
     holderActorId: input.holderActorId,
     held: input.held.filter(({ id }) => !input.excluded.has(id)),
-    attacked: false,
+    attack: null,
     testEvidence: input.testEvidence,
     turnActorId: null,
     applications: input.applications,

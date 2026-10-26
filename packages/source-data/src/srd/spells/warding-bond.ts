@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   AUTHORING_SELECTION_KIND,
   GRANT_KIND,
@@ -20,7 +19,7 @@ import {
   type SpellAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SPELL_IDS } from '../ids.js'
-import { SRD_DAMAGE_TYPES } from '../vocabulary.js'
+import { SRD_DAMAGE_TYPES, ABILITY_CODE } from '../vocabulary.js'
 import { schoolId, spellChildId, SRD_SYSTEM_ID, SRD_USER_ID } from './shared.js'
 const ABILITY_COUNT = Object.values(ABILITY_CODE).length
 export const wardingBond: SpellAuthored = {

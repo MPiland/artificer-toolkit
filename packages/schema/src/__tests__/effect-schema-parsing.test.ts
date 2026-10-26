@@ -447,7 +447,7 @@ describe('effect schema parsing', () => {
 
     expect(withCheck({ ability: 'SPELLCASTING', baseDc: 10 }).success).toBe(true)
     expect(withCheck({ ability: 'WISDOM', baseDc: 0 }).success).toBe(true)
-    expect(withCheck({ ability: 'NONE', baseDc: 10 }).success).toBe(false)
+    expect(withCheck({ ability: 'none', baseDc: 10 }).success).toBe(false)
     expect(withCheck({ ability: 'SPELLCASTING', baseDc: -1 }).success).toBe(false)
     expect(withCheck({ ability: 'SPELLCASTING', baseDc: 10.5 }).success).toBe(false)
     expect(withCheck({ ability: 'SPELLCASTING' }).success).toBe(false)
@@ -1124,6 +1124,20 @@ describe('effect schema parsing', () => {
   })
 
   it('parses labeled choice options and roll-table rows for authored copy', () => {
+    // Every face of the table's 1d4 has a row, as publication requires (ATTACK-16.T1a).
+    const coveringRows = [2, 3, 4].map((rollValue) => ({
+      id: `choice-copy-roll-entry-${rollValue}`,
+      order: rollValue,
+      rollValue,
+      resolutionKind: 'RESULT',
+      resultBlock: singleResultBlock(`choice-copy-roll-result-${rollValue}`, {
+        id: `choice-copy-roll-outcome-${rollValue}`,
+        effectKind: 'MANUAL_ADJUDICATION',
+        label: 'Other Result',
+        instructions: 'Resolve the selected table result.',
+        reasonCode: 'NARRATIVE_JUDGMENT'
+      })
+    }))
     const parsed = effectDtoSchema.parse({
       id: '00000000-0000-4000-8000-0000000000e4',
       order: 1,
@@ -1170,7 +1184,8 @@ describe('effect schema parsing', () => {
               instructions: 'Resolve the selected table result.',
               reasonCode: 'NARRATIVE_JUDGMENT'
             })
-          }
+          },
+          ...coveringRows
         ])
       ]
     }) as unknown as ParsedEffectForAssertions
@@ -1556,6 +1571,182 @@ describe('failure margin rider on a direct saving throw (SPELLS-33.T7b)', () => 
   ])('refuses the rider on %s', (_label, effect) => {
     expect(effectDtoSchema.safeParse(effect).success).toBe(false)
   })
+})
+
+describe('roll-table coverage (ATTACK-16.T1a)', () => {
+  const resultRow = (
+    id: string,
+    roll: { rollRange: [number, number] } | { rollValue: number }
+  ) => ({
+    id,
+    order: 'rollValue' in roll ? roll.rollValue : roll.rollRange[0],
+    ...roll,
+    resolutionKind: 'RESULT',
+    resultBlock: singleResultBlock(`${id}-result`, {
+      id: `${id}-outcome`,
+      effectKind: 'MANUAL_ADJUDICATION',
+      label: 'Table result',
+      instructions: 'Resolve the rolled row.',
+      reasonCode: 'NARRATIVE_JUDGMENT'
+    })
+  })
+  // A homebrew shock table: 1d6 by range.
+  const rangeTable = (dieConfig: string, ranges: [number, number][]) => ({
+    id: '00000000-0000-4000-8000-0000000001a1',
+    order: 1,
+    invocation: {
+      triggerCode: 'SAVING_THROW',
+      savingThrow: {
+        id: '00000000-0000-4000-8000-0000000001a2',
+        dcMethod: 'FIXED_DC',
+        abilityDefinitionId: '00000000-0000-0000-0011-000200000000',
+        baseDc: 15
+      },
+      activation: { code: 'ACTION', amount: 1 },
+      range: { id: 'shock-range', rangeKind: 'SELF' }
+    },
+    paths: [
+      {
+        id: 'shock-table',
+        order: 1,
+        pathCode: 'ON_SAVE_FAIL',
+        groupType: 'SINGLE',
+        selectionKind: 'ROLL_TABLE',
+        rollTableKind: 'RANGE',
+        dieConfig,
+        rows: ranges.map((rollRange, index) => resultRow(`shock-row-${index + 1}`, { rollRange }))
+      }
+    ]
+  })
+  const exactTable = (rows: Record<string, unknown>[]) => ({
+    ...rangeTable('1d4', []),
+    paths: [exactRollTablePath('shock-exact', 1, 'ON_SAVE_FAIL', rows)]
+  })
+  const issuesOf = (effect: unknown) => {
+    const result = effectDtoSchema.safeParse(effect)
+    return result.success ? [] : result.error.issues.map(({ path, message }) => ({ path, message }))
+  }
+
+  it('publishes a range table whose rows cover every face of its dice exactly once', () => {
+    expect(
+      issuesOf(
+        rangeTable('1d6', [
+          [1, 2],
+          [3, 5],
+          [6, 6]
+        ])
+      )
+    ).toEqual([])
+    expect(
+      issuesOf(
+        rangeTable('2d6', [
+          [2, 6],
+          [7, 7],
+          [8, 12]
+        ])
+      )
+    ).toEqual([])
+  })
+
+  it('publishes an exact table whose repeat row covers its own face (Prismatic Spray shape)', () => {
+    expect(
+      issuesOf(
+        exactTable([
+          resultRow('exact-1', { rollValue: 1 }),
+          resultRow('exact-2', { rollValue: 2 }),
+          resultRow('exact-3', { rollValue: 3 }),
+          {
+            id: 'exact-4',
+            order: 4,
+            rollValue: 4,
+            resolutionKind: 'REPEAT_TABLE',
+            repeat: { count: 2, rerollValues: [{ id: 'exact-4-reroll', order: 1, value: 4 }] }
+          }
+        ])
+      )
+    ).toEqual([])
+  })
+
+  it.each([
+    [
+      'leaves a face uncovered',
+      [
+        [1, 2],
+        [4, 6]
+      ],
+      'Roll-table rows must cover every roll of 1d6 exactly once: no row covers 3.'
+    ],
+    [
+      'covers a face twice',
+      [
+        [1, 3],
+        [3, 6]
+      ],
+      'Roll-table rows must cover every roll of 1d6 exactly once: more than one row covers 3.'
+    ],
+    [
+      'reaches past the dice',
+      [
+        [1, 3],
+        [4, 7]
+      ],
+      'Roll-table rows must cover every roll of 1d6 exactly once: 7 is outside 1–6.'
+    ],
+    [
+      'reaches below the dice',
+      [
+        [0, 3],
+        [4, 6]
+      ],
+      'Roll-table rows must cover every roll of 1d6 exactly once: 0 is outside 1–6.'
+    ],
+    [
+      'runs backwards',
+      [
+        [1, 3],
+        [6, 4]
+      ],
+      'Roll-table row ranges must run from low to high in whole numbers.'
+    ]
+  ] as const)('refuses a range table that %s', (_label, ranges, message) => {
+    expect(
+      issuesOf(
+        rangeTable(
+          '1d6',
+          ranges.map(([low, high]) => [low, high])
+        )
+      )
+    ).toEqual([{ path: ['paths', 0, 'rows'], message }])
+  })
+
+  it('refuses an exact table that leaves a face uncovered', () => {
+    expect(
+      issuesOf(
+        exactTable([
+          resultRow('exact-1', { rollValue: 1 }),
+          resultRow('exact-2', { rollValue: 2 }),
+          resultRow('exact-4', { rollValue: 4 })
+        ])
+      )
+    ).toEqual([
+      {
+        path: ['paths', 0, 'rows'],
+        message: 'Roll-table rows must cover every roll of 1d4 exactly once: no row covers 3.'
+      }
+    ])
+  })
+
+  it.each(['d', '1d6+1', '2d6kh1', '1d6 + 1d4'])(
+    'refuses a table rolled on %s, which is not one plain dice term',
+    (dieConfig) => {
+      expect(issuesOf(rangeTable(dieConfig, [[1, 6]]))).toEqual([
+        {
+          path: ['paths', 0, 'dieConfig'],
+          message: 'A roll table rolls one plain dice term, such as 1d10 or 2d6.'
+        }
+      ])
+    }
+  )
 })
 
 describe('single-target self policy (D99)', () => {

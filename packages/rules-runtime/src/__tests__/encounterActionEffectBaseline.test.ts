@@ -21,12 +21,20 @@ import {
   RANGE_KIND,
   TRIGGER
 } from '@artificer-toolkit/shared/core'
+import type { ActorRelationshipAuthored } from '@artificer-toolkit/shared/authored'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { normalizeCharacterActionMechanicFacts } from '../character/characterActionRuleFacts.js'
 import type { EncounterFeatureActionCapabilityDescriptor } from '../encounterFeatureActionCapabilityDiscovery.js'
 import { DND5E_SYSTEM_ID } from '../systems/dnd5e/characterActionCapabilityDiscovery.js'
 import { dnd5eCharacterRuleActionSystemAdapter } from '../systems/dnd5e/effectActionCompiler.js'
 import { prepareEncounterActionEffectPlans } from '../encounterActionEffectPlans.js'
+import {
+  DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
+  DND5E_DAMAGE_TOTAL_OPERATION_KEY,
+  DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
+  DND5E_SAVE_DC_FACT_KEY,
+  DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY
+} from '../systems/dnd5e/effectActionContracts.js'
 import { buildCompiledActionCompilerSource } from '../encounterActionEntryPointCompiler.js'
 import {
   ACTION_EFFECT_ID,
@@ -70,7 +78,14 @@ type RelationshipDefinition = Extract<
   { schemaVersion: 2 }
 >
 
-function rugSmotherCapability(heldAtOnce = 1) {
+type RecurrenceOverrides = Partial<
+  Pick<
+    NonNullable<ActorRelationshipAuthored['recurrence']>,
+    'turnAnchor' | 'savingThrow' | 'outcome'
+  >
+>
+
+function rugSmotherCapability(heldAtOnce = 1, recurrence: RecurrenceOverrides = {}) {
   const compiledEffect = compileEffect({
     id: rugIds.effect,
     order: 1,
@@ -128,15 +143,16 @@ function rugSmotherCapability(heldAtOnce = 1) {
                 }
               ],
               recurrence: {
-                stage: 'START_OF_TURN',
-                damage: {
+                turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
+                outcome: {
                   id: rugIds.recurrenceDamage,
                   effectKind: EFFECT_KIND.DAMAGE,
                   damageTypeId: rugIds.bludgeoning,
                   valueKind: 'DICE',
                   scalingKind: 'NONE',
                   diceConfig: '2d6+3'
-                }
+                },
+                ...recurrence
               }
             }
           ]
@@ -422,6 +438,147 @@ describe('a contest win holds the target (Grapple, D152)', () => {
     const lost = planWith([], [], { fixture: grapplePlan(), resultPath: 'ON_CHECK_FAIL' })
     expect(lost.recurringEffect).toBeNull()
     expect(lost.relationshipConditionApplications).toEqual([])
+  })
+})
+
+describe('a held creature’s relationship recurrence (SPELLS-33.T6n1)', () => {
+  const CONSTITUTION = SRD_ABILITIES.find(({ code }) => code === 'CONSTITUTION')!.id
+  const fixedSave = {
+    id: '00000000-0000-4000-8000-000000009848',
+    dcMethod: 'FIXED_DC',
+    abilityDefinitionId: CONSTITUTION,
+    baseDc: 14
+  } as const
+
+  /** The Rug's one relationship plan, its recurrence shaped by `recurrence`. */
+  const recurrencePlan = (recurrence: RecurrenceOverrides) => {
+    const action = rugSmotherCapability(1, recurrence)
+    const published = dnd5eCharacterRuleActionSystemAdapter.compile({ action })
+    const [plan, ...rest] = dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans!({
+      action,
+      published
+    })
+    expect(rest).toEqual([])
+    if (!plan) throw new Error('The relationship has no active-effect plan.')
+    return plan
+  }
+
+  it('recurs as a plain damage roll without a saving throw', () => {
+    const plan = recurrencePlan({})
+    expect(plan).toMatchObject({
+      frozenGraphNodeId: 'relationship-recurrence',
+      recurrenceStage: 'START_OF_TURN'
+    })
+    expect(plan.adapterFacts).not.toHaveProperty(DND5E_SAVE_DC_FACT_KEY)
+  })
+
+  it('freezes a fixed-DC save whose failure deals the damage with its modifier', () => {
+    const plan = recurrencePlan({ savingThrow: fixedSave })
+    expect(plan).toMatchObject({
+      frozenGraphNodeId: 'proposal-on_save_fail',
+      recurrenceStage: 'START_OF_TURN',
+      actorRelationshipContribution: expect.objectContaining({ heldAtOnce: 1 })
+    })
+    expect(plan.adapterFacts).toMatchObject({
+      [DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]: CONSTITUTION,
+      [DND5E_SAVE_DC_FACT_KEY]: 14,
+      'dnd5e.relationship-authored-path': 'ON_HIT'
+    })
+    const { nodes } = plan.frozenGraph.definition
+    expect(nodes.map(({ id }) => id)).toContain('proposal-on_save_fail')
+    // 2d6+3: the failed save's dice total takes the authored modifier.
+    expect(
+      nodes.find(({ operation }) => operation.key === DND5E_DAMAGE_TOTAL_OPERATION_KEY)?.inputs
+        .modifier
+    ).toEqual({ kind: 'LITERAL', value: 3 })
+  })
+
+  it.each([
+    { actor: 'TARGET', anchor: 'HOLDER' },
+    { actor: 'SOURCE', anchor: 'SOURCE' }
+  ] as const)(
+    'stores a $actor-anchored recurrence on its $anchor’s turn starts (SPELLS-33.T6n2)',
+    ({ actor, anchor }) => {
+      const action = rugSmotherCapability(1, { turnAnchor: { actor, boundary: 'START_OF_TURN' } })
+      const published = dnd5eCharacterRuleActionSystemAdapter.compile({ action })
+      const [plan] = dnd5eCharacterRuleActionSystemAdapter.activeEffectPlans!({ action, published })
+      if (!plan) throw new Error('The relationship has no active-effect plan.')
+      expect(plan).toMatchObject({ recurrenceStage: 'START_OF_TURN', tickAnchor: anchor })
+      // An indefinite hold is no grant tick: the turn-effect kernel runs it on the anchor's turns.
+      expect(
+        relationshipDefinition(planWith([], [], { fixture: { plan, published } })).recurrence
+      ).toMatchObject({
+        recurrenceStage: 'START_OF_TURN',
+        anchor,
+        expiration: { kind: 'INDEFINITE' }
+      })
+    }
+  )
+
+  describe('as hit points lost directly (SPELLS-33.T6n2b)', () => {
+    const hitPointLoss = {
+      id: rugIds.recurrenceDamage,
+      effectKind: 'HIT_POINT_LOSS',
+      diceConfig: '2d6+3'
+    } as const
+    /** The plan's frozen graph nodes that propose an outcome to the held creature. */
+    const proposals = (plan: ReturnType<typeof recurrencePlan>) =>
+      plan.frozenGraph.definition.nodes.filter(({ operation }) =>
+        operation.key.endsWith('-proposal')
+      )
+
+    it('proposes the loss, with no damage type, without a saving throw', () => {
+      const plan = recurrencePlan({ outcome: hitPointLoss })
+      expect(plan).toMatchObject({ frozenGraphNodeId: 'relationship-recurrence' })
+      const [proposal, ...others] = proposals(plan)
+      expect(others).toEqual([])
+      expect(proposal).toMatchObject({
+        id: 'relationship-recurrence',
+        operation: { key: DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY }
+      })
+      expect(proposal!.inputs).not.toHaveProperty('damageTypeId')
+      expect(plan.frozenGraph.definition.outputs).not.toHaveProperty('damageTypeId')
+    })
+
+    it('proposes the loss, unhalved and with no damage type, only on a failed save', () => {
+      const plan = recurrencePlan({ outcome: hitPointLoss, savingThrow: fixedSave })
+      expect(plan).toMatchObject({ frozenGraphNodeId: 'proposal-on_save_fail' })
+      const [proposal, ...others] = proposals(plan)
+      expect(others).toEqual([])
+      expect(proposal).toMatchObject({
+        id: 'proposal-on_save_fail',
+        operation: { key: DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY },
+        inputs: { authoredPath: { kind: 'LITERAL', value: 'ON_SAVE_FAIL' } }
+      })
+      expect(proposal!.inputs).not.toHaveProperty('damageTypeId')
+      // 2d6+3: the failed save's dice total takes the authored modifier.
+      expect(
+        plan.frozenGraph.definition.nodes.find(
+          ({ operation }) => operation.key === DND5E_DAMAGE_TOTAL_OPERATION_KEY
+        )?.inputs.modifier
+      ).toEqual({ kind: 'LITERAL', value: 3 })
+    })
+  })
+
+  it('refuses a recurrence at the end of a turn', () => {
+    expect(() =>
+      recurrencePlan({ turnAnchor: { actor: 'TARGET', boundary: 'END_OF_TURN' } })
+    ).toThrow('D&D relationship recurrence counts only at the start of a turn.')
+    expect(() =>
+      recurrencePlan({ turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' } })
+    ).toThrow('D&D relationship recurrence counts only at the start of a turn.')
+  })
+
+  it('refuses a save against the holder’s save DC, which the hold’s attack never settles', () => {
+    expect(() =>
+      recurrencePlan({
+        savingThrow: {
+          id: fixedSave.id,
+          dcMethod: 'SOURCE_SAVE_DC',
+          abilityDefinitionId: CONSTITUTION
+        }
+      })
+    ).toThrow('D&D relationship recurrence saves against one fixed DC.')
   })
 })
 

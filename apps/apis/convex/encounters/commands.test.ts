@@ -2404,6 +2404,37 @@ describe('native Encounter Run commands', () => {
     expect(replay).toEqual(original)
   }, 30000)
 
+  it('projects the Facing step while the Facing rule is on, and none once it is replaced', async () => {
+    const { t, owner, campaign, run } = await setup()
+    const facing = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+      (definition) => definition.document.kind === 'FACING'
+    )
+    if (facing?.document.parameters.kind !== 'FACING') throw new Error('Missing Facing fixture.')
+    await t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: [facing]
+    })
+    await seedRoomContentSnapshots(campaign.id)
+    const replace = (expectedVersion: number, definitionIds: string[]) =>
+      executeInRoom(owner.caller, {
+        command: {
+          type: 'REPLACE_OPTIONAL_COMBAT_RULES',
+          encounterId: run.id,
+          commandId: crypto.randomUUID(),
+          expectedVersion,
+          definitionIds
+        }
+      })
+
+    const on = await replace(0, [facing.id])
+    expect(on.projection).toMatchObject({
+      optionalCombatRules: [{ definitionId: facing.id, kind: 'FACING' }],
+      facingStepDegrees: facing.document.parameters.facingStepDegrees
+    })
+    const off = await replace(1, [])
+    expect(off.projection).toMatchObject({ optionalCombatRules: [], facingStepDegrees: null })
+  }, 30000)
+
   it('replaces the prepared Run optional-combat snapshot without changing Campaign settings', async () => {
     const base = await setup()
     const { t, owner, campaign, run } = base

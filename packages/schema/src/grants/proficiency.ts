@@ -7,13 +7,13 @@ import {
   authoredShortTextSchema
 } from '../shared/authoredLimits.js'
 import {
-  abilityCodeSchema,
   authoringModeKindSchema,
   proficiencyKindSchema,
   roundingCodeSchema,
   scalingKindSchema,
   scalingAmountKindSchema
 } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const proficiencyScalingDtoSchema = lazySchema(() =>
   z.union([
@@ -51,7 +51,7 @@ const saveAbilityTargetDtoSchema = lazySchema(() =>
     allTargetDtoSchema,
     z.object({
       authoringModeKind: z.literal(authoringModeKindSchema._zod.def.entries.SELECTED),
-      abilities: authoredReferenceCollectionSchema(abilityCodeSchema)
+      abilities: authoredReferenceCollectionSchema(systemCoreCodeSchema)
     })
   ])
 )

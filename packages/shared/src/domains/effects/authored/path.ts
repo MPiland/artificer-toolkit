@@ -17,7 +17,9 @@ import type {
   EquipmentPropertyCode,
   PathCodesByTrigger,
   PathGroupType,
+  PathLifecycleExclusivity,
   PathLifecycleRecurringKind,
+  PathLifecycleReturnsOn,
   PathLifecycleTurnActor,
   PathLifecycleTurnBoundary,
   PathOriginKind,
@@ -33,10 +35,16 @@ export type PathEntryBase = {
 
 export type PathEntryWithMetadata = PathEntryBase & OutcomeRowMetadataAuthored
 
+/** The turn boundary an effect is counted or recurs at, on its target's or its source's turns. */
+export type PathLifecycleTurnAnchorAuthored = {
+  actor: PathLifecycleTurnActor
+  boundary: PathLifecycleTurnBoundary
+}
+
 export type PathLifecycleAuthored = {
   recurringKind?: PathLifecycleRecurringKind
   /** Whose turn boundary counts a timed effect down; absent means the target's end of turn. */
-  turnAnchor?: { actor: PathLifecycleTurnActor; boundary: PathLifecycleTurnBoundary }
+  turnAnchor?: PathLifecycleTurnAnchorAuthored
   /** System `effectConsumeEvent` codes. */
   consumeOnFirstEvents?: string[]
   /** System `effectEndEvent` codes. */
@@ -62,13 +70,26 @@ export type PathLifecycleAuthored = {
   )[]
   /** Condition types that end the effect early while its holder has any of them. */
   endOnConditionIds?: string[]
+  /**
+   * A standing effect: a passive Effect with no duration that its holder has from the finish of this
+   * rest until one of its end events or triggers ends it; once ended it stays ended until this rest
+   * turns it back on. A long rest also turns on a `SHORT_REST` one.
+   */
+  returnsOn?: PathLifecycleReturnsOn
   /** The holder may end the effect themselves, at the cost of this activation. */
   holderEnd?: { activation: ActivationCode }
+  /**
+   * An Effect the holder already holds when this one is made: this one ends with it, however that
+   * ends (D172), as Frenzy ends with Rage.
+   */
+  endsWithHeldEffectId?: string
   /**
    * Only the effect's source meets it: its grants about attackers apply, and an attack consumes
    * it, only when the source is the attacker.
    */
   fromSourceOnly?: boolean
+  /** `PER_SOURCE`: a source keeps one such effect; a new one ends its earlier one on any holder. */
+  exclusivity?: PathLifecycleExclusivity
   /**
    * The effect ends after this many uses; a modifier domain spends them (Mirror Image's
    * duplicates). The runtime counts them down in `remainingUses`.
@@ -234,7 +255,9 @@ export type EffectPathBaseAuthored<TTrigger extends Trigger = Trigger> = {
   originKind?: PathOriginKind
   /**
    * The path's result is owed only while this facet holds for the attack it rides on (a passive
-   * Effect's `ON_HIT` damage). Groups are OR-ed, each group's conditions AND-ed.
+   * Effect's `ON_HIT` damage). On an activated action's `ON_USE` path it names the holder conditions
+   * its user must meet to take the action (Frenzy only while raging). Groups are OR-ed, each
+   * group's conditions AND-ed.
    */
   restrictions?: FacetAuthored
   /** The result is owed to at most one attack in a turn, whichever qualifies first. */

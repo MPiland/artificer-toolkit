@@ -8,34 +8,11 @@ import {
 import { z, lazySchema } from '../zod.js'
 import { systemCoreCodeSchema } from './systemCoreCode.js'
 
-export const abilityCodeSchema = lazySchema(() =>
-  z.enum(['CHARISMA', 'CONSTITUTION', 'DEXTERITY', 'INTELLIGENCE', 'STRENGTH', 'WISDOM'])
-)
-
-export const abilityModifierReferenceSchema = lazySchema(() =>
-  z.union([abilityCodeSchema, z.literal('SPELLCASTING')])
-)
-
 export const activationCodeSchema = lazySchema(() =>
   z.enum(['ACTION', 'BONUS_ACTION', 'REACTION', 'FREE'])
 )
 
 export const authoredRecordStatusSchema = lazySchema(() => z.enum(['DRAFT', 'ACTIVE']))
-
-export const sizeCodeSchema = lazySchema(() =>
-  z.enum([
-    'COLOSSAL',
-    'DIMUNITIVE',
-    'FINE',
-    'GARGANTUAN',
-    'GIANT',
-    'HUGE',
-    'LARGE',
-    'MEDIUM',
-    'SMALL',
-    'TINY'
-  ])
-)
 
 /** What an authored manifest blocks; a placed zone carries its rules for consumers such as cover (D154). */
 export const manifestBlockingRuleSchema = lazySchema(() =>
@@ -177,6 +154,7 @@ export const predicateCodeSchema = lazySchema(() =>
     'SPEED_ABOVE_ZERO',
     'FREE_HAND',
     'TURN_MOVEMENT',
+    'HOLDER_ACTIVE_EFFECT',
     'ATTACK_ACTION_OTHER_WEAPON',
     'CHARACTER_LEVEL',
     'CLASS_LEVEL',
@@ -376,6 +354,18 @@ export const pathLifecycleRecurringKindSchema = lazySchema(() =>
 export const pathLifecycleTurnActorSchema = lazySchema(() => z.enum(['TARGET', 'SOURCE']))
 export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
   z.enum(['START_OF_TURN', 'END_OF_TURN'])
+)
+/** The rest whose finish turns a standing effect back on; see `PathLifecycleAuthored.returnsOn`. */
+export const pathLifecycleReturnsOnSchema = lazySchema(() => z.enum(['LONG_REST', 'SHORT_REST']))
+/** Which earlier effects a new one ends: `PER_SOURCE`, its source's from the same Effect on any holder. */
+export const pathLifecycleExclusivitySchema = lazySchema(() => z.enum(['PER_SOURCE']))
+
+/** The turn boundary an effect is counted or recurs at, on its target's or its source's turns. */
+export const pathLifecycleTurnAnchorDtoSchema = lazySchema(() =>
+  z.strictObject({
+    actor: pathLifecycleTurnActorSchema,
+    boundary: pathLifecycleTurnBoundarySchema
+  })
 )
 /**
  * A lifecycle code that uses an effect or timed grant up (consume) or ends it (end) is a System code

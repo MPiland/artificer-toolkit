@@ -1,6 +1,5 @@
 import { Accordion, Text } from '@mantine/core'
 import { characterProficiencyLevelDtoSchema } from '@artificer-toolkit/schema/api/characterSheet'
-import { abilityCodeSchema } from '@artificer-toolkit/schema/shared/enums'
 import type {
   CharacterSheetPanelDto,
   CharacterSheetPanelTargetDto
@@ -235,8 +234,10 @@ export function CharacterSheetAbilityPanels({
                   pending={pending}
                   onClear={() => onRemoveAdjustment(panel.abilityEditor.adjustmentId, 'SKILL')}
                   onCommit={async (commit) => {
-                    const ability = abilityCodeSchema.safeParse(commit.value)
-                    if (!ability.success) return false
+                    const ability = panel.abilityEditor.options.find(
+                      (option) => option.value === commit.value
+                    )
+                    if (!ability) return false
                     return submitCommand({
                       type: 'UPSERT_SHEET_ADJUSTMENT',
                       expectedVersion,
@@ -245,7 +246,7 @@ export function CharacterSheetAbilityPanels({
                         family: 'SKILL',
                         skillId: panel.skillId,
                         field: 'GOVERNING_ABILITY_OVERRIDE',
-                        value: ability.data
+                        value: ability.value
                       }
                     })
                   }}

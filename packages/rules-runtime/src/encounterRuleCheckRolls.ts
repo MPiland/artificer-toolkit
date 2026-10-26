@@ -298,6 +298,30 @@ export function rechargeRollRecord(input: {
   })
 }
 
+/** The roll-log record of one roll on an authored table (ATTACK-15), labelled by its table. */
+export function tableRollRecord(input: {
+  occurrenceId: string
+  dieFaces: number
+  rawDie: number
+  tableLabel: string
+  rollerLabel: string
+  ruleset: RollRecordDto['ruleset']
+  createdAt: string
+}): RollRecordDto {
+  const evaluated = evaluateRollExpression(parseRollExpression(`1d${input.dieFaces}`), {
+    nextInt: () => input.rawDie - 1
+  })
+  return rollRecordDtoSchema.parse({
+    id: ruleCheckRollId(input.occurrenceId, 0),
+    ...evaluated,
+    characterId: null,
+    characterLabel: input.rollerLabel,
+    source: { kind: 'TABLE', label: input.tableLabel.slice(0, 80) },
+    ruleset: input.ruleset,
+    createdAt: input.createdAt
+  })
+}
+
 /** `1dN` plus a signed initiative modifier, as a roll expression. */
 export function initiativeRollExpression(sides: number, modifier: number) {
   return `1d${sides}${modifier === 0 ? '' : modifier > 0 ? `+${modifier}` : modifier}`
@@ -342,13 +366,14 @@ export function initiativeRollRecord(input: {
 
 /**
  * The roll-log record of a basic action's check (First Aid's Wisdom (Medicine), Hide's Dexterity
- * (Stealth)), from its recorded faces and the roller's modifier. The card is the roller's own and
- * names no DC.
+ * (Stealth)), or of a GM-declared save such as a morale save, from its recorded faces and the
+ * roller's modifier. The card is the roller's own; a check with a DC (a morale save) names it.
  */
 export function basicActionCheckRollRecord(input: {
   occurrenceId: string
   /** The card's id where the occurrence cards more than one check. */
   rollId?: string
+  sourceKind?: 'SAVING_THROW' | 'SKILL_CHECK'
   d20: Omit<ReturnType<typeof ruleCheckD20EvidenceDtoSchema.parse>, 'dc'>
   actionLabel: string
   checkLabel: string
@@ -383,7 +408,7 @@ export function basicActionCheckRollRecord(input: {
     characterId: null,
     characterLabel: input.rollerLabel,
     source: {
-      kind: 'SKILL_CHECK',
+      kind: input.sourceKind ?? 'SKILL_CHECK',
       label: `${input.actionLabel}: ${input.checkLabel}`.slice(0, 80)
     },
     ruleset: input.ruleset,

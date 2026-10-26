@@ -9,13 +9,13 @@ import {
   clearSubclassDependents,
   clearSubclassOwnedChoices
 } from '../../shared/dependencyClearing'
-import { abilityCodes, getAssignedAbilityScores } from '../abilities/abilityGeneration'
+import { getAssignedAbilityScores } from '../abilities/abilityGeneration'
 import {
   choiceOptions,
   getAllChosenGrantChoices,
   isChoiceOptionDisabled
 } from '../../choices/choiceOptions'
-import { createFallbackCharacterFormValues } from '../../shared/formNormalization'
+import { EMPTY_CHARACTER_FORM_VALUES } from '../../shared/formNormalization'
 import * as sharedStyles from '../../shared/builderShared.css'
 import * as choiceStyles from '../../choices/characterChoices.css'
 import { CharacterSelectionModal } from '../../selection/CharacterSelectionModal'
@@ -32,7 +32,7 @@ import { ClassProficiencies } from './ClassProficiencies'
 import { toClassLevel } from './characterClasses'
 
 export const CharacterClassesStep = withForm({
-  defaultValues: createFallbackCharacterFormValues(),
+  defaultValues: EMPTY_CHARACTER_FORM_VALUES,
   props: {} as CharacterBuilderStepProps,
   render: function RenderCharacterClasses({ form, payload, readOnly }) {
     const [classChooserOpened, setClassChooserOpened] = useState(false)
@@ -46,8 +46,7 @@ export const CharacterClassesStep = withForm({
     const currentBaseScores = getAssignedAbilityScores(form.state.values.intent.abilities)
     const resolvedBaseScores = getAssignedAbilityScores(payload.character.intent.abilities)
     const abilityScores: typeof currentBaseScores = {}
-    for (const ability of abilityCodes) {
-      const score = currentBaseScores[ability]
+    for (const [ability, score] of Object.entries(currentBaseScores)) {
       if (score === undefined) continue
       abilityScores[ability] =
         score +

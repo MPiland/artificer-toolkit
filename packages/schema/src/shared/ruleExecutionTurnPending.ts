@@ -19,7 +19,7 @@ import {
   spatialTurnExecutionDtoSchema,
   turnEffectExecutionDtoSchema
 } from './ruleExecutionEffectEvidence.js'
-import { spatialTurnCandidateDtoSchema } from './ruleExecutionSpatial.js'
+import { resolvedD20StageDtoSchema, spatialTurnCandidateDtoSchema } from './ruleExecutionSpatial.js'
 import {
   followsInZoneTurnOrder,
   stagedTurnZonePlanDtoSchema,
@@ -90,7 +90,11 @@ const turnEffectPendingCandidateDtoSchema = lazySchema(() =>
     definitionChecksum: checksumSchema,
     lifecycleChecksum: checksumSchema,
     targetStateChecksum: checksumSchema,
-    d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema))
+    /** Who rolls the effect's damage dice (ADR 0034 decision 3); null for a sourceless effect. */
+    sourceActorId: z.nullable(uuidSchema),
+    d20Policy: z.nullable(z.lazy(() => serverRuleExecutionD20PolicyDtoSchema)),
+    /** The resolved save of a candidate now answering its damage dice. */
+    diceStage: z.nullable(resolvedD20StageDtoSchema)
   })
 )
 

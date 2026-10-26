@@ -207,12 +207,12 @@ describe('Creature attack slot set publication (ATTACK-11.3)', () => {
       }
     ],
     [
-      'a size condition with an unknown size',
+      'a size condition with a malformed size',
       {
         alternatives: [
           {
             slots: [
-              { ...slot(biteId), condition: { kind: 'TARGET_SIZE_AT_MOST', size: 'ENORMOUS' } }
+              { ...slot(biteId), condition: { kind: 'TARGET_SIZE_AT_MOST', size: 'enormous' } }
             ]
           }
         ]

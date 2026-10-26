@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   ATTACK_DOMAIN_CODE,
   AUTHORING_MODE_KIND,
@@ -7,7 +6,6 @@ import {
   CHARGE_RESET_KIND,
   CLOSED_RULE_KIND,
   DAMAGE_DEFENSE_BYPASS_CODE,
-  type AbilityCode,
   PATH_CODE,
   PATH_GROUP_TYPE,
   PATH_USAGE,
@@ -24,7 +22,6 @@ import {
   SCALING,
   SCALING_AMOUNT_KIND,
   SHAPE_KIND,
-  SIZE_CODE,
   SPELL_GRANT_ATTRIBUTE,
   TARGET_DISPOSITION_KIND,
   TARGET_SELECTION_KIND,
@@ -42,13 +39,13 @@ import {
   type FeatureAuthored,
   type FollowUpSaveAuthored,
   type ModifierGrantAuthored,
-  type MovementPassageOption,
-  type SizeCode
+  type MovementPassageOption
 } from '@artificer-toolkit/shared'
 import { v5 as uuidv5 } from 'uuid'
 import { SRD_BASIC_ACTION_IDS } from '../basicActions.js'
 import { magicConditionImmunityGrant, magicSaveAdvantageGrants } from '../classes/mechanics.js'
 import { CREATURE_IDS } from '../ids.js'
+import { SIZE_CODE, type SizeCode } from '../sizes.js'
 export { SPELL_IDS } from '../ids.js'
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -67,7 +64,9 @@ import {
   SRD_SYSTEM_ID,
   SRD_TREMORSENSE_SENSE_ID,
   SRD_TRUESIGHT_SENSE_ID,
-  SRD_USER_ID
+  SRD_USER_ID,
+  ABILITY_CODE,
+  type SrdAbilityCode
 } from '../vocabulary.js'
 
 export { SRD_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
@@ -237,7 +236,7 @@ export function actionId(creatureIndex: number, localIndex: number) {
  */
 export function slottedSpellcastingGrants(
   creatureIndex: number,
-  castingAbility: AbilityCode,
+  castingAbility: SrdAbilityCode,
   cantripIds: string[],
   slotted: ReadonlyArray<{ level: number; slots: number; spellIds: string[] }>
 ): NonNullable<FeatureAuthored['grants']> {
@@ -307,7 +306,7 @@ export function advantageGrants(
   firstLocalIndex: number,
   input: {
     savesAgainst?: readonly SrdConditionCode[]
-    savesAgainstMagic?: readonly AbilityCode[]
+    savesAgainstMagic?: readonly SrdAbilityCode[]
     skills?: readonly string[]
   }
 ): { modifiers: ModifierGrantAuthored[] } {
@@ -1196,7 +1195,7 @@ export function weaponAttack(
     damageType: string
     diceConfig: string
     halfHitPointsDiceConfig?: string
-    ability: AbilityCode | null
+    ability: SrdAbilityCode | null
     extraDamage?: readonly { damageType: string; diceConfig: string }[]
     grapple?: GrappleRider
     followUpSave?: FollowUpSaveAuthored
@@ -1322,7 +1321,7 @@ export function grantedSkillExpertise(
 export function grantedSaveProficiency(
   creatureIndex: number,
   order: number,
-  ...abilities: AbilityCode[]
+  ...abilities: SrdAbilityCode[]
 ) {
   return {
     id: proficiencyId(creatureIndex, order),

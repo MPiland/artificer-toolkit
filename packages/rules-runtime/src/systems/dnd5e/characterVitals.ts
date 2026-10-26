@@ -203,7 +203,7 @@ export function evaluateDnd5eCharacterVitals(
             characterLevel: row.level,
             fixed: facts?.progression?.method === 'FIXED',
             roll: row.rollValue,
-            modifier: modifierAt(row.abilityIndex)
+            modifier: modifierAt(facts?.constitutionAbilityIndex)
           })
     return {
       sequence: row.sequence,

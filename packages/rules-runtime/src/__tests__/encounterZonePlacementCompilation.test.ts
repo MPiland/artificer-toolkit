@@ -18,6 +18,7 @@ import { chosenZonePlacement } from '../encounterZonePlacement.js'
 import { planSpatialEntryGrant } from '../encounterSpatialEntryGrant.js'
 import {
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
+  DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS,
   DND5E_SAVE_DC_FACT_KEY
 } from '../systems/dnd5e/effectActionContracts.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
@@ -574,12 +575,14 @@ describe('a zone whose made entry save deals half the dice (SPELLS-20 T4a)', () 
       'damage-die-1',
       'damage-die-2',
       'damage-sum-1',
+      'damage-save-multiplied',
       'proposal-on_save_fail',
       'damage-success-enabled',
       'damage-success-die-1',
       'damage-success-die-2',
       'damage-success-sum-1',
       'damage-success-multiplied',
+      'damage-success-save-multiplied',
       'proposal-on_save_success',
       'movement-interruption'
     ])
@@ -591,14 +594,26 @@ describe('a zone whose made entry save deals half the dice (SPELLS-20 T4a)', () 
       amount: { kind: 'NODE_OUTPUT', nodeId: 'damage-success-sum-1', port: 'value' },
       multiplier: { kind: 'LITERAL', value: 0.5 }
     })
+    // Each result's damage is then multiplied by the target's own save-damage multiplier (Evasion).
+    expect(nodes.find((node) => node.id === 'damage-success-save-multiplied')?.inputs).toEqual({
+      amount: { kind: 'NODE_OUTPUT', nodeId: 'damage-success-multiplied', port: 'value' },
+      multiplier: {
+        kind: 'FACT',
+        factKey: DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS.ON_SAVE_SUCCESS
+      }
+    })
+    expect(nodes.find((node) => node.id === 'damage-save-multiplied')?.inputs).toEqual({
+      amount: { kind: 'NODE_OUTPUT', nodeId: 'damage-sum-1', port: 'value' },
+      multiplier: { kind: 'FACT', factKey: DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS.ON_SAVE_FAIL }
+    })
     expect(nodes.find((node) => node.id === 'proposal-on_save_success')?.inputs.amount).toEqual({
       kind: 'NODE_OUTPUT',
-      nodeId: 'damage-success-multiplied',
+      nodeId: 'damage-success-save-multiplied',
       port: 'value'
     })
     expect(nodes.find((node) => node.id === 'proposal-on_save_fail')?.inputs.amount).toEqual({
       kind: 'NODE_OUTPUT',
-      nodeId: 'damage-sum-1',
+      nodeId: 'damage-save-multiplied',
       port: 'value'
     })
   })

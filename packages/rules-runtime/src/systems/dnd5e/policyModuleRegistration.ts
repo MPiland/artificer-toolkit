@@ -4,6 +4,9 @@ import {
   DND5E_DISARM_OPERATION_KEY,
   DND5E_FACING_OPERATION_KEY,
   DND5E_FLANKING_OPERATION_KEY,
+  DND5E_INJURIES_OPERATION_KEY,
+  DND5E_MARK_OPERATION_KEY,
+  DND5E_MORALE_OPERATION_KEY,
   DND5E_OVERRUN_OPERATION_KEY,
   DND5E_SHOVE_ASIDE_OPERATION_KEY,
   DND5E_TUMBLE_OPERATION_KEY
@@ -16,13 +19,18 @@ export const DND5E_FLANKING_POLICY_MODULE = {
   contractVersion: 1
 } as const
 
-const DND5E_FACING_POLICY_MODULE = {
+export const DND5E_FACING_POLICY_MODULE = {
   key: DND5E_FACING_OPERATION_KEY,
   contractVersion: 1
 } as const
 
 export const DND5E_DISARM_POLICY_MODULE = {
   key: DND5E_DISARM_OPERATION_KEY,
+  contractVersion: 1
+} as const
+
+export const DND5E_MARK_POLICY_MODULE = {
+  key: DND5E_MARK_OPERATION_KEY,
   contractVersion: 1
 } as const
 
@@ -46,6 +54,16 @@ export const DND5E_CLEAVING_POLICY_MODULE = {
   contractVersion: 1
 } as const
 
+export const DND5E_MORALE_POLICY_MODULE = {
+  key: DND5E_MORALE_OPERATION_KEY,
+  contractVersion: 1
+} as const
+
+export const DND5E_INJURIES_POLICY_MODULE = {
+  key: DND5E_INJURIES_OPERATION_KEY,
+  contractVersion: 1
+} as const
+
 export const dnd5ePolicyModuleRegistration = {
   gameSystemId: DND5E_SYSTEM_ID,
   policyModules: [
@@ -53,9 +71,12 @@ export const dnd5ePolicyModuleRegistration = {
     DND5E_FLANKING_POLICY_MODULE,
     DND5E_FACING_POLICY_MODULE,
     DND5E_DISARM_POLICY_MODULE,
+    DND5E_MARK_POLICY_MODULE,
     DND5E_OVERRUN_POLICY_MODULE,
     DND5E_SHOVE_ASIDE_POLICY_MODULE,
     DND5E_TUMBLE_POLICY_MODULE,
-    DND5E_CLEAVING_POLICY_MODULE
+    DND5E_CLEAVING_POLICY_MODULE,
+    DND5E_MORALE_POLICY_MODULE,
+    DND5E_INJURIES_POLICY_MODULE
   ]
 } as const

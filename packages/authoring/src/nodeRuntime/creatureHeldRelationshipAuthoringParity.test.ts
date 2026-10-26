@@ -10,8 +10,12 @@ import { cloaker } from '@artificer-toolkit/source-data/srd/creatures/cloaker.js
 import { marilith } from '@artificer-toolkit/source-data/srd/creatures/marilith.js'
 import { mimic } from '@artificer-toolkit/source-data/srd/creatures/mimic.js'
 import { roper } from '@artificer-toolkit/source-data/srd/creatures/roper.js'
+import { shamblingMound } from '@artificer-toolkit/source-data/srd/creatures/shambling-mound.js'
 import { stirge } from '@artificer-toolkit/source-data/srd/creatures/stirge.js'
-import { srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
 import { normalizeNodeRuntimeValues } from './nodeRuntimeService.js'
 import { createSrdNodeRuntimeReader } from './srdSourceReader.js'
@@ -80,8 +84,81 @@ describe('held-creature riders from core options (D187a)', () => {
       (outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP'
     )
     expect(hold).toMatchObject({
-      recurrence: { stage: 'START_OF_TURN', damage: { effectKind: 'DAMAGE', diceConfig: '2d6' } }
+      recurrence: {
+        turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
+        outcome: { effectKind: 'DAMAGE', diceConfig: '2d6' }
+      }
     })
+  })
+
+  it.each([
+    {
+      label: 'a fixed-DC save on the held creature’s turns',
+      turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
+      savingThrow: {
+        id: '00000000-0000-4000-8000-00000000a001',
+        dcMethod: 'FIXED_DC',
+        abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+        baseDc: 14
+      }
+    },
+    {
+      label: 'the holder’s turn ends',
+      turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' },
+      savingThrow: undefined
+    }
+  ] as const)(
+    'authors a hold recurrence with $label from core options (SPELLS-33.T6n1)',
+    async ({ turnAnchor, savingThrow }) => {
+      const creature = structuredClone(chainDevil)
+      const hold = featureOutcomes(creature, 'Chain').find(
+        (outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP'
+      )
+      if (hold?.effectKind !== 'ACTOR_RELATIONSHIP' || !hold.recurrence)
+        throw new Error('The Chain Devil’s Chain must recur.')
+      hold.recurrence.turnAnchor = turnAnchor
+      if (savingThrow) hold.recurrence.savingThrow = savingThrow
+      const result = await normalize(creature)
+      expect(result.clearedPaths).toEqual([])
+      expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
+    }
+  )
+
+  it('authors a hold recurrence that loses hit points directly from core options (SPELLS-33.T6n2b)', async () => {
+    const creature = structuredClone(chainDevil)
+    const hold = featureOutcomes(creature, 'Chain').find(
+      (outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP'
+    )
+    if (hold?.effectKind !== 'ACTOR_RELATIONSHIP' || !hold.recurrence)
+      throw new Error('The Chain Devil’s Chain must recur.')
+    hold.recurrence.outcome = {
+      id: hold.recurrence.outcome.id,
+      effectKind: 'HIT_POINT_LOSS',
+      diceConfig: '1d4+3'
+    }
+    const result = await normalize(creature)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(creature.features)
+  })
+
+  it('engulfs with a DC 14 Constitution save or 2d8+4 bludgeoning at the start of each of the Shambling Mound’s turns (SPELLS-33.T6n2)', async () => {
+    const engulf = featureOutcomes(shamblingMound, 'Engulf').find(
+      (outcome) => outcome.effectKind === 'ACTOR_RELATIONSHIP'
+    )
+    expect(engulf).toMatchObject({
+      recurrence: {
+        turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+        savingThrow: {
+          dcMethod: 'FIXED_DC',
+          abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+          baseDc: 14
+        },
+        outcome: { effectKind: 'DAMAGE', diceConfig: '2d8+4' }
+      }
+    })
+    const result = await normalize(shamblingMound)
+    expect(result.clearedPaths).toEqual([])
+    expect(getValueAtPath(result.values, ['features'])).toEqual(shamblingMound.features)
   })
 
   it('lets the Chuul Tentacles target only a creature the chuul holds', () => {

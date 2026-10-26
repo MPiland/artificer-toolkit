@@ -31,7 +31,9 @@ import {
   dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema,
   type Dnd5eOptionalCombatReusableDefinitionDocumentDto
 } from '@artificer-toolkit/schema/shared/optionalCombat'
+import { ATTACK_DOMAIN_CODE } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
+import { v5 as uuidv5 } from 'uuid'
 
 import {
   SRD_ABILITY_DEFINITION_IDS,
@@ -180,7 +182,18 @@ const facingDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.pa
     policyModuleKey: DND5E_FACING_OPERATION_KEY,
     contractVersion: 1
   },
-  parameters: { kind: 'FACING' },
+  parameters: {
+    kind: 'FACING',
+    facingStepDegrees: 90,
+    arcs: [
+      { arc: 'FRONT', fromDegrees: -45, toDegrees: 45 },
+      { arc: 'RIGHT_SIDE', fromDegrees: 45, toDegrees: 135 },
+      { arc: 'REAR', fromDegrees: 135, toDegrees: 225 },
+      { arc: 'LEFT_SIDE', fromDegrees: 225, toDegrees: 315 }
+    ],
+    attackerInTargetArc: [{ arc: 'REAR', influence: 'ADVANTAGE' }],
+    sourceCannotTargetInOwnArcs: ['REAR']
+  },
   mutuallyExclusiveGroup: null
 })
 
@@ -211,13 +224,89 @@ const disarmDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.pa
   mutuallyExclusiveGroup: null
 })
 
+/**
+ * The mark a melee attack leaves on its target: until the end of the attacker's next turn, the
+ * attacker's opportunity attacks against it have advantage, and once per turn one of them does not
+ * spend the attacker's reaction. One mark per attacker, so a new mark
+ * replaces the attacker's earlier one on any creature.
+ */
+function markEffect() {
+  const childId = (kind: string, index = 0) =>
+    uuidv5(`${DND5E_MARK_DEFINITION_ID}:${kind}:${index}`, DND5E_MARK_DEFINITION_ID)
+  return {
+    id: childId('effect'),
+    order: 1,
+    invocation: {
+      kind: 'PASSIVE',
+      triggerCode: 'ACTIVATED',
+      range: { id: childId('range'), rangeKind: 'SELF' },
+      targeting: { selectionKind: 'SELF' }
+    },
+    paths: [
+      {
+        id: childId('path'),
+        order: 1,
+        pathCode: 'PASSIVE',
+        groupType: 'SINGLE',
+        originKind: 'SOURCE',
+        selectionKind: 'FIXED',
+        resultBlock: {
+          id: childId('result'),
+          resultKind: 'SINGLE',
+          duration: { id: childId('duration'), durationKind: 'ROUND', amount: 1 },
+          lifecycle: {
+            turnAnchor: { actor: 'SOURCE', boundary: 'END_OF_TURN' },
+            fromSourceOnly: true,
+            exclusivity: 'PER_SOURCE'
+          },
+          outcomes: [
+            {
+              id: childId('outcome'),
+              effectKind: 'APPLY_GRANT',
+              grants: {
+                modifiers: [
+                  ...Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, order) => ({
+                    id: childId('grant', order),
+                    grantKind: 'MODIFIER_GRANT',
+                    valueDomainCode: 'ATTACKS_AGAINST',
+                    domain: {
+                      attackDomain,
+                      requiresHolderSeesAttacker: false,
+                      attackOccasion: 'OPPORTUNITY'
+                    },
+                    modifierKind: 'ROLL_INFLUENCE',
+                    payload: { influence: 'ADVANTAGE' },
+                    scope: 'GLOBAL',
+                    selectionKind: 'GRANTED',
+                    order
+                  })),
+                  {
+                    id: childId('free-reaction'),
+                    grantKind: 'MODIFIER_GRANT',
+                    valueDomainCode: 'FREE_OPPORTUNITY_REACTION',
+                    domain: {},
+                    modifierKind: 'ENABLE',
+                    scope: 'GLOBAL',
+                    selectionKind: 'GRANTED',
+                    order: Object.values(ATTACK_DOMAIN_CODE).length
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
+
 const markDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse({
   schemaVersion: 1,
   kind: 'MARK',
   id: DND5E_MARK_DEFINITION_ID,
   gameSystemId: SRD_SYSTEM_ID,
   module: { policyModuleKey: DND5E_MARK_OPERATION_KEY, contractVersion: 1 },
-  parameters: { kind: 'MARK' },
+  parameters: { kind: 'MARK', qualifyingAttackKind: 'MELEE', effect: markEffect() },
   mutuallyExclusiveGroup: null
 })
 
@@ -300,7 +389,11 @@ const injuriesDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.
   module: { policyModuleKey: DND5E_INJURIES_OPERATION_KEY, contractVersion: 1 },
   parameters: {
     kind: 'INJURIES',
-    triggerKinds: ['CRITICAL_HIT', 'DROP_TO_ZERO', 'FAIL_DEATH_SAVE_BY_FIVE_OR_MORE'],
+    triggers: [
+      { event: 'DAMAGED', critical: true },
+      { event: 'HIT_POINTS_ZERO' },
+      { event: 'DEATH_SAVE_FAILED', byAtLeast: 5 }
+    ],
     bands: [
       {
         minimum: 1,

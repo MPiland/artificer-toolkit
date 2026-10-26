@@ -186,14 +186,15 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
         .array(turnEffectExecutionDtoSchema)
         .check(z.minLength(1))
         .check(z.maxLength(MAX_ENCOUNTER_TURN_ACTIVE_EFFECT_EXECUTIONS)),
+      // A source's turn start can run effects on every creature it holds (SPELLS-33.T6n2).
       characterTransitions: z
         .array(turnEffectCharacterTransitionDtoSchema)
         .check(z.minLength(0))
-        .check(z.maxLength(2)),
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       encounterActorTransitions: z
         .array(turnEffectEncounterActorTransitionDtoSchema)
         .check(z.minLength(0))
-        .check(z.maxLength(2)),
+        .check(z.maxLength(MAX_ENCOUNTER_ACTORS)),
       ...turnZoneEffectsEvidenceFields()
     })
     .check(
@@ -262,11 +263,11 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
           transitions.set(`ENCOUNTER_ACTOR:${transition.targetActorId}`, transition)
           transitionActorIds.add(transition.targetActorId)
         }
-        if (transitions.size === 0 || transitions.size > 2)
+        if (transitions.size === 0)
           context.addIssue({
             code: 'custom',
             path: ['characterTransitions'],
-            message: 'Turn-effect batches must retain one or two distinct owner transitions.'
+            message: 'Turn-effect batches must retain at least one owner transition.'
           })
         const effectIds = new Set<string>()
         const current = new Map<
@@ -687,6 +688,25 @@ export const encounterTurnActiveEffectsBatchRuleExecutionResultDtoSchema = lazyS
               // What an effect that ended released from its holder follows from the effect's end, not
               // from a trace of this execution (SPELLS-27.T4b, D156).
               if (!isEndedEffectRelease(application))
+                context.addIssue({
+                  code: 'custom',
+                  path: ['executions', index, 'applications'],
+                  message: 'Turn-effect application trace binding is invalid.'
+                })
+              continue
+            }
+            if (application.sourceOperationKey === 'dnd5e.condition-duration') {
+              // A timed condition's last counted turn removes the conditions its effect owns (D62.2):
+              // the removal follows from the expiry, not from a trace candidate.
+              if (
+                application.kind !== 'CONDITION_REMOVE' ||
+                application.sourceActiveEffectId !== execution.activeEffectId ||
+                application.sourceNodeId !== execution.definition.frozenGraphNodeId ||
+                application.authoredPath !== null ||
+                application.resolvedPath !== null ||
+                execution.lifecycle.kind !== 'EXPIRE' ||
+                sourceTraces[0]?.operation.key !== 'dnd5e.condition-duration'
+              )
                 context.addIssue({
                   code: 'custom',
                   path: ['executions', index, 'applications'],

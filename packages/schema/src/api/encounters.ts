@@ -13,48 +13,63 @@ import { healthDisplayLevelDtoSchema } from './healthDisplay.js'
 import { rollVisibilityDtoSchema } from './rolls.js'
 import {
   commandBaseDtoSchema,
+  confirmMoraleInputDtoSchema,
   endHeldGrantInputDtoSchema,
+  moraleSaveInputDtoSchema,
   escapeRelationshipInputDtoSchema,
   moveHeldEffectInputDtoSchema,
+  changeFacingInputDtoSchema,
   releaseRelationshipInputDtoSchema,
   removeAreaTargetInputDtoSchema,
+  resolveConsequenceRollOfferInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema,
   rollRuleEvidenceInputDtoSchema,
+  placeZoneInputDtoSchema,
   setConcealmentObserversInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 
 export {
+  confirmMoraleInputDtoSchema,
   encounterD20RollModeDtoSchema,
   endHeldGrantInputDtoSchema,
+  moraleSaveInputDtoSchema,
   escapeRelationshipInputDtoSchema,
   moveHeldEffectInputDtoSchema,
+  changeFacingInputDtoSchema,
   rollRuleEvidenceInputDtoSchema,
   initiativeDeclarationSelectionDtoSchema,
   optionalCombatActionIntentDtoSchema,
   releaseRelationshipInputDtoSchema,
   removeAreaTargetInputDtoSchema,
+  resolveConsequenceRollOfferInputDtoSchema,
   resolveEncounterActionInputDtoSchema,
   resolveRuleOccurrenceInputDtoSchema,
   revertLastEncounterActionInputDtoSchema,
+  placeZoneInputDtoSchema,
   setConcealmentObserversInputDtoSchema,
   voidRuleOccurrenceInputDtoSchema
 } from './encounterRuleCommands.js'
 export type {
+  ConfirmMoraleInputDto,
   EncounterD20RollModeDto,
   EndHeldGrantInputDto,
+  MoraleSaveInputDto,
   EscapeRelationshipInputDto,
   MoveHeldEffectInputDto,
+  ChangeFacingInputDto,
   RemoveAreaTargetInputDto,
   RollRuleEvidenceInputDto,
   InitiativeDeclarationSelectionDto,
   OptionalCombatActionIntentDto,
   ReleaseRelationshipInputDto,
+  ResolveConsequenceRollOfferInputDto,
   ResolveEncounterActionInputDto,
   ResolveRuleOccurrenceInputDto,
   RevertLastEncounterActionInputDto,
+  PlaceZoneInputDto,
   SetConcealmentObserversInputDto,
   VoidRuleOccurrenceInputDto
 } from './encounterRuleCommands.js'
@@ -333,13 +348,18 @@ export const encounterCommandInputDtoSchema = lazySchema(() =>
     escapeRelationshipInputDtoSchema,
     endHeldGrantInputDtoSchema,
     moveHeldEffectInputDtoSchema,
+    changeFacingInputDtoSchema,
     releaseRelationshipInputDtoSchema,
     resolveRuleOccurrenceInputDtoSchema,
     voidRuleOccurrenceInputDtoSchema,
     removeAreaTargetInputDtoSchema,
     setConcealmentObserversInputDtoSchema,
+    placeZoneInputDtoSchema,
     revertLastEncounterActionInputDtoSchema,
-    rollRuleEvidenceInputDtoSchema
+    rollRuleEvidenceInputDtoSchema,
+    moraleSaveInputDtoSchema,
+    confirmMoraleInputDtoSchema,
+    resolveConsequenceRollOfferInputDtoSchema
   ])
 )
 

@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NodeRuntimeCompactResolveResponseDto } from '@artificer-toolkit/schema/api/nodeRuntimeTransport'
 import type { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { CLASS_CATEGORY } from '@artificer-toolkit/shared/core'
+import { authoredRouteStorySystem } from '#domains/authoredRouteStory.fixtures'
 import { useAppForm } from '#forms/app-form/AppForm'
 import { createInitialSession } from '#forms/layout/authoringSessionState'
 import { createEmptyClass } from '../classAuthoring.utils'
@@ -86,16 +87,26 @@ function renderHarness(props: ComponentProps<typeof Harness>) {
   )
 }
 
+const NO_OVERRIDES = {}
+
 function Harness({
   category,
+  overrides = NO_OVERRIDES,
   systemId = 'system-5e'
 }: {
   category: 'BASE' | 'SUBCLASS'
+  overrides?: object
   systemId?: string
 }) {
   const defaultValues = useMemo<object>(
-    () => ({ ...createEmptyClass({ systemId }), label: 'Test Class', category, parentClassId: '' }),
-    [category, systemId]
+    () => ({
+      ...createEmptyClass({ systemId }),
+      label: 'Test Class',
+      category,
+      parentClassId: '',
+      ...overrides
+    }),
+    [category, overrides, systemId]
   )
   const form = useAppForm({
     defaultValues,
@@ -106,7 +117,9 @@ function Harness({
       createInitialSession({
         domain: 'class',
         mode: 'create',
-        data: { system: null, systems: systemId ? [{ id: systemId }] : [] }
+        data: systemId
+          ? { system: { id: systemId }, systems: [{ id: systemId }] }
+          : { system: null, systems: [] }
       }).authoredSession,
     [systemId]
   )
@@ -119,6 +132,7 @@ function Harness({
         onAdvanced={undefined}
         onStateChange={onStateChange}
         session={session}
+        system={authoredRouteStorySystem}
       />
       <output data-testid='values'>{JSON.stringify(values)}</output>
     </form.AppForm>
@@ -191,6 +205,40 @@ describe('GuidedClassAuthoring native choices', () => {
     await user.type(equipment, 'Longsword')
     await user.click(await screen.findByRole('option', { name: 'Longsword' }))
     expect(screen.getByTestId('values')).toHaveTextContent('"equipmentIds":["longsword-id"]')
+  })
+
+  describe('preserved advanced content', () => {
+    const grant = {
+      grantKind: 'PROFICIENCY_GRANT',
+      id: 'grant-1',
+      order: 1,
+      selectionKind: 'GRANTED',
+      scalingKind: 'NONE',
+      level: 'FULL',
+      proficiencyKind: 'SKILL'
+    }
+    const simpleSkill = { ...grant, authoringModeKind: 'SELECTED', skillIds: ['athletics'] }
+    const advancedSkill = { ...grant, id: 'grant-2', authoringModeKind: 'ALL' }
+    const alert = /Advanced proficiency rules and equipment choices remain preserved/
+
+    async function openEquipmentStep(overrides: object) {
+      const user = userEvent.setup()
+      renderHarness({ category: CLASS_CATEGORY.BASE, overrides })
+      await user.click(screen.getByRole('button', { name: 'Next' }))
+      await user.click(screen.getByRole('button', { name: 'Next' }))
+    }
+
+    it('flags a class that has advanced proficiency grants', async () => {
+      await openEquipmentStep({ proficiencies: [simpleSkill, advancedSkill] })
+
+      expect(screen.getByText(alert)).toBeInTheDocument()
+    })
+
+    it('stays quiet for a class with only the simple skill grant', async () => {
+      await openEquipmentStep({ proficiencies: [simpleSkill] })
+
+      expect(screen.queryByText(alert)).not.toBeInTheDocument()
+    })
   })
 
   it('does not load parent choices before a System is selected', () => {

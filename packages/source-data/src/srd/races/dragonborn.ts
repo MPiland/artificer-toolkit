@@ -1,7 +1,9 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS,
+  ABILITY_CODE
+} from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   FEATURE_ATTRIBUTE,
@@ -22,7 +24,6 @@ import {
   SCALING_AMOUNT_KIND,
   SCALING_SOURCE,
   SHAPE_KIND,
-  SIZE_CODE,
   TARGET_DISPOSITION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
@@ -31,6 +32,7 @@ import {
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import {
   SRD_DAMAGE_TYPES,
   SRD_DRACONIC_HERITAGE_ID,

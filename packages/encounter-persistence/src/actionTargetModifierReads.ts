@@ -1,5 +1,9 @@
 import { CharacterRuleActionTargetDefenseUnavailableError } from '@artificer-toolkit/rules-runtime/characterRuleActionSystemAdapter'
-import { resolveEncounterBelievedAttackPerception } from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
+import {
+  resolveEncounterBelievedAttackPerception,
+  type EncounterPerceptionRoller
+} from '@artificer-toolkit/rules-runtime/encounterAttackPerception'
+import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import { playerSeesActor } from '@artificer-toolkit/rules-runtime/encounterPlayerProjection'
 import { systemCoreCodeRegistry } from '@artificer-toolkit/rules-runtime/platformSystemCoreCodes'
 import {
@@ -63,6 +67,28 @@ export async function readEncounterActionTargetModifiers(
         })
       )
     : null
+  const believedPerception = (
+    attacker: MovementTarget,
+    target: MovementTarget,
+    roller: EncounterPerceptionRoller
+  ) =>
+    resolveEncounterBelievedAttackPerception({
+      gameSystemId: state.gameSystemId,
+      loadDefinition: async (definitionId) => {
+        const definition = await tx.ports.readCurrentDefinition(definitionId, campaign.ownerUserId)
+        return (
+          definition && {
+            definitionFamilyKey: definition.definitionFamilyKey,
+            gameSystemId: definition.gameSystemId,
+            current: definition
+          }
+        )
+      },
+      loadSystem: async () => system,
+      attacker,
+      target,
+      roller
+    })
   const prepared = await Promise.all(
     listed.map(async (target) => {
       const targetTokenId = sourceTokenId ? await tokenIdOf(target.id) : null
@@ -95,27 +121,19 @@ export async function readEncounterActionTargetModifiers(
         sceneContext,
         // The prompt's belief is what this read shows, so believed sight is both sights here.
         loadAttackPerception: async ({ sourceFacts, targetFacts, roller }) => {
-          const believed = await resolveEncounterBelievedAttackPerception({
-            gameSystemId: state.gameSystemId,
-            loadDefinition: async (definitionId) => {
-              const definition = await tx.ports.readCurrentDefinition(
-                definitionId,
-                campaign.ownerUserId
-              )
-              return (
-                definition && {
-                  definitionFamilyKey: definition.definitionFamilyKey,
-                  gameSystemId: definition.gameSystemId,
-                  current: definition
-                }
-              )
-            },
-            loadSystem: async () => system,
-            attacker: sourceFacts,
-            target: targetFacts,
-            roller
-          })
+          const believed = await believedPerception(sourceFacts, targetFacts, roller)
           return { actual: believed, believed }
+        },
+        // A flanking ally's sight of the target is the attacker's belief of it as well.
+        observersSeeing: async ({ subject, observers }) => {
+          const seen = await Promise.all(
+            observers.map((observer) => believedPerception(observer, subject, 'ATTACKER'))
+          )
+          return new Set(
+            observers.flatMap((observer, index) =>
+              seen[index]?.attackerSeesTarget === 'SEES' ? [observer.actor.id] : []
+            )
+          )
         }
       })
       const published =

@@ -1,7 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { validateCharacterHitDiceRollEvidence } from '@artificer-toolkit/shared/character/sheetRest'
 import { authoredLengthSchema } from '../shared/authoredLimits.js'
-import { abilityCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { diceExpressionDtoSchema } from '../shared/dice.js'
 
 const identifierSchema = lazySchema(() => z.string().check(z.trim()).check(z.minLength(1)))
@@ -32,6 +32,12 @@ export const characterSheetSourceNoteDtoSchema = lazySchema(() =>
 export const characterProficiencyLevelDtoSchema = lazySchema(() =>
   z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
 )
+export type CharacterProficiencyLevelDto = z.infer<typeof characterProficiencyLevelDtoSchema>
+
+/** Whether a proficiency level adds the full proficiency bonus or more; half proficiency does not. */
+export function addsFullProficiency(level: CharacterProficiencyLevelDto | undefined): boolean {
+  return level === 'FULL' || level === 'DOUBLE'
+}
 
 export const characterMechanicSourceRefDtoSchema = lazySchema(() =>
   z.union([
@@ -104,28 +110,28 @@ const adjustmentMembers = <Fields extends z.core.$ZodShape>(fields: Fields) => (
     z.object({
       ...fields,
       family: z.literal('ABILITY'),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       field: z.literal('OTHER_MODIFIER'),
       value: z.number().check(z.int())
     }),
     z.object({
       ...fields,
       family: z.literal('ABILITY'),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       field: z.literal('SCORE_OVERRIDE'),
       value: z.number().check(z.int()).check(z.nonnegative())
     }),
     z.object({
       ...fields,
       family: z.literal('SAVING_THROW'),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       field: z.enum(['MAGIC_BONUS', 'MISC_BONUS', 'TOTAL_OVERRIDE']),
       value: z.number().check(z.int())
     }),
     z.object({
       ...fields,
       family: z.literal('SAVING_THROW'),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       field: z.literal('PROFICIENCY_OVERRIDE'),
       value: characterProficiencyLevelDtoSchema
     }),
@@ -148,7 +154,7 @@ const adjustmentMembers = <Fields extends z.core.$ZodShape>(fields: Fields) => (
       family: z.literal('SKILL'),
       skillId: uuidSchema,
       field: z.literal('GOVERNING_ABILITY_OVERRIDE'),
-      value: abilityCodeSchema
+      value: systemCoreCodeSchema
     }),
     z.object({
       ...fields,
@@ -252,7 +258,7 @@ const adjustmentMembers = <Fields extends z.core.$ZodShape>(fields: Fields) => (
       family: z.literal('COMPANION'),
       companionInstanceId: uuidSchema,
       field: z.literal('SIZE_OVERRIDE'),
-      value: sizeCodeSchema
+      value: systemCoreCodeSchema
     })
   ] as const
 })

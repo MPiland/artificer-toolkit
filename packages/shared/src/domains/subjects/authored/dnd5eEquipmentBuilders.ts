@@ -18,9 +18,7 @@ import {
   TARGET_SELECTION_KIND,
   TRIGGER,
   VALUE_DOMAIN_CODE,
-  type AbilityCode,
-  type EquipmentGrip,
-  type SizeCode
+  type EquipmentGrip
 } from '#core'
 import {
   type FacetConditionAuthored,
@@ -117,7 +115,7 @@ function fixedAbilityWeaponModifier(
   order: number,
   valueDomainCode: typeof VALUE_DOMAIN_CODE.ATTACK_ROLL | typeof VALUE_DOMAIN_CODE.DAMAGE,
   attackDomain: keyof typeof ATTACK_DOMAIN_CODE,
-  ability: AbilityCode
+  ability: string
 ): WeaponAbilityModifier {
   return {
     id: childId(bucket, order),
@@ -158,7 +156,7 @@ export function meleeWeaponAbilityModifiers(childId: EquipmentChildId): WeaponAb
 }
 export function rangedWeaponAbilityModifiers(
   childId: EquipmentChildId,
-  ability: AbilityCode = 'DEXTERITY'
+  ability: string = 'DEXTERITY'
 ): WeaponAbilityModifier[] {
   const modifiers: WeaponAbilityModifier[] = []
   modifiers.push(
@@ -239,7 +237,7 @@ export function finesseWeaponModifiers(childId: EquipmentChildId): ModifierGrant
       modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
       scope: MODIFIER_SCOPE_KIND.SOURCE,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
+      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as string[] },
       restrictions: restriction(1),
       order: 1
     },
@@ -251,7 +249,7 @@ export function finesseWeaponModifiers(childId: EquipmentChildId): ModifierGrant
       modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
       scope: MODIFIER_SCOPE_KIND.SOURCE,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
+      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as string[] },
       restrictions: restriction(2),
       order: 2
     }
@@ -269,7 +267,7 @@ export function finesseWeaponWithRangedModifiers(childId: EquipmentChildId) {
       modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
       scope: MODIFIER_SCOPE_KIND.SOURCE,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
+      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as string[] },
       restrictions: restriction(1),
       order: 1
     },
@@ -281,7 +279,7 @@ export function finesseWeaponWithRangedModifiers(childId: EquipmentChildId) {
       modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
       scope: MODIFIER_SCOPE_KIND.SOURCE,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
+      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as string[] },
       restrictions: restriction(2),
       order: 2
     },
@@ -293,7 +291,7 @@ export function finesseWeaponWithRangedModifiers(childId: EquipmentChildId) {
       modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
       scope: MODIFIER_SCOPE_KIND.SOURCE,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
+      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as string[] },
       restrictions: restriction(3),
       order: 3
     },
@@ -305,7 +303,7 @@ export function finesseWeaponWithRangedModifiers(childId: EquipmentChildId) {
       modifierKind: MODIFIER_KIND.OPTIONAL_ABILITY_MODIFIER_BONUS,
       scope: MODIFIER_SCOPE_KIND.SOURCE,
       selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
-      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as AbilityCode[] },
+      payload: { abilities: ['STRENGTH', 'DEXTERITY'] as string[] },
       restrictions: restriction(4),
       order: 4
     }
@@ -338,7 +336,7 @@ function heavyWeaponDisadvantage(
         constraint: 'INCLUDE' as const,
         predicateCode: 'SIZE' as const,
         authoringModeKind: 'SELECTED' as const,
-        sizes: ['SMALL', 'TINY'] as SizeCode[]
+        sizes: ['SMALL', 'TINY']
       }
     ]),
     order
@@ -369,7 +367,7 @@ export function mediumArmorModifiers(childId: EquipmentChildId) {
 }
 function armorAbilityModModifiers(
   childId: EquipmentChildId,
-  ability: AbilityCode,
+  ability: string,
   bounds: { min?: number; max?: number } = {}
 ) {
   return [

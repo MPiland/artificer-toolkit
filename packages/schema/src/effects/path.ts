@@ -50,8 +50,9 @@ import {
   pathLifecycleConsumeEventSchema,
   pathLifecycleEndEventSchema,
   pathLifecycleRecurringKindSchema,
-  pathLifecycleTurnActorSchema,
-  pathLifecycleTurnBoundarySchema,
+  pathLifecycleReturnsOnSchema,
+  pathLifecycleExclusivitySchema,
+  pathLifecycleTurnAnchorDtoSchema,
   pathOriginKindSchema,
   pathRollTableKindSchema,
   pathUsageSchema
@@ -149,12 +150,7 @@ const createOutcomePayloadDtoSchema = ({ includeManifest }: { includeManifest: b
 export const pathLifecycleDtoSchema = lazySchema(() =>
   z.object({
     recurringKind: z.optional(pathLifecycleRecurringKindSchema),
-    turnAnchor: z.optional(
-      z.strictObject({
-        actor: pathLifecycleTurnActorSchema,
-        boundary: pathLifecycleTurnBoundarySchema
-      })
-    ),
+    turnAnchor: z.optional(pathLifecycleTurnAnchorDtoSchema),
     consumeOnFirstEvents: z.optional(
       authoredReferenceCollectionSchema(pathLifecycleConsumeEventSchema)
     ),
@@ -162,10 +158,16 @@ export const pathLifecycleDtoSchema = lazySchema(() =>
     endOnTriggers: z.optional(pathLifecycleEndTriggersDtoSchema),
     /** Condition type ids; the effect ends early while its holder has any of them. */
     endOnConditionIds: z.optional(authoredReferenceCollectionSchema(postgresUuidSchema)),
+    /** See `PathLifecycleAuthored.returnsOn`. */
+    returnsOn: z.optional(pathLifecycleReturnsOnSchema),
     /** The holder may end the effect themselves, at the cost of this activation. */
     holderEnd: z.optional(z.strictObject({ activation: activationCodeSchema })),
+    /** See `PathLifecycleAuthored.endsWithHeldEffectId`. */
+    endsWithHeldEffectId: z.optional(authoredIdentifierSchema),
     /** See `PathLifecycleAuthored.fromSourceOnly`. */
     fromSourceOnly: z.optional(z.boolean()),
+    /** See `PathLifecycleAuthored.exclusivity`. */
+    exclusivity: z.optional(pathLifecycleExclusivitySchema),
     /** See `PathLifecycleAuthored.uses`. */
     uses: z.optional(activeEffectUsesSchema),
     /** See `PathLifecycleAuthored.activeOnlyOnFinalAnchorTurn`. */

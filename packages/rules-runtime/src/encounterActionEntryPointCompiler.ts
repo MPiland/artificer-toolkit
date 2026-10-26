@@ -7,9 +7,11 @@ import {
 } from '@artificer-toolkit/schema/projections/characterMechanics'
 
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
+import type { CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { characterResourcePoolIdentitySchema } from '@artificer-toolkit/schema/shared/characterResourceIdentity'
 
+import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
 import type {
   CharacterActionCapabilityDescriptor,
   EffectActionCapabilityDescriptor
@@ -199,7 +201,8 @@ function assertDescriptorAlignment(input: {
 
 /**
  * The plans that run an action: its execution plan and its active-effect plans. An action holds at
- * most one plan for every target, or one plan per hit-point tier (a tiered result) and no other.
+ * most one plan for every target, or one plan per hit-point tier (a tiered result), or one plan per
+ * roll-table row that holds an effect (a table result), and no other.
  */
 function compileActionPlans(
   adapter: CharacterRuleActionSystemAdapter,
@@ -218,6 +221,7 @@ function compileActionPlans(
   const activeEffectPlans = adapter.activeEffectPlans?.({ action: descriptor, published }) ?? []
   const hitPointTiers = hitPointTierCeilings(descriptor.compiledEffect.entries)
   const tiered = hitPointTiers.length > 0
+  const rowed = activeEffectPlans.some((plan) => plan.rollTableRow)
   if (
     tiered
       ? activeEffectPlans.some(
@@ -225,10 +229,14 @@ function compileActionPlans(
         ) ||
         new Set(activeEffectPlans.map((plan) => plan.hitPointTier?.atMost)).size !==
           activeEffectPlans.length
-      : activeEffectPlans.length > 1 || activeEffectPlans.some((plan) => plan.hitPointTier)
+      : rowed
+        ? activeEffectPlans.some((plan) => !plan.rollTableRow || plan.hitPointTier) ||
+          new Set(activeEffectPlans.map((plan) => plan.rollTableRow?.min)).size !==
+            activeEffectPlans.length
+        : activeEffectPlans.length > 1 || activeEffectPlans.some((plan) => plan.hitPointTier)
   ) {
     throw new CharacterRuleActionUnsupportedCompilationError(
-      'Character actions support at most one active-effect plan, or one per hit-point tier.'
+      'Character actions support at most one active-effect plan, or one per hit-point tier or roll-table row.'
     )
   }
   // A grant freezes its own graph and reads only the TEST's hit path, a condition's repeated
@@ -248,8 +256,9 @@ function compileActionPlans(
     )
   }
   return {
-    activeEffectPlan: tiered ? null : (activeEffectPlans[0] ?? null),
+    activeEffectPlan: tiered || rowed ? null : (activeEffectPlans[0] ?? null),
     ...(tiered && { hitPointTierPlans: activeEffectPlans, hitPointTiers }),
+    ...(rowed && { rollTableRowPlans: activeEffectPlans }),
     executionPlan
   }
 }
@@ -290,13 +299,13 @@ export function compileCastChoicePlans(
 ) {
   const compiled = castChoiceOptions(descriptor.compiledEffect)?.map((option) => {
     const optionDescriptor = { ...descriptor, compiledEffect: option.compiledEffect }
-    const { hitPointTierPlans, hitPointTiers, ...plans } = compileActionPlans(
+    const { hitPointTierPlans, hitPointTiers, rollTableRowPlans, ...plans } = compileActionPlans(
       adapter,
       optionDescriptor
     )
-    if (hitPointTierPlans || hitPointTiers)
+    if (hitPointTierPlans || hitPointTiers || rollTableRowPlans)
       throw new CharacterRuleActionUnsupportedCompilationError(
-        'A cast pick cannot also tier on hit points.'
+        'A cast pick cannot also tier on hit points or roll on a table.'
       )
     return {
       option: { optionId: option.optionId, label: option.label, ...plans },
@@ -328,9 +337,23 @@ export function compileCastChoicePlans(
       hitPointTierPlans: plans.hitPointTierPlans,
       hitPointTiers: plans.hitPointTiers
     }),
+    ...('rollTableRowPlans' in plans && { rollTableRowPlans: plans.rollTableRowPlans }),
     executionPlan: plans.executionPlan,
     choice: options ? { options } : null
   }
+}
+
+/**
+ * The holder conditions an activated action's `ON_USE` paths name (Frenzy only while raging and
+ * not yet frenzied), one list per restricted entry, as a basic action's restrictions read them.
+ */
+function activatedActionAdmission(compiledEffect: CompiledEffectGroup) {
+  const restrictions = compiledEffect.entries.flatMap((entry) =>
+    'restrictions' in entry && entry.restrictions && entry.pathCode === 'ON_USE'
+      ? [normalizeCharacterGrantRestrictions(entry.restrictions)]
+      : []
+  )
+  return restrictions.length > 0 ? { holderRestrictions: restrictions } : {}
 }
 
 export function compileCharacterActionEntryPoints(
@@ -358,6 +381,7 @@ export function compileCharacterActionEntryPoints(
     input.candidates.map((candidate, index) => {
       const descriptor = input.descriptors[index]!
       const exactTargetPolicy = buildCompiledActionTargetPolicy(descriptor)
+      const admission = activatedActionAdmission(descriptor.compiledEffect)
       try {
         const zonePlacement = adapter.compileZonePlacement?.({ action: descriptor }) ?? null
         if (zonePlacement) {
@@ -410,6 +434,7 @@ export function compileCharacterActionEntryPoints(
             actionId: candidate.actionId,
             effectId: candidate.effectId,
             targetPolicy: exactTargetPolicy,
+            ...admission,
             compilation: {
               kind: 'COMPILED',
               resourceBinding: compiledResourceBinding(candidate),
@@ -434,6 +459,7 @@ export function compileCharacterActionEntryPoints(
             actionId: candidate.actionId,
             effectId: candidate.effectId,
             targetPolicy: exactTargetPolicy,
+            ...admission,
             compilation: {
               kind: 'COMPILED',
               resourceBinding: compiledResourceBinding(candidate),
@@ -444,19 +470,27 @@ export function compileCharacterActionEntryPoints(
               executionPlan: { kind: 'SINGLE_GRAPH', published: summonPlacement.entry.frozenGraph }
             }
           }
-        const { activeEffectPlan, hitPointTierPlans, hitPointTiers, executionPlan, choice } =
-          compileCastChoicePlans(adapter, descriptor, exactTargetPolicy)
+        const {
+          activeEffectPlan,
+          hitPointTierPlans,
+          hitPointTiers,
+          rollTableRowPlans,
+          executionPlan,
+          choice
+        } = compileCastChoicePlans(adapter, descriptor, exactTargetPolicy)
         return {
           schemaVersion: 4,
           kind: 'CHARACTER_ACTION',
           actionId: candidate.actionId,
           effectId: candidate.effectId,
           targetPolicy: exactTargetPolicy,
+          ...admission,
           compilation: {
             kind: 'COMPILED',
             resourceBinding: compiledResourceBinding(candidate),
             activeEffectPlan,
             ...(hitPointTierPlans && { hitPointTierPlans, hitPointTiers }),
+            ...(rollTableRowPlans && { rollTableRowPlans }),
             zonePlacement: null,
             choice,
             executionPlan

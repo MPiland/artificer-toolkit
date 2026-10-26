@@ -1,4 +1,3 @@
-import type { SizeCode } from '../core/size.js'
 import type { EquippedSlotCode } from '../subjects/core/equipmentHands.js'
 import type {
   CompiledEquipment,
@@ -43,7 +42,7 @@ export interface CharacterCompanionCalculationInput {
   abilityScores: Record<string, number>
   armorClass: number
   maxHitPoints: number
-  size?: SizeCode
+  size?: string
   alignmentId?: string
   creatureTypeId?: string
 }

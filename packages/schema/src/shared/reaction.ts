@@ -4,12 +4,12 @@ import { RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules/contracts'
 
 import { combatPerceptionRequirementDtoSchema } from './combatPerception.js'
 import {
-  abilityModifierReferenceSchema,
   pathLifecycleEndTriggerAgainstSchema,
   pathLifecycleEndTriggerOfSchema,
   pathLifecycleEndTriggerBySchema
 } from './enums.js'
 import { postgresUuidSchema } from './postgresUuid.js'
+import { ruleCapabilityRefreshBoundaryDtoSchema } from './ruleState.js'
 import { systemCoreCodeSchema } from './systemCoreCode.js'
 import { spatialPointDtoSchema } from './spatialFacts.js'
 import {
@@ -124,7 +124,7 @@ export const sourceEffectIdsFilterDtoSchema = lazySchema(() =>
 /** The ability check a higher-level spell owes (Counterspell, Dispel Magic): the DC is `baseDc` plus the spell's level. */
 export const higherLevelCheckDtoSchema = lazySchema(() =>
   z.strictObject({
-    ability: abilityModifierReferenceSchema,
+    ability: systemCoreCodeSchema,
     baseDc: z.number().check(z.int()).check(z.nonnegative())
   })
 )
@@ -135,8 +135,10 @@ export const reactionTriggerBindingDtoSchema = lazySchema(() =>
     reactionMovementTriggerBindingDtoSchema,
     z.strictObject({
       kind: z.literal('ATTACKED_SELF'),
-      /** Answers only a melee attack. */
-      attackRange: z.optional(z.literal('MELEE')),
+      /** Answers only a melee, or only a ranged, attack. */
+      attackRange: z.optional(z.enum(['MELEE', 'RANGED'])),
+      /** Answers only a weapon attack, never a spell attack. */
+      weaponOnly: z.optional(z.boolean()),
       /** Answers only an attacker the reactor sees. */
       requiresSight: z.optional(z.boolean())
     }),
@@ -171,7 +173,7 @@ export const movementReactionEligibilityOutputDtoSchema = lazySchema(() =>
       eligible: z.boolean(),
       allowanceDefinitionId: postgresUuidSchema,
       allowanceMaximum: z.number().check(z.int()).check(z.positive()).check(z.lte(10_000)),
-      allowanceRefreshBoundary: z.literal('START_OF_TURN'),
+      allowanceRefreshBoundary: ruleCapabilityRefreshBoundaryDtoSchema,
       selectionPolicy: z.enum(['AUTOMATIC', 'CHOICE']),
       choiceDefinitionId: z.nullable(postgresUuidSchema),
       targetPolicy: z.literal('MOVER')

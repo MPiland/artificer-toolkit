@@ -3,7 +3,9 @@ import { projectionChecksumSchema } from '../projections/identity.js'
 
 /** Closed source facts consumed by the shared Authoring Schema resolver. */
 export const nodeRuntimeSourceManifest = {
+  abilities: ['description', 'id', 'label', 'short'],
   ability_definitions: ['description', 'id', 'label'],
+  ability_modifier_references: ['description', 'id', 'label'],
   action_traits: ['description', 'id', 'label'],
   alignments: ['description', 'id', 'label'],
   background_features: ['background_id', 'feature_id'],
@@ -60,6 +62,7 @@ export const nodeRuntimeSourceManifest = {
   roll_influences: ['description', 'id', 'label'],
   roll_modes: ['description', 'id', 'label'],
   senses: ['description', 'id', 'label'],
+  sizes: ['description', 'id', 'label'],
   skills: ['description', 'id', 'label'],
   speeds: ['description', 'id', 'label'],
   spell_effects: ['effect_id', 'spell_id'],

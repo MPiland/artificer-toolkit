@@ -8,8 +8,8 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import {
-  encounterRuleUsageUsed,
-  withEncounterRuleUsageUsed,
+  encounterAllowanceUsed,
+  withEncounterAllowanceUsed,
   featureChargeUsed,
   withFeatureChargeUsed
 } from '@artificer-toolkit/rules-runtime/encounterActorState'
@@ -247,17 +247,26 @@ export async function persistLiveMovementReaction(
     )
   }
   const allowance = receipt.allowance
+  const spent = {
+    definitionId: allowance.definitionId,
+    refreshBoundary: receipt.option.policy.allowanceRefreshBoundary
+  }
   if (
     allowance.definitionId !== receipt.option.policy.allowanceDefinitionId ||
     allowance.maximum !== receipt.option.policy.allowanceMaximum ||
-    encounterRuleUsageUsed(nextSource, allowance.definitionId) !== allowance.beforeUsed ||
+    encounterAllowanceUsed(nextSource, spent, state.turnSequence) !== allowance.beforeUsed ||
     allowance.afterUsed !== allowance.beforeUsed + 1 ||
     allowance.afterUsed > allowance.maximum
   )
     throw new Error('Live movement reaction allowance changed.')
   nextSource = encounterRunActorStateSchema.parse({
     ...nextSource,
-    resources: withEncounterRuleUsageUsed(nextSource, allowance.definitionId, allowance.afterUsed)
+    resources: withEncounterAllowanceUsed(
+      nextSource,
+      spent,
+      state.turnSequence,
+      allowance.afterUsed
+    )
   })
   if (attackedHostileCreature({ d20s: [batch.d20, batch.nestedD20], source, target }))
     nextSource = engageIdleTurnActor(nextSource)

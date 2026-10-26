@@ -1,14 +1,77 @@
+import type { DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
+import type { authoredFormFactories } from '#forms/factories/authoredFormFactories'
+import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
+import { sceneSizes } from '@artificer-toolkit/rules-runtime/systemSizes'
 import { isRecord } from '#forms/utils/valueGuards'
 
-/** Reads one untrusted field off in-progress guided form values. */
-export function readField(values: object, key: string): unknown {
-  return isRecord(values) ? values[key] : undefined
+/** The size choices a guided Creature or Race offers: the System's sizes a Scene models. */
+export function guidedSizeOptions(systemId: string | undefined) {
+  return systemId ? sceneSizes(systemId).map(({ code, label }) => ({ label, value: code })) : []
 }
 
-/** Guided drafts may be partial, so features are recognised shallowly rather than schema-parsed. */
+/**
+ * The layout form is one object-typed form shared by every Authored domain, so each Guided screen
+ * is built over it. Its in-progress values are typed by the owning domain's form values through
+ * `readGuidedValues`, and its fields are addressed through `guidedField`.
+ */
+export const EMPTY_GUIDED_FORM_VALUES = {}
+
+type GuidedDomain = keyof typeof authoredFormFactories
+
+/** The domain's own form values; a Guided draft may not have filled every field yet. */
+export type GuidedValues<TDomain extends GuidedDomain> = Partial<
+  ReturnType<(typeof authoredFormFactories)[TDomain]['toFormValues']>
+>
+
+/**
+ * An unchecked narrowing: it only confirms `values` is a record and trusts the caller's `domain`.
+ * That is safe because the layout form is built from that domain's own factory
+ * (`createEmptyValues`/`toFormValues`), so its values already have that shape. It is the only place
+ * the layout form is narrowed; QUALITY-7 removes it by typing the layout form per domain.
+ */
+function isGuidedValues<TDomain extends GuidedDomain>(
+  _domain: TDomain,
+  values: object
+): values is GuidedValues<TDomain> {
+  return isRecord(values)
+}
+
+/**
+ * The one place the object-typed layout form is read as a domain's values: the layout form is
+ * created from that domain's `createEmptyValues`/`toFormValues`, so `domain` names its shape.
+ */
+export function readGuidedValues<TDomain extends GuidedDomain>(
+  domain: TDomain,
+  values: object
+): GuidedValues<TDomain> {
+  return isGuidedValues(domain, values) ? values : {}
+}
+
+/** A field of the domain's values, checked against its top-level keys. */
+export function guidedField<TDomain extends GuidedDomain>(
+  _domain: TDomain,
+  key: keyof GuidedValues<TDomain> & string,
+  ...nested: (string | number)[]
+) {
+  return toTypedAuthoringFieldName<object>(undefined, [key, ...nested])
+}
+
+export function toSelectOption(item: { id: string; label: string }) {
+  return { label: item.label, value: item.id }
+}
+
+/** Invalid drafts may hold malformed rows, so rows are recognised shallowly rather than schema-parsed. */
 export function toFeatures(value: unknown): FeatureDto[] {
   return Array.isArray(value)
     ? value.filter((item): item is FeatureDto => isRecord(item) && 'id' in item && 'order' in item)
+    : []
+}
+
+export function toDetails(value: unknown): DetailDto[] {
+  return Array.isArray(value)
+    ? value.filter(
+        (item): item is DetailDto => isRecord(item) && 'id' in item && 'description' in item
+      )
     : []
 }

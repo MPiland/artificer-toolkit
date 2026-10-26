@@ -1,5 +1,4 @@
 import type {
-  AbilityCode,
   ActivationCode,
   ChargeLimitKind,
   ChargeResetKind,
@@ -12,7 +11,6 @@ import type {
   LengthUnitCode,
   RangeKind,
   ScalingAmountKind,
-  SizeCode,
   VehicleCategoryCode
 } from '#core'
 import { valuesOf, type EmptyObject, type Selectable } from '#utils'
@@ -49,7 +47,7 @@ export type PredicatePayloadByCode = {
       >
   CONCENTRATION: EmptyObject
   RITUAL: EmptyObject
-  SIZE: Selectable<{ sizes: SizeCode[] }>
+  SIZE: Selectable<{ sizes: string[] }>
   FEATURE_OBTAINED: {
     featureIds: string[]
   }
@@ -58,12 +56,12 @@ export type PredicatePayloadByCode = {
     optionIds: string[]
   }
   MAGIC_SCHOOL: Selectable<{ magicSchoolIds: string[] }>
-  SPELLCASTING_ABILITY: Selectable<{ abilities: AbilityCode[] }>
+  SPELLCASTING_ABILITY: Selectable<{ abilities: string[] }>
   SPELL_LEVEL: {
     min: number
     max?: number
   }
-  SAVING_THROW_ABILITY: Selectable<{ abilities: AbilityCode[] }>
+  SAVING_THROW_ABILITY: Selectable<{ abilities: string[] }>
   SAVING_THROW_DC: {
     min: number
     max?: number
@@ -77,7 +75,7 @@ export type PredicatePayloadByCode = {
   >
   SOLE_WIELDED_WEAPON: EmptyObject
   ATTACK_ABILITY: {
-    ability: AbilityCode
+    ability: string
   }
   /** The attack is made with this activation: the bonus action of an off-hand attack. */
   ATTACK_ACTIVATION: {
@@ -120,7 +118,7 @@ export type PredicatePayloadByCode = {
     { properties: EquipmentPropertyCode[] },
     { category?: EquipmentCategoryCode }
   >
-  SAVE_ABILITY_PROFICIENCY: Selectable<{ abilities: AbilityCode }, { level: ScalingAmountKind }>
+  SAVE_ABILITY_PROFICIENCY: Selectable<{ abilities: string }, { level: ScalingAmountKind }>
   LANGUAGE_PROFICIENCY: Selectable<{ languageIds: string[] }, { level: ScalingAmountKind }>
   EQUIPMENT_EQUIPPED: Selectable<
     { equipmentIds: string[] },
@@ -150,6 +148,13 @@ export type PredicatePayloadByCode = {
     maxSpeedFraction?: number
   }
   /**
+   * The holder carries a live active effect authored as one of `effectIds` (while it rages).
+   * Decided live in an Encounter.
+   */
+  HOLDER_ACTIVE_EFFECT: {
+    effectIds: string[]
+  }
+  /**
    * The holder took the Attack action this turn with a weapon that has every listed property
    * (any weapon when not selected), other than the item the requirement belongs to.
    */
@@ -174,8 +179,8 @@ export type PredicatePayloadByCode = {
   }>
   SKILL_PROFICIENCY: Selectable<{ skillIds: string[] }, { level: ScalingAmountKind }>
   SKILL_SCORE: Selectable<{ skillIds: string[] }>
-  ABILITY_SCORE: Selectable<{ abilities: AbilityCode }, { min: number; max?: number }>
-  SAVING_THROW_ABILITY_BONUS: Selectable<{ abilities: AbilityCode }, { min: number; max?: number }>
+  ABILITY_SCORE: Selectable<{ abilities: string }, { min: number; max?: number }>
+  SAVING_THROW_ABILITY_BONUS: Selectable<{ abilities: string }, { min: number; max?: number }>
   WHILE_SOURCE_CARRIED: EmptyObject
   WHILE_SOURCE_EQUIPPED: EmptyObject
   WHILE_SOURCE_ATTUNED: EmptyObject
@@ -183,11 +188,11 @@ export type PredicatePayloadByCode = {
   CREATURE_TYPE: Selectable<{ creatureTypeIds: string[] }>
   SOURCE_CREATURE_TYPE: Selectable<{ creatureTypeIds: string[] }>
   SOURCE_TRAIT: Selectable<{ traits: DamageDefenseBypassCode[] }>
-  CREATURE_SIZE: Selectable<{ sizes: SizeCode[] }>
+  CREATURE_SIZE: Selectable<{ sizes: string[] }>
   CREATURE_IS_MOUNT: EmptyObject
   CREATURE_IS_COMPANION: EmptyObject
   VEHICLE_CATEGORY: Selectable<{ categories: VehicleCategoryCode[] }>
-  VEHICLE_SIZE: Selectable<{ sizes: SizeCode[] }>
+  VEHICLE_SIZE: Selectable<{ sizes: string[] }>
 }
 
 type SelectablePredicateCode = {
@@ -466,6 +471,13 @@ export const PREDICATE_REGISTRY = {
     label: 'Turn Movement',
     description:
       'Requires the holder to have moved no more than a number of feet, or a fraction of its speed, this turn.',
+    subjects: ['CHARACTER', 'CREATURE']
+  },
+
+  HOLDER_ACTIVE_EFFECT: {
+    code: 'HOLDER_ACTIVE_EFFECT',
+    label: 'Holder Has Active Effect',
+    description: 'Requires the holder to have one of the selected effects active on it.',
     subjects: ['CHARACTER', 'CREATURE']
   },
 

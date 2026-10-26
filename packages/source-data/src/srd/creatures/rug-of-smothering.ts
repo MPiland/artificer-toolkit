@@ -153,8 +153,8 @@ export const rugOfSmothering: CreatureAuthored = {
                       }
                     ],
                     recurrence: {
-                      stage: 'START_OF_TURN',
-                      damage: {
+                      turnAnchor: { actor: 'TARGET', boundary: 'START_OF_TURN' },
+                      outcome: {
                         id: S.actionId(7705, 12),
                         effectKind: S.EFFECT_KIND.DAMAGE,
                         damageTypeId: S.damageTypeId('BLUDGEONING'),

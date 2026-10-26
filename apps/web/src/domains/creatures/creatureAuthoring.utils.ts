@@ -2,7 +2,9 @@ import type {
   CreatureAuthoringInputDto,
   CreatureAuthoredDto
 } from '@artificer-toolkit/schema/subjects/creature'
-import { CREATURE_CATEGORY_CODE, SIZE_CODE } from '@artificer-toolkit/shared/core'
+import { defaultAbilityScores } from '@artificer-toolkit/rules-runtime/systemAbilities'
+import { defaultSize } from '@artificer-toolkit/rules-runtime/systemSizes'
+import { CREATURE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 
 type CreatureStringFormValue = {
   value: string
@@ -40,10 +42,10 @@ export function createEmptyCreature({ systemId }: CreateEmptyCreatureInput): Cre
     status: 'DRAFT',
     category: CREATURE_CATEGORY_CODE.MONSTER,
     creatureTypeId: '',
-    size: SIZE_CODE.MEDIUM,
+    size: systemId ? defaultSize(systemId) : '',
     systemId,
     tags: [],
-    abilityScores: createDefaultAbilityScores(),
+    abilityScores: systemId ? defaultAbilityScores(systemId) : {},
     naturalArmorBonus: 0,
     hitPoints: 1,
     speeds: [],
@@ -60,26 +62,15 @@ export function createEmptyCreature({ systemId }: CreateEmptyCreatureInput): Cre
   }
 }
 
-export function createDefaultAbilityScores(): CreatureFormValues['abilityScores'] {
-  return {
-    STRENGTH: 10,
-    DEXTERITY: 10,
-    CONSTITUTION: 10,
-    INTELLIGENCE: 10,
-    WISDOM: 10,
-    CHARISMA: 10
-  }
-}
-
 export function normalizeCreatureForSubmit(
   creature: CreatureFormValues
 ): CreatureAuthoringInputDto {
   return {
     ...creature,
-    label: creature.label.trim() || 'Untitled Creature',
+    label: creature.label.trim(),
     description: creature.description ?? '',
     quote: creature.quote ?? '',
-    status: creature.status ?? 'DRAFT',
+    status: creature.status,
     tags: normalizeStringFormValues(creature.tags),
     logisticsNotes: normalizeStringFormValues(creature.logisticsNotes),
     npcProfile: creature.npcProfile
@@ -102,7 +93,7 @@ export function toCreatureFormValues(
     description: creature.description ?? '',
     quote: creature.quote ?? '',
     tags: toStringFormValues(creature.tags),
-    abilityScores: creature.abilityScores ?? createDefaultAbilityScores(),
+    abilityScores: creature.abilityScores ?? defaultAbilityScores(creature.systemId),
     logisticsNotes: toStringFormValues(creature.logisticsNotes),
     npcProfile: creature.npcProfile
       ? {
@@ -126,8 +117,4 @@ function toStringFormValues(
   return (values ?? []).map((value) =>
     typeof value === 'string' ? { value } : { value: value.value }
   )
-}
-
-export function resolveCreateCreatureSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
 }

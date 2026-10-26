@@ -7,78 +7,105 @@ import type { CreatureConditionCapabilityAdapter } from './creatureConditionCapa
 import type { EventVocabularyCapabilityAdapter } from './events/encounterEventTable.js'
 import type { MaintenanceLinkCapabilityAdapter } from './maintenanceLinkCapability.js'
 import type { SavingThrowCapabilityAdapter } from './savingThrowCapability.js'
-import { createRollModeCapabilityRegistry } from './rollModeCapabilityRegistry.js'
+import {
+  createRollModeCapabilityRegistry,
+  type RollModeCapabilityAdapter
+} from './rollModeCapabilityRegistry.js'
 import { createSystemCapabilityRegistry } from './systemCapabilityRegistry.js'
-import { dnd5eAbilityScoreCapabilityAdapter } from './systems/dnd5e/abilityModifier.js'
-import { dnd5eActionEconomyCapabilityAdapter } from './systems/dnd5e/actionEconomyPolicy.js'
-import { dnd5eCharacterActionCapabilityAdapter } from './systems/dnd5e/characterActionCapabilityDiscovery.js'
-import { dnd5eMaintenanceLinkCapabilityAdapter } from './systems/dnd5e/concentrationPolicy.js'
-import { dnd5eCombatPerceptionCapabilityAdapter } from './systems/dnd5e/combatPerception.js'
-import { dnd5eEventVocabularyCapabilityAdapter } from './systems/dnd5e/eventVocabulary.js'
-import { dnd5eCharacterProgressionCapabilityAdapter } from './systems/dnd5e/hitPointRules.js'
-import { dnd5eCreatureConditionCapabilityAdapter } from './systems/dnd5e/identity.js'
-import { dnd5ePolicyModuleRegistration } from './systems/dnd5e/policyModuleRegistration.js'
-import { dnd5eRollModeCapabilityAdapter } from './systems/dnd5e/rollModePolicy.js'
-import { dnd5eSavingThrowCapabilityAdapter } from './systems/dnd5e/savingThrowPolicy.js'
+import { installedPolicySystems } from './systems/installedGameSystems/policy.js'
 import { systemCoreCodeRegistry } from './platformSystemCoreCodes.js'
+import { requireSceneIlluminationLevels } from '@artificer-toolkit/shared/vtt'
 
-const installedRuntimeModules = [dnd5ePolicyModuleRegistration] as const
+/**
+ * One installed System's Sheet-reachable policy tier (D195). A System leaves out a capability it
+ * does not have: `require` then fails closed and `find` skips it.
+ */
+export interface GameSystemPolicyTier {
+  readonly gameSystemId: string
+  readonly abilityScore?: AbilityScoreCapabilityAdapter
+  readonly actionEconomy?: ActionEconomyCapabilityAdapter
+  readonly characterAction?: CharacterActionCapabilityAdapter
+  readonly characterProgression?: CharacterProgressionCapabilityAdapter
+  readonly combatPerception?: CombatPerceptionCapabilityAdapter
+  readonly creatureCondition?: CreatureConditionCapabilityAdapter
+  readonly eventVocabulary?: EventVocabularyCapabilityAdapter
+  readonly maintenanceLink?: MaintenanceLinkCapabilityAdapter
+  readonly rollMode?: RollModeCapabilityAdapter
+  readonly savingThrow?: SavingThrowCapabilityAdapter
+  readonly policyModules: readonly { readonly key: string; readonly contractVersion: number }[]
+}
+
+function installed<
+  TCapability extends Exclude<keyof GameSystemPolicyTier, 'gameSystemId' | 'policyModules'>
+>(capability: TCapability) {
+  return installedPolicySystems.flatMap((system) => system[capability] ?? [])
+}
 
 export const rollModeCapabilityRegistry = createRollModeCapabilityRegistry(
-  [dnd5eRollModeCapabilityAdapter],
+  installed('rollMode'),
   systemCoreCodeRegistry
 )
 
 export const combatPerceptionCapabilityRegistry =
-  createSystemCapabilityRegistry<CombatPerceptionCapabilityAdapter>('combat-perception', [
-    dnd5eCombatPerceptionCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<CombatPerceptionCapabilityAdapter>(
+    'combat-perception',
+    installed('combatPerception'),
+    ({ illuminationLevels }) => requireSceneIlluminationLevels(illuminationLevels)
+  )
 
 export const actionEconomyCapabilityRegistry =
-  createSystemCapabilityRegistry<ActionEconomyCapabilityAdapter>('action-economy', [
-    dnd5eActionEconomyCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<ActionEconomyCapabilityAdapter>(
+    'action-economy',
+    installed('actionEconomy')
+  )
 
 export const abilityScoreCapabilityRegistry =
-  createSystemCapabilityRegistry<AbilityScoreCapabilityAdapter>('ability-score', [
-    dnd5eAbilityScoreCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<AbilityScoreCapabilityAdapter>(
+    'ability-score',
+    installed('abilityScore')
+  )
 
 export const characterProgressionCapabilityRegistry =
-  createSystemCapabilityRegistry<CharacterProgressionCapabilityAdapter>('character-progression', [
-    dnd5eCharacterProgressionCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<CharacterProgressionCapabilityAdapter>(
+    'character-progression',
+    installed('characterProgression')
+  )
 
 export const creatureConditionCapabilityRegistry =
-  createSystemCapabilityRegistry<CreatureConditionCapabilityAdapter>('creature-condition', [
-    dnd5eCreatureConditionCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<CreatureConditionCapabilityAdapter>(
+    'creature-condition',
+    installed('creatureCondition')
+  )
 
 export const characterActionCapabilityRegistry =
-  createSystemCapabilityRegistry<CharacterActionCapabilityAdapter>('character-action', [
-    dnd5eCharacterActionCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<CharacterActionCapabilityAdapter>(
+    'character-action',
+    installed('characterAction')
+  )
 
 export const eventVocabularyCapabilityRegistry =
-  createSystemCapabilityRegistry<EventVocabularyCapabilityAdapter>('event-vocabulary', [
-    dnd5eEventVocabularyCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<EventVocabularyCapabilityAdapter>(
+    'event-vocabulary',
+    installed('eventVocabulary')
+  )
 
 export const maintenanceLinkCapabilityRegistry =
-  createSystemCapabilityRegistry<MaintenanceLinkCapabilityAdapter>('maintenance-link', [
-    dnd5eMaintenanceLinkCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<MaintenanceLinkCapabilityAdapter>(
+    'maintenance-link',
+    installed('maintenanceLink')
+  )
 
 export const savingThrowCapabilityRegistry =
-  createSystemCapabilityRegistry<SavingThrowCapabilityAdapter>('saving-throw', [
-    dnd5eSavingThrowCapabilityAdapter
-  ])
+  createSystemCapabilityRegistry<SavingThrowCapabilityAdapter>(
+    'saving-throw',
+    installed('savingThrow')
+  )
 
 export function requireInstalledGameSystemPolicyModule(input: {
   gameSystemId: string
   policyModule: { key: string; contractVersion: number }
 }): void {
-  const registration = installedRuntimeModules.find(
+  const registration = installedPolicySystems.find(
     (module) => module.gameSystemId === input.gameSystemId
   )
   if (

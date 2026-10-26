@@ -12,7 +12,8 @@ import {
 import {
   sceneLiveCommandInputDtoSchema,
   sceneCommandResultDtoSchema,
-  sceneDefinitionSettingsDtoSchema
+  sceneDefinitionSettingsDtoSchema,
+  sceneTokenFacingCommandInputDtoSchema
 } from '../api/vttScenes.js'
 import {
   sceneGeometryCommandResultSchema,
@@ -96,7 +97,9 @@ export const sceneStoredGeometryCommandSchema = lazySchema(() =>
         z.strictObject({ encounterId: postgresUuidSchema, commandId: postgresUuidSchema })
       ),
       null
-    )
+    ),
+    /** The facing the token had before this command set one (ATTACK-12); its undo or revert restores it. */
+    priorRotationDegrees: z.optional(sceneTokenFacingCommandInputDtoSchema.shape.rotationDegrees)
   })
 )
 export const sceneStoredUndoCommandSchema = lazySchema(() =>

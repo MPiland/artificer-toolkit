@@ -1,8 +1,4 @@
-import {
-  SPELLCASTING_ABILITY_REFERENCE,
-  type AbilityModifierReference
-} from '@artificer-toolkit/shared/core'
-import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
+import { SPELLCASTING_ABILITY_REFERENCE } from '@artificer-toolkit/shared/core'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 
 import { freezeD20Context } from './encounterD20Settlement.js'
@@ -12,13 +8,13 @@ import type { CharacterMovementFacts, MovementTarget } from './encounterMovement
 
 /** The check an authored reaction asks of its reactor before it may counter a higher-level cast. */
 export type CastReactionLevelCheck = {
-  ability: AbilityModifierReference
+  ability: string
   baseDc: number
 }
 
 /** What the reactor rolls once the cast's level is known: the ability it rolls with and the DC. */
 export type CastReactionCheckRequirement = {
-  ability: AbilityModifierReference
+  ability: string
   dc: number
 }
 
@@ -68,9 +64,8 @@ export function prepareEncounterCastReactionCheck<
   const ability = castReactionCheckAbility(requirement, reactor)
   if (!facts || ability === undefined)
     throw new EncounterValidationError('The reacting creature has no ability for the check.')
-  const canonical = resolveAbilityAlias(ability) ?? ability
   const definition = facts.ruleEvaluation.facts.abilityDefinitions.find(
-    ({ code }) => (resolveAbilityAlias(code) ?? code) === canonical
+    ({ code }) => code === ability
   )
   if (!definition) throw new EncounterValidationError('The System has no such ability to check.')
   const d20 = actorContestFacts({

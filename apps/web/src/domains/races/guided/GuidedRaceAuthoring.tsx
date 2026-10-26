@@ -5,33 +5,36 @@ import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { RACE_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import { useContentCatalogue } from '#app/data/contentSnapshots/useContentCatalogue'
 import { withForm } from '#forms/app-form/AppForm'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import * as styles from '#forms/guided/guidedAuthoring.css'
-import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import { toGuidedRaceParentOptions } from './guidedRaceParents'
-import { toFeatures } from '#forms/guided/guidedValues'
-import { isRecord } from '#forms/utils/valueGuards'
-
-type GuidedRaceAuthoringProps = {
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-  session: AuthoredFormSession
-}
+import {
+  EMPTY_GUIDED_FORM_VALUES,
+  guidedField,
+  guidedSizeOptions,
+  readGuidedValues,
+  toFeatures,
+  toSelectOption
+} from '#forms/guided/guidedValues'
 
 export const GuidedRaceAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as GuidedRaceAuthoringProps,
-  render: function RenderGuidedRaceAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedRaceAuthoring({ form, onAdvanced, onStateChange, session, system }) {
     const [step, setStep] = useState(0)
-    const values = useSelector(form.store, (state) => readRaceValues(state.values))
-    const system = session.system
+    const formValues = useSelector(form.store, (state) => state.values)
+    const draft = readGuidedValues('race', formValues)
+    const label = draft.label?.trim() ?? ''
+    const category = draft.category
+    const parentRaceId = draft.parentRaceId ?? ''
+    const features = toFeatures(draft.features)
     const categoryLocked = session.mode === 'edit'
     const parentRaces = useContentCatalogue('RACE', {
-      enabled: values.category === RACE_CATEGORY_CODE.SUBRACE && Boolean(session.systemId),
+      enabled: category === RACE_CATEGORY_CODE.SUBRACE && Boolean(session.systemId),
       systemId: session.systemId
     })
     const parentOptions = toGuidedRaceParentOptions(parentRaces.items ?? [], session.subjectId)
@@ -39,19 +42,18 @@ export const GuidedRaceAuthoring = withForm({
     useEffect(() => {
       onStateChange({
         isReview: step === 3,
-        showPreview: session.mode === 'edit' || step > 0 || Boolean(values.label)
+        showPreview: session.mode === 'edit' || step > 0 || Boolean(label)
       })
-    }, [onStateChange, session.mode, step, values.label])
+    }, [onStateChange, session.mode, step, label])
 
-    const setFeatures = (features: FeatureDto[]) => {
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['features']), features)
+    const setFeatures = (next: FeatureDto[]) => {
+      form.setFieldValue(guidedField('race', 'features'), next)
     }
 
     return (
       <GuidedAuthoringFrame
         canContinue={Boolean(
-          values.label &&
-          (step !== 0 || values.category !== RACE_CATEGORY_CODE.SUBRACE || values.parentRaceId)
+          label && (step !== 0 || category !== RACE_CATEGORY_CODE.SUBRACE || parentRaceId)
         )}
         description={DESCRIPTIONS[step]}
         domainLabel='Race'
@@ -66,18 +68,18 @@ export const GuidedRaceAuthoring = withForm({
           <Stack gap='lg'>
             {categoryLocked ? (
               <Alert color='blue'>
-                This draft remains a {values.category === 'SUBRACE' ? 'subrace' : 'base race'} in
-                Guided. Switch to Advanced to change its structure.
+                This draft remains a {category === 'SUBRACE' ? 'subrace' : 'base race'} in Guided.
+                Switch to Advanced to change its structure.
               </Alert>
             ) : null}
             <div className={styles.identityRow}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+              <form.AppField name={guidedField('race', 'label')}>
                 {(field) => <field.TextField label='Race name' required />}
               </form.AppField>
               <AuthoringArtworkControl />
             </div>
             <div className={styles.fields}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['category'])}>
+              <form.AppField name={guidedField('race', 'category')}>
                 {(field) => (
                   <field.SelectField
                     data={[
@@ -93,10 +95,8 @@ export const GuidedRaceAuthoring = withForm({
                   />
                 )}
               </form.AppField>
-              {values.category === RACE_CATEGORY_CODE.SUBRACE ? (
-                <form.AppField
-                  name={toTypedAuthoringFieldName<object>(undefined, ['parentRaceId'])}
-                >
+              {category === RACE_CATEGORY_CODE.SUBRACE ? (
+                <form.AppField name={guidedField('race', 'parentRaceId')}>
                   {(field) => (
                     <field.SelectField
                       data={parentOptions}
@@ -108,7 +108,7 @@ export const GuidedRaceAuthoring = withForm({
                 </form.AppField>
               ) : null}
               <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+                <form.AppField name={guidedField('race', 'description')}>
                   {(field) => (
                     <field.RichTextField
                       label='Description'
@@ -121,33 +121,32 @@ export const GuidedRaceAuthoring = withForm({
           </Stack>
         ) : null}
         {step === 1 ? (
-          values.category === RACE_CATEGORY_CODE.SUBRACE ? (
+          category === RACE_CATEGORY_CODE.SUBRACE ? (
             <Alert color='blue'>
               A subrace inherits its core size and movement from its parent. Add its distinctive
               abilities in Features, or use Advanced for ancestry behavior.
             </Alert>
           ) : (
             <div className={styles.fields}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['size'])}>
-                {(field) => <field.SelectField data={SIZE_OPTIONS} label='Size' required />}
-              </form.AppField>
-              <form.AppField
-                name={toTypedAuthoringFieldName<object>(undefined, ['speeds', 0, 'speedId'])}
-              >
+              <form.AppField name={guidedField('race', 'size')}>
                 {(field) => (
                   <field.SelectField
-                    data={(system?.speeds ?? []).map((speed) => ({
-                      label: speed.label,
-                      value: speed.id
-                    }))}
+                    data={guidedSizeOptions(session.systemId)}
+                    label='Size'
+                    required
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name={guidedField('race', 'speeds', 0, 'speedId')}>
+                {(field) => (
+                  <field.SelectField
+                    data={system.speeds.map(toSelectOption)}
                     label='Movement type'
                     required
                   />
                 )}
               </form.AppField>
-              <form.AppField
-                name={toTypedAuthoringFieldName<object>(undefined, ['speeds', 0, 'amount'])}
-              >
+              <form.AppField name={guidedField('race', 'speeds', 0, 'amount')}>
                 {(field) => (
                   <field.NumberField label='Movement speed (feet)' minimum={0} required />
                 )}
@@ -156,21 +155,17 @@ export const GuidedRaceAuthoring = withForm({
           )
         ) : null}
         {step === 2 ? (
-          <GuidedFeatureAccordion
-            features={values.features}
-            system={session.system!}
-            onChange={setFeatures}
-          />
+          <GuidedFeatureAccordion features={features} system={system} onChange={setFeatures} />
         ) : null}
         {step === 3 ? (
           <Stack gap='md'>
             <dl className={styles.summary}>
-              <Summary label='Name' value={values.label || 'Untitled Race'} />
-              <Summary
+              <GuidedSummaryRow label='Name' value={label || 'Untitled Race'} />
+              <GuidedSummaryRow
                 label='Type'
-                value={values.category === RACE_CATEGORY_CODE.SUBRACE ? 'Subrace' : 'Base race'}
+                value={category === RACE_CATEGORY_CODE.SUBRACE ? 'Subrace' : 'Base race'}
               />
-              <Summary label='Features' value={`${values.features.length}`} />
+              <GuidedSummaryRow label='Features' value={`${features.length}`} />
             </dl>
           </Stack>
         ) : null}
@@ -178,28 +173,6 @@ export const GuidedRaceAuthoring = withForm({
     )
   }
 })
-
-function Summary({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={styles.summaryRow}>
-      <dt className={styles.summaryLabel}>{label}</dt>
-      <dd className={styles.summaryValue}>{value}</dd>
-    </div>
-  )
-}
-
-function readRaceValues(values: object) {
-  const record: Record<string, unknown> = isRecord(values) ? values : {}
-  return {
-    category:
-      record.category === RACE_CATEGORY_CODE.SUBRACE
-        ? RACE_CATEGORY_CODE.SUBRACE
-        : RACE_CATEGORY_CODE.BASE,
-    features: toFeatures(record.features),
-    label: typeof record.label === 'string' ? record.label.trim() : '',
-    parentRaceId: typeof record.parentRaceId === 'string' ? record.parentRaceId : ''
-  }
-}
 
 const STEPS = ['Basics', 'Traits', 'Features', 'Review'] as const
 const TITLES = [
@@ -214,7 +187,3 @@ const DESCRIPTIONS = [
   'Add the abilities that define how this race plays.',
   'Check the essentials before saving or activating.'
 ] as const
-const SIZE_OPTIONS = ['TINY', 'SMALL', 'MEDIUM', 'LARGE', 'HUGE', 'GARGANTUAN'].map((value) => ({
-  label: value.charAt(0) + value.slice(1).toLowerCase(),
-  value
-}))

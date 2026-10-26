@@ -5,18 +5,17 @@ import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { rollVisibilityDtoSchema } from './rolls.js'
 import { movementReactionChoiceSelectionDtoSchema } from '../shared/reaction.js'
 import { serverRuleExecutionCorrelationIdDtoSchema } from '../shared/ruleExecutionProtocol.js'
-import { sizeCodeSchema } from '../shared/enums.js'
 import { spatialPointDtoSchema, type SpatialPointDto } from '../shared/spatialFacts.js'
 import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterRuleWarnings.js'
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
+import { moraleDispositionDtoSchema, moraleTriggerKindDtoSchema } from '../shared/optionalCombat.js'
+import { manifestDtoSchema } from '../effects/manifest.js'
+import { sceneTokenFacingCommandInputDtoSchema } from './vttScenes.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
 const versionSchema = lazySchema(() => z.number().check(z.int()).check(z.nonnegative()))
 const checksumSchema = lazySchema(() => z.string().check(z.regex(/^[a-f0-9]{64}$/)))
-const speedFactorActionFactorDtoSchema = lazySchema(() =>
-  z.enum(['MELEE_HEAVY', 'MELEE_LIGHT_OR_FINESSE', 'MELEE_TWO_HANDED', 'RANGED_LOADING'])
-)
 export const initiativeDeclarationSelectionDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
@@ -27,16 +26,16 @@ export const initiativeDeclarationSelectionDtoSchema = lazySchema(() =>
       .strictObject({
         kind: z.literal('GM_ADJUDICATED'),
         optionId: z.literal('GM_ADJUDICATED'),
-        actorSize: sizeCodeSchema,
-        actionFactors: z.array(speedFactorActionFactorDtoSchema).check(z.maxLength(4)),
+        actorSize: systemCoreCodeSchema,
+        factorIds: z.array(uuidSchema).check(z.maxLength(32)),
         spellLevel: z.nullable(z.number().check(z.int()).check(z.gte(0)).check(z.lte(99)))
       })
       .check(
         z.superRefine((value, context) => {
-          if (new Set(value.actionFactors).size !== value.actionFactors.length) {
+          if (new Set(value.factorIds).size !== value.factorIds.length) {
             context.addIssue({
               code: 'custom',
-              path: ['actionFactors'],
+              path: ['factorIds'],
               message: 'GM-adjudicated action factors must be unique.'
             })
           }
@@ -417,6 +416,20 @@ export const moveHeldEffectInputDtoSchema = lazySchema(() =>
 )
 
 /**
+ * A creature turns to face `rotationDegrees` as a reaction, on any turn, under the Encounter's
+ * Facing rule (ATTACK-12). Its bound token on the Encounter's Scene turns with it.
+ */
+export const changeFacingInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('CHANGE_FACING'),
+    actorId: uuidSchema,
+    rotationDegrees: sceneTokenFacingCommandInputDtoSchema.shape.rotationDegrees,
+    /** Assisted-mode warnings the submitter chose to override ("Do it anyway"). */
+    acknowledgedWarnings: z._default(z.optional(encounterAcknowledgedRuleWarningsDtoSchema), [])
+  })
+)
+
+/**
  * The source of an Encounter relationship lets go of the creature it holds (D152): free, and
  * whenever it likes. `activeEffectId` names the relationship effect `heldActorId` carries.
  */
@@ -603,6 +616,62 @@ export const setConcealmentObserversInputDtoSchema = lazySchema(() =>
     remove: z.array(uuidSchema).check(z.maxLength(MAX_ENCOUNTER_ACTORS))
   })
 )
+/**
+ * GM-only (MOVE-3.2): places an environmental zone, authored through the same zone node map as
+ * authored content, fixed to the Scene with its origin at `point`. It has no source creature, so
+ * its saves use their authored fixed DC.
+ */
+export const placeZoneInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('PLACE_ZONE'),
+    zone: manifestDtoSchema,
+    point: spatialPointDtoSchema
+  })
+)
+/**
+ * GM-only morale save (ENCOUNTER-6.1): checks one of the actor's offered or GM-declared triggers.
+ * `leaderActorId` names the group's leader for a group trigger; null rolls the fallback roller. The
+ * GM enters the d20 faces or the server rolls them under the save's frozen roll mode.
+ */
+export const moraleSaveInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('MORALE_SAVE'),
+    actorId: uuidSchema,
+    triggerKind: moraleTriggerKindDtoSchema,
+    leaderActorId: z.nullable(uuidSchema),
+    overwhelmingOpposition: z.boolean(),
+    /** False proposes surrender instead of flight on a failed save. */
+    escapePossible: z.boolean(),
+    roll: z.discriminatedUnion('kind', [
+      z.strictObject({ kind: z.literal('AUTO_ROLL') }),
+      z.omit(enterDiceResolutionDtoSchema, { requestId: true })
+    ]),
+    visibility: rollVisibilityDtoSchema
+  })
+)
+/** GM-only: confirms the actor's proposed morale outcome or picks another (ENCOUNTER-6.2). */
+export const confirmMoraleInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('CONFIRM_MORALE'),
+    actorId: uuidSchema,
+    disposition: moraleDispositionDtoSchema
+  })
+)
+/**
+ * GM-only: accepts a consequence-table roll offer (ATTACK-15), which the server rolls, or declines
+ * it. The offer is the actor's one its source command made on that table. An accepted roll posts with
+ * `visibility`.
+ */
+export const resolveConsequenceRollOfferInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('RESOLVE_CONSEQUENCE_ROLL_OFFER'),
+    actorId: uuidSchema,
+    sourceCommandId: uuidSchema,
+    definitionId: uuidSchema,
+    decision: z.enum(['ACCEPT', 'DECLINE']),
+    visibility: rollVisibilityDtoSchema
+  })
+)
 /** GM-only exact undo of the Run's last committed action and its committed children. */
 export const revertLastEncounterActionInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
@@ -613,12 +682,19 @@ export type ResolveEncounterActionInputDto = z.infer<typeof resolveEncounterActi
 export type EscapeRelationshipInputDto = z.infer<typeof escapeRelationshipInputDtoSchema>
 export type EndHeldGrantInputDto = z.infer<typeof endHeldGrantInputDtoSchema>
 export type MoveHeldEffectInputDto = z.infer<typeof moveHeldEffectInputDtoSchema>
+export type ChangeFacingInputDto = z.infer<typeof changeFacingInputDtoSchema>
 export type ReleaseRelationshipInputDto = z.infer<typeof releaseRelationshipInputDtoSchema>
 export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrenceInputDtoSchema>
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>
 export type SetConcealmentObserversInputDto = z.infer<typeof setConcealmentObserversInputDtoSchema>
+export type PlaceZoneInputDto = z.infer<typeof placeZoneInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
+export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>
+export type ConfirmMoraleInputDto = z.infer<typeof confirmMoraleInputDtoSchema>
+export type ResolveConsequenceRollOfferInputDto = z.infer<
+  typeof resolveConsequenceRollOfferInputDtoSchema
+>
 export type RevertLastEncounterActionInputDto = z.infer<
   typeof revertLastEncounterActionInputDtoSchema
 >

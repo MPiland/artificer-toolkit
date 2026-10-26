@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   ACTIVATION_CODE,
   ATTACK_DOMAIN_CODE,
   AUTHORING_SELECTION_KIND,
@@ -26,7 +25,8 @@ import {
   SRD_PASSIVE_PERCEPTION_ID,
   SRD_PERCEPTION_SKILL_ID,
   SRD_STEALTH_SKILL_ID,
-  SRD_SYSTEM_ID
+  SRD_SYSTEM_ID,
+  ABILITY_CODE
 } from './vocabulary.js'
 
 /** Stable catalogue identities of the SRD basic combat actions (Q11). */

@@ -7,11 +7,10 @@ import {
 import { characterSheetConditionDtoSchema } from './characterSheetCondition.js'
 
 import {
-  abilityCodeSchema,
   activationCodeSchema,
   authoredRecordStatusSchema,
   equipmentPropertyCodeSchema,
-  sizeCodeSchema,
+  pathLifecycleReturnsOnSchema,
   spellAttributeSchema,
   spellComponentSchema
 } from '../shared/enums.js'
@@ -96,9 +95,12 @@ export const characterSheetIdentityDtoSchema = lazySchema(() =>
   })
 )
 
+/** `label` and `short` come from the System record's ability. */
 export const characterSheetAbilityDtoSchema = lazySchema(() =>
   z.object({
-    ability: abilityCodeSchema,
+    ability: systemCoreCodeSchema,
+    label: stringSchema,
+    short: stringSchema,
     score: integerSchema,
     modifier: integerSchema,
     rollMode: systemCoreCodeSchema
@@ -176,6 +178,18 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
     /** Active grants (Antitoxin, Aid) with their source and time left; a hidden source's label is null for players (D99). */
     activeGrants: z.array(activeGrantListingDtoSchema),
     /**
+     * The always-on effects of the Character's features (SPELLS-31.2): held, or ended until the rest
+     * they return on. They are never uses.
+     */
+    standingEffects: z.array(
+      z.strictObject({
+        effectId: z.guid(),
+        label: stringSchema,
+        returnsOn: pathLifecycleReturnsOnSchema,
+        held: booleanSchema
+      })
+    ),
+    /**
      * A Concentration this Character cast whose grants a finished Run carried onto the Campaign clock
      * (SPELLS-5.11); the caster ends it with END_CONCENTRATION. Null for a viewer who does not control
      * the Character; the label is null for a hidden source.
@@ -183,8 +197,9 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
     concentration: z.nullable(concentrationListingDtoSchema),
     savingThrows: z.array(
       z.object({
-        ability: abilityCodeSchema,
+        ability: systemCoreCodeSchema,
         label: stringSchema,
+        short: stringSchema,
         total: integerSchema,
         rollMode: systemCoreCodeSchema,
         proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
@@ -195,7 +210,8 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
         skillId: stringSchema,
         code: stringSchema,
         label: stringSchema,
-        ability: abilityCodeSchema,
+        ability: systemCoreCodeSchema,
+        abilityShort: stringSchema,
         total: integerSchema,
         rollMode: systemCoreCodeSchema,
         proficiency: z.enum(['NONE', 'HALF', 'FULL', 'DOUBLE'])
@@ -261,7 +277,7 @@ export const characterSheetMechanicDtoSchema = lazySchema(() =>
     attackRollMode: z.optional(systemCoreCodeSchema),
     save: z.optional(
       z.object({
-        ability: abilityCodeSchema,
+        ability: systemCoreCodeSchema,
         dc: z.optional(integerSchema)
       })
     ),
@@ -388,7 +404,7 @@ const characterSheetCreatureExtraDtoSchema = lazySchema(() =>
     creatureId: z.guid(),
     relationshipKind: z.enum(['COMPANION', 'MOUNT', 'OWNED']),
     relationshipLabel: stringSchema.check(z.minLength(1)),
-    size: z.optional(sizeCodeSchema),
+    size: z.optional(systemCoreCodeSchema),
     alignmentId: z.optional(z.guid()),
     creatureTypeId: z.optional(z.guid()),
     originKind: z.enum(['WORLD', 'SUMMONED']),
@@ -431,8 +447,8 @@ const characterSheetSpellSummonExtraDtoSchema = lazySchema(() =>
     speedLabel: z.optional(stringSchema.check(z.minLength(1))),
     /** Absent when the stat block gives the summon no hit points. */
     hitPoints: z.optional(characterSheetExtraCreatureHitPointsDtoSchema),
-    size: z.optional(sizeCodeSchema),
-    abilityScores: z.optional(z.partialRecord(abilityCodeSchema, integerSchema)),
+    size: z.optional(systemCoreCodeSchema),
+    abilityScores: z.optional(z.record(systemCoreCodeSchema, integerSchema)),
     passivePerception: z.optional(integerSchema)
   })
 )

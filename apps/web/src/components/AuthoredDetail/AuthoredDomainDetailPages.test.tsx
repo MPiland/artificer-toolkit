@@ -1,4 +1,4 @@
-import { SRD_SYSTEM_ID } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import { SRD_SYSTEM_ID, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { screen, within } from '@testing-library/react'
 import { beforeEach, vi } from 'vitest'
 import { getFunctionName } from 'convex/server'
@@ -397,6 +397,11 @@ const brassDragonResponse: NonNullable<CreatureResponseDto> = {
     systemId: SRD_SYSTEM_ID
   },
   meta: {
+    abilities: srdSystemRecord.abilities.map(({ code, label, short }) => ({
+      value: code,
+      label,
+      short: short ?? label
+    })),
     challengeRatings: [],
     conditionTypes: [],
     creatureTypes: [{ value: 'dragon', label: 'Dragon' }],
@@ -880,7 +885,6 @@ describe('authored domain detail pages', () => {
         ...ownedClassResponseFixture.item,
         label: 'Bard',
         hitpoint: {
-          ability: 'CONSTITUTION',
           dieConfig: 'd8'
         },
         spellcasting: {

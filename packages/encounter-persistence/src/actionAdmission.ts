@@ -6,6 +6,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { systemAbilityDefinitions } from '@artificer-toolkit/rules-runtime/encounterActionSources'
+import { parseEncounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
 import { readEncounterActorDefeated } from './characterStates.js'
 import { requireSystemTriggerAdmission } from './systemTriggerAdmission.js'
 import { nativeActionPendingResult, readNativePendingRoot } from './actionPendingResult.js'
@@ -205,6 +206,12 @@ export async function readNativeEncounterActionAdmission(
     return { kind: 'REPLAY' as const, input, run, state, campaign, membership, fingerprint, result }
   }
   const { systemTrigger } = input
+  // A rule's own action runs only when the rule raises it; naming it would apply its outcomes at will.
+  if (!resume && parseEncounterRuleActionId(input.actorId, input.actionId))
+    rejectDomain(
+      'SOURCE_REQUIREMENTS_NOT_MET',
+      'A rule’s own action runs only when the rule raises it.'
+    )
   if (systemTrigger)
     await requireSystemTriggerAdmission(ctx, {
       run,

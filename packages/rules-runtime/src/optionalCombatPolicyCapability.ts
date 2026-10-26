@@ -1,5 +1,18 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
+import type { ConsequenceRollTriggerDto } from '@artificer-toolkit/schema/shared/consequenceRolls'
+import type {
+  EncounterActorMoraleDto,
+  EncounterMoraleOfferDto
+} from '@artificer-toolkit/schema/shared/encounterMorale'
+import type {
+  MoraleDispositionDto,
+  MoraleTriggerKindDto
+} from '@artificer-toolkit/schema/shared/optionalCombat'
 import type { ReceiptD20ContributorDto } from '@artificer-toolkit/schema/shared/ruleExecutionEvidence'
+import type { CharacterRuleActionActiveEffectPlan } from './characterRuleActionSystemAdapter.js'
+import type { ResolvedRuleCapabilityAvailabilityDto } from '@artificer-toolkit/schema/shared/ruleState'
+import type { SceneGrid, SceneToken } from '@artificer-toolkit/shared/vtt'
+import type { FacingArc } from '@artificer-toolkit/shared/vtt/facingArc'
 
 /** Exact optional-combat policy identity a proposal and its contest graph are sealed against. */
 export interface OptionalCombatPolicyPin {
@@ -161,7 +174,124 @@ export interface DisarmContestProposal {
   readonly pin: OptionalCombatPolicyPin
 }
 
-/** A System's optional-combat policy modules: Disarm, movement passage contests and Cleaving. */
+/** One Encounter actor's Run facts that morale triggers read; `removed` is defeated or absent. */
+export interface MoraleActorFacts {
+  readonly actorId: string
+  readonly sideId: string
+  readonly kind: 'CHARACTER' | 'CREATURE' | 'CUSTOM'
+  readonly currentHitPoints: number
+  readonly maxHitPoints: number
+  readonly removed: boolean
+  readonly morale: EncounterActorMoraleDto | null
+}
+
+export interface MoraleOfferInput extends OptionalCombatPolicyInput {
+  readonly actors: readonly MoraleActorFacts[]
+}
+
+export interface MoralePreparationInput extends MoraleOfferInput {
+  readonly subjectActorId: string
+  readonly triggerKind: MoraleTriggerKindDto
+  /** The group's leader the GM names; null asks the policy for the fallback roller. */
+  readonly leaderActorId: string | null
+  readonly overwhelmingOpposition: boolean
+  readonly escapePossible: boolean
+  /** The save modifiers by ability of each present member of the subject's side. */
+  readonly rollers: ReadonlyMap<
+    string,
+    { readonly canAct: boolean; readonly saveModifiers: ReadonlyMap<string, number> }
+  >
+}
+
+/** A sealed morale save before the roller rolls; settlement records it on every member. */
+export interface MoraleSaveProposal {
+  readonly pin: OptionalCombatPolicyPin
+  readonly triggerKind: MoraleTriggerKindDto
+  readonly scope: 'GROUP' | 'SUBJECT'
+  readonly rollerActorId: string
+  readonly groupLeaderActorId: string | null
+  readonly memberActorIds: readonly string[]
+  readonly abilityDefinitionId: string
+  readonly difficultyClass: number
+  readonly contributors: readonly OptionalCombatD20Contributor[]
+  /** Authored overwhelming opposition fails the check without a roll. */
+  readonly automaticFailure: boolean
+  readonly successDisposition: MoraleDispositionDto
+  readonly failureDisposition: MoraleDispositionDto
+}
+
+/** An effect an enabled optional rule has a qualifying attack give its target, sourced by the attacker. */
+export interface AttackAppliedEffect {
+  readonly effectId: string
+  readonly label: string
+  /** Only a melee attack qualifies; otherwise any attack roll does. */
+  readonly meleeOnly: boolean
+  readonly plan: CharacterRuleActionActiveEffectPlan
+}
+
+/**
+ * An authored table the GM may be offered a roll on (ATTACK-15): the events that offer it and the
+ * rows of its die. Rows are ordered and never overlap; a roll between rows lands on none.
+ */
+export interface ConsequenceRollTable {
+  readonly pin: OptionalCombatPolicyPin
+  readonly label: string
+  readonly triggers: readonly ConsequenceRollTriggerDto[]
+  readonly dieFaces: number
+  readonly rows: readonly {
+    readonly rowId: string
+    readonly minimum: number
+    readonly maximum: number
+  }[]
+}
+
+/**
+ * The Encounter's Facing rule as its definition authors it (ATTACK-12): the steps a token may face
+ * in, the arc each offset from its facing falls in, the d20 influence an attacker in a target's arc
+ * gets, and the arcs of its own facing a creature cannot target into.
+ */
+export interface FacingRule {
+  readonly pin: OptionalCombatPolicyPin
+  readonly facingStepDegrees: number
+  readonly arcs: readonly {
+    readonly arc: FacingArc
+    readonly fromDegrees: number
+    readonly toDegrees: number
+  }[]
+  readonly attackerInTargetArc: readonly { readonly arc: FacingArc; readonly influence: string }[]
+  readonly sourceCannotTargetInOwnArcs: readonly FacingArc[]
+}
+
+type FlankingRelationship = 'ALLIED' | 'HOSTILE' | 'NEUTRAL'
+
+/** One creature of a flanking check: its token, its participant capability and its sight of the target. */
+export interface FlankingParticipant {
+  readonly actorId: string
+  readonly token: Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>
+  /** The actor's resolved participant capability; null when it has none (suppressed or absent). */
+  readonly participantCapability: ResolvedRuleCapabilityAvailabilityDto | null
+  readonly canSeeTarget: boolean
+}
+
+/** The facts a melee attack's flanking is decided on: the attacker, its target and its allies by the target. */
+export interface FlankingInput extends OptionalCombatPolicyInput {
+  readonly melee: boolean
+  readonly grid: SceneGrid
+  readonly attacker: FlankingParticipant & { readonly targetRelationship: FlankingRelationship }
+  readonly target: {
+    readonly actorId: string
+    readonly token: Pick<SceneToken, 'height' | 'id' | 'position' | 'width'>
+  }
+  readonly alliedCandidates: readonly (FlankingParticipant & {
+    readonly attackerRelationship: FlankingRelationship
+    readonly targetRelationship: FlankingRelationship
+  })[]
+}
+
+/**
+ * A System's optional-combat policy modules: Disarm, movement passage contests, Cleaving, Morale,
+ * Facing, Flanking, attack-applied effects and consequence tables.
+ */
 export interface OptionalCombatPolicyCapabilityAdapter {
   readonly gameSystemId: string
   prepareDisarmContest(
@@ -174,4 +304,19 @@ export interface OptionalCombatPolicyCapabilityAdapter {
     input: TumblePreparationInput
   ): OptionalCombatResolution<TumbleContestProposal>
   resolveCleaving(input: CleavingInput): OptionalCombatResolution<CleavingProposal>
+  /** Triggers each actor may be checked for now; an actor with none is absent from the map. */
+  offerMoraleTriggers(
+    input: MoraleOfferInput
+  ): ReadonlyMap<string, readonly EncounterMoraleOfferDto[]>
+  prepareMoraleSave(input: MoralePreparationInput): OptionalCombatResolution<MoraleSaveProposal>
+  /** The enabled consequence tables, empty when the rules that author them are off. */
+  consequenceRollTables(input: OptionalCombatPolicyInput): readonly ConsequenceRollTable[]
+  /** The effects the Encounter's enabled rules have an attack give its target; none when off. */
+  attackAppliedEffects(input: OptionalCombatPolicyInput): readonly AttackAppliedEffect[]
+  /** The Encounter's active Facing rule, or null when facing is off. */
+  facingRule(input: OptionalCombatPolicyInput): FacingRule | null
+  /** The capability an actor needs to flank, or null when flanking is off. */
+  flankingParticipantCapabilityDefinitionId(input: OptionalCombatPolicyInput): string | null
+  /** The attack's flanking contributor, or null when the attack is not flanked. */
+  resolveFlanking(input: FlankingInput): OptionalCombatD20Contributor | null
 }

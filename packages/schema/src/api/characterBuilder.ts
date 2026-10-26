@@ -8,7 +8,6 @@ import {
 import { CHARACTER_ABILITY_GENERATION_METHOD } from '@artificer-toolkit/shared/core'
 
 import {
-  abilityCodeSchema,
   authoringSelectionDuplicatePolicySchema,
   authoredRecordStatusSchema
 } from '../shared/enums.js'
@@ -26,6 +25,7 @@ import {
   classStartingGoldDtoSchema
 } from '../subjects/shared.js'
 import { listResponseDtoSchema } from './common.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const stringSchema = lazySchema(() => z.string())
 const integerSchema = lazySchema(() => z.number().check(z.int()))
@@ -50,7 +50,7 @@ const characterBuilderAbilityDraftDtoSchema = lazySchema(() =>
       slots: z
         .array(
           z.strictObject({
-            ability: z.optional(abilityCodeSchema),
+            ability: z.optional(systemCoreCodeSchema),
             option: z.optional(z.enum(['8', '10', '12', '13', '14', '15']))
           })
         )
@@ -61,7 +61,7 @@ const characterBuilderAbilityDraftDtoSchema = lazySchema(() =>
       slots: z
         .array(
           z.strictObject({
-            ability: z.optional(abilityCodeSchema),
+            ability: z.optional(systemCoreCodeSchema),
             option: z.optional(z.enum(['8', '9', '10', '11', '12', '13', '14', '15']))
           })
         )
@@ -72,7 +72,7 @@ const characterBuilderAbilityDraftDtoSchema = lazySchema(() =>
       slots: z
         .array(
           z.strictObject({
-            ability: z.optional(abilityCodeSchema),
+            ability: z.optional(systemCoreCodeSchema),
             score: z.optional(integerSchema)
           })
         )

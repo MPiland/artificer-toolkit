@@ -48,13 +48,17 @@ export function compileDnd5eCreatureRuleFacts(input: {
   }
 
   const abilitiesByCode = new Map(document.abilities.map((ability) => [ability.code, ability]))
-  const normalizedAbilities = Object.entries(creature.abilityScores).map(([code, score]) => {
-    const definition = abilitiesByCode.get(code)
-    if (!definition || !Number.isFinite(score)) {
-      throw new Error('Creature ability facts are not normalized by the pinned System vocabulary.')
-    }
-    return [definition.id, score] as const
+  // System order, not the stored record's key order, so every read derives identical facts.
+  const normalizedAbilities = document.abilities.flatMap(({ id, code }) => {
+    const score = creature.abilityScores[code]
+    return score === undefined ? [] : [[id, score] as const]
   })
+  if (
+    Object.keys(creature.abilityScores).some((code) => !abilitiesByCode.has(code)) ||
+    normalizedAbilities.some(([, score]) => !Number.isFinite(score))
+  ) {
+    throw new Error('Creature ability facts are not normalized by the pinned System vocabulary.')
+  }
   if (new Set(normalizedAbilities.map(([id]) => id)).size !== normalizedAbilities.length) {
     throw new Error('Creature ability definitions are duplicated.')
   }

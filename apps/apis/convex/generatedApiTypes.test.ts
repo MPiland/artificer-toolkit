@@ -16,7 +16,10 @@ type ValidatorJson = {
   values?: { fieldType: ValidatorJson }
 }
 
-/** Lists each `v.any()` leaf of a validator, naming a union member by its `kind` literal. */
+/**
+ * Lists each `v.any()` leaf of a validator, naming a union member by its `kind` literal, or by its
+ * index when it has none (a member whose `kind` is itself a union).
+ */
 function anyLeafPaths(node: ValidatorJson, path = ''): string[] {
   switch (node.type) {
     case 'any':
@@ -31,7 +34,7 @@ function anyLeafPaths(node: ValidatorJson, path = ''): string[] {
           member.type === 'object'
             ? (member.value as Record<string, { fieldType: ValidatorJson }>).kind?.fieldType.value
             : undefined
-        return anyLeafPaths(member, `${path}|${String(kind ?? index)}`)
+        return anyLeafPaths(member, `${path}|${typeof kind === 'string' ? kind : index}`)
       })
     case 'array':
       return anyLeafPaths(node.value as ValidatorJson, `${path}[]`)
@@ -117,9 +120,28 @@ describe('generated Convex API types stay real', () => {
     expectTypeOf<BasicAction['restrictions']>().toBeAny()
     expectTypeOf<BasicAction['effects'][number]['paths'][number]>().toBeAny()
 
+    type Mark = Extract<
+      Extract<NonNullable<Workspace['current']>['document'], { parameters: unknown }>['parameters'],
+      { kind: 'MARK' }
+    >
+    expectTypeOf<Mark['effect']>().not.toBeAny()
+    expectTypeOf<Mark['effect']['paths'][number]>().toBeAny()
+
+    type RaisedEffect = NonNullable<
+      Extract<
+        NonNullable<Workspace['current']>['document'],
+        { parameters: unknown }
+      >['raisedEffects']
+    >[number]
+    expectTypeOf<RaisedEffect>().not.toBeAny()
+    expectTypeOf<RaisedEffect['paths'][number]>().toBeAny()
     expect(leaves(reusableDefinitionWorkspaceDtoSchema)).toEqual([
+      'current|0.document|3.parameters|MARK.effect.paths[]',
+      'current|0.document|3.raisedEffects[].paths[]',
       'current|0.document|BASIC_ACTION.effects[].paths[]',
       'current|0.document|BASIC_ACTION.restrictions|0',
+      'draft|0.document|3.parameters|MARK.effect.paths[]',
+      'draft|0.document|3.raisedEffects[].paths[]',
       'draft|0.document|BASIC_ACTION.effects[].paths[]',
       'draft|0.document|BASIC_ACTION.restrictions|0'
     ])

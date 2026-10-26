@@ -1,4 +1,4 @@
-import type { AbilityCode, AuthoredRecordStatus } from '@artificer-toolkit/shared/core'
+import type { AuthoredRecordStatus } from '@artificer-toolkit/shared/core'
 import {
   CharacterStartingEquipmentSource,
   type CharacterProvenance
@@ -47,7 +47,7 @@ export interface CharacterBuilderClassSummary {
 
 export interface CharacterBuilderSummary {
   totalLevel: number
-  abilities: Partial<Record<AbilityCode, number>>
+  abilities: Record<string, number>
   selectedRace?: {
     raceId: string
     raceLabel: string

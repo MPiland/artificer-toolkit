@@ -4,6 +4,7 @@ import { CirclePlus } from 'lucide-react'
 import { useState } from 'react'
 import IInspiration from '#assets/icons/IInspiration'
 import { ActiveGrantList } from '../../../../components/activeGrants/ActiveGrantList'
+import * as activeGrantStyles from '../../../../components/activeGrants/ActiveGrantList.css'
 import type { SubmitSheetCommand } from '../core/CharacterSheet.types'
 import { ConditionsEditor } from './ConditionsEditor'
 import { ExhaustionEditor } from './ExhaustionEditor'
@@ -22,6 +23,8 @@ export function CharacterSheetOverviewStatusStrip({
   submitCommand: SubmitSheetCommand
 }) {
   const [conditionsOpen, setConditionsOpen] = useState(false)
+  // A held standing effect lists with the active grants; an ended one waits for its rest (SPELLS-31.2).
+  const endedStandingEffects = sheet.overview.standingEffects.filter(({ held }) => !held)
   const conditions = sheet.overview.conditions.length
     ? sheet.overview.conditions.map((condition) => condition.label).join(', ')
     : 'Add Condition'
@@ -130,6 +133,21 @@ export function CharacterSheetOverviewStatusStrip({
             : undefined
         }
       />
+      {endedStandingEffects.length > 0 ? (
+        <ul aria-label='Ended standing effects' className={activeGrantStyles.list}>
+          {endedStandingEffects.map((standing) => (
+            <li key={standing.effectId} className={activeGrantStyles.item}>
+              <Text size='xs'>
+                {standing.label}
+                <Text c='dimmed' component='span' size='xs'>
+                  {' · Ended until '}
+                  {standing.returnsOn === 'LONG_REST' ? 'long rest' : 'short rest'}
+                </Text>
+              </Text>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       {sheet.overview.concentration && sheet.meta.capabilities.managePlayState ? (
         <Group gap='xs'>
           <Text size='xs'>

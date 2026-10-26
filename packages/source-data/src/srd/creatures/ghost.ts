@@ -1,4 +1,5 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
 import { conditionTypeId } from '../equipment/shared.js'
 import * as S from './shared.js'
@@ -176,13 +177,31 @@ export const ghost: CreatureAuthored = {
                     recordsSource: true
                   },
                   {
+                    id: S.actionId(111, 2210),
+                    effectKind: S.EFFECT_KIND.FOLLOW_UP_SAVE,
+                    timing: S.FOLLOW_UP_SAVE_TIMING.TARGET_TURN_END,
+                    savingThrow: {
+                      id: S.actionId(111, 2211),
+                      dcMethod: 'FIXED_DC',
+                      abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+                      baseDc: 13
+                    },
+                    attempts: { kind: 'ONCE', repeatOnFailure: true },
+                    onSuccess: { kind: 'END' },
+                    onFailure: { kind: 'CONTINUE' }
+                  },
+                  {
                     id: S.actionId(111, 209),
-                    effectKind: S.EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: S.CLOSED_RULE_KIND.CREATURE_GHOST_HORRIFYING_VISAGE
+                    effectKind: S.EFFECT_KIND.MANUAL_ADJUDICATION,
+                    label: 'Aging',
+                    reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+                    instructions:
+                      "If the save failed by 5 or more, the target also ages 1d4 × 10 years. A greater restoration spell can reverse the aging, but only within 24 hours of it occurring. A target whose frightened condition ends is also immune to this ghost's Horrifying Visage for the next 24 hours."
                   }
                 ]
               }
-            }
+            },
+            S.saveImmunityPath(111, 2220)
           ]
         }
       ],

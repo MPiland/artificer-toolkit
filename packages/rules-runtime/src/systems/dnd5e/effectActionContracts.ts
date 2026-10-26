@@ -38,6 +38,8 @@ export const DND5E_CONCEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.conceal-proposal'
 export const DND5E_PLAY_ABSENCE_PROPOSAL_OPERATION_KEY = 'dnd5e.play-absence-proposal'
 export const DND5E_DETECT_CONCEALED_PROPOSAL_OPERATION_KEY = 'dnd5e.detect-concealed-proposal'
 export const DND5E_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-proposal'
+/** Hit points lost directly: no damage type, so no resistance, vulnerability or damage rider. */
+export const DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY = 'dnd5e.hit-point-loss-proposal'
 export const DND5E_HIT_POINT_MAXIMUM_REDUCTION_PROPOSAL_OPERATION_KEY =
   'dnd5e.hit-point-maximum-reduction-proposal'
 export const DND5E_DAMAGE_DERIVED_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.damage-derived-heal-proposal'
@@ -114,6 +116,14 @@ export const DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS = {
   ON_SAVE_SUCCESS: 'dnd5e.resolved-damage-expression.on-save-success',
   ON_CHECK_SUCCESS: 'dnd5e.resolved-damage-expression.on-check-success'
 } as const satisfies Record<SpecializedPath, string>
+/**
+ * The target's own multiplier on the damage of an effect it saves against for half (Evasion: none on
+ * a success, half on a failure), bound per save result from its incoming-damage profile.
+ */
+export const DND5E_SAVE_DAMAGE_MULTIPLIER_FACT_KEYS = {
+  ON_SAVE_FAIL: 'dnd5e.save-damage-multiplier.on-save-fail',
+  ON_SAVE_SUCCESS: 'dnd5e.save-damage-multiplier.on-save-success'
+} as const
 export const DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY =
   'dnd5e.resolved-damage-outcome-expressions'
 export const DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY = 'dnd5e.resolved-heal-modifier'
@@ -142,6 +152,8 @@ export const DND5E_ATTACK_MOVE_TOWARD_FACT_KEY = 'dnd5e.attack-move-toward'
 export const DND5E_ATTACK_TURN_USES_FACT_KEY = 'dnd5e.attack-turn-uses'
 /** The dice active grants add to, or take from, this source's damage to this target (D156). */
 export const DND5E_DAMAGE_ADDED_DICE_FACT_KEY = 'dnd5e.damage-added-dice'
+/** The reductions the target's `INCOMING_DAMAGE` grants take from an attack's damage (Deflect Missiles). */
+export const DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY = 'dnd5e.incoming-damage-reductions'
 export const DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY =
   'dnd5e.active-effect-save-ability-definition-id'
 export const DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY =
@@ -175,6 +187,7 @@ export const DND5E_TEST_HEAL_PROPOSAL_OPERATION_KEY = 'dnd5e.test-heal-proposal'
 export const DND5E_TEST_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY =
   'dnd5e.test-temporary-hit-points-proposal'
 export const DND5E_TEST_DAMAGE_PROPOSAL_OPERATION_KEY = 'dnd5e.test-damage-proposal'
+export const DND5E_TEST_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY = 'dnd5e.test-hit-point-loss-proposal'
 export const DND5E_TEST_CONDITION_PROPOSAL_OPERATION_KEY = 'dnd5e.test-condition-proposal'
 export const DND5E_TEST_SCALAR_REDUCTION_PROPOSAL_OPERATION_KEY =
   'dnd5e.test-scalar-reduction-proposal'
@@ -223,17 +236,25 @@ export type Outcome =
       terminalConsequence: 'TARGET_DIED'
     }
 /**
- * Damage whose dice the test graph itself rolls, only when the test resolves to the authored path
- * (a placed zone's failed entry save). The dice are evidence requests of the one frozen graph.
+ * Hit points lost to dice the test graph itself rolls, only when the test resolves to the authored
+ * path (a placed zone's failed entry save). The dice are evidence requests of the one frozen graph.
  */
-export type EntryDiceDamageOutcome = {
-  kind: 'ENTRY_DICE_DAMAGE'
+type EntryDiceShare = {
   diceConfig: string
-  damageTypeId: string
   /** The compiled entry this result's proposal node is bound to. */
   entryId: string
   /** The share of the roll this result deals: 1 for the failed save, one half for the made save. */
   multiplier: number
+}
+export type EntryDiceDamageOutcome = EntryDiceShare & {
+  kind: 'ENTRY_DICE_DAMAGE'
+  damageTypeId: string
+}
+/** Entry dice taken as hit points lost directly, which no damage type, defense or save multiplier touches. */
+export type EntryDiceHitPointLossOutcome = EntryDiceShare & { kind: 'ENTRY_DICE_HIT_POINT_LOSS' }
+export type EntryDiceOutcome = EntryDiceDamageOutcome | EntryDiceHitPointLossOutcome
+export function isEntryDiceOutcome(outcome: { kind: string }): outcome is EntryDiceOutcome {
+  return outcome.kind === 'ENTRY_DICE_DAMAGE' || outcome.kind === 'ENTRY_DICE_HIT_POINT_LOSS'
 }
 /** The ids of the entry dice damage nodes: the executor reads the dice as these graph nodes. */
 export const ENTRY_DAMAGE_NODE_PREFIX = 'damage-'
@@ -351,6 +372,10 @@ export const nestedSaveGateNodeId = (pathCode: string) =>
   `nested-save-gate-${pathCode.toLowerCase()}`
 /** The result path a closed gate hands its band: no authored path is satisfied by it. */
 export const NESTED_SAVE_GATE_CLOSED_PATH = 'GATE_CLOSED'
+/** The op that opens a roll-table row's outcomes to the result path only when the table die lands in the row. */
+export const DND5E_ROLL_TABLE_ROW_GATE_OPERATION_KEY = 'dnd5e.roll-table-row-gate'
+/** The id prefix of a roll table's own dice and running sums, which every row gate reads. */
+export const ROLL_TABLE_DICE_NODE_PREFIX = 'roll-table-'
 export const nestedSaveRiderConditionNodeId = (index: number) =>
   index === 0 ? 'nested-save-rider-condition' : `nested-save-rider-condition-${index + 1}`
 /** The authored result path in a direct proposal node id: `[prefix]proposal-<path>[-condition]`. */

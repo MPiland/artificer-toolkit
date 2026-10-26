@@ -2,19 +2,24 @@ import type {
   EncounterRunActorState,
   EncounterRunCharacterActorState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { CharacterGrantFoldOutput } from '@artificer-toolkit/schema/api/characterGrantFoldRules'
+import { endEventExemptionPayloadDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterMaintainedEffectDescriptorDto } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import type { ReusableDefinitionCurrentDto } from '@artificer-toolkit/schema/shared/reusableDefinitions'
 import { ruleMaintenanceReusableDefinitionDocumentDtoSchema } from '@artificer-toolkit/schema/shared/ruleMaintenance'
 import type { ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { withLinkedDependents } from './activeEffectLinks.js'
 import { campaignMinutesForRounds, ROUNDS_PER_CAMPAIGN_MINUTE } from './campaignClock.js'
 import { carriedCreatureForm, creatureFormContribution } from './encounterActorForm.js'
+import { holderStateRestrictionsHold } from './encounterActiveGrants.js'
 import { encounterActorIdleTurnMark } from './encounterActorState.js'
 import { encounterActorRelationship } from './encounterActionTargetPolicy.js'
 import { endSubscriptions } from './events/effectHooks.js'
 import { discoverEncounterEventHooks } from './events/encounterEventHooks.js'
 import type { EncounterEvent } from './events/encounterEventTable.js'
 import {
+  effectAnchorActorId,
   isEffectLiveInEncounter,
   turnEffectOwner,
   type TurnEffectBoundary
@@ -119,26 +124,6 @@ export function grantsEndedBySourceState<Effect extends ActiveRuleEffectRecord>(
 }
 
 /**
- * The actor whose turns count a timed grant down: its holder, or the Encounter actor that applied
- * it. A source-anchored grant carried in from an earlier Run has no source here, so its holder
- * counts it (D151).
- */
-function grantAnchorActorId(
-  effect: ActiveRuleEffectRecord,
-  holderActorId: string,
-  encounterId: string
-) {
-  const { expiration } = effect.definition.recurrence
-  if (expiration.kind !== 'TICKS') return null
-  const { origin } = effect.definition
-  return expiration.anchor === 'SOURCE' &&
-    origin.kind === 'ENCOUNTER' &&
-    origin.sourceAggregateId === encounterId
-    ? origin.sourceActorId
-    : holderActorId
-}
-
-/**
  * Timed effects anchored to an actor that left the Run can no longer count down, so they end with
  * it. Holder-anchored effects, and those carried in from an earlier Run, keep their own lifetime.
  */
@@ -151,7 +136,7 @@ export function planDepartedSourceGrantRemovals<Effect extends ActiveRuleEffectR
     effects.filter(
       (effect) =>
         effect.definition.recurrence.expiration.kind === 'TICKS' &&
-        effect.definition.recurrence.expiration.anchor === 'SOURCE' &&
+        effect.definition.recurrence.anchor === 'SOURCE' &&
         effect.definition.origin.kind === 'ENCOUNTER' &&
         effect.definition.origin.sourceAggregateId === input.encounterId &&
         effect.definition.origin.sourceActorId === input.departedActorId
@@ -172,27 +157,38 @@ export function planEncounterGrantTicks(input: {
 }): EncounterGrantTick[] {
   const ticks: EncounterGrantTick[] = []
   for (const { actor, effects } of input.holders) {
-    for (const effect of effects) {
+    const owner = turnEffectOwner(actor, input.encounterId)
+    const counted = effects.flatMap((effect) => {
       const { recurrence } = effect.definition
       const expiration = recurrence.expiration
       const remaining = effect.lifecycle.remainingTicks
-      if (
-        remaining === null ||
+      return remaining === null ||
         recurrence.recurrenceStage !== 'NONE' ||
         expiration.kind !== 'TICKS' ||
-        (!isModifierGrant(effect) && expiration.anchor !== 'SOURCE') ||
+        (!isModifierGrant(effect) && recurrence.anchor !== 'SOURCE') ||
         expiration.decrementStage !== input.stage ||
-        !isEffectLiveInEncounter(effect, actor, input.encounterId)
-      )
-        continue
-      if (grantAnchorActorId(effect, actor.id, input.encounterId) !== input.turnActorId) continue
-      const owner = turnEffectOwner(actor, input.encounterId)
-      ticks.push(
-        remaining <= 1
-          ? { kind: 'EXPIRE', effect, owner }
-          : { kind: 'UPDATE', effect, owner, remainingTicks: remaining - 1 }
-      )
-    }
+        !isEffectLiveInEncounter(effect, actor, input.encounterId) ||
+        effectAnchorActorId(effect, actor.id, input.encounterId) !== input.turnActorId
+        ? []
+        : [{ effect, remaining }]
+    })
+    // An effect linked to an expiring one ends with it (D172), as Frenzy ends with Rage.
+    const expired = withLinkedDependents(
+      counted.filter(({ remaining }) => remaining <= 1).map(({ effect }) => effect),
+      effects
+    )
+    const expiredIds = new Set(expired.map(({ id }) => id))
+    ticks.push(
+      ...expired.map((effect) => ({ kind: 'EXPIRE' as const, effect, owner })),
+      ...counted
+        .filter(({ effect }) => !expiredIds.has(effect.id))
+        .map(({ effect, remaining }) => ({
+          kind: 'UPDATE' as const,
+          effect,
+          owner,
+          remainingTicks: remaining - 1
+        }))
+    )
   }
   return ticks.sort(
     (left, right) =>
@@ -219,16 +215,43 @@ export function attackedHostileCreature(input: {
 }
 
 /**
+ * The authored ids of the holder's own active effects that its passive features keep from ending on
+ * `event` (END_EVENT_EXEMPTION: Persistent Rage keeps Rage through an idle turn). A grant bound to
+ * the holder's own active effect holds only while that effect is active; its other deferred holder
+ * conditions fail closed.
+ */
+export function endEventExemptAuthoredEffectIds(input: {
+  featureModifiers: readonly CharacterGrantFoldOutput['modifiers'][number][]
+  event: string
+  activeAuthoredEffectIds: readonly string[]
+}): string[] {
+  return input.featureModifiers.flatMap((modifier) => {
+    if (
+      modifier.valueDomainCode !== 'END_EVENT_EXEMPTION' ||
+      modifier.source.kind !== 'AUTHORED' ||
+      !holderStateRestrictionsHold(modifier.deferredRequirements, {
+        activeAuthoredEffectIds: input.activeAuthoredEffectIds
+      })
+    )
+      return []
+    const { events, effectIds } = endEventExemptionPayloadDtoSchema.parse(modifier.payload)
+    return events.includes(input.event) ? effectIds : []
+  })
+}
+
+/**
  * What the end of the turn actor's turn does to its idle-bound grants (SRD Rage). An armed actor,
  * one that neither attacked a hostile creature nor took damage since its last turn ended, loses the
- * grants that end on `ON_IDLE_TURN`; an engaged one keeps them and is armed again. `effects` need
- * only be read for an armed actor. A grant created on the actor's own turn arrives engaged, so its
- * first check is at the end of the actor's next turn.
+ * grants that end on `ON_IDLE_TURN`; an engaged one keeps them and is armed again. A grant its
+ * `featureModifiers` exempt from `ON_IDLE_TURN` (Persistent Rage) is kept and keeps the actor
+ * armed. `effects` need only be read for an armed actor. A grant created on the actor's own turn
+ * arrives engaged, so its first check is at the end of the actor's next turn.
  */
 export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: {
   encounterId: string
   actor: Pick<EncounterRunActorState, 'kind' | 'resources'>
   effects: readonly Effect[]
+  featureModifiers: readonly CharacterGrantFoldOutput['modifiers'][number][]
 }) {
   const mark = encounterActorIdleTurnMark(input.actor)
   if (mark === null) return { ended: [], nextMark: null }
@@ -237,9 +260,23 @@ export function planIdleTurnCheck<Effect extends ActiveRuleEffectRecord>(input: 
     effects: input.effects,
     events: [{ kind: 'IDLE_TURN' }]
   }).ended
-  const ended = idleBound.filter((effect) =>
-    isEffectLiveInEncounter(effect, input.actor, input.encounterId)
+  const exempt = endEventExemptAuthoredEffectIds({
+    featureModifiers: input.featureModifiers,
+    event: 'ON_IDLE_TURN',
+    activeAuthoredEffectIds: input.effects.map(({ definition }) => definition.authoredEffectId)
+  })
+  // An effect linked to a kept one (Frenzy to a persistent Rage) is kept with it (D172).
+  const kept = new Set(
+    withLinkedDependents(
+      idleBound.filter(
+        (effect) =>
+          !isEffectLiveInEncounter(effect, input.actor, input.encounterId) ||
+          exempt.includes(effect.definition.authoredEffectId)
+      ),
+      input.effects
+    ).map(({ id }) => id)
   )
+  const ended = idleBound.filter(({ id }) => !kept.has(id))
   const holdsOthers = idleBound.length > ended.length
   return { ended, nextMark: holdsOthers ? ('ARMED' as const) : null }
 }

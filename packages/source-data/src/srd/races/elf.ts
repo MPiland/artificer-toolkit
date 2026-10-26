@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
@@ -14,12 +13,12 @@ import {
   RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
-  SIZE_CODE,
   SPELL_GRANT_ATTRIBUTE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, RACE_IDS, SUBRACE_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import {
   SRD_LANGUAGES,
   SRD_SPEEDS,
@@ -27,7 +26,8 @@ import {
   SRD_USER_ID,
   SRD_DARKVISION_SENSE_ID,
   SRD_ELVEN_HERITAGE_ID,
-  SRD_SKILLS
+  SRD_SKILLS,
+  ABILITY_CODE
 } from '../vocabulary.js'
 import { srdSpells } from '../spells/index.js'
 import { conditionSaveAdvantageGrants, magicConditionImmunityGrant } from '../classes/mechanics.js'

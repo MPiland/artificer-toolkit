@@ -49,6 +49,7 @@ function damage(input: { actorId: string; current: number; temporary: number; ma
     maximumHitPoints: input.maximum,
     damageTypeId: crypto.randomUUID(),
     damageDisposition: 'NORMAL' as const,
+    incomingHalved: false,
     critical: false
   }
 }

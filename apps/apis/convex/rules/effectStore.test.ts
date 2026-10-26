@@ -89,6 +89,7 @@ function ownerDefinition(characterId: string): ActiveRuleEffectDefinitionDto {
     perceptionContributions: [],
     recurrence: {
       recurrenceStage: 'NONE',
+      anchor: 'HOLDER',
       consumeOnFirstEvents: [],
       endOnEvents: [],
       endOnTriggers: [],
@@ -117,8 +118,7 @@ function encounterDefinition(encounterId: string, actorId: string): ActiveRuleEf
       expiration: {
         kind: 'TICKS',
         initialRemaining: 3,
-        decrementStage: 'END_OF_TURN',
-        anchor: 'HOLDER'
+        decrementStage: 'END_OF_TURN'
       }
     }
   }

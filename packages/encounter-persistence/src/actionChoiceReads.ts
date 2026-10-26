@@ -37,6 +37,7 @@ import { encounterLegendaryActionFeatureIds } from '@artificer-toolkit/rules-run
 import { readEncounterBoundSceneTokens } from './actionSceneInputs.js'
 import { readEncounterActorDefeated, readZeroHitPointActorIds } from './characterStates.js'
 import { discoverEncounterBasicActions } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
+import { holderStateRestrictionsHold } from '@artificer-toolkit/rules-runtime/encounterActiveGrants'
 import { encounterBasicActionAdmission } from '@artificer-toolkit/rules-runtime/encounterBasicActionRestrictions'
 import { requireEncounterBasicActionDefinition } from '@artificer-toolkit/rules-runtime/encounterBasicActions'
 import { encounterBasicActionCheckLabel } from '@artificer-toolkit/rules-runtime/encounterMovementPassagePreparation'
@@ -48,6 +49,7 @@ import {
 import { encounterRelationships } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import { encounterActorEffectiveSize } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
 import { encounterDragDoublesCost } from '@artificer-toolkit/rules-runtime/encounterMovementDrag'
+import { sizeSpaceFeet } from '@artificer-toolkit/rules-runtime/systemSizes'
 import { liveEffectOffers } from '@artificer-toolkit/rules-runtime/encounterEffectOffers'
 import {
   repeatOfferFreeUseKey,
@@ -261,6 +263,12 @@ export async function readEncounterActionChoices(
         })
       )
     }
+    // An action whose use path names holder restrictions is offered only to a holder that meets them.
+    const characterHolderState = entryPoints.some(
+      (entry) => entry.kind === 'CHARACTER_ACTION' && 'holderRestrictions' in entry
+    )
+      ? await readActionHolderState(tx, { actor, state, campaign, target: actorTarget })
+      : null
     const available = projectCharacterTurnActions(facts, policyOutput, spellCast.decisions).filter(
       (action) =>
         // Unequipped or exhausted actions stay selectable; resolving them warns ("Do it anyway").
@@ -273,7 +281,12 @@ export async function readEncounterActionChoices(
           (entry) =>
             entry.kind === 'CHARACTER_ACTION' &&
             entry.actionId === action.id &&
-            entry.compilation.kind === 'COMPILED'
+            entry.compilation.kind === 'COMPILED' &&
+            (!characterHolderState ||
+              !('holderRestrictions' in entry) ||
+              (entry.holderRestrictions ?? []).every((restrictions) =>
+                holderStateRestrictionsHold(restrictions, characterHolderState)
+              ))
         )
     )
     actions = await Promise.all(
@@ -371,8 +384,10 @@ export async function readEncounterActionChoices(
               ? entry.compilation.choice
               : undefined,
             Boolean(activeEffectPlan?.chosenItem),
-            entry?.kind === 'CHARACTER_ACTION' && entry.schemaVersion === 4
-              ? entry.compilation.summonPlacement
+            entry?.kind === 'CHARACTER_ACTION' &&
+              entry.schemaVersion === 4 &&
+              entry.compilation.summonPlacement
+              ? sizeSpaceFeet(state.gameSystemId, entry.compilation.summonPlacement.statBlock.size)
               : undefined
           ),
           warnings: [
@@ -713,7 +728,8 @@ export async function readEncounterActionChoices(
         ? {
             made: attackActionThisTurn.attacks.length,
             total: attackSlotTotal(attackActionThisTurn.alternatives),
-            complete: !encounterAttackActionStanding(attackActionThisTurn).incomplete,
+            complete: !encounterAttackActionStanding(state.gameSystemId, attackActionThisTurn)
+              .incomplete,
             lastActionId: lastAttack.actionId,
             lastTargetIds: lastAttack.targetIds
           }
@@ -845,7 +861,7 @@ export async function readEncounterHeldRelationships(
     ...hold,
     drag: drags
       ? {
-          doublesCost: encounterDragDoublesCost(sizeOf(hold.sourceActorId), [
+          doublesCost: encounterDragDoublesCost(state.gameSystemId, sizeOf(hold.sourceActorId), [
             sizeOf(hold.heldActorId)
           ])
         }

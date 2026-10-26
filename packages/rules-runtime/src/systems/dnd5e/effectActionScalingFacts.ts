@@ -5,6 +5,10 @@ import {
   damageAddedDiceDtoSchema,
   type DamageAddedDieDto
 } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import {
+  incomingDamageReductionsDtoSchema,
+  type IncomingDamageReductionsDto
+} from '@artificer-toolkit/schema/grants/modifier'
 import type { EnemyProximity } from '../../encounterEnemyProximity.js'
 import type { MoveToward } from '../../encounterMoveToward.js'
 import type { Dnd5eAttackRollMode } from './attackRestrictions.js'
@@ -15,6 +19,7 @@ import {
   DND5E_CLASS_LEVELS_FACT_KEY,
   DND5E_CRITICAL_EXTRA_DICE_FACT_KEY,
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
+  DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY,
   DND5E_RESOLVED_DAMAGE_EXPRESSION_FACT_KEYS,
   DND5E_RESOLVED_DAMAGE_OUTCOME_EXPRESSIONS_FACT_KEY,
   DND5E_SAVE_DC_FACT_KEY,
@@ -43,6 +48,7 @@ export type Dnd5eEffectScalingFacts = Readonly<{
   attackMoveToward?: MoveToward
   attackTurnUses?: readonly string[]
   damageAddedDice?: readonly DamageAddedDieDto[]
+  incomingDamageReductions?: IncomingDamageReductionsDto
   criticalExtraDice?: number
   /** By how much the completed saving throw fell short of its DC. */
   saveFailedBy?: number
@@ -84,6 +90,9 @@ export function dnd5eEffectScalingFacts(input: {
     attackMoveToward: parseMoveToward(facts[DND5E_ATTACK_MOVE_TOWARD_FACT_KEY]),
     attackTurnUses: parseTurnUses(facts[DND5E_ATTACK_TURN_USES_FACT_KEY]),
     damageAddedDice: parseDamageAddedDice(facts[DND5E_DAMAGE_ADDED_DICE_FACT_KEY]),
+    incomingDamageReductions: parseIncomingDamageReductions(
+      facts[DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY]
+    ),
     criticalExtraDice: positiveInteger(facts[DND5E_CRITICAL_EXTRA_DICE_FACT_KEY]),
     saveFailedBy: typeof dc === 'number' && typeof total === 'number' ? dc - total : undefined,
     resolvedDamageExpressions: Object.fromEntries(
@@ -191,6 +200,21 @@ function parseDamageAddedDice(
   const dice = damageAddedDiceDtoSchema.safeParse(parsed)
   if (!dice.success) unsupported('D&D added damage dice are malformed.')
   return dice.data
+}
+
+function parseIncomingDamageReductions(
+  value: RuleValue | undefined
+): IncomingDamageReductionsDto | undefined {
+  if (value === undefined) return undefined
+  let parsed: unknown
+  try {
+    parsed = typeof value === 'string' ? JSON.parse(value) : undefined
+  } catch {
+    parsed = undefined
+  }
+  const reductions = incomingDamageReductionsDtoSchema.safeParse(parsed)
+  if (!reductions.success) unsupported('D&D incoming damage reductions are malformed.')
+  return reductions.data
 }
 
 function parseTurnUses(value: RuleValue | undefined): readonly string[] | undefined {

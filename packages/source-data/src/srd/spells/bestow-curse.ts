@@ -1,6 +1,8 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
-  ABILITIES,
+  SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS,
+  SRD_ABILITIES
+} from '../vocabulary.js'
+import {
   ACTIVATION_CODE,
   ATTACK_DOMAIN_CODE,
   AUTHORING_SELECTION_KIND,
@@ -60,7 +62,7 @@ const curseAdjudication = (label: string, instructions: string) => ({
 // The wasted-action curse needs a start-of-turn save repeated every turn whatever its result,
 // which no repeat-save option expresses yet, so the GM runs it (D156).
 const curses = [
-  ...Object.values(ABILITIES).map(({ code: ability, label }, index) => ({
+  ...Object.values(SRD_ABILITIES).map(({ code: ability, label }, index) => ({
     label,
     description: `Disadvantage on ${label} checks and ${label} saving throws.`,
     outcome: curseGrants(index, [

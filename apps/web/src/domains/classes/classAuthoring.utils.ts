@@ -8,7 +8,6 @@ import type {
   ClassStartingGoldDto
 } from '@artificer-toolkit/schema/subjects/shared'
 import {
-  ABILITY_CODE,
   CHARGE_LIMIT_KIND,
   CHARGE_RESET_KIND,
   CLASS_CATEGORY
@@ -52,9 +51,9 @@ export function toClassFormValues(
 export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuthoringInputDto {
   const common = {
     id: classRecord.id,
-    label: classRecord.label.trim() || 'Untitled Class',
+    label: classRecord.label.trim(),
     description: classRecord.description ?? '',
-    status: classRecord.status ?? 'DRAFT',
+    status: classRecord.status,
     details: classRecord.details ?? [],
     proficiencies: classRecord.proficiencies ?? [],
     spellcasting: classRecord.spellcasting,
@@ -71,7 +70,7 @@ export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuth
       subclassSelectionLevel: classRecord.subclassSelectionLevel,
       startingGold: classRecord.startingGold ?? createEmptyStartingGold(),
       startingEquipment: classRecord.startingEquipment ?? createEmptyStartingEquipment(),
-      hitpoint: classRecord.hitpoint ?? createEmptyHitpoint(),
+      hitpoint: classRecord.hitpoint ?? { dieConfig: '1d8' },
       multiclass: classRecord.multiclass ?? createEmptyMulticlass()
     }
   }
@@ -94,22 +93,11 @@ export function normalizeClassForSubmit(classRecord: ClassFormValues): ClassAuth
   }
 }
 
-export function resolveCreateClassSystemId(systems: readonly { id: string }[]): string | null {
-  return systems[0]?.id ?? null
-}
-
 function createEmptyStartingGold(): ClassStartingGoldDto {
   return {
     multiplier: 1,
     currencyId: '',
     dieConfig: '1d4'
-  }
-}
-
-function createEmptyHitpoint(): NonNullable<ClassAuthoringInputDto['hitpoint']> {
-  return {
-    ability: ABILITY_CODE.CONSTITUTION,
-    dieConfig: '1d8'
   }
 }
 

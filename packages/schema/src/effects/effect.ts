@@ -4,6 +4,7 @@ import type {
   EquipmentEffectAuthored,
   FeatureEffectAuthored
 } from '@artificer-toolkit/shared/authored'
+import { parseRollExpression } from '@artificer-toolkit/shared/rolls'
 import { z, lazySchema, lazySchemaParts } from '../zod.js'
 
 import { manifestBehaviorPathDtoSchema, pathDtoSchema } from './path.js'
@@ -219,19 +220,24 @@ function checkWeaponDamageTypeChoices(
 
 /**
  * Path restrictions and usage limits gate the damage an attack's hit or critical owes (D119); the
- * roll mode and the turn they read exist only for that attack, so no other path can carry one.
+ * roll mode and the turn they read exist only for that attack, so no other path can carry one. An
+ * activated action's ON_USE path may carry restrictions too: the holder conditions its user must
+ * meet to take it (Frenzy only while raging).
  */
 function checkPathRestrictions(
-  effect: Pick<EffectAuthored, 'paths'>,
+  effect: Pick<EffectAuthored, 'invocation' | 'paths'>,
   context: z.core.$RefinementCtx
 ) {
+  const activated =
+    effect.invocation.kind === 'ACTION' && effect.invocation.triggerCode === 'ACTIVATED'
   effect.paths.forEach((path, index) => {
     if (path.pathCode === 'ON_HIT' || path.pathCode === 'ON_CRIT') return
-    if (path.restrictions)
+    if (path.restrictions && !(activated && path.pathCode === 'ON_USE'))
       context.addIssue({
         code: 'custom',
         path: ['paths', index, 'restrictions'],
-        message: 'Only an ON_HIT or ON_CRIT path can carry restrictions.'
+        message:
+          "Only an ON_HIT or ON_CRIT path, or an activated action's ON_USE path, can carry restrictions."
       })
     if (path.usage)
       context.addIssue({
@@ -274,11 +280,84 @@ function checkFailureMarginRiders(
   })
 }
 
+/** The lowest and highest totals of a roll table's dice, or null when they are not one plain term. */
+function rollTableBounds(dieConfig: string): [number, number] | null {
+  let parsed: ReturnType<typeof parseRollExpression>
+  try {
+    parsed = parseRollExpression(dieConfig)
+  } catch {
+    return null
+  }
+  const [term] = parsed.terms
+  if (
+    !term ||
+    parsed.terms.length !== 1 ||
+    parsed.modifier !== 0 ||
+    parsed.transform.kind !== 'NONE' ||
+    term.modifier !== 0 ||
+    term.reroll ||
+    term.selection
+  )
+    return null
+  return [term.count, term.count * term.die]
+}
+
+/**
+ * Every total a roll table's dice can roll selects exactly one row, so an executed roll never lands
+ * outside the table (ATTACK-16.T1a).
+ */
+function checkRollTableCoverage(
+  effect: Pick<EffectAuthored, 'paths'>,
+  context: z.core.$RefinementCtx
+) {
+  effect.paths.forEach((path, index) => {
+    if (path.selectionKind !== 'ROLL_TABLE') return
+    const bounds = rollTableBounds(path.dieConfig)
+    if (!bounds) {
+      context.addIssue({
+        code: 'custom',
+        path: ['paths', index, 'dieConfig'],
+        message: 'A roll table rolls one plain dice term, such as 1d10 or 2d6.'
+      })
+      return
+    }
+    const ranges = path.rows.map(({ rollRange, rollValue }) =>
+      path.rollTableKind === 'RANGE'
+        ? rollRange
+        : rollValue === undefined
+          ? undefined
+          : [rollValue, rollValue]
+    )
+    const issue = (message: string) =>
+      context.addIssue({ code: 'custom', path: ['paths', index, 'rows'], message })
+    const wholeRanges = ranges.filter(
+      (range): range is [number, number] =>
+        range !== undefined &&
+        Number.isInteger(range[0]) &&
+        Number.isInteger(range[1]) &&
+        range[0] <= range[1]
+    )
+    if (wholeRanges.length !== ranges.length)
+      return issue('Roll-table row ranges must run from low to high in whole numbers.')
+    const [lowest, highest] = bounds
+    const coverage = `Roll-table rows must cover every roll of ${path.dieConfig} exactly once`
+    const outside = wholeRanges.flat().find((value) => value < lowest || value > highest)
+    if (outside !== undefined)
+      return issue(`${coverage}: ${outside} is outside ${lowest}–${highest}.`)
+    for (let roll = lowest; roll <= highest; roll += 1) {
+      const rows = wholeRanges.filter(([low, high]) => low <= roll && roll <= high).length
+      if (rows === 0) return issue(`${coverage}: no row covers ${roll}.`)
+      if (rows > 1) return issue(`${coverage}: more than one row covers ${roll}.`)
+    }
+  })
+}
+
 export const effectDtoSchema = lazySchema(() =>
   (createEffectDtoSchema(pathDtoSchema) as z.ZodMiniType<EffectAuthored>).check(
     z.superRefine(checkWeaponDamageTypeChoices),
     z.superRefine(checkPathRestrictions),
-    z.superRefine(checkFailureMarginRiders)
+    z.superRefine(checkFailureMarginRiders),
+    z.superRefine(checkRollTableCoverage)
   )
 )
 
@@ -397,7 +476,8 @@ export const featureEffectDtoSchema = lazySchema(() =>
   ).check(
     z.superRefine(checkWeaponDamageTypeChoices),
     z.superRefine(checkPathRestrictions),
-    z.superRefine(checkFailureMarginRiders)
+    z.superRefine(checkFailureMarginRiders),
+    z.superRefine(checkRollTableCoverage)
   )
 )
 
@@ -426,7 +506,8 @@ export const equipmentEffectDtoSchema = lazySchema(() =>
   ).check(
     z.superRefine(checkWeaponDamageTypeChoices),
     z.superRefine(checkPathRestrictions),
-    z.superRefine(checkFailureMarginRiders)
+    z.superRefine(checkFailureMarginRiders),
+    z.superRefine(checkRollTableCoverage)
   )
 )
 

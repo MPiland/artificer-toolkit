@@ -332,23 +332,30 @@ describe('manifest schema parsing', () => {
         }
       },
       paths: [
-        exactRollTablePath('bad-roll-path', 1, 'ON_USE', [
-          {
-            id: 'bad-roll-entry',
-            order: 1,
-            label: 'Should fail',
-            description: 'Roll tables should not use entry metadata.',
-            rollValue: 1,
-            resolutionKind: 'RESULT',
-            resultBlock: singleResultBlock('bad-roll-result', {
-              id: 'bad-roll-outcome',
-              effectKind: 'MANUAL_ADJUDICATION',
-              label: 'Rolled result',
-              instructions: 'Resolve the rolled result.',
-              reasonCode: 'NARRATIVE_JUDGMENT'
-            })
-          }
-        ])
+        // One row covering the whole die: publication refuses a table with an uncovered face.
+        exactRollTablePath(
+          'bad-roll-path',
+          1,
+          'ON_USE',
+          [
+            {
+              id: 'bad-roll-entry',
+              order: 1,
+              label: 'Should fail',
+              description: 'Roll tables should not use entry metadata.',
+              rollRange: [1, 4],
+              resolutionKind: 'RESULT',
+              resultBlock: singleResultBlock('bad-roll-result', {
+                id: 'bad-roll-outcome',
+                effectKind: 'MANUAL_ADJUDICATION',
+                label: 'Rolled result',
+                instructions: 'Resolve the rolled result.',
+                reasonCode: 'NARRATIVE_JUDGMENT'
+              })
+            }
+          ],
+          { rollTableKind: 'RANGE' }
+        )
       ]
     })
 

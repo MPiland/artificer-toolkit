@@ -141,12 +141,8 @@ export function resolveCharacterRulePolicyRollModes(
         )
       }
       const abilityDefinition = matches[0]!
-      const rollMode =
-        rollModes.savingThrows[savingThrow.abilityId as keyof typeof rollModes.savingThrows]
-      const savingThrowEvidence =
-        canonicalContributors.savingThrows[
-          savingThrow.abilityId as keyof typeof contributors.savingThrows
-        ]
+      const rollMode = rollModes.savingThrows[savingThrow.abilityId]
+      const savingThrowEvidence = canonicalContributors.savingThrows[savingThrow.abilityId]
       if (!rollMode || !savingThrowEvidence) {
         throw new Error(
           `Character saving throw "${savingThrow.abilityId}" lacks normalized roll evidence.`

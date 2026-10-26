@@ -11,7 +11,6 @@ import type {
   StartingEquipmentAuthored
 } from '#authored'
 import {
-  type AbilityCode,
   type PrepareLimitMethodKind,
   type ScalingAmountKind,
   type RoundingCode,
@@ -36,7 +35,6 @@ export interface CompiledClassResource {
 }
 
 export interface CompiledHitpoint {
-  ability: AbilityCode
   dieConfig: string
 }
 
@@ -75,7 +73,7 @@ export interface CompiledSpellcasting {
   spellLimits: CompiledSpellLimits[]
   availableAtLevel?: number
   availableSpellIds?: string[]
-  ability?: AbilityCode
+  ability?: string
   maxSpellLevel: number // int
   attributes?: SpellcastingAttribute[]
   charges?: CompiledCharge
@@ -84,7 +82,7 @@ export interface CompiledSpellcasting {
 
 export type CompiledMulticlassRequirement = {
   id: string
-  ability: AbilityCode
+  ability: string
   min: number // minimum score required
 }
 

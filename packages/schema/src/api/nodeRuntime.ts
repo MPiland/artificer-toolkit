@@ -315,7 +315,8 @@ const selectInputSchemas = lazySchemaParts(() =>
       kind: z.literal('INPUT'),
       type: z.literal(type),
       options: z.array(nodeRuntimeOptionDtoSchema),
-      preserveUnknownOptions: z.optional(z.boolean()),
+      /** An unknown value is kept (PRESERVE), refused at ingress (REFUSE) or, when unset, cleared. */
+      unknownOptions: z.optional(z.enum(['PRESERVE', 'REFUSE'])),
       constraints: z.optional(nodeRuntimeInputConstraintsDtoSchema),
       authoring: nodeRuntimeInputAuthoringDtoSchema
     })
@@ -393,7 +394,9 @@ export const nodeRuntimeResolveResponseDtoSchema = lazySchema(() =>
 export const nodeRuntimeNormalizeValuesResponseDtoSchema = lazySchema(() =>
   z.strictObject({
     values: z.unknown(),
-    clearedPaths: z.array(nodeRuntimePathDtoSchema)
+    clearedPaths: z.array(nodeRuntimePathDtoSchema),
+    /** The cleared paths whose node refuses an unknown value; ingress fails on any. */
+    refusedPaths: z.array(nodeRuntimePathDtoSchema)
   })
 )
 

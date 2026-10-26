@@ -2,15 +2,21 @@ import { useEffect, useState } from 'react'
 import { useSelector } from '@tanstack/react-form'
 import { Alert, Stack, Text } from '@mantine/core'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
-import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import * as styles from '#forms/guided/guidedAuthoring.css'
-import { readField } from '#forms/guided/guidedValues'
+import {
+  EMPTY_GUIDED_FORM_VALUES,
+  type GuidedValues,
+  guidedField,
+  readGuidedValues,
+  toFeatures,
+  toSelectOption
+} from '#forms/guided/guidedValues'
 
 const STEPS = ['Basics', 'Performance', 'Capacity and cost', 'Features', 'Review'] as const
 const TITLES = [
@@ -28,20 +34,21 @@ const DESCRIPTIONS = [
   'Check the essentials before saving.'
 ] as const
 
-type Props = {
-  session: AuthoredFormSession
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-}
-
 export const GuidedVehicleAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as Props,
-  render: function RenderGuidedVehicleAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedVehicleAuthoring({
+    form,
+    onAdvanced,
+    onStateChange,
+    session,
+    system
+  }) {
     const [screen, setScreen] = useState(0)
     const values = useSelector(form.store, (state) => state.values)
-    const label = readString(values, 'label')
-    const features = readFeatures(values)
+    const draft = readGuidedValues('vehicle', values)
+    const label = draft.label ?? ''
+    const features = toFeatures(draft.features)
 
     useEffect(() => {
       onStateChange({ isReview: screen === 4, showPreview: screen > 0 || Boolean(label) })
@@ -49,7 +56,7 @@ export const GuidedVehicleAuthoring = withForm({
 
     const canContinue = screen === 0 ? Boolean(label.trim()) : true
     const setFeatures = (next: FeatureDto[]) =>
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['features']), next)
+      form.setFieldValue(guidedField('vehicle', 'features'), next)
 
     return (
       <GuidedAuthoringFrame
@@ -69,14 +76,14 @@ export const GuidedVehicleAuthoring = withForm({
       >
         {screen === 0 ? (
           <Stack gap='lg'>
-            {session.mode === 'edit' && hasAdvancedData(values) ? (
+            {session.mode === 'edit' && hasAdvancedData(draft.properties, features) ? (
               <Alert color='blue' title='Some details require Advanced'>
                 Detailed properties and feature mechanics stay intact while you edit this vehicle's
                 common fields.
               </Alert>
             ) : null}
             <div className={styles.identityRow}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+              <form.AppField name={guidedField('vehicle', 'label')}>
                 {(field) => (
                   <field.TextField
                     label='Vehicle name'
@@ -87,7 +94,7 @@ export const GuidedVehicleAuthoring = withForm({
               </form.AppField>
               <AuthoringArtworkControl />
             </div>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+            <form.AppField name={guidedField('vehicle', 'description')}>
               {(field) => (
                 <field.RichTextField
                   label='Description'
@@ -100,7 +107,7 @@ export const GuidedVehicleAuthoring = withForm({
 
         {screen === 1 ? (
           <div className={styles.fields}>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['category'])}>
+            <form.AppField name={guidedField('vehicle', 'category')}>
               {(field) => (
                 <field.SelectField
                   label='Category'
@@ -119,7 +126,7 @@ export const GuidedVehicleAuthoring = withForm({
                 />
               )}
             </form.AppField>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['size'])}>
+            <form.AppField name={guidedField('vehicle', 'size')}>
               {(field) => (
                 <field.SelectField
                   label='Size'
@@ -130,16 +137,16 @@ export const GuidedVehicleAuthoring = withForm({
                 />
               )}
             </form.AppField>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['armorClass'])}>
+            <form.AppField name={guidedField('vehicle', 'armorClass')}>
               {(field) => <field.NumberField label='Armor Class' minimum={0} />}
             </form.AppField>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['hitPoints'])}>
+            <form.AppField name={guidedField('vehicle', 'hitPoints')}>
               {(field) => <field.NumberField label='Hit Points' minimum={0} />}
             </form.AppField>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['speed'])}>
+            <form.AppField name={guidedField('vehicle', 'speed')}>
               {(field) => <field.NumberField label='Speed' minimum={0} />}
             </form.AppField>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['speedNote'])}>
+            <form.AppField name={guidedField('vehicle', 'speedNote')}>
               {(field) => (
                 <field.TextField label='Speed note' placeholder='Optional movement note' />
               )}
@@ -149,68 +156,47 @@ export const GuidedVehicleAuthoring = withForm({
 
         {screen === 2 ? (
           <div className={styles.fields}>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['crewMin'])}>
+            <form.AppField name={guidedField('vehicle', 'crewMin')}>
               {(field) => <field.NumberField label='Minimum crew' minimum={0} />}
             </form.AppField>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['crewMax'])}>
+            <form.AppField name={guidedField('vehicle', 'crewMax')}>
               {(field) => <field.NumberField label='Maximum crew' minimum={0} />}
             </form.AppField>
-            <form.AppField
-              name={toTypedAuthoringFieldName<object>(undefined, ['passengerCapacity'])}
-            >
+            <form.AppField name={guidedField('vehicle', 'passengerCapacity')}>
               {(field) => <field.NumberField label='Passenger capacity' minimum={0} />}
             </form.AppField>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['cargoCapacity'])}>
+            <form.AppField name={guidedField('vehicle', 'cargoCapacity')}>
               {(field) => <field.TextField label='Cargo capacity' placeholder='e.g. 2 tons' />}
             </form.AppField>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['cost', 'amount'])}>
+            <form.AppField name={guidedField('vehicle', 'cost', 'amount')}>
               {(field) => <field.NumberField label='Cost' minimum={0} />}
             </form.AppField>
-            <form.AppField
-              name={toTypedAuthoringFieldName<object>(undefined, ['cost', 'currencyId'])}
-            >
+            <form.AppField name={guidedField('vehicle', 'cost', 'currencyId')}>
               {(field) => (
-                <field.SelectField
-                  data={(session.system?.currencies ?? []).map((currency) => ({
-                    label: currency.label,
-                    value: currency.id
-                  }))}
-                  label='Currency'
-                />
+                <field.SelectField data={system.currencies.map(toSelectOption)} label='Currency' />
               )}
             </form.AppField>
           </div>
         ) : null}
 
         {screen === 3 ? (
-          <GuidedFeatureAccordion
-            features={features}
-            system={session.system!}
-            onChange={setFeatures}
-          />
+          <GuidedFeatureAccordion features={features} system={system} onChange={setFeatures} />
         ) : null}
 
         {screen === 4 ? (
           <Stack gap='md'>
             <Text fw={600}>{label || 'Untitled Vehicle'}</Text>
             <dl className={styles.summary}>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Category</dt>
-                <dd className={styles.summaryValue}>
-                  {readString(values, 'category') || 'Not set'}
-                </dd>
-              </div>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Performance</dt>
-                <dd className={styles.summaryValue}>
-                  {summaryStat(values, 'armorClass', 'AC')} ·{' '}
-                  {summaryStat(values, 'hitPoints', 'HP')} · {summaryStat(values, 'speed', 'Speed')}
-                </dd>
-              </div>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Features</dt>
-                <dd className={styles.summaryValue}>{features.length || 'None yet'}</dd>
-              </div>
+              <GuidedSummaryRow label='Category' value={draft.category || 'Not set'} />
+              <GuidedSummaryRow
+                label='Performance'
+                value={[
+                  summaryStat('AC', draft.armorClass),
+                  summaryStat('HP', draft.hitPoints),
+                  summaryStat('Speed', draft.speed)
+                ].join(' · ')}
+              />
+              <GuidedSummaryRow label='Features' value={String(features.length || 'None yet')} />
             </dl>
           </Stack>
         ) : null}
@@ -219,31 +205,16 @@ export const GuidedVehicleAuthoring = withForm({
   }
 })
 
-function readString(values: object, key: string): string {
-  const value = readField(values, key)
-  return typeof value === 'string' ? value : ''
-}
-
-function readFeatures(values: object): FeatureDto[] {
-  const value = readField(values, 'features')
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is FeatureDto =>
-          typeof item === 'object' && item !== null && 'id' in item && 'order' in item
-      )
-    : []
-}
-
-function summaryStat(values: object, key: string, label: string): string {
-  const value = readField(values, key)
+function summaryStat(label: string, value: number | undefined): string {
   return typeof value === 'number' ? `${label} ${value}` : `${label} —`
 }
 
-function hasAdvancedData(values: object): boolean {
-  const value = readField(values, 'properties')
-  const features = readFeatures(values)
+function hasAdvancedData(
+  properties: GuidedValues<'vehicle'>['properties'],
+  features: FeatureDto[]
+): boolean {
   return (
-    (Array.isArray(value) && value.length > 0) ||
+    Boolean(properties?.length) ||
     features.some((feature) =>
       Boolean(
         feature.effects?.length || feature.grants || feature.restrictions || feature.options?.length

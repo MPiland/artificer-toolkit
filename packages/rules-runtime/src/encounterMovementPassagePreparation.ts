@@ -7,8 +7,8 @@ import {
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import type { D20MinimumRollDto } from '@artificer-toolkit/schema/shared/d20MinimumRoll'
 import {
-  activeAbilityCheckDice,
-  activeAbilityCheckMinimumRoll
+  abilityCheckMinimumRoll,
+  activeAbilityCheckDice
 } from './character/activeEffectGrantTotals.js'
 import { freezeD20Context } from './encounterD20Settlement.js'
 import { withEncounterConditionCheckContributors } from './encounterConditionMechanics.js'
@@ -21,15 +21,14 @@ import {
   encounterOptionalCombatSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/optionalCombat'
 import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
-import { sizeRank } from '@artificer-toolkit/shared/core'
-import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { systemCoreCodeSchema } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
-import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
+import { addsFullProficiency } from '@artificer-toolkit/schema/api/characterSheet'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import {
   characterCheckSkillId,
@@ -40,6 +39,7 @@ import type { EncounterActionEconomyConsumption } from './encounterActionEconomy
 import type { CharacterMovementFacts, MovementTarget } from './encounterMovementTargets.js'
 import { EncounterValidationError } from './encounterErrors.js'
 import { prepareEncounterContestPendingContext } from './encounterContestPendingContext.js'
+import { sizeRank } from './systemSizes.js'
 import {
   contestCheckCapabilityRegistry,
   optionalCombatPolicyCapabilityRegistry
@@ -64,7 +64,7 @@ export type ContestFacts = {
   size: string | null
   /** The dice the actor's active effects add to this check (D156). */
   addedDice: D20AddedDieDto[]
-  /** The floor the actor's active effects put on this check's d20; null when it has none. */
+  /** The floor the actor's active effects and features put on this check's d20; null when none. */
   minimumRoll: D20MinimumRollDto | null
 }
 
@@ -85,17 +85,11 @@ function characterAbilityCheck(
     (definition) => definition.id === abilityDefinitionId
   )?.code
   if (code === undefined) return { modifier: undefined, evidence: undefined, rollMode: undefined }
-  // The System may spell an ability by its short alias while the rules output keys it by the full
-  // code: every lookup goes through the one canonical key.
-  const canonicalKey = (ability: string) => resolveAbilityAlias(ability) ?? ability
-  const canonical = canonicalKey(code)
-  const byCanonical = <TValue>(record: Readonly<Record<string, TValue>>) => record[canonical]
   return {
-    modifier: policy.derivedStats.abilities.find(
-      (entry) => canonicalKey(entry.abilityId) === canonical
-    )?.modifier.effective,
-    evidence: byCanonical(policy.rollContributorEvidence.abilityChecks),
-    rollMode: byCanonical(policy.rollModes.abilityChecks)
+    modifier: policy.derivedStats.abilities.find((entry) => entry.abilityId === code)?.modifier
+      .effective,
+    evidence: policy.rollContributorEvidence.abilityChecks[code],
+    rollMode: policy.rollModes.abilityChecks[code]
   }
 }
 
@@ -145,11 +139,19 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
     throw new Error('Movement passage actor facts are stale.')
   const abilityCode = checkAbilityCode(input.system, input.checkKind, input.checkDefinitionId)
   const withConditions = (
-    facts: Omit<ContestFacts, 'addedDice' | 'minimumRoll'>
+    facts: Omit<ContestFacts, 'addedDice' | 'minimumRoll'>,
+    floorHolder: Pick<Parameters<typeof abilityCheckMinimumRoll>[0], 'character' | 'proficient'> = {
+      character: null,
+      proficient: false
+    }
   ): ContestFacts => ({
     ...facts,
     addedDice: activeAbilityCheckDice(target.activeEffects, abilityCode),
-    minimumRoll: activeAbilityCheckMinimumRoll(target.activeEffects, abilityCode),
+    minimumRoll: abilityCheckMinimumRoll({
+      effects: target.activeEffects,
+      abilityCode,
+      ...floorHolder
+    }),
     ...withEncounterConditionCheckContributors({
       gameSystemId: input.gameSystemId,
       holderActorId: target.actor.id,
@@ -195,16 +197,27 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
             })
           )
         : null
-    return withConditions({
-      controllerCharacterId: facts.active.id,
-      contributors: featureCheck?.contributors ?? check.evidence ?? [],
-      modifier:
-        typeof check.modifier === 'number' && Number.isSafeInteger(check.modifier)
-          ? check.modifier
-          : null,
-      rollMode: featureCheck?.rollMode ?? check.rollMode ?? 'NORMAL',
-      size: initiative.effectiveSize
-    })
+    const proficiency =
+      input.checkKind === 'SKILL' && skillId
+        ? policy.derivedStats.skills.find((skill) => skill.skillId === skillId)?.proficiency
+            .effective
+        : undefined
+    return withConditions(
+      {
+        controllerCharacterId: facts.active.id,
+        contributors: featureCheck?.contributors ?? check.evidence ?? [],
+        modifier:
+          typeof check.modifier === 'number' && Number.isSafeInteger(check.modifier)
+            ? check.modifier
+            : null,
+        rollMode: featureCheck?.rollMode ?? check.rollMode ?? 'NORMAL',
+        size: initiative.effectiveSize
+      },
+      {
+        character: { grantFold: policy.grantFold, registry: facts.ruleEvaluation.registry },
+        proficient: addsFullProficiency(proficiency)
+      }
+    )
   }
   const creature = formCreature ?? target.actor
   if (creature.kind === 'CREATURE') {
@@ -245,7 +258,7 @@ export function actorContestFacts<TCharacterFacts extends CharacterMovementFacts
       contributors: granted.contributors,
       modifier: typeof modifier === 'number' && Number.isSafeInteger(modifier) ? modifier : null,
       rollMode: granted.rollMode,
-      size: sizeCodeSchema.parse(creature.snapshot.payload.size)
+      size: systemCoreCodeSchema.parse(creature.snapshot.payload.size)
     })
   }
   throw new Error('Movement passage Custom actors cannot contest passage.')
@@ -342,8 +355,8 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     option.ruleKind === 'OVERRUN'
       ? policy.prepareOverrunContest({
           ...common,
-          initiatorSizeRank: sizeRank(sourceSize),
-          targetSizeRank: sizeRank(blockerSize),
+          initiatorSizeRank: sizeRank(input.state.gameSystemId, sourceSize),
+          targetSizeRank: sizeRank(input.state.gameSystemId, blockerSize),
           qualifiedInitiatorContributors: []
         })
       : policy.prepareTumbleContest(common)
@@ -372,8 +385,8 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
           ruleKind: 'OVERRUN' as const,
           result: policy.prepareOverrunContest({
             ...common,
-            initiatorSizeRank: sizeRank(initiator.size),
-            targetSizeRank: sizeRank(defender.size),
+            initiatorSizeRank: sizeRank(input.state.gameSystemId, initiator.size),
+            targetSizeRank: sizeRank(input.state.gameSystemId, defender.size),
             qualifiedInitiatorContributors: initiator.contributors.map((contributor) => ({
               id: contributor.sourceId,
               influence: contributor.influence,

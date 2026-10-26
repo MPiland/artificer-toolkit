@@ -1,5 +1,6 @@
 import type { EffectAuthored, FacetAuthored } from '@artificer-toolkit/shared/authored'
 import { compileEffect } from '@artificer-toolkit/shared/compilers'
+import { pathOfTheBerserker } from '@artificer-toolkit/source-data/srd/classes/path-of-the-berserker.js'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -101,6 +102,15 @@ describe('path restrictions on a compiled attack Effect', () => {
   it('compiles a path’s restrictions onto each of its entries', () => {
     const gate = riderGate([ADVANTAGE])
     expect(restrictionsOf(restrictedEffect(gate))).toEqual([gate])
+  })
+
+  it('leaves an ON_USE path’s holder restrictions as authored (Frenzy, SPELLS-31.T5f4)', () => {
+    const authored = pathOfTheBerserker.features?.find(({ label }) => label === 'Frenzy')
+      ?.effects?.[0]
+    if (!authored) throw new Error('The SRD Berserker has no Frenzy effect.')
+    const frenzy = compileEffect(authored)
+    expect(restrictionsOf(frenzy)).not.toEqual([undefined])
+    expect(reduceEffectRestrictions(frenzy, longsword)).toBe(frenzy)
   })
 
   it('leaves an unrestricted Effect untouched', () => {

@@ -2,7 +2,7 @@ import { z, lazySchema } from '../zod.js'
 import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { speedDtoSchema } from '../shared/speed.js'
-import { abilityCodeSchema, sizeCodeSchema } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import type { CharacterSpellSummonState } from '@artificer-toolkit/shared/authored'
 
 import {
@@ -128,9 +128,9 @@ const characterSpellSummonStateDtoSchemaRaw: z.ZodMiniType<CharacterSpellSummonS
         label: z.string().check(z.minLength(1)),
         /** The cast opened Concentration: this summon is the Sheet's Concentration and ends with it. */
         concentration: z.boolean(),
-        size: z.optional(sizeCodeSchema),
+        size: z.optional(systemCoreCodeSchema),
         armorClass: z.nullable(z.number().check(z.int()).check(z.nonnegative())),
-        abilityScores: z.optional(z.partialRecord(abilityCodeSchema, z.number().check(z.int()))),
+        abilityScores: z.optional(z.record(systemCoreCodeSchema, z.number().check(z.int()))),
         speeds: z.optional(z.array(speedDtoSchema)),
         passivePerception: z.optional(z.number().check(z.int())),
         /** Absent with `currentHitPoints` when the stat block gives no hit points: no pool. */

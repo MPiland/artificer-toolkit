@@ -126,6 +126,8 @@ describe('character sheet command contracts', () => {
           abilities: [
             {
               ability: 'DEXTERITY',
+              label: 'Dexterity',
+              short: 'DEX',
               score: 14,
               modifier: 2,
               rollMode: 'NORMAL'
@@ -149,12 +151,14 @@ describe('character sheet command contracts', () => {
           maxHitPointsModifierAdjustmentId: null,
           maxHitPointsReductions: [],
           activeGrants: [],
+          standingEffects: [],
           concentration: null,
           maxHitPointsOverride: null,
           savingThrows: [
             {
               ability: 'DEXTERITY',
               label: 'Dexterity',
+              short: 'DEX',
               total: 4,
               rollMode: 'NORMAL',
               proficiency: 'FULL'
@@ -166,6 +170,7 @@ describe('character sheet command contracts', () => {
               code: 'ATHLETICS',
               label: 'Athletics',
               ability: 'STRENGTH',
+              abilityShort: 'STR',
               total: 4,
               rollMode: 'NORMAL',
               proficiency: 'DOUBLE'
@@ -318,12 +323,14 @@ describe('character sheet command contracts', () => {
           maxHitPointsModifierAdjustmentId: null,
           maxHitPointsReductions: [],
           activeGrants: [],
+          standingEffects: [],
           concentration: null,
           maxHitPointsOverride: null,
           savingThrows: [
             {
               ability: 'DEXTERITY',
               label: 'Dexterity',
+              short: 'DEX',
               total: 2,
               rollMode: 'NORMAL',
               proficiency: 'INVALID'

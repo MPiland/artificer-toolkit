@@ -12,7 +12,7 @@ import {
   activeOptionalCombatDefinitions,
   encounterOptionalCombatSnapshotDtoSchema
 } from '@artificer-toolkit/schema/shared/optionalCombat'
-import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { systemCoreCodeSchema } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { ServerContestCheckPendingApplicationContextDto } from '@artificer-toolkit/schema/shared/rulesExecution'
 import { isHandSlot } from '@artificer-toolkit/shared/core'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
@@ -32,6 +32,7 @@ import type { prepareEncounterActionMechanics } from './encounterActionMechanics
 import type { ReceiptApplications } from './encounterCharacterMechanicsBatch.js'
 import { freezeD20Context } from './encounterD20Settlement.js'
 import { evaluateEncounterActionTargetPolicy } from './encounterActionTargetPolicy.js'
+import type { FacingRule } from './optionalCombatPolicyCapability.js'
 import {
   creatureActiveGrantAttackContributors,
   creatureAttackAbility,
@@ -139,19 +140,21 @@ export function readEncounterDisarmSelection(input: {
   definition: ReturnType<typeof requireEncounterDisarmDefinition>
   prepared: PreparedMechanics
   sceneContext: SceneContext
+  facing: FacingRule | null
   /** Refuses a target that cannot be disarmed (neither a Character nor a Creature). */
   rejectTarget(): never
 }) {
   const { actor, target, prepared } = input
   const { source, sourceFacts, targetFacts } = prepared
-  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH')
+  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH' || source.kind === 'RULE')
     throw new Error('Disarm requires a weapon attack action.')
   const targetWarnings = evaluateEncounterActionTargetPolicy({
     actor,
     target,
     targetPolicy: prepared.targetPolicy,
     sceneContext: input.sceneContext,
-    makesAttackRoll: prepared.makesAttackRoll
+    makesAttackRoll: prepared.makesAttackRoll,
+    facing: input.facing
   })
   if (targetWarnings === null || targetWarnings.length)
     throw new Error('The selected action does not permit this target.')
@@ -239,7 +242,7 @@ export function readEncounterDisarmSelection(input: {
       !Array.isArray(actor.snapshot.payload)
         ? actor.snapshot.payload
         : null
-    const size = sizeCodeSchema.safeParse(payload?.size)
+    const size = systemCoreCodeSchema.safeParse(payload?.size)
     return {
       equipment:
         loadout && equipment
@@ -343,7 +346,7 @@ export function prepareEncounterDisarmContest(input: {
   if (command.acceptedWieldConflict) throw new Error('Disarm does not stow a shield.')
   const { sourcePolicyFacts, defenderFacts, descriptor } = input.selection
   const { source, sourceFacts, plan } = prepared
-  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH')
+  if (source.kind === 'BASIC_ACTION' || source.kind === 'REPEAT_PATH' || source.kind === 'RULE')
     throw new Error('Disarm requires a weapon attack action.')
   const selection = resolveOptionalCombatActionSelection({
     definition: input.definition,

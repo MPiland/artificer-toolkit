@@ -7,55 +7,66 @@ import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { EQUIPMENT_CATEGORY_CODE } from '@artificer-toolkit/shared/core'
 import { getEquipmentOptions } from '#app/data/equipment/options'
 import { withForm } from '#forms/app-form/AppForm'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
 import { GuidedSimpleEffectComposer } from '#forms/guided/GuidedSimpleEffectComposer'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import * as styles from '#forms/guided/guidedAuthoring.css'
-import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
-import { toFeatures } from '#forms/guided/guidedValues'
-import { isRecord } from '#forms/utils/valueGuards'
-
-type GuidedEquipmentAuthoringProps = {
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-  session: AuthoredFormSession
-}
+import {
+  EMPTY_GUIDED_FORM_VALUES,
+  guidedField,
+  readGuidedValues,
+  toFeatures,
+  toSelectOption,
+  type GuidedValues
+} from '#forms/guided/guidedValues'
 
 export const GuidedEquipmentAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as GuidedEquipmentAuthoringProps,
-  render: function RenderGuidedEquipmentAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedEquipmentAuthoring({
+    form,
+    onAdvanced,
+    onStateChange,
+    session,
+    system
+  }) {
     const [step, setStep] = useState(0)
-    const values = useSelector(form.store, (state) => readEquipmentValues(state.values))
+    const values = useSelector(form.store, (state) => state.values)
+    const draft = readGuidedValues('equipment', values)
+    const label = (draft.label ?? '').trim()
+    const category = draft.category ?? EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR
+    const effects = draft.effects ?? []
+    const features = toFeatures(draft.features)
+    const advancedCount = countAdvancedContent(draft)
     const categoryLocked = session.mode === 'edit'
     const parentEquipment = useQuery({
-      ...getEquipmentOptions(session.system?.id, true),
-      enabled: values.category === EQUIPMENT_CATEGORY_CODE.VARIANT && Boolean(session.system?.id)
+      ...getEquipmentOptions(system.id, true),
+      enabled: category === EQUIPMENT_CATEGORY_CODE.VARIANT
     })
 
     useEffect(() => {
       onStateChange({
         isReview: step === 4,
-        showPreview: session.mode === 'edit' || step > 0 || Boolean(values.label)
+        showPreview: session.mode === 'edit' || step > 0 || Boolean(label)
       })
-    }, [onStateChange, session.mode, step, values.label])
+    }, [onStateChange, session.mode, step, label])
 
-    const setEffects = (effects: EffectDto[]) => {
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['effects']), effects)
+    const setEffects = (next: EffectDto[]) => {
+      form.setFieldValue(guidedField('equipment', 'effects'), next)
     }
-    const setFeatures = (features: FeatureDto[]) => {
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['features']), features)
+    const setFeatures = (next: FeatureDto[]) => {
+      form.setFieldValue(guidedField('equipment', 'features'), next)
     }
 
     return (
       <GuidedAuthoringFrame
         canContinue={Boolean(
-          values.label &&
-          values.rarityId &&
-          (values.category !== EQUIPMENT_CATEGORY_CODE.VARIANT || values.parentEquipmentId)
+          label &&
+          draft.rarityId &&
+          (category !== EQUIPMENT_CATEGORY_CODE.VARIANT || draft.parentEquipmentId)
         )}
         description={DESCRIPTIONS[step]}
         domainLabel='Equipment'
@@ -69,12 +80,12 @@ export const GuidedEquipmentAuthoring = withForm({
         {step === 0 ? (
           <Stack gap='lg'>
             <div className={styles.identityRow}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+              <form.AppField name={guidedField('equipment', 'label')}>
                 {(field) => <field.TextField label='Item name' required />}
               </form.AppField>
               <AuthoringArtworkControl />
             </div>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+            <form.AppField name={guidedField('equipment', 'description')}>
               {(field) => (
                 <field.RichTextField
                   label='Description'
@@ -93,7 +104,7 @@ export const GuidedEquipmentAuthoring = withForm({
               </Alert>
             ) : null}
             <div className={styles.fields}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['category'])}>
+              <form.AppField name={guidedField('equipment', 'category')}>
                 {(field) => (
                   <field.SelectField
                     data={CATEGORY_OPTIONS}
@@ -103,10 +114,8 @@ export const GuidedEquipmentAuthoring = withForm({
                   />
                 )}
               </form.AppField>
-              {values.category === EQUIPMENT_CATEGORY_CODE.VARIANT ? (
-                <form.AppField
-                  name={toTypedAuthoringFieldName<object>(undefined, ['parentEquipmentId'])}
-                >
+              {category === EQUIPMENT_CATEGORY_CODE.VARIANT ? (
+                <form.AppField name={guidedField('equipment', 'parentEquipmentId')}>
                   {(field) => (
                     <field.SelectField
                       data={parentEquipment.data ?? []}
@@ -117,33 +126,27 @@ export const GuidedEquipmentAuthoring = withForm({
                   )}
                 </form.AppField>
               ) : null}
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['rarityId'])}>
+              <form.AppField name={guidedField('equipment', 'rarityId')}>
                 {(field) => (
                   <field.SelectField
-                    data={(session.system?.rarities ?? []).map(optionFor)}
+                    data={system.rarities.map(toSelectOption)}
                     label='Rarity'
                     required
                   />
                 )}
               </form.AppField>
-              {values.category !== EQUIPMENT_CATEGORY_CODE.VARIANT ? (
+              {category !== EQUIPMENT_CATEGORY_CODE.VARIANT ? (
                 <>
-                  <form.AppField
-                    name={toTypedAuthoringFieldName<object>(undefined, ['weight', 'amount'])}
-                  >
+                  <form.AppField name={guidedField('equipment', 'weight', 'amount')}>
                     {(field) => <field.NumberField label='Weight (lb.)' minimum={0} />}
                   </form.AppField>
-                  <form.AppField
-                    name={toTypedAuthoringFieldName<object>(undefined, ['cost', 'amount'])}
-                  >
+                  <form.AppField name={guidedField('equipment', 'cost', 'amount')}>
                     {(field) => <field.NumberField label='Cost' minimum={0} />}
                   </form.AppField>
-                  <form.AppField
-                    name={toTypedAuthoringFieldName<object>(undefined, ['cost', 'currencyId'])}
-                  >
+                  <form.AppField name={guidedField('equipment', 'cost', 'currencyId')}>
                     {(field) => (
                       <field.SelectField
-                        data={(session.system?.currencies ?? []).map(optionFor)}
+                        data={system.currencies.map(toSelectOption)}
                         label='Currency'
                       />
                     )}
@@ -155,33 +158,25 @@ export const GuidedEquipmentAuthoring = withForm({
         ) : null}
         {step === 2 ? (
           <Stack gap='lg'>
-            {values.advancedCount ? (
+            {advancedCount ? (
               <Alert color='blue'>
                 Modifiers, restrictions, contents, and complex charges remain preserved for
                 Advanced.
               </Alert>
             ) : null}
-            <GuidedSimpleEffectComposer
-              effects={values.effects}
-              system={session.system!}
-              onChange={setEffects}
-            />
+            <GuidedSimpleEffectComposer effects={effects} system={system} onChange={setEffects} />
           </Stack>
         ) : null}
         {step === 3 ? (
-          <GuidedFeatureAccordion
-            features={values.features}
-            system={session.system!}
-            onChange={setFeatures}
-          />
+          <GuidedFeatureAccordion features={features} system={system} onChange={setFeatures} />
         ) : null}
         {step === 4 ? (
           <Stack gap='md'>
             <dl className={styles.summary}>
-              <Summary label='Name' value={values.label || 'Untitled Equipment'} />
-              <Summary label='Item type' value={formatEnum(values.category)} />
-              <Summary label='Core outcomes' value={String(values.effects.length)} />
-              <Summary label='Features' value={String(values.features.length)} />
+              <GuidedSummaryRow label='Name' value={label || 'Untitled Equipment'} />
+              <GuidedSummaryRow label='Item type' value={formatEnum(category)} />
+              <GuidedSummaryRow label='Core outcomes' value={String(effects.length)} />
+              <GuidedSummaryRow label='Features' value={String(features.length)} />
             </dl>
           </Stack>
         ) : null}
@@ -190,38 +185,13 @@ export const GuidedEquipmentAuthoring = withForm({
   }
 })
 
-function Summary({ label, value }: { label: string; value: string }) {
+function countAdvancedContent(draft: GuidedValues<'equipment'>): number {
   return (
-    <div className={styles.summaryRow}>
-      <dt className={styles.summaryLabel}>{label}</dt>
-      <dd className={styles.summaryValue}>{value}</dd>
-    </div>
+    (draft.modifiers?.length ?? 0) +
+    (draft.contains?.length ?? 0) +
+    (draft.restrictions ? 1 : 0) +
+    (draft.charges ? 1 : 0)
   )
-}
-
-function optionFor(item: { id: string; label: string }) {
-  return { label: item.label, value: item.id }
-}
-
-function readEquipmentValues(values: object) {
-  const record: Record<string, unknown> = isRecord(values) ? values : {}
-  const array = (key: string) => (Array.isArray(record[key]) ? record[key] : [])
-  return {
-    advancedCount:
-      array('modifiers').length +
-      array('contains').length +
-      (record.restrictions ? 1 : 0) +
-      (record.charges ? 1 : 0),
-    category:
-      typeof record.category === 'string'
-        ? record.category
-        : EQUIPMENT_CATEGORY_CODE.ADVENTURING_GEAR,
-    effects: array('effects'),
-    features: toFeatures(record.features),
-    label: typeof record.label === 'string' ? record.label.trim() : '',
-    parentEquipmentId: typeof record.parentEquipmentId === 'string' ? record.parentEquipmentId : '',
-    rarityId: typeof record.rarityId === 'string' ? record.rarityId : ''
-  }
 }
 
 function formatEnum(value: string) {

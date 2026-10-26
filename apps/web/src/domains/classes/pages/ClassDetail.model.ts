@@ -95,7 +95,7 @@ function formatHitPointHtml(classRecord: ClassAuthoringInputDto): string {
   const hitDie = dieSize ? `1d${dieSize}` : classRecord.hitpoint.dieConfig
   const average = dieSize ? progression.hitDieAverage(dieSize) : null
   const className = classRecord.label.toLowerCase()
-  const ability = formatEnumLabel(classRecord.hitpoint.ability)
+  const ability = formatEnumLabel(progression.derivedStatisticAbilityCodes.hitPoints)
 
   return [
     `<p><strong>Hit Dice:</strong> ${hitDie} per ${escapeHtml(className)} level</p>`,

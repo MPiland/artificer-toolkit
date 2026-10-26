@@ -1,8 +1,8 @@
 import type { CharacterRulePolicyInput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CharacterBuildSnapshot } from '@artificer-toolkit/shared/core'
 
-import { abilityScoreCapabilityRegistry } from '../platformPolicyModules.js'
-import { abilityRecordIndex, abilityRecordKey } from './characterDerivedRuleFacts.js'
+import { characterProgressionCapabilityRegistry } from '../platformPolicyModules.js'
+import { abilityRecordIndex } from './characterDerivedRuleFacts.js'
 
 type HitPointFacts = NonNullable<CharacterRulePolicyInput['hitPointFacts']>
 type HitPointAdjustment = Extract<
@@ -18,7 +18,7 @@ export function buildCharacterHitPointRuleFacts(
   snapshot: CharacterBuildSnapshot,
   progression: HitPointFacts['progression'] = null
 ): Pick<CharacterRulePolicyInput, 'hitPointFacts'> {
-  const { hitPoints } = abilityScoreCapabilityRegistry.require(
+  const { hitPoints } = characterProgressionCapabilityRegistry.require(
     snapshot.systemId
   ).derivedStatisticAbilityCodes
   const adjustments = snapshot.adjustments ?? []
@@ -44,7 +44,7 @@ export function buildCharacterHitPointRuleFacts(
   return {
     hitPointFacts: {
       rows: snapshot.hitpoints.map((row) => ({ ...row })),
-      constitutionAbilityId: abilityRecordKey(snapshot.abilities, hitPoints),
+      constitutionAbilityId: hitPoints,
       constitutionAbilityIndex: abilityRecordIndex(snapshot.abilities, hitPoints),
       progression,
       manualMaximumModifier: toManualFact(maximumModifier),

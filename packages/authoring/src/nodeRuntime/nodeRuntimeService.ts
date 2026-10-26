@@ -17,6 +17,7 @@ import type {
   InlineFilter,
   NodeArrayAuthoringMeta,
   RuntimeNodeEntry,
+  RuntimeNodeMap,
   NodeSelectSource
 } from '@artificer-toolkit/shared/maps'
 import {
@@ -36,8 +37,17 @@ import {
 } from '@artificer-toolkit/shared/utils'
 import { executeRelationshipPlan, streamToOptions } from './relationshipExecutor.js'
 import { getRuntimeNodeMap } from './mapRegistry.js'
+import { systemCoreCodeTables } from './systemSourceRows.js'
 
 type NodeRuntimeReader = NodeRuntimeSourceReader
+
+type NormalizedValues = {
+  values: Record<string, unknown>
+  clearedPaths: RuntimePath[]
+  refusedPaths: RuntimePath[]
+}
+
+const coreCodeTables = new Set<string>(systemCoreCodeTables)
 
 export async function resolveNodeRuntime(
   db: NodeRuntimeReader,
@@ -57,8 +67,8 @@ async function resolveNodeRuntimeScope(
   db: NodeRuntimeReader,
   request: NodeRuntimeResolveRequestDto
 ): Promise<ResolvedRuntimeScope> {
-  const nodeMap = getRuntimeNodeMap(request.mapId)
   const scope = toScope(request)
+  const nodeMap = await expandKeyedNodes(db, getRuntimeNodeMap(request.mapId), scope)
   const steps = resolveRuntimeSteps(nodeMap)
   const resolvedSteps: NodeRuntimeStepDto[] = []
   const clearPaths: RuntimePath[] = []
@@ -94,6 +104,26 @@ async function resolveNodeRuntimeScope(
   }
 }
 
+/** A map keyed by a System table gets one node per row of the request's System, in row order. */
+async function expandKeyedNodes(
+  db: NodeRuntimeReader,
+  nodeMap: RuntimeNodeMap,
+  scope: NodeRuntimeScope
+): Promise<RuntimeNodeMap> {
+  if (!nodeMap.keyedBy) return nodeMap
+  const { rows, entry } = nodeMap.keyedBy
+  const options = streamToOptions(await executeRelationshipPlan(db, rows, scope))
+  return {
+    ...nodeMap,
+    nodes: Object.fromEntries(
+      options.map(({ value, label }, index): [string, RuntimeNodeEntry] => [
+        value,
+        { ...entry, path: [value], label, order: (index + 1) * 10 }
+      ])
+    )
+  }
+}
+
 /** The scopes of every populated nested group under `steps`, as `resolveNodeRuntime` returns them. */
 export async function resolveNestedRuntimeScopes(
   db: NodeRuntimeReader,
@@ -112,7 +142,9 @@ export async function resolveNestedRuntimeScopes(
         const childAncestors = [request.values, ...(request.ancestors ?? [])]
 
         if (node.groupKind === 'OBJECT') {
-          if (!isPopulatedRuntimeRecord(groupValue)) continue
+          // An empty keyed object still has its System's rows to author.
+          const keyed = isRuntimeRecord(groupValue) && getRuntimeNodeMap(node.childMapId).keyedBy
+          if (!isPopulatedRuntimeRecord(groupValue) && !keyed) continue
 
           const childPath = [...parentPath, ...node.path]
           const childRequest = {
@@ -220,15 +252,38 @@ export async function normalizeNodeRuntimeValues(
   return normalizeParsedValues(db, nodeRuntimeNormalizeValuesRequestDtoSchema.parse(request))
 }
 
+/**
+ * Normalizes an authored document at ingress (publication, import staging): it refuses a value that
+ * names a System core code the System does not list, where an editor's normalization clears it.
+ */
+export async function normalizeIngressValues(
+  db: NodeRuntimeReader,
+  request: NodeRuntimeNormalizeValuesRequestDto
+): Promise<NodeRuntimeNormalizeValuesResponseDto> {
+  const normalized = await normalizeNodeRuntimeValues(db, request)
+  const [refused] = normalized.refusedPaths
+  if (refused) {
+    const value = isRuntimeRecord(request.values) ? getValueAtPath(request.values, refused) : null
+    throw new Error(
+      `The Game System does not define ${JSON.stringify(value)} at ${refused.join('.')}.`
+    )
+  }
+  return normalized
+}
+
 // Group rows recurse here: the root request already passed the size and depth limits, and parsing
 // each child again would re-walk and re-serialize the whole record, its parent and its ancestors.
 async function normalizeParsedValues(
   db: NodeRuntimeReader,
   parsedRequest: NodeRuntimeNormalizeValuesRequestDto
-): Promise<NodeRuntimeNormalizeValuesResponseDto> {
+): Promise<NormalizedValues> {
   const resolved = await resolveNodeRuntimeScope(db, parsedRequest)
-  const values = isRuntimeRecord(parsedRequest.values) ? parsedRequest.values : {}
-  const optionNormalized = normalizeVisibleSelectOptions(values, resolved.steps)
+  const keyedNormalized = normalizeKeyedEntries(
+    parsedRequest.mapId,
+    isRuntimeRecord(parsedRequest.values) ? parsedRequest.values : {},
+    resolved.steps
+  )
+  const optionNormalized = normalizeVisibleSelectOptions(keyedNormalized.values, resolved.steps)
   const hiddenNormalized = clearValuesAtPaths(optionNormalized.values, resolved.clearPaths)
   const nestedNormalized = await normalizeVisibleGroups(
     db,
@@ -240,19 +295,48 @@ async function normalizeParsedValues(
   return {
     values: nestedNormalized.values,
     clearedPaths: [
+      ...keyedNormalized.clearedPaths,
       ...optionNormalized.clearedPaths,
       ...hiddenNormalized.clearedPaths,
       ...nestedNormalized.clearedPaths
+    ],
+    refusedPaths: [
+      ...keyedNormalized.refusedPaths,
+      ...optionNormalized.refusedPaths,
+      ...nestedNormalized.refusedPaths
     ]
+  }
+}
+
+// A keyed map's keys are its table's rows: a key the System does not list is cleared, and refused
+// when the table holds System core codes.
+function normalizeKeyedEntries(
+  mapId: string,
+  values: Record<string, unknown>,
+  steps: readonly NodeRuntimeStepDto[]
+): NormalizedValues {
+  const keyedBy = getRuntimeNodeMap(mapId).keyedBy
+  if (!keyedBy) return { values, clearedPaths: [], refusedPaths: [] }
+  const keys = new Set(
+    steps.flatMap((step) => step.sections.flatMap((section) => section.nodes.map(({ id }) => id)))
+  )
+  const unknownPaths = Object.keys(values)
+    .filter((key) => !keys.has(key))
+    .map((key): RuntimePath => [key])
+  return {
+    values: Object.fromEntries(Object.entries(values).filter(([key]) => keys.has(key))),
+    clearedPaths: unknownPaths,
+    refusedPaths: coreCodeTables.has(keyedBy.rows.table) ? unknownPaths : []
   }
 }
 
 function normalizeVisibleSelectOptions(
   values: Record<string, unknown>,
   steps: readonly NodeRuntimeStepDto[]
-): { values: Record<string, unknown>; clearedPaths: RuntimePath[] } {
+): NormalizedValues {
   let nextValues = values
   const clearedPaths: RuntimePath[] = []
+  const refusedPaths: RuntimePath[] = []
 
   for (const step of steps) {
     for (const section of step.sections) {
@@ -265,7 +349,11 @@ function normalizeVisibleSelectOptions(
         ) {
           continue
         }
-        if (node.preserveUnknownOptions) continue
+        if (node.unknownOptions === 'PRESERVE') continue
+        const clear = (path: RuntimePath) => {
+          clearedPaths.push(path)
+          if (node.unknownOptions === 'REFUSE') refusedPaths.push(path)
+        }
 
         const allowedValues = new Set((node.options ?? []).map((option) => option.value))
         const currentValue = getValueAtPath(nextValues, node.path)
@@ -282,7 +370,7 @@ function normalizeVisibleSelectOptions(
 
           const normalized = clearValuesAtPaths(nextValues, [node.path])
           nextValues = normalized.values
-          if (normalized.clearedPaths.length > 0) clearedPaths.push(node.path)
+          if (normalized.clearedPaths.length > 0) clear(node.path)
           continue
         }
 
@@ -295,12 +383,12 @@ function normalizeVisibleSelectOptions(
         if (nextArrayValue.length === currentValue.length) continue
 
         nextValues = setValueAtPath(nextValues, node.path, nextArrayValue)
-        clearedPaths.push(node.path)
+        clear(node.path)
       }
     }
   }
 
-  return { values: nextValues, clearedPaths }
+  return { values: nextValues, clearedPaths, refusedPaths }
 }
 
 async function normalizeVisibleGroups(
@@ -308,9 +396,10 @@ async function normalizeVisibleGroups(
   values: Record<string, unknown>,
   steps: readonly NodeRuntimeStepDto[],
   request: NodeRuntimeNormalizeValuesRequestDto
-): Promise<{ values: Record<string, unknown>; clearedPaths: RuntimePath[] }> {
+): Promise<NormalizedValues> {
   let nextValues = values
   const clearedPaths: RuntimePath[] = []
+  const refusedPaths: RuntimePath[] = []
 
   for (const step of steps) {
     for (const section of step.sections) {
@@ -333,6 +422,7 @@ async function normalizeVisibleGroups(
           })
           nextValues = setValueAtPath(nextValues, node.path, child.values)
           clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, ...path]))
+          refusedPaths.push(...child.refusedPaths.map((path) => [...node.path, ...path]))
           continue
         }
 
@@ -350,6 +440,7 @@ async function normalizeVisibleGroups(
               systemId: request.systemId
             })
             clearedPaths.push(...child.clearedPaths.map((path) => [...node.path, index, ...path]))
+            refusedPaths.push(...child.refusedPaths.map((path) => [...node.path, index, ...path]))
             return child.values
           })
         )
@@ -359,7 +450,7 @@ async function normalizeVisibleGroups(
     }
   }
 
-  return { values: nextValues, clearedPaths }
+  return { values: nextValues, clearedPaths, refusedPaths }
 }
 
 function setValueAtPath(
@@ -466,8 +557,7 @@ async function resolveNode(
       kind: 'INPUT',
       type: node.type,
       options: visible ? await resolveOptions(db, node.source, scope) : [],
-      preserveUnknownOptions:
-        node.source.kind === 'DATA' ? node.source.preserveUnknownOptions : undefined,
+      unknownOptions: unknownOptionsPolicy(node.source),
       constraints: node.constraints,
       authoring: resolveInputAuthoringMeta(node.authoring)
     }
@@ -482,6 +572,15 @@ async function resolveNode(
   }
 }
 
+// A data source keeps an unknown value when it says so; a System core-code table refuses it.
+function unknownOptionsPolicy(source: NodeSelectSource): 'PRESERVE' | 'REFUSE' | undefined {
+  if (source.kind !== 'DATA') return undefined
+  if (source.preserveUnknownOptions) return 'PRESERVE'
+  return source.relationship.kind === 'TABLE' && coreCodeTables.has(source.relationship.table)
+    ? 'REFUSE'
+    : undefined
+}
+
 async function resolveOptions(
   db: NodeRuntimeReader,
   source: NodeSelectSource,
@@ -489,7 +588,12 @@ async function resolveOptions(
 ): Promise<NodeRuntimeOptionDto[]> {
   switch (source.kind) {
     case 'DATA':
-      return streamToOptions(await executeRelationshipPlan(db, source.relationship, scope))
+      return applyInlineFilter(
+        db,
+        streamToOptions(await executeRelationshipPlan(db, source.relationship, scope)),
+        source.filter,
+        scope
+      )
     case 'LOCAL_COLLECTION':
       return resolveLocalCollectionOptions(source, scope)
     case 'INLINE_OPTIONS':
@@ -534,7 +638,7 @@ function toScope(request: NodeRuntimeResolveRequestDto): NodeRuntimeScope {
   }
 }
 
-function resolveRuntimeSteps(nodeMap: ReturnType<typeof getRuntimeNodeMap>): SteppedNodeGroup[] {
+function resolveRuntimeSteps(nodeMap: RuntimeNodeMap): SteppedNodeGroup[] {
   const steps = resolveNodeMapSteps(nodeMap)
   if (steps.length > 0) return steps
 

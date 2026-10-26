@@ -6,7 +6,8 @@ const VOCABULARY_NOUNS = {
   spellSlotPool: 'spell slot pool',
   effectConsumeEvent: 'effect consume event',
   effectEndEvent: 'effect end event',
-  actionTrait: 'action trait'
+  actionTrait: 'action trait',
+  size: 'size'
 } as const
 
 /** A list a System supplies in place of a fixed wire enum (ADR 0039 decision 5). */
@@ -22,12 +23,24 @@ export interface SystemCoreCodeEntry {
   grantable?: boolean
   /** The fact an Encounter raises with an action that the trait describes. */
   actionFact?: 'attackRoll' | 'spellCast'
+  /** The edge in feet of the square a creature of this size fills; a size without it fills none a Scene models. */
+  spaceFeet?: number
+  /** The size a new Creature or Race takes until its author picks one. */
+  isDefault?: boolean
 }
 
-/** A System's vocabulary lists: each code unique within its list, labels for display only. */
+/**
+ * A System's vocabulary lists: each code unique within its list, labels for display only. The size
+ * list runs smallest first, so a size's index is its step.
+ */
 export interface SystemCoreCodeAdapter {
   gameSystemId: string
   lists: Readonly<Record<SystemCoreCodeKind, readonly SystemCoreCodeEntry[]>>
+  /**
+   * The codes that key the System's ability scores and ability references, in display order. Their
+   * labels, abbreviations and descriptions live on the System record's abilities.
+   */
+  abilities: readonly string[]
 }
 
 /**
@@ -36,10 +49,13 @@ export interface SystemCoreCodeAdapter {
  * `requireCode`; the schema only checks a code's shape.
  */
 export function createSystemCoreCodeRegistry(adapters: readonly SystemCoreCodeAdapter[]) {
-  for (const adapter of adapters)
+  for (const adapter of adapters) {
     for (const [kind, entries] of Object.entries(adapter.lists))
       if (new Set(entries.map(({ code }) => code)).size !== entries.length)
         throw new Error(`Duplicate ${VOCABULARY_NOUNS[kind as SystemCoreCodeKind]} code.`)
+    if (new Set(adapter.abilities).size !== adapter.abilities.length)
+      throw new Error('Duplicate ability code.')
+  }
   const registry = createSystemCapabilityRegistry('vocabulary', adapters)
   return {
     entries(gameSystemId: string, kind: SystemCoreCodeKind): readonly SystemCoreCodeEntry[] {
@@ -50,6 +66,13 @@ export function createSystemCoreCodeRegistry(adapters: readonly SystemCoreCodeAd
       if (!entry)
         throw new Error(`The Game System does not define the ${VOCABULARY_NOUNS[kind]} "${code}".`)
       return entry
+    },
+    abilityCodes(gameSystemId: string): readonly string[] {
+      return registry.require(gameSystemId).abilities
+    },
+    requireAbility(gameSystemId: string, code: string) {
+      if (!registry.require(gameSystemId).abilities.includes(code))
+        throw new Error(`The Game System does not define the ability "${code}".`)
     }
   }
 }

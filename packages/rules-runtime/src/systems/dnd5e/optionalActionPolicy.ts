@@ -1,82 +1,23 @@
-import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
-import {
-  activeOptionalCombatDefinitions,
-  encounterOptionalCombatSnapshotDtoSchema,
-  type Dnd5eOptionalCombatRuleKindDto,
-  type EncounterOptionalCombatSnapshotDto
-} from '@artificer-toolkit/schema/shared/optionalCombat'
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
-import {
-  EQUIPMENT_CATEGORY_CODE,
-  EQUIPMENT_PROPERTY_CODE,
-  sizeRank
-} from '@artificer-toolkit/shared/core'
-import {
-  checksumRuleDocument,
-  compareCanonicalD20Contributors
-} from '@artificer-toolkit/shared/rules'
+import { EQUIPMENT_CATEGORY_CODE, EQUIPMENT_PROPERTY_CODE } from '@artificer-toolkit/shared/core'
+import { compareCanonicalD20Contributors } from '@artificer-toolkit/shared/rules'
 
 import type {
   DisarmContestProposal,
   DisarmPreparationInput,
   OptionalCombatD20Contributor,
-  OptionalCombatPolicyInput,
-  OptionalCombatPolicyPin,
   OptionalCombatResolution
 } from '../../optionalCombatPolicyCapability.js'
+import { sizeRank } from '../../systemSizes.js'
 import { dnd5eAttackKind } from './attackKind.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import {
+  exactOptionalCombatDefinition,
+  optionalCombatContributor,
+  optionalCombatPolicyPin
+} from './optionalCombatDefinition.js'
 import { DND5E_DISARM_POLICY_MODULE } from './policyModuleRegistration.js'
 import { resolveDnd5eRollMode } from './rollModePolicy.js'
-
-type D20Influence = 'ADVANTAGE' | 'DISADVANTAGE'
-
-type PolicyDefinition = EncounterOptionalCombatSnapshotDto['definitions'][number]
-
-function exactDefinition(
-  input: OptionalCombatPolicyInput & {
-    readonly kind: Dnd5eOptionalCombatRuleKindDto
-    readonly module: { readonly key: string; readonly contractVersion: number }
-  }
-): PolicyDefinition | null {
-  if (
-    input.automationMode === 'MANUAL' ||
-    input.gameSystemId !== DND5E_SYSTEM_ID ||
-    input.optionalCombatSnapshot === null ||
-    input.optionalCombatSnapshotChecksum === null
-  ) {
-    return null
-  }
-  const parsed = encounterOptionalCombatSnapshotDtoSchema.safeParse(input.optionalCombatSnapshot)
-  if (
-    !parsed.success ||
-    parsed.data.gameSystemId !== input.gameSystemId ||
-    checksumCanonicalJson(parsed.data) !== input.optionalCombatSnapshotChecksum
-  ) {
-    return null
-  }
-  const matches = activeOptionalCombatDefinitions({
-    automationMode: input.automationMode,
-    snapshot: parsed.data
-  }).filter(
-    (definition) =>
-      definition.document.kind === input.kind &&
-      checksumRuleDocument(definition.document) === definition.definitionChecksum &&
-      definition.document.module.policyModuleKey === input.module.key &&
-      definition.document.module.contractVersion === input.module.contractVersion
-  )
-  return matches.length === 1 ? matches[0]! : null
-}
-
-function pin(definition: PolicyDefinition): OptionalCombatPolicyPin {
-  return {
-    definitionId: definition.definitionId,
-    definitionVersion: definition.definitionVersion,
-    definitionChecksum: definition.definitionChecksum,
-    moduleContractVersion: definition.document.module.contractVersion,
-    moduleKey: definition.document.module.policyModuleKey
-  }
-}
 
 function exactUuid(value: string): boolean {
   const parsed = postgresUuidSchema.safeParse(value)
@@ -97,25 +38,6 @@ function resolveMode(contributors: readonly OptionalCombatD20Contributor[]) {
   return resolveDnd5eRollMode(contributors).rollMode
 }
 
-function contributor(input: {
-  definition: PolicyDefinition
-  influence: D20Influence
-  reason: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS' | 'SIZE_RELATION'
-}): OptionalCombatD20Contributor {
-  return {
-    sourceId: checksumRuleDocument({
-      definitionChecksum: input.definition.definitionChecksum,
-      definitionId: input.definition.definitionId,
-      definitionVersion: input.definition.definitionVersion,
-      reason: input.reason
-    }),
-    grantId: null,
-    domainKey: input.reason,
-    influence: input.influence,
-    source: { kind: 'AUTHORED', id: input.definition.definitionId, holderActorId: null }
-  }
-}
-
 /**
  * Resolves every pinned D&D policy fact required before contest dice exist.
  * The Encounter layer carries this opaque result into its one-stage graph; it
@@ -124,7 +46,7 @@ function contributor(input: {
 export function prepareDnd5eDisarmContest(
   input: DisarmPreparationInput
 ): OptionalCombatResolution<DisarmContestProposal> {
-  const definition = exactDefinition({
+  const definition = exactOptionalCombatDefinition({
     ...input,
     kind: 'DISARM',
     module: DND5E_DISARM_POLICY_MODULE
@@ -132,8 +54,8 @@ export function prepareDnd5eDisarmContest(
   if (!definition) return { kind: 'INERT' }
   const parameters = definition.document.parameters
   if (parameters.kind !== 'DISARM') return { kind: 'INERT' }
-  const attackerSizeRank = sizeRank(input.attackerSize)
-  const targetSizeRank = sizeRank(input.targetSize)
+  const attackerSizeRank = sizeRank(DND5E_SYSTEM_ID, input.attackerSize)
+  const targetSizeRank = sizeRank(DND5E_SYSTEM_ID, input.targetSize)
   if (
     !exactUuid(input.attackerActorId) ||
     !exactUuid(input.targetActorId) ||
@@ -187,7 +109,7 @@ export function prepareDnd5eDisarmContest(
   const targetContributors: OptionalCombatD20Contributor[] = []
   if (input.targetEquipment.properties.includes(EQUIPMENT_PROPERTY_CODE.TWO_HANDED))
     initiatorContributors.push(
-      contributor({
+      optionalCombatContributor({
         definition,
         influence: 'DISADVANTAGE',
         reason: 'TARGET_HELD_WITH_TWO_OR_MORE_HANDS'
@@ -195,11 +117,11 @@ export function prepareDnd5eDisarmContest(
     )
   if (attackerSizeRank > targetSizeRank)
     targetContributors.push(
-      contributor({ definition, influence: 'DISADVANTAGE', reason: 'SIZE_RELATION' })
+      optionalCombatContributor({ definition, influence: 'DISADVANTAGE', reason: 'SIZE_RELATION' })
     )
   if (targetSizeRank > attackerSizeRank)
     targetContributors.push(
-      contributor({ definition, influence: 'ADVANTAGE', reason: 'SIZE_RELATION' })
+      optionalCombatContributor({ definition, influence: 'ADVANTAGE', reason: 'SIZE_RELATION' })
     )
   const canonicalInitiatorContributors = canonicalContributors(initiatorContributors)
   const canonicalTargetContributors = canonicalContributors(targetContributors)
@@ -209,7 +131,7 @@ export function prepareDnd5eDisarmContest(
   return {
     kind: 'PROPOSED',
     proposal: {
-      pin: pin(definition),
+      pin: optionalCombatPolicyPin(definition),
       contest: {
         targetCheckDefinitionId: input.targetCheckDefinitionId,
         initiatorContributors: canonicalInitiatorContributors,

@@ -9,7 +9,6 @@ import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
 import { createDefaultEffect } from '#app/forms/rendering/authoringNodeDefaults'
-import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import { mapGuidedSpellEffect } from '#forms/guided/guidedSimpleEffect.mapping'
 import {
   createGuidedEffectIds,
@@ -19,6 +18,12 @@ import {
 } from '#forms/guided/guidedSimpleEffect.types'
 import { rehydrateGuidedSpell } from '#forms/guided/guidedSimpleEffect.rehydrate'
 import * as styles from '#forms/guided/guidedAuthoring.css'
+import {
+  EMPTY_GUIDED_FORM_VALUES,
+  guidedField,
+  readGuidedValues,
+  toSelectOption
+} from '#forms/guided/guidedValues'
 import { GuidedSpellIntentScreen } from './GuidedSpellIntentScreen'
 import { GuidedSpellMechanicsScreen } from './GuidedSpellMechanicsScreen'
 import { GuidedSpellReviewScreen } from './GuidedSpellReviewScreen'
@@ -31,7 +36,7 @@ type GuidedSpellAuthoringProps = {
 }
 
 export const GuidedSpellAuthoring = withForm({
-  defaultValues: {} as object,
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
   props: {} as GuidedSpellAuthoringProps,
   render: function RenderGuidedSpellAuthoring({
     form,
@@ -41,7 +46,11 @@ export const GuidedSpellAuthoring = withForm({
     system
   }) {
     const [fallbackEffectIds] = useState(createGuidedEffectIds)
-    const effects = useSelector(form.store, (state) => readSpellEffects(state.values))
+    const formValues = useSelector(form.store, (state) => state.values)
+    const values = readGuidedValues('spell', formValues)
+    const effects = values.effects
+    const label = values.label?.trim() ?? ''
+    const magicSchoolId = values.magicSchoolId ?? ''
     const rehydrated = rehydrateGuidedSpell(effects, fallbackEffectIds)
     const baseEffect = rehydrated?.effect ?? null
     const canonicalDraft = rehydrated?.draft ?? null
@@ -52,8 +61,8 @@ export const GuidedSpellAuthoring = withForm({
     const [screen, setScreen] = useState(!isExistingDraft && draft ? 3 : 0)
     const hasEffects = Boolean(effects?.length)
     const [hadEffects, setHadEffects] = useState(hasEffects)
-    const basics = useSelector(form.store, (state) => readSpellBasics(state.values))
     const { canFinalize } = useAuthoringForm()
+    const canContinueBasics = Boolean(label && magicSchoolId)
 
     useEffect(() => {
       onStateChange({ isReview: screen === 3, showPreview: isExistingDraft || screen >= 2 })
@@ -67,7 +76,7 @@ export const GuidedSpellAuthoring = withForm({
       }
     }
 
-    if (screen > 0 && !basics.label) setScreen(0)
+    if (screen > 0 && !label) setScreen(0)
 
     const applyIntent = (intent: GuidedSpellIntent) => {
       const nextDraft = createGuidedSpellDraft(intent, {
@@ -76,7 +85,7 @@ export const GuidedSpellAuthoring = withForm({
       })
       const nextEffectIds = createGuidedEffectIds()
       const nextEffect = mapGuidedSpellEffect(nextDraft, createDefaultEffect(1), nextEffectIds)
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['effects']), [nextEffect])
+      form.setFieldValue(guidedField('spell', 'effects'), [nextEffect])
       setLocalDraft(nextDraft)
       setPendingIntent(null)
     }
@@ -102,13 +111,13 @@ export const GuidedSpellAuthoring = withForm({
       ) {
         return
       }
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['effects']), [
+      form.setFieldValue(guidedField('spell', 'effects'), [
         mapGuidedSpellEffect(nextDraft, baseEffect, effectIds)
       ])
     }
 
     const next = () => {
-      if (screen === 0 && !basics.label) return
+      if (screen === 0 && !canContinueBasics) return
       if (screen === 1 && !draft) return
       if (screen === 2 && draft && !canContinueMechanics(draft)) return
       const nextScreen = Math.min(3, screen + 1)
@@ -122,7 +131,7 @@ export const GuidedSpellAuthoring = withForm({
     return (
       <GuidedAuthoringFrame
         canContinue={
-          (screen !== 0 || Boolean(basics.label)) &&
+          (screen !== 0 || canContinueBasics) &&
           (screen !== 1 || Boolean(draft)) &&
           (screen !== 2 || Boolean(draft && canContinueMechanics(draft)))
         }
@@ -146,7 +155,7 @@ export const GuidedSpellAuthoring = withForm({
             ) : null}
             <div className={styles.identityRow}>
               <div className={styles.identityFields}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+                <form.AppField name={guidedField('spell', 'label')}>
                   {(field) => (
                     <field.TextField
                       label='Spell name'
@@ -155,15 +164,24 @@ export const GuidedSpellAuthoring = withForm({
                     />
                   )}
                 </form.AppField>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['level'])}>
+                <form.AppField name={guidedField('spell', 'level')}>
                   {(field) => (
                     <field.NumberSelectField data={SPELL_LEVEL_OPTIONS} label='Level' required />
+                  )}
+                </form.AppField>
+                <form.AppField name={guidedField('spell', 'magicSchoolId')}>
+                  {(field) => (
+                    <field.SelectField
+                      label='School of magic'
+                      data={system.magicSchools.map(toSelectOption)}
+                      required
+                    />
                   )}
                 </form.AppField>
               </div>
               <AuthoringArtworkControl />
             </div>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+            <form.AppField name={guidedField('spell', 'description')}>
               {(field) => (
                 <field.RichTextField
                   label='Description'
@@ -207,10 +225,10 @@ export const GuidedSpellAuthoring = withForm({
         {screen === 3 && draft ? (
           <GuidedSpellReviewScreen
             canFinalize={canFinalize}
-            description={basics.description}
+            description={values.description?.trim()}
             draft={draft}
-            label={basics.label}
-            level={basics.level}
+            label={label}
+            level={values.level}
             system={system}
           />
         ) : null}
@@ -258,21 +276,6 @@ function canContinueMechanics(draft: GuidedSpellDraft): boolean {
   }
 }
 
-function readSpellBasics(values: object): {
-  description?: string
-  label: string
-  level?: number
-} {
-  return {
-    description:
-      'description' in values && typeof values.description === 'string'
-        ? values.description.trim()
-        : undefined,
-    label: 'label' in values && typeof values.label === 'string' ? values.label.trim() : '',
-    level: 'level' in values && typeof values.level === 'number' ? values.level : undefined
-  }
-}
-
 function isValidDiceConfiguration(value: string): boolean {
   if (!value.trim()) return false
   try {
@@ -281,9 +284,4 @@ function isValidDiceConfiguration(value: string): boolean {
   } catch {
     return false
   }
-}
-
-function readSpellEffects(values: object): readonly unknown[] | undefined {
-  if (!('effects' in values) || !Array.isArray(values.effects)) return undefined
-  return values.effects
 }

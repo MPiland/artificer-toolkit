@@ -11,6 +11,7 @@ const reasonsWithoutPayload = [
   'DECISION_NOT_PENDING',
   'DECISION_REQUIRES_ANSWER',
   'ENCOUNTER_NOT_ACTIVE',
+  'FACING_UNAVAILABLE',
   'GM_ONLY',
   'LEGENDARY_WINDOW_ONLY',
   'MOVEMENT_BLOCKED',
@@ -25,6 +26,7 @@ const reasonsWithoutPayload = [
   'SOURCE_REQUIREMENTS_NOT_MET',
   'TARGET_UNAVAILABLE',
   'TELEPORT_UNAVAILABLE',
+  'UNDECLARED_ACTION',
   'VERSION_STALE'
 ] as const
 
@@ -39,6 +41,7 @@ export const DOMAIN_REJECTION_MESSAGES: Record<(typeof reasonsWithoutPayload)[nu
   DECISION_NOT_PENDING: 'This decision is already settled.',
   DECISION_REQUIRES_ANSWER: 'This decision must be answered before play can continue.',
   ENCOUNTER_NOT_ACTIVE: 'Completed Encounters are read-only.',
+  FACING_UNAVAILABLE: "This Encounter doesn't use facing, or tokens can't face that way.",
   GM_ONLY: 'Only the GM can do that.',
   LEGENDARY_WINDOW_ONLY: "Legendary Actions are taken at the end of another creature's turn.",
   MOVEMENT_BLOCKED: "You can't end your move there.",
@@ -53,6 +56,7 @@ export const DOMAIN_REJECTION_MESSAGES: Record<(typeof reasonsWithoutPayload)[nu
   SOURCE_REQUIREMENTS_NOT_MET: "This actor doesn't meet the requirements to take that action.",
   TARGET_UNAVAILABLE: 'The target is unavailable.',
   TELEPORT_UNAVAILABLE: 'A teleport spell must be cast first, and it must be unspent.',
+  UNDECLARED_ACTION: 'This actor declared a different action for this round.',
   VERSION_STALE: 'Encounter version is stale.'
 }
 

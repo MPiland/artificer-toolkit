@@ -25,6 +25,10 @@ export interface MovementReactionEligibilityFacts {
   relationshipKind: EncounterActorRelationshipKindDto | null
   /** Raw aggregate-owned UUID-keyed usage. System policy selects its definition. */
   ruleUsage: Readonly<Record<string, number>>
+  /** This turn's `EACH_TURN` usage, UUID-keyed like `ruleUsage`; other turns' entries have lapsed. */
+  turnUsage: Readonly<Record<string, number>>
+  /** The mover holds a `FREE_OPPORTUNITY_REACTION` grant whose event scope admits this reactor. */
+  freeOpportunityReactionGranted: boolean
 }
 
 export interface EvaluatedMovementReactionCandidate<

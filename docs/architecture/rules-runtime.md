@@ -353,8 +353,11 @@ duplicate or non-UUID adapter identity. The D&D adapter (`systems/dnd5e/rollMode
 the wire types a code as `systemCoreCodeSchema` (`schema/shared/systemCoreCode.ts`, shape
 only), and the one seam that decides membership is `systemCoreCodeRegistry.requireCode(gameSystemId,
 kind, code)` (`systemCoreCodeCapability.ts`, installed in `platformSystemCoreCodes.ts`; the D&D lists in
-`systems/dnd5e/coreCodes.ts`). Lists today: `rollInfluence`, `rollMode`, each code with its display
-label. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
+`systems/dnd5e/coreCodes.ts`). Lists today: `rollInfluence`, `rollMode` and `size` (RULES-2.T9f1),
+each code with its display label. The `size` list runs smallest first and gives each size its square's
+edge where one applies; neutral code reads a size's rank and space only through `sizeRank` and
+`sizeSpaceFeet(gameSystemId, size)` (`systemSizes.ts`), and authoring draws size selects from the `sizes`
+source. Every ingress that knows its `gameSystemId` (authoring, import, compile, command input,
 settlement) validates through it; capability registries call it before an adapter sees a code. A
 rule-execution d20 DTO carries `keep` beside its `rollMode`, and `keep` is derived once, by the
 adapter's `keepFor` through `rollModeCapabilityRegistry.resolveRollMode` or `rollModeKeep`, when the
@@ -391,12 +394,13 @@ neutral files (`actionEconomyCapabilityRegistry`, `abilityScoreCapability`,
 `d20TestDefinitionCapability`, `contestCheckCapability`, `optionalCombatPolicyCapability`,
 `attackProfileCapability`, `modifierScopeCapability`), the D&D adapters in `systems/dnd5e/`, and
 `platformPolicyModules.ts` installs them as `rollModeCapabilityRegistry`,
-`combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula, abilities a
-Creature form keeps, and `derivedStatisticAbilityCodes`: the ability armor class, initiative and hit points add,
-which the character fact builders and the Sheet hit die check read, RULES-2.T9e; the web Creature detail, Encounter enemy stat block and Builder hit points read the
+`combatPerceptionCapabilityRegistry`, `actionEconomyCapabilityRegistry`, `abilityScoreCapabilityRegistry` (modifier formula and abilities a
+Creature form keeps; the web Creature detail, Encounter enemy stat block and Builder hit points read the
 modifier through it), `characterProgressionCapabilityRegistry` (`characterProgressionCapability.ts`: hit die
-size and average, the hit points a level adds and the proficiency bonus, read by the Builder hit point step
-and Class detail) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
+size and average, the hit points a level adds, the proficiency bonus and `derivedStatisticAbilityCodes`, the
+ability armor class, initiative and hit points add, which the character fact builders, the Sheet hit die
+check, the Builder hit point step and Class detail read, RULES-2.T9e; it moved off the ability-score
+adapter in RULES-2.T12b, so a System without Character statistics fails closed there) and `creatureConditionCapabilityRegistry` (0 hit point and exhaustion conditions) and
 `characterActionCapabilityRegistry` (the Sheet's Character action discovery,
 `discoverCharacterActionCapabilities`).
 The Sheet reaches `platformPolicyModules`, so Encounter-only adapters install in
@@ -411,7 +415,8 @@ action or passage choice uses `require` and Cleaving uses `find`, since a System
 Cleaving choice; `attackProfileCapabilityRegistry` for an attack's kind and modifier domain, the
 traits a holder's grants or a Character's action give it, its critical rules and roll contributors,
 the damage defenses it meets, the itemless restrictions a feature attack reduces and what its compiled
-effect reads and spends; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
+effect reads and spends, where a `MovementTarget`'s granted traits use `find` because a System without
+attack profiles grants none; `modifierScopeCapabilityRegistry` for whether a grant-fold modifier applies
 Character-wide, which movement passage and opportunity-attack immunity read, and whether a saving-throw
 grant holds only while the saver sees the effect's source (`encounterActiveGrants`);
 `characterRuleActionSystemAdapterRegistry` for compiling, binding and interpreting rule actions and
@@ -423,7 +428,7 @@ discovery and effect binding (`encounterFeatureActionCapabilityDiscovery.ts`);
 `legendaryActionEligibilityCapabilityRegistry` and `movementReactionEligibilityCapabilityRegistry`
 for eligibility and the capability definitions it requires; `sceneGridPolicyCapabilityRegistry`, an
 optional `find` capability through `resolveEncounterSceneGrid`, where a System without it plays on the
-Scene's own grid). The four `platform*` files are the only composition roots: no other neutral
+Scene's own grid). The five `platform*` files are the only composition roots: no other neutral
 module installs an adapter, and a `systems/dnd5e` adapter never value-imports a platform file, so
 `passiveMeleeRetaliationZone` takes the attack kind instead of reading the registry. A `MovementTarget`
 carries its actor's `movementPassage` and `grantedAttackTraits`, resolved once through these
@@ -439,6 +444,28 @@ the composition roots reach `systems/*` (active grants read the action-economy c
 `allowanceDefinitionIdByCountDomain`, which an active zero-count grant suppresses);
 the composition roots above are exempt by name
 ([CI validation](ci-validation.md)).
+Each composition root builds its registries from one installed-Systems list per load tier (D195,
+RULES-2.T12a), in `systems/installedGameSystems/`: `vocabulary` (`platformSystemCoreCodes`), `policy`
+(`platformPolicyModules`), `character` (`platformCharacterPolicy`), `encounter`
+(`platformEncounterPolicy`) and `runtime` (`platformRulesRuntime`). Each System exports one module object per
+tier (`GameSystem<Tier>Tier`, declared by its root). A System leaves out a capability it lacks, so `require`
+fails closed and `find` skips it. The tiers nest as the loads do: policy loads vocabulary, character and
+encounter each load policy but not each other, and runtime loads all five. `schemaBoundary.test.ts`
+asserts that nesting from esbuild closures, so a heavier tier never leaks into a lighter one. The tracer
+Vitest project (`tracer` in the root `vitest.config.ts`) aliases the vocabulary, policy, encounter and
+runtime lists to ones under `src/__tests__/tracer/` that also install a test-only Fate-like System, which
+never ships (ADR 0023). Its proofs (RULES-2.T12b) run an approach check through its own published graph on
+the neutral d20 settlement, consume and end effects through its own event vocabulary (refusing D&D
+lifecycle codes), break and save a maintained stunt through its maintenance link, and show that the
+D&D-shaped capabilities it leaves out fail closed on `require` and are skipped by `find`. It provides the
+System-generic `modifierScope` and `d20TestDefinition` capabilities (without a death save). The Convex
+`convex-tracer` project (`apps/apis/vitest.config.ts`, files named `*.tracer.test.ts`) applies the same
+aliases (`tracerTierAliases` in `scripts/vitestSource.mjs`) to the backend (AUTHORING-1.T2): the tracer is
+imported beside the SRD and travels the real System list, summary, document and capability reads, empty
+catalogue counts and reusable-definition create, draft, publish, get and list. Publication compiles its graph
+against the tracer's own fact and operation contracts, so a D&D fact is refused, and a family the tracer
+does not declare is refused at create. An Encounter actor policy may report no saving throws (`savingThrowDefinitions`
+absent); when it reports them, reconciliation still requires one per ability score.
 Attack-perception contributors are `rule:unseen-attacker`
 ("Unseen attacker", advantage) and `rule:unseen-target` ("Unseen target", disadvantage); see Combat Perception. A player's prompt never names a contributor from an actor hidden from
 players (it reads "Unseen source"); known limit: a contributor from the roller's own policy is never
@@ -825,6 +852,13 @@ roll, a stop or any other outcome is refused. Both the turn and the movement pat
 `isDamageDieRequest` accepts a plain integer range, the executor resumes a damage die with `d20: null` when the
 effect has no policy, `awaitsSpatialDamageDice` routes those dice to the zone's source as roller, and a paused
 movement contact with no policy is summarized as `ACTION_OUTCOME_EVIDENCE`.
+Target-bound turn effects (`encounterTurnEffects`, SPELLS-33.T6n1) pause the same way: a turn-effect candidate pins
+`sourceActorId`, its `d20Policy` and, once its save resolved, that d20 as `diceStage`. The save goes to the held
+creature's controllers, the damage dice (after a failed save, or with no save) to the effect source's controllers
+(`spatialPendingRollerActorId`, ADR 0034 decision 3), each auto-rolled by its own roller's preference through
+`settleAutomaticSpatialEvidence`; a paused die is `ACTION_OUTCOME_EVIDENCE` and is answered through
+`resumeTargetBoundActiveRuleEffectWithAnswer`, as a zone's is. A held creature's relationship `recurrence` (Chain
+Devil's 2d6 piercing) is the first turn effect that rolls dice.
 The turn stage (`selectTurnZoneContacts`) gathers contacts over every bound token: the boundary creature's own
 zones at its boundary, and, at the start of its turn, each other creature standing in a zone it is the source of
 that acts at `START_OF_SOURCE_TURN`. Contacts run in canonical zone turn order (`followsInZoneTurnOrder`: target
@@ -936,7 +970,7 @@ movement's origin onto that creature (`planSpatialEntryGrant`, built from the gr
 authored zone entry). The grant's frozen graph is provenance only (`actionEffectPersistence.ts`,
 `encounterActionEffectReceipts.ts` read its source identity and checksums), so it reuses the zone's. A grant
 whose `recurrence.endOnEvents` names `ON_HIT_POINTS_REGAINED` ends in `persistEncounterMechanicsBatchPlan` when any
-application heals at least 1 hit point (a `HIT_POINTS_REGAINED` event, see "Event hooks"). An effect whose `recurrence.endOnEvents` names `ON_LONG_REST` (Contact Other Plane, SPELLS-4 T2a1b) ends when its Character holder finishes a long rest (`activeEffectEndsOnRest`); the Sheet's `COMPLETE_REST` deletes it and releases the conditions only it held (`settleCharacterEndedEffects`). A timed condition whose duration is `UNTIL_DISPELLED` (Sequester, SPELLS-4 T2a4) counts no turns and lasts until the GM ends it or an authored end trigger does. A zone whose component authors `choosesUnaffected` (Spirit Guardians, SPELLS-20 T4c) lets the caster designate creatures at cast: the choice
+application heals at least 1 hit point (a `HIT_POINTS_REGAINED` event, see "Event hooks"). An effect whose `recurrence.endOnEvents` names `ON_LONG_REST` (Contact Other Plane, SPELLS-4 T2a1b) ends when its Character holder finishes a long rest (`activeEffectEndsOnRest`); the Sheet's `COMPLETE_REST` deletes it and releases the conditions only it held (`settleCharacterEndedEffects`). A standing effect (SPELLS-31.2) is a passive APPLY_GRANT whose lifecycle names End On triggers and a `returnsOn` rest: it has no duration and is held while its Active Rule Effect exists. Character `COMPLETE_REST` (CHARACTER origin, OWNER scope) and the Creature rest (ENCOUNTER origin and scope, its receipt recording `armedEffectIds` for undo) re-create an ended one through `prepareRestStandingEffects` (`standingEffectPlans.ts`, which reaches the Encounter rules; the Sheet lists them from `standingEffects.ts`, which the browser may read); an End On trigger ends it through consumed-grant persistence, so undo restores it, and a CHARACTER-origin incoming-attack ward is owned by its holder. A timed condition whose duration is `UNTIL_DISPELLED` (Sequester, SPELLS-4 T2a4) counts no turns and lasts until the GM ends it or an authored end trigger does. A zone whose component authors `choosesUnaffected` (Spirit Guardians, SPELLS-20 T4c) lets the caster designate creatures at cast: the choice
 DTO advertises `choosesUnaffected` on its zone target (`POINT`, `CASTER_CENTERED`, `WALL`, `RING` or `ZONE_OPTIONS`), the cast command carries optional
 `unaffectedActorIds` on the zone's target (the Worker refuses it for an action whose zone does not offer it, or for an id
 that is not an Encounter actor), `planEncounterPlacedZone` stores it on the placement, and `collectSpatialMovementCandidates`
@@ -1034,6 +1068,22 @@ lowest `atMost` the target satisfies wins, none means no tier); `encounterActive
 with it and the hit-point-gated proposal operations decide with it. Tier plans author no maintenance or source
 immunity, and a cast pick cannot also tier.
 
+A saving throw's `ROLL_TABLE` path (ATTACK-16.T1a, current) rolls its table die in the path's OUTCOME phase
+(`effectActionRollTable.ts`): one `dnd5e.roll-table-row-gate` per row authorizes only the rolled row's outcomes, and
+the OUTCOME graph's `rollTableRoll` output is the face rolled. A row whose outcome lasts (a timed condition or a grant,
+T1a2) compiles to `compilation.rollTableRowPlans` (at most 20): one active-effect plan per lasting row, each carrying
+`rollTableRow: { min, max }`, with `activeEffectPlan` null. The row's plan is planned from the action narrowed to that
+row (`narrowedActions` in `effectActionNarrowing.ts`, the one rule hit-point tiers also narrow by), its outcomes made
+direct results of the table's path, and must hold that row (`compiledEntryId` is the row's entry); a row no timed plan
+holds, a lasting row on an action with two tables, or rows beside hit-point tiers are refused. A row's grant is the
+plan's alone and leaves no OUTCOME node; its timed condition is applied by the OUTCOME graph and held by the plan.
+`encounterActiveEffectPlan` picks the row whose faces hold the settled `rollTableRoll` (no row plan when the save
+succeeds or the rolled row does not last), so it needs the settled OUTCOME outputs: a multi-creature action's lead plan
+(`leadActiveEffectPlan`) has none and refuses row plans, and a cast pick cannot also roll on a table. A timed
+condition's last counted turn (D62.2) removes the effect's conditions under `dnd5e.condition-duration`; the stored
+turn-effect result binds that removal to the expiring effect itself (an `EXPIRE` lifecycle, its own effect id, no
+paths), not to a trace candidate, since the duration node outputs nothing.
+
 **Placed-zone damage dice (SPELLS-20 T1, D133, current).** A zone whose failed entry save deals authored dice
 (`valueKind: 'DICE'`, a plain `NdM`) compiles those dice into the zone's one frozen entry graph: `damage-enabled`
 (the movement-interruption authorization) gates one `evidence.optional-integer-range` node per die, sum nodes add
@@ -1048,6 +1098,16 @@ the stored execution trace, which settlement reconstructs from (`reconstructTarg
 settled entry never rerolls. `retainedSpatialReplayFaces` also replays the dice, but no caller passes `retained`
 today. The movement that triggers an entry is not an undoable root (above); GM undo of a dice zone
 removes the zone with its spreading Action, as for every placed zone.
+
+**GM environmental zones (MOVE-3.2, ADR 0038, server current; tabletop tool MOVE-3.T1b pending).** The GM command
+`PLACE_ZONE` carries an authored `MANIFEST` `ZONE` `PLACED_SPACE` outcome (the zone `outcome` node map's values) and a
+Scene point. `planEncounterEnvironmentalZone` (`encounterEnvironmentalZone.ts`) wraps it in the passive Effect an item
+leaving it authors and runs the same `compileEffect`, `bindEncounterEffect`, `compilePassiveZone`,
+`evaluateEncounterZoneTarget` and `planEncounterPlacedZone` path, fixed to the Scene with `origin.sourceActorId: null`.
+No creature stands behind it, so a zone that needs one (maintenance, a cast save DC, a source grant, retaliation,
+unaffected picks, required sight, a non-fixed escape DC, a source-turn trigger or a source-ability save bonus) is
+refused as `TARGET_UNAVAILABLE`. `placeEnvironmentalZone` (`encounter-persistence`) stores it with receipt
+`{ spatialEffectId }`, and GM undo (`REVERT_LAST_ACTION`) deletes it. Entries then settle as every placed zone's do.
 
 **Source zones (SPELLS-20 T1b, current).** An authored `MANIFEST` `ZONE` with `attachmentKind: 'SOURCE'` compiles
 through the same `zonePlacementPlan` as a placed space (`PlacedSpaceZone.attachment` becomes
@@ -1105,7 +1165,7 @@ An effect or a reaction subscribes to events through authored data; a feature ne
 `packages/rules-runtime/src/events/` and never import `systems/*`:
 
 - **Event table** (`encounterEventTable.ts`). `EncounterEvent` is the structural facts every System has: `ACTION`
-  (whether it makes an attack roll or casts a spell, and whether it is aimed at an enemy), `ATTACKED`, `HIT`, `TEST`
+  (whether it makes an attack roll or casts a spell, and whether it is aimed at an enemy), `ATTACKED` (melee or not, from the attack's classification, never its distance), `HIT`, `TEST`
   (`CHECK` or `SAVE`, with its ability by code or definition id, or none), `DAMAGED` (`AFTER` it lands: damager,
   damage types, dispositions; `BEFORE` it lands: the current hit points it takes the holder from and to), `HIT_POINTS_REGAINED`, `INCAPACITATED` (of the holder or of named sources), `CONDITION_HELD`,
   `ITEM_RELEASED`, `ACTION_USED_ON_HOLDER`, `IDLE_TURN`, `MOVED`, `AREA_LEFT`, and the events a reaction answers:
@@ -1137,7 +1197,7 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   `effectEventScope` (whose events and turn an effect meets), `damageTriggerMet` and `damagerOnSourceSide` live here too.
   Given the holder's `reactions` too, it returns the reactions the events offer, in held order, each once with the first
   hook met. A reaction's authored `reactionTrigger` is its subscription, already structural, so no vocabulary reads it:
-  `ATTACKED_SELF` meets a hit its qualifiers admit (melee only, attacker seen), `DAMAGE_TAKEN` a hit dealing a type it
+  `ATTACKED_SELF` meets a hit its qualifiers admit (melee or ranged, weapon only, attacker seen), `DAMAGE_TAKEN` a hit dealing a type it
   names (it names the types that triggered it), `SPELL_CAST` another's cast when the reaction cancels it, and
   `TARGETED_SELF` being chosen by a cast of a listed spell (any, unlisted). The holder's reactions are listed by
   `encounterReactors.ts` (a Creature's feature actions, a Character's actions and castable spells), and whether one is
@@ -1162,7 +1222,8 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   filter added to the subscription reaches both. The `BEFORE` `DAMAGED` event carries the whole blow (`damageTaken`,
   `damageTypeId`, `critical`), and a damage interception may filter on it (SPELLS-33.T4i2a): `excludes` (damage types
   and critical hits it does not meet) and `maxDamageTaken`. Its optional `save` (ability, DC `base` plus the damage
-  taken when `plusDamageTaken`) is spent only on a pass, with the die on the interception itself (`saveRoll`,
+  taken when `plusDamageTaken`, plus `plusPerChargeUsed` per charge already used) is spent on a pass, or on every
+  attempt when `spendsUseOnFailure` (SPELLS-31.T5f3; the receipt marks a spent failure `spent`), with the die on the interception itself (`saveRoll`,
   `{ rawDie, addedTotal }`): the Worker rolls it once per target before any blow lands (`withInterceptionSaveRolls`,
   the holder's saving throw and roll mode; a room commit replays the recorded one with
   `withRecordedInterceptionSaveRolls`). A failure lets the blow meet the next interception, and a missing die is an
@@ -1173,7 +1234,12 @@ An effect or a reaction subscribes to events through authored data; a feature ne
   is held only while the charge has one left; the intercepted blow spends it (`interceptionCharge` on the DAMAGE or
   KILL_NEGATED application, recomputed by the fold), `withInterceptionChargesSpent` writes it on the plan's actor,
   rest recovery resets it through `planCreatureRest`, and `actionRevert` restores it. A feature with no charge (Undead
-  Fortitude) is held every time. Known limits: a condition that fails the save outright and added save dice are not read. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
+  Fortitude) is held every time. A Character's feature holds them the same way (SPELLS-31.T5f3, Relentless Rage):
+  `characterHeldDamageInterceptions` lists the policy output's authored `DAMAGE_INTERCEPTION` grants, gated by
+  `HOLDER_ACTIVE_EFFECT` on the Character's active effects, with the charge read from the feature's resolved Sheet
+  pool. The plan writes the spend to that pool's `resourceUsage` row (a derived id, refused when the pool moved
+  since listing), the receipt's `interceptionCharge.poolId` names the pool, and `actionRevert` restores the row's
+  uses. Known limits: a condition that fails the save outright and added save dice are not read. An incoming gate (`INCOMING_ATTACK_GATE`, Sanctuary)
   meets a `HARMFUL_ACTION_AIMED` by an attacker of a listed type: `heldIncomingGate` lists the wards the attacker has not
   passed and asks discovery which one it meets. Counter and targeted-self windows are reactions to
   `SPELL_CAST_BY_OTHER` and `TARGETED_BY_CAST` above; a retarget stays the gate's failure pause.
@@ -1269,9 +1335,12 @@ A Creature reactor is discovered the same way (`encounterReactorCandidates`): it
 checks the reactor is the batch target, and undo restores the allowance as for a Character. A Creature reaction
 that spends a feature resource is not offered yet.
 
-`ATTACKED_SELF` takes two optional qualifiers: `attackRange: 'MELEE'` admits only a hit whose trigger is an
-installed melee attack trigger (`isInstalledMeleeAttackTrigger`), and `requiresSight` only a hit whose attacker
-the reactor sees, read from the attack's perception (`attackSight.actual.targetSeesAttacker`). Parry is authored
+`ATTACKED_SELF` takes three optional qualifiers: `attackRange: 'MELEE'` admits only a hit whose trigger is an
+installed melee attack trigger (`isInstalledMeleeAttackTrigger`) and `'RANGED'` only one whose trigger is not;
+`weaponOnly` admits only a hit whose trigger is not an installed spell attack trigger (`isInstalledSpellAttackTrigger`,
+the event's `weapon`); and `requiresSight` only a hit whose attacker the reactor sees, read from the attack's
+perception (`attackSight.actual.targetSeesAttacker`). Deflect Missiles (SPELLS-31.T5b) is authored `RANGED` and
+`weaponOnly`, and grants an `INCOMING_DAMAGE` REDUCE that the answered attack's OUTCOME takes off its primary damage. Parry is authored
 with both (`parryReaction` in the SRD creature data) and grants an `ARMOR_CLASS` bonus whose lifecycle is
 consumed `ON_ATTACKED`. Such an effect counts against the answered attack's TEST and is never kept when that
 action makes an attack roll (its `ATTACKED` end subscription, `endSubscriptions`), so the receipt's `activeEffectTransitions`
@@ -1796,6 +1865,14 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (empty domain, no payload), anchored to the holder's `END_OF_TURN`. The room reads it with `encounterGrantsEnabledDomain(effects, 'OPPORTUNITY_ATTACK_IMMUNITY')`.
   A `TURN` duration counts the turn in progress (`includesCurrentTurn`, no own-turn +1); `ROUND` and longer keep the +1. Like every
   grant it ends only at a real turn end (START or ADVANCE_TURN); GM cursor corrections do not tick grants (product-owner ruling, ATTACK-18.2).
+- **Free opportunity reaction (ATTACK-13.T2)** is a `FREE_OPPORTUNITY_REACTION` `ENABLE` modifier (empty domain) on the creature a
+  reactor may attack without its reaction. `encounterGrantsFreeOpportunityReaction` reads it within each effect's event scope, so a
+  `fromSourceOnly` grant (a Mark) frees only its source. The System policy then spends the free allowance capability instead of the
+  reaction while that allowance is left; a reactor that cannot act or take reactions gets nothing. The free allowance refreshes
+  `EACH_TURN`: its usage lives in `resources.turnUsage[definitionId] = { turnSequence, used }`, and an entry from any other
+  `turnSequence` (every turn start and GM turn move bumps it) reads as unspent, so no refresh ever writes it
+  (`encounterAllowanceUsed`, `withEncounterAllowanceUsed`). `START_OF_TURN` allowances stay in `ruleUsage`. A movement reaction's
+  move settles mechanics, so neither the Scene undo nor the action undo reverts it and the spent record stays.
 - **Two-weapon fighting damage (ATTACK-9.T5b, D-pending-attack-9-t5)** adds no feature-specific kind. The damage ability modifier of an
   off-hand bonus attack is the existing `min`/`max` clamp on `resolveAbilityModifierBonus` (`max: 0` keeps a modifier only while negative,
   `min: 0` only while positive; the optional finesse kind accepts the same fields), and the `ATTACK_ACTIVATION` facet predicate (folded to
@@ -1842,7 +1919,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   action commits, opportunity attacks, Disarm, Grapple and Shove, spell and area attack rolls, reaction attacks, the damage choke
   point, Sheet HP decreases and GM HP edits. `planIdleTurnCheck`, run by `persistEncounterIdleTurnCheck` at the end of the turn commit,
   after the outgoing turn's Legendary Action damage so that damage counts, ends the idle-bound grants of an `ARMED` holder and clears
-  its mark, and arms an `ENGAGED` one again. Skipped-turn ticks run no check for an actor that had no turn. GM undo restores the marks
+  its mark, and arms an `ENGAGED` one again. An `END_EVENT_EXEMPTION` feature grant (`ENABLE`, payload `{ events, effectIds }`;
+  SPELLS-31.T5f2, Persistent Rage) keeps the holder's own effects with those authored ids from ending on those events: the check reads
+  an `ARMED` holder's feature grants (a Character's rules, or a Creature's or creature form's folded grants through
+  `encounterActorGrantModifiers`), keeps the exempt grants (`endEventExemptAuthoredEffectIds`, which honors HOLDER_ACTIVE_EFFECT
+  restrictions) and leaves the holder armed. Only `ON_IDLE_TURN` reads the exemption today; other end conditions still apply. Skipped-turn ticks run no check for an actor that had no turn. GM undo restores the marks
   an action changed (`idleTurnMarkChanges` on the `RESOLVE_ACTION` root, diffed before and after the commit); Disarm, GM HP edits,
   Sheet HP changes and movement reactions are not undoable. A mark left by a grant that ended another way is reconciled at the next
   END_OF_TURN.
@@ -1854,8 +1935,12 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
 - **Restrictions (slice E).** An actor is offered a basic action, and may take it, only when its facet `restrictions` hold; no
   restriction means every actor, Characters and Creatures alike. The check is `encounterBasicActionRestrictionsHold`
   (`encounterBasicActionRestrictions.ts`): it normalizes the facet with the grant-fold restriction normalizer and decides the holder-state
-  predicates (`CAN_ACT`, `SPEED_ABOVE_ZERO`, `FREE_HAND`, `TURN_MOVEMENT`) against `EncounterHolderState` (`encounterHolderDefense.ts`), the same live
-  decision grant restrictions use; any other predicate fails closed. Each CHARACTER or CREATURE context also normalizes to a
+  predicates (`CAN_ACT`, `SPEED_ABOVE_ZERO`, `FREE_HAND`, `TURN_MOVEMENT`, `HOLDER_ACTIVE_EFFECT`) against `EncounterHolderState` (`encounterHolderDefense.ts`), the same live
+  decision grant restrictions use; any other predicate fails closed. `HOLDER_ACTIVE_EFFECT { effectIds }` (SPELLS-31.T5f1)
+  holds while the holder carries an active effect whose `authoredEffectId` is one of `effectIds`
+  (`EncounterHolderState.activeAuthoredEffectIds`): a feature that works "while raging" names Rage's authored effect id, never
+  the reverse. A Character feature's `CONDITION_IMMUNITY` grant restricted by a holder-state predicate is deferred by the fold
+  and joins `sourceConditionImmunities` only while its restriction holds (Mindless Rage). Each CHARACTER or CREATURE context also normalizes to a
   `HOLDER_KIND` condition on its subject, and a CREATURE context's `CREATURE_TYPE` to a `CREATURE_TYPE` condition (D152): the
   Encounter decides both from the holder's `kind` and `creatureTypeIds`, the Character fold decides them as constants (a Character
   holder, no creature type), so its outputs are unchanged, and item-action requirements always see a Character. `FREE_HAND` is true
@@ -1864,8 +1949,11 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   loadout snapshot, a Character's from the `handFacts` rule input (`characterHandRuleFacts.ts`, built from the equipped slots and the
   TWO_HANDED property). The capability descriptor carries the
   document's `restrictions`. The choices read (`actionChoiceReads.ts`) drops actions whose restrictions do not hold, and the Session Worker
-  (`refuseUnmetBasicActionRestrictions`, after `prepareEncounterActionMechanics`) refuses an unmet one as `SOURCE_REQUIREMENTS_NOT_MET`
+  (`refuseUnmetActionRestrictions`, after `prepareEncounterActionMechanics`) refuses an unmet one as `SOURCE_REQUIREMENTS_NOT_MET`
   before anything is planned. A homebrew copy of the catalogue keeps its `restrictions`, since they are part of the document.
+  A Character's activated action is gated the same way by its `ON_USE` path's `restrictions` (SPELLS-31.T5f4,
+  `activatedActionHolderRestrictions`): the choices read drops it and the Session Worker refuses it while any one does not hold
+  (Frenzy is offered only while Rage is held and Frenzy is not).
 - **Gone with slice E:** nothing further; the closed basic-action codes were all deleted by slices A to D (verified by search).
 - **Gone with slice A:** `withEncounterBasicActionDefense`, the `dodgeContributors` plumbing, the Dodge Run-resource effect kinds,
   the mechanic codes `DISADVANTAGE_ON_ATTACKS_AGAINST` and `SAVE_ADVANTAGE`, `saveAbilityIds` and
@@ -1976,7 +2064,8 @@ A held effect's result block may carry `lifecycle.grantedActions` (generic autho
 - **Standing offers (current, SPELLS-33.T4l1, D188):** a Creature trait whose PASSIVE effect carries an `APPLY_GRANT` result block with `lifecycle.grantedActions` and **no duration** offers its actions on every turn (Goblin Nimble Escape, Spy Cunning Action). `standingGrantedActions(snapshotFeatureDefinitions(actor))` reads them straight from the actor's snapshot and returns the same `HeldGrantedAction` shape, with the trait's effect id standing in for the held effect id. No row is stored, so the id form, the choice list (`actionChoiceReads`), `resolveGrantedAction`, the weapon-attack hold and the per-turn use keys are the held-effect path unchanged. An activated trait's grant is still timed and held. Conditions on an offer (Shadow Stealth's dim light, Aggressive's "toward a hostile creature") stay in the Feature text as GM rulings.
 - **Id form:** `<basic action id>:GRANTED:<activeEffectId>:<offerIndex>` (`grantedActionId` / `parseGrantedActionId`). The basic-action prefix check still holds, so clients echo `choice.id` unchanged.
 - **Resolve-time re-check:** `resolveEncounterActionSource` takes a `granted` input (held effects plus this turn's spent keys) and refuses a stale offer (effect ended, no longer offers that action) or a spent one. A source carries the offer's `activation` in place of the action's own, and `grantedUseKey`.
-- **Allowance:** a `FREE` offer skips the allowance in `evaluateNativeLiveActionEconomy`; any other activation spends the real allowance. A `weaponAttack` offer is the Attack action's fallback when its own economy is unavailable: the attack opens a total-1 Attack action charged to the offer's use key.
+- **Allowance:** a `FREE` offer skips the allowance in `evaluateNativeLiveActionEconomy`; any other activation spends the real allowance. A `weaponAttack` offer is the Attack action's fallback when its own economy is unavailable: the attack opens a total-1 Attack action, charged to the offer's use key when the offer is `FREE`, or to the offer's own allowance otherwise (`nextGrantedAttackCharge`; SPELLS-31.T5f4: Frenzy's `BONUS_ACTION` offer spends the Bonus Action, and is refused once that is spent).
+- **Ends with a held effect (SPELLS-31.T5f4, D172):** a held effect's lifecycle may name `endsWithHeldEffectId`, an authored effect id its holder must hold. `prepareRecurringActiveEffect` sets the new effect's `linkedEffectId` to that held effect (and refuses when the target holds none), so it ends whenever its parent ends: on event hooks and GM releases as before, and now also on grant-tick expiry (`planEncounterGrantTicks`) and the idle-turn check (`planIdleTurnCheck`, which keeps a dependent of an exempt effect: Frenzy stays with a Persistent Rage). The compiled activated action carries the `ON_USE` path's `holderRestrictions`, so Frenzy is offered only while Rage is held and Frenzy is not.
 - **Use count:** a capped offer spends `granted:<effectId>:<offerIndex>:<use>` in the turn row's `usedOncePerTurn` (see persistence.md); the commit spends it and an undo restores it.
 
 ### Owner-derived control (current, SPELLS-4.T2v2a1)
@@ -2080,6 +2169,14 @@ and cadence (`ENCOUNTER_START` carries the settled order into later rounds, `EAC
 fresh round), and pins an evaluation graph, a bounded order-choice graph and bounded tie resolvers.
 Graphs supply facts and scores; the application orders results and invokes the pinned resolver.
 Unresolved ties go through the order-choice graph, never an application tiebreak.
+**Speed Factor (current, ENCOUNTER-4.T1).** `INITIATIVE_POLICY` is a union on `procedure`: only the `DECLARED_ACTION_ROLL`
+variant carries `declarationModifiers`, the authored table of size and per-declaration factors
+(`initiativeDeclarationModifier`, `encounterInitiativeDeclarationModifier.ts`; no System code holds a table). The compiler
+reads sizes and factors from the frozen policy, and the `GM_ADJUDICATED` request lists the policy's `factorIds`. The seeded SRD
+policy (`source-data/srd/initiativePolicies.ts`, selectable like optional combat) settles a tie by the higher Dexterity score
+(D&D fact `initiative.dexterity-score`, one attempt) and leaves a still-equal tie to the table's order choice. A declared actor's
+action and spell admission refuse any other action with `UNDECLARED_ACTION`; basic actions stay unenforced (see
+future-enhancements).
 
 Lifecycle order: `START` creates a `PREPARING` round, evaluates the policy, resolves ties and choices,
 activates the first participant, then enters that actor's `START_OF_TURN`. At an `EACH_ROUND` wrap the
@@ -2139,8 +2236,9 @@ preparation functions, without serializing database contexts or Maps.
 
 **Encounter preparation.** `encounterMovementTargets` owns target facts, effect reductions and reaction
 source compilation; `encounterMechanicsBatchPlan` owns the Character/actor transition plan;
-`encounterActionSources` and `encounterActionMechanicsPreparation` own action source resolution and
-target, resource, relationship and execution-plan preparation; `encounterActionEffects` and
+`encounterActionSources` and `encounterActionMechanicsPreparation` own action source resolution (Creature
+feature, basic action, repeat path, Character action, and an optional combat rule's own action, `RULE`:
+see [D&D optional combat](dnd5e-optional-combat.md)) and target, resource, relationship and execution-plan preparation; `encounterActionEffects` and
 `encounterActionEconomy` own effect planning and allowance calculation (no reads for Manual mode or
 actions without an allowance); `encounterCreatureEquipmentSources` owns Equipment snapshot pinning and
 loadout binding checks. The room reads actors, effects and definitions through its read ports and commits
@@ -2379,6 +2477,17 @@ measure, `measureSceneTokenFootprintDistance`. The SRD attack sweep allowlist
 (`__tests__/srdCreatureAttackSweepAllowlist.ts`) lists the attacks that remain unsupported, each with one
 reason, and may only shrink. Versatile grips author one effect per grip.
 
+Positional attack contributors (current, ATTACK-12.T2f): `encounterActionPositionalContributors`
+(`encounterPositionalContributors.ts`) is the single home for roll-mode contributors that come from where
+creatures stand. It returns the Facing arc contributors and the System's Flanking contributor, which it
+reaches through `optionalCombatPolicyCapabilityRegistry` (`resolveFlanking`). Flanking facts come from
+`loadEncounterFlankingFacts`: allies of the attacker in contact with the target, whether each holds the
+policy's participant capability (`flankingParticipantCapabilityDefinitionId`), and whether each sees the
+target. Each preparation site supplies its own tokens and perception through `loadFlanking`: the room's
+attack and root-action plans (`nativeLiveAttackSceneLoaders`), the movement opportunity attack measured
+at its contact point, and the Convex action preparation. `encounterActionTargetPolicy` stays free of
+registry imports, because the System adapters import it.
+
 **Hit point maximum reduction (SPELLS-33.T3a4).** A `HIT_POINT_MAXIMUM_REDUCTION` whose `DAMAGE_TAKEN`
 amount names a damage outcome of its own result path compiles on a direct test path too, not only in an
 immediate follow-up save's failure: each path's OUTCOME graph gets one reduction proposal bound to that
@@ -2402,7 +2511,7 @@ Scene geometry, so every actor the policy allows is offered.
 **Grant lifetimes (D99).** A timed `APPLY_GRANT` of modifiers compiles to a `MODIFIER_GRANT` active
 effect (`modifierGrantPlan`). Its authored `lifecycle.turnAnchor` names whose turn counts it down and at
 which boundary (`TARGET`, i.e. the holder, at `END_OF_TURN` when absent); the plan carries it as its
-`tickAnchor` and the stored expiration's `anchor`/`decrementStage`. A grant made on its
+`tickAnchor`, the stored recurrence's `anchor` and the expiration's `decrementStage`. A grant made on its
 anchor actor's own turn with an `END_OF_TURN` boundary counts one more turn, so "until the end of its next
 turn" outlasts the current one. The longest authorable duration is `MAX_ACTIVE_EFFECT_TURNS` (14,400 turns,
 24 hours; SPELLS-4.T2a3, D156), exported from `packages/schema/src/shared/activeRuleEffectLifecycle.ts`; the compiler
@@ -2411,12 +2520,38 @@ leaves a longer duration MANUAL and never clamps it. The stored tick fields (`ex
 own-turn tick. Grants are stored with `recurrenceStage: 'NONE'`, so the turn-effect kernel
 never selects them. A timed condition with a `SOURCE` turn anchor (Color Spray's blindness, "until the end of
 the caster's next turn") is stored and counted the same way, extra turn included; the kernel counts other timed
-conditions on the holder's turns. `planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
+conditions on the holder's turns.
+
+**Source-anchored recurrences (current, SPELLS-33.T6n2).** Every stored recurrence names a required `anchor`
+(`HOLDER` or `SOURCE`): the actor whose turns time it. The D&D compiler maps an authored `turnAnchor.actor` to the
+plan's `tickAnchor` in one place, `planTickAnchor` (`TARGET` or none to `HOLDER`, `SOURCE` to `SOURCE`), and a
+`SOURCE` anchor requires an Encounter origin with a source actor. A counted `SOURCE` effect runs through grant ticks
+(stored at `recurrenceStage: 'NONE'`); an uncounted one keeps its stage and runs in the turn-effect kernel on its
+source's turns, the holder-turn phase following the D144 pattern. `selectTurnEffectCandidates`
+(`encounterTurnEffectState`) is the one selection Convex and the room share: at a turn boundary it picks the
+actor's own `HOLDER` effects and every `SOURCE` effect whose source is that actor, across holders, in creation order
+(`createdOrdinal`, then id), and skips a `SOURCE` effect on its holder's own turn. An effect whose source is not in
+this Run falls back to its holder (D151). The kernel then runs one mechanics batch per holder: the save goes to the
+held creature's controllers, the damage dice to the source's. Shambling Mound Engulf (2d8+4 bludgeoning, DC 14
+Constitution) is the SRD case; dev data was migrated by `rules/recurrenceAnchorMigration`.
+
+**Hit-point loss recurrences (current, SPELLS-33.T6n2b).** A hold's `recurrence.outcome` is one exact dice
+outcome: `DAMAGE` (one damage type, `DICE`, no scaling or bonuses) or `HIT_POINT_LOSS` (`{ id, effectKind,
+diceConfig }`, no damage type). `relationshipRecurrencePlan` (`effectActionRelationshipGraphs`) returns a null
+`damageTypeId` for a loss; the graph then proposes `dnd5e.hit-point-loss-proposal` (no save) or, behind a fixed-DC
+save, the registry's `ENTRY_DICE_HIT_POINT_LOSS` outcome (`dnd5e.test-hit-point-loss-proposal`), which shares the
+entry-dice nodes of `ENTRY_DICE_DAMAGE` but takes no save multiplier or Evasion. `interpretDirectProposal` settles it
+as a `HIT_POINT_LOSS` application (the hit-point amount shape: temporary hit points absorb it first, current hit
+points take the rest, capped at what the target has). It is not damage: no defense resolves it, no interception
+answers it (`applyDamageInterceptions` only rebases it), and it adds no death-save failure, Concentration check or
+massive-damage kill. The fold (`foldCharacterMechanicsApplications`) and both receipt validators recheck its
+arithmetic. The Stirge's Blood Drain is the SRD case (converted in T6n3).
+`planEncounterGrantTicks` (`encounterGrantLifetimes`) counts down or expires every
 such effect anchored to the boundary actor, whoever holds it, and an expired one releases the conditions it alone held, and `persistEncounterGrantTicks` writes it in the turn
 commit's transaction. A grant's `consumeOnFirstEvents` (`ON_ATTACK_ROLL`, `ON_ABILITY_CHECK`) lists the events that use it up: it is deleted by its holder's next
 attack-roll action (not a save action) or ability check and stored on the command as `consumedGrants`, which GM undo
 restores (`discoverEncounterEventHooks`, `consumedGrantPersistence` in encounter-persistence). Help is the
-grant that carries both events. **Movement-bound end events (SPELLS-31.T5n):** `recurrence.endOnEvents` also takes `ON_MOVE` and `ON_TAKE_ACTION` (qualifier-free; `endOnTriggers` keeps qualified events). `ON_TAKE_ACTION` ends with `actionEndedEffects` on any action the holder takes, read from the effects held before it, so the action that creates the effect does not end it. `ON_MOVE` ends with the holder's voluntary movement: the evaluator's terminal result carries `moveEnds`, the command settles a `MOVE_END` settlement (`persistLiveMovementMoveEnd`), forced movement and teleports do not end it. The facet predicate `TURN_MOVEMENT` (`maxFeet` or `maxSpeedFraction`) is a holder-state predicate decided from `EncounterHolderState.turnMovement`, filled by the `TURN_MOVED_FEET` capture over `encounterTurnMovements.usedFeet`. **Ability checks (SPELLS-4.T2c2, D156):** `ABILITY_CHECK` takes `ADD_BONUS_DIE` (Guidance). A check raises a `TEST` event with its ability (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`), which spends only the effects whose ability-check grant applied to that ability; a bare check (`ability: null`, a contest's) spends none that hold such a die. The Sheet adds and spends a carried die in `evaluateCharacterRoll` (`carriedTestDice`). **D20 floor (SPELLS-4.T2c3, D156):** `MINIMUM_ROLL` on `ABILITY_CHECK` (a payload `amount` of 2 to 20; Glibness) floors the d20 a check counts. It is automatic: the roller replaces only a lower face, so the option needs no choice. `activeAbilityCheckMinimumRoll` reads the highest floor the holder's effects give an ability (an ungated grant covers every check; the lowest effect id breaks a tie), and `ContestFacts.minimumRoll`, the Sheet's `carriedTestDice` and the roll records take it from there. The kernel graph still outputs the raw die: `d20CheckTotal` applies the floor to the kept face (which commutes with advantage and disadvantage) beside the modifier and added dice, so every site shares one total and `selectedNatural` stays the face kept. The floor is not spent. Reliable Talent stays `CLASS_ROGUE_RELIABLE_TALENT` (SPELLS-31.T5c): the option expresses its floor of 10, but its "proficient check" narrowing is not yet a grant condition. **Saving throws (SPELLS-4.T2c2b, D156):** `ON_SAVING_THROW` is the same scoped test over `SAVING_THROW_MODIFIER` grants (Resistance, any ability; a death save has `ability: { code: null }` and spends an unfiltered die). `savingThrowSpentEffects` (`encounterEndedEffectRelease`) is the one spend rule: `targetEndedEffects` calls it for the saves an action settled (the d20 evidence names the save's `savingThrowAbilityDefinitionId`, set where the compiler builds the save policy), the Concentration plan and its persistence call it for the Constitution check, the turn-start death save and the Sheet's `carriedTestDice` call it with their own ability. Persistence re-derives the spent set and refuses a plan that omits or adds a die. **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
+grant that carries both events. **Movement-bound end events (SPELLS-31.T5n):** `recurrence.endOnEvents` also takes `ON_MOVE` and `ON_TAKE_ACTION` (qualifier-free; `endOnTriggers` keeps qualified events). `ON_TAKE_ACTION` ends with `actionEndedEffects` on any action the holder takes, read from the effects held before it, so the action that creates the effect does not end it. `ON_MOVE` ends with the holder's voluntary movement: the evaluator's terminal result carries `moveEnds`, the command settles a `MOVE_END` settlement (`persistLiveMovementMoveEnd`), forced movement and teleports do not end it. The facet predicate `TURN_MOVEMENT` (`maxFeet` or `maxSpeedFraction`) is a holder-state predicate decided from `EncounterHolderState.turnMovement`, filled by the `TURN_MOVED_FEET` capture over `encounterTurnMovements.usedFeet`. **Ability checks (SPELLS-4.T2c2, D156):** `ABILITY_CHECK` takes `ADD_BONUS_DIE` (Guidance). A check raises a `TEST` event with its ability (`{ kind: 'TEST', test: 'CHECK', ability: { code } }`), which spends only the effects whose ability-check grant applied to that ability; a bare check (`ability: null`, a contest's) spends none that hold such a die. The Sheet adds and spends a carried die in `evaluateCharacterRoll` (`carriedTestDice`). **D20 floor (SPELLS-4.T2c3, D156):** `MINIMUM_ROLL` on `ABILITY_CHECK` (a payload `amount` of 2 to 20; Glibness) floors the d20 a check counts. It is automatic: the roller replaces only a lower face, so the option needs no choice. `abilityCheckMinimumRoll` is the one floor reducer: it reads the highest floor the holder's active effects and, for a Character, its folded feature grants (Reliable Talent) give an ability (an ungated grant covers every check; the lower source id breaks a tie). A grant with `domain.proficientOnly` floors only a check that adds full or doubled proficiency; Jack of All Trades' half proficiency does not count. `ContestFacts.minimumRoll`, the Sheet's `carriedTestDice` and the roll records (`sourceId` names the effect or feature source) take it from there. The kernel graph still outputs the raw die: `d20CheckTotal` applies the floor to the kept face (which commutes with advantage and disadvantage) beside the modifier and added dice, so every site shares one total and `selectedNatural` stays the face kept. The floor is not spent. Reliable Talent is this option with `proficientOnly` (SPELLS-31.T5c). Indomitable, Diamond Soul and Stroke of Luck spend their charge automatically and leave the reroll or changed result to a GM ruling (`MANUAL_ADJUDICATION`); Indomitable Might is description-only. **Saving throws (SPELLS-4.T2c2b, D156):** `ON_SAVING_THROW` is the same scoped test over `SAVING_THROW_MODIFIER` grants (Resistance, any ability; a death save has `ability: { code: null }` and spends an unfiltered die). `savingThrowSpentEffects` (`encounterEndedEffectRelease`) is the one spend rule: `targetEndedEffects` calls it for the saves an action settled (the d20 evidence names the save's `savingThrowAbilityDefinitionId`, set where the compiler builds the save policy), the Concentration plan and its persistence call it for the Constitution check, the turn-start death save and the Sheet's `carriedTestDice` call it with their own ability. Persistence re-derives the spent set and refuses a plan that omits or adds a die. **Attacked (SPELLS-4.T2a3, D156):** `ON_ATTACKED` uses a grant up on the first attack
 roll made against its holder, hit or miss (Guiding Bolt's mark). The roll reads the grant's modifiers first; the target's
 `targetEndedEffects` (`attacked`, the action's `makesAttackRoll`) then ends it with the target's damage-ended effects, once
 each, on the same receipt (`consumedGrants`, so GM undo restores it). Every attack root passes it: the action, an area or

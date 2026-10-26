@@ -14,9 +14,11 @@ export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto 
   )
   const statBlock = actor.statBlock
   if (!statBlock) return null
-  const abilityScores = Object.entries(statBlock.abilityScores ?? {}).sort(
-    ([left], [right]) => abilitySortIndex(left) - abilitySortIndex(right)
-  )
+  // The System names and orders the abilities.
+  const abilityScores = (system?.abilities ?? []).flatMap(({ code, label, short }) => {
+    const score = statBlock.abilityScores?.[code]
+    return score === undefined ? [] : [{ code, short: short ?? label, score }]
+  })
   const defenses = encounterStatBlockDefenses(statBlock, system)
   const abilityModifier = actor.systemId
     ? abilityScoreCapabilityRegistry.require(actor.systemId).abilityModifier
@@ -49,9 +51,9 @@ export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto 
       </dl>
       {abilityScores.length ? (
         <dl className={encounterStyles.encounterAbilities}>
-          {abilityScores.map(([ability, score]) => (
-            <div key={ability}>
-              <dt>{ability.slice(0, 3).toUpperCase()}</dt>
+          {abilityScores.map(({ code, short, score }) => (
+            <div key={code}>
+              <dt>{short}</dt>
               <dd>
                 <strong>{score}</strong>
                 {abilityModifier ? (
@@ -74,13 +76,6 @@ export function EncounterEnemyStatBlock({ actor }: { actor: EncounterGmActorDto 
       ) : null}
     </section>
   )
-}
-
-const abilityOrder = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA']
-
-function abilitySortIndex(ability: string): number {
-  const index = abilityOrder.indexOf(ability.slice(0, 3).toUpperCase())
-  return index === -1 ? abilityOrder.length : index
 }
 
 function formatAbilityModifier(modifier: number): string {

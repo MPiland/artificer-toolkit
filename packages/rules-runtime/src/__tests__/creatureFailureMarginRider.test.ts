@@ -245,7 +245,7 @@ describe('a save failed by a margin applies a rider condition (SPELLS-27.T11)', 
     const damaged = targetEndedEffects({
       holderActorId: TARGET_ID,
       held,
-      attacked: false,
+      attack: null,
       testEvidence: [],
       turnActorId: null,
       applications: [

@@ -24,6 +24,7 @@ import {
   type InitiativeRestoreSource
 } from './characterInitiativeRestores.js'
 import { placedSpaceEntries } from '../placedSpaceEntries.js'
+import { standingEffectReturnsOn } from '../standingEffects.js'
 import { reduceEffectRestrictions } from '../systems/dnd5e/attackRestrictions.js'
 import { dnd5eAttackingItem } from '../systems/dnd5e/modifierApplicability.js'
 
@@ -95,6 +96,11 @@ interface CharacterActionRuleFacts {
   passiveZones: CharacterActionSources
   /** The charges the Character's passive features raise when it rolls initiative; never policy facts. */
   initiativeRestores: InitiativeRestoreSource[]
+  /**
+   * The always-on effects the Character's passive features hold until something ends them, which a
+   * rest turns back on; candidates no one takes, never policy facts.
+   */
+  standingEffects: CharacterActionSources
 }
 
 /** Every action identity of one Character source starts with this prefix. */
@@ -517,6 +523,8 @@ function appendActions(params: {
   passiveZones?: CharacterActionSources
   /** Where this source's initiative restores go; absent for a source that keeps none. */
   initiativeRestores?: InitiativeRestoreSource[]
+  /** Where this source's standing effects go; absent for a source that keeps none. */
+  standingEffects?: CharacterActionSources
   /** The weapons a Feature attack with the wielded weapons is made with; absent for an item. */
   wieldedWeaponAttacks?: WieldedWeaponAttacks
 }): void {
@@ -602,10 +610,13 @@ function appendActions(params: {
         continue
       }
     }
-    const sink = passive
-      ? params.passiveZones
-      : { candidates: params.candidates, entryPoints: params.entryPoints }
-    if (!sink || (passive && !placedSpaceEntries(authoredEffect))) continue
+    const standing = standingEffectReturnsOn(authoredEffect) !== null
+    const sink = standing
+      ? params.standingEffects
+      : passive
+        ? params.passiveZones
+        : { candidates: params.candidates, entryPoints: params.entryPoints }
+    if (!sink || (passive && !standing && !placedSpaceEntries(authoredEffect))) continue
     if ('weaponAttack' in authoredEffect && authoredEffect.weaponAttack) {
       // One action per weapon attack of the effect's trigger and activation (an Attack action
       // feature never takes a weapon's bonus-action off-hand attack) that a weapon with every
@@ -655,6 +666,7 @@ export function buildCharacterActionRuleFacts(params: {
   const onHitRiders: OnHitRider[] = []
   const passiveZones: CharacterActionSources = { candidates: [], entryPoints: [] }
   const initiativeRestores: InitiativeRestoreSource[] = []
+  const standingEffects: CharacterActionSources = { candidates: [], entryPoints: [] }
   // Feature actions are appended once every rider is known, since an attack a Feature makes with
   // a wielded weapon carries them (D156).
   const featureActions: Pick<
@@ -751,6 +763,7 @@ export function buildCharacterActionRuleFacts(params: {
       resourcePoolCandidates: params.resourcePoolCandidates,
       passiveZones,
       initiativeRestores,
+      standingEffects,
       wieldedWeaponAttacks
     })
 
@@ -798,7 +811,7 @@ export function buildCharacterActionRuleFacts(params: {
     }
   }
 
-  return { actionCandidates, entryPoints, passiveZones, initiativeRestores }
+  return { actionCandidates, entryPoints, passiveZones, initiativeRestores, standingEffects }
 }
 
 type CompiledOutcome = CompiledEffectEntry['outcome']

@@ -10,6 +10,8 @@ export type CharacterDeathSaves = z.infer<typeof characterDeathSavesDtoSchema>
 
 export const DEATH_SAVE_LIMIT = 3
 
+const DEATH_SAVE_DIFFICULTY_CLASS = 10
+
 const DEAD: CharacterDeathSaves = { successes: 0, failures: DEATH_SAVE_LIMIT, stable: false }
 
 export function isCharacterDead(deathSaves: CharacterDeathSaves): boolean {
@@ -122,6 +124,16 @@ export function reviveTraceMatches(
 }
 
 /**
+ * How far a death save roll fell short of its DC, by the same rule as `deathSavesAfterRoll`; null
+ * when it succeeded. A natural 1 fails whatever its total.
+ */
+export function deathSaveShortfall(rawDie: number, addedTotal = 0): number | null {
+  if (rawDie === 20) return null
+  const shortfall = DEATH_SAVE_DIFFICULTY_CLASS - (rawDie + addedTotal)
+  return rawDie === 1 || shortfall > 0 ? shortfall : null
+}
+
+/**
  * The death saves after a dying Character's death save roll (a d20 with no modifier, plus any added
  * dice). A natural 20 regains 1 hit point, which resets the saves, and a natural 1 is two failures;
  * otherwise a total of 10 or more is a success and less a failure. A third success makes the Character stable (counts reset) and a third failure dead.
@@ -133,7 +145,7 @@ export function deathSavesAfterRoll(
   addedTotal = 0
 ): { deathSaves: CharacterDeathSaves; regainsHitPoint: boolean } {
   if (rawDie === 20) return { deathSaves: NO_DEATH_SAVES, regainsHitPoint: true }
-  const succeeded = rawDie + addedTotal >= 10
+  const succeeded = rawDie + addedTotal >= DEATH_SAVE_DIFFICULTY_CLASS
   const successes = deathSaves.successes + (rawDie !== 1 && succeeded ? 1 : 0)
   const failures = Math.min(
     DEATH_SAVE_LIMIT,

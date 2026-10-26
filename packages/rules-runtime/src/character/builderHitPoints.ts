@@ -1,5 +1,4 @@
 import { CLASS_CATEGORY, HITPOINT_CALCULATION_METHOD_CODE } from '@artificer-toolkit/shared/core'
-import { resolveAbilityAlias } from '@artificer-toolkit/shared/character'
 import type { CharacterAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { CompiledClass } from '@artificer-toolkit/shared/subjects/compilers'
 import type {
@@ -24,8 +23,7 @@ interface CharacterHitpointProgressionPreparation {
 export function prepareCharacterHitpointProgression(
   character: CharacterAuthored,
   authoredClasses: CharacterBuilderRegistry['classes'],
-  existingCharacter: CharacterAuthored | null,
-  abilityIds: readonly string[]
+  existingCharacter: CharacterAuthored | null
 ): CharacterHitpointProgressionPreparation {
   const submittedLevels = character.intent.hitpoints.levels
   const persistedLevels = existingCharacter?.intent.hitpoints.levels ?? []
@@ -91,15 +89,6 @@ export function prepareCharacterHitpointProgression(
         record.category === CLASS_CATEGORY.BASE && record.id === orderedLevel.classId
     )
     const die = parseHitDie(authoredClass?.hitpoint?.dieConfig)
-    const hitpointAbility = authoredClass?.hitpoint?.ability
-    const normalizedHitpointAbility = hitpointAbility
-      ? (resolveAbilityAlias(hitpointAbility) ?? hitpointAbility)
-      : null
-    const abilityIndex = normalizedHitpointAbility
-      ? abilityIds.findIndex(
-          (abilityId) => (resolveAbilityAlias(abilityId) ?? abilityId) === normalizedHitpointAbility
-        )
-      : -1
     const key = `${orderedLevel.classId}:${orderedLevel.classLevel}`
     const submitted = levelsByClass.get(key)
     const roll = submitted?.rolls?.[0]
@@ -132,7 +121,6 @@ export function prepareCharacterHitpointProgression(
       classId: orderedLevel.classId,
       classLevel: orderedLevel.classLevel,
       die,
-      abilityIndex: abilityIndex < 0 ? null : abilityIndex,
       fallbackValue: orderedLevel.value,
       rollValue: roll?.value ?? null
     }

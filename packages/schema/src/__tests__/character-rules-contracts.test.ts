@@ -18,6 +18,20 @@ import {
 } from '../api/characterActionRules.js'
 
 describe('Character rule contracts', () => {
+  it('bounds the slot pools a Character casts from like its casting classes', () => {
+    const pool = {
+      poolCode: 'PACT',
+      sourceClassId: 'warlock',
+      slots: 2,
+      level: 3,
+      rawUsed: 0,
+      effectiveUsed: 0,
+      remaining: 2
+    }
+    const slotPools = characterRulePolicyOutputSchema.shape.spellSlots.shape.slotPools
+    expect(slotPools.safeParse(Array.from({ length: 20 }, () => pool)).success).toBe(true)
+    expect(slotPools.safeParse(Array.from({ length: 21 }, () => pool)).success).toBe(false)
+  })
   it('preserves bounded composite pool identities built from full UUID spell sources', () => {
     const id = '00000000-0000-4000-8000-000000000001'
     const sourceInstanceId = `SUBCLASS:${id}:${id}:${id}:${id}`
@@ -283,7 +297,6 @@ describe('Character rule contracts', () => {
           classId: 'fighter',
           classLevel: 1,
           die: 10,
-          abilityIndex: 0,
           fallbackValue: 10,
           rollValue: null
         }
@@ -687,7 +700,7 @@ describe('Character rule contracts', () => {
         companionMechanicsFacts: {
           ...inputWithClosedCodes.companionMechanicsFacts,
           companions: [
-            { ...inputWithClosedCodes.companionMechanicsFacts.companions[0]!, size: 'AVERAGE' }
+            { ...inputWithClosedCodes.companionMechanicsFacts.companions[0]!, size: 'average' }
           ]
         }
       }).success
@@ -700,7 +713,7 @@ describe('Character rule contracts', () => {
           adjustments: [
             {
               ...inputWithClosedCodes.companionMechanicsFacts.adjustments[0]!,
-              value: 'AVERAGE'
+              value: 'average'
             }
           ]
         }
@@ -711,29 +724,16 @@ describe('Character rule contracts', () => {
         ...inputWithClosedCodes,
         spellAccessCandidates: inputWithClosedCodes.spellAccessCandidates.map((candidate) => ({
           ...candidate,
-          castingAbility: 'ARCANA'
+          castingAbility: 'arcana'
         }))
       }).success
     ).toBe(false)
 
+    // The System-neutral contract cannot name abilities, so it defaults to empty ability records.
     expect(output.rollContributorEvidence).toEqual({
       initiative: [],
-      abilityChecks: {
-        STRENGTH: [],
-        DEXTERITY: [],
-        CONSTITUTION: [],
-        INTELLIGENCE: [],
-        WISDOM: [],
-        CHARISMA: []
-      },
-      savingThrows: {
-        STRENGTH: [],
-        DEXTERITY: [],
-        CONSTITUTION: [],
-        INTELLIGENCE: [],
-        WISDOM: [],
-        CHARISMA: []
-      },
+      abilityChecks: {},
+      savingThrows: {},
       skillChecks: {},
       attacks: { MELEE: [], RANGED: [], SPELL: [], UNARMED: [] }
     })
@@ -901,7 +901,7 @@ describe('Character rule contracts', () => {
     expect(
       characterRulePolicyOutputSchema.safeParse({
         ...outputWithClosedCodes,
-        companions: [{ ...outputWithClosedCodes.companions[0]!, size: 'AVERAGE' }]
+        companions: [{ ...outputWithClosedCodes.companions[0]!, size: 'average' }]
       }).success
     ).toBe(false)
     expect(
@@ -912,7 +912,7 @@ describe('Character rule contracts', () => {
             ...outputWithClosedCodes.companions[0]!,
             calculations: {
               ...outputWithClosedCodes.companions[0]!.calculations,
-              size: { base: 'MEDIUM', effective: 'AVERAGE', contributions: [], override: null }
+              size: { base: 'MEDIUM', effective: 'average', contributions: [], override: null }
             }
           }
         ]
@@ -921,7 +921,7 @@ describe('Character rule contracts', () => {
     expect(
       characterRulePolicyOutputSchema.safeParse({
         ...outputWithClosedCodes,
-        spellAccess: [{ ...outputWithClosedCodes.spellAccess[0]!, castingAbility: 'ARCANA' }]
+        spellAccess: [{ ...outputWithClosedCodes.spellAccess[0]!, castingAbility: 'arcana' }]
       }).success
     ).toBe(false)
   })

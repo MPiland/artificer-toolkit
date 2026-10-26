@@ -271,7 +271,7 @@ describe('character builder utilities', () => {
   })
 
   it('keeps six partial ability slots per method while canonical intent contains only complete pairs', () => {
-    const values = createFallbackCharacterFormValues()
+    const values = createFallbackCharacterFormValues('system-1')
     const standardSlots = [
       { ability: 'STRENGTH' as const, option: '15' },
       { option: '14' },

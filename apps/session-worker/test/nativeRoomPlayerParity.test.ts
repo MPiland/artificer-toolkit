@@ -9,6 +9,9 @@ import type { RoomNativeEncounterCommand } from '@artificer-toolkit/schema/api/l
 import { encounterActorTokenBindingCommandInputDtoSchema } from '@artificer-toolkit/schema/api/vttScenes'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { zoneParts } from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
+import { caltropsBagOf20 } from '@artificer-toolkit/source-data/srd/equipment/caltrops-bag-of-20.js'
+
 import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { testUuid } from '../src/testing/liveCaptureFixture.js'
 import { plainWolf } from '../src/testing/movementPlannerFixture.js'
@@ -219,6 +222,17 @@ const PARITY: Record<CommandType, Entry> = {
       activeEffectId: SOME_ID
     })
   },
+  CHANGE_FACING: {
+    access: 'PLAYER',
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'CHANGE_FACING',
+      actorId: probe.actorId,
+      rotationDegrees: 90,
+      acknowledgedWarnings: []
+    })
+  },
   MOVE_HELD_EFFECT: {
     access: 'PLAYER',
     actorScoped: true,
@@ -277,6 +291,60 @@ const PARITY: Record<CommandType, Entry> = {
       activeEffectId: SOME_ID,
       add: [],
       remove: []
+    })
+  },
+  PLACE_ZONE: {
+    access: 'TABLE',
+    rule: table('ADR 0038: the GM places environmental zones on the Scene and can undo them'),
+    actorScoped: false,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'PLACE_ZONE',
+      zone: zoneParts(caltropsBagOf20).zone,
+      point: { x: 0, y: 0 }
+    })
+  },
+  MORALE_SAVE: {
+    access: 'TABLE',
+    rule: table(
+      'ENCOUNTER-6.1: the GM checks morale for creatures; players decide for their own Characters'
+    ),
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'MORALE_SAVE',
+      actorId: probe.actorId,
+      triggerKind: 'INDIVIDUAL_SURPRISED',
+      leaderActorId: null,
+      overwhelmingOpposition: false,
+      escapePossible: true,
+      roll: { kind: 'AUTO_ROLL' },
+      visibility: 'PUBLIC'
+    })
+  },
+  CONFIRM_MORALE: {
+    access: 'TABLE',
+    rule: table('ENCOUNTER-6.2: the GM confirms a morale outcome'),
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'CONFIRM_MORALE',
+      actorId: probe.actorId,
+      disposition: 'FLEE'
+    })
+  },
+  RESOLVE_CONSEQUENCE_ROLL_OFFER: {
+    access: 'TABLE',
+    rule: table('ATTACK-15.1: the GM rolls or declines a consequence table offer'),
+    actorScoped: true,
+    build: (probe) => ({
+      ...base(probe),
+      type: 'RESOLVE_CONSEQUENCE_ROLL_OFFER',
+      actorId: probe.actorId,
+      sourceCommandId: SOME_ID,
+      definitionId: SOME_ID,
+      decision: 'DECLINE',
+      visibility: 'PUBLIC'
     })
   },
   UPDATE_ACTOR: {
@@ -547,6 +615,7 @@ describe('registry', () => {
       if (entry.access === 'TABLE') expect(entry.rule).toContain(AC_2_5_SCOPE)
     expect(typesOf('PLAYER')).toEqual([
       'ADVANCE_TURN',
+      'CHANGE_FACING',
       'END_HELD_GRANT',
       'ESCAPE',
       'MOVE_HELD_EFFECT',

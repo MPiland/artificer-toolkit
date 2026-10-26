@@ -1,11 +1,9 @@
 import {
-  ABILITY_OPTIONS,
   CLASS_CATEGORY,
   EQUIPMENT_PROPERTY_REGISTRY,
   MEASUREMENT_UNIT_REGISTRY,
   PROFICIENCY_KIND,
   RACE_CATEGORY_CODE,
-  SIZE_OPTIONS,
   type EquipmentCategoryCode,
   type EquipmentPropertyCode
 } from '@artificer-toolkit/shared/core'
@@ -16,8 +14,13 @@ import type {
   ResolvedEquipment,
   ResolvedRace
 } from '@artificer-toolkit/shared/subjects/compilers'
-import type { ContentSnapshotIndexEntry } from '@artificer-toolkit/schema/api/contentSnapshots'
+import type {
+  ContentSnapshotAbilityScoreIncreaseFact,
+  ContentSnapshotIndexEntry
+} from '@artificer-toolkit/schema/api/contentSnapshots'
 import type { SystemAuthoredDto } from '@artificer-toolkit/schema/vocabulary/system'
+
+import { systemCoreCodeRegistry } from '../platformSystemCoreCodes.js'
 
 type RaceIndexEntry = ContentSnapshotIndexEntry<'RACE'>
 type BaseRaceIndexEntry = Extract<RaceIndexEntry, { category: 'BASE' }>
@@ -214,6 +217,7 @@ export function createCharacterBuilderCatalog({
   const equipmentById = new Map(
     equipment.map((item) => [item.id, { label: item.label, category: item.category ?? null }])
   )
+  const sizes = system ? systemCoreCodeRegistry.entries(system.id, 'size') : []
   return {
     races: races.flatMap((race) => {
       return [
@@ -225,14 +229,23 @@ export function createCharacterBuilderCatalog({
             race.category === RACE_CATEGORY_CODE.SUBRACE ? race.parentRaceId : undefined,
           description: race.description,
           selectionMode: race.category === RACE_CATEGORY_CODE.BASE ? race.selectionMode : undefined,
-          sizeLabel: SIZE_OPTIONS.find((size) => size.code === race.size)?.label,
+          sizeLabel: sizes.find(({ code }) => code === race.size)?.label,
           speedLabels: (race.speeds ?? []).map((speed) => {
             const speedLabel = system?.speeds.find(
               (candidate) => candidate.id === speed.speedId
             )?.label
             return `${speedLabel ?? 'Speed'} ${speed.amount} ${MEASUREMENT_UNIT_REGISTRY[speed.unit].short}`
           }),
-          abilityScoreIncreaseFacts: race.abilityScoreIncreaseFacts
+          abilityScoreIncreaseFacts: race.abilityScoreIncreaseFacts.map((fact) =>
+            'ability' in fact
+              ? {
+                  label:
+                    system?.abilities.find(({ code }) => code === fact.ability)?.label ??
+                    fact.ability,
+                  value: fact.value
+                }
+              : fact
+          )
         }
       ]
     }),
@@ -266,7 +279,7 @@ export function createCharacterBuilderCatalog({
             )
             .map(
               (ability) =>
-                ABILITY_OPTIONS.find((candidate) => candidate.code === ability)?.label ?? ability
+                system?.abilities.find((candidate) => candidate.code === ability)?.label ?? ability
             ),
           proficiencyGroups: getClassProficiencyGroups(
             proficiencies,
@@ -306,10 +319,11 @@ export function createCharacterBuilderCatalog({
 
 type ClassProficiency = NonNullable<CharacterBuilderClassCatalogSource['proficiencies']>[number]
 
+// Snapshot facts are built without the System record, so they label the ability code (RULES-2.T9f3).
 export function getRaceAbilityScoreIncreaseFacts(
-  race: Pick<ResolvedRace, 'features'> | undefined
-): Array<{ label: string; value: string }> {
-  const facts: Array<{ label: string; value: string }> = []
+  race: Pick<ResolvedRace, 'features' | 'systemId'> | undefined
+): ContentSnapshotAbilityScoreIncreaseFact[] {
+  const facts: ContentSnapshotAbilityScoreIncreaseFact[] = []
 
   for (const feature of race?.features ?? []) {
     if (feature.label !== 'Ability Score Increase') continue
@@ -319,11 +333,14 @@ export function getRaceAbilityScoreIncreaseFacts(
       return fact ? [fact] : []
     })
     const uniformValue = fixedFacts[0]?.value
-    const fixedLabels = new Set(fixedFacts.map((fact) => fact.label))
+    const fixedAbilities = new Set(fixedFacts.map((fact) => fact.ability))
     if (
+      race &&
       uniformValue &&
       fixedFacts.every((fact) => fact.value === uniformValue) &&
-      ABILITY_OPTIONS.every((ability) => fixedLabels.has(ability.label))
+      systemCoreCodeRegistry
+        .abilityCodes(race.systemId)
+        .every((ability) => fixedAbilities.has(ability))
     ) {
       facts.push({ label: 'All abilities', value: uniformValue })
     } else {
@@ -355,7 +372,7 @@ export function getRaceAbilityScoreIncreaseFacts(
 
 function getFixedAbilityScoreIncreaseFact(
   modifier: ModifierGrantAuthored
-): { label: string; value: string } | null {
+): { ability: string; value: string } | null {
   if (modifier.valueDomainCode !== 'ABILITY_SCORE' || modifier.modifierKind !== 'BONUS') {
     return null
   }
@@ -371,9 +388,7 @@ function getFixedAbilityScoreIncreaseFact(
   }
 
   return {
-    label:
-      ABILITY_OPTIONS.find((ability) => ability.code === modifier.domain.ability)?.label ??
-      modifier.domain.ability,
+    ability: modifier.domain.ability,
     value: `+${modifier.payload.amount}`
   }
 }

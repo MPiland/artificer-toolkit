@@ -3,11 +3,7 @@ import type {
   CharacterAssemblyRegistry,
   CharacterBuildSnapshot
 } from '@artificer-toolkit/shared/core'
-import {
-  buildSkillSubjectAliasMap,
-  resolveAbilityAlias,
-  resolveSkillAlias
-} from '@artificer-toolkit/shared/character'
+import { buildSkillSubjectAliasMap, resolveSkillAlias } from '@artificer-toolkit/shared/character'
 import { getCharacterProvenanceIdentityKey } from '@artificer-toolkit/shared/subjects/authored'
 
 import { normalizeCharacterGrantRestrictions } from './characterGrantFoldRestrictionFacts.js'
@@ -26,7 +22,6 @@ export function compileCharacterGrantFoldRuleFacts(params: {
   const skillAliases = buildSkillSubjectAliasMap(registry.system)
   const normalizeProficiencyTarget = (kind: string, targetId: string): string => {
     if (targetId === '*') return targetId
-    if (kind === 'SAVE_ABILITY') return resolveAbilityAlias(targetId) ?? targetId
     if (kind === 'SKILL') return resolveSkillAlias(targetId, skillAliases)
     return targetId
   }

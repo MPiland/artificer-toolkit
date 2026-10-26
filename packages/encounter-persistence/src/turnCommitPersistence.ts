@@ -36,7 +36,8 @@ import { completeNativeInitiativeOccurrence } from './initiativeTerminalCompleti
 import { readLiveEncounterTurnAdmission } from './turnCommandAdmission.js'
 import {
   persistEncounterGrantTicks,
-  persistEncounterIdleTurnCheck
+  persistEncounterIdleTurnCheck,
+  type EncounterIdleTurnCharacterRules
 } from './grantTickPersistence.js'
 import { persistEncounterInitiativeRollCards } from './initiativeRollCards.js'
 import {
@@ -79,7 +80,8 @@ export async function persistEncounterTurnCommit(
       ...args: Parameters<EncounterPassiveZoneReaders['readCharacterRules']>
     ): Promise<
       | (Awaited<ReturnType<EncounterPassiveZoneReaders['readCharacterRules']>> &
-          EncounterInitiativeRestoreCharacterRules)
+          EncounterInitiativeRestoreCharacterRules &
+          EncounterIdleTurnCharacterRules)
       | null
     >
     readDefinition(id: string, userId: string): Promise<ReusableDefinitionCurrentDto | null>
@@ -162,13 +164,14 @@ export async function persistEncounterTurnCommit(
   )
     throw new Error('Live Session turn rule output scope mismatch.')
   // Each boundary's effects, then its zones, around the Legendary Actions, as the room planned them.
-  const applications = nativeConcentrationDamageApplications([
+  const damageBatches = [
     ...(root.outgoingTurn?.kind === 'STAGED' ? root.outgoingTurn.plan.executions : []),
     ...zoneEffectDamage(root.outgoingZoneTurn),
     ...legendaryActionDamage(root.completedLegendaryActions),
     ...(input.incomingTurn.kind === 'STAGED' ? input.incomingTurn.plan.executions : []),
     ...zoneEffectDamage(input.incomingZoneTurn)
-  ])
+  ]
+  const applications = nativeConcentrationDamageApplications(damageBatches)
   if (
     input.maintenanceOwners.some(
       (request) =>
@@ -245,11 +248,11 @@ export async function persistEncounterTurnCommit(
     }
   )
   // After the Legendary Actions: the damage they deal at this turn's end counts as taken.
-  await persistEncounterIdleTurnCheck(ctx, {
-    state,
-    turnActorId: state.currentActorId,
-    occurredAt: input.occurredAt
-  })
+  await persistEncounterIdleTurnCheck(
+    ctx,
+    { state, campaign, turnActorId: state.currentActorId, occurredAt: input.occurredAt },
+    callbacks.readCharacterRules
+  )
   await persistEncounterInitiativeRollCards(ctx, {
     state,
     campaign,

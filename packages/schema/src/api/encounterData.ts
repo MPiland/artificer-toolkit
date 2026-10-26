@@ -13,7 +13,15 @@ import {
   teleportAllowanceDtoSchema
 } from '../shared/teleportAllowance.js'
 import { encounterInitiativePolicySummaryDtoSchema } from '../shared/initiativePolicySnapshot.js'
-import { encounterOptionalCombatSummaryDtoSchema } from '../shared/optionalCombat.js'
+import {
+  encounterOptionalCombatSummaryDtoSchema,
+  facingStepDegreesDtoSchema
+} from '../shared/optionalCombat.js'
+import {
+  encounterActorMoraleDtoSchema,
+  encounterMoraleOfferDtoSchema
+} from '../shared/encounterMorale.js'
+import { encounterConsequenceRollOffersDtoSchema } from '../shared/consequenceRolls.js'
 import {
   encounterRuleOccurrenceSummaryDtoSchema,
   pendingEncounterRuleOccurrenceSummaryDtoSchema,
@@ -250,7 +258,13 @@ export const encounterGmActorDtoSchema = lazySchema(() =>
      * The concealment this actor holds and who it is hidden from (D116); GM-only, so the player
      * actor contract has no such field. Null when the actor is not hidden.
      */
-    concealment: z._default(z.nullable(concealmentListingDtoSchema), null)
+    concealment: z._default(z.nullable(concealmentListingDtoSchema), null),
+    /** The actor's latest morale check (ENCOUNTER-6.2); GM-only. Null when none was made. */
+    morale: z._default(z.nullable(encounterActorMoraleDtoSchema), null),
+    /** The morale triggers the GM may check for this actor now (ENCOUNTER-6.1). */
+    moraleOffers: z._default(z.array(encounterMoraleOfferDtoSchema).check(z.maxLength(8)), []),
+    /** The consequence-table rolls the GM may accept or decline for this actor (ATTACK-15). */
+    consequenceRollOffers: z._default(encounterConsequenceRollOffersDtoSchema, [])
   })
 )
 
@@ -270,6 +284,8 @@ export const encounterPlayerProjectionDtoSchema = lazySchema(() =>
       z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),
       []
     ),
+    /** The step a token's facing turns by while the Facing rule is active (ATTACK-12); null when it is off. */
+    facingStepDegrees: z._default(z.nullable(facingStepDegreesDtoSchema), null),
     version: z.number().check(z.int()).check(z.nonnegative()),
     round: z.number().check(z.int()).check(z.nonnegative()),
     currentActorId: z.nullable(uuidSchema),
@@ -299,6 +315,8 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
       z.array(encounterOptionalCombatSummaryDtoSchema).check(z.maxLength(14)),
       []
     ),
+    /** The step a token's facing turns by while the Facing rule is active (ATTACK-12); null when it is off. */
+    facingStepDegrees: z._default(z.nullable(facingStepDegreesDtoSchema), null),
     version: z.number().check(z.int()).check(z.nonnegative()),
     round: z.number().check(z.int()).check(z.nonnegative()),
     currentActorId: z.nullable(uuidSchema),

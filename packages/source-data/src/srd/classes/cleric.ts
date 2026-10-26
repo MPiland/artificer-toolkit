@@ -1,7 +1,9 @@
-import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS,
+  ABILITY_CODE
+} from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
@@ -396,7 +398,6 @@ export const cleric: ClassAuthored = {
   systemId: SRD_SYSTEM_ID,
 
   hitpoint: {
-    ability: ABILITY_CODE.CONSTITUTION,
     dieConfig: 'd8'
   },
 

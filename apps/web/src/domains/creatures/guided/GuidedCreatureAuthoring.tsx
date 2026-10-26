@@ -3,45 +3,53 @@ import { Alert, Stack, Text } from '@mantine/core'
 import { useSelector } from '@tanstack/react-form'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
 import { withForm } from '#forms/app-form/AppForm'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import * as styles from '#forms/guided/guidedAuthoring.css'
-import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
-import { toFeatures } from '#forms/guided/guidedValues'
-import { isRecord } from '#forms/utils/valueGuards'
-
-type GuidedCreatureAuthoringProps = {
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-  session: AuthoredFormSession
-}
+import {
+  EMPTY_GUIDED_FORM_VALUES,
+  guidedField,
+  guidedSizeOptions,
+  readGuidedValues,
+  toFeatures,
+  toSelectOption
+} from '#forms/guided/guidedValues'
 
 export const GuidedCreatureAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as GuidedCreatureAuthoringProps,
-  render: function RenderGuidedCreatureAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedCreatureAuthoring({
+    form,
+    onAdvanced,
+    onStateChange,
+    session,
+    system
+  }) {
     const [step, setStep] = useState(0)
-    const values = useSelector(form.store, (state) => readCreatureValues(state.values))
-    const system = session.system
+    const values = useSelector(form.store, (state) => state.values)
+    const draft = readGuidedValues('creature', values)
+    const label = (draft.label ?? '').trim()
+    const features = toFeatures(draft.features)
+    const advancedCount = (draft.details?.length ?? 0) + (draft.proficiencies?.length ?? 0)
     const categoryLocked = session.mode === 'edit'
 
     useEffect(() => {
       onStateChange({
         isReview: step === 5,
-        showPreview: session.mode === 'edit' || step > 0 || Boolean(values.label)
+        showPreview: session.mode === 'edit' || step > 0 || Boolean(label)
       })
-    }, [onStateChange, session.mode, step, values.label])
+    }, [onStateChange, session.mode, step, label])
 
-    const setFeatures = (features: FeatureDto[]) => {
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['features']), features)
+    const setFeatures = (next: FeatureDto[]) => {
+      form.setFieldValue(guidedField('creature', 'features'), next)
     }
 
     return (
       <GuidedAuthoringFrame
-        canContinue={Boolean(values.label)}
+        canContinue={Boolean(label)}
         description={DESCRIPTIONS[step]}
         domainLabel='Creature'
         onAdvanced={onAdvanced}
@@ -60,13 +68,13 @@ export const GuidedCreatureAuthoring = withForm({
               </Alert>
             ) : null}
             <div className={styles.identityRow}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+              <form.AppField name={guidedField('creature', 'label')}>
                 {(field) => <field.TextField label='Creature name' required />}
               </form.AppField>
               <AuthoringArtworkControl />
             </div>
             <div className={styles.fields}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['category'])}>
+              <form.AppField name={guidedField('creature', 'category')}>
                 {(field) => (
                   <field.SelectField
                     data={CREATURE_CATEGORIES}
@@ -76,30 +84,34 @@ export const GuidedCreatureAuthoring = withForm({
                   />
                 )}
               </form.AppField>
-              <form.AppField
-                name={toTypedAuthoringFieldName<object>(undefined, ['creatureTypeId'])}
-              >
+              <form.AppField name={guidedField('creature', 'creatureTypeId')}>
                 {(field) => (
                   <field.SelectField
-                    data={(system?.creatureTypes ?? []).map(optionFor)}
+                    data={system.creatureTypes.map(toSelectOption)}
                     label='Creature type'
                     required
                   />
                 )}
               </form.AppField>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['size'])}>
-                {(field) => <field.SelectField data={SIZE_OPTIONS} label='Size' required />}
-              </form.AppField>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['alignmentId'])}>
+              <form.AppField name={guidedField('creature', 'size')}>
                 {(field) => (
                   <field.SelectField
-                    data={(system?.alignments ?? []).map(optionFor)}
+                    data={guidedSizeOptions(session.systemId)}
+                    label='Size'
+                    required
+                  />
+                )}
+              </form.AppField>
+              <form.AppField name={guidedField('creature', 'alignmentId')}>
+                {(field) => (
+                  <field.SelectField
+                    data={system.alignments.map(toSelectOption)}
                     label='Alignment'
                   />
                 )}
               </form.AppField>
               <div className={styles.full}>
-                <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+                <form.AppField name={guidedField('creature', 'description')}>
                   {(field) => <field.RichTextField label='Description' />}
                 </form.AppField>
               </div>
@@ -108,27 +120,21 @@ export const GuidedCreatureAuthoring = withForm({
         ) : null}
         {step === 1 ? (
           <div className={styles.fields}>
-            <form.AppField
-              name={toTypedAuthoringFieldName<object>(undefined, ['naturalArmorBonus'])}
-            >
+            <form.AppField name={guidedField('creature', 'naturalArmorBonus')}>
               {(field) => <field.NumberField label='Natural armor bonus' minimum={0} required />}
             </form.AppField>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['hitPoints'])}>
+            <form.AppField name={guidedField('creature', 'hitPoints')}>
               {(field) => <field.NumberField label='Hit Points' minimum={1} required />}
             </form.AppField>
-            <form.AppField
-              name={toTypedAuthoringFieldName<object>(undefined, ['challengeRatingId'])}
-            >
+            <form.AppField name={guidedField('creature', 'challengeRatingId')}>
               {(field) => (
                 <field.SelectField
-                  data={(system?.challengeRatings ?? []).map(optionFor)}
+                  data={system.challengeRatings.map(toSelectOption)}
                   label='Challenge rating'
                 />
               )}
             </form.AppField>
-            <form.AppField
-              name={toTypedAuthoringFieldName<object>(undefined, ['passivePerception'])}
-            >
+            <form.AppField name={guidedField('creature', 'passivePerception')}>
               {(field) => <field.NumberField label='Passive Perception' minimum={0} />}
             </form.AppField>
             <Text className={styles.full} c='dimmed' size='sm'>
@@ -138,11 +144,8 @@ export const GuidedCreatureAuthoring = withForm({
         ) : null}
         {step === 2 ? (
           <div className={styles.fields}>
-            {ABILITY_FIELDS.map(([path, label]) => (
-              <form.AppField
-                key={path}
-                name={toTypedAuthoringFieldName<object>(undefined, ['abilityScores', path])}
-              >
+            {system.abilities.map(({ code, label }) => (
+              <form.AppField key={code} name={guidedField('creature', 'abilityScores', code)}>
                 {(field) => <field.NumberField label={label} minimum={1} maximum={30} required />}
               </form.AppField>
             ))}
@@ -150,42 +153,34 @@ export const GuidedCreatureAuthoring = withForm({
         ) : null}
         {step === 3 ? (
           <div className={styles.fields}>
-            <form.AppField
-              name={toTypedAuthoringFieldName<object>(undefined, ['damageVulnerabilities'])}
-            >
+            <form.AppField name={guidedField('creature', 'damageVulnerabilities')}>
               {(field) => (
                 <field.MultiSelectField
-                  data={(system?.damageTypes ?? []).map(optionFor)}
+                  data={system.damageTypes.map(toSelectOption)}
                   label='Damage vulnerabilities'
                 />
               )}
             </form.AppField>
-            <form.AppField
-              name={toTypedAuthoringFieldName<object>(undefined, ['damageResistances'])}
-            >
+            <form.AppField name={guidedField('creature', 'damageResistances')}>
               {(field) => (
                 <field.MultiSelectField
-                  data={(system?.damageTypes ?? []).map(optionFor)}
+                  data={system.damageTypes.map(toSelectOption)}
                   label='Damage resistances'
                 />
               )}
             </form.AppField>
-            <form.AppField
-              name={toTypedAuthoringFieldName<object>(undefined, ['damageImmunities'])}
-            >
+            <form.AppField name={guidedField('creature', 'damageImmunities')}>
               {(field) => (
                 <field.MultiSelectField
-                  data={(system?.damageTypes ?? []).map(optionFor)}
+                  data={system.damageTypes.map(toSelectOption)}
                   label='Damage immunities'
                 />
               )}
             </form.AppField>
-            <form.AppField
-              name={toTypedAuthoringFieldName<object>(undefined, ['conditionImmunities'])}
-            >
+            <form.AppField name={guidedField('creature', 'conditionImmunities')}>
               {(field) => (
                 <field.MultiSelectField
-                  data={(system?.conditionTypes ?? []).map(optionFor)}
+                  data={system.conditionTypes.map(toSelectOption)}
                   label='Condition immunities'
                 />
               )}
@@ -194,16 +189,16 @@ export const GuidedCreatureAuthoring = withForm({
         ) : null}
         {step === 4 ? (
           <Stack gap='md'>
-            {values.advancedCount ? (
+            {advancedCount ? (
               <Alert color='blue'>
-                {values.advancedCount} Advanced-only profile or proficiency section
-                {values.advancedCount === 1 ? ' is' : 's are'} preserved.
+                {advancedCount} Advanced-only profile or proficiency section
+                {advancedCount === 1 ? ' is' : 's are'} preserved.
               </Alert>
             ) : null}
             <GuidedFeatureAccordion
-              features={values.features}
+              features={features}
               label='Features and actions'
-              system={session.system!}
+              system={system}
               onChange={setFeatures}
             />
           </Stack>
@@ -211,13 +206,13 @@ export const GuidedCreatureAuthoring = withForm({
         {step === 5 ? (
           <Stack gap='md'>
             <dl className={styles.summary}>
-              <Summary label='Name' value={values.label || 'Untitled Creature'} />
-              <Summary
+              <GuidedSummaryRow label='Name' value={label || 'Untitled Creature'} />
+              <GuidedSummaryRow
                 label='Natural armor bonus'
-                value={String(values.naturalArmorBonus ?? '—')}
+                value={String(draft.naturalArmorBonus ?? '—')}
               />
-              <Summary label='Hit Points' value={String(values.hitPoints ?? '—')} />
-              <Summary label='Features and actions' value={String(values.features.length)} />
+              <GuidedSummaryRow label='Hit Points' value={String(draft.hitPoints ?? '—')} />
+              <GuidedSummaryRow label='Features and actions' value={String(features.length)} />
             </dl>
           </Stack>
         ) : null}
@@ -225,32 +220,6 @@ export const GuidedCreatureAuthoring = withForm({
     )
   }
 })
-
-function Summary({ label, value }: { label: string; value: string }) {
-  return (
-    <div className={styles.summaryRow}>
-      <dt className={styles.summaryLabel}>{label}</dt>
-      <dd className={styles.summaryValue}>{value}</dd>
-    </div>
-  )
-}
-
-function optionFor(item: { id: string; label: string }) {
-  return { label: item.label, value: item.id }
-}
-
-function readCreatureValues(values: object) {
-  const record: Record<string, unknown> = isRecord(values) ? values : {}
-  const count = (key: string) => (Array.isArray(record[key]) ? record[key].length : 0)
-  return {
-    advancedCount: count('details') + count('proficiencies'),
-    naturalArmorBonus:
-      typeof record.naturalArmorBonus === 'number' ? record.naturalArmorBonus : undefined,
-    features: toFeatures(record.features),
-    hitPoints: typeof record.hitPoints === 'number' ? record.hitPoints : undefined,
-    label: typeof record.label === 'string' ? record.label.trim() : ''
-  }
-}
 
 const STEPS = [
   'Basics',
@@ -280,15 +249,3 @@ const CREATURE_CATEGORIES = ['MONSTER', 'BEAST', 'NPC', 'COMPANION', 'SUMMON'].m
   label: value.charAt(0) + value.slice(1).toLowerCase(),
   value
 }))
-const SIZE_OPTIONS = ['TINY', 'SMALL', 'MEDIUM', 'LARGE', 'HUGE', 'GARGANTUAN'].map((value) => ({
-  label: value.charAt(0) + value.slice(1).toLowerCase(),
-  value
-}))
-const ABILITY_FIELDS = [
-  ['STRENGTH', 'Strength'],
-  ['DEXTERITY', 'Dexterity'],
-  ['CONSTITUTION', 'Constitution'],
-  ['INTELLIGENCE', 'Intelligence'],
-  ['WISDOM', 'Wisdom'],
-  ['CHARISMA', 'Charisma']
-] as const

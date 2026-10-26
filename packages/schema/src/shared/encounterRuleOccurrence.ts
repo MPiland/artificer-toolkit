@@ -61,11 +61,11 @@ export const initiativeDeclarationAdjudicationFieldDtoSchema = lazySchema(() =>
       }),
       z.strictObject({
         kind: z.literal('MULTI_SELECT'),
-        key: z.literal('actionFactors'),
+        key: z.literal('factorIds'),
         label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
-        minimumSelections: z.number().check(z.int()).check(z.gte(0)).check(z.lte(4)),
-        maximumSelections: z.number().check(z.int()).check(z.gte(0)).check(z.lte(4)),
-        options: z.array(initiativeDeclarationAdjudicationOptionSchema).check(z.maxLength(4))
+        minimumSelections: z.number().check(z.int()).check(z.gte(0)).check(z.lte(32)),
+        maximumSelections: z.number().check(z.int()).check(z.gte(0)).check(z.lte(32)),
+        options: z.array(initiativeDeclarationAdjudicationOptionSchema).check(z.maxLength(32))
       }),
       z.strictObject({
         kind: z.literal('NULLABLE_INTEGER'),

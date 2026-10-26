@@ -42,7 +42,8 @@ describe('createCharacterBuilderAuthoringSession', () => {
   it('keeps creation read-only until the mounted client opens a persisted draft', () => {
     const session = createCharacterBuilderAuthoringSession({
       data: {
-        systems: [{ id: characterFixture.systemId }]
+        systemId: characterFixture.systemId,
+        systems: []
       },
       mode: 'create'
     })

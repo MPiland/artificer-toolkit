@@ -1709,8 +1709,6 @@ describe('a wall cast as a straight wall or a ring (SPELLS-4.T1b, D154)', () => 
         range: entry.targetPolicy.range,
         target: {
           kind: 'WALL',
-          sceneId: testUuid(0xb3b0),
-          expectedSceneVersion: 1,
           from: { x: 0, y: 0 },
           to: { x: 0, y: 600 },
           ...(side ? { side } : {})
@@ -2754,8 +2752,6 @@ describe('a zone that acts per distance moved inside it (SPELLS-4.T1h, D156)', (
         range: entry.targetPolicy!.range,
         target: {
           kind: 'POINT',
-          sceneId: testUuid(0xb3c0),
-          expectedSceneVersion: 1,
           point: { x: 1000, y: 0 }
         },
         grid,

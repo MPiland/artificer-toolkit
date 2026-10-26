@@ -1,5 +1,4 @@
 import type {
-  AbilityCode,
   ChargeLimitKind,
   ChargeResetKind,
   DurationKind,
@@ -19,11 +18,14 @@ export const VALUE_DOMAIN_CODE = {
   CRITICAL_HIT_THRESHOLD: 'CRITICAL_HIT_THRESHOLD',
   CRITICAL_EXTRA_DICE: 'CRITICAL_EXTRA_DICE',
   OPPORTUNITY_ATTACK_IMMUNITY: 'OPPORTUNITY_ATTACK_IMMUNITY',
+  FREE_OPPORTUNITY_REACTION: 'FREE_OPPORTUNITY_REACTION',
   SPELLCASTING_LOCK: 'SPELLCASTING_LOCK',
   ACTION_BONUS_ACTION_EXCLUSIVITY: 'ACTION_BONUS_ACTION_EXCLUSIVITY',
   ATTACK_DECOYS: 'ATTACK_DECOYS',
   DAMAGE_INTERCEPTION: 'DAMAGE_INTERCEPTION',
   DAMAGE_MIRROR: 'DAMAGE_MIRROR',
+  END_EVENT_EXEMPTION: 'END_EVENT_EXEMPTION',
+  INCOMING_DAMAGE: 'INCOMING_DAMAGE',
   INCOMING_ATTACK_GATE: 'INCOMING_ATTACK_GATE',
   HEALING_RECEIVED: 'HEALING_RECEIVED',
   ARMOR_CLASS: 'ARMOR_CLASS',
@@ -142,6 +144,13 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     description: "The holder's movement provokes no opportunity attacks."
   },
 
+  [VALUE_DOMAIN_CODE.FREE_OPPORTUNITY_REACTION]: {
+    code: VALUE_DOMAIN_CODE.FREE_OPPORTUNITY_REACTION,
+    label: 'Free Opportunity Reaction',
+    description:
+      "A reactor in the effect's event scope may make one opportunity reaction against the holder each turn without spending its reaction."
+  },
+
   [VALUE_DOMAIN_CODE.SPELLCASTING_LOCK]: {
     code: VALUE_DOMAIN_CODE.SPELLCASTING_LOCK,
     label: 'Spellcasting Lock',
@@ -174,6 +183,20 @@ export const VALUE_DOMAIN_REGISTRY: Record<ValueDomainCode, ValueDomainOption> =
     label: 'Damage Mirror',
     description:
       'Damage the holder takes, after its resistances, is also dealt to the creature that applied the effect, whose own defenses then apply. Mirrored damage is never mirrored again.'
+  },
+
+  [VALUE_DOMAIN_CODE.END_EVENT_EXEMPTION]: {
+    code: VALUE_DOMAIN_CODE.END_EVENT_EXEMPTION,
+    label: 'End Event Exemption',
+    description:
+      "The holder's own active effects with the chosen ids no longer end on the chosen events; their other end conditions still apply."
+  },
+
+  [VALUE_DOMAIN_CODE.INCOMING_DAMAGE]: {
+    code: VALUE_DOMAIN_CODE.INCOMING_DAMAGE,
+    label: 'Incoming Damage',
+    description:
+      'Damage the holder takes is halved before its resistances, or damage from an effect that allows a saving throw for half damage is set by the holder’s save result instead.'
   },
 
   [VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE]: {
@@ -454,7 +477,7 @@ export type ValueDomainParamByCode = {
   // hold only for attacks against the effect's source (`againstEffectSource`, Bestow Curse).
   ATTACK_ROLL: {
     attackDomain: AttackDomainCode
-    ability?: AbilityCode
+    ability?: string
     againstEffectSource?: boolean
   }
 
@@ -480,6 +503,10 @@ export type ValueDomainParamByCode = {
   // The holder's movement provokes no opportunity attacks (Disengage).
   OPPORTUNITY_ATTACK_IMMUNITY: EmptyObject
 
+  // A reactor in the effect's event scope makes one opportunity reaction against the holder
+  // each turn without spending its reaction (Mark).
+  FREE_OPPORTUNITY_REACTION: EmptyObject
+
   // The holder can't cast spells or hold Concentration.
   SPELLCASTING_LOCK: EmptyObject
 
@@ -495,6 +522,12 @@ export type ValueDomainParamByCode = {
   // Damage the holder takes is also dealt to the effect source (Warding Bond).
   DAMAGE_MIRROR: EmptyObject
 
+  // The holder's chosen effects no longer end on the chosen events (Persistent Rage).
+  END_EVENT_EXEMPTION: EmptyObject
+
+  // The holder halves incoming damage or overrides save-for-half damage bands.
+  INCOMING_DAMAGE: EmptyObject
+
   // A save an attacker must pass before targeting the holder.
   INCOMING_ATTACK_GATE: EmptyObject
 
@@ -502,13 +535,13 @@ export type ValueDomainParamByCode = {
   HEALING_RECEIVED: EmptyObject
 
   // Ability checks may apply globally or to one ability.
-  ABILITY_CHECK: { ability?: AbilityCode }
+  ABILITY_CHECK: { ability?: string }
 
   // Save bonus is per ability (STR/DEX/etc); conditionTypeId scopes advantage/disadvantage to a specific
   // condition; `requiresHolderSeesSource` limits advantage/disadvantage to effects whose source the
   // holder can see (Danger Sense, D100).
   SAVING_THROW_MODIFIER: {
-    ability: AbilityCode
+    ability: string
     conditionTypeId?: string
     ruleDefinitionId?: string
     requiresHolderSeesSource?: boolean
@@ -525,7 +558,7 @@ export type ValueDomainParamByCode = {
    * ABILITIES / SCORES
    * ────────────────────────────────────────────── */
 
-  ABILITY_SCORE: { ability: AbilityCode }
+  ABILITY_SCORE: { ability: string }
 
   /* ──────────────────────────────────────────────
    * MOVEMENT & SENSES

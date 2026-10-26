@@ -91,6 +91,8 @@ export interface TargetBoundActiveRuleEffectExecutionInput {
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: readonly ActiveRuleEffectTargetDefense[]
   conditionImmunityIds?: readonly string[]
+  /** The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE` HALVE). */
+  incomingHalved?: boolean
   /** The target's immunities that hold only against some sources; the effect's origin admits them. */
   sourceConditionImmunities?: readonly EncounterSourceConditionImmunity[]
   /** The target's saving-throw grants that hold only against some sources; the effect's origin admits them. */
@@ -176,6 +178,7 @@ function normalizedTargetState(input: {
   targetDerivedFacts: Readonly<Record<string, unknown>>
   defenses: readonly ActiveRuleEffectTargetDefense[]
   conditionImmunityIds?: readonly string[]
+  incomingHalved?: boolean
 }) {
   const { currentHitPoints, temporaryHitPoints, maximumHitPoints } = input
   if (
@@ -233,7 +236,8 @@ function normalizedTargetState(input: {
     targetConditionIds: canonicalConditionIds(input.targetConditionIds),
     targetDerivedFacts: immutableCopy(input.targetDerivedFacts),
     defenses: Object.freeze(defenses),
-    conditionImmunityIds: Object.freeze(conditionImmunityIds)
+    conditionImmunityIds: Object.freeze(conditionImmunityIds),
+    incomingHalved: input.incomingHalved === true
   })
 }
 
@@ -332,9 +336,14 @@ function requireSupportedApplications(input: {
         !sourceNodeIds.has(application.sourceNodeId) ||
         (application.kind === 'CONDITION_REMOVE' &&
           application.sourceActiveEffectId !== activeEffectId) ||
-        !['HEAL', 'TEMPORARY_HIT_POINTS', 'DAMAGE', 'CONDITION_APPLY', 'CONDITION_REMOVE'].includes(
-          application.kind
-        )
+        ![
+          'HEAL',
+          'TEMPORARY_HIT_POINTS',
+          'DAMAGE',
+          'HIT_POINT_LOSS',
+          'CONDITION_APPLY',
+          'CONDITION_REMOVE'
+        ].includes(application.kind)
     )
   ) {
     throw new CharacterActiveRuleEffectExecutionError(
@@ -573,7 +582,8 @@ function complete(input: {
     temporaryHitPoints: prepared.target.temporaryHitPoints,
     maximumHitPoints: prepared.target.maximumHitPoints,
     defenses: prepared.target.defenses,
-    conditionImmunityIds: prepared.target.conditionImmunityIds
+    conditionImmunityIds: prepared.target.conditionImmunityIds,
+    incomingHalved: prepared.target.incomingHalved
   })
   requireSupportedApplications({
     applications: interpreted.applications,

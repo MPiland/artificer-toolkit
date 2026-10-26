@@ -52,7 +52,8 @@ export function testUuid(value: number) {
 }
 
 export const ENCOUNTER_ID = '00000000-0000-4000-8000-00000000e000'
-const SIDE_ID = '00000000-0000-4000-8000-00000000e001'
+/** The side every fixture actor is on unless it names another. */
+export const SIDE_ID = '00000000-0000-4000-8000-00000000e001'
 export const CAMPAIGN_ID = '00000000-0000-4000-8000-00000000e004'
 export const TIMESTAMP = '2026-09-26T00:00:00.000Z'
 const SOURCE_VERSION_ID = '00000000-0000-4000-8000-00000000e002'
@@ -305,7 +306,7 @@ export function characterActor(input: { id: string; characterId: string }): Enco
     resources: {},
     gmNotes: null,
     sideId: SIDE_ID,
-    snapshot: {},
+    snapshot: { kind: 'CHARACTER', systemId: SRD_SYSTEM_ID, id: input.characterId },
     createdAt: TIMESTAMP,
     updatedAt: TIMESTAMP
   })

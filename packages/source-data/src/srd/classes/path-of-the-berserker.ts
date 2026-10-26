@@ -1,22 +1,29 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
   CLASS_CATEGORY,
   CLOSED_RULE_KIND,
   DURATION_KIND,
   EFFECT_KIND,
+  GRANT_KIND,
+  MANUAL_ADJUDICATION_REASON,
   MEASUREMENT_UNIT_CODE,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
   PATH_GROUP_TYPE,
   RANGE_KIND,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
 import { SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
 import { conditionTypeId } from '../equipment/shared.js'
-import { closedRuleEffect } from './mechanics.js'
+import { RAGE_EFFECT_ID } from './barbarian.js'
+import { closedRuleEffect, gmRulingEffect } from './mechanics.js'
 
 function classRowId(classIndex: number, group: number, entry: number): string {
   const xx = classIndex.toString(16).padStart(2, '0')
@@ -44,21 +51,101 @@ export const pathOfTheBerserker: ClassAuthored = {
         'Starting when you choose this path at 3rd level, you can go into a frenzy when you rage. If you do so, for the duration of your rage you can make a single melee weapon attack as a bonus action on each of your turns after this one. When your rage ends, you suffer one level of exhaustion (as described in appendix PH-A).',
       availableAtLevel: 3,
       order: 0,
+      // Going into a frenzy is free while raging, once a rage: it lasts while the rage does and
+      // offers one weapon attack a turn as a Bonus Action. The rage's own Bonus Action spends that
+      // turn's, so the attack comes on later turns.
       effects: [
-        closedRuleEffect({
+        {
           id: classRowId(B, 20, 1),
+          order: 1,
           invocation: {
             kind: 'ACTION',
-            triggerCode: TRIGGER.MELEE_WEAPON_ATTACK,
-            activation: { code: ACTIVATION_CODE.BONUS_ACTION, amount: 1 },
-            range: { id: classRowId(B, 21, 1), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
+            triggerCode: TRIGGER.ACTIVATED,
+            activation: { code: ACTIVATION_CODE.FREE },
+            range: { id: classRowId(B, 21, 1), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: 'SELF' }
           },
-          pathCode: PATH_CODE.ON_ATTACK,
-          ruleKind: CLOSED_RULE_KIND.CLASS_BERSERKER_FRENZY
+          paths: [
+            {
+              id: classRowId(B, 0xb0, 1),
+              order: 1,
+              pathCode: PATH_CODE.ON_USE,
+              groupType: PATH_GROUP_TYPE.SINGLE,
+              originKind: 'SOURCE',
+              selectionKind: 'FIXED',
+              restrictions: {
+                id: classRowId(B, 0xb1, 0),
+                groups: [
+                  {
+                    id: classRowId(B, 0xb1, 1),
+                    order: 0,
+                    contexts: [
+                      {
+                        id: classRowId(B, 0xb1, 2),
+                        order: 0,
+                        subject: 'CHARACTER',
+                        conditions: [
+                          {
+                            id: classRowId(B, 0xb1, 3),
+                            order: 0,
+                            kind: 'PREDICATE',
+                            constraint: 'INCLUDE',
+                            predicateCode: 'HOLDER_ACTIVE_EFFECT',
+                            effectIds: [RAGE_EFFECT_ID]
+                          },
+                          {
+                            id: classRowId(B, 0xb1, 4),
+                            order: 1,
+                            kind: 'PREDICATE',
+                            constraint: 'EXCLUDE',
+                            predicateCode: 'HOLDER_ACTIVE_EFFECT',
+                            effectIds: [classRowId(B, 20, 1)]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              resultBlock: {
+                id: classRowId(B, 0xb0, 2),
+                resultKind: 'SINGLE',
+                duration: {
+                  id: classRowId(B, 0xb0, 3),
+                  durationKind: DURATION_KIND.MINUTE,
+                  amount: 1
+                },
+                lifecycle: {
+                  endsWithHeldEffectId: RAGE_EFFECT_ID,
+                  grantedActions: [
+                    {
+                      activation: ACTIVATION_CODE.BONUS_ACTION,
+                      actionDefinitionIds: [],
+                      weaponAttack: true
+                    }
+                  ]
+                },
+                outcomes: [
+                  { id: classRowId(B, 0xb0, 4), effectKind: EFFECT_KIND.APPLY_GRANT, grants: {} }
+                ]
+              }
+            }
+          ]
+        },
+        // The engine neither limits the attack to a melee weapon nor applies the exhaustion when the
+        // rage ends, so both clauses are a GM ruling.
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(B, 0xb2, 1),
+            range: classRowId(B, 0xb2, 2),
+            path: classRowId(B, 0xb2, 3),
+            result: classRowId(B, 0xb2, 4),
+            outcome: classRowId(B, 0xb2, 5)
+          },
+          label: 'Frenzy',
+          instructions:
+            "The frenzy's Bonus Action attack must be a melee weapon attack. When the rage ends, the berserker suffers one level of exhaustion.",
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ]
     },
@@ -69,16 +156,59 @@ export const pathOfTheBerserker: ClassAuthored = {
         "Beginning at 6th level, you can't be charmed or frightened while raging. If you are charmed or frightened when you enter your rage, the effect is suspended for the duration of the rage.",
       availableAtLevel: 6,
       order: 1,
+      grants: {
+        modifiers: (['CHARMED', 'FRIGHTENED'] as const).map((condition, index) => ({
+          id: classRowId(B, 0xa0, index + 1),
+          grantKind: GRANT_KIND.MODIFIER_GRANT,
+          valueDomainCode: VALUE_DOMAIN_CODE.CONDITION_IMMUNITY,
+          domain: {},
+          modifierKind: MODIFIER_KIND.ADD_OPTION,
+          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+          payload: { conditionTypeId: conditionTypeId(condition) },
+          order: index,
+          restrictions: {
+            id: classRowId(B, 0xa1 + index, 0),
+            groups: [
+              {
+                id: classRowId(B, 0xa1 + index, 1),
+                order: 0,
+                contexts: [
+                  {
+                    id: classRowId(B, 0xa1 + index, 2),
+                    order: 0,
+                    subject: 'CHARACTER' as const,
+                    conditions: [
+                      {
+                        id: classRowId(B, 0xa1 + index, 3),
+                        order: 0,
+                        kind: 'PREDICATE' as const,
+                        constraint: 'INCLUDE' as const,
+                        predicateCode: 'HOLDER_ACTIVE_EFFECT' as const,
+                        effectIds: [RAGE_EFFECT_ID]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }))
+      },
+      // The engine does not suspend a condition already on the holder, so that clause is a GM ruling (D187a).
       effects: [
-        closedRuleEffect({
-          id: classRowId(B, 20, 2),
-          invocation: {
-            kind: 'PASSIVE',
-            triggerCode: TRIGGER.ACTIVATED,
-            range: { id: classRowId(B, 21, 2), rangeKind: RANGE_KIND.SELF },
-            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
+        gmRulingEffect({
+          ids: {
+            effect: classRowId(B, 20, 2),
+            range: classRowId(B, 21, 2),
+            path: classRowId(B, 0xa4, 1),
+            result: classRowId(B, 0xa4, 2),
+            outcome: classRowId(B, 0xa4, 3)
           },
-          ruleKind: CLOSED_RULE_KIND.CLASS_BERSERKER_MINDLESS_RAGE
+          label: 'Mindless Rage',
+          instructions:
+            'If you are charmed or frightened when you enter your rage, the effect is suspended for the duration of the rage. The GM ignores the condition until the rage ends.',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE
         })
       ]
     },

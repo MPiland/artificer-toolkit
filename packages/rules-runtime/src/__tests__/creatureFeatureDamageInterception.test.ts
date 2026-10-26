@@ -49,13 +49,18 @@ const damageApplication: Extract<CharacterRuleActionApplication, { kind: 'DAMAGE
   maximumHitPoints: 30,
   damageTypeId: testUuid(0x5010),
   damageDisposition: 'NORMAL',
+  incomingHalved: false,
   critical: false
 }
 
 const fortitude = {
   dropToHitPoints: 1,
   negatesKill: false,
-  save: { ability: 'CONSTITUTION', dc: { base: 5, plusDamageTaken: true } },
+  save: {
+    ability: 'CONSTITUTION',
+    dc: { base: 5, plusDamageTaken: true, plusPerChargeUsed: 0 },
+    spendsUseOnFailure: false
+  },
   excludes: { critical: true }
 }
 

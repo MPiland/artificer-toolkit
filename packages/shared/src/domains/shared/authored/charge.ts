@@ -1,10 +1,10 @@
-import { type CHARGE_BONUS_KIND, type SCALING, type AbilityCode, type ChargeResetKind } from '#core'
+import { type CHARGE_BONUS_KIND, type SCALING, type ChargeResetKind } from '#core'
 
 export type ChargeLimitPayload =
   | {
       limitKind: 'ABILITY_MODIFIER'
       scalingKind: 'NONE'
-      ability: AbilityCode
+      ability: string
       min?: number
       max?: number
       multiplier?: number
@@ -50,7 +50,7 @@ export type ChargeBonusAuthored =
   | {
       id: string
       bonusKind: typeof CHARGE_BONUS_KIND.ABILITY_MODIFIER
-      ability: AbilityCode
+      ability: string
       min?: number
       max?: number
       multiplier?: number

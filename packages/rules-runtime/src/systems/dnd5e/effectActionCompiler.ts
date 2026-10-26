@@ -30,8 +30,7 @@ import { v5 as uuidv5 } from 'uuid'
 import type { CompiledActionCompilerSource } from '@artificer-toolkit/schema/projections/characterMechanics'
 import type {
   CharacterRuleActionSystemAdapter,
-  CharacterRuleActionActiveEffectPlan,
-  CharacterRuleActionPositionalFacts
+  CharacterRuleActionActiveEffectPlan
 } from '../../characterRuleActionSystemAdapter.js'
 import type { ActiveEffectRepeatTrigger } from '@artificer-toolkit/schema/shared/activeRuleEffects'
 import { CharacterRuleActionTargetDefenseUnavailableError } from '../../characterRuleActionSystemAdapter.js'
@@ -58,11 +57,18 @@ import {
   isGrantConsumeEvent,
   maintenancePlan
 } from './effectActionLifetime.js'
-import { modifierGrantEntryPlan } from './effectActionModifierGrants.js'
+import {
+  modifierGrantEntryPlan,
+  passiveDamageGrantPlan,
+  standingEffectPlan
+} from './effectActionModifierGrants.js'
 import { entryOwed } from './effectActionEntryOwed.js'
 import { publishedGraph } from './effectActionPublishedGraph.js'
+import { saveDamageMultiplierFacts, withSaveDamageMultiplier } from './effectActionSaveDamage.js'
 import {
+  relationshipOperationKey,
   relationshipRecurrenceGraph,
+  relationshipRecurrencePlan,
   relationshipStateGraph
 } from './effectActionRelationshipGraphs.js'
 import {
@@ -86,15 +92,15 @@ import {
   isRepeatCarrierEntry,
   repeatCarrierPlan
 } from './effectActionRepeatCarrier.js'
+import { compileTestDefinition, type TestPlan } from './effectActionTestPhase.js'
 import {
-  compileTestDefinition,
-  withMovementInterruption,
-  type TestPlan
-} from './effectActionTestPhase.js'
+  bindMovementInterruptionOutput,
+  bindMovementInterruptionTestOutput
+} from './effectActionMovementInterruption.js'
 import { compileDnd5eSummonPlacement } from './effectActionSummons.js'
 import { compileDnd5eZonePlacement } from './effectActionZones.js'
 import { selectScalingRow } from '../../scalingRowSelection.js'
-import { dnd5eAttackKind, dnd5eAttackModifierDomain, isDnd5eMeleeAttackKind } from './attackKind.js'
+import { dnd5eAttackKind, dnd5eAttackModifierDomain } from './attackKind.js'
 import type { EnemyProximity } from '../../encounterEnemyProximity.js'
 import type { MoveToward } from '../../encounterMoveToward.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
@@ -104,21 +110,14 @@ import {
   DND5E_POISONED_CONDITION_DEFINITION_ID
 } from './identity.js'
 import { dnd5eAddedDiceFacts, dnd5eAddedDiceNode, derivedAddedDice } from './d20AddedDiceGraph.js'
-import {
-  damageAddedDiceDtoSchema,
-  damageAddedDieNodePrefix,
-  type DamageAddedDieDto
-} from '@artificer-toolkit/schema/shared/d20AddedDice'
+import { damageAddedDiceDtoSchema } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import { incomingDamageProfileDtoSchema } from '@artificer-toolkit/schema/grants/modifier'
 import {
   attackCriticalRulesDtoSchema,
   DEFAULT_CRITICAL_HIT_THRESHOLD
 } from '@artificer-toolkit/schema/shared/attackCriticalRules'
 import { createDnd5eContestGraph } from './optionalCombatContestGraph.js'
 import { createDnd5eCheckDefinition } from './encounterLifecyclePolicy.js'
-import {
-  resolveDnd5eFlankingContributor,
-  resolveDnd5eFlankingParticipantCapabilityDefinitionIds
-} from './flankingPolicy.js'
 import {
   DND5E_ATTACK_TEST_OPERATION_KEY,
   DND5E_SAVE_TEST_OPERATION_KEY
@@ -129,10 +128,8 @@ import {
   DND5E_TEMPORARY_HIT_POINTS_PROPOSAL_OPERATION_KEY,
   DND5E_MANUAL_ADJUDICATION_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
-  DND5E_DAMAGE_REDUCTION_OPERATION_KEY,
   DND5E_HEAL_TOTAL_OPERATION_KEY,
   DND5E_CONDITION_APPLY_PROPOSAL_OPERATION_KEY,
-  DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
   DND5E_CONDITION_DURATION_OPERATION_KEY,
   DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
   DND5E_TARGET_ACTOR_FACT_KEY,
@@ -163,6 +160,7 @@ import {
   DND5E_ATTACK_MOVE_TOWARD_FACT_KEY,
   DND5E_ATTACK_TURN_USES_FACT_KEY,
   DND5E_DAMAGE_ADDED_DICE_FACT_KEY,
+  DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY,
   DND5E_ACTIVE_EFFECT_SAVE_REQUEST_NODE_FACT_KEY,
   DND5E_ACTIVE_EFFECT_REPEAT_SAVE_ESCALATION_CONDITION_FACT_KEY,
@@ -181,7 +179,6 @@ import {
   type TestKind,
   type SpecializedPath,
   isSpecializedPath,
-  isUuid,
   uuid,
   unsupported,
   multipliedDamageAmount
@@ -192,7 +189,7 @@ import {
   marginRiderPlan,
   timedBandConditions
 } from './effectActionBandConditions.js'
-import { conditionDurationTurns, dnd5eRepeatSave } from './effectActionFollowUp.js'
+import { conditionDurationTurns, dnd5eRepeatSave, planTickAnchor } from './effectActionFollowUp.js'
 import { compiledCreatureFormFilter, formDuration } from './effectActionCreatureFormFilter.js'
 import { repeatFollowUpSavePublishedGraph } from './effectActionRepeatSaveGraph.js'
 import { turnEndGateEvidenceBinding, turnEndGatePlan } from './effectActionTurnEndGate.js'
@@ -233,21 +230,14 @@ import {
   namesOnlyItsUser
 } from './effectActionTargetPolicy.js'
 import {
-  boundedDiceTerm,
   dnd5eEffectScalingFacts,
   parseBoundedDiceConfiguration,
   scalingLevel,
-  type BoundedDiceTerm,
   type Dnd5eEffectScalingFacts
 } from './effectActionScalingFacts.js'
 
-import {
-  DND5E_OUTCOME_TARGET,
-  damageTypeIdentity,
-  damageMultiplier,
-  multipliedDamage,
-  rolledDiceNodes
-} from './effectActionOutcomeNodes.js'
+import { DND5E_OUTCOME_TARGET, damageMultiplier } from './effectActionOutcomeNodes.js'
+import { isCriticalHitDamage, withDamageAddedDice } from './effectActionDamageAddedDice.js'
 import {
   isImmediateFollowUpSave,
   escalationCondition,
@@ -256,6 +246,13 @@ import {
   exactFailureMarginRider,
   immediateFollowUpSaveGraphDefinition
 } from './effectActionNestedSave.js'
+import { hitPointTierActions } from './effectActionNarrowing.js'
+import {
+  admitRollTablePaths,
+  rollTableOutcomeTemplate,
+  rollTablePath,
+  rollTableRowActions
+} from './effectActionRollTable.js'
 
 const DND5E_ORDINARY_SIGHT_DEFINITION_ID = '0b4d8603-8e15-4e5a-89a6-9e1a179c4371'
 const DND5E_ORDINARY_SIGHT_NAMESPACE = '6871f0d5-9ac4-45d4-84c0-30cbd4e7df0c'
@@ -756,36 +753,15 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   )
   if (new Set(conditionIds).size !== conditionIds.length)
     unsupported('D&D relationship conditions must be unique.')
-  const recurrence = relationship.recurrence
-  if (
-    recurrence &&
-    (recurrence.stage !== 'START_OF_TURN' ||
-      recurrence.damage.effectKind !== 'DAMAGE' ||
-      recurrence.damage.valueKind !== 'DICE' ||
-      recurrence.damage.scalingKind !== 'NONE' ||
-      recurrence.damage.bonuses?.length ||
-      !UUID.test(recurrence.damage.id) ||
-      !isUuid(recurrence.damage.damageTypeId) ||
-      typeof recurrence.damage.diceConfig !== 'string')
-  ) {
-    unsupported('D&D relationship recurrence must be one exact start-of-turn damage outcome.')
-  }
-  const frozenGraph = recurrence
-    ? relationshipRecurrenceGraph({
-        action,
-        relationship,
-        modules,
-        recurrenceDamage: recurrence.damage
-      })
-    : relationshipStateGraph({ action, relationship })
-  return {
+  const recurrence = relationshipRecurrencePlan(relationship)
+  const plan: Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> = {
     authoredEffectId: action.effectId,
     compiledEntryId: relationship.id,
-    frozenGraphNodeId: recurrence ? 'relationship-recurrence' : 'relationship-state',
-    frozenGraph,
+    frozenGraphNodeId: recurrence?.frozenGraphNodeId ?? 'relationship-state',
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: recurrence ? 'START_OF_TURN' : 'NONE',
     initialRemaining: null,
+    tickAnchor: planTickAnchor(relationship.recurrence?.turnAnchor),
     actorRelationshipContribution: {
       relationshipOutcomeId: relationship.id,
       heldAtOnce: relationship.heldAtOnce,
@@ -795,11 +771,18 @@ function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
       capabilitySuppressions
     },
     ...(entry.pathCode !== 'ON_USE' && { resultGate: dnd5eResultGate(entry.pathCode) }),
-    adapterFacts: { 'dnd5e.relationship-authored-path': entry.pathCode },
+    adapterFacts: {
+      ...recurrence?.save?.adapterFacts,
+      'dnd5e.relationship-authored-path': entry.pathCode
+    },
     perceptionContributions: [],
     maintenance: null,
     marginRiders: []
   }
+  const frozenGraph = recurrence
+    ? relationshipRecurrenceGraph({ action, relationship, recurrence, plan })
+    : relationshipStateGraph({ action, relationshipId: relationship.id })
+  return { ...plan, frozenGraph }
 }
 
 /**
@@ -1087,7 +1070,7 @@ function timedConditionPlan(
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
     recurrenceStage: indefinite ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
-    tickAnchor: turnAnchor?.actor === 'SOURCE' ? 'SOURCE' : 'HOLDER',
+    tickAnchor: planTickAnchor(turnAnchor),
     conditionContributions: conditionEntries.map(({ outcome }) => ({
       conditionId: outcome.conditionId,
       recordsSource: outcome.recordsSource,
@@ -1432,7 +1415,7 @@ function actorLinkPlan(
     actorLinkContribution: {
       linkOutcomeId: entry.outcome.id,
       linkKind: 'TELEPATHIC',
-      excludesIntelligenceAtOrBelow: entry.outcome.excludesIntelligenceAtOrBelow
+      excludesAbilityAtOrBelow: entry.outcome.excludesAbilityAtOrBelow
     },
     ...(resultGate && { resultGate }),
     adapterFacts: {},
@@ -1988,7 +1971,7 @@ type Dnd5eDirectOutcome =
           | 'FORCED_MOVEMENT'
       }
     >
-  | { kind: 'DIRECT_RELATIONSHIP' }
+  | { kind: 'DIRECT_RELATIONSHIP'; relationshipId: string }
 /** What a direct outcome reads from its action once `supported` has resolved its targets and plans. */
 type DirectOutcomeInput = Readonly<{
   action: Dnd5eCompiledEffectActionSource
@@ -2030,10 +2013,10 @@ const DND5E_DIRECT_OUTCOMES: {
 } = {
   // The action holds its target by its relationship alone (Engulf): the relationship's own graph
   // is the action's, and its active-effect plan stores the hold.
-  ACTOR_RELATIONSHIP: (_outcome, { action, onList }) => {
+  ACTOR_RELATIONSHIP: (outcome, { action, onList }) => {
     if (onList) unsupported('D&D chosen-creature action outcome cannot be a relationship.')
     relationshipPlan(action)
-    return { kind: 'DIRECT_RELATIONSHIP' }
+    return { kind: 'DIRECT_RELATIONSHIP', relationshipId: outcome.id }
   },
   CONDITION: (outcome, input) => {
     uuid(outcome.conditionId, 'D&D condition definition identity')
@@ -2182,10 +2165,12 @@ function supported(
     invocation.targeting?.selectionKind === 'AREA_CONTENTS' &&
     hitPointPoolIsAuthored(invocation.targeting) &&
     isSupportedArea(invocation)
+  // A free action on its user alone (Frenzy) needs no charge: its use path's holder restrictions
+  // bound it.
   const supportedActivation =
     invocation.kind === 'ACTION' &&
     (invocation.activation.code === 'FREE'
-      ? isChargedFreeActivation(invocation)
+      ? isChargedFreeActivation(invocation) || supportsSelf
       : (invocation.activation.code === 'ACTION' ||
           invocation.activation.code === 'BONUS_ACTION' ||
           // A reaction to being attacked, to taking damage, to being chosen as a target or to a spell
@@ -2347,8 +2332,14 @@ function supportedTestPhaseKind(action: Dnd5eCompiledEffectActionSource): TestKi
     unsupported('D&D test action has an unsupported bounded shape.')
   }
   const paths = new Set<string>()
+  const tablePaths = admitRollTablePaths(
+    action,
+    kind === 'SAVE' ? allowedPaths : [],
+    timedActiveEffectPlan
+  )
   const conditionCounts = new Map<string, number>()
   for (const entry of action.compiledEffect.entries) {
+    if (tablePaths.has(entry.pathCode)) continue
     if (isActiveEffectPlanOutcome(entry, action)) continue
     // A SEQUENCE result block applies each of its outcomes in order; OUTCOME
     // specializes every outcome as its own group, exactly like separate paths.
@@ -2587,23 +2578,6 @@ function exactDiceConfiguration(
   return resolved
 }
 
-/**
- * A critical hit rolls every damage die of the attack's hit damage twice and adds the modifier
- * once (SRD 5.1). Every attack OUTCOME applies it here; authored ON_CRIT riders and the damage of
- * a save the hit forces are not the attack's damage and keep their dice.
- */
-function isCriticalHitDamage(
-  selectedPath: SpecializedPath,
-  entry: CompiledEffectGroup['entries'][number]
-): boolean {
-  return (
-    selectedPath === 'ON_CRIT' &&
-    entry.pathCode === 'ON_HIT' &&
-    'outcome' in entry &&
-    entry.outcome.effectKind === 'DAMAGE'
-  )
-}
-
 /** A critical hit's dice change for an entry: doubled, plus the attack's extra dice (D158). */
 function criticalHitDice(
   selectedPath: SpecializedPath,
@@ -2787,131 +2761,6 @@ function mergedOutcomeGraphDefinition(input: {
   }
 }
 
-/** One added die's own damage (D156): its dice, the multiplier of the damage it joins, its proposal. */
-function addedDamageDieGraphDefinition(input: {
-  action: Dnd5eCompiledEffectActionSource
-  term: BoundedDiceTerm
-  prefix: string
-  damageTypeId: string
-  multiplier: number
-}): RuleGraphDefinition {
-  const { nodes: rolledNodes, subtotal } = rolledDiceNodes(input.term, input.prefix)
-  const multiplied = multipliedDamage(
-    `${input.prefix}damage-multiplied`,
-    subtotal,
-    input.multiplier
-  )
-  const proposalId = `${input.prefix}proposal`
-  return {
-    schemaVersion: 1,
-    id: input.action.effectId,
-    gameSystemId: DND5E_SYSTEM_ID,
-    definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-    nodes: [
-      ...rolledNodes,
-      ...multiplied.nodes,
-      {
-        id: proposalId,
-        operation: { key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY, contractVersion: 1 },
-        inputs: {
-          targetActorId: { kind: 'FACT', factKey: DND5E_TARGET_ACTOR_FACT_KEY },
-          targetStateChecksum: { kind: 'FACT', factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY },
-          amount: multiplied.amount,
-          damageTypeId: { kind: 'LITERAL', value: input.damageTypeId }
-        }
-      }
-    ],
-    outputs: {
-      targetActorId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'targetActorId' },
-      amount: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'amount' },
-      damageTypeId: { kind: 'NODE_OUTPUT', nodeId: proposalId, port: 'damageTypeId' }
-    }
-  }
-}
-
-/**
- * The selected result with the dice active grants add to or take from its first damage (D156).
- * Each added die deals its own damage of its type (the joined damage's when it names none), rolled
- * twice on a critical hit and multiplied like the joined damage. Each subtracted die is rolled the
- * same way and taken off the joined damage, floored at 0. A miss, or a result with no damage, takes
- * none of them.
- */
-function withDamageAddedDice(input: {
-  action: Dnd5eCompiledEffectActionSource
-  selectedPath: SpecializedPath
-  groups: ReturnType<typeof selectedOutcomeGroups>
-  definitions: readonly RuleGraphDefinition[]
-  dice: readonly DamageAddedDieDto[]
-}): readonly RuleGraphDefinition[] {
-  const primaryIndex = input.groups.findIndex(
-    ([entry]) => entry !== undefined && 'outcome' in entry && entry.outcome.effectKind === 'DAMAGE'
-  )
-  const primaryEntry = input.groups[primaryIndex]?.[0]
-  const primary = input.definitions[primaryIndex]
-  if (
-    input.dice.length === 0 ||
-    input.selectedPath === 'ON_MISS' ||
-    !primary ||
-    !primaryEntry ||
-    !('outcome' in primaryEntry) ||
-    primaryEntry.outcome.effectKind !== 'DAMAGE'
-  )
-    return input.definitions
-  const joined = primaryEntry.outcome
-  const critical = isCriticalHitDamage(input.selectedPath, primaryEntry)
-    ? { extraDice: 0 }
-    : undefined
-  const term = (die: DamageAddedDieDto) =>
-    boundedDiceTerm(`${die.count}d${die.faces}`, critical).term
-  const added = input.dice.flatMap((die, index) =>
-    die.sign === 'ADD'
-      ? [
-          addedDamageDieGraphDefinition({
-            action: input.action,
-            term: term(die),
-            prefix: damageAddedDieNodePrefix(index),
-            damageTypeId: die.damageTypeId ?? damageTypeIdentity(joined.damageTypeId),
-            multiplier: damageMultiplier(joined)
-          })
-        ]
-      : []
-  )
-  const proposalIndex = primary.nodes.findIndex(
-    (node) => node.operation.key === DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-  )
-  const proposal = primary.nodes[proposalIndex]
-  const joinedAmount = proposal?.inputs.amount
-  if (!proposal || !joinedAmount) unsupported('D&D added damage dice need the damage they join.')
-  let amount = joinedAmount
-  const reductionNodes = input.dice.flatMap((die, index) => {
-    if (die.sign !== 'SUBTRACT') return []
-    const prefix = damageAddedDieNodePrefix(index)
-    const { nodes, subtotal } = rolledDiceNodes(term(die), prefix)
-    const reduced = {
-      id: `${prefix}damage-reduced`,
-      operation: { key: DND5E_DAMAGE_REDUCTION_OPERATION_KEY, contractVersion: 1 },
-      inputs: { amount, reduction: subtotal }
-    }
-    amount = { kind: 'NODE_OUTPUT', nodeId: reduced.id, port: 'value' }
-    return [...nodes, reduced]
-  })
-  const reducedPrimary: RuleGraphDefinition = {
-    ...primary,
-    nodes: [
-      ...primary.nodes.slice(0, proposalIndex),
-      ...reductionNodes,
-      { ...proposal, inputs: { ...proposal.inputs, amount } },
-      ...primary.nodes.slice(proposalIndex + 1)
-    ]
-  }
-  return [
-    ...input.definitions.slice(0, primaryIndex),
-    reducedPrimary,
-    ...input.definitions.slice(primaryIndex + 1),
-    ...added
-  ]
-}
-
 /**
  * The conditions a failed direct save also applies because it failed by the rider's margin ("fails
  * by 5 or more, also paralyzed"): each one follows the failure's own outcomes as a result group of
@@ -2947,6 +2796,8 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
 }): Dnd5eEffectActionTemplate | null {
   if (!isCheckOutcomeAction(input.action)) supportedTestPhaseKind(input.action)
   assertKnownTestResultPath(input.action, input.selectedPath)
+  const table = rollTableOutcomeTemplate(input.action, input.selectedPath)
+  if (table) return table
   if (
     (input.selectedPath === 'ON_HIT' || input.selectedPath === 'ON_CRIT') &&
     isExactImmediateFollowUpSaveAction(input.action)
@@ -3131,14 +2982,19 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
           })
         : unsupported('D&D fixed outcome path must compile to one direct result.')
   })
-  const definition = mergedOutcomeGraphDefinition({
+  const definition = withSaveDamageMultiplier({
     action: input.action,
-    definitions: withDamageAddedDice({
+    selectedPath: input.selectedPath,
+    definition: mergedOutcomeGraphDefinition({
       action: input.action,
-      selectedPath: input.selectedPath,
-      groups,
-      definitions,
-      dice: input.facts.damageAddedDice ?? []
+      definitions: withDamageAddedDice({
+        action: input.action,
+        selectedPath: input.selectedPath,
+        groups,
+        definitions,
+        dice: input.facts.damageAddedDice ?? [],
+        incomingReductions: input.facts.incomingDamageReductions ?? []
+      })
     })
   })
   const published = publishedGraph(definition)
@@ -3150,73 +3006,6 @@ function specializeDnd5eEffectActionOutcomeBody(input: {
     // owed to this attack and their locked dice and rider specialization.
     templateChecksum: checksumRuleDocument(authoredGroups)
   }
-}
-
-/**
- * A movement interruption is an explicit authored reaction binding.  The
- * compiler projects it into the graph so execution never infers it from an
- * action label, outcome, or system-specific branch.
- */
-function movementInterruptionOf(action: Dnd5eCompiledEffectActionSource) {
-  const { invocation } = action.compiledEffect
-  const trigger = 'reactionTrigger' in invocation ? invocation.reactionTrigger : undefined
-  return trigger?.kind === 'MOVEMENT' ? trigger.movementInterruption : null
-}
-
-function bindMovementInterruptionTestOutput(input: {
-  action: Dnd5eCompiledEffectActionSource
-  published: ServerPublishedRuleDefinitionDto
-  kind: TestKind
-}): ServerPublishedRuleDefinitionDto {
-  const binding = movementInterruptionOf(input.action)
-  if (binding?.kind !== 'STOP') return input.published
-  const allowedPaths =
-    input.kind === 'ATTACK' ? ['ON_HIT', 'ON_MISS', 'ON_CRIT'] : ['ON_SAVE_FAIL', 'ON_SAVE_SUCCESS']
-  if (
-    !allowedPaths.includes(binding.whenResultPath) ||
-    !input.action.compiledEffect.entries.some((entry) => entry.pathCode === binding.whenResultPath)
-  )
-    throw new Dnd5eEffectActionCompilerError(
-      'Movement interruption must bind one exact authored D&D test path.'
-    )
-  return withMovementInterruption(input.published, binding.whenResultPath)
-}
-
-function bindMovementInterruptionOutput(input: {
-  action: Dnd5eCompiledEffectActionSource
-  published: ServerPublishedRuleDefinitionDto
-}): ServerPublishedRuleDefinitionDto {
-  const binding = movementInterruptionOf(input.action)
-  if (binding?.kind !== 'STOP') return input.published
-
-  const proposalNodeId = `proposal-${binding.whenResultPath.toLowerCase()}`
-  const proposal = input.published.definition.nodes.find((node) => node.id === proposalNodeId)
-  if (
-    !proposal ||
-    proposal.inputs.authoredPath?.kind !== 'LITERAL' ||
-    proposal.inputs.authoredPath.value !== binding.whenResultPath
-  ) {
-    throw new Dnd5eEffectActionCompilerError(
-      'Movement interruption must bind one exact D&D test proposal path.'
-    )
-  }
-
-  const definition: RuleGraphDefinition = {
-    ...input.published.definition,
-    outputs: {
-      ...input.published.definition.outputs,
-      movementInterruption: {
-        kind: 'NODE_OUTPUT',
-        nodeId: proposalNodeId,
-        port: 'authorized'
-      }
-    }
-  }
-  return serverPublishedRuleDefinitionDtoSchema.parse({
-    ...input.published,
-    checksum: checksumRuleDocument(definition),
-    definition
-  })
 }
 
 /** Whether the active-effect plan the action ends up with is held under a maintained effect. */
@@ -3250,36 +3039,6 @@ function timedActiveEffectPlan(action: Dnd5eCompiledEffectActionSource) {
     actorLinkPlan(action) ??
     creatureFormPlan(action)
   )
-}
-
-/**
- * The action narrowed to each hit-point tier its entries author, with the entries no tier owns
- * (a success path's immunity) riding every tier; null for an action that authors no tier.
- */
-function hitPointTierActions(
-  action: Dnd5eCompiledEffectActionSource
-): { atMost: number; tierAction: Dnd5eCompiledEffectActionSource }[] | null {
-  const { entries } = action.compiledEffect
-  const tierOf = (entry: (typeof entries)[number]) =>
-    'hitPointTier' in entry ? entry.hitPointTier?.atMost : undefined
-  const atMosts = [...new Set(entries.flatMap((entry) => tierOf(entry) ?? []))]
-  if (atMosts.length === 0) return null
-  return atMosts.map((atMost) => ({
-    atMost,
-    tierAction: {
-      ...action,
-      compiledEffect: {
-        ...action.compiledEffect,
-        entries: entries
-          .filter((entry) => tierOf(entry) === undefined || tierOf(entry) === atMost)
-          .map((entry) => {
-            if (!('hitPointTier' in entry)) return entry
-            const { hitPointTier: _tier, ...untiered } = entry
-            return untiered
-          })
-      }
-    }
-  }))
 }
 
 function dnd5eActiveEffectPlans(
@@ -3356,9 +3115,7 @@ function dnd5eActiveEffectPlans(
   const recurringOutcome = firstEntry && 'outcome' in firstEntry ? firstEntry.outcome : null
   const testOutcomeKind = test && recurringOutcome ? boundedTestOutcome(firstEntry!).kind : null
   const expectedOperation = relationship
-    ? relationship.recurrenceStage === 'START_OF_TURN'
-      ? DND5E_DAMAGE_PROPOSAL_OPERATION_KEY
-      : DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
+    ? relationshipOperationKey(action)
     : savePlan
       ? DND5E_SAVE_TEST_OPERATION_KEY
       : timedPlan
@@ -3533,9 +3290,9 @@ function compileEffectActionGraph(
       published: createDnd5eContestGraph(action.effectId)
     })
   if (outcome.kind === 'DIRECT_RELATIONSHIP') {
-    const plan = relationshipPlan(action)
-    if (!plan) unsupported('D&D direct relationship action has no relationship.')
-    return bindMovementInterruptionOutput({ action, published: plan.frozenGraph })
+    // Used, the action only holds; its stored effect rolls any recurrence on later turns.
+    const published = relationshipStateGraph({ action, relationshipId: outcome.relationshipId })
+    return bindMovementInterruptionOutput({ action, published })
   }
   if (outcome.kind === 'CHECK_OUTCOME')
     unsupported('D&D check outcome requires its check test phase.')
@@ -3663,95 +3420,6 @@ export function selectDnd5eTargetSavingThrow(input: {
   }
 }
 
-function flankingContributor(input: {
-  attackKind: unknown
-  gameSystemId: string
-  positionalFacts: CharacterRuleActionPositionalFacts | null | undefined
-  sceneContext: Parameters<CharacterRuleActionSystemAdapter['bindFacts']>[0]['sceneContext']
-}): ReceiptD20ContributorDto | null {
-  const facts = input.positionalFacts
-  const scene = input.sceneContext
-  if (!facts || !scene) return null
-  const capabilityDefinitionIds = resolveDnd5eFlankingParticipantCapabilityDefinitionIds({
-    automationMode: facts.automationMode,
-    gameSystemId: input.gameSystemId,
-    optionalCombatSnapshot: facts.optionalCombatSnapshot,
-    optionalCombatSnapshotChecksum: facts.optionalCombatSnapshotChecksum
-  })
-  if (capabilityDefinitionIds.length !== 1) return null
-  const capabilityDefinitionId = capabilityDefinitionIds[0]!
-  const sourceCapability = facts.sourceCapabilityState.capabilities.find(
-    (candidate) => candidate.capability.capabilityDefinitionId === capabilityDefinitionId
-  )
-  if (!sourceCapability) return null
-  const contributor = resolveDnd5eFlankingContributor({
-    attackClassification: isDnd5eMeleeAttackKind(input.attackKind) ? 'MELEE' : 'OTHER',
-    automationMode: facts.automationMode,
-    gameSystemId: input.gameSystemId,
-    grid: scene.grid,
-    optionalCombatSnapshot: facts.optionalCombatSnapshot,
-    optionalCombatSnapshotChecksum: facts.optionalCombatSnapshotChecksum,
-    attacker: {
-      actorId: scene.sourceToken.actorId,
-      token: {
-        height: scene.sourceToken.height,
-        id: scene.sourceToken.tokenId,
-        position: scene.sourceToken.position,
-        width: scene.sourceToken.width
-      },
-      canSeeTarget: facts.sourceCanSeeTarget,
-      targetRelationship: facts.sourceTargetRelationship,
-      participantCapability: {
-        availability: sourceCapability,
-        availabilityChecksum: checksumRuleDocument(sourceCapability)
-      }
-    },
-    target: {
-      actorId: scene.targetToken.actorId,
-      token: {
-        height: scene.targetToken.height,
-        id: scene.targetToken.tokenId,
-        position: scene.targetToken.position,
-        width: scene.targetToken.width
-      }
-    },
-    alliedCandidates: facts.candidates.flatMap((candidate) => {
-      const capability = candidate.capabilityState.capabilities.find(
-        (availability) => availability.capability.capabilityDefinitionId === capabilityDefinitionId
-      )
-      return capability
-        ? [
-            {
-              actorId: candidate.actorId,
-              token: {
-                height: candidate.token.height,
-                id: candidate.token.tokenId,
-                position: candidate.token.position,
-                width: candidate.token.width
-              },
-              attackerRelationship: candidate.sourceRelationship,
-              canSeeTarget: candidate.canSeeTarget,
-              targetRelationship: candidate.targetRelationship,
-              participantCapability: {
-                availability: capability,
-                availabilityChecksum: checksumRuleDocument(capability)
-              }
-            }
-          ]
-        : []
-    })
-  }).contributor
-  return contributor
-    ? {
-        sourceId: contributor.sourceId,
-        grantId: contributor.grantId,
-        domainKey: contributor.domainKey,
-        influence: contributor.influence,
-        source: contributor.source
-      }
-    : null
-}
-
 /**
  * A persisted active effect retains the compiled graph rather than the source
  * document. Reconstruct the exact published-definition view from that sealed
@@ -3825,36 +3493,26 @@ function testOutcomeTemplateIdentities(action: Dnd5eCompiledEffectActionSource) 
     }
   }[]
   for (const pathCode of [...paths].sort((left, right) => left.localeCompare(right))) {
-    const groups = selectedOutcomeGroups(action, pathCode)
-    if (groups.length === 0) continue
-    if (
+    const table = rollTablePath(action, pathCode)
+    const groups = table ? [] : selectedOutcomeGroups(action, pathCode)
+    if (!table && groups.length === 0) continue
+    const followUpSave =
+      !table &&
       (pathCode === 'ON_HIT' || pathCode === 'ON_CRIT') &&
       isExactImmediateFollowUpSaveAction(action)
-    ) {
-      outcomes.push({
-        pathCode,
-        template: {
-          definitionId: action.effectId,
-          gameSystemId: DND5E_SYSTEM_ID,
-          definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-          checksum: checksumRuleDocument(action.compiledEffect.entries)
-        }
-      })
-      continue
-    }
     // Validate every reachable outcome at source compilation time. The
     // specialized graph itself is intentionally deferred until locked
     // runtime scaling facts are available.
-    for (const entries of groups) {
-      for (const entry of entries) specializedTestOutcome(entry)
-    }
+    if (!followUpSave) for (const entry of groups.flat()) specializedTestOutcome(entry)
     outcomes.push({
       pathCode,
       template: {
         definitionId: action.effectId,
         gameSystemId: DND5E_SYSTEM_ID,
         definitionFamilyKey: DND5E_EFFECT_ACTION_FAMILY_KEY,
-        checksum: checksumRuleDocument(groups)
+        checksum: checksumRuleDocument(
+          table ? table.rows : followUpSave ? action.compiledEffect.entries : groups
+        )
       }
     })
   }
@@ -3961,17 +3619,6 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         }
       : null
   },
-  positionalCapabilityDefinitionIds: ({
-    automationMode,
-    optionalCombatSnapshot,
-    optionalCombatSnapshotChecksum
-  }) =>
-    resolveDnd5eFlankingParticipantCapabilityDefinitionIds({
-      automationMode,
-      gameSystemId: DND5E_SYSTEM_ID,
-      optionalCombatSnapshot,
-      optionalCombatSnapshotChecksum
-    }),
   combatPerceptionBaselineCapabilities: ({ observerActorId }) => [
     {
       instanceId: uuidv5(observerActorId, DND5E_ORDINARY_SIGHT_NAMESPACE),
@@ -3999,24 +3646,21 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       return { kind: 'ATTEMPT_GATE', allow, requirement: pinned }
     throw new Dnd5eEffectActionCompilerError('D&D recurring perception is not fully pinned.')
   },
-  passiveDamageGrantPlan: ({ action }) => {
-    const { invocation, entries } = action.compiledEffect
-    const [entry] = entries
-    if (
-      invocation.kind !== 'PASSIVE' ||
-      invocation.triggerCode !== 'INCOMING_DAMAGE' ||
-      entries.length !== 1 ||
-      !entry ||
-      entry.pathCode !== 'PASSIVE'
-    )
-      unsupported('D&D passive damage trigger must author one passive result.')
-    const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
-    if (!plan?.modifierGrantContribution)
-      unsupported('D&D passive damage trigger must give a timed modifier grant.')
-    return { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
-  },
+  passiveDamageGrantPlan,
+  standingEffectPlan,
   activeEffectPlans: ({ action: authored, published }) => {
     const action = executableAction(authored)
+    const rows = rollTableRowActions(action)
+    if (rows && hitPointTierActions(action))
+      unsupported('D&D roll table cannot share an action with hit-point tiers.')
+    if (rows)
+      return rows.flatMap(({ rowId, row, rowAction }) =>
+        dnd5eActiveEffectPlans(rowAction, published).map((plan) =>
+          plan.compiledEntryId === rowId
+            ? { ...plan, rollTableRow: row }
+            : unsupported('D&D roll table row plan must hold its own row.')
+        )
+      )
     const tiers = hitPointTierActions(action)
     if (tiers)
       return tiers.flatMap(({ atMost, tierAction }) =>
@@ -4041,9 +3685,7 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
     targetConditionIds,
     conditionOutcomeRules,
     conditionImmunityIds,
-    targetDamageTypesTaken,
-    sceneContext,
-    positionalFacts
+    targetDamageTypesTaken
   }) => {
     const resolvedDamageExpressionFacts: Record<string, string> = {}
     const resolvedDamageOutcomeExpressions: Record<string, string> = {}
@@ -4163,11 +3805,22 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         [DND5E_HEALING_MAXIMIZED_FACT_KEY]: targetDerivedFacts.healingMaximized === true
       }
     }
+    const action = actionMechanic as {
+      attackBonus?: unknown
+      attackRollMode?: unknown
+      attackKind?: unknown
+      save?: { abilityDefinitionId?: unknown; dc?: unknown } | null
+    }
     const { spellCastLevel, classLevels, selectedOptionalRiderIds } = actionMechanic
     const damageAddedDice =
       sourceDerivedFacts.damageAddedDice === undefined
         ? []
         : damageAddedDiceDtoSchema.parse(sourceDerivedFacts.damageAddedDice)
+    // A target with no folded incoming-damage profile (outside an Encounter) has no reductions.
+    const incomingReductions =
+      targetDerivedFacts.incomingDamage === undefined
+        ? []
+        : incomingDamageProfileDtoSchema.parse(targetDerivedFacts.incomingDamage).reductions
     const baseFacts = {
       ...dnd5eAddedDiceFacts([]),
       [DND5E_TARGET_ACTOR_FACT_KEY]: targetActorId,
@@ -4182,6 +3835,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       ...conditionImmunityFacts(published.definition, conditionImmunityIds),
       [DND5E_TARGET_CURRENT_HIT_POINTS_FACT_KEY]: currentHitPoints,
       ...gateFacts(published.definition, { targetDamageTypesTaken }),
+      ...saveDamageMultiplierFacts(published.definition, {
+        abilityDefinitionId: action.save?.abilityDefinitionId,
+        incomingDamage: targetDerivedFacts.incomingDamage
+      }),
       ...resolvedDamageExpressionFacts,
       ...weaponDamageDieFacts,
       ...(Object.keys(resolvedDamageOutcomeExpressions).length > 0
@@ -4218,13 +3875,10 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
           }),
       ...(damageAddedDice.length === 0
         ? {}
-        : { [DND5E_DAMAGE_ADDED_DICE_FACT_KEY]: JSON.stringify(damageAddedDice) })
-    }
-    const action = actionMechanic as {
-      attackBonus?: unknown
-      attackRollMode?: unknown
-      attackKind?: unknown
-      save?: { abilityDefinitionId?: unknown; dc?: unknown } | null
+        : { [DND5E_DAMAGE_ADDED_DICE_FACT_KEY]: JSON.stringify(damageAddedDice) }),
+      ...(incomingReductions.length === 0
+        ? {}
+        : { [DND5E_INCOMING_DAMAGE_REDUCTIONS_FACT_KEY]: JSON.stringify(incomingReductions) })
     }
     const derivedStats = targetDerivedFacts.derivedStats as
       | { armorClass?: { effective?: unknown }; savingThrows?: unknown }
@@ -4344,23 +3998,18 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
       const attackDomain = attackKind.success ? dnd5eAttackModifierDomain(attackKind.data) : 'MELEE'
       const addedDice = derivedAddedDice(sourceDerivedFacts.attackAddedDice, attackDomain)
       const contributors = (sourceContributorEvidence?.attacks?.[attackDomain] ?? []).map(
-        ({ sourceId, grantId, domainKey, influence, source }) => ({
+        ({ sourceId, grantId, domainKey, influence, source, positional }) => ({
           sourceId,
           grantId,
           domainKey,
           influence,
-          source
+          source,
+          ...(positional ? { positional } : {})
         })
       )
-      const flanking = flankingContributor({
-        attackKind: action.attackKind,
-        gameSystemId: DND5E_SYSTEM_ID,
-        positionalFacts,
-        sceneContext
-      })
       // A target's grant that suppresses an influence (Elusive's advantage) leaves the attack none.
       const suppressed = sourceDerivedFacts.attackSuppressedInfluences
-      const allContributors = (flanking ? [...contributors, flanking] : contributors).filter(
+      const allContributors = contributors.filter(
         ({ influence }) => !Array.isArray(suppressed) || !suppressed.includes(influence)
       )
       allContributors.sort(compareCanonicalD20Contributors)
@@ -4512,7 +4161,12 @@ export const dnd5eCharacterRuleActionSystemAdapter: CharacterRuleActionSystemAda
         scalarValues: targetScalarValues,
         conditionIds: targetConditionIds
       }),
-      ...conditionImmunityFacts(definition.frozenGraph, conditionImmunityIds)
+      ...conditionImmunityFacts(definition.frozenGraph, conditionImmunityIds),
+      ...saveDamageMultiplierFacts(definition.frozenGraph, {
+        abilityDefinitionId:
+          definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY],
+        incomingDamage: targetDerivedFacts.incomingDamage
+      })
     }
     const abilityDefinitionId =
       definition.adapterFacts[DND5E_ACTIVE_EFFECT_SAVE_ABILITY_DEFINITION_FACT_KEY]

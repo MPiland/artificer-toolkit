@@ -25,6 +25,11 @@ import {
   encounterMaintainedEffectStateRecordSchema
 } from './activeRuleEffectPersistence.js'
 import { rollModeKeepSchema, systemCoreCodeSchema } from '../shared/systemCoreCode.js'
+import { encounterActorMoraleDtoSchema } from '../shared/encounterMorale.js'
+import {
+  consequenceRollResolutionDtoSchema,
+  encounterConsequenceRollOfferDtoSchema
+} from '../shared/consequenceRolls.js'
 
 // Keep the Convex table schema independent of recursive authored snapshots. Projections are built
 // on read from the Run state and its actors (ADR 0035 Amendment 12), so the Run stores neither.
@@ -588,8 +593,41 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('PLACE_ZONE'),
+      /** The Scene zone the GM placed (MOVE-3.2), which the GM's undo removes. */
+      receipt: z.strictObject({ spatialEffectId: postgresUuidSchema })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.enum(['MORALE_SAVE', 'CONFIRM_MORALE']),
+      /** Each actor's morale record before and after the GM's check or confirmation (ENCOUNTER-6.2). */
+      receipt: z.strictObject({
+        actors: z
+          .array(
+            z.strictObject({
+              actorId: postgresUuidSchema,
+              before: z.nullable(encounterActorMoraleDtoSchema),
+              after: encounterActorMoraleDtoSchema
+            })
+          )
+          .check(z.minLength(1))
+          .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('RESOLVE_CONSEQUENCE_ROLL_OFFER'),
+      /** The offer the GM resolved and the roll and row an accepted one landed on (ATTACK-15). */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        offer: encounterConsequenceRollOfferDtoSchema,
+        resolution: consequenceRollResolutionDtoSchema
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
       commandType: z.literal('CREATURE_REST'),
-      /** The feature charges and spell slot rows each creature got back, so the GM's undo spends them again. */
+      /**
+       * The feature charges and spell slot rows each creature got back and the standing effects the
+       * rest turned back on, so the GM's undo spends the rows again and ends those effects.
+       */
       receipt: z.strictObject({
         restKind: z.enum(['SHORT', 'LONG']),
         actors: z
@@ -601,7 +639,10 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
                   key: z.string().check(z.trim()).check(z.minLength(1)),
                   beforeUsed: z.number().check(z.int()).check(z.positive())
                 })
-              )
+              ),
+              armedEffectIds: z
+                .array(postgresUuidSchema)
+                .check(z.maxLength(MAX_ACTIVE_RULE_EFFECTS_PER_OWNER))
             })
           )
           .check(z.maxLength(MAX_ENCOUNTER_ACTORS))
@@ -634,6 +675,20 @@ export const encounterStoredRunCommandSchema = lazySchema(() =>
         before: activeRuleEffectRecordSchema,
         /** The version the effect had at the new holder, so undo refuses once it has changed. */
         afterVersion: z.number().check(z.int()).check(z.positive())
+      })
+    }),
+    z.extend(encounterStoredRunCommandResultSchema, {
+      commandType: z.literal('CHANGE_FACING'),
+      /** The timeline label: plain "Change facing". */
+      label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160)),
+      ruleOverrides: encounterRuleWarningsDtoSchema,
+      /** The reaction it spent and the Scene command that turned the token, so undo turns it back. */
+      receipt: z.strictObject({
+        actorId: postgresUuidSchema,
+        actionEconomy: z.nullable(encounterActionEconomyTransitionDtoSchema),
+        sceneId: postgresUuidSchema,
+        tokenId: postgresUuidSchema,
+        sceneCommandId: postgresUuidSchema
       })
     }),
     z.extend(encounterStoredRunCommandResultSchema, {

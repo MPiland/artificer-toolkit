@@ -1,5 +1,4 @@
 import {
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_KIND,
   FEATURE_ATTRIBUTE,
@@ -13,18 +12,19 @@ import {
   RACE_SELECTION_MODE,
   SCALING,
   SCALING_AMOUNT_KIND,
-  SIZE_CODE,
   VALUE_DOMAIN_CODE,
   type RaceAuthored
 } from '@artificer-toolkit/shared'
 import { RACE_IDS, SUBRACE_IDS } from '../ids.js'
+import { SIZE_CODE } from '../sizes.js'
 import {
   SRD_GNOMISH_HERITAGE_ID,
   SRD_LANGUAGES,
   SRD_SPEEDS,
   SRD_SYSTEM_ID,
   SRD_USER_ID,
-  SRD_DARKVISION_SENSE_ID
+  SRD_DARKVISION_SENSE_ID,
+  ABILITY_CODE
 } from '../vocabulary.js'
 import { magicSaveAdvantageGrants } from '../classes/mechanics.js'
 

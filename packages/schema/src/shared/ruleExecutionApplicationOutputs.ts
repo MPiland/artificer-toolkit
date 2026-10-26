@@ -23,7 +23,7 @@ import {
   characterMechanicsTargetTransitionDtoSchema,
   encounterFeatureResourceReceiptDtoSchema,
   maintainedEffectTransitionDtoSchema,
-  resolveDispositionDamage,
+  resolveIncomingDamage,
   sourceApplicationsChangeState,
   sourceApplicationsDtoSchema,
   stateEffectCreateReceiptDtoSchema,
@@ -357,11 +357,12 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
                 path: ['applications', index],
                 message: 'Temporary hit-point receipt arithmetic is invalid.'
               })
-          } else if (application.kind === 'DAMAGE') {
-            const expectedResolved = resolveDispositionDamage(
-              application.damageDisposition,
-              application.requestedAmount
-            )
+          } else if (application.kind === 'DAMAGE' || application.kind === 'HIT_POINT_LOSS') {
+            // Hit points lost directly meet no defense, interception or death save failure.
+            const damage = application.kind === 'DAMAGE' ? application : null
+            const expectedResolved = damage
+              ? resolveIncomingDamage(damage)
+              : application.requestedAmount
             const temporaryLost = Math.min(application.beforeTemporaryHitPoints, expectedResolved)
             temporarySource = temporaryHitPointsAfterLoss(
               { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
@@ -371,7 +372,7 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
               application.beforeCurrentHitPoints,
               expectedResolved - temporaryLost
             )
-            const intercepted = application.interceptedBy !== undefined
+            const intercepted = damage?.interceptedBy !== undefined
             // An interception leaves a lethal blow's target at a total above 0 (Death Ward).
             const expectedAfter = intercepted
               ? application.afterCurrentHitPoints
@@ -399,15 +400,15 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
               context.addIssue({
                 code: 'custom',
                 path: ['applications', index],
-                message: 'Damage receipt arithmetic is invalid.'
+                message: `${damage ? 'Damage' : 'Hit-point loss'} receipt arithmetic is invalid.`
               })
-            if (deathSaves !== null && !intercepted)
+            if (damage && deathSaves !== null && !intercepted)
               deathSaves = deathSavesAfterDamage({
                 deathSaves,
                 currentHitPoints: application.beforeCurrentHitPoints,
                 maximumHitPoints: application.maximumHitPoints,
                 dealt: expectedResolved - temporaryLost,
-                critical: application.critical
+                critical: damage.critical
               })
           }
           current = application.afterCurrentHitPoints
@@ -563,8 +564,10 @@ const characterMechanicsBatchApplicationOutputDtoSchema = lazySchema(() =>
             path: ['targetItemDegradation'],
             message: 'Target item degradation must match the target Character.'
           })
+        // A used reaction writes its spend and effect onto the Character even when it leaves its
+        // hit points unchanged (a halved 1 deals nothing).
         const hasReactionMutation =
-          reaction?.spellCastConsumption != null ||
+          reaction?.selection === 'USE' ||
           value.targetFailedCounterSpend ||
           release !== null ||
           degradation !== null

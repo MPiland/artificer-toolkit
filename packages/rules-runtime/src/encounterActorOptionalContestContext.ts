@@ -1,5 +1,5 @@
 import { encounterCreatureRuleFactsSnapshotSchema } from '@artificer-toolkit/schema/api/encounterActorRules'
-import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { systemCoreCodeSchema } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import { isHandSlot, type HandSlotCode } from '@artificer-toolkit/shared/core'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
@@ -68,7 +68,7 @@ export function readEncounterActorOptionalContestFacts(
   const payload = snapshot.payload
   const size =
     typeof payload === 'object' && payload !== null && !Array.isArray(payload)
-      ? sizeCodeSchema.safeParse((payload as Record<string, unknown>).size)
+      ? systemCoreCodeSchema.safeParse((payload as Record<string, unknown>).size)
       : null
   if (!ruleFacts.success || ruleFacts.data.gameSystemId !== actor.systemId || !size?.success)
     return null

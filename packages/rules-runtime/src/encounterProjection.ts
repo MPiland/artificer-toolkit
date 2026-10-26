@@ -28,9 +28,14 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 
 import { snapshotCreatureEquipmentItems } from './encounterCreatureEquipmentSources.js'
 import { snapshotFeatureDefinitions, stableActors } from './encounterActorState.js'
-import { armorClassCapabilityRegistry } from './platformEncounterPolicy.js'
+import type { MoraleActorFacts } from './optionalCombatPolicyCapability.js'
+import {
+  armorClassCapabilityRegistry,
+  optionalCombatPolicyCapabilityRegistry
+} from './platformEncounterPolicy.js'
 import { requireEncounterActorRuleResult } from './encounterActorRuleOutput.js'
 import { creatureInnateConditionRows } from './encounterInnateConditions.js'
+import { encounterFacingRule } from './encounterFacing.js'
 import { healthBand } from './encounterPlayerProjection.js'
 import { validateInitiativeCursor } from './encounterInitiativeCursor.js'
 
@@ -215,11 +220,14 @@ export function projectEncounterActorFacts(
   const shown = {
     id: actor.id,
     encounterId: actor.encounterId,
+    sideId: actor.sideId,
     label: actor.label,
     public: actor.public,
     controllerUserIds: actor.controllerUserIds,
     ...(actor.owner && { owner: actor.owner }),
     disposition: actor.disposition,
+    ...(actor.morale && { morale: actor.morale }),
+    ...(actor.consequenceRollOffers && { consequenceRollOffers: actor.consequenceRollOffers }),
     initiative: actor.initiative,
     manualOrder: actor.manualOrder,
     healthDisplay: actor.healthDisplay,
@@ -290,6 +298,31 @@ export function projectEncounterActorFacts(
   }
 }
 
+/** What morale triggers read of an actor; a Character's own health stays on its Sheet. */
+export function moraleActorFacts(
+  actor: EncounterActorProjectionFacts | EncounterRunActorState
+): MoraleActorFacts {
+  return actor.kind === 'CHARACTER'
+    ? {
+        actorId: actor.id,
+        sideId: actor.sideId,
+        kind: actor.kind,
+        currentHitPoints: 0,
+        maxHitPoints: 0,
+        removed: actor.absence !== null,
+        morale: null
+      }
+    : {
+        actorId: actor.id,
+        sideId: actor.sideId,
+        kind: actor.kind,
+        currentHitPoints: actor.currentHitPoints,
+        maxHitPoints: actor.maxHitPoints,
+        removed: actor.defeated || actor.absence !== null,
+        morale: actor.morale ?? null
+      }
+}
+
 /** Stored conditions are a type ID or a record holding one; the projection carries records. */
 function conditionRows(conditions: unknown): unknown[] {
   return (Array.isArray(conditions) ? conditions : []).map((condition) =>
@@ -328,6 +361,16 @@ function projectGmFacts(
   sources: ReadonlyMap<string, EncounterSourceProjectionFacts>,
   characterStates: EncounterProjectionCharacterStates
 ): EncounterGmProjectionDto {
+  const moraleOffers =
+    encounter.status === 'ACTIVE'
+      ? (optionalCombatPolicyCapabilityRegistry.find(encounter.gameSystemId)?.offerMoraleTriggers({
+          automationMode: encounter.automationMode,
+          gameSystemId: encounter.gameSystemId,
+          optionalCombatSnapshot: encounter.optionalCombatSnapshot ?? null,
+          optionalCombatSnapshotChecksum: encounter.optionalCombatSnapshotChecksum,
+          actors: encounter.actors.map(moraleActorFacts)
+        }) ?? new Map())
+      : new Map()
   return encounterGmProjectionDtoSchema.parse({
     id: encounter.id,
     campaignId: encounter.campaignId,
@@ -357,6 +400,13 @@ function projectGmFacts(
         label: definition.label,
         kind: definition.document.kind
       })) ?? [],
+    facingStepDegrees:
+      encounterFacingRule({
+        automationMode: encounter.automationMode,
+        gameSystemId: encounter.gameSystemId,
+        optionalCombatSnapshot: encounter.optionalCombatSnapshot ?? null,
+        optionalCombatSnapshotChecksum: encounter.optionalCombatSnapshotChecksum ?? null
+      })?.facingStepDegrees ?? null,
     version: encounter.version,
     round: encounter.round,
     currentActorId: currentActorIdForProjection(encounter),
@@ -425,7 +475,10 @@ function projectGmFacts(
         })),
         initiative: actor.initiative,
         manualOrder: actor.manualOrder,
-        healthBand: healthBand(current.current, current.maximum)
+        healthBand: healthBand(current.current, current.maximum),
+        morale: actor.morale ?? null,
+        moraleOffers: moraleOffers.get(actor.id) ?? [],
+        consequenceRollOffers: actor.consequenceRollOffers ?? []
       }
     }),
     reminders: encounter.reminders.map((reminder) => ({

@@ -1,9 +1,15 @@
 import { readFileSync } from 'node:fs'
 import { relative } from 'node:path'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 import { BaseSequencer, type TestSpecification } from 'vitest/node'
 import { DURATIONS_FILE, longestFirst, shardPaths } from '../../scripts/convexShards.mjs'
-import { inlineWorkspacePackages, sourceResolve } from '../../scripts/vitestSource.mjs'
+import {
+  inlineWorkspacePackages,
+  sourceResolve,
+  tracerTierAliases
+} from '../../scripts/vitestSource.mjs'
+
+const TRACER_TESTS = 'apps/apis/convex/**/*.tracer.test.ts'
 
 const durations: Record<string, number> = JSON.parse(readFileSync(DURATIONS_FILE, 'utf8'))
 
@@ -57,7 +63,6 @@ export default defineConfig({
       LIVE_SESSION_WORKER_URL: 'http://127.0.0.1:8787',
       LIVE_SESSION_WORKER_SECRET: 'test-live-session-worker-secret-long-enough'
     },
-    include: ['apps/apis/convex/**/*.test.ts'],
     setupFiles: ['apps/apis/tests/convexTest.ts', 'apps/apis/tests/localServices.ts'],
     server: {
       deps: {
@@ -76,6 +81,22 @@ export default defineConfig({
     },
     sequence: { sequencer: DurationSequencer },
     fileParallelism: false,
-    maxWorkers: 1
+    maxWorkers: 1,
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'convex',
+          include: ['apps/apis/convex/**/*.test.ts'],
+          exclude: [...configDefaults.exclude, TRACER_TESTS]
+        }
+      },
+      {
+        // The second-System tracer (D195): the installed lists also install a test-only System.
+        extends: true,
+        resolve: { alias: tracerTierAliases },
+        test: { name: 'convex-tracer', include: [TRACER_TESTS] }
+      }
+    ]
   }
 })

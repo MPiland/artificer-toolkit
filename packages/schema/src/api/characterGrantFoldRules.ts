@@ -2,9 +2,9 @@ import { z, lazySchema, lazySchemaParts } from '../zod.js'
 import {
   modifierKindSchema,
   modifierScopeKindSchema,
-  sizeCodeSchema,
   valueDomainCodeSchema
 } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { modifierDomainParamsDtoSchema, modifierPayloadDtoSchema } from '../grants/modifier.js'
 import { senseRangeDtoSchema } from '../grants/sense.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from '../shared/postgresUuid.js'
@@ -76,6 +76,8 @@ const restrictionConditionSchema = lazySchema(() =>
       'FREE_HAND',
       /** The holder moved at most `max` feet and/or `speedFraction` of its speed this turn (Encounter state). */
       'TURN_MOVEMENT',
+      /** The holder carries an active effect authored as one of `requiredIds` (Encounter state). */
+      'HOLDER_ACTIVE_EFFECT',
       /** An Attack-action weapon attack with `requiredProperties` was made this turn (Encounter state). */
       'ATTACK_ACTION_OTHER_WEAPON',
       /** An enemy of the attack's target that can act stands within `max` feet of it (Encounter state). */
@@ -306,7 +308,7 @@ export const characterGrantFoldInputSchema = lazySchema(() =>
         totalLevel: z.number().check(z.int()).check(z.gte(0)).check(z.lte(20)),
         raceId: z.nullable(identitySchema),
         subraceId: z.nullable(identitySchema),
-        size: z.nullable(sizeCodeSchema),
+        size: z.nullable(systemCoreCodeSchema),
         abilities: z.record(identitySchema, z.number()),
         heritageIds: z.array(identitySchema).check(z.maxLength(200)),
         featureIds: z.array(identitySchema).check(z.maxLength(500)),

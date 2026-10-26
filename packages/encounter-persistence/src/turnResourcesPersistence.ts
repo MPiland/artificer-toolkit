@@ -176,7 +176,7 @@ export async function persistEncounterTurnResources(
       throw new Error('Live Session Legendary Action owner is stale.')
     seenOwners.add(ownerId)
     if (evidence.resolution.kind === 'DECLINED') continue
-    const { selectedOptionId, targetActorId, application, attackRoll, castsSpell, decoyEffectId } =
+    const { selectedOptionId, targetActorId, application, attack, castsSpell, decoyEffectId } =
       evidence.resolution
     const option = evidence.choice.options.find((entry) => entry.optionId === selectedOptionId)
     const target = await readActor(targetActorId)
@@ -216,7 +216,7 @@ export async function persistEncounterTurnResources(
     const { consumedGrants, sourceReleases } = actionEndedEffects({
       holderActorId: ownerId,
       held: ownerEffects,
-      makesAttackRoll: attackRoll,
+      makesAttackRoll: attack !== null,
       castsSpell,
       againstEnemy: actsAgainstEnemy({
         actorId: ownerId,
@@ -273,7 +273,7 @@ export async function persistEncounterTurnResources(
     const damageEnded = targetEndedEffects({
       holderActorId: targetActorId,
       held: targetHeld,
-      attacked: attackRoll,
+      attack,
       testEvidence: [application.d20, application.nestedD20],
       turnActorId: state.currentActorId,
       applications: application.applications.map((planned) => ({

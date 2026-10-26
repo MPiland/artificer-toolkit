@@ -14,7 +14,7 @@ import {
   SRD_BASIC_ACTION_DEFINITIONS,
   SRD_BASIC_ACTION_IDS
 } from '@artificer-toolkit/source-data/srd/basicActions.js'
-import { barbarian } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
+import { barbarian, RAGE_EFFECT_ID } from '@artificer-toolkit/source-data/srd/classes/barbarian.js'
 import { antitoxinVial } from '@artificer-toolkit/source-data/srd/equipment/antitoxin-vial.js'
 import { conditionTypeId } from '@artificer-toolkit/source-data/srd/equipment/shared.js'
 import { aid } from '@artificer-toolkit/source-data/srd/spells/aid.js'
@@ -83,6 +83,7 @@ import {
   DND5E_ABILITY_DEFINITION_ID_BY_CODE,
   DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID
 } from '../systems/dnd5e/identity.js'
+import { evaluateSrdCharacter, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import {
   ENCOUNTER_ID,
   TIMESTAMP,
@@ -166,6 +167,8 @@ function storedGrant(input: {
   holderId?: string
   effect?: AuthoredEffect
   lifetimeScope?: 'OWNER' | 'ENCOUNTER'
+  /** The effects the holder already holds; none by default. */
+  activeEffects?: ActiveRuleEffectRecord[]
 }) {
   const action = characterActionDescriptor(
     compileEffect({
@@ -190,7 +193,7 @@ function storedGrant(input: {
       conditionIds: [],
       effectiveSize: 'MEDIUM',
       lifetimeScope: input.lifetimeScope ?? 'ENCOUNTER',
-      activeEffects: []
+      activeEffects: input.activeEffects ?? []
     },
     activeEffectsByActorId: new Map(),
     activeEffectPlan: activeEffectPlan ?? null,
@@ -416,11 +419,11 @@ describe('stored grants', () => {
     })
     expect(definition.recurrence).toMatchObject({
       recurrenceStage: 'NONE',
+      anchor: 'SOURCE',
       expiration: {
         kind: 'TICKS',
         initialRemaining: 600,
-        decrementStage: 'START_OF_TURN',
-        anchor: 'SOURCE'
+        decrementStage: 'START_OF_TURN'
       }
     })
   })
@@ -610,6 +613,49 @@ describe('planEncounterGrantTicks', () => {
       { actor: holder(TARGET_ID).actor, effects: [later, kernelOwned, earlier] }
     ])
     expect(result.map(({ effect }) => effect.id)).toEqual([earlier.id, later.id])
+  })
+
+  it('expires a grant linked to an expiring one with it, whatever it has left (D172, Frenzy)', () => {
+    const rage = grant(
+      {},
+      { id: 0xc339, holderId: TARGET_ID, remainingTicks: 1, createdOrdinal: 1 }
+    )
+    const frenzy = grant(
+      {},
+      { id: 0xc33a, holderId: TARGET_ID, remainingTicks: 4, createdOrdinal: 2 }
+    )
+    const linked = { ...frenzy, definition: { ...frenzy.definition, linkedEffectId: rage.id } }
+    expect(
+      plan('END_OF_TURN', TARGET_ID, [{ actor: holder(TARGET_ID).actor, effects: [rage, linked] }])
+    ).toMatchObject([
+      { kind: 'EXPIRE', effect: { id: rage.id } },
+      { kind: 'EXPIRE', effect: { id: linked.id } }
+    ])
+  })
+})
+
+describe('a grant that ends with a held effect (D172, Frenzy, SPELLS-31.T5f4)', () => {
+  const rageRecord = (() => {
+    const record = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc33b,
+      holderId: TARGET_ID
+    })
+    return { ...record, definition: { ...record.definition, authoredEffectId: RAGE_EFFECT_ID } }
+  })()
+
+  it('links the grant to the held effect it ends with', () => {
+    const stored = storedGrant({
+      lifecycle: { endsWithHeldEffectId: RAGE_EFFECT_ID },
+      currentActorId: null,
+      activeEffects: [rageRecord]
+    })
+    expect(stored.definition.linkedEffectId).toBe(rageRecord.id)
+  })
+
+  it('refuses a grant whose target does not hold that effect', () => {
+    expect(() =>
+      storedGrant({ lifecycle: { endsWithHeldEffectId: RAGE_EFFECT_ID }, currentActorId: null })
+    ).toThrow('The effect ends with an effect its target does not hold.')
   })
 })
 
@@ -813,7 +859,12 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
 
   it('reads and ends nothing for an actor that holds no idle-bound grant', () => {
     expect(
-      planIdleTurnCheck({ encounterId: ENCOUNTER_ID, actor, effects: [antitoxinRecord, idle] })
+      planIdleTurnCheck({
+        encounterId: ENCOUNTER_ID,
+        actor,
+        effects: [antitoxinRecord, idle],
+        featureModifiers: []
+      })
     ).toEqual({ ended: [], nextMark: null })
   })
 
@@ -822,21 +873,117 @@ describe('a grant that ends on an idle turn (SRD Rage)', () => {
       planIdleTurnCheck({
         encounterId: ENCOUNTER_ID,
         actor: armed,
-        effects: [antitoxinRecord, idle]
+        effects: [antitoxinRecord, idle],
+        featureModifiers: []
       })
     ).toEqual({ ended: [idle], nextMark: null })
   })
 
   it('keeps the grant of an engaged holder and arms it again', () => {
     expect(
-      planIdleTurnCheck({ encounterId: ENCOUNTER_ID, actor: engaged, effects: [idle] })
+      planIdleTurnCheck({
+        encounterId: ENCOUNTER_ID,
+        actor: engaged,
+        effects: [idle],
+        featureModifiers: []
+      })
     ).toEqual({ ended: [], nextMark: 'ARMED' })
   })
 
   it('stays armed while an idle-bound grant outside this encounter remains', () => {
     expect(
-      planIdleTurnCheck({ encounterId: testUuid(0xc377), actor: armed, effects: [idle] })
+      planIdleTurnCheck({
+        encounterId: testUuid(0xc377),
+        actor: armed,
+        effects: [idle],
+        featureModifiers: []
+      })
     ).toEqual({ ended: [], nextMark: 'ARMED' })
+  })
+
+  describe('with Persistent Rage (SPELLS-31.T5f2)', () => {
+    const rage = {
+      ...idle,
+      id: testUuid(0xc379),
+      definition: { ...idle.definition, authoredEffectId: RAGE_EFFECT_ID }
+    }
+    const barbarianModifiers = (level: number) =>
+      evaluateSrdCharacter({
+        classes: [{ label: 'Barbarian', level }],
+        features:
+          level >= 15
+            ? [
+                srdFeature({
+                  owner: 'CLASS',
+                  classLabel: 'Barbarian',
+                  featureLabel: 'Persistent Rage',
+                  level: 15
+                })
+              ]
+            : []
+      }).output.grantFold.modifiers
+
+    it('keeps the Rage of an armed level 15 Barbarian and stays armed', () => {
+      expect(
+        planIdleTurnCheck({
+          encounterId: ENCOUNTER_ID,
+          actor: armed,
+          effects: [rage],
+          featureModifiers: barbarianModifiers(15)
+        })
+      ).toEqual({ ended: [], nextMark: 'ARMED' })
+    })
+
+    it('still ends the Rage of a level 14 Barbarian and another idle-bound grant', () => {
+      expect(
+        planIdleTurnCheck({
+          encounterId: ENCOUNTER_ID,
+          actor: armed,
+          effects: [rage],
+          featureModifiers: barbarianModifiers(14)
+        })
+      ).toEqual({ ended: [rage], nextMark: null })
+      expect(
+        planIdleTurnCheck({
+          encounterId: ENCOUNTER_ID,
+          actor: armed,
+          effects: [rage, idle],
+          featureModifiers: barbarianModifiers(15)
+        })
+      ).toEqual({ ended: [idle], nextMark: 'ARMED' })
+    })
+
+    // A grant linked to the Rage (D172, Frenzy, SPELLS-31.T5f4) ends with it and is kept with it.
+    const frenzy = grantRecord(storedGrant({ lifecycle: {}, currentActorId: null }), {
+      id: 0xc378,
+      holderId: TARGET_ID
+    })
+    const linkedFrenzy = {
+      ...frenzy,
+      definition: { ...frenzy.definition, linkedEffectId: rage.id }
+    }
+
+    it('ends the grant linked to the Rage of a level 14 Barbarian with it', () => {
+      expect(
+        planIdleTurnCheck({
+          encounterId: ENCOUNTER_ID,
+          actor: armed,
+          effects: [rage, linkedFrenzy],
+          featureModifiers: barbarianModifiers(14)
+        })
+      ).toEqual({ ended: [rage, linkedFrenzy], nextMark: null })
+    })
+
+    it('keeps the grant linked to the Rage Persistent Rage keeps', () => {
+      expect(
+        planIdleTurnCheck({
+          encounterId: ENCOUNTER_ID,
+          actor: armed,
+          effects: [rage, linkedFrenzy],
+          featureModifiers: barbarianModifiers(15)
+        })
+      ).toMatchObject({ ended: [], nextMark: 'ARMED' })
+    })
   })
 
   it('sets and clears the mark without touching the other resources', () => {
@@ -1078,7 +1225,8 @@ describe('discoverEncounterEventHooks over every authored subscription', () => {
     kind: 'ATTACKED',
     holderActorId: TARGET_ID,
     attackerActorId: OTHER_ID,
-    turnActorId: OTHER_ID
+    turnActorId: OTHER_ID,
+    melee: true
   } satisfies EncounterEvent
 
   // A stored grant's recurrence carries each subscription (the 5e Effect-action compiler authors
@@ -1464,7 +1612,7 @@ describe('what a saving throw ends for its holder (SPELLS-4.T2c2b)', () => {
     targetEndedEffects({
       holderActorId: TARGET_ID,
       held,
-      attacked: false,
+      attack: null,
       testEvidence,
       turnActorId: null,
       applications: [],
@@ -2013,11 +2161,11 @@ describe('a timed condition counted on its source’s turns (SPELLS-4.T2a1, Colo
   it('stores no recurrence stage and a tick count anchored to the caster’s end of turn', () => {
     expect(storedBlindness(null).definition.recurrence).toMatchObject({
       recurrenceStage: 'NONE',
+      anchor: 'SOURCE',
       expiration: {
         kind: 'TICKS',
         initialRemaining: 1,
-        decrementStage: 'END_OF_TURN',
-        anchor: 'SOURCE'
+        decrementStage: 'END_OF_TURN'
       }
     })
   })

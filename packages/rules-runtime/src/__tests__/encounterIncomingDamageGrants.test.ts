@@ -29,6 +29,7 @@ const damage = (damageTypeId: string): CharacterRuleActionApplication => ({
   kind: 'DAMAGE',
   damageTypeId,
   damageDisposition: 'NORMAL',
+  incomingHalved: false,
   critical: false,
   sourceNodeId: 'damage',
   sourceOperationKey: 'damage',
@@ -65,7 +66,7 @@ function hit(
   return targetEndedEffects({
     holderActorId: HOLDER_ID,
     held,
-    attacked: false,
+    attack: null,
     testEvidence: [],
     turnActorId: ATTACKER_ID,
     applications,

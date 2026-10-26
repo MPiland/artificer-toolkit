@@ -1,5 +1,4 @@
 import type { DamageBonusAuthored, HealBonusAuthored } from '#authored'
-import { ABILITY_MODIFIER_REFERENCE_OPTIONS } from '#core'
 import { buildNodeMap } from '#utils'
 
 type OutcomeBonusAuthored = DamageBonusAuthored | HealBonusAuthored
@@ -40,8 +39,10 @@ export const OUTCOME_BONUS_NODE_MAP = outcomeBonus.define(
           ['ability'],
           'Ability',
           {
-            kind: 'INLINE_OPTIONS',
-            options: ABILITY_MODIFIER_REFERENCE_OPTIONS
+            kind: 'DATA',
+            relationship: data.table('ability_modifier_references', {
+              selectColumns: ['id', 'label', 'description']
+            })
           },
           {
             requiredIf: true,

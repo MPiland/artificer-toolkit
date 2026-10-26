@@ -5,12 +5,11 @@ import { speedDtoSchema } from '../shared/speed.js'
 import { numericExprSchema } from '../shared/numericExpr.js'
 import { createBreakpointScalingDtoSchema } from '../shared/scaling.js'
 import {
-  abilityCodeSchema,
   lengthUnitCodeSchema,
   manifestBlockingRuleSchema,
-  manifestRequiredSightSchema,
-  sizeCodeSchema
+  manifestRequiredSightSchema
 } from '../shared/enums.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import {
   authoredIdentifierSchema,
   authoredLengthAmountSchema,
@@ -80,7 +79,7 @@ const manifestOccupantSaveBonusDtoSchema = lazySchema(() => {
     z.object({
       ...shared,
       amountKind: z.literal('SOURCE_ABILITY_MODIFIER'),
-      ability: abilityCodeSchema,
+      ability: systemCoreCodeSchema,
       minimum: z.optional(z.number().check(z.int()))
     })
   ])
@@ -157,14 +156,7 @@ const manifestProximityRuleDtoSchema = lazySchema(() =>
 )
 
 const summonAbilityScoresDtoSchema = lazySchema(() =>
-  z.object({
-    STRENGTH: z.optional(numericExprSchema),
-    DEXTERITY: z.optional(numericExprSchema),
-    CONSTITUTION: z.optional(numericExprSchema),
-    INTELLIGENCE: z.optional(numericExprSchema),
-    WISDOM: z.optional(numericExprSchema),
-    CHARISMA: z.optional(numericExprSchema)
-  })
+  z.record(systemCoreCodeSchema, numericExprSchema)
 )
 
 const summonDamageabilityKindSchema = lazySchema(() =>
@@ -185,7 +177,7 @@ export const summonBodyDtoSchema = lazySchema(() =>
 
 export const summonStatBlockDtoSchema = lazySchema(() =>
   z.object({
-    size: z.optional(sizeCodeSchema),
+    size: z.optional(systemCoreCodeSchema),
     armorClass: z.optional(numericExprSchema),
     armorClassNote: z.optional(authoredPlainTextSchema),
     hitPoints: z.optional(numericExprSchema),
@@ -299,7 +291,7 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       placementMustBeUnoccupied: z.optional(z.boolean()),
       invalidPlacementConsumesInvocation: z.optional(z.boolean()),
       designatedCreatureImmunity: z.optional(z.boolean()),
-      maximumTargetSize: z.optional(sizeCodeSchema),
+      maximumTargetSize: z.optional(systemCoreCodeSchema),
       excludesFormlessTargets: z.optional(z.boolean()),
       proximityRule: z.optional(manifestProximityRuleDtoSchema),
       light: z.optional(manifestLightDtoSchema),

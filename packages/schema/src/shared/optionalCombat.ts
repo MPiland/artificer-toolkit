@@ -1,8 +1,13 @@
+import { FACING_ARCS, type FacingArc } from '@artificer-toolkit/shared/vtt/facingArc'
+
 import { z, lazySchema } from '../zod.js'
 
 import type { AutomationModeDto } from '../api/campaignSettings.js'
 import { ruleCapabilityKeyDtoSchema } from '../api/rulesRuntime.js'
+import { consequenceRollTriggersDtoSchema } from './consequenceRolls.js'
+import { effectDtoSchema } from '../effects/effect.js'
 import { postgresUuidSchema as serverUuidIdentityDtoSchema } from './postgresUuid.js'
+import { systemCoreCodeSchema } from './systemCoreCode.js'
 import { dnd5eOptionalCombatRuleKindDtoSchema } from './reusableDefinitionIdentity.js'
 export { dnd5eOptionalCombatRuleKindDtoSchema }
 export { DND5E_OPTIONAL_COMBAT_DEFINITION_FAMILY_KEY } from './reusableDefinitionIdentity.js'
@@ -19,6 +24,21 @@ const boundedD20Schema = lazySchema(() =>
 )
 const boundedPositiveIntegerSchema = lazySchema(() =>
   z.number().check(z.int()).check(z.positive()).check(z.lte(1_000_000))
+)
+export const moraleTriggerKindDtoSchema = lazySchema(() =>
+  z.enum([
+    'INDIVIDUAL_SURPRISED',
+    'INDIVIDUAL_REDUCED_TO_HALF',
+    'INDIVIDUAL_CANNOT_HARM_OPPOSITION',
+    'GROUP_SURPRISED',
+    'GROUP_HALF_REMOVED',
+    'GROUP_LEADER_REMOVED',
+    'GROUP_LEADER_INCAPACITATED',
+    'GROUP_LEADER_TAKEN_PRISONER'
+  ])
+)
+export const moraleDispositionDtoSchema = lazySchema(() =>
+  z.enum(['CONTINUE', 'FLEE', 'SURRENDER'])
 )
 
 /** Code-owned operation contract used by the D&D adapter; source documents only pin it. */
@@ -64,7 +84,9 @@ export const optionalCombatModulePinDtoSchema = lazySchema(() =>
   })
 )
 
-const dnd5eOptionalCombatOperationTargetDtoSchema = lazySchema(() => z.enum(['SUBJECT', 'GROUP']))
+export const dnd5eOptionalCombatOperationTargetDtoSchema = lazySchema(() =>
+  z.enum(['SUBJECT', 'GROUP'])
+)
 const dnd5eOptionalCombatOperationDurationDtoSchema = lazySchema(() =>
   z.enum(['PERMANENT', 'UNTIL_END_OF_NEXT_TURN', 'UNTIL_CLEARED'])
 )
@@ -191,7 +213,7 @@ export const dnd5eOptionalCombatOperationDtoSchema = lazySchema(() =>
       id: serverUuidIdentityDtoSchema,
       primitive: z.literal('SET_MORALE_DISPOSITION'),
       target: dnd5eOptionalCombatOperationTargetDtoSchema,
-      disposition: z.enum(['CONTINUE', 'FLEE', 'SURRENDER']),
+      disposition: moraleDispositionDtoSchema,
       duration: z.null()
     })
   ])
@@ -336,6 +358,77 @@ const boundedCheckDefinitionChoicesSchema = lazySchema(() =>
     )
 )
 
+const facingArcDtoSchema = lazySchema(() => z.enum(FACING_ARCS))
+/** A facing is a whole multiple of this step from north; it divides 360. */
+export const facingStepDegreesDtoSchema = lazySchema(() =>
+  z
+    .number()
+    .check(z.int())
+    .check(z.positive())
+    .check(z.lte(360))
+    .check(
+      z.superRefine((step, context) => {
+        if (360 % step !== 0)
+          context.addIssue({ code: 'custom', message: 'A facing step must divide 360 degrees.' })
+      })
+    )
+)
+function uniqueFacingArcs<T>(arcOf: (entry: T) => FacingArc) {
+  return z.superRefine<T[]>((entries, context) => {
+    if (new Set(entries.map(arcOf)).size !== entries.length)
+      context.addIssue({ code: 'custom', message: 'Facing arcs must be unique.' })
+  })
+}
+
+/**
+ * Clockwise offsets from a token's facing. The arcs tile the full circle without overlap, so every
+ * direction belongs to exactly one arc; a direction on a shared edge belongs to the arc nearer the front.
+ */
+const facingArcTableDtoSchema = lazySchema(() =>
+  z
+    .array(
+      z
+        .strictObject({
+          arc: facingArcDtoSchema,
+          fromDegrees: z.number().check(z.int()).check(z.gte(-360)).check(z.lt(360)),
+          toDegrees: z.number().check(z.int()).check(z.gt(-360)).check(z.lte(720))
+        })
+        .check(
+          z.superRefine((range, context) => {
+            if (range.toDegrees <= range.fromDegrees || range.toDegrees - range.fromDegrees > 360)
+              context.addIssue({
+                code: 'custom',
+                message: 'A facing arc spans more than zero and at most 360 degrees.'
+              })
+          })
+        )
+    )
+    .check(z.minLength(1))
+    .check(z.maxLength(FACING_ARCS.length))
+    .check(uniqueFacingArcs((range) => range.arc))
+    .check(
+      z.superRefine((arcs, context) => {
+        const wrap = (degrees: number) => ((degrees % 360) + 360) % 360
+        const ordered = [...arcs].sort(
+          (left, right) => wrap(left.fromDegrees) - wrap(right.fromDegrees)
+        )
+        const span = ordered.reduce(
+          (total, range) => total + range.toDegrees - range.fromDegrees,
+          0
+        )
+        const contiguous = ordered.every(
+          (range, index) =>
+            wrap(range.toDegrees) === wrap(ordered[(index + 1) % ordered.length]!.fromDegrees)
+        )
+        if (span !== 360 || !contiguous)
+          context.addIssue({
+            code: 'custom',
+            message: 'Facing arcs must cover the full circle without gaps or overlap.'
+          })
+      })
+    )
+)
+
 export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
     z.strictObject({
@@ -343,13 +436,31 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
       participantCapabilityDefinitionId: serverUuidIdentityDtoSchema
     }),
     z.strictObject({ kind: z.literal('ALTERNATING_DIAGONALS') }),
-    z.strictObject({ kind: z.literal('FACING') }),
+    z.strictObject({
+      kind: z.literal('FACING'),
+      facingStepDegrees: facingStepDegreesDtoSchema,
+
+      arcs: facingArcTableDtoSchema,
+      attackerInTargetArc: z
+        .array(z.strictObject({ arc: facingArcDtoSchema, influence: systemCoreCodeSchema }))
+        .check(z.maxLength(FACING_ARCS.length))
+        .check(uniqueFacingArcs((entry) => entry.arc)),
+      sourceCannotTargetInOwnArcs: z
+        .array(facingArcDtoSchema)
+        .check(z.maxLength(FACING_ARCS.length))
+        .check(uniqueFacingArcs((arc) => arc))
+    }),
     z.strictObject({ kind: z.literal('CLIMB_ONTO_LARGER_CREATURE') }),
     z.strictObject({
       kind: z.literal('DISARM'),
       defenderCheckDefinitionIds: boundedCheckDefinitionChoicesSchema
     }),
-    z.strictObject({ kind: z.literal('MARK') }),
+    /** A qualifying attack (a melee one, or any) gives its target `effect`, sourced by the attacker. */
+    z.strictObject({
+      kind: z.literal('MARK'),
+      qualifyingAttackKind: z.enum(['MELEE', 'ANY']),
+      effect: effectDtoSchema
+    }),
     z.strictObject({
       kind: z.literal('OVERRUN'),
       initiatorCheckDefinitionId: serverUuidIdentityDtoSchema,
@@ -378,10 +489,7 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('INJURIES'),
-      triggerKinds: z
-        .array(z.enum(['CRITICAL_HIT', 'DROP_TO_ZERO', 'FAIL_DEATH_SAVE_BY_FIVE_OR_MORE']))
-        .check(z.minLength(1))
-        .check(z.maxLength(3)),
+      triggers: consequenceRollTriggersDtoSchema,
       bands: dnd5eOptionalCombatBandsDtoSchema
     }),
     z.strictObject({
@@ -396,21 +504,7 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
     }),
     z.strictObject({
       kind: z.literal('MORALE'),
-      triggerKinds: z
-        .array(
-          z.enum([
-            'INDIVIDUAL_SURPRISED',
-            'INDIVIDUAL_REDUCED_TO_HALF',
-            'INDIVIDUAL_CANNOT_HARM_OPPOSITION',
-            'GROUP_SURPRISED',
-            'GROUP_HALF_REMOVED',
-            'GROUP_LEADER_REMOVED',
-            'GROUP_LEADER_INCAPACITATED',
-            'GROUP_LEADER_TAKEN_PRISONER'
-          ])
-        )
-        .check(z.minLength(1))
-        .check(z.maxLength(9)),
+      triggerKinds: z.array(moraleTriggerKindDtoSchema).check(z.minLength(1)).check(z.maxLength(9)),
       savingThrowAbilityDefinitionId: serverUuidIdentityDtoSchema,
       savingThrowDifficultyClass: boundedPositiveIntegerSchema.check(z.lte(100)),
       requiresGroupLeaderOrFallback: z.literal(true),
@@ -464,7 +558,14 @@ export const dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema = lazySchema
       gameSystemId: serverUuidIdentityDtoSchema,
       module: optionalCombatModulePinDtoSchema,
       parameters: dnd5eOptionalCombatRuleParametersDtoSchema,
-      mutuallyExclusiveGroup: z.nullable(optionalCombatGroupKeyDtoSchema)
+      mutuallyExclusiveGroup: z.nullable(optionalCombatGroupKeyDtoSchema),
+      /**
+       * Authored Effects the rule raises as its own actions (a rule-owned source): the rule, never a
+       * player, decides when one runs and on which creature.
+       */
+      raisedEffects: z.optional(
+        z.array(effectDtoSchema).check(z.minLength(1)).check(z.maxLength(8))
+      )
     })
     .check(
       z.superRefine((document, context) => {
@@ -473,6 +574,14 @@ export const dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema = lazySchema
             code: 'custom',
             path: ['parameters', 'kind'],
             message: 'Optional combat definition parameters must match the definition kind.'
+          })
+        }
+        const raisedEffectIds = (document.raisedEffects ?? []).map((effect) => effect.id)
+        if (new Set(raisedEffectIds).size !== raisedEffectIds.length) {
+          context.addIssue({
+            code: 'custom',
+            path: ['raisedEffects'],
+            message: 'Optional combat raised effects must have unique ids.'
           })
         }
       })
@@ -559,6 +668,8 @@ export function activeOptionalCombatDefinitions(input: {
 }
 
 export type Dnd5eOptionalCombatRuleKindDto = z.infer<typeof dnd5eOptionalCombatRuleKindDtoSchema>
+export type MoraleTriggerKindDto = z.infer<typeof moraleTriggerKindDtoSchema>
+export type MoraleDispositionDto = z.infer<typeof moraleDispositionDtoSchema>
 export type Dnd5eOptionalCombatOperationDto = z.infer<typeof dnd5eOptionalCombatOperationDtoSchema>
 export type Dnd5eOptionalCombatOutcomeDescriptorDto = z.infer<
   typeof dnd5eOptionalCombatOutcomeDescriptorDtoSchema

@@ -22,7 +22,8 @@ export const rollSourceDtoSchema = lazySchema(() =>
       'HEALING',
       'HIT_DIE',
       'DEATH_SAVE',
-      'RECHARGE'
+      'RECHARGE',
+      'TABLE'
     ]),
     label: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(80))
   })

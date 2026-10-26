@@ -1,12 +1,18 @@
 import type { LiveSessionEncounterRulesRequest } from '@artificer-toolkit/schema/api/liveSessionEncounterRules'
-import { sizeCodeSchema } from '@artificer-toolkit/schema/shared/enums'
+import { systemCoreCodeSchema } from '@artificer-toolkit/schema/shared/systemCoreCode'
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
   encounterAttackActionTransition,
   evaluateEncounterAttackAction
 } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
-import type { ActionEconomyInput } from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import {
+  evaluateEncounterActionEconomy,
+  type ActionEconomyInput
+} from '@artificer-toolkit/rules-runtime/encounterActionEconomy'
+import type { GrantedAttackCharge } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
+import { encounterActionUndeclared } from '@artificer-toolkit/rules-runtime/encounterInitiativeDeclaredAction'
+import { rejectDomain } from '@artificer-toolkit/encounter-persistence/domainRejections'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
 
 type Prepared = Awaited<ReturnType<typeof prepareEncounterActionMechanics>>
@@ -45,10 +51,11 @@ export async function evaluateNativeLiveActionEconomy(input: {
   targetSize?: string | null
   capture: EconomyCapture
   /**
-   * The unspent use of a held offer that grants one weapon attack (D160): an attack that finds the
-   * Action spent is charged to it instead, as one attack of its own Attack action.
+   * A held offer that grants one weapon attack (D160): an attack that finds the Action spent is
+   * charged to it instead, as one attack of its own Attack action. A `FREE` offer spends its unspent
+   * use (`useKey`); any other spends its own allowance (`activation`, Frenzy's Bonus Action).
    */
-  weaponAttackOffer?: { useKey: string } | null
+  weaponAttackOffer?: GrantedAttackCharge | null
 }) {
   const { prepared } = input
   const invocation =
@@ -77,22 +84,25 @@ export async function evaluateNativeLiveActionEconomy(input: {
     throw new Error('The selected action activation is not normalized.')
   const featureId =
     prepared.source.kind === 'CREATURE' ? prepared.source.capability.ownerFeatureId : undefined
-  const targetSize = sizeCodeSchema.safeParse(input.targetSize)
+  const targetSize = systemCoreCodeSchema.safeParse(input.targetSize)
+  const economyInput = {
+    actor: prepared.actor,
+    state: input.state,
+    target: input.sourceTarget,
+    loadTarget: async () => input.sourceTarget,
+    definitions: captureActionEconomyDefinitions(input.capture)
+  }
   const evaluated = await evaluateEncounterAttackAction({
+    ...economyInput,
     triggerCode: invocation.triggerCode,
     replacesAttack:
       prepared.source.kind === 'BASIC_ACTION' && prepared.source.capability.actionCost === 'ATTACK',
     featureId,
     targetIds: input.targetIds,
     targetSize: targetSize.success ? targetSize.data : null,
-    actor: prepared.actor,
-    state: input.state,
-    activation: { code: activation.code, amount: activation.amount },
-    target: input.sourceTarget,
-    loadTarget: async () => input.sourceTarget,
-    definitions: captureActionEconomyDefinitions(input.capture)
+    activation: { code: activation.code, amount: activation.amount }
   })
-  const offered =
+  const offer =
     input.weaponAttackOffer &&
     evaluated.attackAction &&
     evaluated.slot === null &&
@@ -100,7 +110,35 @@ export async function evaluateNativeLiveActionEconomy(input: {
     evaluated.economy?.available === false
       ? input.weaponAttackOffer
       : null
-  const { economy, suppressed } = offered ? { economy: null, suppressed: false } : evaluated
+  const offerEconomy =
+    offer && 'activation' in offer
+      ? await evaluateEncounterActionEconomy({
+          ...economyInput,
+          activation: { code: offer.activation, amount: 1 }
+        })
+      : null
+  const offered = offer && ('useKey' in offer || offerEconomy?.available) ? offer : null
+  const { economy, suppressed } = offered ? { economy: offerEconomy, suppressed: false } : evaluated
+  // A declared-action round holds the current actor to the actions it declared; a later attack of an
+  // open Attack action, or a FREE granted attack, spends no allowance of its own. Only character and
+  // creature actions are declarable, so basic actions and cast-turn repeats stay open.
+  if (
+    economy &&
+    (prepared.source.kind === 'CHARACTER_ACTION' || prepared.source.kind === 'CREATURE') &&
+    input.state.currentActorId === prepared.actor.id &&
+    input.state.initiativePolicySnapshot?.policy.document.procedure === 'DECLARED_ACTION_ROLL'
+  ) {
+    const captured = await input.capture({ kind: 'INITIATIVE_ROUND' })
+    if (captured.kind !== 'INITIATIVE_ROUND') throw new Error('Turn initiative is unavailable.')
+    if (
+      encounterActionUndeclared({
+        round: captured.state,
+        actorId: prepared.actor.id,
+        actionId: input.actionId
+      })
+    )
+      rejectDomain('UNDECLARED_ACTION')
+  }
   const openedAttackAction = offered
     ? evaluated.attackAction && { ...evaluated.attackAction, total: 1 }
     : evaluated.attackAction
@@ -108,7 +146,7 @@ export async function evaluateNativeLiveActionEconomy(input: {
     activationCode: activation.code,
     economy,
     suppressed,
-    grantedUseKey: offered?.useKey ?? grantedUseKey,
+    grantedUseKey: offered && 'useKey' in offered ? offered.useKey : grantedUseKey,
     attackAction: openedAttackAction
       ? encounterAttackActionTransition(openedAttackAction, {
           actionId: input.actionId,

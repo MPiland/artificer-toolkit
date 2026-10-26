@@ -3,6 +3,7 @@ import { evaluateEncounterAttackAction } from '@artificer-toolkit/rules-runtime/
 import { prepareEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import { parseGrantedActionId } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { parseRepeatPathActionId } from '@artificer-toolkit/rules-runtime/encounterRepeatPathAction'
+import { parseEncounterRuleActionId } from '@artificer-toolkit/rules-runtime/encounterRuleAction'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { readEncounterBasicActionEntries } from '@artificer-toolkit/rules-runtime/encounterBasicActionCapabilityDiscovery'
 import {
@@ -14,6 +15,8 @@ import {
   readEncounterDisarmSelection,
   requireEncounterDisarmDefinition
 } from '@artificer-toolkit/rules-runtime/encounterDisarmPreparation'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
+import { loadEncounterFlankingFacts } from '@artificer-toolkit/rules-runtime/encounterPositionalContributors'
 import { encounterHolderState } from '@artificer-toolkit/rules-runtime/encounterHolderDefense'
 import type { MovementTarget } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'
 import {
@@ -30,7 +33,10 @@ import type {
   EncounterRunActorState,
   EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import { readEncounterActionSceneInputs } from './actionSceneInputs.js'
+import {
+  readEncounterActionAreaSceneInputs,
+  readEncounterActionSceneInputs
+} from './actionSceneInputs.js'
 import { rejectDomain } from './domainRejections.js'
 import { refuseStaleCharacterAction } from './staleCharacterAction.js'
 import { listActiveRuleEffects } from './effectStore.js'
@@ -38,7 +44,7 @@ import { loadMovementTargets } from './movementTargetReads.js'
 import { readRunActors } from './documents.js'
 import { readEncounterSpellPins } from './spellPins.js'
 import { readTurnMovedFeet, readTurnUses } from './turnMovement.js'
-import type { EncounterTurnReadTransaction } from './ports.js'
+import type { EncounterReadPorts, EncounterTurnReadTransaction } from './ports.js'
 import type { EncounterDocument } from './store.js'
 
 type Campaign = EncounterDocument<'campaigns'>
@@ -67,7 +73,10 @@ export async function readActionSceneContext(
 }
 
 /** The current published definitions as the Campaign's owner reads them. */
-function campaignDefinitions(tx: EncounterTurnReadTransaction, campaign: Campaign) {
+export function campaignDefinitions(
+  tx: { readonly ports: Pick<EncounterReadPorts, 'readCurrentDefinition'> },
+  campaign: Campaign
+) {
   return {
     requireCurrent: async (definitionId: string) => {
       const current = await tx.ports.readCurrentDefinition(definitionId, campaign.ownerUserId)
@@ -179,7 +188,8 @@ async function loadActionSource(
     input.actor.kind === 'CREATURE' ||
     (input.actor.kind === 'CHARACTER' && input.actor.form !== null) ||
     basicActions.length > 0 ||
-    parseRepeatPathActionId(input.actor.id, input.actionId)
+    parseRepeatPathActionId(input.actor.id, input.actionId) ||
+    parseEncounterRuleActionId(input.actor.id, input.actionId)
       ? await tx.ports.requireSystem(input.gameSystemId)
       : undefined
   // A granted action resolves against the holder's effects and spent uses as they stand now (D160).
@@ -210,6 +220,7 @@ async function loadActionSource(
     basicActions,
     granted,
     repeat,
+    rules: state,
     spells
   })
 }
@@ -305,6 +316,8 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     loadAttackPerception?: Parameters<
       typeof prepareEncounterActionMechanics<TFacts>
     >[0]['loadAttackPerception']
+    /** Which observers see the subject, for a melee attack's Flanking facts on its Scene. */
+    observersSeeing?: Parameters<typeof loadEncounterFlankingFacts>[0]['observersSeeing']
   }
 ) {
   const { state, actor, target } = input
@@ -329,6 +342,44 @@ export async function prepareActionMechanics<TFacts extends CharacterTurnFacts>(
     movementTargets,
     sceneContext: input.sceneContext,
     loadAttackPerception: input.loadAttackPerception,
+    loadFlanking: async ({ sourceFacts, targetFacts, capabilityDefinitionId }) => {
+      const { sceneContext, observersSeeing } = input
+      if (!sceneContext || !observersSeeing) return null
+      const scene = await readEncounterActionAreaSceneInputs(
+        tx,
+        state,
+        {
+          actorId: actor.id,
+          sceneId: sceneContext.sceneId,
+          expectedSceneVersion: sceneContext.sceneVersion
+        },
+        tx.ports.sceneReaders
+      )
+      return loadEncounterFlankingFacts({
+        gameSystemId: state.gameSystemId,
+        actors: input.actors,
+        attacker: sourceFacts,
+        target: targetFacts,
+        grid: sceneContext.grid,
+        tokens: scene.tokens,
+        capabilityDefinitionId,
+        loadTarget: async (entry) => {
+          const loaded =
+            movementTargets.get(entry.id) ??
+            (
+              await loadMovementTargets(tx, {
+                state,
+                campaign: input.campaign,
+                targetActorIds: [entry.id]
+              })
+            ).get(entry.id)
+          if (!loaded) throw new Error('Encounter action facts are stale.')
+          return loaded
+        },
+        definitions: campaignDefinitions(tx, input.campaign),
+        observersSeeing
+      })
+    },
     loadSource: (sourceInput) => loadActionSource(tx, input.campaign, state, sourceInput),
     loadRelationshipFacts: (factsInput) => loadActionRelationshipFacts(tx, factsInput)
   }).catch(refuseStaleCharacterAction)
@@ -365,6 +416,7 @@ export async function readDisarmSelection<TFacts extends CharacterTurnFacts>(
     definition,
     prepared,
     sceneContext: await readActionSceneContext(tx, state, command),
+    facing: encounterFacingRule(state),
     rejectTarget: () => rejectDomain('TARGET_UNAVAILABLE', 'Optional combat target is unavailable.')
   })
   await prepareActionEconomy(tx, {

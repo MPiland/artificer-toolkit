@@ -54,11 +54,14 @@ export function biteWolf(
   {
     damage = 1,
     reachFeet,
+    ranged = false,
     save = { ability: 'DEXTERITY' },
     spellCast
   }: {
     damage?: number
     reachFeet?: number
+    /** The ATTACK Bite is a ranged weapon attack instead of a melee one. */
+    ranged?: boolean
     /** The ability the SAVE Bite rolls and, when set, the damage type it deals instead of the SRD's. */
     save?: {
       ability: 'DEXTERITY' | 'CONSTITUTION'
@@ -127,7 +130,11 @@ export function biteWolf(
                         baseDc: 10
                       }
                     }
-                  : { triggerCode: 'MELEE_WEAPON_ATTACK' as const })
+                  : {
+                      triggerCode: ranged
+                        ? ('RANGED_WEAPON_ATTACK' as const)
+                        : ('MELEE_WEAPON_ATTACK' as const)
+                    })
               },
               paths: effect.paths.slice(0, 1).map((path) => {
                 if (!('resultBlock' in path)) return path
@@ -435,6 +442,7 @@ export interface ActionRoomConfig extends Pick<
   | 'spatialEffects'
   | 'sceneGrid'
   | 'optionalCombatKinds'
+  | 'sides'
   | 'rolls'
   | 'fallbackRoll'
   | 'concentration'
@@ -452,6 +460,7 @@ export interface ActionRoomConfig extends Pick<
   | 'seed'
   | 'pinSpells'
   | 'status'
+  | 'initiativePolicy'
   | 'campaignClockMinute'
 > {
   /** The Run's actors, side by side 100 px apart from the first, which is the acting (current) actor. */
@@ -521,6 +530,9 @@ export async function actionRoom(config: ActionRoomConfig) {
   const actionId = await (async () => {
     if (config.ownerFeatureId)
       return featureActionId(source, config.ownerFeatureId, config.grip ?? null, config.effectId)
+    // A Run that has not started has no acting actor to read choices for; its tests pick an id from
+    // `actionChoices` on the actor's own turn.
+    if (config.status === 'PREPARED' && !config.characterAction) return ''
     if (!config.characterAction) throw new Error('The room needs an action source.')
     const choices = await actionChoices()
     const action = choices.actions.find(config.characterAction)

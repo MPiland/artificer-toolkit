@@ -1,6 +1,5 @@
 import {
   ACTIVATION_CODE,
-  ABILITY_CODE,
   AUTHORING_MODE_KIND,
   AUTHORING_SELECTION_DUPLICATE_POLICY,
   AUTHORING_SELECTION_KIND,
@@ -33,7 +32,13 @@ import {
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS } from '../ids.js'
 import { classSpellcastingDetails } from './spellcasting-details.js'
-import { SRD_CURRENCIES, SRD_SKILLS, SRD_SYSTEM_ID, SRD_USER_ID } from '../vocabulary.js'
+import {
+  SRD_CURRENCIES,
+  SRD_SKILLS,
+  SRD_SYSTEM_ID,
+  SRD_USER_ID,
+  ABILITY_CODE
+} from '../vocabulary.js'
 import {
   abilityScoreImprovementOptions,
   attackingItemPropertyRestriction,
@@ -295,7 +300,6 @@ export const ranger: ClassAuthored = {
   systemId: SRD_SYSTEM_ID,
 
   hitpoint: {
-    ability: ABILITY_CODE.CONSTITUTION,
     dieConfig: 'd10'
   },
 

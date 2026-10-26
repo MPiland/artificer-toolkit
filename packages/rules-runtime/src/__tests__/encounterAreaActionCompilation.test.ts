@@ -304,7 +304,10 @@ describe('chosen-creature heal compilation from the SRD (D118)', () => {
     expect(plan).toMatchObject({
       recurrenceStage: 'END_OF_TURN',
       initialRemaining: 600,
-      actorLinkContribution: { linkKind: 'TELEPATHIC', excludesIntelligenceAtOrBelow: 2 }
+      actorLinkContribution: {
+        linkKind: 'TELEPATHIC',
+        excludesAbilityAtOrBelow: { ability: 'INTELLIGENCE', score: 2 }
+      }
     })
     expect(plan?.conditionContributions ?? []).toEqual([])
     expect(plan?.modifierGrantContribution ?? null).toBeNull()

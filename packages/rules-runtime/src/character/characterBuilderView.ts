@@ -1,9 +1,9 @@
 import type { CharacterBuilderResolution } from './builderTypes.js'
 import { withGrantProse, type CharacterPresentationLookup } from './characterRuleContext.js'
 import { getAvailableSubclassesForClass } from './builderEligibility.js'
+import { hasEveryAbilityScore } from './builderPresentation.js'
 import { evaluateMulticlassRequirements } from '@artificer-toolkit/shared/character'
 import {
-  ABILITY_OPTIONS,
   ADVANCEMENT_METHOD_OPTIONS,
   CHARACTER_ABILITY_GENERATION_METHOD_OPTIONS,
   CLASS_CATEGORY,
@@ -347,8 +347,8 @@ function getClassDisabledReason(
     return undefined
   }
 
-  if (Object.keys(resolution.summary.abilities).length < 6) {
-    return 'Assign all six ability scores before adding another class.'
+  if (!hasEveryAbilityScore(character, resolution.summary)) {
+    return 'Assign every ability score before adding another class.'
   }
 
   const proposedClasses = proposedClassIds.flatMap((classId) => {
@@ -1061,7 +1061,10 @@ function toCharacterBuilderReferences(
   presentation: CharacterPresentationLookup
 ): CharacterBuilderReferencesDto {
   return {
-    abilities: ABILITY_OPTIONS.map((option) => ({ id: option.code, label: option.label })),
+    abilities: (resolution.registry.system?.abilities ?? []).map(({ code, label }) => ({
+      id: code,
+      label
+    })),
     advancementMethods: ADVANCEMENT_METHOD_OPTIONS.map((option) => ({
       id: option.code,
       label: option.label

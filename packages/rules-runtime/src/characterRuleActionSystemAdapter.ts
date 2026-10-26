@@ -10,7 +10,6 @@ import type { CompiledEffectOffer } from '@artificer-toolkit/schema/effects/stor
 import type { GrantedAction } from '@artificer-toolkit/schema/effects/grantedAction'
 import type { AttackSlotConditionDto } from '@artificer-toolkit/schema/features/attackSlots'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
-import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import type {
   CharacterGrantFoldModifier,
   CharacterGrantFoldSense
@@ -43,7 +42,6 @@ import type {
   ScenePoint
 } from '@artificer-toolkit/shared/vtt'
 import type { CombatPerceptionRequirementDto } from '@artificer-toolkit/schema/shared/combatPerception'
-import type { ResolvedRuleCapabilityStateDto } from '@artificer-toolkit/schema/shared/ruleState'
 import type {
   DamageDispositionDto,
   DamageInterceptionChargeDto,
@@ -92,8 +90,15 @@ export interface CharacterRuleActionActiveEffectPlan {
   resultGate?: { paths: readonly string[] }
   /** null means the System owns an indefinite terminal condition. */
   initialRemaining: number | null
+  /**
+   * The authored Effect the target already holds that this effect ends with (D172); the planner
+   * links the held effect at creation.
+   */
+  endsWithHeldEffectId?: string
   /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
   hitPointTier?: { atMost: number }
+  /** Set on a plan of a roll-table row: it holds only when the table's roll lands in these faces. */
+  rollTableRow?: { min: number; max: number }
   /**
    * Whose turn boundary counts the effect down: its holder's (the default) or its source's. The
    * grant tick planner counts a source-anchored effect on the source's turns.
@@ -144,6 +149,8 @@ export interface CharacterRuleActionActiveEffectPlan {
     holderEnd: ActiveGrantHolderEnd | null
     /** Only the effect's source meets its attacker grants and attack consume. */
     fromSourceOnly?: true
+    /** `PER_SOURCE`: the grant ends its source's earlier one from the same Effect, on any holder. */
+    exclusivity?: 'PER_SOURCE'
     /** The grant is active only during its tick anchor's turn while one tick remains. */
     activeOnlyOnFinalAnchorTurn?: true
     /** The uses the effect counts before it ends; its lifecycle `remainingUses` starts here. */
@@ -193,8 +200,8 @@ export interface CharacterRuleActionActiveEffectPlan {
   actorLinkContribution?: null | {
     linkOutcomeId: string
     linkKind: 'TELEPATHIC'
-    /** Creatures whose Intelligence is this or lower cannot join the bond. */
-    excludesIntelligenceAtOrBelow: number
+    /** Creatures whose score in this System ability is at or below `score` cannot join the bond. */
+    excludesAbilityAtOrBelow: { ability: string; score: number }
   }
   /**
    * Each target swaps into the Creature of the form the caster chose (Giant Insect), for the
@@ -430,6 +437,8 @@ interface CharacterHitPointOutcomeApplicationBase {
 
 export type CharacterHitPointOutcomeApplication =
   | (CharacterHitPointOutcomeApplicationBase & { kind: 'HEAL' })
+  /** Hit points lost directly, with no damage type: temporary hit points absorb it first. */
+  | (CharacterHitPointOutcomeApplicationBase & { kind: 'HIT_POINT_LOSS' })
   | (CharacterHitPointOutcomeApplicationBase & {
       kind: 'TEMPORARY_HIT_POINTS'
       /** The active effect the temporary hit points belong to, absent when none (D156). */
@@ -439,6 +448,8 @@ export type CharacterHitPointOutcomeApplication =
       kind: 'DAMAGE'
       damageTypeId: string
       damageDisposition: DamageDispositionDto
+      /** The target halved the damage before its defenses (an `INCOMING_DAMAGE` HALVE grant). */
+      incomingHalved: boolean
       /** A critical hit: damage at 0 hit points adds two death save failures (D96). */
       critical: boolean
       /** The held effect whose damage interception left the target above 0 hit points instead. */
@@ -754,6 +765,13 @@ export interface CharacterRuleActionSystemAdapter {
     action: EffectActionCapabilityDescriptor
   }): CharacterRuleActionActiveEffectPlan | null
   /**
+   * The untimed grant a standing feature (a passive Effect whose result `returnsOn` a rest) gives its
+   * holder while it is on. An unsupported grant throws the unsupported-compilation error.
+   */
+  standingEffectPlan?(input: {
+    action: EffectActionCapabilityDescriptor
+  }): CharacterRuleActionActiveEffectPlan
+  /**
    * The immunity a creature that passes a holder's ward leaves on that holder (Nature's Sanctuary),
    * keyed by the ward's grant, or null when the System cannot count the duration.
    */
@@ -769,16 +787,6 @@ export interface CharacterRuleActionSystemAdapter {
     conditionDefinitionIds: readonly string[]
     published: ServerPublishedRuleDefinitionDto
   }): void
-  /**
-   * UUID-backed capability definitions needed to bind an optional positional
-   * policy. The Encounter owns locking and currentness; Systems select only
-   * the definitions their pinned policy understands.
-   */
-  positionalCapabilityDefinitionIds?(input: {
-    automationMode: AutomationModeDto
-    optionalCombatSnapshot: unknown
-    optionalCombatSnapshotChecksum: string | null
-  }): readonly string[]
   /**
    * System policy may provide ordinary, non-authored perception capabilities.
    * The Encounter supplies only an exact observer identity; the returned
@@ -844,6 +852,11 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /**
+     * The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE`
+     * HALVE). Interpretation reads it; it binds no fact.
+     */
+    incomingHalved?: boolean
     /** The damage types the target took since its last turn began, which a suppression gate reads. */
     targetDamageTypesTaken?: readonly string[]
     /**
@@ -873,11 +886,6 @@ export interface CharacterRuleActionSystemAdapter {
       }
       grid: SceneGrid
     } | null
-    /**
-     * Server-derived facts for positional policies. This is intentionally a
-     * mechanical projection, never a Scene document or client assertion.
-     */
-    positionalFacts?: CharacterRuleActionPositionalFacts | null
   }): {
     facts: Readonly<Record<string, RuleValue>>
     /** The System-selected d20 evidence policy for a paused one-stage test. */
@@ -958,6 +966,8 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE` HALVE). */
+    incomingHalved?: boolean
   }): readonly CharacterRuleActionApplication[]
   /** Returns sealed spatial proposals only; Scene settlement remains aggregate-owned. */
   interpretSpatial?(input: {
@@ -983,6 +993,8 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE` HALVE). */
+    incomingHalved?: boolean
     replacement: CharacterRuleActionSaveSuccessReplacement
   }): readonly CharacterRuleActionApplication[]
   /** Interprets one completed persisted recurring effect against its exact graph. */
@@ -1002,6 +1014,8 @@ export interface CharacterRuleActionSystemAdapter {
       damageTypeId: string
     }[]
     conditionImmunityIds?: readonly string[]
+    /** The target halves each incoming damage application before its defenses (`INCOMING_DAMAGE` HALVE). */
+    incomingHalved?: boolean
   }): {
     applications: readonly CharacterRuleActionApplication[]
     /** Sealed from the exact frozen graph result, never command input. */
@@ -1011,49 +1025,4 @@ export interface CharacterRuleActionSystemAdapter {
     /** Only a threshold-counted effect: its save tally once this turn's save is counted. */
     saveTally?: ActiveEffectSaveTally
   }
-}
-
-interface CharacterRuleActionPositionalTokenFact {
-  actorId: string
-  height: number
-  position: ScenePoint
-  rotationDegrees: number
-  tokenId: string
-  width: number
-}
-
-/**
- * One locked non-source/non-target actor candidate. Relationship and
- * perception are intentionally pair-specific rather than inferred by a
- * System adapter from labels, sides, or presentation state.
- */
-export interface CharacterRuleActionPositionalCandidateFact {
-  actorId: string
-  capabilityState: ResolvedRuleCapabilityStateDto
-  capabilityStateChecksum: string
-  canSeeTarget: boolean
-  perceptionChecksum: string
-  sourceRelationship: 'ALLIED' | 'HOSTILE' | 'NEUTRAL'
-  targetRelationship: 'ALLIED' | 'HOSTILE' | 'NEUTRAL'
-  token: CharacterRuleActionPositionalTokenFact
-}
-
-/**
- * Exact action-local positional facts. The dependency checksum is retained
- * with a paused action so resume can reject changed Scene, relationship,
- * capability, or perception state before any RNG or outcome mutation.
- */
-export interface CharacterRuleActionPositionalFacts {
-  automationMode: AutomationModeDto
-  candidates: readonly CharacterRuleActionPositionalCandidateFact[]
-  dependencyChecksum: string
-  optionalCombatSnapshot: unknown
-  optionalCombatSnapshotChecksum: string | null
-  sourceCapabilityState: ResolvedRuleCapabilityStateDto
-  sourceCapabilityStateChecksum: string
-  sourceCanSeeTarget: boolean
-  sourcePerceptionChecksum: string
-  sourceTargetRelationship: 'ALLIED' | 'HOSTILE' | 'NEUTRAL'
-  targetCapabilityState: ResolvedRuleCapabilityStateDto
-  targetCapabilityStateChecksum: string
 }

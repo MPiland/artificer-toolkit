@@ -7,14 +7,18 @@ import {
   type CharacterRulePolicyInput,
   type CharacterRulePolicyOutput
 } from '../api/characterRules.js'
-import { modifierOperationSchema, senseOperationSchema } from '../api/characterGrantFoldRules.js'
+import {
+  characterGrantFoldRestrictionSchema,
+  modifierOperationSchema,
+  senseOperationSchema
+} from '../api/characterGrantFoldRules.js'
 import { characterAuthoredDtoSchema, type CharacterAuthoredDto } from '../subjects/character.js'
 import { characterProvenanceDtoSchema } from '../subjects/characterIntent.js'
 import { rangeDtoSchema } from '../shared/range.js'
 import {
-  abilityCodeSchema,
   equipmentCategoryCodeSchema,
-  equipmentPropertyCodeSchema
+  equipmentPropertyCodeSchema,
+  pathLifecycleExclusivitySchema
 } from '../shared/enums.js'
 import { shapeDtoSchema, shapeMeasurementDtoSchema } from '../shared/shape.js'
 import {
@@ -75,6 +79,7 @@ import {
 import { actorRelationshipModuleDtoSchema } from '../effects/actorRelationship.js'
 import { attackSlotConditionDtoSchema } from '../features/attackSlots.js'
 import { characterResourcePoolIdentitySchema } from '../shared/characterResourceIdentity.js'
+import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 
 const nonNegativeStreamVersionSchema = lazySchema(() => z.number().check(z.int()).check(z.gte(0)))
 const compiledActionResourceIdentitySchema = lazySchema(() =>
@@ -197,8 +202,17 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
       z.number().check(z.int()).check(z.gte(1)).check(z.lte(MAX_ACTIVE_EFFECT_TURNS))
     ),
     tickAnchor: z._default(z.enum(['HOLDER', 'SOURCE']), 'HOLDER'),
+    /** The authored Effect its target holds that this effect ends with (D172), as Frenzy with Rage. */
+    endsWithHeldEffectId: z.optional(serverUuidIdentityDtoSchema),
     /** Set on a plan of a hit-point-tiered action: it holds only for a target at most this many hit points. */
     hitPointTier: z.optional(z.strictObject({ atMost: z.number().check(z.int()).check(z.gte(1)) })),
+    /** Set on a plan of a roll-table row: it holds only when the table's roll lands in these faces. */
+    rollTableRow: z.optional(
+      z.strictObject({
+        min: z.number().check(z.int()).check(z.gte(1)),
+        max: z.number().check(z.int()).check(z.gte(1))
+      })
+    ),
     /** Set on a repeat-save plan that counts saves: frozen into the effect's recurrence. */
     saveThresholds: z.optional(activeEffectSaveThresholdsSchema),
     /**
@@ -266,6 +280,7 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
             endOnConditionIds: activeGrantEndConditionIdsSchema,
             holderEnd: z.nullable(activeGrantHolderEndSchema),
             fromSourceOnly: z.optional(z.literal(true)),
+            exclusivity: z.optional(pathLifecycleExclusivitySchema),
             activeOnlyOnFinalAnchorTurn: z.optional(z.literal(true)),
             uses: z.optional(activeEffectUsesSchema),
             onEnd: z.optional(activeEffectOnEndSchema),
@@ -317,7 +332,10 @@ const compiledActionActiveEffectPlanObjectSchema = lazySchema(() =>
         z.strictObject({
           linkOutcomeId: serverUuidIdentityDtoSchema,
           linkKind: z.enum(['TELEPATHIC']),
-          excludesIntelligenceAtOrBelow: z.number().check(z.int()).check(z.gte(0))
+          excludesAbilityAtOrBelow: z.strictObject({
+            ability: systemCoreCodeSchema,
+            score: z.number().check(z.int()).check(z.gte(0))
+          })
         })
       ),
       null
@@ -615,7 +633,7 @@ export const compiledActionZonePlacementSchema = lazySchema(() =>
           }),
           z.strictObject({
             kind: z.literal('SOURCE_ABILITY_MODIFIER'),
-            ability: abilityCodeSchema,
+            ability: systemCoreCodeSchema,
             minimum: z.nullable(z.number().check(z.int()).check(z.minimum(-5)).check(z.maximum(30)))
           })
         ])
@@ -831,6 +849,14 @@ const compiledActionHitPointTiersSchema = lazySchema(() =>
   )
 )
 
+/**
+ * The plans of an action whose result is a roll table: one per row that holds an effect, the
+ * table's roll choosing among them. Absent when `activeEffectPlan` serves every roll.
+ */
+const compiledActionRollTableRowPlansSchema = lazySchema(() =>
+  z.optional(z.array(compiledActionActiveEffectPlanSchema).check(z.maxLength(20)))
+)
+
 const compiledActionEntryPointSchema = lazySchema(() =>
   z.union([
     z.strictObject({
@@ -866,6 +892,7 @@ const compiledActionEntryPointSchema = lazySchema(() =>
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
         hitPointTierPlans: compiledActionHitPointTierPlansSchema,
         hitPointTiers: compiledActionHitPointTiersSchema,
+        rollTableRowPlans: compiledActionRollTableRowPlansSchema,
         executionPlan: compiledActionExecutionPlanSchema
       })
     }),
@@ -875,12 +902,20 @@ const compiledActionEntryPointSchema = lazySchema(() =>
       actionId: z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(240)),
       effectId: serverUuidIdentityDtoSchema,
       targetPolicy: z.optional(compiledActionTargetPolicySchema),
+      /**
+       * The holder conditions its use path names, one list per restricted entry: the action is
+       * offered to and taken by an actor only while every one holds (Frenzy only while raging).
+       */
+      holderRestrictions: z.optional(
+        z.array(characterGrantFoldRestrictionSchema).check(z.maxLength(100))
+      ),
       compilation: z.strictObject({
         kind: z.literal('COMPILED'),
         resourceBinding: z.nullable(compiledActionResourceBindingSchema),
         activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
         hitPointTierPlans: compiledActionHitPointTierPlansSchema,
         hitPointTiers: compiledActionHitPointTiersSchema,
+        rollTableRowPlans: compiledActionRollTableRowPlansSchema,
         /**
          * Set for an action that places a zone; its `executionPlan` then runs only as the save each
          * creature in the zone's area makes as it appears (a TEST_OUTCOME, D154), else never.

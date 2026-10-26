@@ -20,11 +20,12 @@ import {
 } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPreparation'
 import {
   actorGrantedActions,
-  firstGrantedActionUseKey
+  nextGrantedAttackCharge
 } from '@artificer-toolkit/rules-runtime/encounterGrantedActions'
 import { encounterSourceHandHolds } from '@artificer-toolkit/rules-runtime/encounterRelationshipActionFacts'
 import {
   encounterActionSourceLabel,
+  isMeleeAttackSource,
   resolveEncounterActionSource,
   systemAbilityDefinitions,
   type EncounterActionSourceRequest
@@ -58,6 +59,7 @@ import {
   withOwnedTemporaryHitPoints
 } from '@artificer-toolkit/rules-runtime/encounterEndedEffectRelease'
 import { resolveEncounterSceneGrid } from '@artificer-toolkit/rules-runtime/sceneGridPolicy'
+import { encounterFacingRule } from '@artificer-toolkit/rules-runtime/encounterFacing'
 import {
   snapshotCreatureTypeId,
   withFeatureChargeUsed
@@ -81,15 +83,12 @@ import {
   readNativeLiveEnemyProximity,
   readNativeLiveMoveToward
 } from './nativeAttackEnemyProximity.js'
+import { nativeLiveAttackSceneLoaders } from './nativeAttackSceneLoaders.js'
 import {
   readNativeActionSourceOffers,
   readNativeLiveTurnMovedFeet,
   readNativeLiveTurnUses
 } from './nativeTurnUses.js'
-import {
-  readNativeLiveAttackPerception,
-  readNativeLiveSourcesSeen
-} from './nativeAttackPerception.js'
 import { planNativeLiveContestRolls } from './nativeContest.js'
 import { mergeNativeRulesRevisions } from './nativeRulesRevisions.js'
 import type { LiveCaptureReads } from './nativeEncounterReads.js'
@@ -122,10 +121,6 @@ import { createNativeCurrentReaction } from './nativePauseReaction.js'
 import { advanceNativeIncomingGate, planNativeGatedAction } from './nativeEncounterIncomingGate.js'
 import { preparedCastsSpell } from '@artificer-toolkit/rules-runtime/encounterPreparedSpellCast'
 import {
-  buildEncounterActionPendingSnapshot,
-  buildEncounterHeldActionPendingSnapshot
-} from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
-import {
   chosenEncounterAttackRetarget,
   encounterAttackRetargetOffer,
   openEncounterAttackRetargetChoice,
@@ -141,16 +136,12 @@ import { findEncounterFeatureResource } from '@artificer-toolkit/rules-runtime/e
 import { settleEncounterAttackActionHit } from '@artificer-toolkit/rules-runtime/encounterAttackAction'
 import {
   encounterActorEffectiveSize,
-  prepareNativeActionEffectsPlan,
-  prepareNativeIncomingDamageGrantTriggers
+  prepareNativeActionEffectsPlan
 } from '@artificer-toolkit/rules-runtime/encounterActionEffects'
+import { prepareAttackTargetGrantTriggers } from '@artificer-toolkit/rules-runtime/encounterAttackAppliedEffects'
 import { encounterChosenItemRefusal } from '@artificer-toolkit/rules-runtime/encounterChosenItem'
 import { restoreEncounterActionPending } from '@artificer-toolkit/rules-runtime/encounterActionPendingSnapshot'
 import { planNativeEncounterActionMechanics } from '@artificer-toolkit/rules-runtime/encounterActionMechanicsPlan'
-import {
-  liveSessionEncounterActionPendingInputSchema,
-  liveSessionEncounterActionCommitInputSchema
-} from '@artificer-toolkit/schema/api/liveSessionEncounterAction'
 import { authoredCheckOf, planNativeLiveCheckAction } from './nativeCheckAction.js'
 import { planNativeLiveConcealmentCheckAction } from './nativeConcealmentCheck.js'
 import { planNativeLiveEncounterSettlement } from './nativeEncounterSettlement.js'
@@ -170,7 +161,7 @@ import {
   nativeLiveRelationshipFacts,
   refuseActionOutsideItsWindow,
   interpretForcedMovements,
-  refuseUnmetBasicActionRestrictions,
+  refuseUnmetActionRestrictions,
   refuseUnmetItemActionRequirements
 } from './nativeEncounterActionInputs.js'
 import { planNativeLiveConcentration } from './nativeEncounterConcentration.js'
@@ -185,10 +176,7 @@ import {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import { buildEncounterActorRuleFacts } from '@artificer-toolkit/rules-runtime/encounterActorRuleFacts'
 import { reconcileEncounterActorRuleOutput } from '@artificer-toolkit/rules-runtime/encounterActorRuleOutput'
-import {
-  evaluateInstalledEncounterActors,
-  isInstalledMeleeAttackTrigger
-} from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
+import { evaluateInstalledEncounterActors } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import { plannedGateImmunityGrant } from './nativeGateImmunity.js'
 import { isMeleeRetaliationHit } from '@artificer-toolkit/rules-runtime/encounterMeleeRetaliation'
 import { buildEncounterActionStoredExecution } from '@artificer-toolkit/rules-runtime/encounterActionReceipt'
@@ -578,27 +566,16 @@ export async function planNativeLiveEncounterAction(
       overridable: true,
       movementTargets: targets,
       sceneContext,
-      loadAttackPerception: ({ sourceFacts, targetFacts, roller }) =>
-        readNativeLiveAttackPerception({
-          state,
-          system,
-          attacker: sourceFacts,
-          target: targetFacts,
-          roller,
-          sceneContext,
-          capture
-        }),
-      loadSourcesSeen: ({ holder, sourceActorIds }) =>
-        readNativeLiveSourcesSeen({
-          state,
-          system,
-          holder,
-          sourceActorIds,
-          actors,
-          loadTarget: async (actor) => targets.get(actor.id) ?? loadTarget(actor),
-          sceneContext,
-          capture
-        }),
+      ...nativeLiveAttackSceneLoaders({
+        state,
+        system,
+        actors,
+        movementTargets: targets,
+        loadTarget,
+        definitions,
+        sceneContext,
+        capture
+      }),
       loadEnemyProximity: ({ sourceFacts, targetFacts }) =>
         readNativeLiveEnemyProximity({
           state,
@@ -662,7 +639,7 @@ export async function planNativeLiveEncounterAction(
       reason: 'TARGET_UNAVAILABLE',
       message: 'Immune to spells of this school'
     })
-  await refuseUnmetBasicActionRestrictions(
+  await refuseUnmetActionRestrictions(
     { source: prepared.source, acceptedWieldConflict: command.acceptedWieldConflict },
     {
       target: actorTarget,
@@ -711,7 +688,7 @@ export async function planNativeLiveEncounterAction(
   ).filter(({ offer }) => offer.weaponAttack)
   const turnUsesSpent =
     weaponAttackHolds.length > 0 ? await readNativeLiveTurnUses(capture, prepared.actor.id) : []
-  const weaponAttackUseKey = firstGrantedActionUseKey(weaponAttackHolds, turnUsesSpent)
+  const weaponAttackOffer = nextGrantedAttackCharge(weaponAttackHolds, turnUsesSpent)
   const { activationCode, economy, suppressed, attackAction, grantedUseKey } =
     await evaluateNativeLiveActionEconomy({
       prepared,
@@ -721,7 +698,7 @@ export async function planNativeLiveEncounterAction(
       targetIds: [prepared.target.id],
       targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
       capture,
-      weaponAttackOffer: weaponAttackUseKey ? { useKey: weaponAttackUseKey } : null
+      weaponAttackOffer
     })
   const mechanicFacts =
     prepared.source.kind === 'CHARACTER_ACTION'
@@ -751,11 +728,15 @@ export async function planNativeLiveEncounterAction(
       target: prepared.target,
       targetPolicy: prepared.targetPolicy,
       makesAttackRoll: prepared.makesAttackRoll,
-      sceneContext
+      sceneContext,
+      facing: encounterFacingRule(state)
     },
     targetCreatureTypeId: snapshotCreatureTypeId(prepared.target),
-    actorSize: encounterActorEffectiveSize(actorTarget),
-    targetSize: targetMovement ? encounterActorEffectiveSize(targetMovement) : null,
+    sizes: {
+      gameSystemId: state.gameSystemId,
+      actor: encounterActorEffectiveSize(actorTarget),
+      target: targetMovement ? encounterActorEffectiveSize(targetMovement) : null
+    },
     targetDefeated: isEncounterActorDefeated(
       prepared.target,
       deadCharacterIdsOfTargets(movementTargets.values())
@@ -1195,10 +1176,26 @@ export async function planNativeLiveEncounterAction(
     currentReaction,
     onHitNow
   })
+  const retained = resume?.pending.twoPhase ?? forcedMovementAnswer?.outcomePhase
+  const heldReaction = settled?.heldReaction ?? null
+  const retainedReaction = settled?.reaction
+    ? null
+    : (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
+  const replayedReaction =
+    settled?.heldReactionNow ??
+    (retainedReaction
+      ? await currentReaction(
+          retainedReaction.reaction!.selection === 'USE',
+          retainedReaction.reaction!.reaction.actionId,
+          retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
+        )
+      : null)
   const execution =
     settled?.execution ??
     (await advanceNativeActionGraphs({
       ...actionSource,
+      // A paused OUTCOME resumes against the hit as the reaction it kept left it.
+      ...(replayedReaction ? { binding: replayedReaction.adjustedBinding } : {}),
       attackSight: prepared.attackSight,
       onHitCandidates: onHitNow,
       ...(resume ? { resume } : {}),
@@ -1209,7 +1206,6 @@ export async function planNativeLiveEncounterAction(
         targetStateChecksum
       }
     }))
-  const retained = resume?.pending.twoPhase ?? forcedMovementAnswer?.outcomePhase
   const resistance =
     settled?.resistance ??
     (execution.kind !== 'PENDING' && retained?.phase === 'OUTCOME' && retained.legendaryResistance
@@ -1218,20 +1214,6 @@ export async function planNativeLiveEncounterAction(
           outcome: retained,
           ...(await currentResistance())
         })
-      : null)
-  const heldReaction = settled?.heldReaction ?? null
-  const retainedReaction =
-    execution.kind !== 'PENDING' && !settled?.reaction
-      ? (heldReaction ?? (retained?.phase === 'OUTCOME' && retained.reaction ? retained : null))
-      : null
-  const replayedReaction =
-    settled?.heldReactionNow ??
-    (retainedReaction
-      ? await currentReaction(
-          retainedReaction.reaction!.selection === 'USE',
-          retainedReaction.reaction!.reaction.actionId,
-          retainedReaction.testExecution.outputs.resultPath === 'ON_CRIT'
-        )
       : null)
   const reaction =
     execution.kind === 'PENDING'
@@ -1408,19 +1390,20 @@ export async function planNativeLiveEncounterAction(
   const targetHeld = heldOnTarget.filter(
     ({ id }) => !(reactionEnded?.consumedGrants ?? []).some((ended) => ended.id === id)
   )
+  const meleeAttack = isMeleeAttackSource(state.gameSystemId, prepared.source)
   const damageEnded = targetEndedEffects({
     holderActorId: prepared.target.id,
     held: targetHeld,
-    attacked: prepared.makesAttackRoll,
+    attack: prepared.makesAttackRoll ? { melee: meleeAttack } : null,
     testEvidence: [execution.d20, execution.nestedD20],
     turnActorId: prepared.state.currentActorId,
     applications,
     damagerActorId: prepared.actor.id,
     dispositions,
-    grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+    grantTriggers: prepareAttackTargetGrantTriggers({
       encounter: settledPrepared.state,
-      holder: settledPrepared.target,
-      held: settledPrepared.targetFacts.activeEffects,
+      attacker: settledPrepared.actor,
+      target: settledPrepared.targetFacts,
       occurrenceId,
       commandId: command.commandId,
       activeEffectsByActorId
@@ -1556,12 +1539,6 @@ export async function planNativeLiveEncounterAction(
     activeEffectsByActorId
   })
   const actionRange = rangeDtoSchema.safeParse(prepared.targetPolicy.range)
-  const meleeAttack = isInstalledMeleeAttackTrigger(
-    state.gameSystemId,
-    prepared.source.kind === 'CHARACTER_ACTION'
-      ? prepared.source.candidate.mechanicFacts.invocation.triggerCode
-      : prepared.source.capability.mechanicFacts.invocation.triggerCode
-  )
   // A melee hit sets off the zones its target holds around itself against the attacker (D153).
   const attackerInProjection = settlement.projectedTargets.get(prepared.actor.id)
   const retaliation =
@@ -1729,100 +1706,8 @@ export async function planNativeLiveEncounterAction(
       ...hitEnded.consumedGrants,
       ...decoyStrike.endedGrants,
       ...damageEnded.endedEffects,
+      ...damageEnded.replacedEffects,
       ...(actionEnded?.endedEffects ?? [])
     ]
   }
-}
-
-/** The sealed pending contract the room persists before acknowledging an assisted action. */
-export function buildNativeLiveEncounterActionPendingInput(
-  scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
-  plan: Extract<
-    Awaited<ReturnType<typeof planNativeLiveEncounterAction>>,
-    { kind: 'PENDING' | 'CAST_PENDING' | 'GATE_PENDING' | 'RETARGET_PENDING' }
-  >
-) {
-  const pinned = {
-    optionalCombatSnapshotChecksum: plan.prepared.state.optionalCombatSnapshotChecksum,
-    commandJson: JSON.stringify(plan.command),
-    commandFingerprint: plan.fingerprint,
-    initiatorUserId: plan.initiatorUserId,
-    currentnessChecksum: plan.currentnessChecksum
-  }
-  return liveSessionEncounterActionPendingInputSchema.parse({
-    ...scope,
-    command: plan.command,
-    response: plan.response,
-    revisions: plan.revisions,
-    maintenanceOwners: plan.dependencies.flatMap(({ request }) =>
-      request.kind === 'MAINTENANCE_OWNER' ? [request] : []
-    ),
-    snapshot:
-      plan.kind === 'PENDING'
-        ? buildEncounterActionPendingSnapshot({
-            ...pinned,
-            execution: plan.execution,
-            sourceActorId: plan.prepared.actor.id,
-            targetActorId: plan.prepared.target.id,
-            failedCounters: plan.failedCounters,
-            passedIncomingGate: plan.passedIncomingGate
-          })
-        : buildEncounterHeldActionPendingSnapshot({
-            ...pinned,
-            continuation: plan.continuation,
-            pause: plan.pause,
-            rollerActorId: plan.rollerActorId,
-            ...(plan.kind === 'CAST_PENDING'
-              ? { failedCounters: plan.failedCounters, passedIncomingGate: plan.passedIncomingGate }
-              : {})
-          })
-  })
-}
-
-/** The completed action and child contracts the room persists in one transaction. */
-export function buildNativeLiveEncounterActionCommitInput(
-  scope: Omit<LiveSessionEncounterRulesInput, 'request'>,
-  plan: Extract<Awaited<ReturnType<typeof planNativeLiveEncounterAction>>, { kind: 'PLANNED' }>
-) {
-  const owners = new Map(
-    plan.dependencies.flatMap(({ request }) =>
-      request.kind === 'MAINTENANCE_OWNER'
-        ? [[checksumRuleDocument(request), request] as const]
-        : []
-    )
-  )
-  return liveSessionEncounterActionCommitInputSchema.parse({
-    ...scope,
-    command: plan.command,
-    response: plan.response,
-    revisions: plan.revisions,
-    maintenanceOwners: [...owners.values()],
-    occurredAt: plan.occurredAt,
-    initialDefinitionId: plan.execution.initialPublished.id,
-    execution: plan.storedExecution,
-    rules: plan.nextRules,
-    resourceConsumption: plan.prepared.characterActionState?.resourceConsumption ?? null,
-    itemConsumption: plan.prepared.characterActionState?.itemConsumption ?? null,
-    spellConsumption: plan.prepared.characterActionState?.spellConsumption ?? null,
-    reactionSpellConsumption:
-      plan.reactionUse?.prepared.characterActionState?.spellConsumption ?? null,
-    failedCounters: plan.failedSpends.map(({ receipt, spellConsumption }) => ({
-      receipt,
-      spellConsumption
-    })),
-    label: encounterActionSourceLabel(plan.prepared.source),
-    ruleOverrides: plan.ruleOverrides,
-    createdEffects: plan.settlement.createdEffects,
-    maintainedState: plan.settlement.maintainedState,
-    concentration: plan.concentration.completed,
-    pendingConcentration: plan.concentration.pending,
-    concentrationEnds: plan.concentration.concentrationEnds,
-    endedGrants: plan.concentration.endedGrants,
-    cleaving: plan.cleaving,
-    spellCheck: plan.spellCheck ?? undefined,
-    consumedGrants: [...plan.consumedGrants, ...plan.reactionConsumedGrants],
-    spentUseGrants: plan.spentUseGrants,
-    turnUses: plan.turnUses,
-    forcedMovements: plan.forcedMovements
-  })
 }

@@ -1,4 +1,5 @@
 import type { CreatureAuthored } from '@artificer-toolkit/shared'
+import { MANUAL_ADJUDICATION_REASON } from '@artificer-toolkit/shared/core'
 import * as S from './shared.js'
 export const shamblingMound: CreatureAuthored = {
   id: S.CREATURE_IDS.SHAMBLING_MOUND,
@@ -43,7 +44,7 @@ export const shamblingMound: CreatureAuthored = {
       description:
         'Lightning Absorption. Whenever the shambling mound is subjected to lightning damage, it takes no damage and regains a number of hit points equal to the lightning damage dealt.',
       effects: [
-        S.closedRuleEffect({
+        S.manualAdjudicationEffect({
           id: S.actionId(251, 501),
           invocation: {
             kind: 'PASSIVE',
@@ -51,7 +52,10 @@ export const shamblingMound: CreatureAuthored = {
             range: { id: S.actionId(251, 601), rangeKind: S.RANGE_KIND.SELF },
             targeting: { selectionKind: S.TARGET_SELECTION_KIND.SELF }
           },
-          ruleKind: S.CLOSED_RULE_KIND.CREATURE_SHAMBLING_MOUND_LIGHTNING_ABSORPTION
+          label: 'Lightning Absorption',
+          reasonCode: MANUAL_ADJUDICATION_REASON.GM_CHOICE,
+          instructions:
+            'Whenever the shambling mound is subjected to lightning damage, it takes no damage and instead regains hit points equal to the lightning damage that would have been dealt.'
         })
       ],
       order: 2
@@ -100,7 +104,25 @@ export const shamblingMound: CreatureAuthored = {
                     heldAtOnce: 1,
                     largestTarget: S.SIZE_CODE.MEDIUM,
                     omitGrappled: true,
-                    untilEnds: ['BLINDED', 'RESTRAINED']
+                    untilEnds: ['BLINDED', 'RESTRAINED'],
+                    // "at the start of each of the mound's turns": counted on the holder's turns.
+                    recurrence: {
+                      turnAnchor: { actor: 'SOURCE', boundary: 'START_OF_TURN' },
+                      savingThrow: {
+                        id: S.actionId(251, 902),
+                        dcMethod: 'FIXED_DC',
+                        abilityDefinitionId: S.SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
+                        baseDc: 14
+                      },
+                      outcome: {
+                        id: S.actionId(251, 903),
+                        effectKind: S.EFFECT_KIND.DAMAGE,
+                        damageTypeId: S.damageTypeId('BLUDGEONING'),
+                        valueKind: S.DAMAGE_VALUE_KIND.DICE,
+                        scalingKind: S.SCALING.NONE,
+                        diceConfig: '2d8+4'
+                      }
+                    }
                   })
                 ]
               }

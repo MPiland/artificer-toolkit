@@ -5,6 +5,7 @@ import {
   dnd5eConditionApplyProposalOperation,
   dnd5eConditionDurationOperation,
   dnd5eDamageProposalOperation,
+  dnd5eHitPointLossProposalOperation,
   dnd5eHitPointMaximumReductionProposalOperation,
   dnd5eScalarReductionProposalOperation,
   dnd5eForcedMovementProposalOperation,
@@ -36,6 +37,7 @@ import {
   dnd5eTemporaryHitPointsProposalOperation,
   dnd5eMovementInterruptionAuthorizationOperation,
   dnd5eNestedSaveGateOperation,
+  dnd5eRollTableRowGateOperation,
   dnd5ePathGatedProposalOperations
 } from './effectActionOperationRegistry.js'
 import { dnd5eDamageDerivedHealProposalOperation } from './effectActionDamageDerivedHeal.js'
@@ -44,9 +46,6 @@ import { dnd5eConcentrationDamageDcOperation } from './concentrationPolicy.js'
 import { dnd5eLegendaryActionEligibilityOperation } from './encounterLifecyclePolicy.js'
 import { dnd5eMovementReactionEligibilityOperation } from './reactionEligibilityPolicy.js'
 import { compileDnd5eCreatureRuleFacts } from './creatureRuleFacts.js'
-import { dnd5eCharacterPolicyRegistration } from './characterPolicy.js'
-import { evaluateDnd5e2014EncounterActors } from './encounterActorPolicy.js'
-import { dnd5ePolicyModuleRegistration } from './policyModuleRegistration.js'
 
 export const dnd5eRulesRuntimeRegistration = {
   capabilities: [dnd5eEffectActionCapability],
@@ -56,11 +55,6 @@ export const dnd5eRulesRuntimeRegistration = {
   isSpellAttackTrigger: (triggerCode: string) =>
     isDnd5eSpellAttackKind(dnd5eAttackKind(triggerCode)),
   compileCreatureRuleFacts: compileDnd5eCreatureRuleFacts,
-  evaluateCharacterActions: dnd5eCharacterPolicyRegistration.evaluateCharacterActions,
-  evaluateCharacterGrantFold: dnd5eCharacterPolicyRegistration.evaluateCharacterGrantFold,
-  evaluateCharacterPolicy: dnd5eCharacterPolicyRegistration.evaluateCharacterPolicy,
-  evaluateEncounterActors: evaluateDnd5e2014EncounterActors,
-  policyModules: dnd5ePolicyModuleRegistration.policyModules,
   operations: [
     dnd5eConcentrationDamageDcOperation,
     dnd5eLegendaryActionEligibilityOperation,
@@ -86,6 +80,7 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eCancelTriggeringEventProposalOperation,
     dnd5eEndEffectsProposalOperation,
     dnd5eDamageProposalOperation,
+    dnd5eHitPointLossProposalOperation,
     dnd5eHitPointMaximumReductionProposalOperation,
     dnd5eDamageDerivedHealProposalOperation,
     dnd5eScalarReductionProposalOperation,
@@ -100,6 +95,7 @@ export const dnd5eRulesRuntimeRegistration = {
     dnd5eAttackTestOperation,
     dnd5eSaveTestOperation,
     dnd5eNestedSaveGateOperation,
+    dnd5eRollTableRowGateOperation,
     dnd5eMovementInterruptionAuthorizationOperation,
     ...dnd5ePathGatedProposalOperations
   ] satisfies readonly RuleOperationContract[]

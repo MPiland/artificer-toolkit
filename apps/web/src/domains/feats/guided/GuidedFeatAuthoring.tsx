@@ -1,22 +1,28 @@
 import { useEffect, useState } from 'react'
 import { useSelector } from '@tanstack/react-form'
-import { Alert, NumberInput, Select, Stack, Text, TextInput } from '@mantine/core'
+import { Alert, Stack, Text, TextInput } from '@mantine/core'
 import type { SystemResponseDto } from '@artificer-toolkit/schema/api/systems'
 import type { EffectDto } from '@artificer-toolkit/schema/effects'
 import type { ChargeDto, DetailDto } from '@artificer-toolkit/schema/shared'
 import type { FeatureDto } from '@artificer-toolkit/schema/features/feature'
-import type { AuthoredFormSession } from '#forms/factories/authoredFormFactories.types'
 import { withForm } from '#forms/app-form/AppForm'
 import { GuidedAuthoringFrame } from '#forms/guided/GuidedAuthoringFrame'
 import { AuthoringArtworkControl } from '#forms/AuthoringArtworkControl'
-import type { GuidedAuthoringStateHandler } from '#forms/guided/guidedAuthoring.types'
+import type { GuidedDomainAuthoringProps } from '#forms/guided/guidedAuthoring.types'
+import { GuidedChargeFields } from '#forms/guided/GuidedChargeFields'
+import { createCharge, isSimpleCharge } from '#forms/guided/guidedCharge'
 import { GuidedFeatureAccordion } from '#forms/guided/GuidedFeatureAccordion'
+import { GuidedSummaryRow } from '#forms/guided/GuidedSummaryRow'
 import { GuidedSimpleEffectComposer } from '#forms/guided/GuidedSimpleEffectComposer'
-import { toTypedAuthoringFieldName } from '#forms/utils/pathUtils'
 import * as styles from '#forms/guided/guidedAuthoring.css'
 import RichTextEditor from '#ui/primitives/RichTextEditor'
-import { readField } from '#forms/guided/guidedValues'
-import { findOption, isRecord } from '#forms/utils/valueGuards'
+import {
+  EMPTY_GUIDED_FORM_VALUES,
+  guidedField,
+  readGuidedValues,
+  toDetails,
+  toFeatures
+} from '#forms/guided/guidedValues'
 
 const STEPS = ['Basics', 'Core outcome', 'Features', 'Review'] as const
 const TITLES = [
@@ -32,23 +38,18 @@ const DESCRIPTIONS = [
   'Check the essentials before saving.'
 ] as const
 
-type Props = {
-  session: AuthoredFormSession
-  onAdvanced: (() => void) | undefined
-  onStateChange: GuidedAuthoringStateHandler
-}
-
 export const GuidedFeatAuthoring = withForm({
-  defaultValues: {} as object,
-  props: {} as Props,
-  render: function RenderGuidedFeatAuthoring({ form, onAdvanced, onStateChange, session }) {
+  defaultValues: EMPTY_GUIDED_FORM_VALUES,
+  props: {} as GuidedDomainAuthoringProps,
+  render: function RenderGuidedFeatAuthoring({ form, onAdvanced, onStateChange, session, system }) {
     const [screen, setScreen] = useState(0)
     const values = useSelector(form.store, (state) => state.values)
-    const label = readString(values, 'label')
-    const details = readDetails(values)
-    const features = readFeatures(values)
-    const effects = readEffects(values)
-    const charges = readCharge(values)
+    const draft = readGuidedValues('feat', values)
+    const label = draft.label ?? ''
+    const details = toDetails(draft.details)
+    const features = toFeatures(draft.features)
+    const effects = draft.effects ?? []
+    const charges = draft.charges ? { ...createCharge(), ...draft.charges } : undefined
 
     useEffect(() => {
       onStateChange({ isReview: screen === 3, showPreview: screen > 0 || Boolean(label) })
@@ -56,13 +57,13 @@ export const GuidedFeatAuthoring = withForm({
 
     const canContinue = screen === 0 ? Boolean(label.trim()) : true
     const setDetails = (next: DetailDto[]) =>
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['details']), next)
+      form.setFieldValue(guidedField('feat', 'details'), next)
     const setFeatures = (next: FeatureDto[]) =>
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['features']), next)
+      form.setFieldValue(guidedField('feat', 'features'), next)
     const setCharges = (next: ChargeDto | undefined) =>
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['charges']), next)
+      form.setFieldValue(guidedField('feat', 'charges'), next)
     const setEffects = (next: EffectDto[]) =>
-      form.setFieldValue(toTypedAuthoringFieldName<object>(undefined, ['effects']), next)
+      form.setFieldValue(guidedField('feat', 'effects'), next)
 
     return (
       <GuidedAuthoringFrame
@@ -82,14 +83,14 @@ export const GuidedFeatAuthoring = withForm({
       >
         {screen === 0 ? (
           <Stack gap='lg'>
-            {session.mode === 'edit' && (effects.length > 1 || readGrants(values)) ? (
+            {session.mode === 'edit' && (effects.length > 1 || hasGrants(draft.grants)) ? (
               <Alert color='blue' title='Some details require Advanced'>
                 This feat contains advanced effects or grants. Guided keeps them intact while you
                 edit the common fields.
               </Alert>
             ) : null}
             <div className={styles.identityRow}>
-              <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['label'])}>
+              <form.AppField name={guidedField('feat', 'label')}>
                 {(field) => (
                   <field.TextField
                     label='Feat name'
@@ -100,7 +101,7 @@ export const GuidedFeatAuthoring = withForm({
               </form.AppField>
               <AuthoringArtworkControl />
             </div>
-            <form.AppField name={toTypedAuthoringFieldName<object>(undefined, ['description'])}>
+            <form.AppField name={guidedField('feat', 'description')}>
               {(field) => (
                 <field.RichTextField
                   label='Description'
@@ -115,37 +116,27 @@ export const GuidedFeatAuthoring = withForm({
             charges={charges}
             details={details}
             effects={effects}
-            system={session.system!}
+            system={system}
             onChargesChange={setCharges}
             onDetailsChange={setDetails}
             onEffectsChange={setEffects}
           />
         ) : null}
         {screen === 2 ? (
-          <GuidedFeatureAccordion
-            features={features}
-            system={session.system!}
-            onChange={setFeatures}
-          />
+          <GuidedFeatureAccordion features={features} system={system} onChange={setFeatures} />
         ) : null}
         {screen === 3 ? (
           <Stack gap='md'>
             <Text fw={600}>{label || 'Untitled Feat'}</Text>
             <dl className={styles.summary}>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Core outcome</dt>
-                <dd className={styles.summaryValue}>
-                  {effects.length ? 'Configured' : details[0]?.description || 'Not yet described'}
-                </dd>
-              </div>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Limited uses</dt>
-                <dd className={styles.summaryValue}>{formatCharge(charges)}</dd>
-              </div>
-              <div className={styles.summaryRow}>
-                <dt className={styles.summaryLabel}>Features</dt>
-                <dd className={styles.summaryValue}>{features.length || 'None yet'}</dd>
-              </div>
+              <GuidedSummaryRow
+                label='Core outcome'
+                value={
+                  effects.length ? 'Configured' : details[0]?.description || 'Not yet described'
+                }
+              />
+              <GuidedSummaryRow label='Limited uses' value={formatCharge(charges)} />
+              <GuidedSummaryRow label='Features' value={String(features.length || 'None yet')} />
             </dl>
           </Stack>
         ) : null}
@@ -196,72 +187,9 @@ function FeatOutcomeEditor({
         }
       />
       <GuidedSimpleEffectComposer effects={effects} system={system} onChange={onEffectsChange} />
-      <Select
-        label='Does it have limited uses?'
-        data={[
-          { value: 'no', label: 'No, use it whenever it applies' },
-          { value: 'yes', label: 'Yes, it has a resettable limit' }
-        ]}
-        value={charges ? 'yes' : 'no'}
-        onChange={(value) => {
-          if (value === 'no' && charges && !isSimpleCharge(charges)) return
-          onChargesChange(value === 'yes' ? (charges ?? createCharge()) : undefined)
-        }}
-      />
-      {charges && isSimpleCharge(charges) ? (
-        <div className={styles.fields}>
-          <NumberInput
-            label='Uses'
-            min={1}
-            value={charges.amount ?? 1}
-            onChange={(value) =>
-              onChargesChange({
-                ...charges,
-                amount: typeof value === 'number' ? value : 1
-              } as ChargeDto)
-            }
-          />
-          <Select
-            label='Reset timing'
-            data={RESET_OPTIONS}
-            value={charges.resetKind}
-            onChange={(value) =>
-              onChargesChange({
-                ...charges,
-                resetKind:
-                  findOption(
-                    RESET_OPTIONS.map((option) => option.value),
-                    value
-                  ) ?? 'LONG_REST'
-              })
-            }
-          />
-        </div>
-      ) : null}
-      {charges && !isSimpleCharge(charges) ? (
-        <Alert color='blue' title='Advanced charge model preserved'>
-          This feat uses a scaling or source-based charge model. Guided keeps it intact; switch to
-          Advanced to change or remove it.
-        </Alert>
-      ) : null}
+      <GuidedChargeFields charges={charges} subject='feat' onChange={onChargesChange} />
     </Stack>
   )
-}
-
-const RESET_OPTIONS = [
-  { value: 'SHORT_REST', label: 'Short rest' },
-  { value: 'LONG_REST', label: 'Long rest' },
-  { value: 'DAWN', label: 'Dawn' }
-] as const
-
-function createCharge(): ChargeDto {
-  return {
-    id: crypto.randomUUID(),
-    resetKind: 'LONG_REST',
-    limitKind: 'FIXED_AMOUNT',
-    scalingKind: 'NONE',
-    amount: 1
-  }
 }
 
 function formatCharge(charge: ChargeDto | undefined): string {
@@ -270,56 +198,8 @@ function formatCharge(charge: ChargeDto | undefined): string {
   return `${charge.amount} per ${formatReset(charge.resetKind)}`
 }
 
-function isSimpleCharge(
-  charge: ChargeDto
-): charge is Extract<ChargeDto, { limitKind: 'FIXED_AMOUNT'; scalingKind: 'NONE' }> {
-  return charge.limitKind === 'FIXED_AMOUNT' && charge.scalingKind === 'NONE'
-}
-
-function readString(values: object, key: string): string {
-  const value = readField(values, key)
-  return typeof value === 'string' ? value : ''
-}
-
-function readDetails(values: object): DetailDto[] {
-  const value = readField(values, 'details')
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is DetailDto =>
-          typeof item === 'object' && item !== null && 'id' in item && 'description' in item
-      )
-    : []
-}
-
-function readFeatures(values: object): FeatureDto[] {
-  const value = readField(values, 'features')
-  return Array.isArray(value)
-    ? value.filter(
-        (item): item is FeatureDto =>
-          typeof item === 'object' && item !== null && 'id' in item && 'order' in item
-      )
-    : []
-}
-
-function readEffects(values: object): unknown[] {
-  const value = readField(values, 'effects')
-  return Array.isArray(value) ? value : []
-}
-
-function readCharge(values: object): ChargeDto | undefined {
-  const value = readField(values, 'charges')
-  return isRecord(value) && 'id' in value && 'resetKind' in value
-    ? { ...createCharge(), ...value }
-    : undefined
-}
-
-function readGrants(values: object): boolean {
-  const value = readField(values, 'grants')
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    Object.values(value).some((item) => Array.isArray(item) && item.length > 0)
-  )
+function hasGrants(grants: object | undefined): boolean {
+  return Object.values(grants ?? {}).some((item) => Array.isArray(item) && item.length > 0)
 }
 
 function formatReset(value: ChargeDto['resetKind']): string {
