@@ -117,6 +117,22 @@ turn; the option spends whichever allowance the policy chose. Conditions that su
 suppress the free allowance too, and a reactor that cannot act gets no option. See
 [rules runtime](rules-runtime.md) for the turn-scoped usage record.
 
+**Rule-owned actions (current, ATTACK-16.T1b).** Any optional-combat definition may author
+`raisedEffects`, up to eight Effects (unique ids) the rule raises as its own actions: the rule,
+never a player, decides when one runs and on which actor. The action source is `RULE`
+(`rules-runtime/src/encounterRuleAction.ts`), id `<actorId>:RULE:<definitionId>:<effectId>`.
+`resolveEncounterActionSource` reads the Effect from the Run's active definitions
+(`activeOptionalCombatDefinitions`, so a rule that is off or a MANUAL Run makes the id stale, as
+does an Effect the definition no longer raises), compiles it with `compileEffect` and
+`bindEncounterEffect`, and runs it through the compiled graph path like a basic action. It resolves
+before the Character and Creature branches, so it serves both. Each raised Effect is authored as an
+activated self action, the shape the action compiler reads, and holds at most one lasting effect
+(one timed condition or one grant), as any action does. The activation is replaced by `FREE`, so it
+spends no action economy; the label is the definition's. Admission refuses every root that names a
+rule action unless it is a resume (`SOURCE_REQUIREMENTS_NOT_MET`), so no member applies a rule's
+outcomes at will. The rule-raised SYSTEM trigger and its admission proof land with the first rule
+that raises one (ATTACK-16.T1c2, Massive Damage).
+
 Morale (ENCOUNTER-6, current) is offered in Campaign settings once its System policy resolves it.
 The GM projection derives each creature's offers from Run state as a pure read: at or below half
 hit points, half its side removed, and the leader named on an earlier group check defeated or gone.

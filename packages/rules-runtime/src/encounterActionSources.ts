@@ -1,4 +1,7 @@
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type {
+  EncounterRunActorState,
+  EncounterRunState
+} from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { CharacterActionCandidate } from '@artificer-toolkit/schema/api/characterActionRules'
 import type { CharacterRulePolicyOutput } from '@artificer-toolkit/schema/api/characterRules'
 import type { CompiledActionEntryPoint } from '@artificer-toolkit/schema/projections/characterMechanics'
@@ -20,6 +23,11 @@ import {
   parseRepeatPathActionId,
   type EncounterRepeatPathCapabilityDescriptor
 } from './encounterRepeatPathAction.js'
+import {
+  discoverEncounterRuleAction,
+  parseEncounterRuleActionId,
+  type EncounterRuleActionCapabilityDescriptor
+} from './encounterRuleAction.js'
 import {
   discoverEncounterBasicActions,
   isEncounterBasicActionId,
@@ -64,12 +72,14 @@ export type EncounterActionSourceInput = {
     Parameters<typeof discoverEncounterRepeatPath>[0],
     'effectsByHolder' | 'turn' | 'spentKeys'
   >
+  /** The Run's automation mode and optional combat rules, read for a rule-raised action. */
+  rules?: Pick<EncounterRunState, 'automationMode' | 'optionalCombatSnapshot'>
 }
 
 /** What a caller names; the loader adds the System and the basic action the id names. */
 export type EncounterActionSourceRequest = Omit<
   EncounterActionSourceInput,
-  'system' | 'basicActions' | 'repeat' | 'spells'
+  'system' | 'basicActions' | 'repeat' | 'spells' | 'rules'
 >
 
 export type NativeEncounterActionSource =
@@ -93,6 +103,11 @@ export type NativeEncounterActionSource =
       boundItemInstanceId?: string
       /** Set when the use is a free cast-turn use (D190a): the key it spends. */
       grantedUseKey?: string
+    }
+  | {
+      kind: 'RULE'
+      actor: EncounterRunActorState
+      capability: EncounterRuleActionCapabilityDescriptor
     }
   | {
       kind: 'CHARACTER_ACTION'
@@ -150,6 +165,21 @@ export function resolveEncounterActionSource(
       ...(boundItemInstanceId === undefined ? {} : { boundItemInstanceId }),
       ...(freeUseKey === null ? {} : { grantedUseKey: freeUseKey })
     }
+  }
+  // A rule-raised action belongs to the rule, so any actor kind takes it the same way.
+  if (parseEncounterRuleActionId(actor.id, input.actionId)) {
+    const { system } = input
+    if (!system || system.id !== input.gameSystemId || !input.rules)
+      throw new Error('The selected rule action is stale.')
+    const capability = discoverEncounterRuleAction({
+      actorId: actor.id,
+      actionId: input.actionId,
+      gameSystemId: input.gameSystemId,
+      state: input.rules,
+      conditionDefinitionIds: system.conditionTypes.map((condition) => condition.id),
+      abilityDefinitions: systemAbilityDefinitions(system)
+    })
+    return { kind: 'RULE', actor, capability }
   }
   if (isEncounterBasicActionId(actor.id, input.actionId)) {
     const { system } = input
