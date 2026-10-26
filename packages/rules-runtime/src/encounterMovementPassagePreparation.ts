@@ -441,10 +441,11 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
     throw new Error('Movement passage definition is stale.')
   let initiatorContributors = initiator.contributors
   let initiatorRollMode = initiator.rollMode
-  if ('initiatorD20' in resolved) {
+  const initiatorD20 = 'initiatorD20' in resolved ? resolved.initiatorD20 : undefined
+  if (initiatorD20) {
     // Keep a qualified contributor's grant, domain and source, so a condition still names its holder
     // (D94); the rule's own size relation is sourced to the rule's definition.
-    initiatorContributors = resolved.initiatorD20.contributors.map((contributor) => {
+    initiatorContributors = initiatorD20.contributors.map((contributor) => {
       const qualified = initiator.contributors.find(
         (candidate) => candidate.sourceId === contributor.id
       )
@@ -460,7 +461,7 @@ function prepareMovementPassageContest<TCharacterFacts extends CharacterMovement
         }
       }
     })
-    initiatorRollMode = resolved.initiatorD20.rollMode
+    initiatorRollMode = initiatorD20.rollMode
   }
   const graph = contestCheckCapabilityRegistry
     .require(input.state.gameSystemId)
