@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { ManifestAuthored } from '@artificer-toolkit/shared/authored'
 import { environmentalZones } from '@artificer-toolkit/rules-runtime/testing/authoredZoneFixture'
 import { resolveFixtureNodeRuntime } from '#test/nodeRuntimeResolver'
 import {
   createPlacedZoneDraft,
+  placedZoneOf,
   placedZoneSize,
   placeZoneCommand
 } from './campaignTabletopZoneTool.model'
@@ -27,16 +27,18 @@ describe('the GM zone tool model (MOVE-3.2)', () => {
     }
   })
 
-  it('places the starting draft once the GM picks its center', () => {
-    expect(placeZoneCommand({ zone: createPlacedZoneDraft(), ...placement })).not.toBeNull()
+  it('accepts the starting draft and the authored environmental zones as placed zones', () => {
+    const draft = createPlacedZoneDraft()
+    expect(placedZoneOf(draft)).toBe(draft)
+    for (const zone of Object.values(environmentalZones())) expect(placedZoneOf(zone)).toBe(zone)
   })
 
-  it('refuses a manifest that is not a placed-space zone', () => {
+  it('refuses a manifest that is not a placed-space zone, or incomplete form values', () => {
     const draft = createPlacedZoneDraft()
-    const sourceZone: ManifestAuthored = { ...draft, attachmentKind: 'SOURCE' }
-    const object: ManifestAuthored = { ...draft, manifestKind: 'OBJECT' }
-    expect(placeZoneCommand({ zone: sourceZone, ...placement })).toBeNull()
-    expect(placeZoneCommand({ zone: object, ...placement })).toBeNull()
+    expect(placedZoneOf({ ...draft, attachmentKind: 'SOURCE' })).toBeNull()
+    expect(placedZoneOf({ ...draft, manifestKind: 'OBJECT' })).toBeNull()
+    expect(placedZoneOf({ ...draft, id: undefined })).toBeNull()
+    expect(placedZoneOf({})).toBeNull()
   })
 
   it('sizes a circle as a radius and a cube as a square in Scene units', () => {
@@ -50,7 +52,19 @@ describe('the GM zone tool model (MOVE-3.2)', () => {
   })
 
   it('has no size for a shape a GM cannot place at a point, or an empty size', () => {
-    expect(placedZoneSize({ shape: { id: 'wall', shapeKind: 'WALL' } }, grid)).toBeNull()
+    expect(
+      placedZoneSize(
+        {
+          shape: {
+            id: 'wall',
+            shapeKind: 'WALL',
+            length: { amount: 30, unit: 'FEET' },
+            height: { amount: 10, unit: 'FEET' }
+          }
+        },
+        grid
+      )
+    ).toBeNull()
     expect(
       placedZoneSize(
         {

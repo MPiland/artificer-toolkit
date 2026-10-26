@@ -13,11 +13,14 @@ import { AuthoringFormProvider } from '#forms/layout/AuthoringFormProvider'
 import { FormRenderer } from '#forms/rendering/FormRenderer'
 import {
   createPlacedZoneDraft,
+  placedZoneOf,
   placedZoneSize,
   placeZoneCommand
 } from './campaignTabletopZoneTool.model'
 
-const ZoneRenderer = FormRenderer({ defaultValues: createPlacedZoneDraft() })
+// The renderer's values stay plain objects, as on the authoring pages; `placedZoneOf` validates them.
+const EMPTY_ZONE_VALUES: object = {}
+const ZoneRenderer = FormRenderer({ defaultValues: EMPTY_ZONE_VALUES })
 
 /**
  * The GM's zone tool (MOVE-3.2): authors an environmental zone through the same zone node map as
@@ -50,19 +53,20 @@ export function CampaignTabletopZoneTool({
     command: PlaceZoneInputDto | RevertLastEncounterActionInputDto
   ) => Promise<EncounterCommandResultDto>
 }) {
-  const [defaultValues] = useState(createPlacedZoneDraft)
+  const [defaultValues] = useState<object>(createPlacedZoneDraft)
   const form = useAppForm({ defaultValues })
-  const zone = useSelector(form.store, (state) => state.values)
+  const values = useSelector(form.store, (state) => state.values)
+  const zone = useMemo(() => placedZoneOf(values), [values])
   const [point, setPoint] = useState<ScenePoint | null>(null)
   // The Run version the placement committed at; undo applies while it is still the last action.
   const [placedVersion, setPlacedVersion] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const size = placedZoneSize(zone, grid)
+  const size = zone ? placedZoneSize(zone, grid) : null
   const command = useMemo(
     () =>
-      point
+      zone && point
         ? placeZoneCommand({ zone, point, encounterId, expectedVersion: encounterVersion })
         : null,
     [encounterId, encounterVersion, point, zone]
@@ -145,7 +149,7 @@ export function CampaignTabletopZoneTool({
                 ? `Centered at (${Math.round(point.x)}, ${Math.round(point.y)})`
                 : size
                   ? 'Pick the zone’s center on the map.'
-                  : 'A placed zone is a sphere, cylinder, circle or cube of fixed size.'}
+                  : 'Complete a placed-space zone shaped as a sphere, cylinder, circle or cube of fixed size.'}
             </Text>
             <Button
               disabled={busy || !size}
