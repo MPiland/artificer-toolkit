@@ -5,6 +5,7 @@ import { encounterOptionalCombatSnapshotDtoSchema } from '@artificer-toolkit/sch
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 
 import { prepareActiveRuleEffectRecord } from '../activeRuleEffectRecords.js'
+import { encounterGrantsFreeOpportunityReaction } from '../encounterActiveGrants.js'
 import { prepareAttackTargetGrantTriggers } from '../encounterAttackAppliedEffects.js'
 import { targetEndedEffects } from '../encounterEndedEffectRelease.js'
 import { SRD, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
@@ -199,5 +200,40 @@ describe('the mark an attack gives its target (ATTACK-13.T1)', () => {
     const marks = triggers({ rules })
     expect(attack(marks, RANGED).grants.map(({ id }) => id)).toEqual([marks[0]!.id])
     expect(marks[0]!.effect.definition.recurrence.anchor).toBe('HOLDER')
+  })
+})
+
+describe('the free opportunity reaction a mark gives its attacker (ATTACK-13.T2)', () => {
+  const freeFor = (effects: readonly ActiveRuleEffectRecord[], reactorActorId: string) =>
+    encounterGrantsFreeOpportunityReaction({
+      holderActorId: HOLDER_ID,
+      effects,
+      reactorActorId,
+      turnActorId: HOLDER_ID
+    })
+
+  it('lets only the marking attacker react against the marked creature without its reaction', () => {
+    const mark = held(triggers({})[0]!)
+    expect(freeFor([mark], ATTACKER_ID)).toBe(true)
+    expect(freeFor([mark], OTHER_ATTACKER_ID)).toBe(false)
+    expect(freeFor([], ATTACKER_ID)).toBe(false)
+  })
+
+  // Parity: a homebrew mark that is not limited to its source frees every reactor's reaction.
+  it('frees any reactor under a homebrew mark not limited to its source', () => {
+    const rules = homebrewMarking((parameters) => ({
+      ...parameters,
+      effect: {
+        ...parameters.effect,
+        paths: parameters.effect.paths.map((path) => {
+          if (path.selectionKind !== 'FIXED') return path
+          const { fromSourceOnly: _fromSourceOnly, ...lifecycle } = path.resultBlock.lifecycle
+          return { ...path, resultBlock: { ...path.resultBlock, lifecycle } }
+        })
+      }
+    }))
+    const mark = held(triggers({ rules })[0]!)
+    expect(freeFor([mark], ATTACKER_ID)).toBe(true)
+    expect(freeFor([mark], OTHER_ATTACKER_ID)).toBe(true)
   })
 })

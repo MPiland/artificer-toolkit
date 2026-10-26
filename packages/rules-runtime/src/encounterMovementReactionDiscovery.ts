@@ -92,6 +92,8 @@ export async function discoverEncounterMovementReactionChoices(input: {
     occurrenceId: input.occurrenceId,
     movementKind: input.movementKind,
     contacts,
+    encounter: input.encounter,
+    activeEffectsByActorId: input.activeEffectsByActorId,
     actorRuleStates,
     lockRelationship: input.lockRelationship,
     resolvePerception: input.resolvePerception
@@ -162,6 +164,8 @@ export async function revalidateEncounterMovementReactionOption(input: {
     occurrenceId: input.occurrenceId,
     movementKind: input.movementKind,
     contacts: [contact],
+    encounter: input.encounter,
+    activeEffectsByActorId: input.activeEffectsByActorId,
     actorRuleStates,
     lockRelationship: input.lockRelationship,
     resolvePerception: input.resolvePerception

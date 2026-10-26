@@ -16,6 +16,7 @@ const SRD_POSITIONAL_SUPPORT_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000
 export const SRD_BREATHING_CAPABILITY_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d6'
 export const SRD_ACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d7'
 export const SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d8'
+export const SRD_FREE_REACTION_ALLOWANCE_DEFINITION_ID = '00000000-0000-4000-8000-0000000000d9'
 const SRD_BLINDED_CONDITION_DEFINITION_ID = '00000000-0000-0000-0002-000100000000'
 const SRD_INVISIBLE_CONDITION_DEFINITION_ID = '00000000-0000-0000-0002-000800000000'
 
@@ -77,6 +78,20 @@ export const SRD_RULE_CAPABILITY_DEFINITIONS: readonly SrdRuleStateDefinitionSee
       id: SRD_REACTION_ALLOWANCE_DEFINITION_ID,
       gameSystemId: SRD_SYSTEM_ID,
       usage: { maximum: 1, refreshBoundary: 'START_OF_TURN' }
+    })
+  }),
+  defineRuleState({
+    id: SRD_FREE_REACTION_ALLOWANCE_DEFINITION_ID,
+    definitionFamilyKey: 'rule-capability',
+    label: 'Free reaction allowance',
+    description:
+      'D&D Encounter reaction a granted opportunity attack makes without the reaction, once each turn.',
+    document: ruleCapabilityReusableDefinitionDocumentDtoSchema.parse({
+      schemaVersion: 1,
+      kind: 'RULE_CAPABILITY',
+      id: SRD_FREE_REACTION_ALLOWANCE_DEFINITION_ID,
+      gameSystemId: SRD_SYSTEM_ID,
+      usage: { maximum: 1, refreshBoundary: 'EACH_TURN' }
     })
   }),
   defineRuleState({
@@ -248,6 +263,7 @@ export const SRD_CONDITION_RULE_STATE_DEFINITIONS: readonly SrdRuleStateDefiniti
               kind: 'CAPABILITY_SUPPRESS',
               capabilityDefinitionIds: [
                 SRD_REACTION_ALLOWANCE_DEFINITION_ID,
+                SRD_FREE_REACTION_ALLOWANCE_DEFINITION_ID,
                 SRD_ACTION_ALLOWANCE_DEFINITION_ID,
                 SRD_BONUS_ACTION_ALLOWANCE_DEFINITION_ID,
                 SRD_ACTOR_ACTION_CAPABILITY_DEFINITION_ID,
