@@ -11,6 +11,7 @@ import {
 } from './flankingPolicy.js'
 import { prepareDnd5eDisarmContest } from './optionalActionPolicy.js'
 import {
+  dnd5ePassageAppliedEffects,
   prepareDnd5eClimbOntoContest,
   prepareDnd5eOverrunContest,
   prepareDnd5eTumbleContest
@@ -188,6 +189,7 @@ export const dnd5eOptionalCombatPolicyCapabilityAdapter = {
   prepareMoraleSave: prepareDnd5eMoraleSave,
   consequenceRollTables: dnd5eConsequenceRollTables,
   attackAppliedEffects: dnd5eAttackAppliedEffects,
+  passageAppliedEffects: dnd5ePassageAppliedEffects,
   facingRule: dnd5eFacingRule,
   flankingParticipantCapabilityDefinitionId: dnd5eFlankingParticipantCapabilityDefinitionId,
   resolveFlanking: resolveDnd5eFlankingContributor,

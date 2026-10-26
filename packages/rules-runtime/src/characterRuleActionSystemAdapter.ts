@@ -10,6 +10,7 @@ import type { CompiledEffectOffer } from '@artificer-toolkit/schema/effects/stor
 import type { GrantedAction } from '@artificer-toolkit/schema/effects/grantedAction'
 import type { AttackSlotConditionDto } from '@artificer-toolkit/schema/features/attackSlots'
 import type { D20AddedDieDto } from '@artificer-toolkit/schema/shared/d20AddedDice'
+import type { D20FoldedBonusDto } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
 import type {
   CharacterGrantFoldModifier,
   CharacterGrantFoldSense
@@ -839,6 +840,11 @@ export interface CharacterRuleActionSystemAdapter {
     targetDerivedFacts: Readonly<Record<string, unknown>>
     targetConditionIds: readonly string[]
     /**
+     * Labelled flat bonuses the test's roll folds into its AC/DC or its modifier before it compiles
+     * (cover). Omitted folds none.
+     */
+    foldedBonuses?: readonly D20FoldedBonusDto[]
+    /**
      * Outcome rules the target's condition mechanics apply (D94). Omitted applies none.
      */
     conditionOutcomeRules?: CharacterRuleActionConditionOutcomeRules | null
@@ -904,6 +910,8 @@ export interface CharacterRuleActionSystemAdapter {
       defenseOrDc: number
       /** The dice the test rolls beside its d20 and adds after the kept die (D156). */
       addedDice: readonly D20AddedDieDto[]
+      /** The labelled bonuses already folded into `modifier` and `defenseOrDc`; absent when none. */
+      foldedBonuses?: readonly D20FoldedBonusDto[]
       /** The ability a saving throw is made with; absent on an attack roll. */
       savingThrowAbilityDefinitionId?: string
     }

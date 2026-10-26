@@ -40,7 +40,6 @@ import {
   executeInRoom,
   expectRedactedRoomRefusal,
   RoomCommandRefusal,
-  roomErrorLogs,
   useLocalRoomWorker
 } from '../../tests/fixtures/localRoomWorker'
 
@@ -141,17 +140,16 @@ function replace(input: {
   }
 }
 
-// Current Equipment whose armor class modifier is not the while-equipped form a Creature can
-// evaluate, as if it had been revised after the Creature was published.
-const unevaluableShield = {
+// A +1 shield whose armor class modifier carries no restriction: a Creature folds it as a Character
+// does, so it applies while held (ATTACK-6.T4a).
+const unrestrictedShield = {
   ...shieldWoodPlus1,
   id: '10000000-0000-4000-8000-000000000105',
-  label: 'Unevaluable Shield',
+  label: 'Unrestricted Shield',
   modifiers: shieldWoodPlus1.modifiers?.map(
     ({ restrictions: _restrictions, ...modifier }) => modifier
   )
 }
-const unevaluableReason = `Equipment "${unevaluableShield.id}" has an armor class modifier that is not the while-equipped form, which a Creature cannot evaluate.`
 
 async function seedCampaign(authored: typeof creature = creature) {
   const base = await fixture()
@@ -160,9 +158,9 @@ async function seedCampaign(authored: typeof creature = creature) {
     subjects: [
       importedSubject({ ...authored, subjectKind: 'CREATURE', document: authored }),
       importedSubject({
-        ...unevaluableShield,
+        ...unrestrictedShield,
         subjectKind: 'EQUIPMENT',
-        document: unevaluableShield
+        document: unrestrictedShield
       }),
       importedSubject({ ...shieldWood, subjectKind: 'EQUIPMENT', document: shieldWood }),
       importedSubject({
@@ -181,7 +179,7 @@ async function seedCampaign(authored: typeof creature = creature) {
     ]
   })
   // A variant's stored compilation resolves its parents, so it is stored after them (D163).
-  for (const variant of [unevaluableShield, shieldWoodPlus1])
+  for (const variant of [unrestrictedShield, shieldWoodPlus1])
     await base.t.mutation(internal.content.import.syncEquipmentDerived, {
       id: variant.id,
       checksum: checksumRuleDocument(variant)
@@ -508,59 +506,43 @@ describe('native Encounter REPLACE_CREATURE_EQUIPMENT commands', () => {
     })
   }, 30000)
 
-  it('recomputes the projected armor class when a +1 shield replaces the shield', async () => {
-    const { t, campaign, owner, run, creatureActor } = await setup(shieldedCreature)
-    const armorClassOf = async () => {
-      const records = await stored(t, campaign.id, run.id)
-      const state = records.actorStates.find((value) => value.id === creatureActor.id)
-      if (!state) throw new Error('Missing Creature state.')
-      return snapshotStatBlock(state)?.armorClass
-    }
-    const shieldedArmorClass = srdPrintedArmorClass(wolf) + 2
-    expect(await armorClassOf()).toBe(shieldedArmorClass)
-    await executeInRoom(
-      owner.caller,
-      replace({
-        encounterId: run.id,
-        actorId: creatureActor.id,
-        equipmentId: shieldWoodPlus1.id,
-        loadoutId: shieldEntryId
-      })
-    )
-    expect(await armorClassOf()).toBe(shieldedArmorClass + 1)
-  }, 30000)
-
-  it('refuses to admit a Creature whose current Equipment armor class cannot be evaluated', async () => {
-    const authored = {
-      ...shieldedCreature,
-      equipmentLoadout: [
-        creature.equipmentLoadout[0],
-        { ...shieldedCreature.equipmentLoadout[1], equipmentId: unevaluableShield.id }
-      ]
-    }
-    const { t, campaign, owner } = await seedCampaign(authored)
-    await expect(
-      owner.caller.mutation(createBlueprint, blueprintInput(authored, campaign))
-    ).rejects.toThrow(unevaluableReason)
-    expect(await t.run((ctx) => ctx.db.query('encounterBlueprints').take(1))).toEqual([])
-  }, 30000)
-
-  it('refuses a replacement whose armor class cannot be evaluated without writes', async () => {
-    const { t, campaign, owner, run, creatureActor } = await setup(shieldedCreature)
-    const before = await stored(t, campaign.id, run.id)
-    await expect(
-      executeInRoom(
+  it.each([shieldWoodPlus1, unrestrictedShield])(
+    'recomputes the projected armor class when $label replaces the shield',
+    async (plusOneShield) => {
+      const { t, campaign, owner, run, creatureActor } = await setup(shieldedCreature)
+      const armorClassOf = async () => {
+        const records = await stored(t, campaign.id, run.id)
+        const state = records.actorStates.find((value) => value.id === creatureActor.id)
+        if (!state) throw new Error('Missing Creature state.')
+        return snapshotStatBlock(state)?.armorClass
+      }
+      const shieldedArmorClass = srdPrintedArmorClass(wolf) + 2
+      expect(await armorClassOf()).toBe(shieldedArmorClass)
+      await executeInRoom(
         owner.caller,
         replace({
           encounterId: run.id,
           actorId: creatureActor.id,
-          equipmentId: unevaluableShield.id,
+          equipmentId: plusOneShield.id,
           loadoutId: shieldEntryId
         })
       )
-    ).rejects.toThrow(RoomCommandRefusal)
-    expect(roomErrorLogs().join('\n')).toContain(unevaluableReason)
-    expect(await stored(t, campaign.id, run.id)).toEqual(before)
+      expect(await armorClassOf()).toBe(shieldedArmorClass + 1)
+    },
+    30000
+  )
+
+  it('admits a Creature whose held shield modifier carries no restriction', async () => {
+    const authored = {
+      ...shieldedCreature,
+      equipmentLoadout: [
+        creature.equipmentLoadout[0],
+        { ...shieldedCreature.equipmentLoadout[1], equipmentId: unrestrictedShield.id }
+      ]
+    }
+    const { t, campaign, owner } = await seedCampaign(authored)
+    await owner.caller.mutation(createBlueprint, blueprintInput(authored, campaign))
+    expect(await t.run((ctx) => ctx.db.query('encounterBlueprints').take(2))).toHaveLength(1)
   }, 30000)
 
   it('rejects unauthorised and unavailable Equipment replacements without writes', async () => {

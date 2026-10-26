@@ -299,6 +299,7 @@ export const tabletopPlayerEncounter = {
 export const tabletopGmEncounter = {
   ...encounterBase,
   trackAmmunition: false,
+  automaticCover: true,
   healthDisplayDefault: 'DESCRIPTIVE',
   actors: actorBases.map((actor, index) => ({
     ...actor,

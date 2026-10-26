@@ -1,5 +1,6 @@
 import type {
   EffectAuthored,
+  HeldEscapeDcAuthored,
   NonManifestOutcomeAuthored,
   ShapeAuthored,
   SpeedAuthored
@@ -322,12 +323,19 @@ type NonCreatureManifestAuthored<TKind extends ManifestKind> = ManifestAuthoredB
   light?: ManifestLightAuthored
   hollow?: boolean
   wallThickness?: ShapeMeasurementValueAuthored
+  camouflage?: ManifestCamouflageAuthored
   spreadsAroundCorners?: boolean
   obscurementKind?: 'LIGHT' | 'HEAVY'
   properties?: Array<keyof typeof MANIFEST_PROPERTY>
   destructionCriteria?: ManifestDestructionCriterionAuthored[]
   suppressionImmunities?: Array<keyof typeof MANIFEST_SUPPRESSION_IMMUNITY>
 }
+
+/**
+ * A zone drawn and listed only for its placer and the GM until a creature is shown it (MOVE-3.4).
+ * Its spot DC is a fixed number or the placer's save DC, pinned when the zone is placed.
+ */
+export type ManifestCamouflageAuthored = { spotDc: HeldEscapeDcAuthored }
 
 type ZoneManifestAuthored = NonCreatureManifestAuthored<typeof MANIFEST_KIND.ZONE> &
   Required<Pick<ManifestAuthoredBase, 'attachmentKind'>>

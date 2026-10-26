@@ -33,6 +33,7 @@ import {
   zoneMovementCostMultiplierSchema,
   zoneRequiredSightSchema
 } from '../shared/spatial.js'
+import { heldEscapeDcDtoSchema } from '../effects/check.js'
 import { summonStatBlockDtoSchema } from '../effects/manifest.js'
 import { targetingDtoSchema } from '../effects/targeting.js'
 import { ruleValueDtoSchema } from '../api/rulesRuntime.js'
@@ -573,6 +574,8 @@ const zoneComponentShape = lazySchemaParts(() => ({
   blockingRules: z.optional(zoneBlockingRulesSchema),
   /** Whether a creature failing the zone's save at the start of its turn loses its Action. */
   failedSaveLosesAction: z.optional(z.boolean()),
+  /** The spot DC that conceals the zone from every creature not shown it (MOVE-3.4); absent when in plain sight. */
+  camouflage: z.optional(z.strictObject({ spotDc: heldEscapeDcDtoSchema })),
   /** The condition the zone holds on a creature failing its save (D146); absent when unheld. */
   heldCondition: z.optional(compiledSpatialHeldConditionDtoSchema),
   /** What a creature the zone triggers on is put through (its authored save and outcomes). */

@@ -5,6 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { SceneStoredGeometrySave } from '@artificer-toolkit/schema/projections/sceneGeometryPersistence'
 import type { SceneSpatialPreparation } from '@artificer-toolkit/schema/projections/sceneSpatialPreparation'
+import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { EncounterSpatialRuleEffectRecord } from '@artificer-toolkit/schema/projections/spatialRuleEffectPersistence'
 import type {
   MovementConcentrationEndDto,
@@ -26,6 +27,14 @@ import { readMovementResolution } from './sceneGeometryDocuments.js'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import type { endHolderStateGrants } from './concentrationEnd.js'
 import { deleteGrants } from './consumedGrantPersistence.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
+import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import {
+  readLiveCharacterMaximumHitPoints,
+  readLiveCharacterStreamVersion
+} from './liveMovementTargetState.js'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { EncounterPersistenceTransaction } from './ports.js'
 import type { persistLiveMovementSpatial } from './liveMovementSpatialPersistence.js'
 import type { persistLiveMovementReaction } from './liveMovementReactionPersistence.js'
@@ -154,8 +163,41 @@ type MovementSettlementCallbacks = {
     input: Parameters<typeof persistLiveMovementMoveEnd>[1]
   ) => ReturnType<typeof persistLiveMovementMoveEnd>
   endHolderGrants: (input: Parameters<typeof endHolderStateGrants>[1]) => Promise<void>
+  /** Versions a Character the passage's effect lands on, as every Character-owned effect does. */
+  applyMechanics: Parameters<typeof persistLiveMovementSpatial>[2]['applyMechanics']
 }
 
+/** Refuses an effect a PASSAGE step carries unless it is held by the blocker and sourced by the passage. */
+export function assertPassageEffectMatches(
+  effect: ActiveRuleEffectRecord,
+  expected: {
+    blocker: EncounterRunActorState | undefined
+    encounterId: string
+    gameSystemId: string
+    sourceActorId: string
+    occurrenceId: string
+    commandId: string
+  }
+) {
+  const origin = effect.definition.origin
+  if (
+    !expected.blocker ||
+    checksumCanonicalJson(effect.owner) !==
+      checksumCanonicalJson(turnEffectOwner(expected.blocker, expected.encounterId)) ||
+    origin.kind !== 'ENCOUNTER' ||
+    origin.sourceAggregateId !== expected.encounterId ||
+    origin.sourceActorId !== expected.sourceActorId ||
+    origin.sourceOccurrenceId !== expected.occurrenceId ||
+    origin.rootCommandId !== expected.commandId ||
+    effect.definition.frozenGraph.source.gameSystemId !== expected.gameSystemId ||
+    effect.maintainedEffectStateId !== null ||
+    effect.sourceEncounterId !==
+      (effect.owner.kind === 'CHARACTER'
+        ? sourceEncounterIdForDefinition(effect.definition, null)
+        : null)
+  )
+    throw new Error('Movement passage effect does not match its blocker and source.')
+}
 /** Settles retained movement contacts and their children in the parent's transaction. */
 export function persistMovementSettlements(
   ctx: EncounterPersistenceTransaction,
@@ -401,6 +443,72 @@ export async function persistMovementContacts(
       })
       await deleteGrants(ctx, step.consumedGrants)
       actors = actors.map((entry) => (entry.id === next.id ? next : entry))
+      const blocker = actors.find((entry) => entry.id === passage.audit.blockerActorId)
+      if (step.createdEffects.length && (passage.outcome !== 'SUCCESS' || !blocker))
+        throw new Error('Movement passage effects need a won contest and its blocker.')
+      if (blocker?.kind === 'CHARACTER' && step.createdEffects.length) {
+        const beforeStreamVersion = await readLiveCharacterStreamVersion(
+          ctx,
+          input.state,
+          blocker.sourceId
+        )
+        const mechanics = await callbacks.applyMechanics({
+          encounterId: input.state.id,
+          targetActorId: blocker.id,
+          expectedEncounterVersion: input.state.version,
+          occurrenceId: preparation.occurrenceId,
+          sourceCommandId: save.commandId,
+          commandId: deriveEncounterCharacterMechanicsEventCommandId({
+            occurrenceId: preparation.occurrenceId,
+            sourceCommandId: save.commandId,
+            phase: 'MOVEMENT_PASSAGE_EFFECT',
+            ordinal: 0,
+            targetCharacterId: blocker.sourceId
+          }),
+          occurredAt: preparation.occurredAt,
+          applications: [],
+          effectiveMaximumHitPoints: await readLiveCharacterMaximumHitPoints(
+            ctx,
+            input.state,
+            blocker.sourceId
+          ),
+          forceVersionAdvance: true
+        })
+        if (mechanics.characterStreamVersion === null)
+          throw new Error('Movement passage effect did not version its Character.')
+        actors = actors.map((entry) => (entry.id === blocker.id ? mechanics.updatedActor : entry))
+        transitions.push({
+          kind: 'PASSAGE',
+          characterTransitions: [
+            {
+              characterId: blocker.sourceId,
+              beforeStreamVersion,
+              afterStreamVersion: mechanics.characterStreamVersion
+            }
+          ]
+        })
+      }
+      const effectStore = createActiveRuleEffectStore(ctx)
+      for (const effect of step.createdEffects) {
+        assertPassageEffectMatches(effect, {
+          blocker,
+          encounterId: input.state.id,
+          gameSystemId: input.state.gameSystemId,
+          sourceActorId: step.actorId,
+          occurrenceId: preparation.occurrenceId,
+          commandId: save.commandId
+        })
+        const created = await effectStore.create({
+          id: effect.id,
+          owner: effect.owner,
+          definition: effect.definition,
+          lifecycle: effect.lifecycle,
+          maintainedEffectStateId: null,
+          occurredAt: preparation.occurredAt
+        })
+        if (checksumCanonicalJson(created) !== checksumCanonicalJson(effect))
+          throw new Error('Movement passage effect changed before settlement.')
+      }
       passageSettled = true
     } else if (step.kind === 'AREA_DEPARTURE') {
       const expected = departures[departureIndex]
