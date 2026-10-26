@@ -62,3 +62,10 @@ Owned by the ATTACK-15 slice session. Design notes, rulings and proofs go here.
   - `packages/rules-runtime/src/__tests__/sheetCommandReducer.test.ts` covers removal, the absent id and the GM-only assertion.
   - `packages/rules-runtime/src/__tests__/campaignCharacterSheet.test.ts` covers the capability.
   - `packages/schema/src/__tests__/consequence-roll-table.test.ts` covers table refinements and the 20-consequence cap.
+
+## T3 as built
+
+- **Settings gate (AC 15.3).** T1 already added INJURIES to `INTEGRATED_OPTIONAL_COMBAT_RULE_MODULES`, so T3 changes no product code. Campaign settings list a rule, and the save accepts it, only when its authored module pin matches the integrated policy key and contract version (`isIntegratedOptionalCombatRule`).
+- **Proofs.**
+  - `apps/apis/convex/campaigns/playSettings.test.ts` ("offers and saves Injuries only while its System policy resolves it") is the Convex journey: the published SRD Injuries is offered and saved, while an Injuries copy pinned to an unsupported contract version is not offered and its save is refused without changing settings.
+  - `packages/rules-runtime/src/__tests__/campaignPlaySettingsOptions.test.ts` covers the options presenter: the SRD module is offered; a later contract version and an unknown module key are not.

@@ -240,6 +240,8 @@ const createPathDtoSchema = (outcomePayloadDtoSchema: z.ZodMiniType) => {
     order: z.number().check(z.int()),
     groupType: z.optional(z.literal(pathGroupTypeSchema._zod.def.entries.CHOICE)),
     ...choiceOptionMetadataDtoSchema.shape,
+    /** See `PathChoiceOptionAuthored.requiresOptionalRule`. */
+    requiresOptionalRule: z.optional(z.strictObject({ definitionId: postgresUuidSchema })),
     resultBlock: resultBlockDtoSchema
   })
 

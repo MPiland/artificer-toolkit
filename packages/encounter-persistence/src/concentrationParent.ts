@@ -1,12 +1,13 @@
 import type { EncounterRunState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import {
   MAX_CONCENTRATION_DAMAGE_APPLICATIONS,
-  compareDamageSaveApplications
+  compareDamageSaveApplications,
+  unboundDamageSaveApplication
 } from '@artificer-toolkit/schema/shared/ruleExecutionConcentration'
 import {
   damageSaveCheckBoundApplication,
   damageSaveCheckMutatesRun
-} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+} from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import {
   storedRuleExecutionResultDtoSchema,
   type StoredRuleExecutionResultDto
@@ -126,12 +127,10 @@ export async function readNativeConcentrationParentDamage(
         metadata.expectedAggregateVersion + (commitMutated ? 1 : 0) !== command.version
       )
         throw new Error('The concentration parent version is stale.')
-      // The parent recorded the bare damage; a Concentration sibling's output binds it to a state.
-      const { application } = childResult.applicationOutputs
-      const damage =
-        'maintainedStateId' in application
-          ? (({ maintainedStateId: _stateId, ...bare }) => bare)(application)
-          : application
+      // The parent recorded the bare damage; a sibling's output may bind it to what it checked.
+      const damage = unboundDamageSaveApplication(
+        damageSaveCheckBoundApplication(childResult.applicationOutputs)
+      )
       if (
         !applicationChecksums.has(checksumRuleDocument(damage)) ||
         compareDamageSaveApplications(

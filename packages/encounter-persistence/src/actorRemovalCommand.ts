@@ -380,7 +380,8 @@ async function removeEncounterActorCore(
       context.kind === 'ENCOUNTER_DAMAGE_SAVE_CHECK' &&
       context.application.targetActorId === input.actorId
     )
-      // A removed holder's pending repeat save is void with it; only Concentration owes a cleanup.
+      // A removed holder's pending repeat or massive-damage save is void with it; only Concentration
+      // owes a cleanup.
       concentrationState = context.source === 'CONCENTRATION' ? context.maintainedState : null
     else if (
       mode === 'PUBLIC' &&

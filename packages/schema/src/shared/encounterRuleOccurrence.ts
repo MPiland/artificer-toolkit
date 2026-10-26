@@ -6,6 +6,7 @@ import { characterResourcePoolIdentitySchema } from './characterResourceIdentity
 import { postgresUuidSchema } from './postgresUuid.js'
 import { MAX_ENCOUNTER_ACTORS, MAX_ENCOUNTER_REACTION_OPTIONS } from './authoredLimits.js'
 import { ruleExecutionReceiptD20FaceSchema } from './ruleExecutionPrimitives.js'
+import type { DamageSaveSource } from './ruleExecutionConcentration.js'
 import { MAX_D20_ADDED_DICE, d20AddedDiceDtoSchema, rolledDieShape } from './d20AddedDice.js'
 import { MAX_FORCED_MOVEMENT_DESTINATIONS, spatialPointDtoSchema } from './spatialFacts.js'
 import {
@@ -107,28 +108,26 @@ const triggerLabelSchema = lazySchema(() =>
   z.string().check(z.trim()).check(z.minLength(1)).check(z.maxLength(160))
 )
 
+/** A damage chain save's trigger (D167): the damage that prompted it and the save's DC. */
+const damageSaveRollTriggerDtoSchema = <Source extends DamageSaveSource>(kind: Source) =>
+  z.strictObject({
+    kind: z.literal(kind),
+    damage: z.strictObject({
+      amount: z.number().check(z.int()).check(z.positive()),
+      typeLabel: z.nullable(triggerLabelSchema)
+    }),
+    sourceLabel: z.nullable(triggerLabelSchema),
+    dc: z.number().check(z.int()).check(z.positive())
+  })
+
 /** Why a rule asks for a roll, named for the person answering it. */
 export const encounterRuleRollTriggerDtoSchema = lazySchema(() =>
   z.discriminatedUnion('kind', [
-    z.strictObject({
-      kind: z.literal('CONCENTRATION'),
-      damage: z.strictObject({
-        amount: z.number().check(z.int()).check(z.positive()),
-        typeLabel: z.nullable(triggerLabelSchema)
-      }),
-      sourceLabel: z.nullable(triggerLabelSchema),
-      dc: z.number().check(z.int()).check(z.positive())
-    }),
+    damageSaveRollTriggerDtoSchema('CONCENTRATION'),
     /** A damaged holder's active effect repeats its save (D167); `dc` is the effect's frozen DC. */
-    z.strictObject({
-      kind: z.literal('EFFECT_REPEAT_SAVE'),
-      damage: z.strictObject({
-        amount: z.number().check(z.int()).check(z.positive()),
-        typeLabel: z.nullable(triggerLabelSchema)
-      }),
-      sourceLabel: z.nullable(triggerLabelSchema),
-      dc: z.number().check(z.int()).check(z.positive())
-    }),
+    damageSaveRollTriggerDtoSchema('EFFECT_REPEAT_SAVE'),
+    /** One damage source dealt at least the massive-damage share of the holder's maximum hit points. */
+    damageSaveRollTriggerDtoSchema('MASSIVE_DAMAGE'),
     /** A dying Character's turn-start death save, with the saves it has made so far. */
     z.strictObject({
       kind: z.literal('DEATH_SAVE'),
