@@ -11762,12 +11762,14 @@
           "acs": [
             {
               "text": "With Injuries enabled, the authored triggers (taking a critical hit, dropping to 0 HP, failing a death save by 5 or more) offer the GM a roll on the authored lingering-injury table.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "nativeRoomConsequenceRolls.test.ts"
+              ],
               "origin": [
                 "G2-OPTIONAL-COMBAT"
               ],
-              "note": "2014 DMG variant, approved for Phase 8. The death-save trigger needs SPELLS-3. The removed resolver is in 437b2dd15 (optionalResolutionPolicy.ts). Token presentation is VTT_UI-2.1.",
+              "note": "2014 DMG variant, approved for Phase 8. The death-save trigger needs SPELLS-3. The removed resolver is in 437b2dd15 (optionalResolutionPolicy.ts). Token presentation is VTT_UI-2.1. Closed 2026-10-24 by ATTACK-15.T1, ATTACK-15.T1g.",
               "id": "ATTACK-15.1"
             },
             {
@@ -11815,7 +11817,7 @@
             },
             {
               "id": "ATTACK-15.T1g",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "ATTACK-15.1"
               ],
@@ -11829,7 +11831,9 @@
                 ]
               },
               "text": "Move the consequence-roll offer write into the shared mechanics batch seam (applyRoomEncounterMechanicsBatch / persistEncounterMechanicsBatchPlan), deleting the per-path call sites, so voluntary zone entry, forced-movement zone damage, melee retaliation during movement, contest/basic-action outcomes and damage mirrors offer too. Room tests for zone entry and forced movement. Manual Sheet HP adjustments do not offer (user ruling 2026-10-25: automation only).",
-              "note": "Registered 2026-10-25 (user ruling, D187 growth +2): T1 audit found 5 HP-lowering paths outside its call sites; all write through the mechanics batch seam."
+              "note": "Registered 2026-10-25 (user ruling, D187 growth +2): T1 audit found 5 HP-lowering paths outside its call sites; all write through the mechanics batch seam. Merged in m453.",
+              "mergedAt": "2026-10-26T00:46:49Z",
+              "proof": "Tests 40249381423 and Live 40249381409 green on ec044886b; reviewed (offer write in persistEncounterMechanicsBatchPlan, 4 call sites deleted); merged in m453."
             },
             {
               "id": "ATTACK-15.T2",
@@ -17899,6 +17903,14 @@
               "origin": [],
               "note": "Registered 2026-10-18; AC confirmed by the user (Q25). 2026-10-18 scan: about 165 class feature and subclass feature closed-rule kinds.",
               "text": "Every class feature and subclass feature CLOSED_RULE in the SRD corpus is replaced by core authoring options, or by its description alone when it changes no resolved state (D156) or is rare in play with no automated equivalent, shown as a GM ruling (D187a), adding generic options where a rule cannot yet be expressed; each conversion has an authoring-parity proof, and the closed-rule kind is deleted."
+            },
+            {
+              "id": "SPELLS-31.2",
+              "text": "An author can give a feature (Class, Feat, Creature trait) an always-on effect with no duration that ends on any condition from the existing End On list and returns after a long rest or a short rest. While it is held it applies its grants. Once ended it stays ended until its rest turns it back on. It works for Characters and Creatures, an action's undo restores it, and the Sheet shows it as active or as 'ended until <rest>', never as a use. Tranquility is authored this way with no feature-specific code, and its closed-rule kind is deleted.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-25 (user yes): standing effects replace Design B for Tranquility; ending and undo reuse consumedGrantPersistence (no per-path edits)."
             }
           ],
           "tasks": [
@@ -18333,10 +18345,10 @@
               "mergedAt": "2026-10-19T23:21:38Z"
             },
             {
-              "id": "SPELLS-31.T4k2d",
+              "id": "SPELLS-31.T4k2d1",
               "status": "TODO",
               "closes": [
-                "SPELLS-31.1"
+                "SPELLS-31.2"
               ],
               "wsjf": {
                 "bv": 3,
@@ -18347,7 +18359,25 @@
                   "SPELLS-31.T4k2b"
                 ]
               },
-              "text": "Tranquility as Design B (user ruling 2026-10-25, withdraws the 2026-10-19 rest-end spend): a holder-owned INCOMING_ATTACK_GATE feature grant (DERIVED_DC Wisdom) active while an internal LONG_REST-reset charge is unspent; the holder's attack or hostile spell spends it (Sanctuary end triggers). No rest trigger or Sheet planner. The Sheet shows the ward as active or ended until the next long rest, never as a use. Generic options with authoring parity; delete the kind; room test."
+              "text": "Generic standing effect: a 'Returns on' lifecycle option (LONG_REST / SHORT_REST) beside endOnEvents on a passive feature effect; compiler plan for its passive APPLY_GRANT; arming at Character COMPLETE_REST and the Creature rest; incoming-gate owner fix for non-ENCOUNTER origins (encounterIncomingAttackGate.ts:55); Sheet 'ended until <rest>' row; authoring parity. Ending and undo go through consumedGrantPersistence. Tests: rest arms it, an action ends it, undo restores it, it stays ended until the rest."
+            },
+            {
+              "id": "SPELLS-31.T4k2d2",
+              "status": "TODO",
+              "closes": [
+                "SPELLS-31.1",
+                "SPELLS-31.2"
+              ],
+              "wsjf": {
+                "bv": 3,
+                "tc": 2,
+                "rr": 2,
+                "size": 2,
+                "after": [
+                  "SPELLS-31.T4k2d1"
+                ]
+              },
+              "text": "Tranquility as a standing effect: returns on long rest, incoming-attack gate at DERIVED_DC Wisdom, Sanctuary's ATTACK_ROLL and SPELL_CAST vs ENEMY end triggers; delete CLASS_WAY_OF_THE_OPEN_HAND_TRANQUILITY; room test (the ward stops an attacker, the holder's attack ends it, a long rest restores it)."
             },
             {
               "id": "SPELLS-31.T4l1",
@@ -23696,17 +23726,19 @@
             {
               "id": "RELIABILITY-19.1",
               "text": "When merge-slice merges a slice whose only conflict is scripts/fileSizeBudget.json, it resolves each entry to the lower of the two caps, keeps entries present on either side, re-runs the source ratchets on the merged tree and continues; any other conflicting file, or a ratchet failure after resolution, still refuses the merge. The ADR 0039 shrink-only ratchet is unchanged.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by RELIABILITY-19.T1 (m452); see each task's proof."
+              ],
               "origin": [],
-              "note": "Registered 2026-10-25 (user yes): fileSizeBudget.json refused 3 of 4 m442 attempts because sourceRatchets.mjs makes every slice that shrinks a listed file lower its cap line."
+              "note": "Registered 2026-10-25 (user yes): fileSizeBudget.json refused 3 of 4 m442 attempts because sourceRatchets.mjs makes every slice that shrinks a listed file lower its cap line. Closed 2026-10-24 by RELIABILITY-19.T1."
             }
           ],
           "tasks": [
             {
               "id": "RELIABILITY-19.T1",
               "text": "In scripts/mergeSlice.mjs, resolve a fileSizeBudget.json-only conflict by taking the per-entry minimum (union of keys), then run ratchetProblems from scripts/sourceRatchets.mjs on the merged tree before committing; refuse on any other conflict or remaining ratchet problem. Unit-test the resolver and the refusal paths against real git merges in a temp repo; update docs/architecture/ci-validation.md (approved merges).",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "RELIABILITY-19.1"
               ],
@@ -23715,7 +23747,10 @@
                 "tc": 8,
                 "rr": 8,
                 "size": 2
-              }
+              },
+              "mergedAt": "2026-10-26T00:39:21Z",
+              "proof": "Tests 40247096640 green on 108828c79 (Live path-filtered); red proof RED 5/44; reviewed; merged by hand (workflow change) in m452 with ci/merge-m452 backstop.",
+              "note": " Merged in m452."
             }
           ]
         }

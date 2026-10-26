@@ -1,9 +1,16 @@
+import { compileInstalledCreatureRuleFacts } from '@artificer-toolkit/rules-runtime/platformRulesRuntime'
 import {
   characterActor,
+  SRD_VOCABULARY,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
 import type { SceneBarrier, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
+import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
+import {
+  SRD_ACROBATICS_SKILL_ID,
+  SRD_ATHLETICS_SKILL_ID
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { runInDurableObject } from 'cloudflare:test'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -246,11 +253,16 @@ describe('movement through a hostile creature', () => {
     automationMode?: 'MANUAL' | 'ASSISTED'
     /** A second HOSTILE Wolf further along the path, past the first. */
     laterBlocker?: boolean
+    /** The first blocker's Bite is an opportunity attack. */
+    reactiveBlocker?: boolean
     rolls?: readonly number[]
     optionalCombatKinds?: MovementRoomConfig['optionalCombatKinds']
   }) {
     const mover = srdCreatureActor({ id: MOVER_ID, creature: plainWolf, disposition: 'FRIENDLY' })
-    const blocker = srdCreatureActor({ id: BLOCKER_ID, creature: plainWolf })
+    const blocker = srdCreatureActor({
+      id: BLOCKER_ID,
+      creature: options.reactiveBlocker ? reactionWolf : plainWolf
+    })
     const later = srdCreatureActor({ id: LATER_BLOCKER_ID, creature: plainWolf })
     return movementRoom({
       actors: options.laterBlocker ? [mover, blocker, later] : [mover, blocker],
@@ -331,6 +343,93 @@ describe('movement through a hostile creature', () => {
       }
     })
   })
+
+  it.each(['OVERRUN', 'TUMBLE'] as const)(
+    'settles a won %s on the checks its SRD definition pins and passes the blocker (MOVE-2)',
+    async (ruleKind) => {
+      const definition = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+        (candidate) => candidate.document.kind === ruleKind
+      )
+      if (!definition) throw new Error(`The SRD ${ruleKind} is missing.`)
+      const { parameters } = definition.document
+      if (parameters.kind !== 'OVERRUN' && parameters.kind !== 'TUMBLE')
+        throw new Error(`The SRD ${ruleKind} must author its contest checks.`)
+      const { checkTotals } = compileInstalledCreatureRuleFacts({
+        creature: plainWolf,
+        vocabulary: SRD_VOCABULARY
+      })
+      if (!checkTotals) throw new Error('The Wolf must compile its check totals.')
+      // Both contestants are Wolves, whose Athletics and Acrobatics differ, so each total names its check.
+      expect(checkTotals[SRD_ATHLETICS_SKILL_ID]).not.toBe(checkTotals[SRD_ACROBATICS_SKILL_ID])
+      const room = await passageRoom({ laterBlocker: true, rolls: [19, 0] })
+      await room.move([MOVER_START, { x: 750, y: 150 }])
+      const option = (await passageOptions(room)).find(
+        (candidate) => candidate.ruleKind === ruleKind && candidate.economy === 'ACTION'
+      )
+      if (!option) throw new Error(`The ${ruleKind} option is missing.`)
+
+      await room.respond({ kind: 'PASSAGE_OPTION', optionId: option.optionId })
+
+      expect(await room.pending()).toBeNull()
+      expect(await resolvedReceipt(room, 'RESOLVE_RULE_OCCURRENCE')).toMatchObject({
+        result: { terminalPosition: { x: 450, y: 150 } },
+        metadata: {
+          resolutionCommands: [
+            {
+              passageContest: {
+                actionKind: ruleKind,
+                outcome: 'SUCCESS',
+                initiator: {
+                  selectedNatural: 20,
+                  modifier: checkTotals[parameters.initiatorCheckDefinitionId]
+                },
+                defender: {
+                  selectedNatural: 1,
+                  modifier: checkTotals[parameters.targetCheckDefinitionId]
+                },
+                audit: {
+                  optionalCombat: {
+                    definitionId: definition.id,
+                    definitionChecksum: definition.checksum
+                  },
+                  sourceActorId: MOVER_ID,
+                  blockerActorId: BLOCKER_ID
+                }
+              }
+            }
+          ]
+        }
+      })
+    }
+  )
+
+  it.each(['OVERRUN', 'TUMBLE'] as const)(
+    'a won %s still provokes the blocker it passes, because its SRD policy suppresses no opportunity attack (MOVE-2)',
+    async (ruleKind) => {
+      const room = await passageRoom({ reactiveBlocker: true, rolls: [19, 0] })
+      await room.move([MOVER_START, { x: 550, y: 150 }])
+      const option = (await passageOptions(room)).find(
+        (candidate) => candidate.ruleKind === ruleKind && candidate.economy === 'ACTION'
+      )
+      if (!option) throw new Error(`The ${ruleKind} option is missing.`)
+
+      await room.respond({ kind: 'PASSAGE_OPTION', optionId: option.optionId })
+
+      const { reactionTimeline } = await reactionDecision(room)
+      expect(reactionTimeline.map((entry) => entry.group.reactorActorId)).toEqual([BLOCKER_ID])
+      await room.respond({ kind: 'DECLINE' })
+      expect(await room.pending()).toBeNull()
+      expect(await resolvedReceipt(room, 'RESOLVE_RULE_OCCURRENCE')).toMatchObject({
+        result: { terminalPosition: { x: 550, y: 150 } },
+        metadata: {
+          resolutionCommands: [
+            { passageContest: { actionKind: ruleKind, outcome: 'SUCCESS' } },
+            { kind: 'DECLINE' }
+          ]
+        }
+      })
+    }
+  )
 
   it('moves through without a contest when the Encounter is manual', async () => {
     const room = await passageRoom({ automationMode: 'MANUAL' })

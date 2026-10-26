@@ -16,11 +16,6 @@ import {
   nativeConcentrationDamageApplications,
   zoneEffectDamage
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
-import {
-  consequenceRollDamageFacts,
-  withDeathSaveFacts
-} from '@artificer-toolkit/rules-runtime/encounterConsequenceRolls'
-import { d20AddedDiceTotal } from '@artificer-toolkit/schema/shared/d20AddedDice'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { recordZoneApplications, type CampaignSceneState } from '@artificer-toolkit/shared/vtt'
@@ -49,7 +44,6 @@ import {
   persistEncounterInitiativeRestores,
   type EncounterInitiativeRestoreCharacterRules
 } from './initiativeRestorePersistence.js'
-import { persistConsequenceRollOffers } from './consequenceRollCommands.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import { markTurnStarted, readTurnStartedBy } from './turnMovement.js'
 import { persistEncounterTurnEffects } from './turnEffectsPersistence.js'
@@ -411,21 +405,7 @@ export async function persistEncounterTurnCommit(
   )
   for (const request of input.maintenanceOwners)
     if (request.owner.kind === 'CHARACTER') characterIds.add(request.owner.characterId)
-  const damageFacts = consequenceRollDamageFacts(damageBatches)
-  const deathSave = root.completedDeathSavePlan
-  const settledActors = await persistConsequenceRollOffers(ctx, {
-    state: nextState,
-    actors: await readRunActors(ctx, state),
-    facts: deathSave
-      ? withDeathSaveFacts(damageFacts, {
-          actorId: deathSave.candidate.actorId,
-          rawDie: deathSave.rawDie,
-          addedTotal: d20AddedDiceTotal(deathSave.addedDice)
-        })
-      : damageFacts,
-    sourceCommandId: root.rootCommandId,
-    occurredAt: input.occurredAt
-  })
+  const settledActors = await readRunActors(ctx, state)
   const { actors } = await callbacks.persistConcentrationChildren({
     state: nextState,
     actors: settledActors,
