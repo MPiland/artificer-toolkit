@@ -1089,6 +1089,13 @@ condition's last counted turn (D62.2) removes the effect's conditions under `dnd
 turn-effect result binds that removal to the expiring effect itself (an `EXPIRE` lifecycle, its own effect id, no
 paths), not to a trace candidate, since the duration node outputs nothing.
 
+A test-less action's table (ATTACK-16.T1c2a, current) amends T1a's "save result path only" rule: an action with no
+attack, save or check may resolve its one path (ON_USE) through one `ROLL_TABLE`, rolled server-side in its single
+DIRECT graph (`directRollTableGraph`). The graph is the same table graph a save's OUTCOME phase runs (table die, row
+gates, path-gated row outcomes, `rollTableRoll` output), admitted by the same rules, so `rollTableRowPlans` and
+`encounterActiveEffectPlan` work unchanged from the DIRECT outputs. The table must be the action's only path. Tables on
+an attack's or a check's result paths stay refused.
+
 **Placed-zone damage dice (SPELLS-20 T1, D133, current).** A zone whose failed entry save deals authored dice
 (`valueKind: 'DICE'`, a plain `NdM`) compiles those dice into the zone's one frozen entry graph: `damage-enabled`
 (the movement-interruption authorization) gates one `evidence.optional-integer-range` node per die, sum nodes add

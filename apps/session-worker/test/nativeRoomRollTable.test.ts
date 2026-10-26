@@ -12,6 +12,10 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { runInDurableObject } from 'cloudflare:test'
+
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 const CASTER_ACTOR_ID = testUuid(0xf40)
@@ -129,6 +133,72 @@ describe('a roll table row that lasts, cast by a Character (ATTACK-16.T1a2)', ()
       // The Wolf's own turn ends, and the round the row lasts with it.
       await room.advanceTurn()
       expect(await wolfConditions(room)).toEqual([])
+    },
+    120000
+  )
+})
+
+/**
+ * Homebrew: a test-less self Effect whose own ON_USE path rolls the same d6 table, no save first
+ * (ATTACK-16.T1c2a).
+ */
+const { savingThrow: _save, ...wordInvocation } = wordEffect!.invocation as Extract<
+  SpellEffect['invocation'],
+  { triggerCode: 'SAVING_THROW' }
+>
+const selfShock: SpellAuthored = {
+  ...shock,
+  id: testUuid(0xf45),
+  label: 'Homebrew Self Shock',
+  effects: [
+    {
+      ...shock.effects![0]!,
+      invocation: {
+        ...wordInvocation,
+        triggerCode: 'ACTIVATED',
+        range: { id: testUuid(0xf46), rangeKind: 'SELF' },
+        targeting: { selectionKind: 'SELF' }
+      },
+      paths: [{ ...(shock.effects![0]!.paths[0] as TablePath), pathCode: 'ON_USE' }]
+    }
+  ]
+}
+
+/** A Character holds its conditions in its play state. */
+function casterConditions(room: Awaited<ReturnType<typeof actionRoom>>) {
+  return runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const row = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((candidate) => candidate.characterId === CASTER_ID)
+    if (!row) throw new Error('Missing room Character play state.')
+    return (readCharacterPlay(row).conditions ?? []).map(({ conditionTypeId }) => conditionTypeId)
+  })
+}
+
+describe('a roll table on a test-less self action, used by a Character (ATTACK-16.T1c2a)', () => {
+  it.each([
+    [3, BLINDED],
+    [4, DEAFENED]
+  ])(
+    'holds on the user the row its table rolls %i on',
+    async (tableFace, condition) => {
+      const room = await actionRoom({
+        autoRoll: 'BOTH',
+        rolls: [tableFace - 1],
+        actors: [
+          {
+            ...characterActor({ id: CASTER_ACTOR_ID, characterId: CASTER_ID }),
+            snapshot: { kind: 'CHARACTER', id: CASTER_ID, systemId: srdSystemRecord.id }
+          },
+          srdCreatureActor({ id: WOLF_ID, creature: plainWolf })
+        ],
+        characterSpellcasting: { spells: [selfShock], prepared: [selfShock.id] },
+        characterPlay: { classLevel: 17 },
+        characterAction: (action) => action.label.startsWith(selfShock.label)
+      })
+      const { answer } = await room.startAction(CASTER_ACTOR_ID)
+      expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+      expect(await casterConditions(room)).toEqual([condition])
     },
     120000
   )
