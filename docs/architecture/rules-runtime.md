@@ -1133,6 +1133,7 @@ may carry a spot DC and a disarm DC, each a flat number (`FLAT`) or the placer's
 (`SET_ZONE_DCS`, GM-only, receipt `{ spatialEffectId, before, afterVersion }`; GM undo restores `before` while the zone
 is still at `afterVersion`). `withZoneDcs` (`encounterZoneConcealment.ts`) makes the placer, the zone's
 `origin.sourceActorId`, know of a newly concealed zone; a GM-placed zone has no placer, so only the GM knows of it.
+A ZONE manifest can author `camouflage: { spotDc }` (MOVE-3.4), a `HeldEscapeDcAuthored` (`FIXED`, or `SOURCE_SAVE_DC` for the cast's save DC pinned at placement). `placedZoneRecord` passes it to `withZoneDcs` as a `FLAT` spot DC, so the zone is concealed from everyone but its placer on placement; a GM-typed `spotDc` overrides it, and an environmental (GM) zone refuses `SOURCE_SAVE_DC` because it has no source.
 Concealment is separate from the placement's `visibility`/`revealed` pair, which hides a zone from everyone until it
 triggers. `readEncounterSessionState` redacts per member once, for Convex and the room alike: the GM reads every zone,
 and a player reads a concealed zone only when one of the actors they control is in `knownByActorIds`

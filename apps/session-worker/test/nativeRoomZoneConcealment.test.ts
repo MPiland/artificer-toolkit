@@ -30,6 +30,8 @@ const FIELD_POINT = { x: 250, y: 150 }
 const { caltropField, pit } = environmentalZones()
 const SPOT_DC = { value: 14, source: 'PLACER_ROLL' as const }
 const DISARM_DC = { value: 12, source: 'FLAT' as const }
+const CAMOUFLAGE = { spotDc: { kind: 'FIXED' as const, value: 11 } }
+const CAMOUFLAGE_SPOT_DC = { value: 11, source: 'FLAT' as const }
 
 afterEach(() => {
   closeTrackedSockets()
@@ -37,8 +39,8 @@ afterEach(() => {
 })
 
 /** A room whose player's Character carries an item leaving a caltrop field; another player's Wolf. */
-function concealmentRoom() {
-  const item = carryingZone(caltropField)
+function concealmentRoom(zone: Parameters<typeof carryingZone>[0] = caltropField) {
+  const item = carryingZone(zone)
   return actionRoom({
     actors: [
       {
@@ -140,6 +142,47 @@ describe('a concealed zone on the Scene (MOVE-3.3)', () => {
     expect((await zonesShownTo(room.room.base)).placedZones).toEqual([
       expect.objectContaining({ id: zone!.id, spotDc: SPOT_DC, disarmDc: null })
     ])
+    expect((await zonesShownTo(await connectPlayer(room.room.base))).placedZones).toEqual([])
+  })
+
+  it('conceals a zone its manifest camouflages the moment a Character places it', async () => {
+    const room = await concealmentRoom({ ...caltropField, camouflage: CAMOUFLAGE })
+    const { answer } = await room.startAreaAction(FIELD_POINT)
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+    const [zone] = await readZones(room)
+    const placer = await connectPlayer(room.room.base, 'PLAYER')
+    const other = await connectPlayer(room.room.base, 'OTHER_PLAYER')
+
+    expect(await zonesShownTo(room.room.base)).toEqual({
+      placedZones: [
+        expect.objectContaining({ id: zone!.id, spotDc: CAMOUFLAGE_SPOT_DC, disarmDc: null })
+      ],
+      halfSpeedFields: [zone!.id]
+    })
+    expect((await zonesShownTo(placer)).placedZones).toEqual([
+      expect.objectContaining({ id: zone!.id, spotDc: null })
+    ])
+    expect(await zonesShownTo(other)).toEqual({ placedZones: [], halfSpeedFields: [] })
+  })
+
+  it('conceals a camouflaged zone the GM places, under the GM’s own spot DC when typed', async () => {
+    const room = await concealmentRoom()
+    const camouflagedPit = { ...pit, camouflage: CAMOUFLAGE }
+    const place = async (spotDc?: typeof SPOT_DC) =>
+      room.send({
+        type: 'PLACE_ZONE',
+        encounterId: room.room.encounterId,
+        commandId: crypto.randomUUID(),
+        expectedVersion: await room.version(),
+        zone: camouflagedPit,
+        point: FIELD_POINT,
+        ...(spotDc ? { spotDc } : {})
+      })
+    expect((await place()).type).toBe('COMMAND_COMMITTED')
+    expect((await place(SPOT_DC)).type).toBe('COMMAND_COMMITTED')
+
+    const gmView = (await zonesShownTo(room.room.base)).placedZones
+    expect(gmView.map(({ spotDc }) => spotDc)).toEqual([CAMOUFLAGE_SPOT_DC, SPOT_DC])
     expect((await zonesShownTo(await connectPlayer(room.room.base))).placedZones).toEqual([])
   })
 })

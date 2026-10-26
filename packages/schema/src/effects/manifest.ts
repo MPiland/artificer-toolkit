@@ -1,4 +1,5 @@
 import { z, lazySchema } from '../zod.js'
+import { heldEscapeDcDtoSchema } from './check.js'
 import { manifestNestedBehaviorDtoSchema } from './effect.js'
 import { shapeDtoSchema } from '../shared/shape.js'
 import { speedDtoSchema } from '../shared/speed.js'
@@ -344,7 +345,8 @@ export const manifestDtoSchema: z.ZodMiniType = lazySchema(() =>
       plainManifestSchema,
       z.extend(plainManifestSchema, {
         manifestKind: z.literal('ZONE'),
-        attachmentKind: attachmentKindSchema
+        attachmentKind: attachmentKindSchema,
+        camouflage: z.optional(z.object({ spotDc: heldEscapeDcDtoSchema }))
       })
     ])
   })
