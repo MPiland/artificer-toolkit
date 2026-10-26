@@ -429,10 +429,10 @@ Gate One with Shadows (`warlock.ts`, `classRowId(W,5,18)`, effect `classRowId(W,
 The standing effect (T4k2d1, generic, data-authored):
 
 - A PASSIVE effect whose result-block lifecycle names `returnsOn` (`LONG_REST` or `SHORT_REST`) and at least one End On trigger, with an APPLY_GRANT outcome. A `returnsOn` with no end compiles to no standing effect. Discovery lists it as `standingEffects`, never as an action or a use (`rules-runtime/src/standingEffects.ts`).
-- Held means an Active Rule Effect with its `authoredEffectId` exists. A rest whose recovery triggers include `returnsOn` re-creates it when absent (`prepareRestStandingEffects`): Character COMPLETE_REST (`sheetCommands.ts`, CHARACTER origin, OWNER scope, INDEFINITE) and the Creature rest (`creatureRestCommand.ts`, ENCOUNTER origin and scope; the receipt records `armedEffectIds`, which `actionRevert.ts` removes on undo). A held effect is never re-armed, and a rest with only an ended standing effect to restore counts as a recovery.
+- Held means an Active Rule Effect with its `authoredEffectId` exists. A rest whose recovery triggers include `returnsOn` re-creates it when absent (`prepareRestStandingEffects`, `standingEffectPlans.ts`): Character COMPLETE_REST (`sheetCommands.ts`, CHARACTER origin, OWNER scope, INDEFINITE) and the Creature rest (`creatureRestCommand.ts`, ENCOUNTER origin and scope; the receipt records `armedEffectIds`, which `actionRevert.ts` removes on undo). A held effect is never re-armed, and a rest with only an ended standing effect to restore counts as a recovery.
 - It ends on its End On triggers through `consumedGrantPersistence`, so undoing the ending action restores it; once ended it stays ended until its rest.
 - An INCOMING_ATTACK_GATE ward with a CHARACTER origin is owned by its holder (`encounterIncomingAttackGate.ts`), with a DERIVED_DC save.
-- The Sheet lists a held one with the active grants and an ended one as "Ended until long rest" or "short rest" (`overview.standingEffects`).
+- The Sheet lists a held one with the active grants and an ended one as "Ended until long rest" or "short rest" (`overview.standingEffects`, from `listStandingEffects` in the browser-safe `standingEffects.ts`).
 - Proofs: `standingEffects.test.ts`, `nativeRoomStandingEffect.test.ts`, `sheetRestStandingEffect.test.ts`, `standingEffectAuthoringParity.test.ts` and `CharacterSheetStatus.test.tsx`, on the homebrew `standingWardFeature` fixture.
 
 T4k2d2 (Tranquility conversion, size 2, after d1):

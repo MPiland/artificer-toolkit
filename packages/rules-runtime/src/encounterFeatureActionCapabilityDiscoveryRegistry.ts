@@ -17,7 +17,8 @@ import {
   type EncounterFeatureActionDiscovery
 } from './encounterFeatureActionCapabilityDiscovery.js'
 import { characterRuleActionSystemAdapterRegistry } from './platformEncounterPolicy.js'
-import { compileStandingEffect, type StandingEffect } from './standingEffects.js'
+import { compileStandingEffect } from './standingEffectPlans.js'
+import type { StandingEffect } from './standingEffects.js'
 
 /** A zone a Creature's passive feature keeps around it while it is in the Encounter (D144). */
 export interface EncounterPassiveZone {

@@ -78,7 +78,7 @@ import { projectCharacterRulePolicyToSheetProjection } from './characterRulePoli
 import { projectCharacterRuleResources } from './characterRuleResourceProjection.js'
 import { createCharacterSpellCastCandidateId } from './characterSpellCastRuleFacts.js'
 import { getProficiencyTargetKind } from './sheetProficiency.js'
-import { characterStandingEffects, holdsStandingEffect } from '../standingEffects.js'
+import { holdsStandingEffect, listStandingEffects } from '../standingEffects.js'
 import { addClassRitualSources, type CharacterSheetSpellSource } from './sheetSpellSource.js'
 import {
   getPreparedAndKnownSpellIds,
@@ -1382,17 +1382,12 @@ export function projectCharacterSheetBundle(
         recoveryTags: reduction.recoveryTags
       })),
       activeGrants: listActiveGrantListings(params.activeEffects),
-      standingEffects: characterStandingEffects({
-        sources: ruleEvaluation.standingEffectSources,
-        gameSystemId: character.systemId,
-        conditionDefinitionIds: conditionOptions.map(({ id }) => id),
-        abilityDefinitions: ruleEvaluation.facts.abilityDefinitions
-      }).map((standing) => ({
-        effectId: standing.effectId,
-        label: standing.label,
-        returnsOn: standing.returnsOn,
-        held: holdsStandingEffect(standing, params.activeEffects)
-      })),
+      standingEffects: listStandingEffects(ruleEvaluation.standingEffectSources).map(
+        (standing) => ({
+          ...standing,
+          held: holdsStandingEffect(standing, params.activeEffects)
+        })
+      ),
       // A Concentration summon the Sheet holds is the Sheet's Concentration when no Run carried one (D190).
       concentration:
         params.concentration ?? sheetSpellSummonConcentration(character.state.spellSummons),

@@ -13,7 +13,7 @@ import { planCreatureRest } from '@artificer-toolkit/rules-runtime/encounterCrea
 import { readEncounterActorConditionState } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
 import { discoverEncounterFeatureActions } from '@artificer-toolkit/rules-runtime/encounterFeatureActionCapabilityDiscoveryRegistry'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
-import { prepareRestStandingEffects } from '@artificer-toolkit/rules-runtime/standingEffects'
+import { prepareRestStandingEffects } from '@artificer-toolkit/rules-runtime/standingEffectPlans'
 import { rejectDomain } from './domainRejections.js'
 import { readRunActorWithRow, readRunState, writeRunActor } from './documents.js'
 import { createActiveRuleEffectStore } from './effectStore.js'

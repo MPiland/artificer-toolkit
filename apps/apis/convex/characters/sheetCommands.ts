@@ -56,7 +56,7 @@ import { settleCharacterEndedEffects } from '@artificer-toolkit/rules-runtime/en
 import {
   characterStandingEffects,
   prepareRestStandingEffects
-} from '@artificer-toolkit/rules-runtime/standingEffects'
+} from '@artificer-toolkit/rules-runtime/standingEffectPlans'
 import { compileCharacterSpellCasts } from '@artificer-toolkit/rules-runtime/character/characterSpellCastActions'
 import { sheetSpellCastSummonPlacement } from '@artificer-toolkit/rules-runtime/character/sheetSpellSummon'
 import { characterTotalLevel } from '@artificer-toolkit/rules-runtime/encounterMovementTargets'

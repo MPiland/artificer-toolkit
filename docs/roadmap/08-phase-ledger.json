@@ -17931,13 +17931,7 @@
               "id": "SPELLS-31.2",
               "text": "An author can give a feature (Class, Feat, Creature trait) an always-on effect with no duration that ends on any condition from the existing End On list and returns after a long rest or a short rest. While it is held it applies its grants. Once ended it stays ended until its rest turns it back on. It works for Characters and Creatures, an action's undo restores it, and the Sheet shows it as active or as 'ended until <rest>', never as a use. Tranquility is authored this way with no feature-specific code, and its closed-rule kind is deleted.",
               "status": "TODO",
-              "proof": [
-                "packages/rules-runtime/src/__tests__/standingEffects.test.ts",
-                "apps/session-worker/test/nativeRoomStandingEffect.test.ts",
-                "apps/apis/convex/characters/sheetRestStandingEffect.test.ts",
-                "packages/authoring/src/nodeRuntime/standingEffectAuthoringParity.test.ts",
-                "apps/web/src/domains/characters/sheet/status/CharacterSheetStatus.test.tsx"
-              ],
+              "proof": [],
               "origin": [],
               "note": "Registered 2026-10-25 (user yes): standing effects replace Design B for Tranquility; ending and undo reuse consumedGrantPersistence (no per-path edits)."
             }
@@ -18375,7 +18369,7 @@
             },
             {
               "id": "SPELLS-31.T4k2d1",
-              "status": "IN_PROGRESS",
+              "status": "TODO",
               "closes": [
                 "SPELLS-31.2"
               ],
@@ -18388,8 +18382,7 @@
                   "SPELLS-31.T4k2b"
                 ]
               },
-              "text": "Generic standing effect: a 'Returns on' lifecycle option (LONG_REST / SHORT_REST) beside endOnEvents on a passive feature effect; compiler plan for its passive APPLY_GRANT; arming at Character COMPLETE_REST and the Creature rest; incoming-gate owner fix for non-ENCOUNTER origins (encounterIncomingAttackGate.ts:55); Sheet 'ended until <rest>' row; authoring parity. Ending and undo go through consumedGrantPersistence. Tests: rest arms it, an action ends it, undo restores it, it stays ended until the rest.",
-              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
+              "text": "Generic standing effect: a 'Returns on' lifecycle option (LONG_REST / SHORT_REST) beside endOnEvents on a passive feature effect; compiler plan for its passive APPLY_GRANT; arming at Character COMPLETE_REST and the Creature rest; incoming-gate owner fix for non-ENCOUNTER origins (encounterIncomingAttackGate.ts:55); Sheet 'ended until <rest>' row; authoring parity. Ending and undo go through consumedGrantPersistence. Tests: rest arms it, an action ends it, undo restores it, it stays ended until the rest."
             },
             {
               "id": "SPELLS-31.T4k2d2",

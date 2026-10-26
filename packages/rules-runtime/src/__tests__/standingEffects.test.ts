@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { heldIncomingGate } from '../encounterIncomingAttackGate.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
-import { characterStandingEffects, prepareRestStandingEffects } from '../standingEffects.js'
+import { characterStandingEffects, prepareRestStandingEffects } from '../standingEffectPlans.js'
 import { SRD, evaluateSrdCharacter, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
