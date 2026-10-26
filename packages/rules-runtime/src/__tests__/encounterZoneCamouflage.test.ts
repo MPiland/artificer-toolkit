@@ -89,14 +89,19 @@ describe('a camouflaged zone (MOVE-3.4)', () => {
     expect(placeByItem(camouflaged({ kind: 'FIXED', value: 14 })).spatialState).toEqual({
       schemaVersion: 1,
       revealed: true,
-      concealment: { spotDc: { value: 14, source: 'FLAT' }, knownByActorIds: [PLACER_ID] }
+      concealment: {
+        spotDc: { value: 14, source: 'FLAT' },
+        knownByActorIds: [PLACER_ID],
+        sightings: []
+      }
     })
   })
 
   it('is placed concealed under its source’s save DC', () => {
     expect(placeByItem(camouflaged({ kind: 'SOURCE_SAVE_DC' })).spatialState.concealment).toEqual({
       spotDc: { value: 13, source: 'FLAT' },
-      knownByActorIds: [PLACER_ID]
+      knownByActorIds: [PLACER_ID],
+      sightings: []
     })
   })
 
@@ -104,7 +109,11 @@ describe('a camouflaged zone (MOVE-3.4)', () => {
     expect(
       placeByGm({ ...pit, camouflage: { spotDc: { kind: 'FIXED', value: 15 } } }).spatialState
         .concealment
-    ).toEqual({ spotDc: { value: 15, source: 'FLAT' }, knownByActorIds: [] })
+    ).toEqual({
+      spotDc: { value: 15, source: 'FLAT' },
+      knownByActorIds: [],
+      sightings: []
+    })
   })
 
   it('is refused for the GM under a source’s save DC: no creature is behind it', () => {
