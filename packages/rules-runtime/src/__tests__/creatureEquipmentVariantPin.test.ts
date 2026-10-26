@@ -108,20 +108,21 @@ describe('Creature Equipment variant pins', () => {
     ).toThrow(/stale/)
   })
 
-  it('refuses to pin Equipment whose armor class a Creature cannot evaluate', () => {
+  it('refuses to pin a held shield without an armor class', () => {
     const resolved: ResolvedEquipment = resolveEquipmentAuthored(
       shieldPlus1 as EquipmentAuthored,
       (id) => equipmentById.get(id) as EquipmentAuthored | undefined
     )
     const pinned = baseEquipmentAuthoredDtoSchema.parse(JSON.parse(JSON.stringify(resolved)))
     // ATTACK-6.T4a: a Creature folds any modifier restriction as a Character does, so the one armor
-    // class it cannot evaluate is a held shield without one (D143).
+    // class it cannot evaluate is armor or a shield without one, which the pinned contract refuses
+    // (D143).
     const { armorClass: _armorClass, ...document } = pinned
     expect(() =>
       pinCreatureEquipmentSources({
         creature: { ...goblin, equipmentLoadout: offHandLoadout(shieldPlus1.id) },
         equipment: new Map([[shieldPlus1.id, storedEquipmentSource(document)]])
       })
-    ).toThrow(`Equipment "${shieldPlus1.id}" is armor or a shield without an armor class.`)
+    ).toThrow('Armor and shields need an Armor Class.')
   })
 })
