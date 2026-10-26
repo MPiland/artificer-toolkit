@@ -7,6 +7,7 @@ import {
   type EncounterAttackActionStateDto
 } from '@artificer-toolkit/schema/projections/encounterAttackAction'
 import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
+import type { RuleCapabilityRefreshBoundaryDto } from '@artificer-toolkit/schema/shared/ruleState'
 
 import { takesInitiativeTurns } from './encounterInitiativeCursor.js'
 
@@ -278,4 +279,87 @@ export function withEncounterRuleUsageUsed(
       ? otherResources
       : [...otherResources, ['ruleUsage', Object.fromEntries(ruleUsage)]]
   )
+}
+
+/** The stored `EACH_TURN` usage entries, each with the turn it was spent on. */
+function encounterTurnUsageEntries(
+  actor: Pick<ActorRead, 'resources'>
+): readonly [string, { turnSequence: number; used: number }][] {
+  const usage = isRecord(actor.resources) ? actor.resources.turnUsage : undefined
+  if (usage === undefined) return []
+  if (!isRecord(usage) || Object.keys(usage).length > RULE_GRAPH_LIMITS.RUNTIME_FACTS)
+    throw new Error('Encounter turn usage state is invalid.')
+  return Object.entries(usage).map(([definitionId, entry]) => {
+    if (
+      !isRecord(entry) ||
+      Object.keys(entry).length !== 2 ||
+      !Number.isSafeInteger(entry.turnSequence) ||
+      (entry.turnSequence as number) < 0 ||
+      !Number.isSafeInteger(entry.used) ||
+      (entry.used as number) < 1
+    )
+      throw new Error('Encounter turn usage value is invalid.')
+    return [
+      serverUuidIdentityDtoSchema.parse(definitionId),
+      { turnSequence: entry.turnSequence as number, used: entry.used as number }
+    ]
+  })
+}
+
+/**
+ * This turn's `EACH_TURN` usage by capability definition. Each entry keeps the `turnSequence` it was
+ * spent on, so one from any other turn (a GM turn move starts a new one too) reads as unspent and no
+ * refresh ever writes it.
+ */
+export function encounterTurnUsageSnapshot(
+  actor: Pick<ActorRead, 'resources'>,
+  turnSequence: number
+): Readonly<Record<string, number>> {
+  return Object.fromEntries(
+    encounterTurnUsageEntries(actor).flatMap(([definitionId, entry]) =>
+      entry.turnSequence === turnSequence ? [[definitionId, entry.used]] : []
+    )
+  )
+}
+
+type EncounterAllowance = {
+  definitionId: string
+  refreshBoundary: RuleCapabilityRefreshBoundaryDto
+}
+
+/** How much of an allowance is used now, read from the record its refresh boundary keeps. */
+export function encounterAllowanceUsed(
+  actor: Pick<ActorRead, 'resources'>,
+  allowance: EncounterAllowance,
+  turnSequence: number
+): number {
+  if (allowance.refreshBoundary === 'START_OF_TURN')
+    return encounterRuleUsageUsed(actor, allowance.definitionId)
+  const definitionId = serverUuidIdentityDtoSchema.parse(allowance.definitionId)
+  return encounterTurnUsageSnapshot(actor, turnSequence)[definitionId] ?? 0
+}
+
+/**
+ * Writes an allowance's usage to the record its refresh boundary keeps. An `EACH_TURN` write stamps
+ * the current turn and drops the entries earlier turns left, so the record stays this turn's.
+ */
+export function withEncounterAllowanceUsed(
+  actor: Pick<ActorRead, 'resources'>,
+  allowance: EncounterAllowance,
+  turnSequence: number,
+  used: number
+): Record<string, unknown> {
+  if (allowance.refreshBoundary === 'START_OF_TURN')
+    return withEncounterRuleUsageUsed(actor, allowance.definitionId, used)
+  const definitionId = serverUuidIdentityDtoSchema.parse(allowance.definitionId)
+  if (!Number.isSafeInteger(used) || used < 0 || !Number.isSafeInteger(turnSequence))
+    throw new Error('Encounter turn usage value must be a nonnegative safe integer.')
+  const turnUsage = encounterTurnUsageEntries(actor).filter(
+    ([id, entry]) => id !== definitionId && entry.turnSequence === turnSequence
+  )
+  if (used > 0) turnUsage.push([definitionId, { turnSequence, used }])
+  const { turnUsage: _turnUsage, ...resources } = isRecord(actor.resources) ? actor.resources : {}
+  return turnUsage.length === 0
+    ? resources
+    : { ...resources, turnUsage: Object.fromEntries(turnUsage) }
 }

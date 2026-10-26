@@ -28,7 +28,10 @@ export type EncounterMovementReactionActor = Pick<
     | { kind: 'CREATURE' | 'CUSTOM'; conditions: unknown; defeated: boolean }
   )
 
-export type EncounterMovementReactionEncounter = Pick<EncounterRunState, 'gameSystemId'> & {
+export type EncounterMovementReactionEncounter = Pick<
+  EncounterRunState,
+  'gameSystemId' | 'turnSequence' | 'currentActorId'
+> & {
   actors: readonly EncounterMovementReactionActor[]
 }
 

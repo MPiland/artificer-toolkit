@@ -1862,6 +1862,14 @@ the dnd5e effect compiler and run through `RESOLVE_ACTION` as the third action s
   (empty domain, no payload), anchored to the holder's `END_OF_TURN`. The room reads it with `encounterGrantsEnabledDomain(effects, 'OPPORTUNITY_ATTACK_IMMUNITY')`.
   A `TURN` duration counts the turn in progress (`includesCurrentTurn`, no own-turn +1); `ROUND` and longer keep the +1. Like every
   grant it ends only at a real turn end (START or ADVANCE_TURN); GM cursor corrections do not tick grants (product-owner ruling, ATTACK-18.2).
+- **Free opportunity reaction (ATTACK-13.T2)** is a `FREE_OPPORTUNITY_REACTION` `ENABLE` modifier (empty domain) on the creature a
+  reactor may attack without its reaction. `encounterGrantsFreeOpportunityReaction` reads it within each effect's event scope, so a
+  `fromSourceOnly` grant (a Mark) frees only its source. The System policy then spends the free allowance capability instead of the
+  reaction while that allowance is left; a reactor that cannot act or take reactions gets nothing. The free allowance refreshes
+  `EACH_TURN`: its usage lives in `resources.turnUsage[definitionId] = { turnSequence, used }`, and an entry from any other
+  `turnSequence` (every turn start and GM turn move bumps it) reads as unspent, so no refresh ever writes it
+  (`encounterAllowanceUsed`, `withEncounterAllowanceUsed`). `START_OF_TURN` allowances stay in `ruleUsage`. A movement reaction's
+  move settles mechanics, so neither the Scene undo nor the action undo reverts it and the spent record stays.
 - **Two-weapon fighting damage (ATTACK-9.T5b, D-pending-attack-9-t5)** adds no feature-specific kind. The damage ability modifier of an
   off-hand bonus attack is the existing `min`/`max` clamp on `resolveAbilityModifierBonus` (`max: 0` keeps a modifier only while negative,
   `min: 0` only while positive; the optional finesse kind accepts the same fields), and the `ATTACK_ACTIVATION` facet predicate (folded to

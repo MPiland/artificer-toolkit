@@ -33200,7 +33200,7 @@ export declare const api: {
                   schemaVersion: 1;
                   usage: {
                     maximum: number;
-                    refreshBoundary: "START_OF_TURN";
+                    refreshBoundary: "START_OF_TURN" | "EACH_TURN";
                   } | null;
                 }
               | {
@@ -54036,7 +54036,7 @@ export declare const api: {
                   schemaVersion: 1;
                   usage: {
                     maximum: number;
-                    refreshBoundary: "START_OF_TURN";
+                    refreshBoundary: "START_OF_TURN" | "EACH_TURN";
                   } | null;
                 }
               | {
@@ -74881,7 +74881,7 @@ export declare const api: {
                   schemaVersion: 1;
                   usage: {
                     maximum: number;
-                    refreshBoundary: "START_OF_TURN";
+                    refreshBoundary: "START_OF_TURN" | "EACH_TURN";
                   } | null;
                 }
               | {
@@ -95717,7 +95717,7 @@ export declare const api: {
                   schemaVersion: 1;
                   usage: {
                     maximum: number;
-                    refreshBoundary: "START_OF_TURN";
+                    refreshBoundary: "START_OF_TURN" | "EACH_TURN";
                   } | null;
                 }
               | {
@@ -116588,7 +116588,7 @@ export declare const api: {
                   schemaVersion: 1;
                   usage: {
                     maximum: number;
-                    refreshBoundary: "START_OF_TURN";
+                    refreshBoundary: "START_OF_TURN" | "EACH_TURN";
                   } | null;
                 }
               | {
@@ -137424,7 +137424,7 @@ export declare const api: {
                   schemaVersion: 1;
                   usage: {
                     maximum: number;
-                    refreshBoundary: "START_OF_TURN";
+                    refreshBoundary: "START_OF_TURN" | "EACH_TURN";
                   } | null;
                 }
               | {
@@ -158217,7 +158217,7 @@ export declare const api: {
                 schemaVersion: 1;
                 usage: {
                   maximum: number;
-                  refreshBoundary: "START_OF_TURN";
+                  refreshBoundary: "START_OF_TURN" | "EACH_TURN";
                 } | null;
               }
             | {
@@ -178917,7 +178917,7 @@ export declare const api: {
                   schemaVersion: 1;
                   usage: {
                     maximum: number;
-                    refreshBoundary: "START_OF_TURN";
+                    refreshBoundary: "START_OF_TURN" | "EACH_TURN";
                   } | null;
                 }
               | {
@@ -199753,7 +199753,7 @@ export declare const api: {
                   schemaVersion: 1;
                   usage: {
                     maximum: number;
-                    refreshBoundary: "START_OF_TURN";
+                    refreshBoundary: "START_OF_TURN" | "EACH_TURN";
                   } | null;
                 }
               | {

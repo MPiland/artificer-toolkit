@@ -5,7 +5,7 @@ import type {
 } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ProjectableCharacterFacts } from './encounterActionProjection.js'
 import type { prepareEncounterActionMechanics } from './encounterActionMechanicsPreparation.js'
-import { encounterRuleUsageUsed } from './encounterActorState.js'
+import { encounterAllowanceUsed } from './encounterActorState.js'
 import { StaleMovementReactionError } from './encounterErrors.js'
 import { revalidateEncounterMovementReactionOption } from './encounterMovementReactionDiscovery.js'
 import type { PreparedEncounterMovementReactionAction } from './encounterMovementReactionActionExecution.js'
@@ -118,8 +118,16 @@ export async function prepareEncounterMovementReactionAction<
   const initialPublished =
     prepared.plan.kind === 'SINGLE_GRAPH' ? prepared.plan.published : prepared.plan.test.published
   const maintenance = await input.prepareMaintenance(prepared, userId, input.maintenanceProjection)
-  const beforeUsed = encounterRuleUsageUsed(actor, revalidate.option.policy.allowanceDefinitionId)
-  if (beforeUsed >= revalidate.option.policy.allowanceMaximum)
+  const { policy } = revalidate.option
+  const beforeUsed = encounterAllowanceUsed(
+    actor,
+    {
+      definitionId: policy.allowanceDefinitionId,
+      refreshBoundary: policy.allowanceRefreshBoundary
+    },
+    state.turnSequence
+  )
+  if (beforeUsed >= policy.allowanceMaximum)
     throw new Error('The selected movement reaction allowance is no longer available.')
   const action: PreparedEncounterMovementReactionAction = {
     adapter: prepared.adapter,
@@ -148,8 +156,8 @@ export async function prepareEncounterMovementReactionAction<
     executionPlan: prepared.plan,
     action,
     allowance: {
-      definitionId: revalidate.option.policy.allowanceDefinitionId,
-      maximum: revalidate.option.policy.allowanceMaximum,
+      definitionId: policy.allowanceDefinitionId,
+      maximum: policy.allowanceMaximum,
       beforeUsed,
       afterUsed: beforeUsed + 1
     }
