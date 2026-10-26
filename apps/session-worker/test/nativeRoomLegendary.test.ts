@@ -742,6 +742,119 @@ describe('a Legendary Action that gives its target a passive timed grant (SPELLS
   })
 })
 
+describe('a Legendary Action marks its melee target under Marking (ATTACK-13.T3)', () => {
+  const SECOND_WOLF_ID = testUuid(0x73e)
+
+  /** The current turn ends and the attack dragon strikes `targetActorId` in its window. */
+  async function turnEndStrike(
+    room: Awaited<ReturnType<typeof movementRoom>>,
+    targetActorId: string
+  ) {
+    const commandId = crypto.randomUUID()
+    const { runs } = await readRoomHistory(room.base.stub)
+    await room.send(commandId, {
+      scope: 'ENCOUNTER',
+      command: {
+        type: 'ADVANCE_TURN',
+        encounterId: room.encounterId,
+        commandId,
+        expectedVersion: runs[0]!.version
+      }
+    })
+    const choice = await readLegendaryChoice(room.base.stub)
+    const option = choice?.options[0]
+    if (choice?.ownerActorId !== FIRST_DRAGON_ID || !option)
+      throw new Error('Expected the dragon’s Legendary option.')
+    const { answer } = await respond(room, {
+      kind: 'LEGENDARY_OPTION',
+      optionId: option.optionId,
+      targetActorId
+    })
+    expect(answer.type, JSON.stringify(answer)).toBe('COMMAND_COMMITTED')
+  }
+
+  /** Who holds the marks the dragon gave: Encounter actors by id, Characters by Character id. */
+  async function dragonMarks(room: Awaited<ReturnType<typeof movementRoom>>) {
+    const { activeEffects, characterEffects } = await readRoomHistory(room.base.stub)
+    const fromDragon = ({ definitionJson }: { definitionJson: string }) => {
+      const { origin } = JSON.parse(definitionJson)
+      return origin?.kind === 'ENCOUNTER' && origin.sourceActorId === FIRST_DRAGON_ID
+    }
+    return [
+      ...activeEffects.filter(fromDragon).map(({ targetActorId }) => targetActorId),
+      ...characterEffects.filter(fromDragon).map(({ characterId }) => characterId)
+    ]
+  }
+
+  it('marks the struck Wolf, then moves the dragon’s one mark to the next Wolf it strikes', async () => {
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: SECOND_WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon })
+      ],
+      moverActorId: WOLF_ID,
+      positions: {
+        [WOLF_ID]: { x: 150, y: 150 },
+        [SECOND_WOLF_ID]: { x: 150, y: 250 },
+        [FIRST_DRAGON_ID]: { x: 250, y: 150 }
+      },
+      autoRoll: 'GAME_MASTER',
+      // Both Tail attacks miss: the mark comes from the melee attack, not the hit.
+      rolls: [1, 1],
+      optionalCombatKinds: ['MARK']
+    })
+    await turnEndStrike(room, WOLF_ID)
+    expect(await dragonMarks(room)).toEqual([WOLF_ID])
+
+    await turnEndStrike(room, SECOND_WOLF_ID)
+    expect(await dragonMarks(room)).toEqual([SECOND_WOLF_ID])
+  })
+
+  it('keeps one mark on a Character the dragon strikes twice', async () => {
+    const room = await movementRoom({
+      actors: [
+        {
+          ...characterActor({ id: CHARACTER_ACTOR_ID, characterId: CHARACTER_ID }),
+          // Initiative reads the Character's frozen identity, which a turn change checks.
+          snapshot: { kind: 'CHARACTER', id: CHARACTER_ID, systemId: srdSystemRecord.id }
+        },
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon })
+      ],
+      moverActorId: CHARACTER_ACTOR_ID,
+      positions: {
+        [CHARACTER_ACTOR_ID]: { x: 150, y: 150 },
+        [WOLF_ID]: { x: 150, y: 250 },
+        [FIRST_DRAGON_ID]: { x: 250, y: 150 }
+      },
+      autoRoll: 'GAME_MASTER',
+      rolls: [1, 1],
+      optionalCombatKinds: ['MARK']
+    })
+    await turnEndStrike(room, CHARACTER_ACTOR_ID)
+    expect(await dragonMarks(room)).toEqual([CHARACTER_ID])
+
+    await turnEndStrike(room, CHARACTER_ACTOR_ID)
+    expect(await dragonMarks(room)).toEqual([CHARACTER_ID])
+  })
+
+  it('marks nothing while Marking is off', async () => {
+    const room = await movementRoom({
+      actors: [
+        srdCreatureActor({ id: WOLF_ID, creature: plainWolf }),
+        srdCreatureActor({ id: FIRST_DRAGON_ID, creature: attackDragon })
+      ],
+      moverActorId: WOLF_ID,
+      positions: { [WOLF_ID]: { x: 150, y: 150 }, [FIRST_DRAGON_ID]: { x: 250, y: 150 } },
+      autoRoll: 'GAME_MASTER',
+      rolls: [1]
+    })
+    await turnEndStrike(room, WOLF_ID)
+    expect(await dragonMarks(room)).toEqual([])
+  })
+})
+
 describe('a Legendary Action d20 posts exactly one roll card (ENCOUNTER-7.1)', () => {
   /** The Wolf ends its turn and the attacking dragon strikes it; the d20 card kinds that result. */
   async function strike(options: { autoRoll?: 'GAME_MASTER'; rolls: number[] }) {

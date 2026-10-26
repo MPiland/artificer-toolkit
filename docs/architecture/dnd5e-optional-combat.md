@@ -104,9 +104,13 @@ lands on hit or miss. Melee is the attack's classification (`isMeleeAttackSource
 a reach attack marks. A mark made on the attacker's turn counts that turn's end as a tick, so it lasts
 until the end of the attacker's next turn. `PER_SOURCE` makes the new mark replace the attacker's
 earlier one on any holder (`replacedEffects`, restored by undo); another attacker's mark stays. A
-homebrew copy may change the attack kind, anchor or grants with no Marking-specific code. Only the
-main action root applies marks today; opportunity, legendary and area attacks follow in ATTACK-13.T3
-with the Campaign setting gate.
+homebrew copy may change the attack kind, anchor or grants with no Marking-specific code.
+
+Marking (ATTACK-13, current) is offered in Campaign settings once its System policy resolves it. The
+main action root, opportunity attacks and Legendary Action attacks each give their target the mark
+through the same `prepareAttackTargetGrantTriggers`; a Legendary mark persists through the turn
+re-derivation, which also ends the owner's earlier mark on any other holder. Area attacks with an
+attack roll do not mark yet (see the deferred edge cases in `docs/roadmap/future-enhancements.md`).
 
 **Marked opportunity attacks (current, ATTACK-13.T2).** The SRD mark's grants also carry a
 `FREE_OPPORTUNITY_REACTION` `ENABLE` modifier beside its opportunity-attack advantage. The mark is
