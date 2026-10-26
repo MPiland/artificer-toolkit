@@ -160,6 +160,8 @@ export interface EncounterTurnReadPorts<
  * caller's already-loaded Character rule sources, which a Character write may reuse.
  */
 export interface EncounterWritePorts<CharacterSources = never> extends EncounterReadPorts {
+  /** Reads the Scene a GM command places into, such as an environmental zone's grid. */
+  readonly sceneReaders: Pick<EncounterActionSceneReaders, 'readScene'>
   /** Posts an already-evaluated roll to the Campaign's table log, once per client nonce. */
   insertTableRoll(
     authority: CampaignAuthority,

@@ -15,6 +15,7 @@ import type { RoomTransaction } from './roomEncounterStore.js'
 import { roomEncounterReadTransaction } from './roomEncounterReadPorts.js'
 import { writeRoomCharacterPlay } from './roomCharacterWrites.js'
 import { retainRoomPrivateRoll } from './roomPrivateRolls.js'
+import { readRoomScene } from './roomSceneRead.js'
 
 export type RoomEncounterWriteTransaction = EncounterCharacterWriteTransaction & {
   readonly ports: Pick<
@@ -60,6 +61,7 @@ export async function roomEncounterWriteTransaction(
     retainedPrivateRolls,
     ports: {
       ...read.ports,
+      sceneReaders: { readScene: async (sceneId) => readRoomScene(store, sceneId) },
       postRulesChatMessage: async (authority, message) => {
         const entry = await postRulesChatMessage(
           { db: store.store, ports: read.ports },
