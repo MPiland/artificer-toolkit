@@ -2707,6 +2707,7 @@ try {
     process.argv.includes('--encounter-area-browser') ||
     process.argv.includes('--encounter-hide-browser') ||
     process.argv.includes('--encounter-player-browser') ||
+    process.argv.includes('--encounter-heat-metal-browser') ||
     process.argv.includes('--encounter-v15-workload') ||
     process.argv.includes('--encounter-v15-preflight') ||
     process.argv.includes('--encounter-reaction-contention')
@@ -2738,6 +2739,7 @@ try {
     const areaBrowser = process.argv.includes('--encounter-area-browser')
     const hideBrowser = process.argv.includes('--encounter-hide-browser')
     const playerBrowser = process.argv.includes('--encounter-player-browser')
+    const heatMetalBrowser = process.argv.includes('--encounter-heat-metal-browser')
     const lifecycle =
       lifecycleSuite ||
       movementBrowser ||
@@ -2747,6 +2749,7 @@ try {
       areaBrowser ||
       hideBrowser ||
       playerBrowser ||
+      heatMetalBrowser ||
       workload
     if (lifecycle) sceneOwners.add(owner.identity.userId)
     if (workload) workloadCampaignOwners.add(owner.identity.userId)
@@ -2767,7 +2770,7 @@ try {
       'BACKGROUND',
       'CLASS',
       'RACE',
-      ...(playerBrowser ? (['SPELL'] as const) : [])
+      ...(playerBrowser || heatMetalBrowser ? (['SPELL'] as const) : [])
     ] as const) {
       publicationAuthors.push({
         client: player.client,
@@ -2781,9 +2784,17 @@ try {
     const { createDevelopmentSpellCharacter } = await import('./developmentSpellCharacterFixture')
     const { shield } = await import('@artificer-toolkit/source-data/srd/spells/shield.js')
     const { thunderwave } = await import('@artificer-toolkit/source-data/srd/spells/thunderwave.js')
+    const { heatMetal } = await import('@artificer-toolkit/source-data/srd/spells/heat-metal.js')
     const spellCharacter = playerBrowser
       ? await createDevelopmentSpellCharacter(player.client, characterId, [shield, thunderwave])
-      : null
+      : heatMetalBrowser
+        ? await createDevelopmentSpellCharacter(
+            player.client,
+            characterId,
+            [heatMetal],
+            [{ spellLevel: 2, slotCount: 1 }]
+          )
+        : null
     const characterFixture =
       spellCharacter ?? (await createDevelopmentCharacter(player.client, characterId))
     const { SRD_RULES_CATALOGUE } = await import('@artificer-toolkit/source-data/srd/catalogue.js')
@@ -3023,6 +3034,71 @@ try {
                 evidenceDirectory: fileURLToPath(
                   new URL(
                     '../../../local-validation/local-convex-proofs/player-browser/browser/attempt-' +
+                      Date.now() +
+                      '/',
+                    import.meta.url
+                  )
+                )
+              },
+              verify
+            )
+          }
+        })
+      }
+      if (heatMetalBrowser) {
+        if (!spellCharacter) throw new Error('The Heat Metal journey needs its spell Character.')
+        publicationAuthors.push({
+          client: owner.client,
+          userId: owner.identity.userId,
+          systemId: srdSystemRecord.id,
+          subjectKind: 'CREATURE'
+        })
+        browserDraftAuthors.push({ client: owner.client, subjectKind: 'CREATURE' })
+        const { createHeatMetalOgre } = await import('./fixtures/encounterHeatMetal')
+        const ogre = createHeatMetalOgre(crypto.randomUUID(), 'Journey ogre')
+        const draft = await owner.client.mutation(api.content.drafts.save, {
+          subjectKind: 'CREATURE',
+          subjectId: ogre.id,
+          systemId: srdSystemRecord.id,
+          label: ogre.label,
+          payload: ogre
+        })
+        assert.ok(draft.updatedAt)
+        await owner.client.mutation(api.content.publication.publishDraft, {
+          subjectKind: 'CREATURE',
+          subjectId: draft.subjectId,
+          expectedDraftUpdatedAt: draft.updatedAt
+        })
+        const { verifyEncounterHeatMetal } = await import('./developmentEncounterHeatMetal')
+        await verifyEncounterHeatMetal({
+          owner: owner.client,
+          player: player.client,
+          campaignId: campaign.id,
+          characterId,
+          playerUserId: player.identity.userId,
+          ogreSourceId: ogre.id,
+          spellSubjectIds: [...spellCharacter.spellSubjectIds.values()],
+          classId: spellCharacter.classId,
+          initiativePolicyDefinitionId: policies.scenarios[0]!.definitionId,
+          initiativePolicyCatalogueId: policies.bootstrap.catalogue.id,
+          checkpoint: async () => {
+            const { awaitCampaignCheckpoint } = await import('./developmentCheckpoint')
+            await awaitCampaignCheckpoint(owner.client, campaign.id)
+          },
+          browser: async (fixture, verify) => {
+            const { verifyEncounterHeatMetalBrowser } =
+              await import('../../web/tests/live-backend/encounterHeatMetal')
+            owner.client.setAuth(await owner.fetchToken())
+            player.client.setAuth(await player.fetchToken())
+            await verifyEncounterHeatMetalBrowser(
+              {
+                ...fixture,
+                owner,
+                player,
+                campaign,
+                evidenceDirectory: fileURLToPath(
+                  new URL(
+                    '../../../local-validation/local-convex-proofs/heat-metal-browser/browser/attempt-' +
                       Date.now() +
                       '/',
                     import.meta.url
