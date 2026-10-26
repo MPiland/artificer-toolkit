@@ -558,7 +558,14 @@ export const dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema = lazySchema
       gameSystemId: serverUuidIdentityDtoSchema,
       module: optionalCombatModulePinDtoSchema,
       parameters: dnd5eOptionalCombatRuleParametersDtoSchema,
-      mutuallyExclusiveGroup: z.nullable(optionalCombatGroupKeyDtoSchema)
+      mutuallyExclusiveGroup: z.nullable(optionalCombatGroupKeyDtoSchema),
+      /**
+       * Authored Effects the rule raises as its own actions (a rule-owned source): the rule, never a
+       * player, decides when one runs and on which creature.
+       */
+      raisedEffects: z.optional(
+        z.array(effectDtoSchema).check(z.minLength(1)).check(z.maxLength(8))
+      )
     })
     .check(
       z.superRefine((document, context) => {
@@ -567,6 +574,14 @@ export const dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema = lazySchema
             code: 'custom',
             path: ['parameters', 'kind'],
             message: 'Optional combat definition parameters must match the definition kind.'
+          })
+        }
+        const raisedEffectIds = (document.raisedEffects ?? []).map((effect) => effect.id)
+        if (new Set(raisedEffectIds).size !== raisedEffectIds.length) {
+          context.addIssue({
+            code: 'custom',
+            path: ['raisedEffects'],
+            message: 'Optional combat raised effects must have unique ids.'
           })
         }
       })

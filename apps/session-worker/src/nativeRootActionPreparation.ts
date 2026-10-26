@@ -99,6 +99,7 @@ export async function prepareNativeLiveRootActionMechanics(input: {
       resolveEncounterActionSource({
         ...source,
         system,
+        rules: state,
         spells: await readNativeLiveSpellPins(capture),
         basicActions: await readEncounterBasicActionEntries({
           actorId: source.actor.id,
