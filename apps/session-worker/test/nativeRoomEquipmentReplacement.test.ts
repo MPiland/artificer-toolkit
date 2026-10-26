@@ -1,6 +1,7 @@
 import { readStoredActorSnapshot } from '@artificer-toolkit/encounter-persistence/actorSnapshots'
 import { readStoredRunActor } from '@artificer-toolkit/encounter-persistence/actorProjectionFacts'
 import { requireSnapshotIdentity } from '@artificer-toolkit/rules-runtime/encounterActorState'
+import { composeRunActorState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
 import {
   snapshotCreatureEquipmentLoadout,
   snapshotCreatureEquipmentSources
@@ -198,7 +199,9 @@ describe('REPLACE_CREATURE_EQUIPMENT in the room with R2-seeded Equipment (ROOM-
         sourceChecksum: source!.sourceChecksum
       }
     })
-    expect(requireSnapshotIdentity(after).payload).toEqual(requireSnapshotIdentity(before).payload)
+    const payloadOf = (actor: typeof before) =>
+      requireSnapshotIdentity(composeRunActorState(actor, actor.snapshot)).payload
+    expect(payloadOf(after)).toEqual(payloadOf(before))
 
     const replay = await room.replace({
       equipmentId: compatibleGreatclub.id,
