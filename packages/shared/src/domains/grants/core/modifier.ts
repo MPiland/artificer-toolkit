@@ -713,7 +713,7 @@ export type ModifierIncomingDamageAuthored =
   | {
       incomingDamageKind: 'REDUCE'
       count?: number
-      faces?: number
+      faces?: (typeof ROLLED_DIE_FACES)[number]
       bonuses: HealBonusAuthored[]
     }
 

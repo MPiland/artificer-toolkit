@@ -138,7 +138,7 @@ function activeRolledDieGrants(
         !applies(modifier.domain)
       )
         continue
-      if (payload === undefined || !('count' in payload))
+      if (payload === undefined || !('count' in payload) || 'incomingDamageKind' in payload)
         throw new Error('An active rolled-die grant must carry its dice.')
       if (('timing' in payload && payload.timing === 'AFTER_ROLL') !== (timing === 'AFTER_ROLL'))
         continue
