@@ -1,12 +1,16 @@
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
 import type { PathLifecycleReturnsOn } from '@artificer-toolkit/shared/core'
-import { SRD_SYSTEM_ID, srdSystemRecord } from '@artificer-toolkit/source-data/srd/vocabulary.js'
+import {
+  SRD_ABILITY_DEFINITION_IDS,
+  SRD_SYSTEM_ID,
+  srdSystemRecord
+} from '@artificer-toolkit/source-data/srd/vocabulary.js'
 import { describe, expect, it } from 'vitest'
 
 import { heldIncomingGate } from '../encounterIncomingAttackGate.js'
 import { discoverEncounterFeatureActions } from '../encounterFeatureActionCapabilityDiscoveryRegistry.js'
 import { characterStandingEffects, prepareRestStandingEffects } from '../standingEffectPlans.js'
-import { SRD, evaluateSrdCharacter, srdByLabel } from '../testing/dnd5eSrdCharacter.js'
+import { SRD, evaluateSrdCharacter, srdByLabel, srdFeature } from '../testing/dnd5eSrdCharacter.js'
 import { testUuid } from '../testing/dnd5eSrdEncounter.js'
 import {
   STANDING_WARD_EFFECT_ID,
@@ -137,6 +141,66 @@ describe('standing effects (SPELLS-31.2)', () => {
     })
     expect(gate).toMatchObject({ wardId: armed!.id, ownerActorId: HOLDER_ID })
     expect(gate?.payload.savingThrow.dcMethod).toBe('DERIVED_DC')
+  })
+
+  it('finds the SRD Tranquility as a long-rest Sanctuary at the Monk’s own Wisdom DC', () => {
+    const monk = evaluateSrdCharacter({
+      classes: [{ label: 'Monk', level: 11, subclass: 'Way of the Open Hand' }],
+      features: [
+        srdFeature({
+          owner: 'SUBCLASS',
+          classLabel: 'Monk',
+          subclassLabel: 'Way of the Open Hand',
+          featureLabel: 'Tranquility',
+          level: 11
+        })
+      ]
+    })
+    const standing = characterStandingEffects({
+      sources: monk.standingEffectSources,
+      gameSystemId: SRD_SYSTEM_ID,
+      conditionDefinitionIds,
+      abilityDefinitions
+    })
+    expect(standing).toMatchObject([{ label: 'Tranquility', returnsOn: 'LONG_REST' }])
+    const [armed] = prepareRestStandingEffects({
+      standing,
+      restKind: 'LONG',
+      holder: {
+        actorId: HOLDER_ID,
+        conditionIds: [],
+        effectiveSize: null,
+        lifetimeScope: 'OWNER',
+        hidden: false,
+        held: []
+      },
+      origin: {
+        characterId: CHARACTER_ID,
+        occurrenceId: REST_COMMAND_ID,
+        commandId: REST_COMMAND_ID
+      }
+    })
+    expect(armed?.definition.recurrence.endOnTriggers).toEqual([
+      { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
+      { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' }
+    ])
+    const gate = heldIncomingGate({
+      holderActorId: HOLDER_ID,
+      effects: [stored(armed!)],
+      grantFold: null,
+      attackerCreatureTypeId: null,
+      attacker: { actorId: ATTACKER_ID, characterId: null }
+    })
+    expect(gate).toMatchObject({ ownerActorId: HOLDER_ID })
+    expect(gate?.payload.savingThrow).toMatchObject({
+      dcMethod: 'DERIVED_DC',
+      abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM,
+      baseDc: 8,
+      bonuses: [
+        { bonusKind: 'ABILITY_MODIFIER', abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.WISDOM },
+        { bonusKind: 'PROFICIENCY_BONUS' }
+      ]
+    })
   })
 
   it('finds a Creature’s standing effect and offers it as no action', () => {

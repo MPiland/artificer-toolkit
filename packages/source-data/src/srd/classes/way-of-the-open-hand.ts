@@ -1,8 +1,13 @@
 import { SRD_ABILITY_DEFINITION_IDS as SRD_EFFECT_ABILITY_DEFINITION_IDS } from '../vocabulary.js'
 import {
   ACTIVATION_CODE,
+  AUTHORING_SELECTION_KIND,
   CLOSED_RULE_KIND,
+  GRANT_KIND,
+  MODIFIER_KIND,
+  MODIFIER_SCOPE_KIND,
   PATH_CODE,
+  PATH_LIFECYCLE_RETURNS_ON,
   PATH_GROUP_TYPE,
   CLASS_CATEGORY,
   EFFECT_KIND,
@@ -10,6 +15,7 @@ import {
   SCALING,
   TARGET_SELECTION_KIND,
   TRIGGER,
+  VALUE_DOMAIN_CODE,
   type ClassAuthored
 } from '@artificer-toolkit/shared'
 import { CLASS_IDS, SUBCLASS_IDS } from '../ids.js'
@@ -139,46 +145,66 @@ export const wayOfTheOpenHand: ClassAuthored = {
           order: 1,
           invocation: {
             kind: 'PASSIVE',
-            triggerCode: TRIGGER.SAVING_THROW,
-            savingThrow: {
-              id: classRowId(M, 25, 1),
-              dcMethod: 'DERIVED_DC',
-              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
-              baseDc: 8,
-              bonuses: [
-                {
-                  id: classRowId(M, 26, 1),
-                  bonusKind: 'ABILITY_MODIFIER',
-                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
-                },
-                {
-                  id: classRowId(M, 26, 2),
-                  bonusKind: 'PROFICIENCY_BONUS'
-                }
-              ]
-            },
-            range: { id: classRowId(M, 21, 2), rangeKind: RANGE_KIND.SPECIAL },
-            targeting: {
-              selectionKind: TARGET_SELECTION_KIND.SINGLE_TARGET,
-              dispositionKind: 'ANY'
-            }
+            triggerCode: TRIGGER.ACTIVATED,
+            range: { id: classRowId(M, 21, 2), rangeKind: RANGE_KIND.SELF },
+            targeting: { selectionKind: TARGET_SELECTION_KIND.SELF }
           },
           paths: [
             {
               id: classRowId(M, 27, 2),
               order: 1,
-              pathCode: PATH_CODE.ON_SAVE_FAIL,
+              pathCode: PATH_CODE.ON_USE,
               groupType: PATH_GROUP_TYPE.SINGLE,
               originKind: 'SOURCE',
               selectionKind: 'FIXED',
               resultBlock: {
                 id: `${classRowId(M, 27, 2)}__result`,
                 resultKind: 'SINGLE',
+                // Sanctuary from long rest to long rest: it ends early as the spell does.
+                lifecycle: {
+                  endOnTriggers: [
+                    { event: 'ACTION_TRAIT', trait: 'ATTACK_ROLL', against: 'ENEMY' },
+                    { event: 'ACTION_TRAIT', trait: 'SPELL_CAST', against: 'ENEMY' }
+                  ],
+                  returnsOn: PATH_LIFECYCLE_RETURNS_ON.LONG_REST
+                },
                 outcomes: [
                   {
                     id: classRowId(M, 29, 3),
-                    effectKind: EFFECT_KIND.CLOSED_RULE,
-                    ruleKind: CLOSED_RULE_KIND.CLASS_WAY_OF_THE_OPEN_HAND_TRANQUILITY
+                    effectKind: EFFECT_KIND.APPLY_GRANT,
+                    grants: {
+                      modifiers: [
+                        {
+                          id: classRowId(M, 28, 3),
+                          grantKind: GRANT_KIND.MODIFIER_GRANT,
+                          valueDomainCode: VALUE_DOMAIN_CODE.INCOMING_ATTACK_GATE,
+                          domain: {},
+                          modifierKind: MODIFIER_KIND.ENABLE,
+                          payload: {
+                            savingThrow: {
+                              id: classRowId(M, 25, 1),
+                              dcMethod: 'DERIVED_DC',
+                              abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM,
+                              baseDc: 8,
+                              bonuses: [
+                                {
+                                  id: classRowId(M, 26, 1),
+                                  bonusKind: 'ABILITY_MODIFIER',
+                                  abilityDefinitionId: SRD_EFFECT_ABILITY_DEFINITION_IDS.WISDOM
+                                },
+                                {
+                                  id: classRowId(M, 26, 2),
+                                  bonusKind: 'PROFICIENCY_BONUS'
+                                }
+                              ]
+                            }
+                          },
+                          scope: MODIFIER_SCOPE_KIND.GLOBAL,
+                          selectionKind: AUTHORING_SELECTION_KIND.GRANTED,
+                          order: 1
+                        }
+                      ]
+                    }
                   }
                 ]
               }
