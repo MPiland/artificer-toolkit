@@ -6679,17 +6679,19 @@
           "acs": [
             {
               "text": "Overrun policy and path opportunity are authored and typed.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by MOVE-2.T1 (m454); see each task's proof."],
               "origin": ["P81-OVERRUN-SOURCE"],
-              "id": "MOVE-2.1"
+              "id": "MOVE-2.1",
+              "note": "MOVE-2.T1 (m454) proof files: packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts, packages/authoring/src/reusableDefinitions/optionalCombatCheckDefinitions.test.ts, apps/session-worker/test/nativeMovementPlanning.test.ts. Closed 2026-10-24 by MOVE-2.T1."
             },
             {
               "text": "Overrun resolves as a contested move in the room.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by MOVE-2.T1 (m454); see each task's proof."],
               "origin": ["P81-OVERRUN-EXECUTION"],
-              "id": "MOVE-2.2"
+              "id": "MOVE-2.2",
+              "note": "MOVE-2.T1 (m454) proof files: packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts, packages/authoring/src/reusableDefinitions/optionalCombatCheckDefinitions.test.ts, apps/session-worker/test/nativeMovementPlanning.test.ts. Closed 2026-10-24 by MOVE-2.T1."
             },
             {
               "text": "Shove Aside policy is authored and typed.",
@@ -6707,17 +6709,19 @@
             },
             {
               "text": "Tumble policy is authored and typed.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by MOVE-2.T1 (m454); see each task's proof."],
               "origin": ["P81-TUMBLE-SOURCE"],
-              "id": "MOVE-2.5"
+              "id": "MOVE-2.5",
+              "note": "MOVE-2.T1 (m454) proof files: packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts, packages/authoring/src/reusableDefinitions/optionalCombatCheckDefinitions.test.ts, apps/session-worker/test/nativeMovementPlanning.test.ts. Closed 2026-10-24 by MOVE-2.T1."
             },
             {
               "text": "Tumble resolves in the room.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": ["Closed by MOVE-2.T1 (m454); see each task's proof."],
               "origin": ["P81-TUMBLE-EXECUTION"],
-              "id": "MOVE-2.6"
+              "id": "MOVE-2.6",
+              "note": "MOVE-2.T1 (m454) proof files: packages/rules-runtime/src/__tests__/encounterMovementPassage.test.ts, packages/authoring/src/reusableDefinitions/optionalCombatCheckDefinitions.test.ts, apps/session-worker/test/nativeMovementPlanning.test.ts. Closed 2026-10-24 by MOVE-2.T1."
             }
           ],
           "wsjf": {
@@ -6743,32 +6747,46 @@
               "proof": "Tests 40250672670 and Live 40251808544 green on 1f036e0f7; reviewed (test-only AC mapping); merged in m454"
             },
             {
-              "id": "MOVE-2.T2",
+              "id": "MOVE-2.T2a",
               "status": "TODO",
-              "closes": ["MOVE-2.1", "MOVE-2.2", "MOVE-2.3", "MOVE-2.4", "MOVE-2.5", "MOVE-2.6"],
+              "closes": ["MOVE-2.3"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 5,
+                "size": 3,
                 "after": ["MOVE-2.T1"]
               },
-              "text": "Shove Aside destination legality: wire deriveSquareGridShoveAsideDestinations into prepare so the DESTINATION field offers only legal squares; rules-runtime tests on real geometry.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Generic option gate on an enabled optional rule: option-level requiresOptionalRule {definitionId} (schema, node map, compiler pass-through); one filter beside castChoiceOptions against the Encounter's active optional combat definitions, applied at pick (refused), choices listing (hidden), entry-point compiler and default pick (skipped). Rules-runtime and persistence tests; authoring parity proof.",
+              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome."
+            },
+            {
+              "id": "MOVE-2.T2b",
+              "status": "TODO",
+              "closes": ["MOVE-2.3"],
+              "wsjf": {
+                "bv": 2,
+                "tc": 1,
+                "rr": 1,
+                "size": 2,
+                "after": ["MOVE-2.T1"]
+              },
+              "text": "Generic option initiator check influence (ADVANTAGE/DISADVANTAGE): compiled onto the option, carried by prepare, merged into the contest initiator rollMode with normal cancellation (D148 shared test holds). Rules-runtime tests; authoring parity proof.",
+              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome."
             },
             {
               "id": "MOVE-2.T3",
               "status": "TODO",
-              "closes": ["MOVE-2.4"],
+              "closes": ["MOVE-2.3", "MOVE-2.4"],
               "wsjf": {
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
                 "size": 5,
-                "after": ["MOVE-2.T2"]
+                "after": ["MOVE-2.T2a", "MOVE-2.T2b"]
               },
-              "text": "Shove Aside contest settlement and commit through Convex and the Session Worker: defender check, forced move commit, one consistent result; Disarm path (encounterDisarmPreparation, nativeContest, contestSettlement) is the template.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "SRD Shove gains a third authored option \"Shove 5 feet aside\": FORCED_MOVEMENT ASIDE EXACT 5 ft, gated on the Shove Aside optional rule, initiator DISADVANTAGE. Room test: rule on/off listing, contest, D157 FORCED_MOVEMENT_DESTINATION offers only legal in-reach squares 5 ft away, commit. Delete deriveSquareGridShoveAsideDestinations, the SHOVE_ASIDE selection/DESTINATION role/POSITION field, the pending SHOVE_ASIDE variant, SHOVE_ASIDE policy params, module registration, contributor reason and coverage entries once proven unused; the optional rule document stays as the toggle.",
+              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome."
             },
             {
               "id": "MOVE-2.T4",
@@ -6778,11 +6796,11 @@
                 "bv": 2,
                 "tc": 1,
                 "rr": 1,
-                "size": 3,
+                "size": 2,
                 "after": ["MOVE-2.T3"]
               },
-              "text": "Decision drawer destination picker plus journey test of a Shove Aside end to end.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "text": "Web journey on the board (D157 web amendment, no drawer): rule enabled, Shove, pick Aside, roll at disadvantage, board highlights only legal squares, pick, token moves.",
+              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome."
             }
           ]
         },
