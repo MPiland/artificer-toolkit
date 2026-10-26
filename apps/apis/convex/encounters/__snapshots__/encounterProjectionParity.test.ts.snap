@@ -557,6 +557,7 @@ exports[`Encounter projections built on read > applies an action mechanics batch
         "trackAmmunition": false,
         "updatedAt": "<time>",
         "version": 0,
+        "zoneNoticing": "GM_PROMPT",
       },
     },
     "other": {
@@ -1053,6 +1054,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
       "trackAmmunition": false,
       "updatedAt": "<time>",
       "version": 1,
+      "zoneNoticing": "GM_PROMPT",
     },
     "roll": null,
   },
@@ -1332,6 +1334,7 @@ exports[`Encounter projections built on read > corrects the current turn 1`] = `
         "trackAmmunition": false,
         "updatedAt": "<time>",
         "version": 1,
+        "zoneNoticing": "GM_PROMPT",
       },
     },
     "other": {
@@ -1829,6 +1832,7 @@ exports[`Encounter projections built on read > records turn movement 1`] = `
         "trackAmmunition": false,
         "updatedAt": "<time>",
         "version": 0,
+        "zoneNoticing": "GM_PROMPT",
       },
     },
     "other": {
@@ -2291,6 +2295,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
       "trackAmmunition": false,
       "updatedAt": "<time>",
       "version": 1,
+      "zoneNoticing": "GM_PROMPT",
     },
     "roll": null,
   },
@@ -2536,6 +2541,7 @@ exports[`Encounter projections built on read > removes an actor 1`] = `
         "trackAmmunition": false,
         "updatedAt": "<time>",
         "version": 1,
+        "zoneNoticing": "GM_PROMPT",
       },
     },
     "other": {
@@ -2999,6 +3005,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
         "trackAmmunition": false,
         "updatedAt": "<time>",
         "version": 1,
+        "zoneNoticing": "GM_PROMPT",
       },
       "roll": null,
     },
@@ -3279,6 +3286,7 @@ exports[`Encounter projections built on read > voids a paused action 1`] = `
         "trackAmmunition": false,
         "updatedAt": "<time>",
         "version": 1,
+        "zoneNoticing": "GM_PROMPT",
       },
     },
     "other": {
