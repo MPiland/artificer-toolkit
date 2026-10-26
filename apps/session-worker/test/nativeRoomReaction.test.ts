@@ -1050,6 +1050,9 @@ describe('room Deflect Missiles reaction to a ranged weapon hit (SPELLS-31.1)', 
       optionId: pending.options[0].optionId
     })
     expect(used.type, JSON.stringify(used)).toBe('COMMAND_COMMITTED')
+    // The reduction's d10 waits on the GM's roll.
+    const rolled = await room.rollDice(await room.pendingDecision())
+    expect(rolled.type, JSON.stringify(rolled)).toBe('COMMAND_COMMITTED')
 
     const batch = characterBatch(await readRoomHistory(room.room.base.stub))
     const damage = biteDamage(batch)
