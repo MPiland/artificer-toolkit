@@ -136,12 +136,12 @@ describe('generated Convex API types stay real', () => {
     expectTypeOf<RaisedEffect>().not.toBeAny()
     expectTypeOf<RaisedEffect['paths'][number]>().toBeAny()
     expect(leaves(reusableDefinitionWorkspaceDtoSchema)).toEqual([
-      'current|0.document|3.parameters|CLIMB_ONTO_LARGER_CREATURE.effect.paths[]',
+      'current|0.document|3.parameters|CLIMB_ONTO_LARGER_CREATURE.effect',
       'current|0.document|3.parameters|MARK.effect.paths[]',
       'current|0.document|3.raisedEffects[].paths[]',
       'current|0.document|BASIC_ACTION.effects[].paths[]',
       'current|0.document|BASIC_ACTION.restrictions|0',
-      'draft|0.document|3.parameters|CLIMB_ONTO_LARGER_CREATURE.effect.paths[]',
+      'draft|0.document|3.parameters|CLIMB_ONTO_LARGER_CREATURE.effect',
       'draft|0.document|3.parameters|MARK.effect.paths[]',
       'draft|0.document|3.raisedEffects[].paths[]',
       'draft|0.document|BASIC_ACTION.effects[].paths[]',
