@@ -10,11 +10,9 @@ import {
   nativeConcentrationDamageApplications
 } from '@artificer-toolkit/rules-runtime/encounterConcentrationDamage'
 import { cleavingChildOccurrenceIdentity } from '@artificer-toolkit/rules-runtime/encounterCleavingIdentity'
-import { consequenceRollDamageFacts } from '@artificer-toolkit/rules-runtime/encounterConsequenceRolls'
 import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { insertNativeCleavingChoice } from './actionChildPersistence.js'
-import { persistConsequenceRollOffers } from './consequenceRollCommands.js'
 import { bindEncounterDamageSaveChain } from './effectRepeatSavePersistence.js'
 import type {
   bindEncounterConcentrationApplications,
@@ -53,23 +51,16 @@ export async function persistEncounterActionChildren(
     throw new Error('Live Session action child parent is invalid.')
   const damage = nativeActionDamage(batch)
   const applications = nativeConcentrationDamageApplications(damage, true)
-  const offered = await persistConsequenceRollOffers(ctx, {
-    state,
-    actors: args.actors,
-    facts: consequenceRollDamageFacts(damage),
-    sourceCommandId: input.command.commandId,
-    occurredAt: input.occurredAt
-  })
   const { actors } = await callbacks.persistConcentrationChildren({
     state,
-    actors: offered,
+    actors: args.actors,
     parentOccurrenceId: execution.occurrenceId,
     parentCommandFingerprint: args.fingerprint,
     finalizedDamageEnvelopeChecksum: checksumRuleDocument(applications),
     remaining: await bindEncounterDamageSaveChain(ctx, {
       concentration: await callbacks.bindConcentrationApplications(state, applications),
       state,
-      actors: offered,
+      actors: args.actors,
       applications,
       parentOccurrenceId: execution.occurrenceId,
       damagerActorId: input.command.actorId

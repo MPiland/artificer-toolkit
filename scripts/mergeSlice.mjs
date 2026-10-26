@@ -9,9 +9,13 @@
 // <batch-prefix><N> as the full-run backstop. Otherwise the phase tip merges into the slice, goes to
 // <batch-prefix><N>, and reaches the phase branch only once Tests and Live are green there: a fast-forward,
 // or a --no-ff merge when the phase branch has moved by docs/ only meanwhile.
+// A merge whose only conflict is scripts/fileSizeBudget.json takes the lower cap per entry and commits
+// once the merged tree passes the source ratchets.
 import { spawnSync } from 'node:child_process'
-import { resolve } from 'node:path'
+import { writeFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { ratchetProblems, SIZE_BUDGET } from './sourceRatchets.mjs'
 
 export const WORKFLOWS = { Tests: 'tests.yml', 'Live backend': 'live-backend.yml' }
 const TRAILER = 'Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>'
@@ -200,6 +204,46 @@ async function waitForGreen(tools, sha, branch) {
   }
 }
 
+// Three-way merge of two size budgets (ADR 0039 decision 6). A cap only shrinks, so each entry takes the
+// lower cap of the two sides, and an entry either side removed stays removed.
+export function mergeSizeBudgets(base, ours, theirs) {
+  const files = new Set([...Object.keys(ours), ...Object.keys(theirs)])
+  const kept = [...files].filter(
+    (file) =>
+      !Object.hasOwn(base, file) || (Object.hasOwn(ours, file) && Object.hasOwn(theirs, file))
+  )
+  return Object.fromEntries(
+    kept.map((file) => [file, Math.min(ours[file] ?? Infinity, theirs[file] ?? Infinity)])
+  )
+}
+
+// Every slice that shrinks a listed file lowers its cap line, so concurrent slices conflict there.
+// Only that conflict resolves, and only into a tree that passes the ratchets.
+function resolveBudgetConflict(tools, other, message) {
+  const conflicts = lines(git(tools, 'diff', '--name-only', '--diff-filter=U'))
+  if (conflicts.length !== 1 || conflicts[0] !== SIZE_BUDGET)
+    throw new MergeRefused(`Merging ${other} conflicts:\n${conflicts.join('\n')}`)
+  const [base = {}, ours, theirs] = [1, 2, 3].map((stage) => {
+    const result = tools.run('git', ['show', `:${stage}:${SIZE_BUDGET}`])
+    return result.status === 0 ? JSON.parse(result.stdout) : undefined
+  })
+  if (!ours || !theirs)
+    throw new MergeRefused(`Merging ${other} deletes ${SIZE_BUDGET} on one side.`)
+  const root = git(tools, 'rev-parse', '--show-toplevel')
+  writeFileSync(
+    join(root, SIZE_BUDGET),
+    `${JSON.stringify(mergeSizeBudgets(base, ours, theirs), null, 2)}\n`
+  )
+  git(tools, 'add', SIZE_BUDGET)
+  const problems = ratchetProblems(root)
+  if (problems.length > 0)
+    throw new MergeRefused(
+      `Merging ${other} took the lower ${SIZE_BUDGET} caps, but the merged tree fails the source ratchets:\n${problems.join('\n')}`
+    )
+  git(tools, 'commit', '-m', message, '-m', TRAILER)
+  tools.log(`Resolved the ${SIZE_BUDGET} conflict with ${other} to the lower caps.`)
+}
+
 function commitMerge(tools, other, message) {
   const result = tools.run('git', [
     'merge',
@@ -211,10 +255,7 @@ function commitMerge(tools, other, message) {
     TRAILER,
     other
   ])
-  if (result.status !== 0)
-    throw new MergeRefused(
-      `Merging ${other} conflicts:\n${git(tools, 'diff', '--name-only', '--diff-filter=U')}`
-    )
+  if (result.status !== 0) resolveBudgetConflict(tools, other, message)
   return git(tools, 'rev-parse', 'HEAD')
 }
 

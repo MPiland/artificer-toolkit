@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   docsOnly,
+  mergeSizeBudgets,
   mergeSlice,
   parseSlices,
   MergeRefused,
@@ -112,6 +113,29 @@ describe('docsOnly', () => {
   it('rejects any change outside docs/', () => {
     expect(docsOnly(['docs/roadmap/08-phase-ledger.json', 'AGENTS.md'])).toBe(false)
     expect(docsOnly(['apps/docs/readme.md'])).toBe(false)
+  })
+})
+
+describe('mergeSizeBudgets', () => {
+  it('takes the lower cap of the two sides per entry', () => {
+    const base = { 'a.ts': 1700, 'b.ts': 1700 }
+    expect(
+      mergeSizeBudgets(base, { 'a.ts': 1600, 'b.ts': 1700 }, { 'a.ts': 1650, 'b.ts': 1680 })
+    ).toEqual({ 'a.ts': 1600, 'b.ts': 1680 })
+  })
+
+  it('keeps an entry removed when either side removed it', () => {
+    const base = { 'a.ts': 1700, 'b.ts': 1700 }
+    expect(mergeSizeBudgets(base, { 'b.ts': 1650 }, { 'a.ts': 1600, 'b.ts': 1700 })).toEqual({
+      'b.ts': 1650
+    })
+  })
+
+  it('keeps the union of entries the base did not have, leaving new entries to the ratchet', () => {
+    expect(mergeSizeBudgets({}, { 'a.ts': 1600 }, { 'b.ts': 1650 })).toEqual({
+      'a.ts': 1600,
+      'b.ts': 1650
+    })
   })
 })
 
@@ -398,6 +422,104 @@ describe('mergeSlice waiting on dispatched runs', () => {
       await expect(mergeSlice(batchInput([slices[0], slices[0]]), tools)).rejects.toThrow(
         /named twice/
       )
+    })
+  })
+
+  describe('size-budget conflicts', () => {
+    const BUDGET = 'scripts/fileSizeBudget.json'
+    // Distinct code lines from..to-1, so deletions in different places of one module merge cleanly.
+    const module = (name, from, to) =>
+      Array.from({ length: to - from }, (_, i) => `export const ${name}${from + i} = 1\n`).join('')
+    const budget = (caps) => `${JSON.stringify(caps, null, 2)}\n`
+    const commit = (work, files, label) => {
+      for (const [file, content] of Object.entries(files)) writeFileSync(join(work, file), content)
+      sh(work, 'add', '.')
+      sh(work, 'commit', '-q', '-m', label)
+    }
+    // The phase branch lists two 1700-line modules; ci/slice-a, synced with it, and then the phase
+    // branch each commit one change, as two concurrently merged slices do.
+    const diverge = (sliceFiles, phaseFiles) => {
+      const { work, origin } = repo()
+      sh(work, 'switch', '-q', '-c', 'phase-work', `origin/${PHASE}`)
+      mkdirSync(join(work, 'apps'))
+      mkdirSync(join(work, 'scripts'))
+      commit(
+        work,
+        {
+          'apps/a.ts': module('a', 0, 1700),
+          'apps/b.ts': module('b', 0, 1700),
+          'other.txt': 'base\n',
+          [BUDGET]: budget({ 'apps/a.ts': 1700, 'apps/b.ts': 1700 }),
+          'scripts/systemsImportAllowlist.json': '{ "compositionRoots": {}, "importers": [] }\n'
+        },
+        'listed modules'
+      )
+      sh(work, 'push', '-q', 'origin', `HEAD:${PHASE}`)
+      sh(work, 'switch', '-q', 'ci/slice-a')
+      sh(work, 'merge', '-q', '--no-edit', 'phase-work')
+      commit(work, sliceFiles, 'slice shrinks a module')
+      sh(work, 'push', '-q', 'origin', 'ci/slice-a')
+      const tip = sh(work, 'rev-parse', 'HEAD')
+      sh(work, 'switch', '-q', 'phase-work')
+      commit(work, phaseFiles, 'phase shrinks a module')
+      sh(work, 'push', '-q', 'origin', `HEAD:${PHASE}`)
+      return { work, origin, tip, before: sh(origin, 'rev-parse', PHASE) }
+    }
+    const shrinkA = {
+      'apps/a.ts': module('a', 100, 1700),
+      [BUDGET]: budget({ 'apps/a.ts': 1600, 'apps/b.ts': 1700 })
+    }
+
+    it('takes the lower cap per entry and lands the merge once the merged tree passes the ratchets', async () => {
+      const { work, origin, tip, before } = diverge(shrinkA, {
+        'apps/b.ts': module('b', 0, 1650),
+        [BUDGET]: budget({ 'apps/a.ts': 1700, 'apps/b.ts': 1650 })
+      })
+      const { tools } = platform(work)
+      const logs = []
+      await mergeSlice(input(tip), { ...tools, log: (message) => logs.push(message) })
+      expect(logs).toContain(`Resolved the ${BUDGET} conflict with ${before} to the lower caps.`)
+      const phase = sh(origin, 'rev-parse', PHASE)
+      expect(phase).toBe(sh(origin, 'rev-parse', 'ci/merge-m1'))
+      expect(sh(origin, 'log', '-1', '--format=%P', phase).split(' ')[0]).toBe(tip)
+      expect(JSON.parse(sh(origin, 'show', `${phase}:${BUDGET}`))).toEqual({
+        'apps/a.ts': 1600,
+        'apps/b.ts': 1650
+      })
+    })
+
+    it('refuses when the merged tree still fails the ratchets, pushing nothing', async () => {
+      // Both sides shrink apps/a.ts in different places: the module merges to 1550 lines, under
+      // either cap, so the lower cap still has to come down.
+      const { work, origin, tip, before } = diverge(shrinkA, {
+        'apps/a.ts': module('a', 0, 1650),
+        [BUDGET]: budget({ 'apps/a.ts': 1650, 'apps/b.ts': 1700 })
+      })
+      const { tools } = platform(work)
+      await expect(mergeSlice(input(tip), tools)).rejects.toThrow(
+        /fails the source ratchets:\n.*apps\/a\.ts shrank to 1550 code lines; lower its cap from 1600/
+      )
+      expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+      expect(sh(origin, 'branch', '--list', 'ci/merge-m*')).toBe('')
+    })
+
+    it('refuses when another file conflicts too, naming both and pushing nothing', async () => {
+      const { work, origin, tip, before } = diverge(
+        { ...shrinkA, 'other.txt': 'slice\n' },
+        {
+          'apps/b.ts': module('b', 0, 1650),
+          'other.txt': 'phase\n',
+          [BUDGET]: budget({ 'apps/a.ts': 1700, 'apps/b.ts': 1650 })
+        }
+      )
+      const { tools } = platform(work)
+      const refusal = await mergeSlice(input(tip), tools).catch((error) => error)
+      expect(refusal).toBeInstanceOf(MergeRefused)
+      expect(refusal.message).toMatch(/conflicts:\n/)
+      expect(refusal.message).toContain('other.txt')
+      expect(refusal.message).toContain(BUDGET)
+      expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+      expect(sh(origin, 'branch', '--list', 'ci/merge-m*')).toBe('')
     })
   })
 

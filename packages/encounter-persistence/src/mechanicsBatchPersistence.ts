@@ -1,4 +1,9 @@
 import { checksumRunActorPlayState } from '@artificer-toolkit/rules-runtime/encounterActorStorage'
+import {
+  consequenceRollDamageFacts,
+  offerConsequenceRolls,
+  withDeathSaveFacts
+} from '@artificer-toolkit/rules-runtime/encounterConsequenceRolls'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import { effectiveHitPointMaximum } from '@artificer-toolkit/rules-runtime/character/activeEffectGrantTotals'
 import type { ActiveRuleEffectRecord } from '@artificer-toolkit/schema/projections/activeRuleEffectPersistence'
@@ -193,11 +198,26 @@ export async function persistEncounterMechanicsBatchPlan<CharacterSources>(
     actor.form?.effectId !== plan.updatedActor.form?.effectId
   const { before, after } = plan.targetTransition
   // Damage engages an actor armed for an idle-bound grant (SRD Rage); every other actor is untouched.
-  const updatedActor =
+  const engagedActor =
     after.currentHitPoints < before.currentHitPoints ||
     after.temporaryHitPoints < before.temporaryHitPoints
       ? engageIdleTurnActor(plan.updatedActor)
       : plan.updatedActor
+  // Every automated outcome settles here, so its consequence roll offers do too (ATTACK-15); a
+  // manual hit point change never reaches this seam and offers nothing.
+  const damageFacts = consequenceRollDamageFacts([
+    { targetActorId: actor.id, applications: plan.receiptApplications }
+  ])
+  const [offered] = offerConsequenceRolls({
+    state: target.state,
+    actors: [engagedActor],
+    facts: input.deathSave
+      ? withDeathSaveFacts(damageFacts, { actorId: actor.id, ...input.deathSave })
+      : damageFacts,
+    sourceCommandId: input.sourceCommandId,
+    occurredAt: input.occurredAt
+  })
+  const updatedActor = offered?.after ?? engagedActor
   const [currentRun, currentActor] = await Promise.all([
     ctx.db.get(target.runRow._id),
     ctx.db.get(actorRow._id)

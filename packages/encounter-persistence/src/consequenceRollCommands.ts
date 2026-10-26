@@ -1,33 +1,18 @@
 import type { ResolveConsequenceRollOfferInputDto } from '@artificer-toolkit/schema/api/encounterRuleCommands'
 import type { EncounterCommandResultDto } from '@artificer-toolkit/schema/api/encounters'
 import type { RollRecordDto } from '@artificer-toolkit/schema/api/rolls'
-import type { EncounterRunActorState } from '@artificer-toolkit/schema/projections/encounterRunState'
 import type { ConsequenceRollResolutionDto } from '@artificer-toolkit/schema/shared/consequenceRolls'
 import {
   consequenceRollRow,
   encounterConsequenceRollTables,
-  offerConsequenceRolls,
   withoutConsequenceRollOffer
 } from '@artificer-toolkit/rules-runtime/encounterConsequenceRolls'
 import { tableRollRecord } from '@artificer-toolkit/rules-runtime/encounterRuleCheckRolls'
 import { rejectDomain } from './domainRejections.js'
-import { readRunActors, replaceRunActor } from './documents.js'
+import { readRunActors } from './documents.js'
 import { admitGmEncounterCommand, commitGmEncounterCommand } from './gmEncounterCommands.js'
 import type { EncounterWriteTransaction } from './ports.js'
 import { recordRuleRollCard } from './ruleRollCards.js'
-import type { EncounterWriteContext } from './store.js'
-
-/** Writes the consequence roll offers a command's facts make (ATTACK-15); returns the actors. */
-export async function persistConsequenceRollOffers(
-  ctx: EncounterWriteContext,
-  input: Parameters<typeof offerConsequenceRolls>[0]
-): Promise<EncounterRunActorState[]> {
-  const changes = offerConsequenceRolls(input)
-  for (const { before, after } of changes) await replaceRunActor(ctx, before, after)
-  return input.actors.map(
-    (actor) => changes.find(({ after }) => after.id === actor.id)?.after ?? actor
-  )
-}
 
 /**
  * The GM resolves a consequence roll offer (ATTACK-15): declining removes it; accepting rolls the
