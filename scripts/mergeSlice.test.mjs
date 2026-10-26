@@ -488,16 +488,58 @@ describe('mergeSlice waiting on dispatched runs', () => {
       })
     })
 
-    it('refuses when the merged tree still fails the ratchets, pushing nothing', async () => {
+    it('lowers a cap to the merged size when both sides shrank the module (RELIABILITY-19.2)', async () => {
       // Both sides shrink apps/a.ts in different places: the module merges to 1550 lines, under
-      // either cap, so the lower cap still has to come down.
+      // either cap, so the lower cap comes down to 1550.
       const { work, origin, tip, before } = diverge(shrinkA, {
         'apps/a.ts': module('a', 0, 1650),
         [BUDGET]: budget({ 'apps/a.ts': 1650, 'apps/b.ts': 1700 })
       })
       const { tools } = platform(work)
+      const logs = []
+      await mergeSlice(input(tip), { ...tools, log: (message) => logs.push(message) })
+      expect(logs).toContain(
+        `Resolved the ${BUDGET} conflict with ${before} to the lower caps; lowered apps/a.ts to its merged 1550 code lines.`
+      )
+      const phase = sh(origin, 'rev-parse', PHASE)
+      expect(phase).toBe(sh(origin, 'rev-parse', 'ci/merge-m1'))
+      expect(JSON.parse(sh(origin, 'show', `${phase}:${BUDGET}`))).toEqual({
+        'apps/a.ts': 1550,
+        'apps/b.ts': 1700
+      })
+    })
+
+    it('refuses a merged module that grew past its resolved cap, pushing nothing', async () => {
+      // The slice adds 50 lines to apps/a.ts (and raises its cap); the phase branch deletes 50. The
+      // merge keeps 1700 lines over the lower cap of 1650, so nothing is lowered and the merge refuses.
+      const { work, origin, tip, before } = diverge(
+        {
+          'apps/a.ts': module('x', 0, 50) + module('a', 0, 1700),
+          [BUDGET]: budget({ 'apps/a.ts': 1750, 'apps/b.ts': 1700 })
+        },
+        {
+          'apps/a.ts': module('a', 0, 1650),
+          [BUDGET]: budget({ 'apps/a.ts': 1650, 'apps/b.ts': 1700 })
+        }
+      )
+      const { tools } = platform(work)
       await expect(mergeSlice(input(tip), tools)).rejects.toThrow(
-        /fails the source ratchets:\n.*apps\/a\.ts shrank to 1550 code lines; lower its cap from 1600/
+        /fails the source ratchets:\napps\/a\.ts: 1700 code lines, over its budget of 1650; split the module\.$/
+      )
+      expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
+      expect(sh(origin, 'branch', '--list', 'ci/merge-m*')).toBe('')
+    })
+
+    it('refuses any other ratchet problem in the merged tree, pushing nothing', async () => {
+      // Both sides' deletions take apps/a.ts to 1450 lines, within the limit: its entry must go, which
+      // lowering a cap does not do.
+      const { work, origin, tip, before } = diverge(shrinkA, {
+        'apps/a.ts': module('a', 0, 1550),
+        [BUDGET]: budget({ 'apps/a.ts': 1550, 'apps/b.ts': 1700 })
+      })
+      const { tools } = platform(work)
+      await expect(mergeSlice(input(tip), tools)).rejects.toThrow(
+        /fails the source ratchets:\n.*apps\/a\.ts is 1450 code lines, within 1500; remove it\.$/
       )
       expect(sh(origin, 'rev-parse', PHASE)).toBe(before)
       expect(sh(origin, 'branch', '--list', 'ci/merge-m*')).toBe('')
