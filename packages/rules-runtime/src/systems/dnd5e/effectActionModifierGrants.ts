@@ -1,12 +1,20 @@
 import { compileModifierGrant, type CompiledEffectGroup } from '@artificer-toolkit/shared/compilers'
-import type { CharacterRuleActionActiveEffectPlan } from '../../characterRuleActionSystemAdapter.js'
+import type {
+  CharacterRuleActionActiveEffectPlan,
+  CharacterRuleActionSystemAdapter
+} from '../../characterRuleActionSystemAdapter.js'
 import { conditionDurationTurns, planTickAnchor } from './effectActionFollowUp.js'
-import { UUID, DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION } from './effectActionContracts.js'
+import {
+  UUID,
+  DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
+  unsupported
+} from './effectActionContracts.js'
 import { canonicalEndTriggers } from './effectActionBandConditions.js'
 import { buildCharacterGrantFoldModifierFacts } from '../../character/characterGrantFoldSourceFacts.js'
 import { dnd5eResultGate } from './effectActionOperationRegistry.js'
 import type { Dnd5eCompiledEffectActionSource } from './effectActionContracts.js'
 import {
+  durationPublishedGraph,
   isGrantConsumeEvent,
   isGrantEndEvent,
   GRANT_END_TRIGGER_EVENTS,
@@ -72,7 +80,8 @@ function amountAtCastLevel<M extends { payload?: unknown }>(modifier: M, castLev
  * The plan of one APPLY_GRANT entry. With `untilEndEvent` the grant has no counted duration and
  * lasts until one of its authored end events (a speed penalty that lasts until the creature
  * regains Hit Points); without it the grant must be timed, and may also end early on an event
- * (Rage ends when its holder is incapacitated).
+ * (Rage ends when its holder is incapacitated). A `standing` grant is a passive one that lasts until
+ * any of its end events, triggers or conditions, and its authored `returnsOn` rest turns it back on.
  */
 export function modifierGrantEntryPlan(input: {
   action: Dnd5eCompiledEffectActionSource
@@ -80,8 +89,9 @@ export function modifierGrantEntryPlan(input: {
   /** The grant applies only on its authored result path: an attack's hit or a save's failure. */
   resultGated: boolean
   untilEndEvent: boolean
+  standing?: boolean
 }): Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> | null {
-  const { action, entry, resultGated, untilEndEvent } = input
+  const { action, entry, resultGated, untilEndEvent, standing = false } = input
   if (!('outcome' in entry) || entry.outcome.effectKind !== 'APPLY_GRANT') return null
   const { grants } = entry.outcome
   const { spellCastLevel } = action
@@ -105,6 +115,7 @@ export function modifierGrantEntryPlan(input: {
     onEnd,
     grantedActions,
     effectOffers,
+    returnsOn,
     ...otherLifecycle
   } = entry.lifecycle ?? {}
   const consumeEvents = [...new Set(consumeOnFirstEvents)].sort()
@@ -143,9 +154,12 @@ export function modifierGrantEntryPlan(input: {
         isSlotLevelAmount(payload) ||
         (typeof payload === 'object' && payload !== null && 'countPerCastLevelAbove' in payload)
     ) ||
-    (untilEndEvent
+    standing !== (returnsOn !== undefined) ||
+    (untilEndEvent || standing
       ? entry.duration !== undefined ||
-        endEvents.length === 0 ||
+        (standing
+          ? endEvents.length + endOnTriggers.length + endOnConditionIds.length
+          : endEvents.length) === 0 ||
         turnAnchor !== undefined ||
         activeOnlyOnFinalAnchorTurn
       : initialRemaining === null) ||
@@ -164,7 +178,7 @@ export function modifierGrantEntryPlan(input: {
       lifecycle: { endOnTriggers: canonicalEndTriggers(endOnTriggers) }
     }),
     capabilityContractVersion: DND5E_EFFECT_ACTION_CAPABILITY_CONTRACT_VERSION,
-    recurrenceStage: untilEndEvent ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
+    recurrenceStage: untilEndEvent || standing ? 'NONE' : (turnAnchor?.boundary ?? 'END_OF_TURN'),
     initialRemaining,
     ...(endsWithHeldEffectId !== undefined && { endsWithHeldEffectId }),
     tickAnchor: planTickAnchor(turnAnchor),
@@ -200,4 +214,44 @@ export function modifierGrantEntryPlan(input: {
     maintenance: maintenancePlan(action, entry),
     marginRiders: []
   }
+}
+
+/** The timed grant a passive "when this creature takes damage" feature gives its holder. */
+export const passiveDamageGrantPlan: NonNullable<
+  CharacterRuleActionSystemAdapter['passiveDamageGrantPlan']
+> = ({ action }) => {
+  const { invocation, entries } = action.compiledEffect
+  const [entry] = entries
+  if (
+    invocation.kind !== 'PASSIVE' ||
+    invocation.triggerCode !== 'INCOMING_DAMAGE' ||
+    entries.length !== 1 ||
+    !entry ||
+    entry.pathCode !== 'PASSIVE'
+  )
+    unsupported('D&D passive damage trigger must author one passive result.')
+  const plan = modifierGrantEntryPlan({ action, entry, resultGated: false, untilEndEvent: false })
+  if (!plan?.modifierGrantContribution)
+    unsupported('D&D passive damage trigger must give a timed modifier grant.')
+  return { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
+}
+
+/** A standing effect's untimed grant: one passive result that an End On trigger ends (SPELLS-31.2). */
+export const standingEffectPlan: NonNullable<
+  CharacterRuleActionSystemAdapter['standingEffectPlan']
+> = ({ action }) => {
+  const { invocation, entries } = action.compiledEffect
+  const [entry] = entries
+  if (invocation.kind !== 'PASSIVE' || entries.length !== 1 || !entry)
+    unsupported('D&D standing effect must author one passive result.')
+  const plan = modifierGrantEntryPlan({
+    action,
+    entry,
+    resultGated: false,
+    untilEndEvent: false,
+    standing: true
+  })
+  if (!plan?.modifierGrantContribution)
+    unsupported('D&D standing effect must give an untimed modifier grant that something ends.')
+  return { ...plan, frozenGraph: durationPublishedGraph({ effectId: action.effectId, plan }) }
 }

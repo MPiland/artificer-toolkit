@@ -151,6 +151,7 @@ describe('character sheet command contracts', () => {
           maxHitPointsModifierAdjustmentId: null,
           maxHitPointsReductions: [],
           activeGrants: [],
+          standingEffects: [],
           concentration: null,
           maxHitPointsOverride: null,
           savingThrows: [
@@ -322,6 +323,7 @@ describe('character sheet command contracts', () => {
           maxHitPointsModifierAdjustmentId: null,
           maxHitPointsReductions: [],
           activeGrants: [],
+          standingEffects: [],
           concentration: null,
           maxHitPointsOverride: null,
           savingThrows: [

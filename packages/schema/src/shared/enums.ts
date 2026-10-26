@@ -355,6 +355,8 @@ export const pathLifecycleTurnActorSchema = lazySchema(() => z.enum(['TARGET', '
 export const pathLifecycleTurnBoundarySchema = lazySchema(() =>
   z.enum(['START_OF_TURN', 'END_OF_TURN'])
 )
+/** The rest whose finish turns a standing effect back on; see `PathLifecycleAuthored.returnsOn`. */
+export const pathLifecycleReturnsOnSchema = lazySchema(() => z.enum(['LONG_REST', 'SHORT_REST']))
 /** Which earlier effects a new one ends: `PER_SOURCE`, its source's from the same Effect on any holder. */
 export const pathLifecycleExclusivitySchema = lazySchema(() => z.enum(['PER_SOURCE']))
 

@@ -52,6 +52,8 @@ export interface CharacterRulePolicyFactsResult extends CharacterRuleSnapshotRes
   passiveZoneSources: ReturnType<typeof buildCharacterActionRuleFacts>['passiveZones']
   /** Server-only charges the Character's passive features raise when it rolls initiative. */
   initiativeRestoreSources: ReturnType<typeof buildCharacterActionRuleFacts>['initiativeRestores']
+  /** Server-only always-on effects of the Character's passive features, which a rest turns back on. */
+  standingEffectSources: ReturnType<typeof buildCharacterActionRuleFacts>['standingEffects']
 }
 
 interface CharacterRulePolicyFactsPreparation {
@@ -161,6 +163,7 @@ export function composeCharacterRulePolicyFacts(
     facts,
     actionEntryPoints: actionFacts.entryPoints,
     passiveZoneSources: actionFacts.passiveZones,
-    initiativeRestoreSources: actionFacts.initiativeRestores
+    initiativeRestoreSources: actionFacts.initiativeRestores,
+    standingEffectSources: actionFacts.standingEffects
   }
 }

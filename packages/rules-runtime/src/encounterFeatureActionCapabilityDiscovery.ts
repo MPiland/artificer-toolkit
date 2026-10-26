@@ -12,6 +12,7 @@ import { listCreatureSpellCasts } from './encounterCreatureSpellCasts.js'
 import { castableEffectGroups, spellCastActionId, spellCastLabel } from './spellCastCandidates.js'
 import { passiveMeleeRetaliationZone, placedSpaceManifest } from './encounterZonePlacement.js'
 import type { AttackProfileCapabilityAdapter } from './attackProfileCapability.js'
+import { standingEffectReturnsOn } from './standingEffects.js'
 import {
   attackProfileCapabilityRegistry,
   encounterFeatureActionCapabilityRegistry
@@ -85,6 +86,8 @@ export interface EncounterFeatureActionDiscovery {
   passiveWeaponHitCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
   /** The passive features that fire at the start of their holder's turn, never offered as actions. */
   passiveStartOfTurnCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
+  /** The passive features whose always-on effect a rest turns back on, never offered as actions. */
+  passiveStandingCapabilities: readonly EncounterFeatureActionCapabilityDescriptor[]
 }
 
 type FeatureOption = NonNullable<FeatureDto['options']>[number]
@@ -645,7 +648,8 @@ export function discoverUncompiledEncounterFeatureActions(input: {
       passiveDamageGrantCapabilities: [],
       passiveHpZeroCapabilities: [],
       passiveWeaponHitCapabilities: [],
-      passiveStartOfTurnCapabilities: []
+      passiveStartOfTurnCapabilities: [],
+      passiveStandingCapabilities: []
     }
   const provenance = snapshotProvenance(input.actor)
   const gameSystemId = requireCanonicalUuid(input.actor.systemId!, 'Creature Game System identity')
@@ -657,6 +661,7 @@ export function discoverUncompiledEncounterFeatureActions(input: {
   const passiveHpZeroCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
   const passiveWeaponHitCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
   const passiveStartOfTurnCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
+  const passiveStandingCapabilities: EncounterFeatureActionCapabilityDescriptor[] = []
   const actionIds = new Set<string>()
   const profile = attackProfileCapabilityRegistry.require(gameSystemId)
   const features = snapshotFeatures(input.actor)
@@ -688,8 +693,10 @@ export function discoverUncompiledEncounterFeatureActions(input: {
         const hpZero = passive && effect.invocation.triggerCode === 'HP_ZERO'
         const weaponHit = passive && effect.invocation.triggerCode === 'INCOMING_WEAPON_HIT'
         const startOfTurn = passive && effect.invocation.triggerCode === 'START_OF_TURN'
+        const standing = standingEffectReturnsOn(compiledEffect) !== null
         if (
           passive &&
+          !standing &&
           !damageGrant &&
           !hpZero &&
           !weaponHit &&
@@ -706,17 +713,19 @@ export function discoverUncompiledEncounterFeatureActions(input: {
           abilityDefinitions: input.abilityDefinitions ?? []
         })
         if (normalized === null) continue
-        ;(damageGrant
-          ? passiveDamageGrantCapabilities
-          : hpZero
-            ? passiveHpZeroCapabilities
-            : weaponHit
-              ? passiveWeaponHitCapabilities
-              : startOfTurn
-                ? passiveStartOfTurnCapabilities
-                : passive
-                  ? passiveZoneCapabilities
-                  : available
+        ;(standing
+          ? passiveStandingCapabilities
+          : damageGrant
+            ? passiveDamageGrantCapabilities
+            : hpZero
+              ? passiveHpZeroCapabilities
+              : weaponHit
+                ? passiveWeaponHitCapabilities
+                : startOfTurn
+                  ? passiveStartOfTurnCapabilities
+                  : passive
+                    ? passiveZoneCapabilities
+                    : available
         ).push({
           kind: 'ENCOUNTER_FEATURE',
           gameSystemId,
@@ -817,7 +826,8 @@ export function discoverUncompiledEncounterFeatureActions(input: {
     passiveDamageGrantCapabilities,
     passiveHpZeroCapabilities,
     passiveWeaponHitCapabilities,
-    passiveStartOfTurnCapabilities
+    passiveStartOfTurnCapabilities,
+    passiveStandingCapabilities
   }
 }
 
