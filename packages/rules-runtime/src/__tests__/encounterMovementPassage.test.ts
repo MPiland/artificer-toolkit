@@ -822,11 +822,13 @@ describe('the cling a won climb gives its target, authored on the climb definiti
     const [cling, ...rest] = clingFor(climbOnto.id)
     expect(rest).toEqual([])
     expect(cling).toMatchObject({
-      owner: { actorId: ids.first },
-      origin: {
-        kind: 'ENCOUNTER',
-        sourceActorId: ids.source,
-        sourceOccurrenceId: ids.command
+      owner: { kind: 'ENCOUNTER_ACTOR', targetActorId: ids.first },
+      definition: {
+        origin: {
+          kind: 'ENCOUNTER',
+          sourceActorId: ids.source,
+          sourceOccurrenceId: ids.command
+        }
       }
     })
     expect(JSON.stringify(cling)).toContain('SOURCE_ATTACK_ROLL_INFLUENCE')

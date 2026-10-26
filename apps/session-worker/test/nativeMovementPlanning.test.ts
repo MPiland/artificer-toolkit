@@ -393,7 +393,7 @@ describe('movement through a hostile creature', () => {
       moverActorId: MOVER_ID,
       positions: { [MOVER_ID]: MOVER_START, [BLOCKER_ID]: { x: 350, y: 150 } },
       optionalCombatKinds: ['CLIMB_ONTO_LARGER_CREATURE'],
-      autoRoll: 'GAME_MASTER',
+      autoRoll: 'BOTH',
       rolls: [19, 0]
     })
     const characterState = () =>
@@ -420,6 +420,7 @@ describe('movement through a hostile creature', () => {
 
     await room.respond({ kind: 'PASSAGE_OPTION', optionId: climb.optionId })
 
+    expect(await room.pending()).toBeNull()
     const after = await characterState()
     expect(after.effects).toHaveLength(1)
     expect(after.streamVersion).toBe(before.streamVersion + 1)
