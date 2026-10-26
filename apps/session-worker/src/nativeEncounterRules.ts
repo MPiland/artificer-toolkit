@@ -794,7 +794,11 @@ export async function planNativeLiveEncounterAction(
           },
           priorContext: null,
           actors,
-          settlement: { kind: 'ACTION', prepared },
+          settlement: {
+            kind: 'ACTION',
+            prepared,
+            forcedMovementPick: executionOptions.forcedMovementPick
+          },
           actorRules: prepared.actorRules,
           activeEffectsByActorId,
           preparation: prepareEncounterBasicActionContest({
