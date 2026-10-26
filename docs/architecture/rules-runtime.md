@@ -1109,6 +1109,20 @@ unaffected picks, required sight, a non-fixed escape DC, a source-turn trigger o
 refused as `TARGET_UNAVAILABLE`. `placeEnvironmentalZone` (`encounter-persistence`) stores it with receipt
 `{ spatialEffectId }`, and GM undo (`REVERT_LAST_ACTION`) deletes it. Entries then settle as every placed zone's do.
 
+**Concealed zones (MOVE-3.3, server current; GM DC input and map outline on web pending).** A zone fixed to the Scene
+may carry a spot DC and a disarm DC, each a flat number (`FLAT`) or the placer's Stealth or Sleight of Hand roll result
+(`PLACER_ROLL`). They live in the zone's mutable `spatialState` (`concealment: { spotDc, knownByActorIds }` and
+`disarmDc`), not its placement, because the GM sets them at placement (`PLACE_ZONE` `spotDc`/`disarmDc`) or later
+(`SET_ZONE_DCS`, GM-only, receipt `{ spatialEffectId, before, afterVersion }`; GM undo restores `before` while the zone
+is still at `afterVersion`). `withZoneDcs` (`encounterZoneConcealment.ts`) makes the placer, the zone's
+`origin.sourceActorId`, know of a newly concealed zone; a GM-placed zone has no placer, so only the GM knows of it.
+Concealment is separate from the placement's `visibility`/`revealed` pair, which hides a zone from everyone until it
+triggers. `readEncounterSessionState` redacts per member once, for Convex and the room alike: the GM reads every zone,
+and a player reads a concealed zone only when one of the actors they control is in `knownByActorIds`
+(`zoneConcealedFrom`), so `halfSpeedFields`, `movementCostZones` and the new `placedZones` (the outlines the map draws)
+leave it out. Only the GM reads the DCs in `placedZones`. The movement path still triggers a concealed zone for every
+mover; an unaware mover's careful-crossing rules are MOVE-3.6.
+
 **Source zones (SPELLS-20 T1b, current).** An authored `MANIFEST` `ZONE` with `attachmentKind: 'SOURCE'` compiles
 through the same `zonePlacementPlan` as a placed space (`PlacedSpaceZone.attachment` becomes
 `zonePlacement.attachment`); no aura-specific zone logic exists. It must be centered on its user (range `SELF` with a
