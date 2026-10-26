@@ -32254,6 +32254,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -61663,6 +61664,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -91081,6 +91083,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -120490,6 +120493,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -149934,6 +149938,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -179343,6 +179348,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -208722,6 +208728,7 @@ export declare const api: {
                           >;
                         };
                       }>;
+                      failedSaveEffectId?: string;
                       kind: "MASSIVE_DAMAGE";
                       savingThrowAbilityDefinitionId: string;
                       savingThrowDifficultyClass: number;
@@ -237861,6 +237868,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
@@ -267270,6 +267278,7 @@ export declare const api: {
                             >;
                           };
                         }>;
+                        failedSaveEffectId?: string;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
                         savingThrowDifficultyClass: number;
