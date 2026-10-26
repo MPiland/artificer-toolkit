@@ -407,6 +407,10 @@ Durations stop at hours and 10,000 turns, so Awaken's 30-day charm ships as a GM
 
 Regenerate's immediate heal and its 1 hit point each turn ship in SPELLS-4.T2t. Regrowing severed body parts after 2 minutes stays in the description, because no limb model exists.
 
+### Standing effects that never return or arm on obtain (SPELLS-31.2, 2026-10-25)
+
+SPELLS-31.2's standing effects come back only after a long rest or short rest, and a rest is what first turns them on, which fits Tranquility. Two cases need an arming step when the feature is gained, which crosses the Builder/Sheet seam (about size 2): a "never returns" cadence, and a standing effect expected before the first rest. More end conditions ("fails a save", "is hit") join the existing End On list when a feature needs them.
+
 ### Surprise (D156)
 
 Encounters have no surprise step, so Foresight's "can't be surprised", Assassinate's automatic critical against a surprised creature and Surprise Attack's extra 2d6 ship as description only (SPELLS-4.T2a2, SPELLS-33.T6d3b, D165). A surprise round, with creatures that can't be surprised exempt, would let it resolve.
