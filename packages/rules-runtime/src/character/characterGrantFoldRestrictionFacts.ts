@@ -269,12 +269,14 @@ const SOURCE_PREDICATE_CODES: ReadonlySet<string> = new Set([
  * A context whose conditions only name the source or its state (an item's "while equipped")
  * describes no holder, so any holder qualifies (D152, amended for ATTACK-6.T4a).
  */
-function describesOnlySource(conditions: readonly { readonly predicateCode?: string }[]): boolean {
+function describesOnlySource(conditions: readonly object[]): boolean {
   return (
     conditions.length > 0 &&
     conditions.every(
-      ({ predicateCode }) =>
-        predicateCode !== undefined && SOURCE_PREDICATE_CODES.has(predicateCode)
+      (condition) =>
+        'predicateCode' in condition &&
+        typeof condition.predicateCode === 'string' &&
+        SOURCE_PREDICATE_CODES.has(condition.predicateCode)
     )
   )
 }
