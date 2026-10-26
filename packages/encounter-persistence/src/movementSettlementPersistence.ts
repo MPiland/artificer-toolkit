@@ -27,6 +27,12 @@ import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import type { endHolderStateGrants } from './concentrationEnd.js'
 import { deleteGrants } from './consumedGrantPersistence.js'
 import { createActiveRuleEffectStore } from './effectStore.js'
+import { sourceEncounterIdForDefinition } from '@artificer-toolkit/rules-runtime/activeRuleEffectRecords'
+import { deriveEncounterCharacterMechanicsEventCommandId } from '@artificer-toolkit/rules-runtime/encounterCharacterMechanicsBatch'
+import {
+  readLiveCharacterMaximumHitPoints,
+  readLiveCharacterStreamVersion
+} from './liveMovementTargetState.js'
 import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { EncounterPersistenceTransaction } from './ports.js'
 import type { persistLiveMovementSpatial } from './liveMovementSpatialPersistence.js'
@@ -156,6 +162,8 @@ type MovementSettlementCallbacks = {
     input: Parameters<typeof persistLiveMovementMoveEnd>[1]
   ) => ReturnType<typeof persistLiveMovementMoveEnd>
   endHolderGrants: (input: Parameters<typeof endHolderStateGrants>[1]) => Promise<void>
+  /** Versions a Character the passage's effect lands on, as every Character-owned effect does. */
+  applyMechanics: Parameters<typeof persistLiveMovementSpatial>[2]['applyMechanics']
 }
 
 /** Settles retained movement contacts and their children in the parent's transaction. */
@@ -406,6 +414,48 @@ export async function persistMovementContacts(
       const blocker = actors.find((entry) => entry.id === passage.audit.blockerActorId)
       if (step.createdEffects.length && (passage.outcome !== 'SUCCESS' || !blocker))
         throw new Error('Movement passage effects need a won contest and its blocker.')
+      if (blocker?.kind === 'CHARACTER' && step.createdEffects.length) {
+        const beforeStreamVersion = await readLiveCharacterStreamVersion(
+          ctx,
+          input.state,
+          blocker.sourceId
+        )
+        const mechanics = await callbacks.applyMechanics({
+          encounterId: input.state.id,
+          targetActorId: blocker.id,
+          expectedEncounterVersion: input.state.version,
+          occurrenceId: preparation.occurrenceId,
+          sourceCommandId: save.commandId,
+          commandId: deriveEncounterCharacterMechanicsEventCommandId({
+            occurrenceId: preparation.occurrenceId,
+            sourceCommandId: save.commandId,
+            phase: 'MOVEMENT_PASSAGE_EFFECT',
+            ordinal: 0,
+            targetCharacterId: blocker.sourceId
+          }),
+          occurredAt: preparation.occurredAt,
+          applications: [],
+          effectiveMaximumHitPoints: await readLiveCharacterMaximumHitPoints(
+            ctx,
+            input.state,
+            blocker.sourceId
+          ),
+          forceVersionAdvance: true
+        })
+        if (mechanics.characterStreamVersion === null)
+          throw new Error('Movement passage effect did not version its Character.')
+        actors = actors.map((entry) => (entry.id === blocker.id ? mechanics.updatedActor : entry))
+        transitions.push({
+          kind: 'PASSAGE',
+          characterTransitions: [
+            {
+              characterId: blocker.sourceId,
+              beforeStreamVersion,
+              afterStreamVersion: mechanics.characterStreamVersion
+            }
+          ]
+        })
+      }
       const effectStore = createActiveRuleEffectStore(ctx)
       for (const effect of step.createdEffects) {
         const origin = effect.definition.origin
@@ -419,7 +469,11 @@ export async function persistMovementContacts(
           origin.sourceOccurrenceId !== preparation.occurrenceId ||
           origin.rootCommandId !== save.commandId ||
           effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId ||
-          effect.maintainedEffectStateId !== null
+          effect.maintainedEffectStateId !== null ||
+          effect.sourceEncounterId !==
+            (effect.owner.kind === 'CHARACTER'
+              ? sourceEncounterIdForDefinition(effect.definition, null)
+              : null)
         )
           throw new Error('Movement passage effect does not match its blocker and source.')
         const created = await effectStore.create({

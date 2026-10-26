@@ -101,7 +101,7 @@ whose null `actionEffectIds` means every attack). The policy capability's `passa
 re-derives its plan from the pinned definition; `evaluateEncounterMovementPassageResponse` builds the
 record on a SUCCESS contest and the PASSAGE settlement step carries it as `createdEffects`.
 `persistMovementSettlements` refuses an effect whose owner, origin or checksum does not match the
-planned blocker and occurrence, then creates it. Nothing in the engine names climbing.
+planned blocker and occurrence, then creates it. A Character-owned blocker also takes a forced Character\nstream version advance (phase `MOVEMENT_PASSAGE_EFFECT`, the same `applyMechanics` path Grapple's hold\nuses), published as a `PASSAGE` `MovementCommandTransition`. Scene undo refuses the move whose\ndecision was answered (`settledEncounterMechanics` also checks the receipts of the occurrence the\nmove rooted), so a settled cling cannot outlive the token's position. Nothing in the engine names\nclimbing.
 
 **Marking (current, ATTACK-13.T1).** The MARK definition authors `qualifyingAttackKind` (`MELEE` or
 `ANY`) and the `effect` a qualifying attack gives its target: one timed grant whose result lifecycle

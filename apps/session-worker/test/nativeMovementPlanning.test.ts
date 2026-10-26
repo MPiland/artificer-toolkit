@@ -4,6 +4,7 @@ import {
   SRD_VOCABULARY,
   srdCreatureActor
 } from '@artificer-toolkit/rules-runtime/testing/dnd5eSrdEncounter'
+import type { CreatureAuthored } from '@artificer-toolkit/shared/subjects/authored'
 import type { SceneBarrier, ScenePoint } from '@artificer-toolkit/shared/vtt'
 import { srdBaselineContent } from '@artificer-toolkit/source-data/srd/index.js'
 import { SRD_OPTIONAL_COMBAT_DEFINITIONS } from '@artificer-toolkit/source-data/srd/optionalCombat.js'
@@ -255,13 +256,18 @@ describe('movement through a hostile creature', () => {
     laterBlocker?: boolean
     /** The first blocker's Bite is an opportunity attack. */
     reactiveBlocker?: boolean
+    /** The first blocker's size, Medium like the mover unless it names another. */
+    blockerSize?: CreatureAuthored['size']
     rolls?: readonly number[]
     optionalCombatKinds?: MovementRoomConfig['optionalCombatKinds']
   }) {
     const mover = srdCreatureActor({ id: MOVER_ID, creature: plainWolf, disposition: 'FRIENDLY' })
     const blocker = srdCreatureActor({
       id: BLOCKER_ID,
-      creature: options.reactiveBlocker ? reactionWolf : plainWolf
+      creature: {
+        ...(options.reactiveBlocker ? reactionWolf : plainWolf),
+        ...(options.blockerSize ? { size: options.blockerSize } : {})
+      }
     })
     const later = srdCreatureActor({ id: LATER_BLOCKER_ID, creature: plainWolf })
     return movementRoom({
@@ -344,6 +350,80 @@ describe('movement through a hostile creature', () => {
     })
   })
 
+  it('refuses to undo the Scene move whose won climb settled, so the cling cannot outlive the position (MOVE-4.T2a)', async () => {
+    const room = await passageRoom({
+      blockerSize: 'LARGE',
+      optionalCombatKinds: ['CLIMB_ONTO_LARGER_CREATURE'],
+      rolls: [19, 0]
+    })
+    await room.move([MOVER_START, { x: 750, y: 150 }])
+    const climb = (await passageOptions(room)).find(
+      (option) => option.ruleKind === 'CLIMB_ONTO_LARGER_CREATURE'
+    )
+    if (!climb) throw new Error('The climb option is missing.')
+
+    await room.respond({ kind: 'PASSAGE_OPTION', optionId: climb.optionId })
+
+    expect(await room.pending()).toBeNull()
+    const commandId = crypto.randomUUID()
+    expect(
+      await room.send(commandId, {
+        scope: 'SCENE',
+        command: {
+          type: 'UNDO_LAST_SCENE_MOVE',
+          commandId,
+          expectedSceneVersion: room.scene.version + 1,
+          sceneId: room.scene.id
+        }
+      })
+    ).toMatchObject({
+      type: 'COMMAND_REJECTED',
+      code: 'INVALID_COMMAND',
+      message: 'This move settled Encounter mechanics and cannot be undone as a Scene move.'
+    })
+  })
+  it('gives a won climb its cling on a Character blocker in that Character stream, versioned once (MOVE-4.T2a)', async () => {
+    const climber = srdCreatureActor({
+      id: MOVER_ID,
+      creature: { ...plainWolf, size: 'SMALL' },
+      disposition: 'HOSTILE'
+    })
+    const room = await movementRoom({
+      actors: [climber, characterActor({ id: BLOCKER_ID, characterId: CHARACTER_ID })],
+      moverActorId: MOVER_ID,
+      positions: { [MOVER_ID]: MOVER_START, [BLOCKER_ID]: { x: 350, y: 150 } },
+      optionalCombatKinds: ['CLIMB_ONTO_LARGER_CREATURE'],
+      autoRoll: 'GAME_MASTER',
+      rolls: [19, 0]
+    })
+    const characterState = () =>
+      runInDurableObject(room.base.stub, (_instance, context) => {
+        const store = new RoomEncounterStore(context.storage)
+        const play = store
+          .documents('characterPlayStates')
+          .find((row) => row.characterId === CHARACTER_ID)
+        if (!play) throw new Error('Missing room Character play state.')
+        return {
+          streamVersion: play.streamVersion,
+          effects: store
+            .documents('characterActiveRuleEffects')
+            .filter((row) => row.characterId === CHARACTER_ID)
+        }
+      })
+    const before = await characterState()
+    expect(before.effects).toEqual([])
+    await room.move([MOVER_START, { x: 750, y: 150 }])
+    const climb = (await passageOptions(room)).find(
+      (option) => option.ruleKind === 'CLIMB_ONTO_LARGER_CREATURE'
+    )
+    if (!climb) throw new Error('The climb option is missing.')
+
+    await room.respond({ kind: 'PASSAGE_OPTION', optionId: climb.optionId })
+
+    const after = await characterState()
+    expect(after.effects).toHaveLength(1)
+    expect(after.streamVersion).toBe(before.streamVersion + 1)
+  })
   it.each(['OVERRUN', 'TUMBLE'] as const)(
     'settles a won %s on the checks its SRD definition pins and passes the blocker (MOVE-2)',
     async (ruleKind) => {
