@@ -100,16 +100,19 @@ const baseJson = (root, base, file) => {
   }
 }
 
+// A listed module that shrank below its cap while staying over SIZE_LIMIT: its cap must come down.
+const shrankUnderCap = (size, cap) => size > SIZE_LIMIT && size < cap
+
 /**
- * The entries of `budget` whose module in the tree at <root> shrank below its cap while staying over
- * SIZE_LIMIT, each with its code-line count: the caps the ratchet asks to lower.
+ * The entries of `budget` whose module in the tree at <root> shrank under its cap, each with its
+ * code-line count: the caps the ratchet asks to lower.
  */
 export const shrunkCaps = (root, budget) =>
   Object.fromEntries(
     Object.entries(budget).flatMap(([file, cap]) => {
       if (!sourceModule(file) || !existsSync(path.join(root, file))) return []
       const size = codeLines(file, readFileSync(path.join(root, file), 'utf8'))
-      return size > SIZE_LIMIT && size < cap ? [[file, size]] : []
+      return shrankUnderCap(size, cap) ? [[file, size]] : []
     })
   )
 
@@ -145,7 +148,7 @@ export const ratchetProblems = (root, { base } = {}) => {
       problems.push(
         `${SIZE_BUDGET}: ${file} is ${size} code lines, within ${SIZE_LIMIT}; remove it.`
       )
-    else if (size < cap)
+    else if (shrankUnderCap(size, cap))
       problems.push(
         `${SIZE_BUDGET}: ${file} shrank to ${size} code lines; lower its cap from ${cap}.`
       )
