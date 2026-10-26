@@ -3,8 +3,8 @@ import { isVisibleHalfSpeedField } from '@artificer-toolkit/rules-runtime/halfSp
 import type { readSceneSpatialRows } from './sceneSpatialRows.js'
 
 /**
- * The visible fields in the Run's bound Scene that a voluntary mover may cross carefully. They are
- * the same for every member, so the tabletop can offer the choice before a move is sent.
+ * The visible fields among the member's placed zones that a voluntary mover may cross carefully,
+ * so the tabletop can offer the choice before a move is sent.
  */
 export function halfSpeedFieldsOf(
   rows: Awaited<ReturnType<typeof readSceneSpatialRows>>

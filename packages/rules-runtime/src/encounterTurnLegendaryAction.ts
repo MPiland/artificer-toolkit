@@ -26,10 +26,8 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument, RULE_GRAPH_LIMITS } from '@artificer-toolkit/shared/rules'
 import { prepareActiveRuleEffectRecord } from './activeRuleEffectRecords.js'
 import { advanceNativeActionGraphs } from './encounterActionExecution.js'
-import {
-  prepareNativeActionEffectsPlan,
-  prepareNativeIncomingDamageGrantTriggers
-} from './encounterActionEffects.js'
+import { prepareNativeActionEffectsPlan } from './encounterActionEffects.js'
+import { prepareAttackTargetGrantTriggers } from './encounterAttackAppliedEffects.js'
 import { projectNativeActionEffectTransitions } from './encounterActionEffectReceipts.js'
 import { planNativeEncounterActionMechanics } from './encounterActionMechanicsPlan.js'
 import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
@@ -378,10 +376,10 @@ export async function prepareTurnLegendaryActions<
       applications: result.applications,
       damagerActorId: actor.id,
       dispositions,
-      grantTriggers: prepareNativeIncomingDamageGrantTriggers({
+      grantTriggers: prepareAttackTargetGrantTriggers({
         encounter: prepared.state,
-        holder: prepared.target,
-        held: prepared.targetFacts.activeEffects,
+        attacker: prepared.actor,
+        target: prepared.targetFacts,
         occurrenceId,
         commandId: root.rootCommandId,
         ordinal,
@@ -428,9 +426,13 @@ export async function prepareTurnLegendaryActions<
               })()
           }
         : { kind: 'ENCOUNTER_ACTOR' as const, encounterId: state.id, targetActorId: target.id }
-    // A hit on one of the target's decoys destroys it, so later windows see what is left.
+    // A hit on one of the target's decoys destroys it, so later windows see what is left. The effects
+    // the action ended or a grant replaced are deleted before the new ones are created, so those are
+    // numbered after what the target keeps.
     const targetEffects = withDecoyStrikeApplied(
-      prepared.targetFacts.activeEffects,
+      prepared.targetFacts.activeEffects.filter(
+        ({ id }) => !damageEnded.endedEffects.some((ended) => ended.id === id)
+      ),
       decoyStrikeEffects(prepared.attackDecoy, result.d20?.resultPath)
     )
     const createdEffects: ActiveRuleEffectRecord[] = []
@@ -456,7 +458,8 @@ export async function prepareTurnLegendaryActions<
     const riderEffects = createLinkedRiders(effects.riderEffects, recurringEffect, (plan, index) =>
       createEffect(riderEffectKey(index), plan)
     )
-    // The target's own damage triggers give it timed grants after the option's effects.
+    // The target's own damage triggers and the owner's mark give it timed grants after the option's
+    // effects.
     const grantEffects = incomingDamageGrantRecords({
       grants: damageEnded.grants,
       owner: effectOwner,

@@ -718,6 +718,10 @@ const compiledActionChoiceSchema = lazySchema(() =>
         z.strictObject({
           optionId: serverUuidIdentityDtoSchema,
           label: z.string().check(z.minLength(1)).check(z.maxLength(160)),
+          /** Offered only in an Encounter whose optional combat rules include this one. */
+          requiresOptionalRule: z.optional(
+            z.strictObject({ definitionId: serverUuidIdentityDtoSchema })
+          ),
           activeEffectPlan: z.nullable(compiledActionActiveEffectPlanSchema),
           executionPlan: compiledActionExecutionPlanSchema
         })

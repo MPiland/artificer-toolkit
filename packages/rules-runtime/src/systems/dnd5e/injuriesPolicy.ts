@@ -8,7 +8,7 @@ import {
 } from './optionalCombatDefinition.js'
 import { DND5E_INJURIES_POLICY_MODULE } from './policyModuleRegistration.js'
 
-/** Lingering Injuries' authored triggers and d20 bands, when the Run has the rule on. */
+/** Lingering Injuries' authored triggers and table, when the Run has the rule on. */
 export function dnd5eConsequenceRollTables(
   input: OptionalCombatPolicyInput
 ): readonly ConsequenceRollTable[] {
@@ -24,12 +24,7 @@ export function dnd5eConsequenceRollTables(
       pin: optionalCombatPolicyPin(definition),
       label: definition.label,
       triggers: parameters.triggers,
-      dieFaces: 20,
-      rows: parameters.bands.map((band) => ({
-        rowId: band.outcome.id,
-        minimum: band.minimum,
-        maximum: band.maximum
-      }))
+      ...parameters.table
     }
   ]
 }

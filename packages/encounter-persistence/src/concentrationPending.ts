@@ -5,8 +5,7 @@ import {
 import { rollModeCapabilityRegistry } from '@artificer-toolkit/rules-runtime/platformPolicyModules'
 import { pendingEncounterRuleOccurrenceSummaryDtoSchema } from '@artificer-toolkit/schema/api/encounterData'
 import type { ServerRuleExecutionPendingSnapshotDto } from '@artificer-toolkit/schema/shared/ruleExecutionPendingSnapshots'
-import { concentrationRollTrigger } from '@artificer-toolkit/rules-runtime/encounterConcentration'
-import { effectRepeatSaveRollTrigger } from '@artificer-toolkit/rules-runtime/encounterEffectRepeatSave'
+import { damageSaveRollTrigger } from '@artificer-toolkit/rules-runtime/encounterConcentration'
 import { damageSaveContextBoundApplication } from '@artificer-toolkit/rules-runtime/encounterConcentrationIdentity'
 import {
   concentrationCommandId,
@@ -53,9 +52,9 @@ export function projectNativeConcentrationPending(
   reasons: EncounterRollModeReasons = noEncounterRollModeReasons
 ) {
   const { snapshot, context } = readNativeConcentrationPending(occurrence, pendingSnapshot)
-  // The save the roller makes: Concentration's derived one, or the effect's frozen policy.
+  // The save the roller makes: the holder's derived one, or the effect's frozen policy.
   const save =
-    context.source === 'CONCENTRATION'
+    context.source !== 'EFFECT_REPEAT_SAVE'
       ? context.save
       : {
           rollMode: context.d20Policy.rollMode,
@@ -70,10 +69,7 @@ export function projectNativeConcentrationPending(
     encounterVersion: occurrence.expectedEncounterVersion,
     // The damaged holder makes the save; its controllers and the GM answer it.
     rollerActorId: context.application.targetActorId,
-    trigger:
-      context.source === 'CONCENTRATION'
-        ? concentrationRollTrigger(context)
-        : effectRepeatSaveRollTrigger(context),
+    trigger: damageSaveRollTrigger(context),
     request: {
       requestId: snapshot.request.requestId,
       min: 1,

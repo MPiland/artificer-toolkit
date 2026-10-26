@@ -132,7 +132,8 @@ export function clearEmptyStateArrays(character: CharacterAuthored): CharacterAu
       resources: character.state.resources?.length ? character.state.resources : undefined,
       spellSlots: character.state.spellSlots?.length ? character.state.spellSlots : undefined,
       classes: character.state.classes?.length ? character.state.classes : undefined,
-      spellSummons: character.state.spellSummons?.length ? character.state.spellSummons : undefined
+      spellSummons: character.state.spellSummons?.length ? character.state.spellSummons : undefined,
+      consequences: character.state.consequences?.length ? character.state.consequences : undefined
     }
   }
 }
@@ -951,6 +952,14 @@ export function applyCharacterSheetCommand(
       )
       return clearEmptyStateArrays(next)
 
+    case 'REMOVE_CONSEQUENCE':
+      if (!next.state.consequences?.some(({ id }) => id === command.consequenceId))
+        throw new CharacterSheetCommandError('That consequence is no longer recorded.')
+      next.state.consequences = next.state.consequences.filter(
+        ({ id }) => id !== command.consequenceId
+      )
+      return clearEmptyStateArrays(next)
+
     case 'USE_RESOURCE': {
       const resource = ensureResource(sheet, command.resourceGrantId)
       const amount = command.amount ?? 1
@@ -1505,6 +1514,8 @@ export function summarizeCharacterSheetCommand(
       return `${findConditionLabel(sheet, command.conditionTypeId) ?? 'Condition'} added`
     case 'REMOVE_CONDITION':
       return `${findConditionLabel(sheet, command.conditionTypeId) ?? 'Condition'} removed`
+    case 'REMOVE_CONSEQUENCE':
+      return `${sheet?.overview.consequences.find(({ id }) => id === command.consequenceId)?.label ?? 'Consequence'} removed`
     case 'USE_RESOURCE':
       return `${findResourceLabel(sheet, command.resourceGrantId) ?? 'Resource'} used`
     case 'RESTORE_RESOURCE':

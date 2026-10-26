@@ -57,6 +57,23 @@ export function addedDieEntries(
   )
 }
 
+type MovementPassageOption = Extract<
+  PendingEncounterRuleOccurrenceSummaryDto,
+  { kind: 'MOVEMENT_PASSAGE_CHOICE' }
+>['options'][number]
+
+const MOVEMENT_PASSAGE_RULE_LABELS: Record<MovementPassageOption['ruleKind'], string> = {
+  OVERRUN: 'Overrun',
+  TUMBLE: 'Tumble',
+  CLIMB_ONTO_LARGER_CREATURE: 'Climb onto'
+}
+
+/** "Climb onto · Strength (Athletics) · Action": the rule, the mover's check and its cost. */
+export function movementPassageOptionLabel(option: MovementPassageOption): string {
+  const economy = option.economy === 'ACTION' ? 'Action' : 'Bonus action'
+  return `${MOVEMENT_PASSAGE_RULE_LABELS[option.ruleKind]} · ${option.initiatorCheckLabel} · ${economy}`
+}
+
 export function decisionTitle(kind: PendingEncounterRuleOccurrenceSummaryDto['kind']): string {
   if (kind === 'D20_EVIDENCE') return 'Roll required'
   if (kind === 'MOVEMENT_REACTION') return 'Reaction available'
@@ -85,6 +102,8 @@ export function rollPromptText(
   if (trigger?.kind === 'CONCENTRATION') return concentrationPromptText(actorLabel, trigger)
   if (trigger?.kind === 'EFFECT_REPEAT_SAVE')
     return `Repeat save for ${actorLabel}: ${concentrationTriggerText(trigger)}`
+  if (trigger?.kind === 'MASSIVE_DAMAGE')
+    return `Massive damage save for ${actorLabel}: ${concentrationTriggerText(trigger)}`
   if (trigger?.kind === 'DEATH_SAVE') return deathSavePromptText(actorLabel, trigger)
   if (trigger?.kind === 'BASIC_ACTION_CHECK')
     return `${trigger.actionLabel}: ${trigger.checkLabel}${trigger.dc === null ? '' : ` DC ${trigger.dc}`}`

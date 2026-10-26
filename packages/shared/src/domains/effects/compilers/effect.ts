@@ -119,6 +119,8 @@ export type CompiledEffect = {
    * only when its rider is among the ones the player chose, paying this cost.
    */
   optionalRider?: { riderId: string; cost: OptionalOnHitAuthored }
+  /** Set on a CHOICE option's entries: the option is offered only while this optional rule is on. */
+  requiresOptionalRule?: { definitionId: string }
   outcome: CompiledEffectOutcome
 } & (
   | {
@@ -488,6 +490,7 @@ function compileResultBlock(
     description?: string
     hitPointTier?: { atMost: number }
     initiatorCheckInfluence?: string
+    requiresOptionalRule?: { definitionId: string }
   },
   rollTableMeta?: {
     rollTableKind: PathRollTableKind
@@ -543,6 +546,7 @@ function compileResultBlock(
           ? { suppressedByDamageTypeIds: resultBlock.suppressedByDamageTypeIds }
           : {}),
         ...(meta?.hitPointTier ? { hitPointTier: meta.hitPointTier } : {}),
+        ...(meta?.requiresOptionalRule ? { requiresOptionalRule: meta.requiresOptionalRule } : {}),
         ...(path.restrictions ? { restrictions: path.restrictions } : {}),
         ...(path.usage ? { usage: path.usage } : {}),
         ...(path.rangeOverride ? { rangeOverride: path.rangeOverride } : {}),
@@ -620,6 +624,9 @@ export function compileEffectResult<
               ...(option.description !== undefined ? { description: option.description } : {}),
               ...(option.initiatorCheckInfluence !== undefined
                 ? { initiatorCheckInfluence: option.initiatorCheckInfluence }
+                : {}),
+              ...(option.requiresOptionalRule
+                ? { requiresOptionalRule: option.requiresOptionalRule }
                 : {})
             })
           )

@@ -193,7 +193,8 @@ describe('useCampaignLiveSession', () => {
         turnMovement: [],
         halfSpeedFields: [],
         auras: [],
-        movementCostZones: []
+        movementCostZones: [],
+        placedZones: []
       },
       preparedPending: [],
       actorSides: null,

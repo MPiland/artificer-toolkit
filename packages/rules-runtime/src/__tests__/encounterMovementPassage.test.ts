@@ -191,21 +191,27 @@ const overrun = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
 const tumble = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
   (definition) => definition.document.kind === 'TUMBLE'
 )!
-const optionalCombatSnapshot = {
-  schemaVersion: 1 as const,
-  gameSystemId: SRD_SYSTEM_ID,
-  definitions: [overrun, tumble].map((definition) => ({
-    definitionId: definition.id,
-    contentSourceId: SRD_CONTENT_SOURCE.id,
-    definitionVersion: 1,
-    definitionChecksum: definition.checksum,
-    contractVersion: 1,
-    label: definition.label,
-    document: definition.document
-  }))
-}
+const climbOnto = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+  (definition) => definition.document.kind === 'CLIMB_ONTO_LARGER_CREATURE'
+)!
 
-function runState(automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED'): EncounterRunState {
+function runState(
+  automationMode: 'ASSISTED' | 'MANUAL' = 'ASSISTED',
+  enabled: readonly (typeof overrun)[] = [overrun, tumble]
+): EncounterRunState {
+  const optionalCombatSnapshot = {
+    schemaVersion: 1 as const,
+    gameSystemId: SRD_SYSTEM_ID,
+    definitions: enabled.map((definition) => ({
+      definitionId: definition.id,
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitionVersion: 1,
+      definitionChecksum: definition.checksum,
+      contractVersion: 1,
+      label: definition.label,
+      document: definition.document
+    }))
+  }
   return encounterRunStateSchema.parse({
     id: ids.encounter,
     campaignId: ids.campaign,
@@ -701,6 +707,93 @@ describe('availableEncounterMovementPassageChoice', () => {
       await availableEncounterMovementPassageChoice(reads(), passageInput(runState(), [first]))
     ).toBeNull()
   })
+})
+
+describe('climbing onto a suitably larger creature, as an authored passage contest (MOVE-4)', () => {
+  const blocker = (size: string) => creature({ id: ids.first, disposition: 'HOSTILE', size })
+  const climbs = (choice: Awaited<ReturnType<typeof availableEncounterMovementPassageChoice>>) =>
+    (choice?.options ?? [])
+      .filter((option) => option.ruleKind === 'CLIMB_ONTO_LARGER_CREATURE')
+      .map((option) => `${option.initiatorCheckLabel}:${option.economy}`)
+      .sort()
+  const homebrew = (() => {
+    const document = structuredClone(climbOnto.document)
+    if (document.parameters.kind !== 'CLIMB_ONTO_LARGER_CREATURE')
+      throw new Error('Climb onto must author its parameters.')
+    document.parameters.initiatorCheckDefinitionIds = [SRD_ATHLETICS_SKILL_ID]
+    document.parameters.targetCheckDefinitionId = SRD_ATHLETICS_SKILL_ID
+    document.parameters.minimumTargetSizeSteps = 2
+    document.parameters.economies = ['ACTION', 'BONUS_ACTION']
+    return { ...climbOnto, document, checksum: checksumRuleDocument(document) }
+  })()
+  const choiceFor = (definition: typeof climbOnto, size: string) =>
+    availableEncounterMovementPassageChoice(
+      reads(),
+      passageInput(runState('ASSISTED', [definition]), [source, blocker(size)])
+    )
+
+  it('offers the SRD climb with either authored check, on the Action only, against a larger blocker', async () => {
+    expect(climbs(await choiceFor(climbOnto, 'LARGE'))).toEqual([
+      'Dexterity (Acrobatics):ACTION',
+      'Strength (Athletics):ACTION'
+    ])
+    expect(await choiceFor(climbOnto, 'MEDIUM')).toBeNull()
+    expect(await choiceFor(climbOnto, 'SMALL')).toBeNull()
+  })
+
+  it('offers nothing while the rule is disabled', async () => {
+    expect(
+      climbs(
+        await availableEncounterMovementPassageChoice(
+          reads(),
+          passageInput(runState(), [source, blocker('HUGE')])
+        )
+      )
+    ).toEqual([])
+  })
+
+  it('a homebrew climb built from the same parameters changes the checks, size gate and economies', async () => {
+    expect(await choiceFor(homebrew, 'LARGE')).toBeNull()
+    expect(climbs(await choiceFor(homebrew, 'HUGE'))).toEqual([
+      'Strength (Athletics):ACTION',
+      'Strength (Athletics):BONUS_ACTION'
+    ])
+  })
+
+  it.each([
+    [SRD_ATHLETICS_SKILL_ID, 'Strength (Athletics)'],
+    [SRD_ACROBATICS_SKILL_ID, 'Dexterity (Acrobatics)']
+  ])(
+    'seals the chosen %s check against the target Acrobatics, stopping at contact on a win',
+    async (initiatorCheckDefinitionId, initiatorCheckLabel) => {
+      const input = passageInput(runState('ASSISTED', [climbOnto]), [source, blocker('LARGE')])
+      const choice = await availableEncounterMovementPassageChoice(reads(), input)
+      const option = choice?.options.find(
+        (candidate) => candidate.initiatorCheckDefinitionId === initiatorCheckDefinitionId
+      )
+      if (!choice || !option) throw new Error('Expected a climb option.')
+      const prepared = await prepareEncounterMovementPassageContest(reads(), {
+        state: input.state,
+        choice,
+        optionId: option.optionId,
+        targets: input.targets
+      })
+      expect(prepared.origin).toMatchObject({
+        kind: 'OPTIONAL_COMBAT',
+        actionKind: 'CLIMB_ONTO_LARGER_CREATURE',
+        pin: { definitionId: climbOnto.id, definitionChecksum: climbOnto.checksum },
+        selection: {
+          kind: 'CLIMB_ONTO_LARGER_CREATURE',
+          economy: 'ACTION',
+          initiatorCheckDefinitionId,
+          initiatorCheckLabel,
+          defenderCheckDefinitionId: SRD_ACROBATICS_SKILL_ID,
+          successMovement: 'STOP_AT_CONTACT'
+        }
+      })
+      expect(prepared.initiator).toMatchObject({ rollMode: 'NORMAL', contributors: [] })
+    }
+  )
 })
 
 /** Seals the mover's `ruleKind` contest, paid with its Action, against the first blocker. */

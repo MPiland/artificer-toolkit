@@ -1,5 +1,6 @@
 import { z, lazySchema } from '../zod.js'
 import { characterCurrencyAmountDtoSchema } from '../shared/characterCurrency.js'
+import { characterConsequencesDtoSchema } from '../shared/consequenceRolls.js'
 import { postgresUuidSchema } from '../shared/postgresUuid.js'
 import { speedDtoSchema } from '../shared/speed.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
@@ -262,6 +263,8 @@ const characterStateDtoSchemaRaw = lazySchema(() =>
     spellSlots: z.optional(z.array(characterSpellSlotUsageStateDtoSchemaRaw)),
     conditions: z.optional(z.array(characterConditionStateDtoSchemaRaw)),
     exhaustion: z.optional(characterExhaustionStateDtoSchemaRaw),
+    /** Consequence table rows the GM accepted, such as lingering injuries; the GM removes them. */
+    consequences: z.optional(characterConsequencesDtoSchema),
     spellSummons: z.optional(z.array(characterSpellSummonStateDtoSchemaRaw)),
     noteGroups: z.optional(z.array(characterNoteGroupStateDtoSchemaRaw)),
     notes: z.optional(z.array(characterNoteStateDtoSchemaRaw)),

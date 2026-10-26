@@ -15,7 +15,8 @@ export const characterSheetFixture = {
       managePrivateNotes: true,
       manageInventory: true,
       openBuilder: true,
-      endActiveEffects: false
+      endActiveEffects: false,
+      removeConsequences: false
     },
     systemId: characterFixture.systemId,
     status: AUTHORED_RECORD_STATUS.ACTIVE,
@@ -106,6 +107,7 @@ export const characterSheetFixture = {
     activeGrants: [],
     standingEffects: [],
     concentration: null,
+    consequences: [],
     exhaustion: {
       label: 'Exhaustion',
       description: dnd5e2014ExhaustionDescription,

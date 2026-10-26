@@ -9,10 +9,8 @@ import {
   type EncounterRunActorState,
   type EncounterRunState
 } from '@artificer-toolkit/schema/projections/encounterRunState'
-import {
-  damageSaveCheckMutatesRun,
-  type ConcentrationEndReason
-} from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { type ConcentrationEndReason } from '@artificer-toolkit/schema/shared/ruleExecutionEncounterApplications'
+import { damageSaveCheckMutatesRun } from '@artificer-toolkit/schema/shared/ruleExecutionDamageSaveOutputs'
 import type { ServerRuleExecutionApplicationOutputsDto } from '@artificer-toolkit/schema/shared/ruleExecutionApplicationOutputs'
 import {
   ENDED_EFFECT_RELEASE_OPERATION_KEY,
@@ -50,6 +48,7 @@ import { checksumCanonicalJson } from '@artificer-toolkit/shared/canonicalJson'
 import { checksumRuleDocument } from '@artificer-toolkit/shared/rules'
 import { restoreConsumedGrants, restoreEndedMaintainedStates } from './consumedGrantPersistence.js'
 import { deletePlacedSpatialEffect } from './placedSpatialEffects.js'
+import { createSpatialRuleEffectStore } from './spatialEffectStore.js'
 import { rejectDomain } from './domainRejections.js'
 import {
   invertTargetMechanics,
@@ -265,6 +264,10 @@ export async function revertLastEncounterAction(
   if (root?.commandType === 'PLACE_ZONE') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertPlaceZone(ctx, { ...scope, root })
+  }
+  if (root?.commandType === 'SET_ZONE_DCS') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertZoneDcs(ctx, { ...scope, root })
   }
   if (root?.commandType === 'CREATURE_REST') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
@@ -942,7 +945,7 @@ function planRevertRoot({ root, ruleOccurrenceId, laterEntries, receipts }: Reve
       unsupported.add(CONCENTRATION_END_LIMIT[outputs.reason])
     } else if (outputs.kind === 'DAMAGE_SAVE_CHECK') {
       // A failed Concentration save ended a maintained effect, and a made repeat save released a
-      // turn effect; the receipt keeps the contents of neither.
+      // turn effect; the receipt keeps the contents of neither. A massive-damage save only records.
       if (damageSaveCheckMutatesRun(outputs))
         unsupported.add(
           outputs.source === 'CONCENTRATION' ? 'lost Concentration' : 'a released effect'
@@ -1265,6 +1268,42 @@ async function revertPlaceZone(
 ): Promise<EncounterCommandResultDto> {
   const { state, root } = input
   await deletePlacedSpatialEffect(ctx, { encounterId: state.id, id: root.receipt.spatialEffectId })
+  const actors = await readRunActors(ctx, state)
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: [...actors],
+    updatedAt: new Date().toISOString()
+  })
+}
+
+/** Undoes the GM's spot and disarm DCs while the zone is as that command left it. */
+async function revertZoneDcs(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'SET_ZONE_DCS' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  const { spatialEffectId, before, afterVersion } = root.receipt
+  const row = await ctx.db
+    .query('encounterSpatialRuleEffects')
+    .withIndex('by_publicId', (q) => q.eq('id', spatialEffectId))
+    .unique()
+  const store =
+    row?.encounterId === state.id
+      ? await createSpatialRuleEffectStore(ctx).scope({
+          encounterId: row.encounterId,
+          sceneId: row.sceneId
+        })
+      : null
+  const current = await store?.get(spatialEffectId)
+  if (!store || !current || current.version !== afterVersion)
+    revertUnavailable('The zone changed since its DCs were set; adjust manually.')
+  await store.updateCurrentStateCas({
+    id: current.id,
+    expectedVersion: current.version,
+    lifecycle: current.lifecycle,
+    spatialState: before
+  })
   const actors = await readRunActors(ctx, state)
   return commitRevert(ctx, {
     ...input,

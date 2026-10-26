@@ -110,6 +110,18 @@ function appendedMovement<
   }
 }
 
+/** A won contest passes through the blocker only when its rule's policy sealed that. */
+export function passesThrough(
+  pending: PassagePending,
+  execution: { readonly outcome: 'SUCCESS' | 'TIE_OR_FAILURE' }
+): boolean {
+  const selection = pending.origin.selection
+  return (
+    execution.outcome === 'SUCCESS' &&
+    'successMovement' in selection &&
+    selection.successMovement === 'PASS_THROUGH'
+  )
+}
 function receipt(input: {
   execution: CompletedContestExecution
   pending: PassagePending
@@ -133,10 +145,13 @@ function receipt(input: {
     modifier: policy.modifier,
     total
   })
-  const terminalPassageStop =
-    input.execution.outcome === 'SUCCESS' ? (movement.nextPassageStop ?? null) : null
+  const terminalPassageStop = passesThrough(input.pending, input.execution)
+    ? (movement.nextPassageStop ?? null)
+    : null
+  const selection = input.pending.origin.selection
+  if (!('successMovement' in selection)) throw new Error('Movement passage selection is stale.')
   return {
-    actionKind: input.pending.origin.actionKind as 'OVERRUN' | 'TUMBLE',
+    actionKind: selection.kind,
     optionId: input.pending.origin.optionId,
     outcome: input.execution.outcome,
     initiator: participant(
@@ -298,8 +313,9 @@ export async function evaluateEncounterMovementPassageContest<
       ...movement,
       root: {
         ...movement.root,
-        terminalPassageStop:
-          execution.outcome === 'SUCCESS' ? (movement.nextPassageStop ?? null) : null,
+        terminalPassageStop: passesThrough(pending, execution)
+          ? (movement.nextPassageStop ?? null)
+          : null,
         resolutionCommands: [
           ...choice.movement.root.resolutionCommands,
           movementRuleResolutionCommandDtoSchema.parse({
@@ -323,8 +339,8 @@ export async function evaluateEncounterMovementPassageContest<
   if (
     sealed.kind !== 'ENCOUNTER_CONTEST_CHECK' ||
     sealed.origin.kind !== 'OPTIONAL_COMBAT' ||
-    (sealed.origin.actionKind !== 'OVERRUN' && sealed.origin.actionKind !== 'TUMBLE') ||
-    (sealed.origin.selection.kind !== 'OVERRUN' && sealed.origin.selection.kind !== 'TUMBLE') ||
+    !('successMovement' in sealed.origin.selection) ||
+    sealed.origin.actionKind !== sealed.origin.selection.kind ||
     !sealed.origin.movementContinuation ||
     (input.resolution.kind !== 'ENTER_DICE' && input.resolution.kind !== 'SYSTEM_ROLL') ||
     (responseCommand.kind !== 'ENTER_DICE' && responseCommand.kind !== 'SYSTEM_ROLL') ||
@@ -342,8 +358,10 @@ export async function evaluateEncounterMovementPassageContest<
     options: [
       {
         optionId: sealed.origin.optionId,
-        ruleKind: sealed.origin.actionKind,
+        ruleKind: sealed.origin.selection.kind,
         economy: sealed.origin.selection.economy,
+        initiatorCheckDefinitionId: sealed.origin.selection.initiatorCheckDefinitionId,
+        initiatorCheckLabel: sealed.origin.selection.initiatorCheckLabel,
         definitionId: sealed.origin.pin.definitionId,
         definitionVersion: sealed.origin.pin.definitionVersion,
         definitionChecksum: sealed.origin.pin.definitionChecksum,
@@ -426,8 +444,9 @@ export async function evaluateEncounterMovementPassageContest<
     ...movement,
     root: {
       ...movement.root,
-      terminalPassageStop:
-        execution.outcome === 'SUCCESS' ? (movement.nextPassageStop ?? null) : null,
+      terminalPassageStop: passesThrough(pending, execution)
+        ? (movement.nextPassageStop ?? null)
+        : null,
       resolutionCommands: [
         ...sealed.origin.movementContinuation.root.resolutionCommands,
         movementRuleResolutionCommandDtoSchema.parse({

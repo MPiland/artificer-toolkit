@@ -319,7 +319,12 @@ export function compileCastChoicePlans(
         'A cast pick cannot also tier on hit points or roll on a table.'
       )
     return {
-      option: { optionId: option.optionId, label: option.label, ...plans },
+      option: {
+        optionId: option.optionId,
+        label: option.label,
+        ...(option.requiresOptionalRule && { requiresOptionalRule: option.requiresOptionalRule }),
+        ...plans
+      },
       sharedTest: sharedTestKey(adapter, optionDescriptor, plans.executionPlan)
     }
   })

@@ -706,6 +706,8 @@ function createDefaultAuthoringNodeValue(childMapId: string, order = 1): Authori
         description: '',
         resultBlock: createEmptyResultBlock()
       } satisfies Partial<PathChoiceOptionAuthored>
+    case 'pathChoiceOptionRequiredRule':
+      return { definitionId: '' } satisfies PathChoiceOptionAuthored['requiresOptionalRule']
     case 'resultBlock':
       return createEmptyResultBlock()
     case 'numericExpr':

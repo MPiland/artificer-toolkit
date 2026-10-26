@@ -11,6 +11,7 @@ import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { moraleDispositionDtoSchema, moraleTriggerKindDtoSchema } from '../shared/optionalCombat.js'
 import { manifestDtoSchema } from '../effects/manifest.js'
+import { zoneDcDtoSchema } from '../shared/spatial.js'
 import { sceneTokenFacingCommandInputDtoSchema } from './vttScenes.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
@@ -619,13 +620,28 @@ export const setConcealmentObserversInputDtoSchema = lazySchema(() =>
 /**
  * GM-only (MOVE-3.2): places an environmental zone, authored through the same zone node map as
  * authored content, fixed to the Scene with its origin at `point`. It has no source creature, so
- * its saves use their authored fixed DC.
+ * its saves use their authored fixed DC. A spot DC conceals it from every player (MOVE-3.3).
  */
 export const placeZoneInputDtoSchema = lazySchema(() =>
   z.extend(commandBaseDtoSchema, {
     type: z.literal('PLACE_ZONE'),
     zone: manifestDtoSchema,
-    point: spatialPointDtoSchema
+    point: spatialPointDtoSchema,
+    spotDc: z.optional(zoneDcDtoSchema),
+    disarmDc: z.optional(zoneDcDtoSchema)
+  })
+)
+/**
+ * GM-only (MOVE-3.3): sets or clears a placed zone's spot DC and disarm DC; null clears one. A zone
+ * with a spot DC is concealed from every player whose Characters do not know of it, and clearing it
+ * puts the zone in plain sight.
+ */
+export const setZoneDcsInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('SET_ZONE_DCS'),
+    spatialEffectId: postgresUuidSchema,
+    spotDc: z.nullable(zoneDcDtoSchema),
+    disarmDc: z.nullable(zoneDcDtoSchema)
   })
 )
 /**
@@ -689,6 +705,7 @@ export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputD
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>
 export type SetConcealmentObserversInputDto = z.infer<typeof setConcealmentObserversInputDtoSchema>
 export type PlaceZoneInputDto = z.infer<typeof placeZoneInputDtoSchema>
+export type SetZoneDcsInputDto = z.infer<typeof setZoneDcsInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>
 export type ConfirmMoraleInputDto = z.infer<typeof confirmMoraleInputDtoSchema>

@@ -746,13 +746,13 @@ describe('native Campaign play settings', () => {
     const disarm = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
       (definition) => definition.document.kind === 'DISARM'
     )
-    const mark = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
-      (definition) => definition.document.kind === 'MARK'
+    const climb = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+      (definition) => definition.document.kind === 'CLIMB_ONTO_LARGER_CREATURE'
     )
-    if (!disarm || !mark) throw new Error('Missing optional combat fixtures.')
+    if (!disarm || !climb) throw new Error('Missing optional combat fixtures.')
     await t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: [disarm, mark]
+      definitions: [disarm, climb]
     })
     const saved = await owner.caller.mutation(save, {
       ...input(settings),
@@ -761,7 +761,7 @@ describe('native Campaign play settings', () => {
     expect(saved.optionalCombatRuleDefinitionIds).toEqual([disarm.id])
     const before = await stored(t)
     await expect(
-      owner.caller.mutation(save, { ...input(saved), optionalCombatRuleDefinitionIds: [mark.id] })
+      owner.caller.mutation(save, { ...input(saved), optionalCombatRuleDefinitionIds: [climb.id] })
     ).rejects.toThrow('not available for Encounter execution')
     await expect(
       owner.caller.mutation(save, {
@@ -781,6 +781,55 @@ describe('native Campaign play settings', () => {
     await expect(owner.caller.mutation(save, input(saved))).rejects.toThrow(
       'current Game System vocabulary'
     )
+    expect(await stored(t)).toEqual(before)
+  })
+
+  it('offers and saves Injuries only while its System policy resolves it (ATTACK-15.3)', async () => {
+    const { t, owner, campaign, settings } = await setup()
+    const injuries = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+      (definition) => definition.document.kind === 'INJURIES'
+    )
+    if (!injuries) throw new Error('Missing Injuries fixture.')
+    const unresolvedDocument = {
+      ...injuries.document,
+      id: crypto.randomUUID(),
+      module: {
+        ...injuries.document.module,
+        contractVersion: injuries.document.module.contractVersion + 1
+      }
+    }
+    const unresolved = {
+      ...injuries,
+      id: unresolvedDocument.id,
+      label: 'Injuries, unsupported contract',
+      document: unresolvedDocument,
+      checksum: checksumRuleDocument(unresolvedDocument)
+    }
+    await t.mutation(internal.content.import.importDefinitions, {
+      contentSourceId: SRD_CONTENT_SOURCE.id,
+      definitions: [injuries, unresolved]
+    })
+    const offered = await owner.caller.query(options, { campaignId: campaign.id })
+    expect(offered.optionalCombatRules).toContainEqual({
+      definitionId: injuries.id,
+      label: injuries.label,
+      kind: 'INJURIES'
+    })
+    expect(offered.optionalCombatRules.map(({ definitionId }) => definitionId)).not.toContain(
+      unresolved.id
+    )
+    const saved = await owner.caller.mutation(save, {
+      ...input(settings),
+      optionalCombatRuleDefinitionIds: [injuries.id]
+    })
+    expect(saved.optionalCombatRuleDefinitionIds).toEqual([injuries.id])
+    const before = await stored(t)
+    await expect(
+      owner.caller.mutation(save, {
+        ...input(saved),
+        optionalCombatRuleDefinitionIds: [unresolved.id]
+      })
+    ).rejects.toThrow('not available for Encounter execution')
     expect(await stored(t)).toEqual(before)
   })
 

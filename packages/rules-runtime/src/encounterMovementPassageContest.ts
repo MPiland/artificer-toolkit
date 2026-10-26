@@ -14,7 +14,7 @@ import { EncounterConflictError } from './encounterErrors.js'
 import type { EncounterAutoRollByActorId } from './encounterEvidenceMode.js'
 
 /**
- * Runs only the sealed Overrun/Tumble evidence stage. The caller owns the
+ * Runs only the sealed movement passage contest evidence stage. The caller owns the
  * aggregate occurrence transition and applies its already-prepared economy
  * exactly once at terminal settlement.
  */
@@ -50,8 +50,7 @@ export async function executeEncounterMovementPassageContest(input: {
 > {
   if (
     input.pending.origin.kind !== 'OPTIONAL_COMBAT' ||
-    (input.pending.origin.actionKind !== 'OVERRUN' &&
-      input.pending.origin.actionKind !== 'TUMBLE') ||
+    !('successMovement' in input.pending.origin.selection) ||
     input.pending.origin.movementContinuation === null ||
     input.pending.origin.movementContinuation === undefined
   ) {

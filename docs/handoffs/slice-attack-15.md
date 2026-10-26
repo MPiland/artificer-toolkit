@@ -50,3 +50,22 @@ Owned by the ATTACK-15 slice session. Design notes, rulings and proofs go here.
     - a push through a zone that drops the Character to 0 offers the roll, and the refused undo leaves the offer standing.
 
 - **Ruling (2026-10-25).** Only automation offers. A manual HP change, such as a Sheet `ADJUST_HIT_POINTS` during a Run, makes no offer.
+
+## T2 as built
+
+- **Table shape (Ruling B).** INJURIES is `{ triggers, table: { dieFaces, rows } }`. Each row is `{ id, minimum, maximum, label, effect, healing }`, and `consequenceRollTableDtoSchema` refuses overlapping, out-of-order or out-of-die rows and repeated ids. `CREATE_INJURY_RECORD`, `REQUIRE_CHECK`, `JUDGMENT_REQUIRED`, the outcome kinds and the recovery descriptor are deleted. Nothing outside Injuries read them. `effect` and `healing` are GM-ruling text only (D187a).
+- **Recording.** On ACCEPT, `recordConsequenceRollCommand` checks that the Character is ACTIVE and holds fewer than `MAX_CHARACTER_CONSEQUENCES` (20) before rolling. When the roll lands on a row, it writes `{ id: commandId, definitionId, rowId, tableLabel, label, effect, healing, recordedAt }` to `character.state.consequences` through `writeCharacterRecord`. A gap roll records nothing. `consequences` is a Character play field (`characterPlayState.ts`), so the room holds it and checkpoints it.
+- **Sheet.** The overview lists "Lingering consequences" with each row's effect and the table's named healing. `capabilities.removeConsequences` uses the same rule as `endActiveEffects`: the Campaign owner on an active Campaign.
+- **Removal.** `REMOVE_CONSEQUENCE { consequenceId }` is a live play Sheet command. `assertGmOnlySheetCommandAllowed` refuses it from anyone but the Campaign GM, on Convex and in the room, including on the player's own Character. Removing an absent id is refused.
+- **Proofs.**
+  - `apps/apis/convex/encounters/consequenceRollCommands.test.ts` ("Recorded consequences on the Character") is the journey: accept records the row; both Sheets show it with its healing; the player's remove is refused; the GM removes it; a decline records nothing.
+  - `packages/rules-runtime/src/__tests__/sheetCommandReducer.test.ts` covers removal, the absent id and the GM-only assertion.
+  - `packages/rules-runtime/src/__tests__/campaignCharacterSheet.test.ts` covers the capability.
+  - `packages/schema/src/__tests__/consequence-roll-table.test.ts` covers table refinements and the 20-consequence cap.
+
+## T3 as built
+
+- **Settings gate (AC 15.3).** T1 already added INJURIES to `INTEGRATED_OPTIONAL_COMBAT_RULE_MODULES`, so T3 changes no product code. Campaign settings list a rule, and the save accepts it, only when its authored module pin matches the integrated policy key and contract version (`isIntegratedOptionalCombatRule`).
+- **Proofs.**
+  - `apps/apis/convex/campaigns/playSettings.test.ts` ("offers and saves Injuries only while its System policy resolves it") is the Convex journey: the published SRD Injuries is offered and saved, while an Injuries copy pinned to an unsupported contract version is not offered and its save is refused without changing settings.
+  - `packages/rules-runtime/src/__tests__/campaignPlaySettingsOptions.test.ts` covers the options presenter: the SRD module is offered; a later contract version and an unknown module key are not.

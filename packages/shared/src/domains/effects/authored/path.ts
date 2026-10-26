@@ -211,6 +211,8 @@ export type PathChoiceOptionAuthored<TOutcome extends OutcomeAuthored = OutcomeA
      * this option is picked; it merges with the initiator's other contributors, never a second test.
      */
     initiatorCheckInfluence?: string
+    /** The option is offered only in an Encounter whose optional combat rules include this one. */
+    requiresOptionalRule?: { definitionId: string }
     resultBlock: ResultBlockAuthored<TOutcome>
   }
 

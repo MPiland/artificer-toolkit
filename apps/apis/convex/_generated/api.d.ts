@@ -2853,6 +2853,12 @@ export declare const api: {
                 type: "REMOVE_CONDITION";
               }
             | {
+                commandId: string;
+                consequenceId: string;
+                expectedVersion: number;
+                type: "REMOVE_CONSEQUENCE";
+              }
+            | {
                 actionId?: string;
                 amount?: number;
                 commandId: string;
@@ -3532,6 +3538,7 @@ export declare const api: {
               managePlayState: boolean;
               managePrivateNotes: boolean;
               openBuilder: boolean;
+              removeConsequences: boolean;
             };
             characterId: string;
             hasBuilderDraft?: boolean;
@@ -3603,6 +3610,16 @@ export declare const api: {
               description?: string;
               label: string;
               notes?: string;
+            }>;
+            consequences: Array<{
+              definitionId: string;
+              effect: string;
+              healing: string;
+              id: string;
+              label: string;
+              recordedAt: string;
+              rowId: string;
+              tableLabel: string;
             }>;
             currentHitPoints: number;
             deathSaves: {
@@ -11559,6 +11576,16 @@ export declare const api: {
               spells?: { learned?: Array<string>; prepared?: Array<string> };
             }>;
             conditions?: Array<{ conditionTypeId: string; notes?: string }>;
+            consequences?: Array<{
+              definitionId: string;
+              effect: string;
+              healing: string;
+              id: string;
+              label: string;
+              recordedAt: string;
+              rowId: string;
+              tableLabel: string;
+            }>;
             creatureEquipment?: Record<
               string,
               Array<{ equipmentItemId: string }>
@@ -11936,6 +11963,16 @@ export declare const api: {
                 spells?: { learned?: Array<string>; prepared?: Array<string> };
               }>;
               conditions?: Array<{ conditionTypeId: string; notes?: string }>;
+              consequences?: Array<{
+                definitionId: string;
+                effect: string;
+                healing: string;
+                id: string;
+                label: string;
+                recordedAt: string;
+                rowId: string;
+                tableLabel: string;
+              }>;
               creatureEquipment?: Record<
                 string,
                 Array<{ equipmentItemId: string }>
@@ -12312,6 +12349,16 @@ export declare const api: {
                 spells?: { learned?: Array<string>; prepared?: Array<string> };
               }>;
               conditions?: Array<{ conditionTypeId: string; notes?: string }>;
+              consequences?: Array<{
+                definitionId: string;
+                effect: string;
+                healing: string;
+                id: string;
+                label: string;
+                recordedAt: string;
+                rowId: string;
+                tableLabel: string;
+              }>;
               creatureEquipment?: Record<
                 string,
                 Array<{ equipmentItemId: string }>
@@ -12879,6 +12926,16 @@ export declare const api: {
                   };
                 }>;
                 conditions?: Array<{ conditionTypeId: string; notes?: string }>;
+                consequences?: Array<{
+                  definitionId: string;
+                  effect: string;
+                  healing: string;
+                  id: string;
+                  label: string;
+                  recordedAt: string;
+                  rowId: string;
+                  tableLabel: string;
+                }>;
                 creatureEquipment?: Record<
                   string,
                   Array<{ equipmentItemId: string }>
@@ -13454,6 +13511,16 @@ export declare const api: {
                   };
                 }>;
                 conditions?: Array<{ conditionTypeId: string; notes?: string }>;
+                consequences?: Array<{
+                  definitionId: string;
+                  effect: string;
+                  healing: string;
+                  id: string;
+                  label: string;
+                  recordedAt: string;
+                  rowId: string;
+                  tableLabel: string;
+                }>;
                 creatureEquipment?: Record<
                   string,
                   Array<{ equipmentItemId: string }>
@@ -14032,6 +14099,16 @@ export declare const api: {
                 spells?: { learned?: Array<string>; prepared?: Array<string> };
               }>;
               conditions?: Array<{ conditionTypeId: string; notes?: string }>;
+              consequences?: Array<{
+                definitionId: string;
+                effect: string;
+                healing: string;
+                id: string;
+                label: string;
+                recordedAt: string;
+                rowId: string;
+                tableLabel: string;
+              }>;
               creatureEquipment?: Record<
                 string,
                 Array<{ equipmentItemId: string }>
@@ -14593,6 +14670,16 @@ export declare const api: {
                   };
                 }>;
                 conditions?: Array<{ conditionTypeId: string; notes?: string }>;
+                consequences?: Array<{
+                  definitionId: string;
+                  effect: string;
+                  healing: string;
+                  id: string;
+                  label: string;
+                  recordedAt: string;
+                  rowId: string;
+                  tableLabel: string;
+                }>;
                 creatureEquipment?: Record<
                   string,
                   Array<{ equipmentItemId: string }>
@@ -17971,6 +18058,7 @@ export declare const api: {
               managePlayState: boolean;
               managePrivateNotes: boolean;
               openBuilder: boolean;
+              removeConsequences: boolean;
             };
             characterId: string;
             hasBuilderDraft?: boolean;
@@ -18042,6 +18130,16 @@ export declare const api: {
               description?: string;
               label: string;
               notes?: string;
+            }>;
+            consequences: Array<{
+              definitionId: string;
+              effect: string;
+              healing: string;
+              id: string;
+              label: string;
+              recordedAt: string;
+              rowId: string;
+              tableLabel: string;
             }>;
             currentHitPoints: number;
             deathSaves: {
@@ -19806,6 +19904,12 @@ export declare const api: {
                 type: "REMOVE_CONDITION";
               }
             | {
+                commandId: string;
+                consequenceId: string;
+                expectedVersion: number;
+                type: "REMOVE_CONSEQUENCE";
+              }
+            | {
                 actionId?: string;
                 amount?: number;
                 commandId: string;
@@ -20106,6 +20210,7 @@ export declare const api: {
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
                   openBuilder: boolean;
+                  removeConsequences: boolean;
                 };
                 characterId: string;
                 hasBuilderDraft?: boolean;
@@ -20145,6 +20250,16 @@ export declare const api: {
                   description?: string;
                   label: string;
                   notes?: string;
+                }>;
+                consequences: Array<{
+                  definitionId: string;
+                  effect: string;
+                  healing: string;
+                  id: string;
+                  label: string;
+                  recordedAt: string;
+                  rowId: string;
+                  tableLabel: string;
                 }>;
                 currentHitPoints: number;
                 deathSaves: {
@@ -20321,6 +20436,7 @@ export declare const api: {
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
                   openBuilder: boolean;
+                  removeConsequences: boolean;
                 };
                 characterId: string;
                 hasBuilderDraft?: boolean;
@@ -20858,6 +20974,7 @@ export declare const api: {
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
                   openBuilder: boolean;
+                  removeConsequences: boolean;
                 };
                 characterId: string;
                 hasBuilderDraft?: boolean;
@@ -21382,6 +21499,7 @@ export declare const api: {
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
                   openBuilder: boolean;
+                  removeConsequences: boolean;
                 };
                 characterId: string;
                 hasBuilderDraft?: boolean;
@@ -21706,6 +21824,7 @@ export declare const api: {
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
                   openBuilder: boolean;
+                  removeConsequences: boolean;
                 };
                 characterId: string;
                 hasBuilderDraft?: boolean;
@@ -21731,6 +21850,7 @@ export declare const api: {
                   managePlayState: boolean;
                   managePrivateNotes: boolean;
                   openBuilder: boolean;
+                  removeConsequences: boolean;
                 };
                 characterId: string;
                 hasBuilderDraft?: boolean;
@@ -22324,7 +22444,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -31966,451 +32092,18 @@ export declare const api: {
                         requiresUndamagedInitialTarget: true;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
-                        }>;
                         kind: "INJURIES";
+                        table: {
+                          dieFaces: number;
+                          rows: Array<{
+                            effect: string;
+                            healing: string;
+                            id: string;
+                            label: string;
+                            maximum: number;
+                            minimum: number;
+                          }>;
+                        };
                         triggers: Array<
                           | { critical: boolean; event: "DAMAGED" }
                           | { event: "HIT_POINTS_ZERO" }
@@ -32429,15 +32122,6 @@ export declare const api: {
                               | "STABLE_AT_ZERO"
                               | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                               | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
                               | "CONTINUE"
                               | "FLEE"
                               | "SURRENDER";
@@ -32488,13 +32172,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
                                   duration:
                                     | "PERMANENT"
                                     | "UNTIL_END_OF_NEXT_TURN"
@@ -32524,50 +32201,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
                                   disposition:
                                     "CONTINUE" | "FLEE" | "SURRENDER";
                                   duration: null;
@@ -32577,290 +32210,6 @@ export declare const api: {
                                 }
                             >;
                           };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
                         }>;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
@@ -32876,15 +32225,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -32935,13 +32275,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -32969,46 +32302,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -33027,15 +32320,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -33086,13 +32370,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -33120,46 +32397,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -52616,7 +51853,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -62258,451 +61501,18 @@ export declare const api: {
                         requiresUndamagedInitialTarget: true;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
-                        }>;
                         kind: "INJURIES";
+                        table: {
+                          dieFaces: number;
+                          rows: Array<{
+                            effect: string;
+                            healing: string;
+                            id: string;
+                            label: string;
+                            maximum: number;
+                            minimum: number;
+                          }>;
+                        };
                         triggers: Array<
                           | { critical: boolean; event: "DAMAGED" }
                           | { event: "HIT_POINTS_ZERO" }
@@ -62721,15 +61531,6 @@ export declare const api: {
                               | "STABLE_AT_ZERO"
                               | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                               | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
                               | "CONTINUE"
                               | "FLEE"
                               | "SURRENDER";
@@ -62780,13 +61581,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
                                   duration:
                                     | "PERMANENT"
                                     | "UNTIL_END_OF_NEXT_TURN"
@@ -62816,50 +61610,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
                                   disposition:
                                     "CONTINUE" | "FLEE" | "SURRENDER";
                                   duration: null;
@@ -62869,290 +61619,6 @@ export declare const api: {
                                 }
                             >;
                           };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
                         }>;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
@@ -63168,15 +61634,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -63227,13 +61684,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -63261,46 +61711,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -63319,15 +61729,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -63378,13 +61779,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -63412,46 +61806,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -82917,7 +81271,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -92559,451 +90919,18 @@ export declare const api: {
                         requiresUndamagedInitialTarget: true;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
-                        }>;
                         kind: "INJURIES";
+                        table: {
+                          dieFaces: number;
+                          rows: Array<{
+                            effect: string;
+                            healing: string;
+                            id: string;
+                            label: string;
+                            maximum: number;
+                            minimum: number;
+                          }>;
+                        };
                         triggers: Array<
                           | { critical: boolean; event: "DAMAGED" }
                           | { event: "HIT_POINTS_ZERO" }
@@ -93022,15 +90949,6 @@ export declare const api: {
                               | "STABLE_AT_ZERO"
                               | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                               | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
                               | "CONTINUE"
                               | "FLEE"
                               | "SURRENDER";
@@ -93081,13 +90999,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
                                   duration:
                                     | "PERMANENT"
                                     | "UNTIL_END_OF_NEXT_TURN"
@@ -93117,50 +91028,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
                                   disposition:
                                     "CONTINUE" | "FLEE" | "SURRENDER";
                                   duration: null;
@@ -93170,290 +91037,6 @@ export declare const api: {
                                 }
                             >;
                           };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
                         }>;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
@@ -93469,15 +91052,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -93528,13 +91102,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -93562,46 +91129,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -93620,15 +91147,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -93679,13 +91197,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -93713,46 +91224,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -113209,7 +110680,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -122851,451 +120328,18 @@ export declare const api: {
                         requiresUndamagedInitialTarget: true;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
-                        }>;
                         kind: "INJURIES";
+                        table: {
+                          dieFaces: number;
+                          rows: Array<{
+                            effect: string;
+                            healing: string;
+                            id: string;
+                            label: string;
+                            maximum: number;
+                            minimum: number;
+                          }>;
+                        };
                         triggers: Array<
                           | { critical: boolean; event: "DAMAGED" }
                           | { event: "HIT_POINTS_ZERO" }
@@ -123314,15 +120358,6 @@ export declare const api: {
                               | "STABLE_AT_ZERO"
                               | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                               | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
                               | "CONTINUE"
                               | "FLEE"
                               | "SURRENDER";
@@ -123373,13 +120408,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
                                   duration:
                                     | "PERMANENT"
                                     | "UNTIL_END_OF_NEXT_TURN"
@@ -123409,50 +120437,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
                                   disposition:
                                     "CONTINUE" | "FLEE" | "SURRENDER";
                                   duration: null;
@@ -123462,290 +120446,6 @@ export declare const api: {
                                 }
                             >;
                           };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
                         }>;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
@@ -123761,15 +120461,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -123820,13 +120511,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -123854,46 +120538,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -123912,15 +120556,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -123971,13 +120606,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -124005,46 +120633,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -143536,7 +140124,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -153178,451 +149772,18 @@ export declare const api: {
                         requiresUndamagedInitialTarget: true;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
-                        }>;
                         kind: "INJURIES";
+                        table: {
+                          dieFaces: number;
+                          rows: Array<{
+                            effect: string;
+                            healing: string;
+                            id: string;
+                            label: string;
+                            maximum: number;
+                            minimum: number;
+                          }>;
+                        };
                         triggers: Array<
                           | { critical: boolean; event: "DAMAGED" }
                           | { event: "HIT_POINTS_ZERO" }
@@ -153641,15 +149802,6 @@ export declare const api: {
                               | "STABLE_AT_ZERO"
                               | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                               | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
                               | "CONTINUE"
                               | "FLEE"
                               | "SURRENDER";
@@ -153700,13 +149852,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
                                   duration:
                                     | "PERMANENT"
                                     | "UNTIL_END_OF_NEXT_TURN"
@@ -153736,50 +149881,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
                                   disposition:
                                     "CONTINUE" | "FLEE" | "SURRENDER";
                                   duration: null;
@@ -153789,290 +149890,6 @@ export declare const api: {
                                 }
                             >;
                           };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
                         }>;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
@@ -154088,15 +149905,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -154147,13 +149955,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -154181,46 +149982,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -154239,15 +150000,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -154298,13 +150050,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -154332,46 +150077,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -173828,7 +169533,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -183470,451 +179181,18 @@ export declare const api: {
                         requiresUndamagedInitialTarget: true;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
-                        }>;
                         kind: "INJURIES";
+                        table: {
+                          dieFaces: number;
+                          rows: Array<{
+                            effect: string;
+                            healing: string;
+                            id: string;
+                            label: string;
+                            maximum: number;
+                            minimum: number;
+                          }>;
+                        };
                         triggers: Array<
                           | { critical: boolean; event: "DAMAGED" }
                           | { event: "HIT_POINTS_ZERO" }
@@ -183933,15 +179211,6 @@ export declare const api: {
                               | "STABLE_AT_ZERO"
                               | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                               | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
                               | "CONTINUE"
                               | "FLEE"
                               | "SURRENDER";
@@ -183992,13 +179261,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
                                   duration:
                                     | "PERMANENT"
                                     | "UNTIL_END_OF_NEXT_TURN"
@@ -184028,50 +179290,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
                                   disposition:
                                     "CONTINUE" | "FLEE" | "SURRENDER";
                                   duration: null;
@@ -184081,290 +179299,6 @@ export declare const api: {
                                 }
                             >;
                           };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
                         }>;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
@@ -184380,15 +179314,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -184439,13 +179364,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -184473,46 +179391,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -184531,15 +179409,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -184590,13 +179459,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -184624,46 +179486,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -204122,7 +198944,13 @@ export declare const api: {
                         "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                       >;
                     }
-                  | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                  | {
+                      economies: Array<"ACTION" | "BONUS_ACTION">;
+                      initiatorCheckDefinitionIds: Array<string>;
+                      kind: "CLIMB_ONTO_LARGER_CREATURE";
+                      minimumTargetSizeSteps: number;
+                      targetCheckDefinitionId: string;
+                    }
                   | {
                       defenderCheckDefinitionIds: Array<string>;
                       kind: "DISARM";
@@ -213733,446 +208561,18 @@ export declare const api: {
                       requiresUndamagedInitialTarget: true;
                     }
                   | {
-                      bands: Array<{
-                        maximum: number;
-                        minimum: number;
-                        outcome: {
-                          id: string;
-                          kind:
-                            | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                            | "DROP_TO_ZERO"
-                            | "STABLE_AT_ZERO"
-                            | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                            | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
-                            | "CONTINUE"
-                            | "FLEE"
-                            | "SURRENDER";
-                          operations: Array<
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_HIT_POINTS";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                duration: null;
-                                id: string;
-                                primitive: "SET_STABLE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                conditionDefinitionId: string;
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_CONDITION";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                available: false;
-                                duration: "UNTIL_END_OF_NEXT_TURN";
-                                id: string;
-                                primitive: "SET_REACTION_AVAILABILITY";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_ROLL_MODE";
-                                rollContexts: Array<
-                                  | "ATTACK_ROLL"
-                                  | "ABILITY_CHECK"
-                                  | "SAVING_THROW"
-                                >;
-                                rollMode: "DISADVANTAGE";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                primitive: "APPLY_RESTRICTION";
-                                restrictionDefinitionId: string;
-                                target: "SUBJECT";
-                              }
-                            | {
-                                duration:
-                                  | "PERMANENT"
-                                  | "UNTIL_END_OF_NEXT_TURN"
-                                  | "UNTIL_CLEARED";
-                                id: string;
-                                modifierDefinitionId: string;
-                                primitive: "APPLY_MODIFIER";
-                                target: "SUBJECT";
-                                value: number;
-                              }
-                            | {
-                                cadence: "DAILY" | "REST";
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                effectDefinitionId: string;
-                                id: string;
-                                primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
-                              }
-                            | {
-                                disposition: "CONTINUE" | "FLEE" | "SURRENDER";
-                                duration: null;
-                                id: string;
-                                primitive: "SET_MORALE_DISPOSITION";
-                                target: "SUBJECT" | "GROUP";
-                              }
-                          >;
-                        };
-                        recovery:
-                          | {
-                              id: string;
-                              kind: "NONE";
-                              operations: Array<
-                                | {
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_HIT_POINTS";
-                                    target: "SUBJECT";
-                                    value: number;
-                                  }
-                                | {
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_STABLE";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    conditionDefinitionId: string;
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_CONDITION";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    available: false;
-                                    duration: "UNTIL_END_OF_NEXT_TURN";
-                                    id: string;
-                                    primitive: "SET_REACTION_AVAILABILITY";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_ROLL_MODE";
-                                    rollContexts: Array<
-                                      | "ATTACK_ROLL"
-                                      | "ABILITY_CHECK"
-                                      | "SAVING_THROW"
-                                    >;
-                                    rollMode: "DISADVANTAGE";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration: "PERMANENT" | "UNTIL_CLEARED";
-                                    id: string;
-                                    injuryDefinitionId: string;
-                                    primitive: "CREATE_INJURY_RECORD";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_RESTRICTION";
-                                    restrictionDefinitionId: string;
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    modifierDefinitionId: string;
-                                    primitive: "APPLY_MODIFIER";
-                                    target: "SUBJECT";
-                                    value: number;
-                                  }
-                                | {
-                                    cadence: "DAILY" | "REST";
-                                    duration: "PERMANENT" | "UNTIL_CLEARED";
-                                    effectDefinitionId: string;
-                                    id: string;
-                                    primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    abilityDefinitionId: string;
-                                    difficultyClass: number;
-                                    failureEffects: Array<
-                                      | { effect: "RETAIN_INJURY" }
-                                      | {
-                                          effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          available: false;
-                                          duration: "UNTIL_START_OF_NEXT_TURN";
-                                          effect: "SET_REACTION_AVAILABILITY";
-                                        }
-                                    >;
-                                    id: string;
-                                    primitive: "REQUIRE_CHECK";
-                                    successEffects: Array<
-                                      | { effect: "RETAIN_INJURY" }
-                                      | {
-                                          effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          available: false;
-                                          duration: "UNTIL_START_OF_NEXT_TURN";
-                                          effect: "SET_REACTION_AVAILABILITY";
-                                        }
-                                    >;
-                                    target: "SUBJECT";
-                                    trigger: "BEFORE_COMBAT_ACTION";
-                                  }
-                                | {
-                                    id: string;
-                                    primitive: "JUDGMENT_REQUIRED";
-                                    reason:
-                                      | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                      | "UNNORMALIZED_RECOVERY";
-                                    target: "SUBJECT" | "GROUP";
-                                  }
-                                | {
-                                    disposition:
-                                      "CONTINUE" | "FLEE" | "SURRENDER";
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_MORALE_DISPOSITION";
-                                    target: "SUBJECT" | "GROUP";
-                                  }
-                              >;
-                            }
-                          | {
-                              id: string;
-                              kind:
-                                | "MAGICAL_RESTORATION"
-                                | "MEDICAL_TREATMENT"
-                                | "NATURAL_HEALING"
-                                | "JUDGMENT_REQUIRED";
-                              operations: Array<
-                                | {
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_HIT_POINTS";
-                                    target: "SUBJECT";
-                                    value: number;
-                                  }
-                                | {
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_STABLE";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    conditionDefinitionId: string;
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_CONDITION";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    available: false;
-                                    duration: "UNTIL_END_OF_NEXT_TURN";
-                                    id: string;
-                                    primitive: "SET_REACTION_AVAILABILITY";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_ROLL_MODE";
-                                    rollContexts: Array<
-                                      | "ATTACK_ROLL"
-                                      | "ABILITY_CHECK"
-                                      | "SAVING_THROW"
-                                    >;
-                                    rollMode: "DISADVANTAGE";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration: "PERMANENT" | "UNTIL_CLEARED";
-                                    id: string;
-                                    injuryDefinitionId: string;
-                                    primitive: "CREATE_INJURY_RECORD";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_RESTRICTION";
-                                    restrictionDefinitionId: string;
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    modifierDefinitionId: string;
-                                    primitive: "APPLY_MODIFIER";
-                                    target: "SUBJECT";
-                                    value: number;
-                                  }
-                                | {
-                                    cadence: "DAILY" | "REST";
-                                    duration: "PERMANENT" | "UNTIL_CLEARED";
-                                    effectDefinitionId: string;
-                                    id: string;
-                                    primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    abilityDefinitionId: string;
-                                    difficultyClass: number;
-                                    failureEffects: Array<
-                                      | { effect: "RETAIN_INJURY" }
-                                      | {
-                                          effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          available: false;
-                                          duration: "UNTIL_START_OF_NEXT_TURN";
-                                          effect: "SET_REACTION_AVAILABILITY";
-                                        }
-                                    >;
-                                    id: string;
-                                    primitive: "REQUIRE_CHECK";
-                                    successEffects: Array<
-                                      | { effect: "RETAIN_INJURY" }
-                                      | {
-                                          effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          available: false;
-                                          duration: "UNTIL_START_OF_NEXT_TURN";
-                                          effect: "SET_REACTION_AVAILABILITY";
-                                        }
-                                    >;
-                                    target: "SUBJECT";
-                                    trigger: "BEFORE_COMBAT_ACTION";
-                                  }
-                                | {
-                                    id: string;
-                                    primitive: "JUDGMENT_REQUIRED";
-                                    reason:
-                                      | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                      | "UNNORMALIZED_RECOVERY";
-                                    target: "SUBJECT" | "GROUP";
-                                  }
-                                | {
-                                    disposition:
-                                      "CONTINUE" | "FLEE" | "SURRENDER";
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_MORALE_DISPOSITION";
-                                    target: "SUBJECT" | "GROUP";
-                                  }
-                              >;
-                            }
-                          | null;
-                      }>;
                       kind: "INJURIES";
+                      table: {
+                        dieFaces: number;
+                        rows: Array<{
+                          effect: string;
+                          healing: string;
+                          id: string;
+                          label: string;
+                          maximum: number;
+                          minimum: number;
+                        }>;
+                      };
                       triggers: Array<
                         | { critical: boolean; event: "DAMAGED" }
                         | { event: "HIT_POINTS_ZERO" }
@@ -214191,15 +208591,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -214250,13 +208641,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -214286,46 +208670,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
-                              }
-                            | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
                                 duration: null;
                                 id: string;
@@ -214334,290 +208678,6 @@ export declare const api: {
                               }
                           >;
                         };
-                        recovery:
-                          | {
-                              id: string;
-                              kind: "NONE";
-                              operations: Array<
-                                | {
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_HIT_POINTS";
-                                    target: "SUBJECT";
-                                    value: number;
-                                  }
-                                | {
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_STABLE";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    conditionDefinitionId: string;
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_CONDITION";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    available: false;
-                                    duration: "UNTIL_END_OF_NEXT_TURN";
-                                    id: string;
-                                    primitive: "SET_REACTION_AVAILABILITY";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_ROLL_MODE";
-                                    rollContexts: Array<
-                                      | "ATTACK_ROLL"
-                                      | "ABILITY_CHECK"
-                                      | "SAVING_THROW"
-                                    >;
-                                    rollMode: "DISADVANTAGE";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration: "PERMANENT" | "UNTIL_CLEARED";
-                                    id: string;
-                                    injuryDefinitionId: string;
-                                    primitive: "CREATE_INJURY_RECORD";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_RESTRICTION";
-                                    restrictionDefinitionId: string;
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    modifierDefinitionId: string;
-                                    primitive: "APPLY_MODIFIER";
-                                    target: "SUBJECT";
-                                    value: number;
-                                  }
-                                | {
-                                    cadence: "DAILY" | "REST";
-                                    duration: "PERMANENT" | "UNTIL_CLEARED";
-                                    effectDefinitionId: string;
-                                    id: string;
-                                    primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    abilityDefinitionId: string;
-                                    difficultyClass: number;
-                                    failureEffects: Array<
-                                      | { effect: "RETAIN_INJURY" }
-                                      | {
-                                          effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          available: false;
-                                          duration: "UNTIL_START_OF_NEXT_TURN";
-                                          effect: "SET_REACTION_AVAILABILITY";
-                                        }
-                                    >;
-                                    id: string;
-                                    primitive: "REQUIRE_CHECK";
-                                    successEffects: Array<
-                                      | { effect: "RETAIN_INJURY" }
-                                      | {
-                                          effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          available: false;
-                                          duration: "UNTIL_START_OF_NEXT_TURN";
-                                          effect: "SET_REACTION_AVAILABILITY";
-                                        }
-                                    >;
-                                    target: "SUBJECT";
-                                    trigger: "BEFORE_COMBAT_ACTION";
-                                  }
-                                | {
-                                    id: string;
-                                    primitive: "JUDGMENT_REQUIRED";
-                                    reason:
-                                      | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                      | "UNNORMALIZED_RECOVERY";
-                                    target: "SUBJECT" | "GROUP";
-                                  }
-                                | {
-                                    disposition:
-                                      "CONTINUE" | "FLEE" | "SURRENDER";
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_MORALE_DISPOSITION";
-                                    target: "SUBJECT" | "GROUP";
-                                  }
-                              >;
-                            }
-                          | {
-                              id: string;
-                              kind:
-                                | "MAGICAL_RESTORATION"
-                                | "MEDICAL_TREATMENT"
-                                | "NATURAL_HEALING"
-                                | "JUDGMENT_REQUIRED";
-                              operations: Array<
-                                | {
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_HIT_POINTS";
-                                    target: "SUBJECT";
-                                    value: number;
-                                  }
-                                | {
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_STABLE";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    conditionDefinitionId: string;
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_CONDITION";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    available: false;
-                                    duration: "UNTIL_END_OF_NEXT_TURN";
-                                    id: string;
-                                    primitive: "SET_REACTION_AVAILABILITY";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_ROLL_MODE";
-                                    rollContexts: Array<
-                                      | "ATTACK_ROLL"
-                                      | "ABILITY_CHECK"
-                                      | "SAVING_THROW"
-                                    >;
-                                    rollMode: "DISADVANTAGE";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration: "PERMANENT" | "UNTIL_CLEARED";
-                                    id: string;
-                                    injuryDefinitionId: string;
-                                    primitive: "CREATE_INJURY_RECORD";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    primitive: "APPLY_RESTRICTION";
-                                    restrictionDefinitionId: string;
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    duration:
-                                      | "PERMANENT"
-                                      | "UNTIL_END_OF_NEXT_TURN"
-                                      | "UNTIL_CLEARED";
-                                    id: string;
-                                    modifierDefinitionId: string;
-                                    primitive: "APPLY_MODIFIER";
-                                    target: "SUBJECT";
-                                    value: number;
-                                  }
-                                | {
-                                    cadence: "DAILY" | "REST";
-                                    duration: "PERMANENT" | "UNTIL_CLEARED";
-                                    effectDefinitionId: string;
-                                    id: string;
-                                    primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                    target: "SUBJECT";
-                                  }
-                                | {
-                                    abilityDefinitionId: string;
-                                    difficultyClass: number;
-                                    failureEffects: Array<
-                                      | { effect: "RETAIN_INJURY" }
-                                      | {
-                                          effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          available: false;
-                                          duration: "UNTIL_START_OF_NEXT_TURN";
-                                          effect: "SET_REACTION_AVAILABILITY";
-                                        }
-                                    >;
-                                    id: string;
-                                    primitive: "REQUIRE_CHECK";
-                                    successEffects: Array<
-                                      | { effect: "RETAIN_INJURY" }
-                                      | {
-                                          effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                        }
-                                      | {
-                                          available: false;
-                                          duration: "UNTIL_START_OF_NEXT_TURN";
-                                          effect: "SET_REACTION_AVAILABILITY";
-                                        }
-                                    >;
-                                    target: "SUBJECT";
-                                    trigger: "BEFORE_COMBAT_ACTION";
-                                  }
-                                | {
-                                    id: string;
-                                    primitive: "JUDGMENT_REQUIRED";
-                                    reason:
-                                      | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                      | "UNNORMALIZED_RECOVERY";
-                                    target: "SUBJECT" | "GROUP";
-                                  }
-                                | {
-                                    disposition:
-                                      "CONTINUE" | "FLEE" | "SURRENDER";
-                                    duration: null;
-                                    id: string;
-                                    primitive: "SET_MORALE_DISPOSITION";
-                                    target: "SUBJECT" | "GROUP";
-                                  }
-                              >;
-                            }
-                          | null;
                       }>;
                       kind: "MASSIVE_DAMAGE";
                       savingThrowAbilityDefinitionId: string;
@@ -214633,15 +208693,6 @@ export declare const api: {
                           | "STABLE_AT_ZERO"
                           | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                           | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                          | "LOSE_EYE"
-                          | "LOSE_ARM_OR_HAND"
-                          | "LOSE_FOOT_OR_LEG"
-                          | "LIMP"
-                          | "INTERNAL_INJURY"
-                          | "BROKEN_RIBS"
-                          | "HORRIBLE_SCAR"
-                          | "FESTERING_WOUND"
-                          | "MINOR_SCAR"
                           | "CONTINUE"
                           | "FLEE"
                           | "SURRENDER";
@@ -214690,13 +208741,6 @@ export declare const api: {
                               target: "SUBJECT";
                             }
                           | {
-                              duration: "PERMANENT" | "UNTIL_CLEARED";
-                              id: string;
-                              injuryDefinitionId: string;
-                              primitive: "CREATE_INJURY_RECORD";
-                              target: "SUBJECT";
-                            }
-                          | {
                               duration:
                                 | "PERMANENT"
                                 | "UNTIL_END_OF_NEXT_TURN"
@@ -214724,46 +208768,6 @@ export declare const api: {
                               id: string;
                               primitive: "SCHEDULE_PERIODIC_EFFECT";
                               target: "SUBJECT";
-                            }
-                          | {
-                              abilityDefinitionId: string;
-                              difficultyClass: number;
-                              failureEffects: Array<
-                                | { effect: "RETAIN_INJURY" }
-                                | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                | {
-                                    effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                  }
-                                | {
-                                    available: false;
-                                    duration: "UNTIL_START_OF_NEXT_TURN";
-                                    effect: "SET_REACTION_AVAILABILITY";
-                                  }
-                              >;
-                              id: string;
-                              primitive: "REQUIRE_CHECK";
-                              successEffects: Array<
-                                | { effect: "RETAIN_INJURY" }
-                                | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                | {
-                                    effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                  }
-                                | {
-                                    available: false;
-                                    duration: "UNTIL_START_OF_NEXT_TURN";
-                                    effect: "SET_REACTION_AVAILABILITY";
-                                  }
-                              >;
-                              target: "SUBJECT";
-                              trigger: "BEFORE_COMBAT_ACTION";
-                            }
-                          | {
-                              id: string;
-                              primitive: "JUDGMENT_REQUIRED";
-                              reason:
-                                | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                | "UNNORMALIZED_RECOVERY";
-                              target: "SUBJECT" | "GROUP";
                             }
                           | {
                               disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -214782,15 +208786,6 @@ export declare const api: {
                           | "STABLE_AT_ZERO"
                           | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                           | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                          | "LOSE_EYE"
-                          | "LOSE_ARM_OR_HAND"
-                          | "LOSE_FOOT_OR_LEG"
-                          | "LIMP"
-                          | "INTERNAL_INJURY"
-                          | "BROKEN_RIBS"
-                          | "HORRIBLE_SCAR"
-                          | "FESTERING_WOUND"
-                          | "MINOR_SCAR"
                           | "CONTINUE"
                           | "FLEE"
                           | "SURRENDER";
@@ -214839,13 +208834,6 @@ export declare const api: {
                               target: "SUBJECT";
                             }
                           | {
-                              duration: "PERMANENT" | "UNTIL_CLEARED";
-                              id: string;
-                              injuryDefinitionId: string;
-                              primitive: "CREATE_INJURY_RECORD";
-                              target: "SUBJECT";
-                            }
-                          | {
                               duration:
                                 | "PERMANENT"
                                 | "UNTIL_END_OF_NEXT_TURN"
@@ -214873,46 +208861,6 @@ export declare const api: {
                               id: string;
                               primitive: "SCHEDULE_PERIODIC_EFFECT";
                               target: "SUBJECT";
-                            }
-                          | {
-                              abilityDefinitionId: string;
-                              difficultyClass: number;
-                              failureEffects: Array<
-                                | { effect: "RETAIN_INJURY" }
-                                | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                | {
-                                    effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                  }
-                                | {
-                                    available: false;
-                                    duration: "UNTIL_START_OF_NEXT_TURN";
-                                    effect: "SET_REACTION_AVAILABILITY";
-                                  }
-                              >;
-                              id: string;
-                              primitive: "REQUIRE_CHECK";
-                              successEffects: Array<
-                                | { effect: "RETAIN_INJURY" }
-                                | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                | {
-                                    effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                  }
-                                | {
-                                    available: false;
-                                    duration: "UNTIL_START_OF_NEXT_TURN";
-                                    effect: "SET_REACTION_AVAILABILITY";
-                                  }
-                              >;
-                              target: "SUBJECT";
-                              trigger: "BEFORE_COMBAT_ACTION";
-                            }
-                          | {
-                              id: string;
-                              primitive: "JUDGMENT_REQUIRED";
-                              reason:
-                                | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                | "UNNORMALIZED_RECOVERY";
-                              target: "SUBJECT" | "GROUP";
                             }
                           | {
                               disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -234103,7 +228051,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -243745,451 +237699,18 @@ export declare const api: {
                         requiresUndamagedInitialTarget: true;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
-                        }>;
                         kind: "INJURIES";
+                        table: {
+                          dieFaces: number;
+                          rows: Array<{
+                            effect: string;
+                            healing: string;
+                            id: string;
+                            label: string;
+                            maximum: number;
+                            minimum: number;
+                          }>;
+                        };
                         triggers: Array<
                           | { critical: boolean; event: "DAMAGED" }
                           | { event: "HIT_POINTS_ZERO" }
@@ -244208,15 +237729,6 @@ export declare const api: {
                               | "STABLE_AT_ZERO"
                               | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                               | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
                               | "CONTINUE"
                               | "FLEE"
                               | "SURRENDER";
@@ -244267,13 +237779,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
                                   duration:
                                     | "PERMANENT"
                                     | "UNTIL_END_OF_NEXT_TURN"
@@ -244303,50 +237808,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
                                   disposition:
                                     "CONTINUE" | "FLEE" | "SURRENDER";
                                   duration: null;
@@ -244356,290 +237817,6 @@ export declare const api: {
                                 }
                             >;
                           };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
                         }>;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
@@ -244655,15 +237832,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -244714,13 +237882,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -244748,46 +237909,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -244806,15 +237927,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -244865,13 +237977,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -244899,46 +238004,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -264395,7 +257460,13 @@ export declare const api: {
                           "FRONT" | "LEFT_SIDE" | "REAR" | "RIGHT_SIDE"
                         >;
                       }
-                    | { kind: "CLIMB_ONTO_LARGER_CREATURE" }
+                    | {
+                        economies: Array<"ACTION" | "BONUS_ACTION">;
+                        initiatorCheckDefinitionIds: Array<string>;
+                        kind: "CLIMB_ONTO_LARGER_CREATURE";
+                        minimumTargetSizeSteps: number;
+                        targetCheckDefinitionId: string;
+                      }
                     | {
                         defenderCheckDefinitionIds: Array<string>;
                         kind: "DISARM";
@@ -274037,451 +267108,18 @@ export declare const api: {
                         requiresUndamagedInitialTarget: true;
                       }
                     | {
-                        bands: Array<{
-                          maximum: number;
-                          minimum: number;
-                          outcome: {
-                            id: string;
-                            kind:
-                              | "REACTIONS_SUPPRESSED_UNTIL_END_OF_NEXT_TURN"
-                              | "DROP_TO_ZERO"
-                              | "STABLE_AT_ZERO"
-                              | "STUNNED_UNTIL_END_OF_NEXT_TURN"
-                              | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
-                              | "CONTINUE"
-                              | "FLEE"
-                              | "SURRENDER";
-                            operations: Array<
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_HIT_POINTS";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_STABLE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  conditionDefinitionId: string;
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_CONDITION";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  available: false;
-                                  duration: "UNTIL_END_OF_NEXT_TURN";
-                                  id: string;
-                                  primitive: "SET_REACTION_AVAILABILITY";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_ROLL_MODE";
-                                  rollContexts: Array<
-                                    | "ATTACK_ROLL"
-                                    | "ABILITY_CHECK"
-                                    | "SAVING_THROW"
-                                  >;
-                                  rollMode: "DISADVANTAGE";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  primitive: "APPLY_RESTRICTION";
-                                  restrictionDefinitionId: string;
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  duration:
-                                    | "PERMANENT"
-                                    | "UNTIL_END_OF_NEXT_TURN"
-                                    | "UNTIL_CLEARED";
-                                  id: string;
-                                  modifierDefinitionId: string;
-                                  primitive: "APPLY_MODIFIER";
-                                  target: "SUBJECT";
-                                  value: number;
-                                }
-                              | {
-                                  cadence: "DAILY" | "REST";
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  effectDefinitionId: string;
-                                  id: string;
-                                  primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                  target: "SUBJECT";
-                                }
-                              | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
-                                  disposition:
-                                    "CONTINUE" | "FLEE" | "SURRENDER";
-                                  duration: null;
-                                  id: string;
-                                  primitive: "SET_MORALE_DISPOSITION";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                            >;
-                          };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
-                        }>;
                         kind: "INJURIES";
+                        table: {
+                          dieFaces: number;
+                          rows: Array<{
+                            effect: string;
+                            healing: string;
+                            id: string;
+                            label: string;
+                            maximum: number;
+                            minimum: number;
+                          }>;
+                        };
                         triggers: Array<
                           | { critical: boolean; event: "DAMAGED" }
                           | { event: "HIT_POINTS_ZERO" }
@@ -274500,15 +267138,6 @@ export declare const api: {
                               | "STABLE_AT_ZERO"
                               | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                               | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                              | "LOSE_EYE"
-                              | "LOSE_ARM_OR_HAND"
-                              | "LOSE_FOOT_OR_LEG"
-                              | "LIMP"
-                              | "INTERNAL_INJURY"
-                              | "BROKEN_RIBS"
-                              | "HORRIBLE_SCAR"
-                              | "FESTERING_WOUND"
-                              | "MINOR_SCAR"
                               | "CONTINUE"
                               | "FLEE"
                               | "SURRENDER";
@@ -274559,13 +267188,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  duration: "PERMANENT" | "UNTIL_CLEARED";
-                                  id: string;
-                                  injuryDefinitionId: string;
-                                  primitive: "CREATE_INJURY_RECORD";
-                                  target: "SUBJECT";
-                                }
-                              | {
                                   duration:
                                     | "PERMANENT"
                                     | "UNTIL_END_OF_NEXT_TURN"
@@ -274595,50 +267217,6 @@ export declare const api: {
                                   target: "SUBJECT";
                                 }
                               | {
-                                  abilityDefinitionId: string;
-                                  difficultyClass: number;
-                                  failureEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  id: string;
-                                  primitive: "REQUIRE_CHECK";
-                                  successEffects: Array<
-                                    | { effect: "RETAIN_INJURY" }
-                                    | {
-                                        effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                      }
-                                    | {
-                                        available: false;
-                                        duration: "UNTIL_START_OF_NEXT_TURN";
-                                        effect: "SET_REACTION_AVAILABILITY";
-                                      }
-                                  >;
-                                  target: "SUBJECT";
-                                  trigger: "BEFORE_COMBAT_ACTION";
-                                }
-                              | {
-                                  id: string;
-                                  primitive: "JUDGMENT_REQUIRED";
-                                  reason:
-                                    | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                    | "UNNORMALIZED_RECOVERY";
-                                  target: "SUBJECT" | "GROUP";
-                                }
-                              | {
                                   disposition:
                                     "CONTINUE" | "FLEE" | "SURRENDER";
                                   duration: null;
@@ -274648,290 +267226,6 @@ export declare const api: {
                                 }
                             >;
                           };
-                          recovery:
-                            | {
-                                id: string;
-                                kind: "NONE";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | {
-                                id: string;
-                                kind:
-                                  | "MAGICAL_RESTORATION"
-                                  | "MEDICAL_TREATMENT"
-                                  | "NATURAL_HEALING"
-                                  | "JUDGMENT_REQUIRED";
-                                operations: Array<
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_HIT_POINTS";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_STABLE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      conditionDefinitionId: string;
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_CONDITION";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_END_OF_NEXT_TURN";
-                                      id: string;
-                                      primitive: "SET_REACTION_AVAILABILITY";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_ROLL_MODE";
-                                      rollContexts: Array<
-                                        | "ATTACK_ROLL"
-                                        | "ABILITY_CHECK"
-                                        | "SAVING_THROW"
-                                      >;
-                                      rollMode: "DISADVANTAGE";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      id: string;
-                                      injuryDefinitionId: string;
-                                      primitive: "CREATE_INJURY_RECORD";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      primitive: "APPLY_RESTRICTION";
-                                      restrictionDefinitionId: string;
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      duration:
-                                        | "PERMANENT"
-                                        | "UNTIL_END_OF_NEXT_TURN"
-                                        | "UNTIL_CLEARED";
-                                      id: string;
-                                      modifierDefinitionId: string;
-                                      primitive: "APPLY_MODIFIER";
-                                      target: "SUBJECT";
-                                      value: number;
-                                    }
-                                  | {
-                                      cadence: "DAILY" | "REST";
-                                      duration: "PERMANENT" | "UNTIL_CLEARED";
-                                      effectDefinitionId: string;
-                                      id: string;
-                                      primitive: "SCHEDULE_PERIODIC_EFFECT";
-                                      target: "SUBJECT";
-                                    }
-                                  | {
-                                      abilityDefinitionId: string;
-                                      difficultyClass: number;
-                                      failureEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      id: string;
-                                      primitive: "REQUIRE_CHECK";
-                                      successEffects: Array<
-                                        | { effect: "RETAIN_INJURY" }
-                                        | {
-                                            effect: "ALLOW_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                          }
-                                        | {
-                                            available: false;
-                                            duration: "UNTIL_START_OF_NEXT_TURN";
-                                            effect: "SET_REACTION_AVAILABILITY";
-                                          }
-                                      >;
-                                      target: "SUBJECT";
-                                      trigger: "BEFORE_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      id: string;
-                                      primitive: "JUDGMENT_REQUIRED";
-                                      reason:
-                                        | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                        | "UNNORMALIZED_RECOVERY";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                  | {
-                                      disposition:
-                                        "CONTINUE" | "FLEE" | "SURRENDER";
-                                      duration: null;
-                                      id: string;
-                                      primitive: "SET_MORALE_DISPOSITION";
-                                      target: "SUBJECT" | "GROUP";
-                                    }
-                                >;
-                              }
-                            | null;
                         }>;
                         kind: "MASSIVE_DAMAGE";
                         savingThrowAbilityDefinitionId: string;
@@ -274947,15 +267241,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -275006,13 +267291,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -275040,46 +267318,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -275098,15 +267336,6 @@ export declare const api: {
                             | "STABLE_AT_ZERO"
                             | "STUNNED_UNTIL_END_OF_NEXT_TURN"
                             | "IMPAIRED_UNTIL_END_OF_NEXT_TURN"
-                            | "LOSE_EYE"
-                            | "LOSE_ARM_OR_HAND"
-                            | "LOSE_FOOT_OR_LEG"
-                            | "LIMP"
-                            | "INTERNAL_INJURY"
-                            | "BROKEN_RIBS"
-                            | "HORRIBLE_SCAR"
-                            | "FESTERING_WOUND"
-                            | "MINOR_SCAR"
                             | "CONTINUE"
                             | "FLEE"
                             | "SURRENDER";
@@ -275157,13 +267386,6 @@ export declare const api: {
                                 target: "SUBJECT";
                               }
                             | {
-                                duration: "PERMANENT" | "UNTIL_CLEARED";
-                                id: string;
-                                injuryDefinitionId: string;
-                                primitive: "CREATE_INJURY_RECORD";
-                                target: "SUBJECT";
-                              }
-                            | {
                                 duration:
                                   | "PERMANENT"
                                   | "UNTIL_END_OF_NEXT_TURN"
@@ -275191,46 +267413,6 @@ export declare const api: {
                                 id: string;
                                 primitive: "SCHEDULE_PERIODIC_EFFECT";
                                 target: "SUBJECT";
-                              }
-                            | {
-                                abilityDefinitionId: string;
-                                difficultyClass: number;
-                                failureEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                id: string;
-                                primitive: "REQUIRE_CHECK";
-                                successEffects: Array<
-                                  | { effect: "RETAIN_INJURY" }
-                                  | { effect: "ALLOW_ATTEMPTED_COMBAT_ACTION" }
-                                  | {
-                                      effect: "DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION";
-                                    }
-                                  | {
-                                      available: false;
-                                      duration: "UNTIL_START_OF_NEXT_TURN";
-                                      effect: "SET_REACTION_AVAILABILITY";
-                                    }
-                                >;
-                                target: "SUBJECT";
-                                trigger: "BEFORE_COMBAT_ACTION";
-                              }
-                            | {
-                                id: string;
-                                primitive: "JUDGMENT_REQUIRED";
-                                reason:
-                                  | "UNNORMALIZED_INJURY_CONSEQUENCE"
-                                  | "UNNORMALIZED_RECOVERY";
-                                target: "SUBJECT" | "GROUP";
                               }
                             | {
                                 disposition: "CONTINUE" | "FLEE" | "SURRENDER";
@@ -294901,6 +287083,16 @@ export declare const api: {
             short?: string | null;
             unseen?: boolean;
           }>;
+          cover?: {
+            creatureMaxTierCode: string | null;
+            tiers: Array<{
+              blocksTargeting: boolean;
+              bonus: number;
+              code: string;
+              label: string;
+              minBlockedLines: number;
+            }>;
+          };
           creatureTypes: Array<{
             code: string;
             description?: string | null;
@@ -299749,6 +291941,12 @@ export declare const api: {
                       kind: "EFFECT_REPEAT_SAVE";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -299917,6 +292115,12 @@ export declare const api: {
                       kind: "EFFECT_REPEAT_SAVE";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -299978,8 +292182,9 @@ export declare const api: {
                 occurrenceVersion: number;
                 options: Array<{
                   economy: "ACTION" | "BONUS_ACTION";
+                  initiatorCheckLabel: string;
                   optionId: string;
-                  ruleKind: "OVERRUN" | "TUMBLE";
+                  ruleKind: "OVERRUN" | "TUMBLE" | "CLIMB_ONTO_LARGER_CREATURE";
                 }>;
                 sourceActorId: string;
               }
@@ -300064,6 +292269,25 @@ export declare const api: {
                 requestId: string;
               }
             | null;
+          placedZones: Array<{
+            disarmDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
+            id: string;
+            label: string | null;
+            shape:
+              | {
+                  center: { x: number; y: number };
+                  kind: "CIRCLE";
+                  radius: number;
+                }
+              | {
+                  center: { x: number; y: number };
+                  innerRadius: number;
+                  kind: "RING";
+                  outerRadius: number;
+                }
+              | { kind: "POLYGON"; points: Array<{ x: number; y: number }> };
+            spotDc: { source: "FLAT" | "PLACER_ROLL"; value: number } | null;
+          }>;
           turnMovement: Array<{
             actorId: string;
             allowances: Array<{
@@ -300176,6 +292400,12 @@ export declare const api: {
                         damage: { amount: number; typeLabel: string | null };
                         dc: number;
                         kind: "EFFECT_REPEAT_SAVE";
+                        sourceLabel: string | null;
+                      }
+                    | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "MASSIVE_DAMAGE";
                         sourceLabel: string | null;
                       }
                     | {
@@ -300355,6 +292585,12 @@ export declare const api: {
                         sourceLabel: string | null;
                       }
                     | {
+                        damage: { amount: number; typeLabel: string | null };
+                        dc: number;
+                        kind: "MASSIVE_DAMAGE";
+                        sourceLabel: string | null;
+                      }
+                    | {
                         failures: number;
                         kind: "DEATH_SAVE";
                         successes: number;
@@ -300419,8 +292655,10 @@ export declare const api: {
                   occurrenceVersion: number;
                   options: Array<{
                     economy: "ACTION" | "BONUS_ACTION";
+                    initiatorCheckLabel: string;
                     optionId: string;
-                    ruleKind: "OVERRUN" | "TUMBLE";
+                    ruleKind:
+                      "OVERRUN" | "TUMBLE" | "CLIMB_ONTO_LARGER_CREATURE";
                   }>;
                   sourceActorId: string;
                 }
@@ -301258,6 +293496,12 @@ export declare const api: {
                   kind: "EFFECT_REPEAT_SAVE";
                   sourceLabel: string | null;
                 }
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "MASSIVE_DAMAGE";
+                  sourceLabel: string | null;
+                }
               | { failures: number; kind: "DEATH_SAVE"; successes: number }
               | {
                   actionLabel: string;
@@ -301421,6 +293665,12 @@ export declare const api: {
                   kind: "EFFECT_REPEAT_SAVE";
                   sourceLabel: string | null;
                 }
+              | {
+                  damage: { amount: number; typeLabel: string | null };
+                  dc: number;
+                  kind: "MASSIVE_DAMAGE";
+                  sourceLabel: string | null;
+                }
               | { failures: number; kind: "DEATH_SAVE"; successes: number }
               | {
                   actionLabel: string;
@@ -301482,8 +293732,9 @@ export declare const api: {
             occurrenceVersion: number;
             options: Array<{
               economy: "ACTION" | "BONUS_ACTION";
+              initiatorCheckLabel: string;
               optionId: string;
-              ruleKind: "OVERRUN" | "TUMBLE";
+              ruleKind: "OVERRUN" | "TUMBLE" | "CLIMB_ONTO_LARGER_CREATURE";
             }>;
             sourceActorId: string;
           }
@@ -302411,6 +294662,12 @@ export declare const api: {
                       kind: "EFFECT_REPEAT_SAVE";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -302579,6 +294836,12 @@ export declare const api: {
                       kind: "EFFECT_REPEAT_SAVE";
                       sourceLabel: string | null;
                     }
+                  | {
+                      damage: { amount: number; typeLabel: string | null };
+                      dc: number;
+                      kind: "MASSIVE_DAMAGE";
+                      sourceLabel: string | null;
+                    }
                   | { failures: number; kind: "DEATH_SAVE"; successes: number }
                   | {
                       actionLabel: string;
@@ -302640,8 +294903,9 @@ export declare const api: {
                 occurrenceVersion: number;
                 options: Array<{
                   economy: "ACTION" | "BONUS_ACTION";
+                  initiatorCheckLabel: string;
                   optionId: string;
-                  ruleKind: "OVERRUN" | "TUMBLE";
+                  ruleKind: "OVERRUN" | "TUMBLE" | "CLIMB_ONTO_LARGER_CREATURE";
                 }>;
                 sourceActorId: string;
               }

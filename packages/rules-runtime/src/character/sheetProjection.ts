@@ -1301,7 +1301,8 @@ export function projectCharacterSheetBundle(
         managePrivateNotes: true,
         manageInventory: true,
         openBuilder: true,
-        endActiveEffects: false
+        endActiveEffects: false,
+        removeConsequences: false
       },
       systemId: character.systemId,
       status: character.status ?? AUTHORED_RECORD_STATUS.ACTIVE,
@@ -1391,6 +1392,7 @@ export function projectCharacterSheetBundle(
       // A Concentration summon the Sheet holds is the Sheet's Concentration when no Run carried one (D190).
       concentration:
         params.concentration ?? sheetSpellSummonConcentration(character.state.spellSummons),
+      consequences: character.state.consequences ?? [],
       exhaustion: {
         label: DND5E_2014_EXHAUSTION_PRESENTATION.label,
         description: DND5E_2014_EXHAUSTION_PRESENTATION.description,
