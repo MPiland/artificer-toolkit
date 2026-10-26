@@ -690,7 +690,7 @@ function compileDirectResultSequence(
   )
 }
 
-function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
+export function relationshipPlan(action: Dnd5eCompiledEffectActionSource):
   | (Omit<CharacterRuleActionActiveEffectPlan, 'frozenGraph'> & {
       frozenGraph: ServerPublishedRuleDefinitionDto
     })

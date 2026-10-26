@@ -240,6 +240,17 @@ export interface MoraleSaveProposal {
   readonly failureDisposition: MoraleDispositionDto
 }
 
+/**
+ * An effect a passage rule's won contest gives the creature it contested, sourced by the mover (the
+ * cling a climb leaves). definitionId is the rule that authors it.
+ */
+export interface PassageAppliedEffect {
+  readonly definitionId: string
+  readonly effectId: string
+  readonly label: string
+  readonly plan: CharacterRuleActionActiveEffectPlan
+}
+
 /** An effect an enabled optional rule has a qualifying attack give its target, sourced by the attacker. */
 export interface AttackAppliedEffect {
   readonly effectId: string
@@ -343,6 +354,8 @@ export interface OptionalCombatPolicyCapabilityAdapter {
   consequenceRollTables(input: OptionalCombatPolicyInput): readonly ConsequenceRollTable[]
   /** The effects the Encounter's enabled rules have an attack give its target; none when off. */
   attackAppliedEffects(input: OptionalCombatPolicyInput): readonly AttackAppliedEffect[]
+  /** The effects the Encounter's enabled passage rules give the creature a won contest passed; none when off. */
+  passageAppliedEffects(input: OptionalCombatPolicyInput): readonly PassageAppliedEffect[]
   /** The Encounter's active Facing rule, or null when facing is off. */
   facingRule(input: OptionalCombatPolicyInput): FacingRule | null
   /** The capability an actor needs to flank, or null when flanking is off. */

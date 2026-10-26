@@ -365,6 +365,8 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
       initiatorCheckDefinitionIds: boundedCheckDefinitionChoicesSchema,
       targetCheckDefinitionId: serverUuidIdentityDtoSchema,
       minimumTargetSizeSteps: z.number().check(z.int()).check(z.gte(1)).check(z.lte(5)),
+      /** The effect a won climb gives the target, sourced by the climber (the cling). */
+      effect: effectDtoSchema,
       economies: z
         .array(z.enum(['ACTION', 'BONUS_ACTION']))
         .check(z.minLength(1))

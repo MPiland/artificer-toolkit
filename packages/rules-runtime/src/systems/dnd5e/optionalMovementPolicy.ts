@@ -1,4 +1,5 @@
 import { postgresUuidSchema } from '@artificer-toolkit/schema/shared/postgresUuid'
+import { compileEffect } from '@artificer-toolkit/shared/compilers'
 
 import {
   exactOptionalCombatDefinition,
@@ -10,13 +11,17 @@ import {
   DND5E_OVERRUN_POLICY_MODULE,
   DND5E_TUMBLE_POLICY_MODULE
 } from './policyModuleRegistration.js'
+import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
+import { relationshipPlan } from './effectActionCompiler.js'
 import { resolveDnd5eRollMode } from './rollModePolicy.js'
 import type {
   ClimbOntoContestProposal,
   ClimbOntoPreparationInput,
   MovementPassageProposal,
+  OptionalCombatPolicyInput,
   OptionalCombatResolution,
   OptionalMovementContributor,
+  PassageAppliedEffect,
   OverrunContestProposal,
   OverrunPreparationInput,
   TumbleContestProposal,
@@ -227,4 +232,35 @@ export function prepareDnd5eClimbOntoContest(
       }
     }
   }
+}
+
+/**
+ * The cling an enabled climb-onto rule gives the creature a won climb passed: its authored relationship
+ * Effect, planned like a contest hold's. None while the rule is off.
+ */
+export function dnd5ePassageAppliedEffects(
+  input: OptionalCombatPolicyInput
+): readonly PassageAppliedEffect[] {
+  const definition = exactOptionalCombatDefinition({
+    ...input,
+    kind: 'CLIMB_ONTO_LARGER_CREATURE',
+    module: DND5E_CLIMB_ONTO_LARGER_CREATURE_POLICY_MODULE
+  })
+  if (definition?.document.parameters.kind !== 'CLIMB_ONTO_LARGER_CREATURE') return []
+  const { effect } = definition.document.parameters
+  const plan = relationshipPlan({
+    gameSystemId: DND5E_SYSTEM_ID,
+    entryPointDefinitionId: effect.id,
+    effectId: effect.id,
+    compiledEffect: compileEffect(effect)
+  })
+  if (!plan) throw new Error('D&D passage-applied effect must author one relationship.')
+  return [
+    {
+      definitionId: optionalCombatPolicyPin(definition).definitionId,
+      effectId: effect.id,
+      label: definition.label,
+      plan
+    }
+  ]
 }

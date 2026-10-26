@@ -94,6 +94,15 @@ visible GM adjudications. Climb attachment is Encounter-owned tactical state and
 Character's authored body or inventory. A mark is represented by the existing active-effect lifecycle
 with bounded per-turn usage evidence, not by a parallel mark or reaction-economy table.
 
+**Climb cling (current, MOVE-4.T2a; follow and placement are target, MOVE-4.T2b).** The CLIMB
+definition authors `effect`, the `ACTOR_RELATIONSHIP` active effect a won climb gives the climbed
+creature (sourced by the climber; `SOURCE_FOLLOWS_TARGET` plus a `SOURCE_ATTACK_ROLL_INFLUENCE`
+whose null `actionEffectIds` means every attack). The policy capability's `passageAppliedEffects`
+re-derives its plan from the pinned definition; `evaluateEncounterMovementPassageResponse` builds the
+record on a SUCCESS contest and the PASSAGE settlement step carries it as `createdEffects`.
+`persistMovementSettlements` refuses an effect whose owner, origin or checksum does not match the
+planned blocker and occurrence, then creates it. Nothing in the engine names climbing.
+
 **Marking (current, ATTACK-13.T1).** The MARK definition authors `qualifyingAttackKind` (`MELEE` or
 `ANY`) and the `effect` a qualifying attack gives its target: one timed grant whose result lifecycle
 anchors to the SOURCE's END_OF_TURN with `exclusivity: 'PER_SOURCE'`. The policy

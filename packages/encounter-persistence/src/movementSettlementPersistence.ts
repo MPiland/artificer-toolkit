@@ -26,6 +26,8 @@ import { readMovementResolution } from './sceneGeometryDocuments.js'
 import { consumeNativeActionEconomy } from './actionEconomyPersistence.js'
 import type { endHolderStateGrants } from './concentrationEnd.js'
 import { deleteGrants } from './consumedGrantPersistence.js'
+import { createActiveRuleEffectStore } from './effectStore.js'
+import { turnEffectOwner } from '@artificer-toolkit/rules-runtime/encounterTurnEffectState'
 import type { EncounterPersistenceTransaction } from './ports.js'
 import type { persistLiveMovementSpatial } from './liveMovementSpatialPersistence.js'
 import type { persistLiveMovementReaction } from './liveMovementReactionPersistence.js'
@@ -401,6 +403,36 @@ export async function persistMovementContacts(
       })
       await deleteGrants(ctx, step.consumedGrants)
       actors = actors.map((entry) => (entry.id === next.id ? next : entry))
+      const blocker = actors.find((entry) => entry.id === passage.audit.blockerActorId)
+      if (step.createdEffects.length && (passage.outcome !== 'SUCCESS' || !blocker))
+        throw new Error('Movement passage effects need a won contest and its blocker.')
+      const effectStore = createActiveRuleEffectStore(ctx)
+      for (const effect of step.createdEffects) {
+        const origin = effect.definition.origin
+        if (
+          !blocker ||
+          checksumCanonicalJson(effect.owner) !==
+            checksumCanonicalJson(turnEffectOwner(blocker, input.state.id)) ||
+          origin.kind !== 'ENCOUNTER' ||
+          origin.sourceAggregateId !== input.state.id ||
+          origin.sourceActorId !== step.actorId ||
+          origin.sourceOccurrenceId !== preparation.occurrenceId ||
+          origin.rootCommandId !== save.commandId ||
+          effect.definition.frozenGraph.source.gameSystemId !== input.state.gameSystemId ||
+          effect.maintainedEffectStateId !== null
+        )
+          throw new Error('Movement passage effect does not match its blocker and source.')
+        const created = await effectStore.create({
+          id: effect.id,
+          owner: effect.owner,
+          definition: effect.definition,
+          lifecycle: effect.lifecycle,
+          maintainedEffectStateId: null,
+          occurredAt: preparation.occurredAt
+        })
+        if (checksumCanonicalJson(created) !== checksumCanonicalJson(effect))
+          throw new Error('Movement passage effect changed before settlement.')
+      }
       passageSettled = true
     } else if (step.kind === 'AREA_DEPARTURE') {
       const expected = departures[departureIndex]

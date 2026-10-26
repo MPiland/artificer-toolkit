@@ -86,6 +86,23 @@ describe('the SRD movement contests, as authored optional-combat definitions (MO
     expect(() => validate(document)).not.toThrow()
   })
 
+  it('authors the cling a won climb gives the target on the climb parameters, as a relationship', () => {
+    const document = srdDocument('CLIMB_ONTO_LARGER_CREATURE')
+    if (document.parameters.kind !== 'CLIMB_ONTO_LARGER_CREATURE')
+      throw new Error('Climb onto must author its parameters.')
+    expect(JSON.stringify(document.parameters.effect)).toContain('ACTOR_RELATIONSHIP')
+    expect(() =>
+      validate(dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.parse(document))
+    ).not.toThrow()
+    const { effect: _effect, ...withoutEffect } = document.parameters
+    expect(
+      dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.safeParse({
+        ...document,
+        parameters: withoutEffect
+      }).success
+    ).toBe(false)
+  })
+
   it('publishes a homebrew climb-onto built from the same parameters, and refuses a broken one', () => {
     const document = srdDocument('CLIMB_ONTO_LARGER_CREATURE')
     if (document.parameters.kind !== 'CLIMB_ONTO_LARGER_CREATURE')
