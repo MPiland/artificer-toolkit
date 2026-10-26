@@ -21,7 +21,10 @@ import {
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
 import { characterActiveRuleEffectStoredSchema } from '@artificer-toolkit/schema/projections/activeRuleEffectStorage'
 import { activeRuleEffectDefinitionDtoSchema } from '@artificer-toolkit/schema/shared/activeRuleEffects'
-import type { Dnd5eOptionalCombatRuleKindDto } from '@artificer-toolkit/schema/shared/optionalCombat'
+import type {
+  Dnd5eOptionalCombatReusableDefinitionDocumentDto,
+  Dnd5eOptionalCombatRuleKindDto
+} from '@artificer-toolkit/schema/shared/optionalCombat'
 import { readEncounterMovementPendingContext } from '@artificer-toolkit/rules-runtime/encounterMovementPendingContext'
 import { labelEncounterRollModeReasons } from '@artificer-toolkit/rules-runtime/encounterRollModeReasons'
 import { projectEncounterSpatialOccurrenceSummary } from '@artificer-toolkit/rules-runtime/encounterSpatialOccurrenceSummary'
@@ -188,6 +191,10 @@ export interface MovementRoomConfig {
   trackAmmunition?: boolean
   automaticCover?: boolean
   optionalCombatKinds?: readonly Dnd5eOptionalCombatRuleKindDto[]
+  /** Rewrites the selected seeded rule documents, as a GM's homebrew copy would. */
+  optionalCombatHomebrew?: (
+    document: Dnd5eOptionalCombatReusableDefinitionDocumentDto
+  ) => Dnd5eOptionalCombatReusableDefinitionDocumentDto
   /** The Run's sides; the SRD fixture's single side when omitted. */
   sides?: readonly { id: string; label: string }[]
   /** Whose stored preference rolls dice automatically: the GM's, the Character player's, or the other player's. */
@@ -325,6 +332,7 @@ export async function movementRoom(config: MovementRoomConfig) {
       trackAmmunition: config.trackAmmunition,
       automaticCover: config.automaticCover,
       optionalCombatKinds: config.optionalCombatKinds,
+      optionalCombatHomebrew: config.optionalCombatHomebrew,
       sides: config.sides
     }),
     id: encounterId,

@@ -709,7 +709,9 @@ same hit-point band as `TARGET_HIT_POINTS_AT_MOST` (`hitPointGateBand`), so a ga
 (`roomEncounterStartOfTurnTriggers.ts`) raises each effect of the creature whose turn began as a self-targeted
 `ACTOR` root (`systemTrigger.trigger: START_OF_TURN`), admitted by the SYSTEM admission when the parent is the
 turn command and the holder still has the turn. A player-submitted `RESOLVE_ACTION` that names the trait is refused,
-so it is never a free heal. Sunlight and running water are deferred edge cases.
+so it is never a free heal. Sunlight and running water are deferred edge cases. The same self `ACTOR` root
+carries a rule's failed-save action (`systemTrigger.trigger: RULE`, ATTACK-16.T1c2b; see the optional combat
+guide), raised by `raiseRoomRuleEffects` after the start-of-turn effects.
 
 **Damage taken since the turn began (current, SPELLS-33.T4i1b1).** A creature or custom actor carries an optional
 `damageTypesSinceTurnStart: {damageTypeId, commandId}[]`. `withDamageTypesTaken`

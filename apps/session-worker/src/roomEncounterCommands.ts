@@ -46,6 +46,7 @@ import {
   flagRoomReturnsOntoOccupiedSpace
 } from './roomEncounterReturnsToPlay.js'
 import { raiseRoomStartOfTurnEffects } from './roomEncounterStartOfTurnTriggers.js'
+import { raiseRoomRuleEffects } from './roomEncounterRuleTriggers.js'
 import { executeRoomEncounterContest } from './roomEncounterContest.js'
 import {
   executeRoomEncounterBasicActionResponse,
@@ -405,6 +406,14 @@ export async function executeRoomEncounterCommand(input: {
           execute: executeAction
         })
       : false
+  const raisedRuleEffects =
+    currentRun.status === 'ACTIVE' && input.turnExecution
+      ? await raiseRoomRuleEffects({
+          ctx: context,
+          encounterId: currentRun.id,
+          execute: executeAction
+        })
+      : false
   const flaggedReturn =
     currentRun.status === 'ACTIVE' &&
     (await flagRoomReturnsOntoOccupiedSpace({
@@ -432,6 +441,7 @@ export async function executeRoomEncounterCommand(input: {
     mirroredRaisedDamage ||
     raisedHpZeroEffects ||
     raisedStartOfTurnEffects ||
+    raisedRuleEffects ||
     flaggedReturn ||
     endedSummons
   const raisedRun = changedRun

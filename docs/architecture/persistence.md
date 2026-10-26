@@ -235,6 +235,19 @@ system root reads the parent's group from the stored `systemTrigger` link and in
 (system group first, then the parent, shared actor and Character accumulators). A pending manual save on
 the death area refuses the undo like any pending decision; the GM voids it, then undoes.
 
+Rule arm (current, ATTACK-16.T1c2b). An optional combat rule's failed save raises the rule's own action
+(`systemTrigger.trigger: RULE`). The parent is the save's `encounterRuleReceipts` row, read by command id
+(an answered save also has a Run command row, so receipts alone are read): it must record a COMPLETE
+massive-damage `DAMAGE_SAVE_CHECK` with `SAVE_FAILURE` for this holder under the Run's pinned rule
+(`ruleFailedSaveAction`), and the command must be the holder's self-targeted `ACTOR` root naming
+`encounterRuleActionId(holder, rule, failedSaveEffectId)`. A fresh root needs a standing holder. One
+command can fail several holders' saves, and each raised root advances the version, so the rule arm
+refines D161's version equality to a window: the parent's version must lie between the version of the
+Run's last command that is not an answer, a void or a rule-raised root (`ruleTriggerWindowStart`) and the
+current version; the general expected-version check still applies. A later player command closes the
+window, so a stale failed save never raises. A RULE root reverts with the action that raised it, as the
+defeat arm does; two rule roots raised from one action refuse the undo (adjust manually).
+
 ### Encounter record shapes (ADR 0035 Amendment 12)
 
 - **Character play state.** A Character is a `characters` row (structure, clocked by `updatedAt`) and a

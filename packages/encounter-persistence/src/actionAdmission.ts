@@ -207,7 +207,11 @@ export async function readNativeEncounterActionAdmission(
   }
   const { systemTrigger } = input
   // A rule's own action runs only when the rule raises it; naming it would apply its outcomes at will.
-  if (!resume && parseEncounterRuleActionId(input.actorId, input.actionId))
+  if (
+    !resume &&
+    systemTrigger?.trigger !== 'RULE' &&
+    parseEncounterRuleActionId(input.actorId, input.actionId)
+  )
     rejectDomain(
       'SOURCE_REQUIREMENTS_NOT_MET',
       'A rule’s own action runs only when the rule raises it.'

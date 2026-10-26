@@ -443,6 +443,7 @@ export interface ActionRoomConfig extends Pick<
   | 'spatialEffects'
   | 'sceneGrid'
   | 'optionalCombatKinds'
+  | 'optionalCombatHomebrew'
   | 'sides'
   | 'rolls'
   | 'fallbackRoll'

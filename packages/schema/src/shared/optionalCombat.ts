@@ -424,7 +424,9 @@ export const dnd5eOptionalCombatRuleParametersDtoSchema = lazySchema(() =>
       }),
       savingThrowAbilityDefinitionId: serverUuidIdentityDtoSchema,
       savingThrowDifficultyClass: boundedPositiveIntegerSchema.check(z.lte(100)),
-      bands: dnd5eOptionalCombatBandsDtoSchema
+      bands: dnd5eOptionalCombatBandsDtoSchema,
+      /** The raised Effect a failed save runs on the holder; absent until the seed authors one. */
+      failedSaveEffectId: z.optional(serverUuidIdentityDtoSchema)
     }),
     z.strictObject({
       kind: z.literal('MORALE'),
@@ -506,6 +508,18 @@ export const dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema = lazySchema
             code: 'custom',
             path: ['raisedEffects'],
             message: 'Optional combat raised effects must have unique ids.'
+          })
+        }
+        const { parameters } = document
+        if (
+          parameters.kind === 'MASSIVE_DAMAGE' &&
+          parameters.failedSaveEffectId !== undefined &&
+          !raisedEffectIds.includes(parameters.failedSaveEffectId)
+        ) {
+          context.addIssue({
+            code: 'custom',
+            path: ['parameters', 'failedSaveEffectId'],
+            message: 'A failed save must raise one of the rule’s raised effects.'
           })
         }
       })
