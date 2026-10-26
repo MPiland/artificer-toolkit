@@ -123,16 +123,8 @@ export function environmentalZones() {
   const stop = savePath.resultBlock.outcomes.find(
     (outcome) => outcome.effectKind === 'MOVEMENT_RULE'
   )
-  const damage = savePath.resultBlock.outcomes.find((outcome) => outcome.effectKind === 'DAMAGE')
-  if (
-    !stop ||
-    damage?.effectKind !== 'DAMAGE' ||
-    damage.valueKind !== 'FIXED' ||
-    invocation.savingThrow?.dcMethod !== 'FIXED_DC'
-  )
-    throw new Error(
-      'The caltrop field must stop and damage the creature that fails a fixed-DC save.'
-    )
+  if (!stop || invocation.savingThrow?.dcMethod !== 'FIXED_DC')
+    throw new Error('The caltrop field must stop the creature that fails a fixed-DC save.')
   Object.assign(pit, { id: extraId(40), label: 'Pit' })
   pit.shape = { id: extraId(41), shapeKind: 'CUBE', edgeLength: { amount: 10, unit: 'FEET' } }
   Object.assign(component, { id: extraId(42), label: 'Fall into the pit' })
@@ -142,10 +134,11 @@ export function environmentalZones() {
   savePath.resultBlock.outcomes = [
     stop,
     {
-      ...damage,
       id: extraId(43),
+      effectKind: 'DAMAGE',
       damageTypeId: damageTypeIdOf('BLUDGEONING'),
-      usesTriggeringWeaponDamageType: false,
+      valueKind: 'FIXED',
+      scalingKind: 'NONE',
       amount: 3
     },
     { id: extraId(44), effectKind: 'CONDITION', conditionId: conditionIdOf('PRONE') }
