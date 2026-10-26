@@ -5,6 +5,7 @@ import {
   SRD_SYSTEM_ID
 } from '@artificer-toolkit/source-data/srd/vocabulary.js'
 
+import type { ManifestAuthored } from '@artificer-toolkit/shared/authored'
 import type {
   CreatureAuthored,
   EquipmentAuthored
@@ -71,7 +72,13 @@ export function zoneParts(equipment: EquipmentAuthored) {
   const outcome = path?.selectionKind === 'FIXED' ? path.resultBlock.outcomes[0] : undefined
   if (!effect || outcome?.effectKind !== 'MANIFEST' || outcome.manifestKind !== 'ZONE')
     throw new Error('The record must author a zone action.')
-  const component = outcome.components?.[0]
+  return { effect, ...zoneBehaviorParts(outcome) }
+}
+export type ZoneParts = ReturnType<typeof zoneParts>
+
+/** The one saving-throw behavior of an authored zone, found by narrowing it. */
+function zoneBehaviorParts(zone: Extract<ManifestAuthored, { manifestKind: 'ZONE' }>) {
+  const component = zone.components?.[0]
   const behavior = component?.behaviors?.[0]
   const savePath = behavior?.paths[0]
   const invocation = behavior?.invocation
@@ -83,9 +90,8 @@ export function zoneParts(equipment: EquipmentAuthored) {
     !('savingThrow' in invocation)
   )
     throw new Error('The zone must author one saving-throw behavior.')
-  return { effect, zone: outcome, component, behavior, savePath, invocation }
+  return { zone, component, behavior, savePath, invocation }
 }
-export type ZoneParts = ReturnType<typeof zoneParts>
 
 /** A copy of the real SRD Caltrops record, edited and given an identity of its own. */
 export function variantEquipment(change: (parts: ZoneParts) => void): EquipmentAuthored {
@@ -104,6 +110,55 @@ export function zonePlacementOf(equipment?: EquipmentAuthored) {
   if (!zone) throw new Error('The item must place one zone.')
   return zone
 }
+
+/**
+ * The environmental zones a GM builds with the zone node map (MOVE-3.2): the SRD caltrop field
+ * as authored, and a pit authored from the same core options. A creature that enters the 10-foot
+ * pit and fails a DC 10 Dexterity save stops, takes 3 bludgeoning damage and falls prone.
+ */
+export function environmentalZones() {
+  const caltropField = zoneParts(structuredClone(caltropsBagOf20)).zone
+  const pit = structuredClone(caltropField)
+  const { component, savePath, invocation } = zoneBehaviorParts(pit)
+  const stop = savePath.resultBlock.outcomes.find(
+    (outcome) => outcome.effectKind === 'MOVEMENT_RULE'
+  )
+  if (!stop || invocation.savingThrow?.dcMethod !== 'FIXED_DC')
+    throw new Error('The caltrop field must stop the creature that fails a fixed-DC save.')
+  Object.assign(pit, { id: extraId(40), label: 'Pit' })
+  pit.shape = { id: extraId(41), shapeKind: 'CUBE', edgeLength: { amount: 10, unit: 'FEET' } }
+  Object.assign(component, { id: extraId(42), label: 'Fall into the pit' })
+  delete component.bypassAtHalfSpeed
+  invocation.savingThrow = { ...invocation.savingThrow, baseDc: 10 }
+  delete savePath.resultBlock.lifecycle
+  savePath.resultBlock.outcomes = [
+    stop,
+    {
+      id: extraId(43),
+      effectKind: 'DAMAGE',
+      damageTypeId: damageTypeIdOf('BLUDGEONING'),
+      valueKind: 'FIXED',
+      scalingKind: 'NONE',
+      amount: 3
+    },
+    { id: extraId(44), effectKind: 'CONDITION', conditionId: conditionIdOf('PRONE') }
+  ]
+  return { caltropField, pit }
+}
+
+/** An item whose one action places `zone`, as the SRD Caltrops places its field. */
+export function carryingZone(zone: ZoneParts['zone']): EquipmentAuthored {
+  return variantEquipment(({ effect }) => {
+    const path = effect.paths[0]
+    if (path?.selectionKind !== 'FIXED') throw new Error('Caltrops must author one fixed path.')
+    path.resultBlock.outcomes = [zone]
+  })
+}
+
+const damageTypeIdOf = (code: string) =>
+  SRD_DAMAGE_TYPES.find((damageType) => damageType.code === code)!.id
+const conditionIdOf = (code: string) =>
+  SRD_CONDITION_TYPES.find((condition) => condition.code === code)!.id
 
 /** The authored zone damage, as dice instead of the fixed amount. */
 export function diceDamage(diceConfig: string, change?: (damage: Record<string, unknown>) => void) {

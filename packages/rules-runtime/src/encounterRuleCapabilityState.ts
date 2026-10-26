@@ -20,7 +20,7 @@ export interface EncounterRuleCapabilityActorState {
 }
 
 export async function resolveEncounterRuleCapabilityStates(input: {
-  encounter: EncounterMovementReactionEncounter
+  encounter: Pick<EncounterMovementReactionEncounter, 'gameSystemId' | 'actors'>
   lockedCharacters: ReadonlyMap<string, EncounterMovementReactionRuleStateCharacterSource>
   activeEffectsByActorId: ReadonlyMap<string, readonly ActiveRuleEffectRecord[]>
   definitions: CurrentReusableDefinitionSource

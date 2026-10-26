@@ -69,12 +69,13 @@ export type ActorRelationshipAuthored = {
   /** Existing condition documents owned by this target relationship. */
   conditions?: ConditionAuthored[]
   /**
-   * Damage dealt to the held creature at each counted turn boundary while the hold stands, never an
-   * immediate hit outcome; with a saving throw, only when it fails that save. The hold stands either way.
+   * The outcome the held creature suffers at each counted turn boundary while the hold stands, never
+   * an immediate hit outcome: damage, or hit points lost directly (no damage type). With a saving
+   * throw, only when it fails that save. The hold stands either way.
    */
   recurrence?: {
     turnAnchor: PathLifecycleTurnAnchorAuthored
     savingThrow?: SavingThrowAuthored
-    damage: DamageAuthored
+    outcome: DamageAuthored | { id: string; effectKind: 'HIT_POINT_LOSS'; diceConfig: string }
   }
 }

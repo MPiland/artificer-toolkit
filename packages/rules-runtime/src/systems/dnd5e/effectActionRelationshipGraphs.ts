@@ -6,7 +6,6 @@ import { publishedGraph } from './effectActionPublishedGraph.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
-  DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
   DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
@@ -20,6 +19,7 @@ import { dnd5eRepeatSave } from './effectActionFollowUp.js'
 import { compileTestDefinition } from './effectActionTestPhase.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import { damageTypeIdentity } from './effectActionOutcomeNodes.js'
+import { dnd5eOutcomeDefinition } from './effectActionOutcomes.js'
 
 /**
  * The bare hold: the graph an action with no roll (Engulf) runs when used, and a hold with no
@@ -53,23 +53,24 @@ export function relationshipStateGraph(input: {
 }
 
 /**
- * A hold's recurrence as the D&D compiler admits it: one exact damage roll at the start of the held
- * creature's or its holder's turns, saved against at most one fixed DC, and the graph node it settles.
+ * A hold's recurrence as the D&D compiler admits it: one exact damage or hit-point loss roll at the
+ * start of the held creature's or its holder's turns, saved against at most one fixed DC, and the
+ * graph node it settles. Hit points lost directly carry no damage type (null).
  */
 export function relationshipRecurrencePlan(relationship: ActorRelationshipAuthored) {
   const recurrence = relationship.recurrence
   if (!recurrence) return null
-  const { damage, savingThrow, turnAnchor } = recurrence
+  const { outcome, savingThrow, turnAnchor } = recurrence
   if (
-    damage.effectKind !== 'DAMAGE' ||
-    damage.valueKind !== 'DICE' ||
-    damage.scalingKind !== 'NONE' ||
-    !('diceConfig' in damage) ||
-    damage.bonuses?.length ||
-    !UUID.test(damage.id) ||
-    !isUuid(damage.damageTypeId)
+    !UUID.test(outcome.id) ||
+    !('diceConfig' in outcome) ||
+    (outcome.effectKind === 'DAMAGE' &&
+      (outcome.valueKind !== 'DICE' ||
+        outcome.scalingKind !== 'NONE' ||
+        outcome.bonuses?.length ||
+        !isUuid(outcome.damageTypeId)))
   )
-    unsupported('D&D relationship recurrence must be one exact damage outcome.')
+    unsupported('D&D relationship recurrence must be one exact damage or hit-point loss outcome.')
   if (turnAnchor.boundary !== 'START_OF_TURN')
     unsupported('D&D relationship recurrence counts only at the start of a turn.')
   // The hold's own roll is no saving throw, so it settles no caster's DC for the recurrence.
@@ -83,14 +84,31 @@ export function relationshipRecurrencePlan(relationship: ActorRelationshipAuthor
       : null
   if (savingThrow && !save) unsupported('D&D relationship recurrence saves against one fixed DC.')
   return {
-    diceConfig: damage.diceConfig,
-    damageTypeId: damageTypeIdentity(damage.damageTypeId),
+    diceConfig: outcome.diceConfig,
+    damageTypeId: outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null,
     save,
-    frozenGraphNodeId: save ? 'proposal-on_save_fail' : 'relationship-recurrence'
+    frozenGraphNodeId: save ? 'proposal-on_save_fail' : 'relationship-recurrence',
+    proposal: dnd5eOutcomeDefinition(
+      outcome.effectKind === 'DAMAGE' ? 'ENTRY_DICE_DAMAGE' : 'ENTRY_DICE_HIT_POINT_LOSS'
+    )
   }
 }
 
-/** A failed save takes the damage and a made one none; the hold stands either way. */
+/** The operation a hold's plan settles: its recurrence's proposal, or the bare hold's state. */
+export function relationshipOperationKey(action: Dnd5eCompiledEffectActionSource) {
+  const entry = action.compiledEffect.entries.find(
+    (entry): entry is typeof entry & { outcome: ActorRelationshipAuthored } =>
+      'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
+  )
+  const recurrence = entry && relationshipRecurrencePlan(entry.outcome)
+  if (!recurrence) return DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
+  // A save gates the proposal behind its failure.
+  return recurrence.save
+    ? recurrence.proposal.pathGatedOperationKey
+    : recurrence.proposal.operationKey
+}
+
+/** A failed save takes the damage or hit-point loss and a made one none; the hold stands either way. */
 export function relationshipRecurrenceGraph(input: {
   action: Dnd5eCompiledEffectActionSource
   relationship: ActorRelationshipAuthored
@@ -106,13 +124,20 @@ export function relationshipRecurrenceGraph(input: {
         branches: new Map([
           [
             'ON_SAVE_FAIL',
-            {
-              kind: 'ENTRY_DICE_DAMAGE',
-              diceConfig,
-              damageTypeId,
-              entryId: input.relationship.id,
-              multiplier: 1
-            }
+            damageTypeId === null
+              ? {
+                  kind: 'ENTRY_DICE_HIT_POINT_LOSS',
+                  diceConfig,
+                  entryId: input.relationship.id,
+                  multiplier: 1
+                }
+              : {
+                  kind: 'ENTRY_DICE_DAMAGE',
+                  diceConfig,
+                  damageTypeId,
+                  entryId: input.relationship.id,
+                  multiplier: 1
+                }
           ]
         ])
       },
@@ -200,7 +225,7 @@ export function relationshipRecurrenceGraph(input: {
       {
         id: 'relationship-recurrence',
         operation: {
-          key: DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
+          key: input.recurrence.proposal.operationKey,
           contractVersion: 1
         },
         inputs: {
@@ -210,7 +235,9 @@ export function relationshipRecurrenceGraph(input: {
             factKey: DND5E_TARGET_STATE_CHECKSUM_FACT_KEY
           },
           amount,
-          damageTypeId: { kind: 'LITERAL', value: damageTypeId }
+          ...(damageTypeId === null
+            ? {}
+            : { damageTypeId: { kind: 'LITERAL' as const, value: damageTypeId } })
         }
       }
     ],
@@ -225,11 +252,15 @@ export function relationshipRecurrenceGraph(input: {
         nodeId: 'relationship-recurrence',
         port: 'amount'
       },
-      damageTypeId: {
-        kind: 'NODE_OUTPUT',
-        nodeId: 'relationship-recurrence',
-        port: 'damageTypeId'
-      }
+      ...(damageTypeId === null
+        ? {}
+        : {
+            damageTypeId: {
+              kind: 'NODE_OUTPUT' as const,
+              nodeId: 'relationship-recurrence',
+              port: 'damageTypeId'
+            }
+          })
     },
     sourceEntryBindings: [
       {

@@ -10,6 +10,7 @@ import { encounterAcknowledgedRuleWarningsDtoSchema } from '../shared/encounterR
 import { d20AddedFacesDtoSchema } from '../shared/d20AddedDice.js'
 import { systemCoreCodeSchema } from '../shared/systemCoreCode.js'
 import { moraleDispositionDtoSchema, moraleTriggerKindDtoSchema } from '../shared/optionalCombat.js'
+import { manifestDtoSchema } from '../effects/manifest.js'
 import { sceneTokenFacingCommandInputDtoSchema } from './vttScenes.js'
 
 const uuidSchema = lazySchema(() => z.string().check(z.uuid()))
@@ -616,6 +617,18 @@ export const setConcealmentObserversInputDtoSchema = lazySchema(() =>
   })
 )
 /**
+ * GM-only (MOVE-3.2): places an environmental zone, authored through the same zone node map as
+ * authored content, fixed to the Scene with its origin at `point`. It has no source creature, so
+ * its saves use their authored fixed DC.
+ */
+export const placeZoneInputDtoSchema = lazySchema(() =>
+  z.extend(commandBaseDtoSchema, {
+    type: z.literal('PLACE_ZONE'),
+    zone: manifestDtoSchema,
+    point: spatialPointDtoSchema
+  })
+)
+/**
  * GM-only morale save (ENCOUNTER-6.1): checks one of the actor's offered or GM-declared triggers.
  * `leaderActorId` names the group's leader for a group trigger; null rolls the fallback roller. The
  * GM enters the d20 faces or the server rolls them under the save's frozen roll mode.
@@ -675,6 +688,7 @@ export type ResolveRuleOccurrenceInputDto = z.infer<typeof resolveRuleOccurrence
 export type VoidRuleOccurrenceInputDto = z.infer<typeof voidRuleOccurrenceInputDtoSchema>
 export type RemoveAreaTargetInputDto = z.infer<typeof removeAreaTargetInputDtoSchema>
 export type SetConcealmentObserversInputDto = z.infer<typeof setConcealmentObserversInputDtoSchema>
+export type PlaceZoneInputDto = z.infer<typeof placeZoneInputDtoSchema>
 export type RollRuleEvidenceInputDto = z.infer<typeof rollRuleEvidenceInputDtoSchema>
 export type MoraleSaveInputDto = z.infer<typeof moraleSaveInputDtoSchema>
 export type ConfirmMoraleInputDto = z.infer<typeof confirmMoraleInputDtoSchema>

@@ -120,6 +120,7 @@ export async function executeRoomEncounterCommand(input: {
     ...written,
     ports: {
       ...written.ports,
+      sceneReaders: { readScene: async (sceneId) => readRoomScene(transaction, sceneId) },
       restoreActionForcedMovements: async ({ encounterId, commandId, movements }) => {
         for (const { sceneId, sceneCommandId } of [...movements].reverse()) {
           const { scene } = await readRoomSceneState(transaction, sceneId)

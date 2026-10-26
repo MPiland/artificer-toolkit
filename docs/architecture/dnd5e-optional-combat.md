@@ -108,6 +108,15 @@ homebrew copy may change the attack kind, anchor or grants with no Marking-speci
 main action root applies marks today; opportunity, legendary and area attacks follow in ATTACK-13.T3
 with the Campaign setting gate.
 
+**Marked opportunity attacks (current, ATTACK-13.T2).** The SRD mark's grants also carry a
+`FREE_OPPORTUNITY_REACTION` `ENABLE` modifier beside its opportunity-attack advantage. The mark is
+`fromSourceOnly`, so only the marker benefits. The D&D movement-reaction policy
+(`systems/dnd5e/reactionEligibilityPolicy.ts`) then chooses the SRD "Free reaction allowance"
+capability (`maximum: 1`, `refreshBoundary: EACH_TURN`) instead of the reaction while it is left this
+turn; the option spends whichever allowance the policy chose. Conditions that suppress reactions
+suppress the free allowance too, and a reactor that cannot act gets no option. See
+[rules runtime](rules-runtime.md) for the turn-scoped usage record.
+
 Morale (ENCOUNTER-6, current) is offered in Campaign settings once its System policy resolves it.
 The GM projection derives each creature's offers from Run state as a pure read: at or below half
 hit points, half its side removed, and the leader named on an earlier group check defeated or gone.

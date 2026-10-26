@@ -226,7 +226,8 @@ const disarmDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.pa
 
 /**
  * The mark a melee attack leaves on its target: until the end of the attacker's next turn, the
- * attacker's opportunity attacks against it have advantage. One mark per attacker, so a new mark
+ * attacker's opportunity attacks against it have advantage, and once per turn one of them does not
+ * spend the attacker's reaction. One mark per attacker, so a new mark
  * replaces the attacker's earlier one on any creature.
  */
 function markEffect() {
@@ -263,21 +264,33 @@ function markEffect() {
               id: childId('outcome'),
               effectKind: 'APPLY_GRANT',
               grants: {
-                modifiers: Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, order) => ({
-                  id: childId('grant', order),
-                  grantKind: 'MODIFIER_GRANT',
-                  valueDomainCode: 'ATTACKS_AGAINST',
-                  domain: {
-                    attackDomain,
-                    requiresHolderSeesAttacker: false,
-                    attackOccasion: 'OPPORTUNITY'
-                  },
-                  modifierKind: 'ROLL_INFLUENCE',
-                  payload: { influence: 'ADVANTAGE' },
-                  scope: 'GLOBAL',
-                  selectionKind: 'GRANTED',
-                  order
-                }))
+                modifiers: [
+                  ...Object.values(ATTACK_DOMAIN_CODE).map((attackDomain, order) => ({
+                    id: childId('grant', order),
+                    grantKind: 'MODIFIER_GRANT',
+                    valueDomainCode: 'ATTACKS_AGAINST',
+                    domain: {
+                      attackDomain,
+                      requiresHolderSeesAttacker: false,
+                      attackOccasion: 'OPPORTUNITY'
+                    },
+                    modifierKind: 'ROLL_INFLUENCE',
+                    payload: { influence: 'ADVANTAGE' },
+                    scope: 'GLOBAL',
+                    selectionKind: 'GRANTED',
+                    order
+                  })),
+                  {
+                    id: childId('free-reaction'),
+                    grantKind: 'MODIFIER_GRANT',
+                    valueDomainCode: 'FREE_OPPORTUNITY_REACTION',
+                    domain: {},
+                    modifierKind: 'ENABLE',
+                    scope: 'GLOBAL',
+                    selectionKind: 'GRANTED',
+                    order: Object.values(ATTACK_DOMAIN_CODE).length
+                  }
+                ]
               }
             }
           ]

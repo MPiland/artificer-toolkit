@@ -114,7 +114,7 @@ export const shamblingMound: CreatureAuthored = {
                         abilityDefinitionId: S.SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
                         baseDc: 14
                       },
-                      damage: {
+                      outcome: {
                         id: S.actionId(251, 903),
                         effectKind: S.EFFECT_KIND.DAMAGE,
                         damageTypeId: S.damageTypeId('BLUDGEONING'),

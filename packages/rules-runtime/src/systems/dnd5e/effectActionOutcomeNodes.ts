@@ -10,7 +10,7 @@ import {
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
   UUID,
   type Outcome,
-  type EntryDiceDamageOutcome,
+  type EntryDiceOutcome,
   uuid,
   unsupported,
   multipliedDamageAmount,
@@ -237,7 +237,7 @@ export function pathGatedProposalNode(input: {
   id: string
   pathCode: string
   testNodeId: string
-  outcome: Outcome | EntryDiceDamageOutcome
+  outcome: Outcome | EntryDiceOutcome
   conditionImmuneFactKey: string | undefined
   amount?: RuleInputBinding
 }) {

@@ -37,7 +37,11 @@ import {
   record
 } from './character/activeEffectGrantTotals.js'
 import { normalizeCharacterGrantRestrictions } from './character/characterGrantFoldRestrictionFacts.js'
-import { effectEventScope, type EffectEventScope } from './events/encounterEventHooks.js'
+import {
+  effectEventScope,
+  isInEffectEventScope,
+  type EffectEventScope
+} from './events/encounterEventHooks.js'
 import type { EncounterRelationshipD20Contributor } from './encounterRelationshipActionFacts.js'
 import { lengthInUnit, speedAfterFractions, widestLengthByKey } from './modifierLength.js'
 import {
@@ -460,6 +464,7 @@ export function encounterGrantsEnabledDomain(
   domain: Extract<
     ValueDomainCode,
     | 'OPPORTUNITY_ATTACK_IMMUNITY'
+    | 'FREE_OPPORTUNITY_REACTION'
     | 'SPELLCASTING_LOCK'
     | 'ACTION_BONUS_ACTION_EXCLUSIVITY'
     | 'HEALING_RECEIVED'
@@ -470,6 +475,30 @@ export function encounterGrantsEnabledDomain(
       (modifier) => modifier.valueDomainCode === domain && modifier.modifierKind === 'ENABLE'
     )
   )
+}
+
+/**
+ * Whether the holder's active effects let this reactor make an opportunity reaction against it
+ * without its reaction (`FREE_OPPORTUNITY_REACTION`), on the reactors and turns each effect's event
+ * scope admits: only the source of an effect limited to its source (a Mark), anyone otherwise.
+ */
+export function encounterGrantsFreeOpportunityReaction(input: {
+  holderActorId: string
+  effects: readonly Pick<ActiveRuleEffectRecord, 'id' | 'definition' | 'lifecycle'>[]
+  reactorActorId: string
+  turnActorId: string | null
+}): boolean {
+  return input.effects.some((effect) => {
+    const scope = effectEventScope(effect, input.holderActorId)
+    return (
+      scope !== null &&
+      isInEffectEventScope(scope, {
+        actorId: input.reactorActorId,
+        turnActorId: input.turnActorId
+      }) &&
+      encounterGrantsEnabledDomain([effect], 'FREE_OPPORTUNITY_REACTION')
+    )
+  })
 }
 
 /**
