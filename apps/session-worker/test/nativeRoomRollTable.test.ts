@@ -12,6 +12,10 @@ import { plainWolf } from '../src/testing/movementPlannerFixture.js'
 import { actionRoom } from './actionRoomFixture.js'
 import { vitalsOf } from './areaRoomReads.js'
 import { closeTrackedSockets } from './liveRoomFixture.js'
+import { readCharacterPlay } from '@artificer-toolkit/schema/projections/characterStoredState'
+import { runInDurableObject } from 'cloudflare:test'
+
+import { RoomEncounterStore } from '../src/roomEncounterStore.js'
 import { readRoomHistory } from './roomHistoryReads.js'
 
 const CASTER_ACTOR_ID = testUuid(0xf40)
@@ -160,14 +164,15 @@ const selfShock: SpellAuthored = {
   ]
 }
 
-async function casterConditions(room: Awaited<ReturnType<typeof actionRoom>>) {
-  const caster = vitalsOf(await readRoomHistory(room.room.base.stub)).find(
-    ({ id }) => id === CASTER_ACTOR_ID
-  )
-  if (!caster) throw new Error('The caster is missing.')
-  return ((caster.conditions ?? []) as { conditionTypeId: string }[]).map(
-    ({ conditionTypeId }) => conditionTypeId
-  )
+/** A Character holds its conditions in its play state. */
+function casterConditions(room: Awaited<ReturnType<typeof actionRoom>>) {
+  return runInDurableObject(room.room.base.stub, (_instance, context) => {
+    const row = new RoomEncounterStore(context.storage)
+      .documents('characterPlayStates')
+      .find((candidate) => candidate.characterId === CASTER_ID)
+    if (!row) throw new Error('Missing room Character play state.')
+    return (readCharacterPlay(row).conditions ?? []).map(({ conditionTypeId }) => conditionTypeId)
+  })
 }
 
 describe('a roll table on a test-less self action, used by a Character (ATTACK-16.T1c2a)', () => {
