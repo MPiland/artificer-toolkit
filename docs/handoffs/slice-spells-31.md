@@ -437,12 +437,11 @@ Design B (ruled): no rest hook, no planner, no schema relaxation.
 - It ends early when the holder makes an attack roll or casts a spell against an enemy (Sanctuary's end triggers): that act spends the charge.
 - Needed as generic core options with an authoring-parity proof, if absent: (a) a modifier grant gated on an unspent resource; (b) spending a resource on a hostile act. No Tranquility branch in code. Then delete the kind and add a room test (the ward stops an attacker; the holder's attack ends it; a long rest restores it).
 
-**Product ruling (user, 2026-10-19) supersedes Design B's "unspent charge" activation:**
+**Product ruling (user, 2026-10-25) withdraws the 2026-10-19 "spend the use at rest end" wording; build Design B:**
 
-- Tranquility spends its one use automatically at the end of a long rest, which turns the ward on.
-- The use stays spent if the ward ends early (the monk attacks or casts at an enemy).
-- The Sheet shows the use as spent and the ward as active or ended.
-- This needs a real Character-side active status outside encounters. Reuse an existing Character activation path if one exists; otherwise add a generic one (no Tranquility branch). The three findings above are why the encounter-planner path cannot carry it.
+- The SRD text has no use or charge: the ward is passive from the end of one long rest to the start of the next, and ends early as Sanctuary does (the monk attacks or casts a spell affecting an enemy).
+- Design B's LONG_REST-reset charge is internal state for "broken since the last long rest", not a player-facing use. No rest trigger and no Sheet-side planner.
+- The Sheet shows the ward as active, or ended until the next long rest; never as a use or charge.
 
 ### T5o2 seam notes (Thief's Reflexes, `CLASS_THIEF_THIEFS_REFLEXES`; size 3, depends on T5o)
 
