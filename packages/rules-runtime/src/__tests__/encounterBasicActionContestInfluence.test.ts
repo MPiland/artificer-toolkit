@@ -13,13 +13,13 @@ import {
 } from '../encounterBasicActionCapabilityDiscovery.js'
 import { prepareEncounterBasicActionContest } from '../encounterBasicActionContest.js'
 import { withEncounterConditionMechanics } from '../encounterConditionMechanics.js'
-import { buildMovementTarget } from '../encounterMovementTargets.js'
+import { requireEncounterBasicActionDefinition } from '../encounterBasicActions.js'
 import {
-  CAMPAIGN_ID,
   ENCOUNTER_ID,
   SRD_SYSTEM_ID,
   srdCondition,
   srdCreatureActor,
+  srdCreatureTarget,
   srdDefinitions,
   srdEncounterState,
   testUuid
@@ -37,13 +37,18 @@ const SHOVER_ID = testUuid(0x2b01)
 const TARGET_ID = testUuid(0x2b02)
 const veteran = srdByLabel(SRD.creatures, 'Veteran')
 
+/** A basic action's typed document. */
+function basicActionDocument(definition: ReusableDefinitionCurrentDto | null) {
+  return requireEncounterBasicActionDefinition({ gameSystemId: SRD_SYSTEM_ID }, definition)
+}
+
 /** The SRD Shove with its options' influences set by option index, as a homebrew copy authors. */
 async function shoveWith(
   influences: Readonly<Record<number, string>>
 ): Promise<ReusableDefinitionCurrentDto> {
-  const shove = await srdDefinitions.requireCurrent(SRD_BASIC_ACTION_IDS.SHOVE)
-  const { document } = shove
-  if (document.kind !== 'BASIC_ACTION') throw new Error('The SRD Shove is not a basic action.')
+  const { definition: shove, document } = basicActionDocument(
+    await srdDefinitions.requireCurrent(SRD_BASIC_ACTION_IDS.SHOVE)
+  )
   const effects = document.effects.map((effect) => ({
     ...effect,
     paths: effect.paths.map((path) =>
@@ -63,8 +68,7 @@ async function shoveWith(
 
 /** The authored option ids of the Shove, in order. */
 function optionIds(definition: ReusableDefinitionCurrentDto) {
-  if (definition.document.kind !== 'BASIC_ACTION') throw new Error('Not a basic action.')
-  return definition.document.effects.flatMap((effect) =>
+  return basicActionDocument(definition).document.effects.flatMap((effect) =>
     effect.paths.flatMap((path) =>
       path.selectionKind === 'CHOICE' ? path.options.map(({ id }) => id) : []
     )
@@ -87,13 +91,7 @@ async function sealedShove(input: {
   const state = srdEncounterState({ actors, currentActorId: shover.id })
   const facts = async (actor: EncounterRunActorState) =>
     withEncounterConditionMechanics({
-      target: buildMovementTarget({
-        actor,
-        activeEffects: [],
-        characterFacts: null,
-        campaignId: CAMPAIGN_ID,
-        gameSystemId: SRD_SYSTEM_ID
-      }),
+      target: srdCreatureTarget(actor),
       gameSystemId: SRD_SYSTEM_ID,
       definitions: srdConditionDefinitionSource()
     })
@@ -101,8 +99,7 @@ async function sealedShove(input: {
     [shover.id, await facts(shover)],
     [target.id, await facts(target)]
   ])
-  const [effect] =
-    input.definition.document.kind === 'BASIC_ACTION' ? input.definition.document.effects : []
+  const [effect] = basicActionDocument(input.definition).document.effects
   if (!effect) throw new Error('The Shove has no effect.')
   const actionId = encounterBasicActionId(shover.id, input.definition.id, effect.id)
   const choiceOptionId = optionIds(input.definition)[input.optionIndex]

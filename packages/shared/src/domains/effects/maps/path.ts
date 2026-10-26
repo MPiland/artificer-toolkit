@@ -2743,24 +2743,9 @@ const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.d
 
     map
       .set('id', text(['id'], 'ID'))
-      .set(
-        'order',
-        number(['order'], 'Order', {
-          requiredIf: true
-        })
-      )
-      .set(
-        'label',
-        text(['label'], 'Label', {
-          requiredIf: true
-        })
-      )
-      .set(
-        'description',
-        richText(['description'], 'Description', {
-          requiredIf: true
-        })
-      )
+      .set('order', number(['order'], 'Order', { requiredIf: true }))
+      .set('label', text(['label'], 'Label', { requiredIf: true }))
+      .set('description', richText(['description'], 'Description', { requiredIf: true }))
       .set(
         'initiatorCheckInfluence',
         selectSingle(['initiatorCheckInfluence'], 'Initiator check influence', {
@@ -2786,24 +2771,9 @@ const NON_MANIFEST_CHOICE_OPTION_NODE_MAP: NodeMap<
 
   map
     .set('id', text(['id'], 'ID'))
-    .set(
-      'order',
-      number(['order'], 'Order', {
-        requiredIf: true
-      })
-    )
-    .set(
-      'label',
-      text(['label'], 'Label', {
-        requiredIf: true
-      })
-    )
-    .set(
-      'description',
-      richText(['description'], 'Description', {
-        requiredIf: true
-      })
-    )
+    .set('order', number(['order'], 'Order', { requiredIf: true }))
+    .set('label', text(['label'], 'Label', { requiredIf: true }))
+    .set('description', richText(['description'], 'Description', { requiredIf: true }))
     .set(
       'initiatorCheckInfluence',
       selectSingle(['initiatorCheckInfluence'], 'Initiator check influence', {
