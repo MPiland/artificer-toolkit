@@ -18,7 +18,10 @@ import {
   type Fixture
 } from '../../tests/fixtures/liveCharacterRun'
 import {
+  checkpointLiveRoom,
   executeInRoom,
+  executeSheetInRoom,
+  expectRedactedRoomRefusal,
   queueRoomRolls,
   readRoomRollCards,
   seedRoomContentSnapshots,
@@ -33,7 +36,9 @@ useLocalRoomWorker()
 const injuries = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
   (definition) => definition.document.kind === 'INJURIES'
 )
-if (!injuries) throw new Error('Missing published Injuries.')
+if (!injuries || injuries.document.parameters.kind !== 'INJURIES')
+  throw new Error('Missing published Injuries.')
+const injuryRows = injuries.document.parameters.table.rows
 
 /** The raw draw that makes a d20 show `die`: the room's dice draw in `[0, 20)`. */
 const draw = (die: number) => die - 1
@@ -193,5 +198,79 @@ describe('Consequence roll offers through the room (ATTACK-15.1)', () => {
       [{ event: 'HIT_POINTS_ZERO' }],
       [{ event: 'DEATH_SAVE_FAILED', byAtLeast: 5 }]
     ])
+  }, 120000)
+})
+
+describe('Recorded consequences on the Character (ATTACK-15.2)', () => {
+  /** The Character's Sheet as `viewer` reads it once the room has checkpointed its play. */
+  async function sheetAs(fixture: Fixture, viewer: 'owner' | 'player') {
+    await checkpointLiveRoom(fixture.campaign.id)
+    const sheet = await fixture[viewer].caller.query(api.characters.sheet.get, {
+      id: fixture.character.id
+    })
+    if (!sheet) throw new Error('Missing journey Sheet.')
+    return sheet
+  }
+
+  function removeAs(
+    fixture: Fixture,
+    viewer: 'owner' | 'player',
+    consequenceId: string,
+    expectedVersion: number
+  ) {
+    return executeSheetInRoom(fixture[viewer].caller, {
+      scope: 'CHARACTER_SHEET',
+      characterId: fixture.character.id,
+      encounterId: fixture.run.id,
+      command: {
+        type: 'REMOVE_CONSEQUENCE',
+        consequenceId,
+        commandId: crypto.randomUUID(),
+        expectedVersion
+      }
+    })
+  }
+
+  it('records the accepted row on the Character, shows it with its healing, and only the GM removes it', async () => {
+    const { fixture, bitten } = await droppedCharacter()
+    const commandId = crypto.randomUUID()
+    await queueRoomRolls(fixture.campaign.id, { rolls: [draw(1)] })
+    await resolve(fixture, bitten, 'ACCEPT', { commandId })
+
+    const row = injuryRows.find(({ minimum, maximum }) => minimum <= 1 && 1 <= maximum)!
+    const recorded = {
+      id: commandId,
+      definitionId: injuries!.id,
+      rowId: row.id,
+      tableLabel: injuries!.label,
+      label: row.label,
+      effect: row.effect,
+      healing: row.healing,
+      recordedAt: expect.any(String)
+    }
+    expect((await storedCharacter(fixture)).state.consequences).toEqual([recorded])
+
+    const playerSheet = await sheetAs(fixture, 'player')
+    expect(playerSheet.overview.consequences).toEqual([recorded])
+    expect(playerSheet.meta.capabilities.removeConsequences).toBe(false)
+    await expectRedactedRoomRefusal(
+      removeAs(fixture, 'player', commandId, playerSheet.meta.streamVersion),
+      'Only the GM removes a recorded consequence.',
+      'DOMAIN_REJECTED'
+    )
+    expect((await storedCharacter(fixture)).state.consequences).toEqual([recorded])
+
+    const gmSheet = await sheetAs(fixture, 'owner')
+    expect(gmSheet.overview.consequences).toEqual([recorded])
+    expect(gmSheet.meta.capabilities.removeConsequences).toBe(true)
+    await removeAs(fixture, 'owner', commandId, gmSheet.meta.streamVersion)
+    expect((await storedCharacter(fixture)).state.consequences).toBeUndefined()
+    expect((await sheetAs(fixture, 'player')).overview.consequences).toEqual([])
+  }, 120000)
+
+  it('records nothing when the GM declines', async () => {
+    const { fixture, bitten } = await droppedCharacter()
+    await resolve(fixture, bitten, 'DECLINE')
+    expect((await storedCharacter(fixture)).state.consequences).toBeUndefined()
   }, 120000)
 })

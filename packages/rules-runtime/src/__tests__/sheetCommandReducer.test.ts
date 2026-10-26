@@ -16,7 +16,10 @@ import {
   DND5E_SYSTEM_ID,
   DND5E_UNCONSCIOUS_CONDITION_DEFINITION_ID
 } from '../systems/dnd5e/identity.js'
-import { assertCampaignGmSheetCommandAllowed } from '../character/sheetCommandValidation.js'
+import {
+  assertCampaignGmSheetCommandAllowed,
+  assertGmOnlySheetCommandAllowed
+} from '../character/sheetCommandValidation.js'
 
 type Command = Parameters<typeof applyCharacterSheetCommand>[1]
 type SheetExtra = CharacterSheetResponseDto['extras']['items'][number]
@@ -57,7 +60,8 @@ function sheet(extras: readonly SheetExtra[] = []): CharacterSheetResponseDto {
         managePrivateNotes: true,
         manageInventory: true,
         openBuilder: true,
-        endActiveEffects: false
+        endActiveEffects: false,
+        removeConsequences: false
       },
       systemId: ids.system,
       status: 'DRAFT',
@@ -86,6 +90,7 @@ function sheet(extras: readonly SheetExtra[] = []): CharacterSheetResponseDto {
       activeGrants: [],
       standingEffects: [],
       concentration: null,
+      consequences: [],
       maxHitPointsOverride: null,
       savingThrows: [],
       skills: [],
@@ -851,6 +856,47 @@ describe('Ending an active effect (D99)', () => {
 
   it('is allowed to the Campaign owner on a player-owned Character', () => {
     expect(() => assertCampaignGmSheetCommandAllowed(input)).not.toThrow()
+  })
+})
+
+describe('Removing a recorded consequence (ATTACK-15.2)', () => {
+  const consequence = (id: string, label: string) => ({
+    id,
+    definitionId: '50000000-0000-4000-8000-000000000020',
+    rowId: '50000000-0000-4000-8000-000000000021',
+    tableLabel: 'Lingering Injuries',
+    label,
+    effect: 'The GM rules what this does.',
+    healing: 'The GM rules what heals it.',
+    recordedAt: created
+  })
+  const limp = consequence('50000000-0000-4000-8000-000000000022', 'Limp')
+  const scar = consequence('50000000-0000-4000-8000-000000000023', 'Minor Scar')
+  const command = { ...base, type: 'REMOVE_CONSEQUENCE', consequenceId: limp.id } as const
+  const input = { ...command, commandId: '50000000-0000-4000-8000-000000000024' }
+
+  it('removes only that consequence, and clears the list when it was the last', () => {
+    expect(apply(character({ consequences: [limp, scar] }), command).state.consequences).toEqual([
+      scar
+    ])
+    expect(apply(character({ consequences: [limp] }), command).state.consequences).toBeUndefined()
+  })
+
+  it('refuses a consequence the Character no longer has', () => {
+    expect(() => apply(character({ consequences: [scar] }), command)).toThrow(
+      'That consequence is no longer recorded.'
+    )
+  })
+
+  it('is the GM’s alone, on a player Character or the GM’s own', () => {
+    expect(() => assertCampaignGmSheetCommandAllowed(input)).not.toThrow()
+    expect(() => assertGmOnlySheetCommandAllowed(input, true)).not.toThrow()
+    expect(() => assertGmOnlySheetCommandAllowed(input, false)).toThrow(
+      'Only the GM removes a recorded consequence.'
+    )
+    expect(() =>
+      assertGmOnlySheetCommandAllowed({ ...input, type: 'END_CONCENTRATION' }, false)
+    ).not.toThrow()
   })
 })
 

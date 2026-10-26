@@ -17,6 +17,7 @@ import {
 import { capacityDtoSchema, costDtoSchema, weightDtoSchema } from '../subjects/shared.js'
 import { castingTimeDtoSchema } from '../subjects/castingTime.js'
 import { characterDeathSavesDtoSchema } from '../subjects/characterState.js'
+import { characterConsequenceDtoSchema } from '../shared/consequenceRolls.js'
 import {
   characterResourceOwnerRefDtoSchema,
   characterResourceRecoveryDtoSchema,
@@ -72,7 +73,9 @@ export const characterSheetMetaDtoSchema = lazySchema(() =>
       manageInventory: booleanSchema,
       openBuilder: booleanSchema,
       /** True only for the Campaign owner on an ACTIVE Campaign, including on the GM's own Character (D92, D99). */
-      endActiveEffects: booleanSchema
+      endActiveEffects: booleanSchema,
+      /** The same GM-only rule: recorded consequences are removed by the GM alone (ATTACK-15.2). */
+      removeConsequences: booleanSchema
     }),
     systemId: stringSchema,
     status: authoredRecordStatusSchema,
@@ -195,6 +198,8 @@ export const characterSheetOverviewDtoSchema = lazySchema(() =>
      * the Character; the label is null for a hidden source.
      */
     concentration: z.nullable(concentrationListingDtoSchema),
+    /** Consequence rows the GM accepted, such as lingering injuries, with the healing the table names. */
+    consequences: z.array(characterConsequenceDtoSchema),
     savingThrows: z.array(
       z.object({
         ability: systemCoreCodeSchema,

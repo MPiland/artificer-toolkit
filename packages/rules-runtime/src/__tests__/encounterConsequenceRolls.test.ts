@@ -200,7 +200,7 @@ describe('Consequence roll offers (ATTACK-15.1)', () => {
 
   it('land a roll on its authored row, or on none in a gap', () => {
     const gapped = { ...table!, rows: [table!.rows[0]!, table!.rows[2]!] }
-    expect(consequenceRollRow(table!, table!.rows[1]!.minimum)).toBe(table!.rows[1]!.rowId)
+    expect(consequenceRollRow(table!, table!.rows[1]!.minimum)).toBe(table!.rows[1])
     expect(consequenceRollRow(gapped, table!.rows[1]!.minimum)).toBeNull()
   })
 })

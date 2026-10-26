@@ -1,5 +1,8 @@
 import type { AutomationModeDto } from '@artificer-toolkit/schema/api/campaignSettings'
-import type { ConsequenceRollTriggerDto } from '@artificer-toolkit/schema/shared/consequenceRolls'
+import type {
+  ConsequenceRollTableDto,
+  ConsequenceRollTriggerDto
+} from '@artificer-toolkit/schema/shared/consequenceRolls'
 import type {
   EncounterActorMoraleDto,
   EncounterMoraleOfferDto
@@ -233,16 +236,10 @@ export interface AttackAppliedEffect {
  * An authored table the GM may be offered a roll on (ATTACK-15): the events that offer it and the
  * rows of its die. Rows are ordered and never overlap; a roll between rows lands on none.
  */
-export interface ConsequenceRollTable {
+export interface ConsequenceRollTable extends Readonly<ConsequenceRollTableDto> {
   readonly pin: OptionalCombatPolicyPin
   readonly label: string
   readonly triggers: readonly ConsequenceRollTriggerDto[]
-  readonly dieFaces: number
-  readonly rows: readonly {
-    readonly rowId: string
-    readonly minimum: number
-    readonly maximum: number
-  }[]
 }
 
 /**

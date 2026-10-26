@@ -50,15 +50,6 @@ const optionalOutcome = <
     | 'STABLE_AT_ZERO'
     | 'STUNNED_UNTIL_END_OF_NEXT_TURN'
     | 'IMPAIRED_UNTIL_END_OF_NEXT_TURN'
-    | 'LOSE_EYE'
-    | 'LOSE_ARM_OR_HAND'
-    | 'LOSE_FOOT_OR_LEG'
-    | 'LIMP'
-    | 'INTERNAL_INJURY'
-    | 'BROKEN_RIBS'
-    | 'HORRIBLE_SCAR'
-    | 'FESTERING_WOUND'
-    | 'MINOR_SCAR'
     | 'CONTINUE'
     | 'FLEE'
     | 'SURRENDER'
@@ -67,67 +58,6 @@ const optionalOutcome = <
   kind: TKind,
   operations: readonly unknown[]
 ) => ({ id, kind, operations })
-
-const optionalRecovery = <
-  TKind extends
-    | 'NONE'
-    | 'MAGICAL_RESTORATION'
-    | 'MEDICAL_TREATMENT'
-    | 'NATURAL_HEALING'
-    | 'JUDGMENT_REQUIRED'
->(
-  id: string,
-  kind: TKind,
-  operations: readonly unknown[]
-) => ({ id, kind, operations })
-
-const injuryRecord = (
-  id: string,
-  injuryDefinitionId: string,
-  duration: 'PERMANENT' | 'UNTIL_CLEARED'
-) => ({
-  id,
-  primitive: 'CREATE_INJURY_RECORD' as const,
-  target: 'SUBJECT' as const,
-  injuryDefinitionId,
-  duration
-})
-
-const injuryConsequenceJudgment = (id: string) => ({
-  id,
-  primitive: 'JUDGMENT_REQUIRED' as const,
-  target: 'SUBJECT' as const,
-  reason: 'UNNORMALIZED_INJURY_CONSEQUENCE' as const
-})
-
-const internalInjuryCheck = (id: string) => ({
-  id,
-  primitive: 'REQUIRE_CHECK' as const,
-  target: 'SUBJECT' as const,
-  abilityDefinitionId: SRD_ABILITY_DEFINITION_IDS.CONSTITUTION,
-  difficultyClass: 15,
-  trigger: 'BEFORE_COMBAT_ACTION' as const,
-  successEffects: [
-    { effect: 'RETAIN_INJURY' as const },
-    { effect: 'ALLOW_ATTEMPTED_COMBAT_ACTION' as const }
-  ],
-  failureEffects: [
-    { effect: 'RETAIN_INJURY' as const },
-    { effect: 'DENY_AND_LOSE_ATTEMPTED_COMBAT_ACTION' as const },
-    {
-      effect: 'SET_REACTION_AVAILABILITY' as const,
-      available: false,
-      duration: 'UNTIL_START_OF_NEXT_TURN' as const
-    }
-  ]
-})
-
-const recoveryJudgment = (id: string) => ({
-  id,
-  primitive: 'JUDGMENT_REQUIRED' as const,
-  target: 'SUBJECT' as const,
-  reason: 'UNNORMALIZED_RECOVERY' as const
-})
 
 function conditionId(code: (typeof SRD_CONDITION_TYPES)[number]['code']): string {
   const condition = SRD_CONDITION_TYPES.find((candidate) => candidate.code === code)
@@ -394,138 +324,92 @@ const injuriesDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSchema.
       { event: 'HIT_POINTS_ZERO' },
       { event: 'DEATH_SAVE_FAILED', byAtLeast: 5 }
     ],
-    bands: [
-      {
-        minimum: 1,
-        maximum: 1,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000121', 'LOSE_EYE', [
-          injuryRecord(
-            '00000000-0000-4000-8000-000000000261',
-            '00000000-0000-4000-8000-000000000121',
-            'UNTIL_CLEARED'
-          ),
-          injuryConsequenceJudgment('00000000-0000-4000-8000-000000000262')
-        ]),
-        recovery: optionalRecovery('00000000-0000-4000-8000-000000000131', 'JUDGMENT_REQUIRED', [
-          recoveryJudgment('00000000-0000-4000-8000-000000000281')
-        ])
-      },
-      {
-        minimum: 2,
-        maximum: 2,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000122', 'LOSE_ARM_OR_HAND', [
-          injuryRecord(
-            '00000000-0000-4000-8000-000000000263',
-            '00000000-0000-4000-8000-000000000122',
-            'UNTIL_CLEARED'
-          ),
-          injuryConsequenceJudgment('00000000-0000-4000-8000-000000000264')
-        ]),
-        recovery: optionalRecovery('00000000-0000-4000-8000-000000000132', 'JUDGMENT_REQUIRED', [
-          recoveryJudgment('00000000-0000-4000-8000-000000000282')
-        ])
-      },
-      {
-        minimum: 3,
-        maximum: 3,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000123', 'LOSE_FOOT_OR_LEG', [
-          injuryRecord(
-            '00000000-0000-4000-8000-000000000265',
-            '00000000-0000-4000-8000-000000000123',
-            'UNTIL_CLEARED'
-          ),
-          injuryConsequenceJudgment('00000000-0000-4000-8000-000000000266')
-        ]),
-        recovery: optionalRecovery('00000000-0000-4000-8000-000000000133', 'JUDGMENT_REQUIRED', [
-          recoveryJudgment('00000000-0000-4000-8000-000000000283')
-        ])
-      },
-      {
-        minimum: 4,
-        maximum: 4,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000124', 'LIMP', [
-          injuryRecord(
-            '00000000-0000-4000-8000-000000000267',
-            '00000000-0000-4000-8000-000000000124',
-            'UNTIL_CLEARED'
-          ),
-          injuryConsequenceJudgment('00000000-0000-4000-8000-000000000268')
-        ]),
-        recovery: optionalRecovery('00000000-0000-4000-8000-000000000134', 'JUDGMENT_REQUIRED', [
-          recoveryJudgment('00000000-0000-4000-8000-000000000284')
-        ])
-      },
-      {
-        minimum: 5,
-        maximum: 7,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000125', 'INTERNAL_INJURY', [
-          injuryRecord(
-            '00000000-0000-4000-8000-000000000269',
-            '00000000-0000-4000-8000-000000000125',
-            'UNTIL_CLEARED'
-          ),
-          internalInjuryCheck('00000000-0000-4000-8000-000000000270')
-        ]),
-        recovery: optionalRecovery('00000000-0000-4000-8000-000000000135', 'JUDGMENT_REQUIRED', [
-          recoveryJudgment('00000000-0000-4000-8000-000000000285')
-        ])
-      },
-      {
-        minimum: 8,
-        maximum: 10,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000126', 'BROKEN_RIBS', [
-          injuryRecord(
-            '00000000-0000-4000-8000-000000000271',
-            '00000000-0000-4000-8000-000000000126',
-            'UNTIL_CLEARED'
-          ),
-          injuryConsequenceJudgment('00000000-0000-4000-8000-000000000272')
-        ]),
-        recovery: optionalRecovery('00000000-0000-4000-8000-000000000136', 'JUDGMENT_REQUIRED', [
-          recoveryJudgment('00000000-0000-4000-8000-000000000286')
-        ])
-      },
-      {
-        minimum: 11,
-        maximum: 13,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000127', 'HORRIBLE_SCAR', [
-          injuryRecord(
-            '00000000-0000-4000-8000-000000000273',
-            '00000000-0000-4000-8000-000000000127',
-            'UNTIL_CLEARED'
-          ),
-          injuryConsequenceJudgment('00000000-0000-4000-8000-000000000274')
-        ]),
-        recovery: optionalRecovery('00000000-0000-4000-8000-000000000137', 'NONE', [])
-      },
-      {
-        minimum: 14,
-        maximum: 16,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000128', 'FESTERING_WOUND', [
-          injuryRecord(
-            '00000000-0000-4000-8000-000000000275',
-            '00000000-0000-4000-8000-000000000128',
-            'UNTIL_CLEARED'
-          ),
-          injuryConsequenceJudgment('00000000-0000-4000-8000-000000000276')
-        ]),
-        recovery: optionalRecovery('00000000-0000-4000-8000-000000000138', 'JUDGMENT_REQUIRED', [
-          recoveryJudgment('00000000-0000-4000-8000-000000000287')
-        ])
-      },
-      {
-        minimum: 17,
-        maximum: 20,
-        outcome: optionalOutcome('00000000-0000-4000-8000-000000000129', 'MINOR_SCAR', [
-          injuryRecord(
-            '00000000-0000-4000-8000-000000000277',
-            '00000000-0000-4000-8000-000000000129',
-            'PERMANENT'
-          )
-        ]),
-        recovery: optionalRecovery('00000000-0000-4000-8000-000000000139', 'NONE', [])
-      }
-    ]
+    table: {
+      dieFaces: 20,
+      rows: [
+        {
+          id: '00000000-0000-4000-8000-000000000121',
+          minimum: 1,
+          maximum: 1,
+          label: 'Lose an Eye',
+          effect:
+            'Disadvantage on Wisdom (Perception) checks that rely on sight and on ranged attack rolls. Losing both eyes leaves the creature blinded.',
+          healing: 'Only magic that regrows lost body parts, such as regenerate, restores it.'
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000122',
+          minimum: 2,
+          maximum: 2,
+          label: 'Lose an Arm or a Hand',
+          effect:
+            'The creature can no longer hold anything with two hands and can hold only one object at a time.',
+          healing: 'Only magic that regrows lost body parts, such as regenerate, restores it.'
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000123',
+          minimum: 3,
+          maximum: 3,
+          label: 'Lose a Foot or Leg',
+          effect:
+            'Walking speed is halved, moving needs a cane or crutch unless a peg leg or prosthesis is fitted, and the creature falls prone after using the Dash action. Disadvantage on Dexterity checks made to balance.',
+          healing: 'Only magic that regrows lost body parts, such as regenerate, restores it.'
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000124',
+          minimum: 4,
+          maximum: 4,
+          label: 'Limp',
+          effect:
+            'Walking speed is reduced by 5 feet. After using the Dash action, the creature makes a DC 10 Dexterity saving throw or falls prone.',
+          healing: 'Magical healing removes the limp.'
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000125',
+          minimum: 5,
+          maximum: 7,
+          label: 'Internal Injury',
+          effect:
+            'Whenever the creature tries an action in combat, it makes a DC 15 Constitution saving throw. On a failure it loses that action and cannot take reactions until the start of its next turn.',
+          healing: 'Magical healing, or ten days doing nothing more than resting, heals the injury.'
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000126',
+          minimum: 8,
+          maximum: 10,
+          label: 'Broken Ribs',
+          effect: 'As Internal Injury, but the saving throw is DC 10.',
+          healing: 'Magical healing, or ten days doing nothing more than resting, heals the injury.'
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000127',
+          minimum: 11,
+          maximum: 13,
+          label: 'Horrible Scar',
+          effect:
+            'Disadvantage on Charisma (Persuasion) checks and advantage on Charisma (Intimidation) checks.',
+          healing:
+            'Magical healing of 6th level or higher, such as heal or regenerate, removes the scar.'
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000128',
+          minimum: 14,
+          maximum: 16,
+          label: 'Festering Wound',
+          effect:
+            'Hit point maximum is reduced by 1 every 24 hours the wound persists. If it drops to 0, the creature dies.',
+          healing:
+            'Magical healing heals the wound. Otherwise someone can tend it once every 24 hours with a DC 15 Wisdom (Medicine) check; ten successes heal it.'
+        },
+        {
+          id: '00000000-0000-4000-8000-000000000129',
+          minimum: 17,
+          maximum: 20,
+          label: 'Minor Scar',
+          effect: 'The scar has no lasting effect.',
+          healing: 'None needed.'
+        }
+      ]
+    }
   },
   mutuallyExclusiveGroup: null
 })
@@ -553,8 +437,7 @@ const massiveDamageDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSc
             value: 0,
             duration: null
           }
-        ]),
-        recovery: null
+        ])
       },
       {
         minimum: 2,
@@ -573,8 +456,7 @@ const massiveDamageDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSc
             target: 'SUBJECT',
             duration: null
           }
-        ]),
-        recovery: null
+        ])
       },
       {
         minimum: 4,
@@ -591,8 +473,7 @@ const massiveDamageDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSc
               duration: 'UNTIL_END_OF_NEXT_TURN'
             }
           ]
-        ),
-        recovery: null
+        )
       },
       {
         minimum: 6,
@@ -617,8 +498,7 @@ const massiveDamageDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSc
               duration: 'UNTIL_END_OF_NEXT_TURN'
             }
           ]
-        ),
-        recovery: null
+        )
       },
       {
         minimum: 8,
@@ -635,8 +515,7 @@ const massiveDamageDocument = dnd5eOptionalCombatReusableDefinitionDocumentDtoSc
               duration: 'UNTIL_END_OF_NEXT_TURN'
             }
           ]
-        ),
-        recovery: null
+        )
       }
     ]
   },
