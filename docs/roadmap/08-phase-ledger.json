@@ -8282,7 +8282,8 @@
                 "size": 3
               },
               "text": "Verify 6.4 against the original scenario and add the two race tests (replacement first, action first).",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
+              "activeWorkbook": "docs/handoffs/slice-attack-6.md"
             },
             {
               "id": "ATTACK-6.T2",
@@ -9679,7 +9680,8 @@
                 "after": ["ATTACK-15.T1"]
               },
               "text": "Accepted injury persisted on the Character and shown on the Sheet; the GM removes it (every SRD recovery is a judgment call), the table's named healing shown as guidance.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
+              "activeWorkbook": "docs/handoffs/slice-attack-15.md"
             },
             {
               "id": "ATTACK-15.T3",
@@ -9788,7 +9790,8 @@
                 "after": ["ATTACK-16.T1a2", "ATTACK-16.T1b"]
               },
               "text": "Massive damage detection: the D167 damage-save chain takes a MASSIVE_DAMAGE source (per-source finalized envelope, threshold half max HP) through a generic save-source descriptor, replacing the CONCENTRATION | EFFECT_REPEAT_SAVE two-way branching at its persistence, pending, revert and removal sites; derivation reader and bindEncounterDamageSaveChain re-derivation cover it; the authored Constitution save is offered and its failure recorded.",
-              "note": "Split 2026-10-25 (user yes): remaining T1c measured 13 against 5 at d8c74e85d; +8 is detection on the D167 chain."
+              "note": "Split 2026-10-25 (user yes): remaining T1c measured 13 against 5 at d8c74e85d; +8 is detection on the D167 chain.",
+              "activeWorkbook": "docs/handoffs/slice-attack-16.md"
             },
             {
               "id": "ATTACK-16.T1c2",
@@ -15166,7 +15169,8 @@
                 "size": 2,
                 "after": ["SPELLS-31.T4k2d1"]
               },
-              "text": "Tranquility as a standing effect: returns on long rest, incoming-attack gate at DERIVED_DC Wisdom, Sanctuary's ATTACK_ROLL and SPELL_CAST vs ENEMY end triggers; delete CLASS_WAY_OF_THE_OPEN_HAND_TRANQUILITY; room test (the ward stops an attacker, the holder's attack ends it, a long rest restores it)."
+              "text": "Tranquility as a standing effect: returns on long rest, incoming-attack gate at DERIVED_DC Wisdom, Sanctuary's ATTACK_ROLL and SPELL_CAST vs ENEMY end triggers; delete CLASS_WAY_OF_THE_OPEN_HAND_TRANQUILITY; room test (the ward stops an attacker, the holder's attack ends it, a long rest restores it).",
+              "activeWorkbook": "docs/handoffs/slice-spells-31.md"
             },
             {
               "id": "SPELLS-31.T4l1",
