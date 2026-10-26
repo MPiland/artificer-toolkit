@@ -1,9 +1,7 @@
 import { z, lazySchema } from '../zod.js'
 import { MAX_MAINTAINED_RULE_EFFECT_DEPENDENTS_PER_ACTOR } from './activeRuleEffects.js'
-import {
-  concentrationCheckApplicationOutputDtoSchema,
-  concentrationEndApplicationOutputDtoSchema
-} from './ruleExecutionEncounterApplications.js'
+import { concentrationEndApplicationOutputDtoSchema } from './ruleExecutionEncounterApplications.js'
+import { concentrationCheckApplicationOutputDtoSchema } from './ruleExecutionDamageSaveOutputs.js'
 import { characterMechanicsTargetStateDtoSchema } from './ruleExecutionMechanics.js'
 import { serverCompletedRuleExecutionDtoSchema } from './ruleExecutionProtocol.js'
 import { ruleExecutionChecksumSchema, ruleExecutionUuidSchema } from './ruleExecutionPrimitives.js'
