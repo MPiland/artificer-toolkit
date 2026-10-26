@@ -4,6 +4,7 @@ type AuthoringDefaultKind =
   | 'applyGrants'
   | 'actorRelationshipModule'
   | 'actorRelationshipRecurrence'
+  | 'actorRelationshipRecurrenceOutcome'
   | 'capacity'
   | 'chargeBonus'
   | 'check'
@@ -174,6 +175,7 @@ const AUTHORING_DEFAULT_MAP_IDS: Readonly<Record<AuthoringDefaultKind, readonly 
   applyGrants: ['applyGrants'],
   actorRelationshipModule: ['actorRelationshipModule'],
   actorRelationshipRecurrence: ['actorRelationshipRecurrence'],
+  actorRelationshipRecurrenceOutcome: ['actorRelationshipRecurrenceOutcome'],
   capacity: ['capacity', 'creatureCapacity'],
   chargeBonus: ['chargeBonus'],
   check: ['check'],

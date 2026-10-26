@@ -6,9 +6,7 @@ import { publishedGraph } from './effectActionPublishedGraph.js'
 import { DND5E_SYSTEM_ID } from './characterActionCapabilityDiscovery.js'
 import {
   DND5E_EFFECT_ACTION_FAMILY_KEY,
-  DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
   DND5E_DAMAGE_TOTAL_OPERATION_KEY,
-  DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY,
   DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY,
   DND5E_TARGET_ACTOR_FACT_KEY,
   DND5E_TARGET_STATE_CHECKSUM_FACT_KEY,
@@ -21,6 +19,7 @@ import { dnd5eRepeatSave } from './effectActionFollowUp.js'
 import { compileTestDefinition } from './effectActionTestPhase.js'
 import { parseBoundedDiceConfiguration } from './effectActionScalingFacts.js'
 import { damageTypeIdentity } from './effectActionOutcomeNodes.js'
+import { dnd5eOutcomeDefinition } from './effectActionOutcomes.js'
 
 /**
  * The bare hold: the graph an action with no roll (Engulf) runs when used, and a hold with no
@@ -88,8 +87,25 @@ export function relationshipRecurrencePlan(relationship: ActorRelationshipAuthor
     diceConfig: outcome.diceConfig,
     damageTypeId: outcome.effectKind === 'DAMAGE' ? damageTypeIdentity(outcome.damageTypeId) : null,
     save,
-    frozenGraphNodeId: save ? 'proposal-on_save_fail' : 'relationship-recurrence'
+    frozenGraphNodeId: save ? 'proposal-on_save_fail' : 'relationship-recurrence',
+    proposal: dnd5eOutcomeDefinition(
+      outcome.effectKind === 'DAMAGE' ? 'ENTRY_DICE_DAMAGE' : 'ENTRY_DICE_HIT_POINT_LOSS'
+    )
   }
+}
+
+/** The operation a hold's plan settles: its recurrence's proposal, or the bare hold's state. */
+export function relationshipOperationKey(action: Dnd5eCompiledEffectActionSource) {
+  const entry = action.compiledEffect.entries.find(
+    (entry): entry is typeof entry & { outcome: ActorRelationshipAuthored } =>
+      'outcome' in entry && entry.outcome.effectKind === 'ACTOR_RELATIONSHIP'
+  )
+  const recurrence = entry && relationshipRecurrencePlan(entry.outcome)
+  if (!recurrence) return DND5E_ACTOR_RELATIONSHIP_STATE_OPERATION_KEY
+  // A save gates the proposal behind its failure.
+  return recurrence.save
+    ? recurrence.proposal.pathGatedOperationKey
+    : recurrence.proposal.operationKey
 }
 
 /** A failed save takes the damage or hit-point loss and a made one none; the hold stands either way. */
@@ -209,10 +225,7 @@ export function relationshipRecurrenceGraph(input: {
       {
         id: 'relationship-recurrence',
         operation: {
-          key:
-            damageTypeId === null
-              ? DND5E_HIT_POINT_LOSS_PROPOSAL_OPERATION_KEY
-              : DND5E_DAMAGE_PROPOSAL_OPERATION_KEY,
+          key: input.recurrence.proposal.operationKey,
           contractVersion: 1
         },
         inputs: {
