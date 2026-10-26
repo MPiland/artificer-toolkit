@@ -126,11 +126,22 @@ describe('generated Convex API types stay real', () => {
     >
     expectTypeOf<Mark['effect']>().not.toBeAny()
     expectTypeOf<Mark['effect']['paths'][number]>().toBeAny()
+
+    type RaisedEffect = NonNullable<
+      Extract<
+        NonNullable<Workspace['current']>['document'],
+        { parameters: unknown }
+      >['raisedEffects']
+    >[number]
+    expectTypeOf<RaisedEffect>().not.toBeAny()
+    expectTypeOf<RaisedEffect['paths'][number]>().toBeAny()
     expect(leaves(reusableDefinitionWorkspaceDtoSchema)).toEqual([
       'current|0.document|3.parameters|MARK.effect.paths[]',
+      'current|0.document|3.raisedEffects[].paths[]',
       'current|0.document|BASIC_ACTION.effects[].paths[]',
       'current|0.document|BASIC_ACTION.restrictions|0',
       'draft|0.document|3.parameters|MARK.effect.paths[]',
+      'draft|0.document|3.raisedEffects[].paths[]',
       'draft|0.document|BASIC_ACTION.effects[].paths[]',
       'draft|0.document|BASIC_ACTION.restrictions|0'
     ])
