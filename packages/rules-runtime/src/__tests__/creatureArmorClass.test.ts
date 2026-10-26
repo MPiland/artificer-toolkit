@@ -36,16 +36,19 @@ function armorClassOf(input: Parameters<typeof resolveDnd5eCreatureArmorClass>[0
   return result.armorClass
 }
 
-/** A Fighter's Armor Class with quipment equipped; Equipment beyond the SRD is registered. */
+/** A Fighter's Armor Class with `equipment` equipped and `carried` unequipped; Equipment beyond the
+ * SRD is registered. */
 function characterArmorClass(
   abilities: { DEXTERITY: number },
-  equipment: readonly EquipmentAuthored[]
+  equipment: readonly EquipmentAuthored[],
+  carried: readonly EquipmentAuthored[] = []
 ): number {
+  const owned = [...equipment, ...carried]
   return evaluateSrdCharacter({
     abilities,
     classes: [{ label: 'Fighter', level: 1 }],
-    items: equipment.map(({ label }) => ({ label, equipped: true })),
-    extraEquipment: equipment.filter((document) => !srdEquipment.includes(document))
+    items: owned.map(({ label }, index) => ({ label, equipped: index < equipment.length })),
+    extraEquipment: owned.filter((document) => !srdEquipment.includes(document))
   }).output.derivedStats.armorClass.effective
 }
 
@@ -188,7 +191,7 @@ describe('resolveDnd5eCreatureArmorClass', () => {
 
 /**
  * ATTACK-6.3: a Creature folds its loadout through the Character grant fold and Armor Class path,
- * so a magic item's bonus and an item restriction that refuses it decide alike for both.
+ * so a magic item's bonus and its source-state restriction decide alike for both.
  */
 describe('a Character and a Creature with the same magic item (ATTACK-6.3)', () => {
   const abilityScores = { DEXTERITY: 16 }
@@ -265,7 +268,19 @@ describe('a Character and a Creature with the same magic item (ATTACK-6.3)', () 
     expect(characterArmorClass(abilityScores, [armor, shield])).toBe(21)
   })
 
-  it('refuses a restricted magic bonus for both until the restriction holds', () => {
+  // D152 as amended for ATTACK-6.T4a: an item's "while equipped" restriction names the source, so
+  // it decides alike for either holder.
+  it('applies a while-equipped magic bonus to both and refuses it for both while carried', () => {
+    const shield = srd('Shield +1')
+    expect(creature([{ document: shield, useState: 'OFF_HAND' }])).toBe(16)
+    expect(characterArmorClass(abilityScores, [shield])).toBe(16)
+    expect(creature([{ document: shield, useState: 'CARRIED' }])).toBe(13)
+    expect(characterArmorClass(abilityScores, [], [shield])).toBe(13)
+  })
+
+  // D152: a restriction on the holder ("while you wear armor") in a Character context gates on the
+  // holder's kind, so it never holds for a Creature.
+  it('refuses a Character-context holder restriction on a Creature', () => {
     const shield = onlyWhileWearingArmor('Shield +1')
     const leather = srd('Leather Armor')
     expect(creature([{ document: shield, useState: 'OFF_HAND' }])).toBe(15)
@@ -275,7 +290,7 @@ describe('a Character and a Creature with the same magic item (ATTACK-6.3)', () 
         { document: leather, useState: 'WORN' },
         { document: shield, useState: 'OFF_HAND' }
       ])
-    ).toBe(17)
+    ).toBe(16)
     expect(characterArmorClass(abilityScores, [leather, shield])).toBe(17)
   })
 })

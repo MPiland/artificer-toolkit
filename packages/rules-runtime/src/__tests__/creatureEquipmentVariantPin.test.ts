@@ -114,18 +114,14 @@ describe('Creature Equipment variant pins', () => {
       (id) => equipmentById.get(id) as EquipmentAuthored | undefined
     )
     const pinned = baseEquipmentAuthoredDtoSchema.parse(JSON.parse(JSON.stringify(resolved)))
-    // A conditional modifier is any armor class modifier that is not the while-equipped form.
-    const document = {
-      ...pinned,
-      modifiers: pinned.modifiers?.map(({ restrictions: _restrictions, ...modifier }) => modifier)
-    }
+    // ATTACK-6.T4a: a Creature folds any modifier restriction as a Character does, so the one armor
+    // class it cannot evaluate is a held shield without one (D143).
+    const { armorClass: _armorClass, ...document } = pinned
     expect(() =>
       pinCreatureEquipmentSources({
         creature: { ...goblin, equipmentLoadout: offHandLoadout(shieldPlus1.id) },
         equipment: new Map([[shieldPlus1.id, storedEquipmentSource(document)]])
       })
-    ).toThrow(
-      `Equipment "${shieldPlus1.id}" has an armor class modifier that is not the while-equipped form, which a Creature cannot evaluate.`
-    )
+    ).toThrow(`Equipment "${shieldPlus1.id}" is armor or a shield without an armor class.`)
   })
 })
