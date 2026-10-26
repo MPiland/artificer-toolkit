@@ -116,6 +116,7 @@ export interface VttTokenPresentation {
     kind:
       | 'CONCENTRATION'
       | 'CONDITION'
+      | 'COVER'
       | 'EFFECT'
       | 'HEALTH'
       | 'INJURY'

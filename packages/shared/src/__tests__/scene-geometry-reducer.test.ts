@@ -143,6 +143,29 @@ describe('applySceneGeometryDelta', () => {
     ).toEqual(token.position)
   })
 
+  it('clears the GM’s cover override when the token moves, and only then (SPELLS-14.T3)', () => {
+    const covered = {
+      ...narrowState(),
+      tokens: [{ ...token, coverTierOverride: { tierCode: 'HALF' } }]
+    }
+    const override = (delta: Parameters<typeof applySceneGeometryDelta>[1]) =>
+      applySceneGeometryDelta(covered, delta).tokens[0]?.coverTierOverride
+    expect(override({ kind: 'TOKEN_MOVED', position: { x: 3, y: 4 }, tokenId: token.id })).toBe(
+      undefined
+    )
+    expect(
+      override({
+        kind: 'TOKEN_MOVE_UNDONE',
+        position: token.position,
+        tokenId: token.id,
+        undoneCommandId: 'command-1'
+      })
+    ).toBe(undefined)
+    expect(override({ kind: 'TOKEN_FACING_SET', rotationDegrees: 90, tokenId: token.id })).toEqual({
+      tierCode: 'HALF'
+    })
+  })
+
   it('preserves a door state on door upsert and removes it on conversion or removal', () => {
     const state = narrowState()
     const converted = applySceneGeometryDelta(state, {
