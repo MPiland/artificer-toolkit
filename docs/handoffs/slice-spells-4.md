@@ -751,3 +751,9 @@ Ruling asked: (a) approve the split, or keep it one task? (b) For the multi-chec
 ## SPELLS-8.T7 (D187a): Arcane Sword as a summon
 
 See [slice-spells-8-t7.md](slice-spells-8-t7.md). Arcane Sword follows the Spiritual Weapon shape; the `WEAPON` manifest is now unauthored, and a Concentration summon no longer fails the area receipt.
+
+## T2lb2d (AC SPELLS-4.1): Heat Metal browser journey
+
+Test-only carry-over from T2lb2c. Adds the `heat-metal-browser` local proof (`--encounter-heat-metal-browser`): the player casts Heat Metal on an Ogre's Longsword in a real browser, then on the next turn sees the REPEAT_SOURCE_PATH row (cast level and frozen DC) and uses it as a bonus action. The Ogre's turn and the dice go through the owner API as stand-ins. Files: `apps/apis/tests/developmentEncounterHeatMetal.ts`, `fixtures/encounterHeatMetal.ts`, `apps/web/tests/live-backend/encounterHeatMetal.ts`, plus the flag wiring in `developmentDrafts.ts`, an optional spell-slot parameter on `developmentSpellCharacterFixture.ts` and the proof name in the two scripts.
+
+**Not yet proven.** CI does not run browser proofs. Local runs on the m462 tip (3ea63c6d0) stop before the journey: the Session Worker returns 500 on `GET /live-session/<id>` (client sees 1006), and the existing `player-browser` proof fails the same way, so the cause is the local Worker or worktree setup, not this proof. Orchestrator ruling: push as-is for lint/Tests; the journey runs later from RELIABILITY-20.T1 (browser journeys in CI on a throwaway stack). Unrun assumptions: the owner can answer the player's dice, the Item option label is "Longsword", the Action option matches /^Heat Metal/, and the UI shows "Action paused for a required decision." after the repeat click.
