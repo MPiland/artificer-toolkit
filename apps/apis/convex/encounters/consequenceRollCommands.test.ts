@@ -202,11 +202,12 @@ describe('Consequence roll offers through the room (ATTACK-15.1)', () => {
 })
 
 describe('Recorded consequences on the Character (ATTACK-15.2)', () => {
-  /** The Character's Sheet as `viewer` reads it once the room has checkpointed its play. */
+  /** The Character's Campaign Sheet as `viewer` reads it once the room has checkpointed its play. */
   async function sheetAs(fixture: Fixture, viewer: 'owner' | 'player') {
     await checkpointLiveRoom(fixture.campaign.id)
-    const sheet = await fixture[viewer].caller.query(api.characters.sheet.get, {
-      id: fixture.character.id
+    const sheet = await fixture[viewer].caller.query(api.campaigns.characterSheet.get, {
+      campaignId: fixture.campaign.id,
+      characterId: fixture.character.id
     })
     if (!sheet) throw new Error('Missing journey Sheet.')
     return sheet
