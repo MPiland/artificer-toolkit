@@ -6748,7 +6748,7 @@
             },
             {
               "id": "MOVE-2.T2a",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-2.3"],
               "wsjf": {
                 "bv": 2,
@@ -6758,7 +6758,9 @@
                 "after": ["MOVE-2.T1"]
               },
               "text": "Generic option gate on an enabled optional rule: option-level requiresOptionalRule {definitionId} (schema, node map, compiler pass-through); one filter beside castChoiceOptions against the Encounter's active optional combat definitions, applied at pick (refused), choices listing (hidden), entry-point compiler and default pick (skipped). Rules-runtime and persistence tests; authoring parity proof.",
-              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome."
+              "note": "Re-scoped 2026-10-26 (orchestrator ruling under D157, authorable-from-core-options; 13 -> 12 points): Shove Aside is an authored Shove option, destination picked on the board after the outcome. Merged in m465.",
+              "mergedAt": "2026-10-26T15:55:09Z",
+              "proof": "Tests 40345328945 and Live 40345328883 green; reviewed; merged in m465. Proofs: packages/rules-runtime/src/__tests__/encounterCastChoiceOptionalRuleGate.test.ts, apps/session-worker/test/nativeRoomOptionalRuleGatedOption.test.ts"
             },
             {
               "id": "MOVE-2.T2b",
@@ -6822,10 +6824,14 @@
             },
             {
               "text": "The GM places a zone on a Scene through a GM zone tool that renders the same zone node map as authored content (shape, label, entry interactions and behaviors), so an environmental trap needs no trap-specific contract; it resolves like any placed zone, and GM undo removes it. Proved with an authoring-parity test: a GM-built pit and a GM-built caltrop field resolve the same as authored zones.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "campaignTabletopZoneTool.model.test.ts",
+                "CampaignVttStage.zoneTool.test.tsx",
+                "CampaignTabletopZoneTool.test.tsx"
+              ],
               "origin": [],
-              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Environmental traps exist only on the Scene; there is no trap subject or item category. A hazard is any ZONE with an entry interaction.",
+              "note": "User ruling 2026-10-14 (decisions: hazards and traps). Environmental traps exist only on the Scene; there is no trap subject or item category. A hazard is any ZONE with an entry interaction. Closed 2026-10-26 by MOVE-3.T1a, MOVE-3.T1b.",
               "id": "MOVE-3.2"
             },
             {
@@ -6895,7 +6901,7 @@
             {
               "id": "MOVE-3.T1b",
               "text": "Tabletop GM zone tool that renders the zone `outcome` node map through the shared renderer and places the zone via PLACE_ZONE; journey test of placing and undoing a zone.",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-3.2"],
               "wsjf": {
                 "bv": 8,
@@ -6903,7 +6909,10 @@
                 "rr": 3,
                 "size": 5,
                 "after": ["MOVE-3.T1a"]
-              }
+              },
+              "mergedAt": "2026-10-26T16:24:14Z",
+              "proof": "Tests 40346691568 green; reviewed; merged in m466. Proofs: campaignTabletopZoneTool.model.test.ts, CampaignVttStage.zoneTool.test.tsx, CampaignTabletopZoneTool.test.tsx",
+              "note": " Merged in m466."
             },
             {
               "id": "MOVE-3.T2",
@@ -6987,10 +6996,14 @@
           "acs": [
             {
               "text": "With the rule enabled, a creature can try to climb onto a suitably larger adjacent creature with a Strength (Athletics) or Dexterity (Acrobatics) check contested by the target's Dexterity (Acrobatics), on the prepare, contest and execution path that Overrun and Tumble use.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "encounterMovementPassage.test.ts",
+                "optionalCombatCheckDefinitions.test.ts",
+                "CampaignTabletopDecisionDrawer.test.tsx"
+              ],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "note": "2014 DMG variant, approved for Phase 8. The removed attach and dislodge resolvers are in 437b2dd15 (optionalActionPolicy.ts).",
+              "note": "2014 DMG variant, approved for Phase 8. The removed attach and dislodge resolvers are in 437b2dd15 (optionalActionPolicy.ts). Closed 2026-10-26 by MOVE-4.T1.",
               "id": "MOVE-4.1"
             },
             {
@@ -7024,7 +7037,7 @@
           "tasks": [
             {
               "id": "MOVE-4.T1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["MOVE-4.1"],
               "wsjf": {
                 "bv": 2,
@@ -7034,7 +7047,9 @@
                 "after": ["MOVE-2.T1"]
               },
               "text": "Climb policy module and contest preparation (Athletics/Acrobatics vs Acrobatics, size gate) on the prepare/contest path.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Merged in m464. The session judged its size closer to 8 than its estimate.",
+              "mergedAt": "2026-10-26T15:34:14Z",
+              "proof": "Tests 40343101057 green on 986cf635d; reviewed; merged in m464. Proofs: encounterMovementPassage.test.ts, optionalCombatCheckDefinitions.test.ts, CampaignTabletopDecisionDrawer.test.tsx"
             },
             {
               "id": "MOVE-4.T2",
@@ -8333,7 +8348,8 @@
                 "after": ["ATTACK-6.T2"]
               },
               "text": "Source audit loadout-specific checks.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
+              "activeWorkbook": "docs/handoffs/slice-attack-6.md"
             },
             {
               "id": "ATTACK-6.T4",
@@ -9555,7 +9571,8 @@
                 "after": ["ATTACK-13.T2"]
               },
               "text": "Integrate and settings gate.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/handoffs/slice-attack-13.md"
             }
           ]
         },
@@ -9638,10 +9655,17 @@
             },
             {
               "text": "An accepted injury is recorded on the Character, shows on the Sheet with the healing the table names, and the GM can remove it.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "apps/apis/convex/encounters/consequenceRollCommands.test.ts",
+                "packages/rules-runtime/src/__tests__/sheetCommandReducer.test.ts",
+                "packages/rules-runtime/src/__tests__/campaignCharacterSheet.test.ts",
+                "packages/schema/src/__tests__/consequence-roll-table.test.ts",
+                "apps/session-worker/test/nativeRoomConsequenceRolls.test.ts"
+              ],
               "origin": ["G2-OPTIONAL-COMBAT"],
-              "id": "ATTACK-15.2"
+              "id": "ATTACK-15.2",
+              "note": "Closed 2026-10-26 by ATTACK-15.T2."
             },
             {
               "text": "Campaign settings offer Injuries only once it resolves.",
@@ -9691,7 +9715,7 @@
             },
             {
               "id": "ATTACK-15.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-15.2"],
               "wsjf": {
                 "bv": 2,
@@ -9701,8 +9725,9 @@
                 "after": ["ATTACK-15.T1"]
               },
               "text": "Accepted injury persisted on the Character and shown on the Sheet; the GM removes it (every SRD recovery is a judgment call), the table's named healing shown as guidance.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling).",
-              "activeWorkbook": "docs/handoffs/slice-attack-15.md"
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling). Merged in m463.",
+              "mergedAt": "2026-10-26T15:08:18Z",
+              "proof": "Tests 40340255080 and Live 40340254842 green on 1f9ea1fe8; reviewed; merged in m463. Proofs: apps/apis/convex/encounters/consequenceRollCommands.test.ts, packages/rules-runtime/src/__tests__/sheetCommandReducer.test.ts, packages/rules-runtime/src/__tests__/campaignCharacterSheet.test.ts, packages/schema/src/__tests__/consequence-roll-table.test.ts, apps/session-worker/test/nativeRoomConsequenceRolls.test.ts"
             },
             {
               "id": "ATTACK-15.T3",
@@ -9716,7 +9741,8 @@
                 "after": ["ATTACK-15.T2"]
               },
               "text": "Integrate and settings gate.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized).",
+              "activeWorkbook": "docs/handoffs/slice-attack-15.md"
             }
           ]
         },
@@ -9801,7 +9827,7 @@
             },
             {
               "id": "ATTACK-16.T1c1",
-              "status": "TODO",
+              "status": "DONE",
               "closes": ["ATTACK-16.1"],
               "wsjf": {
                 "bv": 2,
@@ -9811,8 +9837,9 @@
                 "after": ["ATTACK-16.T1a2", "ATTACK-16.T1b"]
               },
               "text": "Massive damage detection: the D167 damage-save chain takes a MASSIVE_DAMAGE source (per-source finalized envelope, threshold half max HP) through a generic save-source descriptor, replacing the CONCENTRATION | EFFECT_REPEAT_SAVE two-way branching at its persistence, pending, revert and removal sites; derivation reader and bindEncounterDamageSaveChain re-derivation cover it; the authored Constitution save is offered and its failure recorded.",
-              "note": "Split 2026-10-25 (user yes): remaining T1c measured 13 against 5 at d8c74e85d; +8 is detection on the D167 chain.",
-              "activeWorkbook": "docs/handoffs/slice-attack-16.md"
+              "note": "Split 2026-10-25 (user yes): remaining T1c measured 13 against 5 at d8c74e85d; +8 is detection on the D167 chain. Merged in m466.",
+              "mergedAt": "2026-10-26T16:24:14Z",
+              "proof": "Tests 40349549048 and Live 40349548997 green; reviewed; merged in m466. Proofs: encounterMassiveDamage.test.ts, nativeRoomMassiveDamageSave.test.ts, CampaignTabletopDecisionDrawer.model.test.ts"
             },
             {
               "id": "ATTACK-16.T1c2",
@@ -11459,17 +11486,17 @@
             },
             {
               "id": "SPELLS-4.T2lb2d",
-              "status": "IN_PROGRESS",
+              "status": "TODO",
               "closes": ["SPELLS-4.1"],
               "wsjf": {
                 "bv": 5,
                 "tc": 2,
                 "rr": 3,
                 "size": 1,
-                "after": ["SPELLS-4.T2lb2c"]
+                "after": ["SPELLS-4.T2lb2c", "RELIABILITY-20.T1"]
               },
               "text": "Heat Metal repeat browser journey (carried over from T2lb2c, whose scope named it but which merged in m315 without it; found 2026-10-24): a live-backend Playwright journey in which a Character casts Heat Metal, then on a later turn sees the REPEAT_SOURCE_PATH row with cast level and frozen DC and uses it. Adds the Heat Metal Character and encounter fixture under apps/apis/tests. Not new scope: T2lb2c's own deliverable.",
-              "activeWorkbook": "docs/handoffs/slice-spells-4.md"
+              "note": "Parked 2026-10-26: the journey fixtures are on ci/spells-4-t2lb2d (38775bcd8); the local Session Worker returns 500 on /live-session for existing proofs too, so the journey runs in CI after RELIABILITY-20.T1."
             },
             {
               "id": "SPELLS-4.T2l2",
@@ -19660,6 +19687,94 @@
               "mergedAt": "2026-10-26T14:35:56Z",
               "proof": "Tests 40270554072 green on c3cfa0e26 (Live path-filtered); red proof scripts/mergeSlice.test.mjs RED 1/46; reviewed (DRY fix requested and done); merged in m461",
               "note": " Merged in m461."
+            }
+          ]
+        },
+        {
+          "id": "RELIABILITY-20",
+          "title": "Browser journeys run in CI on a throwaway stack",
+          "status": "TODO",
+          "journeyTests": [".github/workflows/live-backend.yml"],
+          "journeyStatus": "none",
+          "origin": [],
+          "wsjf": {
+            "bv": 5,
+            "tc": 5,
+            "rr": 8,
+            "size": 13
+          },
+          "acs": [
+            {
+              "id": "RELIABILITY-20.1",
+              "text": "A CI job starts a throwaway self-hosted Convex (the local image digest) and the Session Worker (local wrangler dev) with generated throwaway configuration, uses no repository secrets and never reaches Cloudflare or Convex Cloud, runs a named browser proof and uploads its evidence.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d)."
+            },
+            {
+              "id": "RELIABILITY-20.2",
+              "text": "The job runs on ci/** pushes that change a browser journey or code it reaches, and on manual dispatch by proof name; merge-slice requires it green on the tip whenever it ran.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d)."
+            },
+            {
+              "id": "RELIABILITY-20.3",
+              "text": "Every existing *-browser proof in scripts/runLocalConvexProof.ps1 passes in CI, or has a registered bug task.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d)."
+            },
+            {
+              "id": "RELIABILITY-20.4",
+              "text": "docs/architecture/ci-validation.md and AGENTS.md state that browser journeys gate in CI and that the local runner remains only for the user's review data.",
+              "status": "TODO",
+              "proof": [],
+              "origin": [],
+              "note": "Registered 2026-10-26 (user yes, D187 growth +13): live browser journeys ran only locally, so worktrees needed gitignored config (SPELLS-4.T2lb2d)."
+            }
+          ],
+          "tasks": [
+            {
+              "id": "RELIABILITY-20.T1",
+              "status": "TODO",
+              "closes": ["RELIABILITY-20.1"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 5
+              },
+              "text": "Add a CI job (live-backend.yml or a sibling) that starts the throwaway Convex plus the Session Worker under local wrangler dev with generated application and worker configuration (no secrets, no cloud), deploys and seeds, and runs the player-browser proof green with evidence uploaded. Reuse liveBackendValidation.mjs and the existing proof driver; port only what the PowerShell runner does that Linux needs."
+            },
+            {
+              "id": "RELIABILITY-20.T2",
+              "status": "TODO",
+              "closes": ["RELIABILITY-20.2", "RELIABILITY-20.4"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 3,
+                "after": ["RELIABILITY-20.T1"]
+              },
+              "text": "Trigger the browser job on ci/** pushes whose changes reach a browser journey, add workflow_dispatch by proof name, make merge-slice require it green whenever it ran, and update ci-validation.md and AGENTS.md."
+            },
+            {
+              "id": "RELIABILITY-20.T3",
+              "status": "TODO",
+              "closes": ["RELIABILITY-20.3"],
+              "wsjf": {
+                "bv": 5,
+                "tc": 5,
+                "rr": 8,
+                "size": 5,
+                "after": ["RELIABILITY-20.T1"]
+              },
+              "text": "Run every *-browser proof from runLocalConvexProof.ps1 in the CI job; fix environment gaps, and register a bug task for any proof that fails on product code."
             }
           ]
         }
