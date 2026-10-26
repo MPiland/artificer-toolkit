@@ -11601,12 +11601,15 @@
             },
             {
               "text": "The marker's opportunity attack against the marked creature has advantage and does not use its reaction, at most once per turn and never while it cannot take reactions.",
-              "status": "TODO",
-              "proof": [],
+              "status": "DONE",
+              "proof": [
+                "Closed by ATTACK-13.T2 (m456); see each task's proof."
+              ],
               "origin": [
                 "G2-OPTIONAL-COMBAT"
               ],
-              "id": "ATTACK-13.2"
+              "id": "ATTACK-13.2",
+              "note": "Closed 2026-10-24 by ATTACK-13.T2."
             },
             {
               "text": "Campaign settings offer Marking only once it resolves.",
@@ -11644,7 +11647,7 @@
             },
             {
               "id": "ATTACK-13.T2",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "ATTACK-13.2"
               ],
@@ -11658,7 +11661,9 @@
                 ]
               },
               "text": "Marked opportunity attack: advantage, no reaction cost (new once-per-turn free-reaction counter in the reaction economy), once per turn, blocked without reactions.",
-              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling)."
+              "note": "Sized 2026-10-25 (orchestrator sizing pass; user approved registering all as sized). Re-sized 2026-10-25 after a seam-trace audit (user ruling). Merged in m456.",
+              "mergedAt": "2026-10-26T01:50:58Z",
+              "proof": "Tests 40252005233 and Live 40252005234 green on 32adad90e; reviewed (ruling A); merged in m456 batch"
             },
             {
               "id": "ATTACK-13.T3",
@@ -21073,7 +21078,7 @@
             },
             {
               "id": "SPELLS-33.T6n2b",
-              "status": "TODO",
+              "status": "DONE",
               "closes": [
                 "SPELLS-33.1"
               ],
@@ -21087,7 +21092,9 @@
                 ]
               },
               "text": "Generic HIT_POINT_LOSS recurrence outcome: hit points lost directly, unaffected by resistance or vulnerability, temporary hit points absorbing it first; recurrence.outcome DAMAGE or HIT_POINT_LOSS, with proofs (Stirge blood drain converts in T6n3).",
-              "note": "Registered 2026-10-25 (measured +2 in the T6n2 design note; user ruling)."
+              "note": "Registered 2026-10-25 (measured +2 in the T6n2 design note; user ruling). Merged in m456.",
+              "mergedAt": "2026-10-26T01:50:58Z",
+              "proof": "Tests 40251803699 and Live 40251803777 green on 69cbfa403; reviewed; merged in m456"
             },
             {
               "id": "SPELLS-33.T6n3",
