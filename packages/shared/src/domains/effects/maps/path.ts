@@ -4,7 +4,6 @@ import type {
   FailureMarginRiderAuthored,
   FollowUpSaveAuthored,
   FollowUpSaveBranchAuthored,
-  ForcedMovementCollisionAuthored,
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
   ManifestDestructionCriterionAuthored,
@@ -114,6 +113,8 @@ import { registerOutcomeKindFields } from './outcomeKindFields.js'
 import { PATH_LIFECYCLE_END_TRIGGER_NODE_MAP } from './lifecycleEndTrigger.js'
 import { PATH_LIFECYCLE_EFFECT_OFFER_NODE_MAP } from './pathLifecycleEffectOffer.js'
 import { RESULT_BLOCK_GATE_NODE_MAP } from './resultBlockGate.js'
+import { CHOICE_OPTION_REQUIRED_RULE_NODE_MAP } from './choiceOptionRequiredRule.js'
+import { FORCED_MOVEMENT_COLLISION_NODE_MAP } from './forcedMovementCollision.js'
 import { TARGETING_NODE_MAP } from './targeting.js'
 import { DAMAGE_LEVEL_SCALING_ENTRY_NODE_MAP } from './damage.js'
 
@@ -189,8 +190,6 @@ const SUMMON_VISIBILITY_OPTIONS = [
 
 const pathLifecycle = buildNodeMap<PathLifecycleAuthored>()
 const pathChosenItem = buildNodeMap<PathChosenItemAuthored>()
-const choiceOptionRequiredRule =
-  buildNodeMap<NonNullable<PathChoiceOptionAuthored['requiresOptionalRule']>>()
 const pathLifecycleHolderEnd = buildNodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>>()
 const pathLifecycleGrantedAction =
   buildNodeMap<NonNullable<PathLifecycleAuthored['grantedActions']>[number]>()
@@ -202,7 +201,6 @@ const outcome = buildNodeMap<OutcomeNode>()
 const nonManifestOutcome = buildNodeMap<NonManifestOutcomeNode>()
 const outcomeBreakpoint = buildNodeMap<OutcomeBreakpointNode>()
 const outcomeBreakpointValue = buildNodeMap<OutcomeBreakpointValueNode>()
-const forcedMovementCollision = buildNodeMap<ForcedMovementCollisionAuthored>()
 const followUpSaveBranch = buildNodeMap<FollowUpSaveBranchNode>()
 const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
@@ -274,51 +272,6 @@ const OUTCOME_BREAKPOINT_NODE_MAP: NodeMap<OutcomeBreakpointNode> = outcomeBreak
     )
   }
 )
-
-const FORCED_MOVEMENT_COLLISION_NODE_MAP: NodeMap<ForcedMovementCollisionAuthored> =
-  forcedMovementCollision.define('forcedMovementCollision', ({ map, nodes, data }) => {
-    const { text, selectSingle, groupObject } = nodes
-    const { table } = data
-
-    map
-      .set('id', text(['id'], 'ID'))
-      .set('diceConfig', text(['diceConfig'], 'Damage Dice Per 10 Feet', { requiredIf: true }))
-      .set(
-        'damageTypeId',
-        selectSingle(
-          ['damageTypeId'],
-          'Damage Type',
-          {
-            kind: 'DATA',
-            relationship: table('damage_types', {
-              selectColumns: ['id', 'label', 'description']
-            })
-          },
-          { requiredIf: true }
-        )
-      )
-      .set(
-        'savingThrow',
-        groupObject(['savingThrow'], 'Struck Creature Save', () => SAVING_THROW_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
-      .set(
-        'conditionId',
-        selectSingle(
-          ['conditionId'],
-          'Condition On Failure',
-          {
-            kind: 'DATA',
-            relationship: table('condition_types', {
-              selectColumns: ['id', 'label', 'description']
-            })
-          },
-          { requiredIf: true }
-        )
-      )
-  })
 
 const PATH_LIFECYCLE_HOLDER_END_NODE_MAP: NodeMap<NonNullable<PathLifecycleAuthored['holderEnd']>> =
   pathLifecycleHolderEnd.define('pathLifecycleHolderEnd', ({ map, nodes }) => {
@@ -2735,26 +2688,6 @@ const NON_MANIFEST_HIT_POINT_TIER_ROW_NODE_MAP: NodeMap<
         requiredIf: true
       })
     )
-})
-
-const CHOICE_OPTION_REQUIRED_RULE_NODE_MAP: NodeMap<
-  NonNullable<PathChoiceOptionAuthored['requiresOptionalRule']>
-> = choiceOptionRequiredRule.define('choiceOptionRequiredRule', ({ map, nodes, data }) => {
-  const { selectSingle } = nodes
-  const { table } = data
-
-  map.set(
-    'definitionId',
-    selectSingle(
-      ['definitionId'],
-      'Optional Rule',
-      {
-        kind: 'DATA',
-        relationship: table('reusable_definitions', { selectColumns: ['id', 'label'] })
-      },
-      { requiredIf: true }
-    )
-  )
 })
 
 const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.define(
