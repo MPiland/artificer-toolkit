@@ -249,6 +249,7 @@ import {
 import { hitPointTierActions } from './effectActionNarrowing.js'
 import {
   admitRollTablePaths,
+  directRollTableGraph,
   rollTableOutcomeTemplate,
   rollTablePath,
   rollTableRowActions
@@ -3243,6 +3244,8 @@ function compileEffectActionGraph(
       published: compileTestDefinition(action, plan, recurringPlan)
     })
   }
+  const table = directRollTableGraph(action, timedActiveEffectPlan)
+  if (table) return bindMovementInterruptionOutput({ action, published: table })
   const outcome = supported(action)
   const repeatPlan = repeatingDirectFollowUpSavePlan(action, 'ACTIVATED')
   refuseUnboundGate(gates ?? {}, outcome.kind)
@@ -3262,10 +3265,7 @@ function compileEffectActionGraph(
       modifierFactKey: DND5E_RESOLVED_HEAL_MODIFIER_FACT_KEY,
       ...(recurringPlan ? { recurring: recurringPlan } : {})
     })
-    return bindMovementInterruptionOutput({
-      action,
-      published: publishedGraph(definition)
-    })
+    return bindMovementInterruptionOutput({ action, published: publishedGraph(definition) })
   }
   if (outcome.kind === 'DICE_DAMAGE') {
     const entry = action.compiledEffect.entries[0]
@@ -3279,10 +3279,7 @@ function compileEffectActionGraph(
     )
       unsupported('D&D direct dice damage must retain one exact unrecurring authored outcome.')
     const definition = diceGraphDefinition({ action, entry, diceConfig: entry.outcome.dice })
-    return bindMovementInterruptionOutput({
-      action,
-      published: publishedGraph(definition)
-    })
+    return bindMovementInterruptionOutput({ action, published: publishedGraph(definition) })
   }
   if (outcome.kind === 'CONTEST_RELATIONSHIP')
     return bindMovementInterruptionOutput({

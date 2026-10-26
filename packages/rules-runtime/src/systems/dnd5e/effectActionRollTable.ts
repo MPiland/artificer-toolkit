@@ -59,8 +59,8 @@ function rowLasts(entry: RowEntry): boolean {
 
 /**
  * The result paths an action resolves through a table, each refused unless it is one of the
- * saving throw's `savePaths`: an attack's critical hit would fold its hit table into the critical
- * result. Every table is compiled here, so a table path holds only its rows. A row that lasts is
+ * saving throw's `savePaths` (or a test-less action's own path, see `directRollTableGraph`): an
+ * attack's critical hit would fold its hit table into the critical result. Every table is compiled here, so a table path holds only its rows. A row that lasts is
  * refused unless the timed plan `rowPlan` makes of the row's action holds that row.
  */
 export function admitRollTablePaths(
@@ -83,9 +83,28 @@ export function admitRollTablePaths(
 }
 
 /**
+ * A test-less action's table (ATTACK-16.T1c2a): its one path resolves through one table, rolled in
+ * the action's single DIRECT graph, admitted as a save's table is. Null when the action rolls none.
+ */
+export function directRollTableGraph(
+  action: Dnd5eCompiledEffectActionSource,
+  rowPlan: Parameters<typeof admitRollTablePaths>[2]
+) {
+  const { entries } = action.compiledEffect
+  if (!entries.some(isRollTableEntry)) return null
+  const [pathCode, ...others] = new Set(entries.map((entry) => entry.pathCode))
+  if (!pathCode || others.length > 0)
+    unsupported('D&D roll table on a test-less action must be its only path.')
+  admitRollTablePaths(action, [pathCode], rowPlan)
+  const table = rollTablePath(action, pathCode)
+  if (!table) unsupported('D&D roll table on a test-less action must be its only path.')
+  return publishedGraph(rollTableGraphDefinition(action, table))
+}
+
+/**
  * The action narrowed to each row of its one table, the row's outcomes made direct results of the
- * table's path, so a row that lasts is planned as any direct result of that path is; the OUTCOME
- * phase's `rollTableRoll` then picks the row's plan. Null when no row lasts; a lasting row on an
+ * table's path, so a row that lasts is planned as any direct result of that path is; the table
+ * graph's `rollTableRoll` (OUTCOME, or a test-less action's DIRECT) then picks the row's plan. Null when no row lasts; a lasting row on an
  * action with two tables is refused, since one roll output picks the row.
  */
 export function rollTableRowActions(action: Dnd5eCompiledEffectActionSource) {

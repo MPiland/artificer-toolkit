@@ -123,6 +123,31 @@ function tableSpell(
   }
 }
 
+/** The table on a test-less self Effect's own ON_USE path: no attack, save or check rolls first. */
+function selfTableSpell(path: Partial<Pick<TablePath, 'rows'>> = {}): SpellAuthored {
+  const spell = tableSpell(path)
+  const [effect] = spell.effects!
+  const { savingThrow: _save, ...invocation } = effect!.invocation as Extract<
+    SpellEffect['invocation'],
+    { triggerCode: 'SAVING_THROW' }
+  >
+  return {
+    ...spell,
+    effects: [
+      {
+        ...effect!,
+        invocation: {
+          ...invocation,
+          triggerCode: 'ACTIVATED',
+          range: { id: testUuid(0xa132), rangeKind: 'SELF' },
+          targeting: { selectionKind: 'SELF' }
+        },
+        paths: [tablePath({ ...path, pathCode: 'ON_USE' })]
+      }
+    ]
+  }
+}
+
 function castPlan(spell: SpellAuthored) {
   return castCompilation(spell).executionPlan
 }
@@ -170,7 +195,7 @@ function cast(
     tableRoll,
     damageDie = 1,
     dc = UNSAVEABLE_DC
-  }: { tableRoll: number; damageDie?: number; dc?: number }
+  }: { tableRoll: number; damageDie?: number; dc?: number | null }
 ) {
   const rolled: number[] = []
   return executeNativeActionGraphs({
@@ -190,7 +215,7 @@ function cast(
         attackKind: null,
         attackAbility: null,
         attackRollMode: 'NORMAL',
-        save: { abilityDefinitionId: CHARISMA, dc },
+        save: dc === null ? null : { abilityDefinitionId: CHARISMA, dc },
         outcomes: []
       },
       sourceDerivedFacts: {},
@@ -421,5 +446,85 @@ describe('roll table rows that last (ATTACK-16.T1a2)', () => {
     expect(() => compileTable(tableSpell({ rows: LASTING_ROWS }, [success]))).toThrow(
       /roll table rows last only on an action with one table/
     )
+  })
+})
+
+describe('a roll table on a test-less action (ATTACK-16.T1c2a)', () => {
+  const use = (tableRoll: number, spell = selfTableSpell()) =>
+    cast(spell, { tableRoll, damageDie: 3, dc: null })
+
+  it('compiles the table into the one DIRECT graph', () => {
+    expect(compileTable(selfTableSpell())?.kind).toBe('SINGLE_GRAPH')
+  })
+
+  it.each([
+    [1, [['CONDITION_APPLY', BLINDED]]],
+    [4, [['DAMAGE', 6]]],
+    [
+      6,
+      [
+        ['DAMAGE', 5],
+        ['CONDITION_APPLY', DEAFENED]
+      ]
+    ]
+  ])('applies only the row a use rolls %i on', async (tableRoll, expected) => {
+    const result = await use(tableRoll)
+    expect(
+      result.applications.map((application) => [
+        application.kind,
+        application.kind === 'CONDITION_APPLY'
+          ? application.conditionId
+          : application.kind === 'DAMAGE'
+            ? application.requestedAmount
+            : null
+      ])
+    ).toEqual(expected)
+  })
+
+  it('rolls the table die and the rolled row dice, with no d20', async () => {
+    const result = await use(3)
+    expect(result.rolled).toEqual([6, 4, 4])
+    expect(result.phaseReceipts ?? []).toEqual([])
+    expect(traceOf(result).find(({ nodeId }) => nodeId === 'roll-table-die-1')).toMatchObject({
+      evidence: { kind: 'INTEGER_RANGE', value: 3 }
+    })
+    expect(result.execution.outputs.rollTableRoll).toBe(3)
+  })
+
+  it('plans each lasting row of a direct table on its own faces', async () => {
+    const spell = selfTableSpell({ rows: LASTING_ROWS })
+    const compilation = castCompilation(spell)
+    expect(compilation.activeEffectPlan).toBeNull()
+    expect(
+      (compilation.rollTableRowPlans ?? []).map((plan) => [plan.rollTableRow, plan.compiledEntryId])
+    ).toEqual([
+      [{ min: 1, max: 2 }, LASTING_ROWS[0]!.id],
+      [{ min: 5, max: 6 }, LASTING_ROWS[2]!.id]
+    ])
+    const granted = await use(5, spell)
+    expect(granted.applications).toEqual([])
+    expect(granted.execution.outputs.rollTableRoll).toBe(5)
+  })
+
+  it('refuses a direct outcome beside the table on its path', () => {
+    const spell = selfTableSpell()
+    const [effect] = spell.effects!
+    const [path] = effect!.paths
+    const direct = {
+      id: testUuid(0xa133),
+      order: 2,
+      pathCode: 'ON_USE',
+      groupType: 'SINGLE',
+      originKind: 'SOURCE',
+      selectionKind: 'FIXED',
+      resultBlock: {
+        id: testUuid(0xa134),
+        resultKind: 'SINGLE',
+        outcomes: [{ ...fixedFire, id: testUuid(0xa135) }]
+      }
+    } satisfies SpellEffect['paths'][number]
+    expect(() =>
+      compileTable({ ...spell, effects: [{ ...effect!, paths: [path!, direct] }] })
+    ).toThrow(/roll table path must not mix direct outcomes/)
   })
 })
