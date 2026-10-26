@@ -954,45 +954,17 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
                 path: ['applications', index],
                 message: 'Temporary hit-point receipt arithmetic is invalid.'
               })
-          } else if (application.kind === 'HIT_POINT_LOSS') {
-            // Not damage: no defense or death save failure; temporary hit points absorb it first.
-            const temporaryLost = Math.min(
-              application.beforeTemporaryHitPoints,
-              application.requestedAmount
-            )
+          } else if (application.kind === 'DAMAGE' || application.kind === 'HIT_POINT_LOSS') {
+            // Hit points lost directly meet no defense, interception or death save failure.
+            const damage = application.kind === 'DAMAGE' ? application : null
+            const lost = damage ? resolveIncomingDamage(damage) : application.requestedAmount
+            const temporaryLost = Math.min(application.beforeTemporaryHitPoints, lost)
             temporarySource = temporaryHitPointsAfterLoss(
               { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
               temporaryLost
             ).sourceEffectId
-            const currentLost = Math.min(
-              application.beforeCurrentHitPoints,
-              application.requestedAmount - temporaryLost
-            )
-            if (
-              application.resolvedAmount !== application.requestedAmount ||
-              application.appliedAmount !== temporaryLost + currentLost ||
-              application.afterCurrentHitPoints !==
-                application.beforeCurrentHitPoints - currentLost ||
-              application.afterTemporaryHitPoints !==
-                application.beforeTemporaryHitPoints - temporaryLost
-            )
-              context.addIssue({
-                code: 'custom',
-                path: ['applications', index],
-                message: 'Hit-point loss receipt arithmetic is invalid.'
-              })
-          } else if (application.kind === 'DAMAGE') {
-            const resolved = resolveIncomingDamage(application)
-            const temporaryLost = Math.min(application.beforeTemporaryHitPoints, resolved)
-            temporarySource = temporaryHitPointsAfterLoss(
-              { amount: application.beforeTemporaryHitPoints, sourceEffectId: temporarySource },
-              temporaryLost
-            ).sourceEffectId
-            const currentLost = Math.min(
-              application.beforeCurrentHitPoints,
-              resolved - temporaryLost
-            )
-            const intercepted = application.interceptedBy !== undefined
+            const currentLost = Math.min(application.beforeCurrentHitPoints, lost - temporaryLost)
+            const intercepted = damage?.interceptedBy !== undefined
             // An interception leaves a lethal blow's target at a total above 0 (Death Ward).
             const expectedAfter = intercepted
               ? application.afterCurrentHitPoints
@@ -1010,7 +982,7 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
                 message: 'Damage interception receipt is invalid.'
               })
             if (
-              application.resolvedAmount !== resolved ||
+              application.resolvedAmount !== lost ||
               application.appliedAmount !==
                 temporaryLost + application.beforeCurrentHitPoints - expectedAfter ||
               application.afterCurrentHitPoints !== expectedAfter ||
@@ -1020,15 +992,15 @@ export const encounterActorMechanicsBatchApplicationOutputDtoSchema = lazySchema
               context.addIssue({
                 code: 'custom',
                 path: ['applications', index],
-                message: 'Damage receipt arithmetic is invalid.'
+                message: `${damage ? 'Damage' : 'Hit-point loss'} receipt arithmetic is invalid.`
               })
-            if (deathSaves !== null && !intercepted)
+            if (damage && deathSaves !== null && !intercepted)
               deathSaves = deathSavesAfterDamage({
                 deathSaves,
                 currentHitPoints: application.beforeCurrentHitPoints,
                 maximumHitPoints: application.maximumHitPoints,
-                dealt: resolved - temporaryLost,
-                critical: application.critical
+                dealt: lost - temporaryLost,
+                critical: damage.critical
               })
           }
           current = application.afterCurrentHitPoints

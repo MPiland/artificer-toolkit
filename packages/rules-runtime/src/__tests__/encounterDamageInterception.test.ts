@@ -265,7 +265,7 @@ describe.each([
   const hitPointLoss = (
     amount: number,
     state: { current: number; temporary: number }
-  ): CharacterRuleActionApplication => {
+  ): Extract<CharacterRuleActionApplication, { kind: 'HIT_POINT_LOSS' }> => {
     const temporaryLost = Math.min(state.temporary, amount)
     const currentLost = Math.min(state.current, amount - temporaryLost)
     return {
