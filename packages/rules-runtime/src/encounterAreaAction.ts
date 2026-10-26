@@ -542,11 +542,19 @@ export function evaluateEncounterSummonTarget(input: {
   }
 }
 
-/** A command target that places a zone. */
-type ZoneCommandTarget = Extract<
-  ResolveEncounterActionTargetDto,
-  { kind: 'POINT' | 'CASTER_CENTERED' | 'WALL' | 'RING' }
->
+/**
+ * Where a command aims a zone: its target's geometry, without the Scene version and the choices a
+ * cast pins, which the caller checks.
+ */
+type ZoneCommandTarget =
+  Extract<
+    ResolveEncounterActionTargetDto,
+    { kind: 'POINT' | 'CASTER_CENTERED' | 'WALL' | 'RING' }
+  > extends infer Target
+    ? Target extends unknown
+      ? Omit<Target, 'sceneId' | 'expectedSceneVersion' | 'unaffectedActorIds' | 'choiceOptionId'>
+      : never
+    : never
 
 /** How far past an authored size an aimed size may fall: the client's own rounding, never more. */
 const AREA_SIZE_TOLERANCE = 1e-6
@@ -566,8 +574,11 @@ export function evaluateEncounterZoneTarget(input: {
   range: CompiledActionTargetPolicy['range']
   target: ZoneCommandTarget
   grid: SceneGrid
-  /** The caster's token. */
-  sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'>
+  /**
+   * The caster's token; null for a zone no creature places (a GM's environmental zone, MOVE-3.2),
+   * which only an unlimited range reaches and which is never centered on a caster.
+   */
+  sourceToken: Pick<SceneToken, 'position' | 'height' | 'width' | 'rotationDegrees'> | null
   /** Whether the caster sees every point the target is aimed at. */
   aimSeen: boolean
 }):
@@ -608,19 +619,22 @@ export function evaluateEncounterZoneTarget(input: {
     shape: SpatialPointAreaShape | SpatialWallAreaShape,
     warnings: EncounterRuleWarningDto[]
   ) => ({ shape, regions, ...(distanceStep ? { distanceStep } : {}), warnings })
+  const { sourceToken } = input
   if (aim?.kind === 'CASTER_CENTERED' && target.kind === 'CASTER_CENTERED') {
+    if (!sourceToken) return unsupported
     const shape =
       aim.area.kind === 'OWN_SPACE'
-        ? {
-            kind: 'CUBE' as const,
-            edgeLength: Math.max(input.sourceToken.width, input.sourceToken.height)
-          }
+        ? { kind: 'CUBE' as const, edgeLength: Math.max(sourceToken.width, sourceToken.height) }
         : pointAreaInSceneCoordinates(aim.area, grid)
     return shape ? placed(shape, []) : unsupported
   }
   const aimedAt = (points: readonly ScenePoint[]) => {
     const outOfRange = points.map((point) =>
-      evaluateRangeWarnings({ point, grid, sourceToken: input.sourceToken }, input.range)
+      sourceToken
+        ? evaluateRangeWarnings({ point, grid, sourceToken }, input.range)
+        : input.range.rangeKind === 'UNLIMITED'
+          ? []
+          : null
     )
     if (outOfRange.some((warnings) => warnings === null)) return null
     return [

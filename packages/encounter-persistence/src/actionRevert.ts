@@ -269,6 +269,10 @@ export async function revertLastEncounterAction(
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertConcealmentObservers(ctx, { ...scope, root })
   }
+  if (root?.commandType === 'PLACE_ZONE') {
+    if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
+    return revertPlaceZone(ctx, { ...scope, root })
+  }
   if (root?.commandType === 'CREATURE_REST') {
     if (rootIndex !== 0) throw new Error('Stored Encounter command scan is invalid.')
     return revertCreatureRest(ctx, { ...scope, root })
@@ -878,6 +882,7 @@ type RevertScope = {
         | 'RESOLVE_ACTION'
         | 'ESCAPE'
         | 'SET_CONCEALMENT_OBSERVERS'
+        | 'PLACE_ZONE'
         | 'CREATURE_REST'
         | 'MOVE_HELD_EFFECT'
         | 'CHANGE_FACING'
@@ -1335,6 +1340,22 @@ async function revertConcealmentObservers(
       afterVersion: receipt.afterVersion,
       observerActorIds: receipt.beforeObserverActorIds
     })
+  return commitRevert(ctx, {
+    ...input,
+    actors,
+    nextActors: [...actors],
+    updatedAt: new Date().toISOString()
+  })
+}
+
+/** Undoes the GM's environmental zone (MOVE-3.2): the zone leaves the Scene. */
+async function revertPlaceZone(
+  ctx: EncounterCharacterWriteTransaction,
+  input: RevertScope & { root: Extract<StoredCommand, { commandType: 'PLACE_ZONE' }> }
+): Promise<EncounterCommandResultDto> {
+  const { state, root } = input
+  await deletePlacedSpatialEffect(ctx, { encounterId: state.id, id: root.receipt.spatialEffectId })
+  const actors = await readRunActors(ctx, state)
   return commitRevert(ctx, {
     ...input,
     actors,
