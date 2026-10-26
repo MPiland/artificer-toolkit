@@ -44,6 +44,7 @@ function settingsAtVersion(version: number, normalCadenceDays: number) {
     automationMode: 'ASSISTED',
     trackAmmunition: false,
     zoneNoticing: 'GM_PROMPT',
+    automaticCover: true,
     initiativePolicyDefinitionId: null,
     initiativeTieDefinitionId: null,
     optionalCombatRuleDefinitionIds: [],

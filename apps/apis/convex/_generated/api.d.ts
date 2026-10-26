@@ -3167,6 +3167,11 @@ export declare const api: {
               | { kind: "DOUBLE" }
               | { kind: "MULTIPLY"; value: number };
           };
+          foldedBonuses?: Array<{
+            amount: number;
+            label: string;
+            operand: "defenseOrDc" | "modifier";
+          }>;
           id: string;
           normalizedExpression: string;
           ruleCheck?:
@@ -7165,6 +7170,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -7264,6 +7274,11 @@ export declare const api: {
                   | { kind: "DOUBLE" }
                   | { kind: "MULTIPLY"; value: number };
               };
+              foldedBonuses?: Array<{
+                amount: number;
+                label: string;
+                operand: "defenseOrDc" | "modifier";
+              }>;
               id: string;
               normalizedExpression: string;
               ruleCheck?:
@@ -7368,6 +7383,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -7460,6 +7480,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -9829,6 +9854,7 @@ export declare const api: {
         {
           absentCharacterPolicy: string | null;
           allowedContentRules: string | null;
+          automaticCover?: boolean;
           automationMode?: "ASSISTED" | "MANUAL";
           campaignId: string;
           contentBoundaries: string | null;
@@ -9893,6 +9919,7 @@ export declare const api: {
         {
           absentCharacterPolicy: string | null;
           allowedContentRules: string | null;
+          automaticCover?: boolean;
           automationMode?: "ASSISTED" | "MANUAL";
           campaignId: string;
           contentBoundaries: string | null;
@@ -9920,6 +9947,7 @@ export declare const api: {
         {
           absentCharacterPolicy: string | null;
           allowedContentRules: string | null;
+          automaticCover?: boolean;
           automationMode?: "ASSISTED" | "MANUAL";
           campaignId: string;
           contentBoundaries: string | null;
@@ -10267,6 +10295,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -10369,6 +10402,11 @@ export declare const api: {
               | { kind: "DOUBLE" }
               | { kind: "MULTIPLY"; value: number };
           };
+          foldedBonuses?: Array<{
+            amount: number;
+            label: string;
+            operand: "defenseOrDc" | "modifier";
+          }>;
           gmCampaignRoll: {
             campaignId: string;
             creature: { actorId: string; encounterId: string } | null;
@@ -10464,6 +10502,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -287088,6 +287131,7 @@ export declare const api: {
           }>;
           cover?: {
             creatureMaxTierCode: string | null;
+            saveAbilityDefinitionIds: Array<string>;
             tiers: Array<{
               blocksTargeting: boolean;
               bonus: number;
@@ -291702,6 +291746,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
@@ -292979,6 +293024,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
@@ -293168,6 +293214,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -293413,6 +293464,11 @@ export declare const api: {
                 | { kind: "DOUBLE" }
                 | { kind: "MULTIPLY"; value: number };
             };
+            foldedBonuses?: Array<{
+              amount: number;
+              label: string;
+              operand: "defenseOrDc" | "modifier";
+            }>;
             id: string;
             normalizedExpression: string;
             ruleCheck?:
@@ -294065,6 +294121,7 @@ export declare const api: {
               systemId: string | null;
               tempHitPoints: number;
             }>;
+            automaticCover?: boolean;
             automationMode: "ASSISTED" | "MANUAL";
             blueprintChecksum: string;
             blueprintId: string;
@@ -294471,6 +294528,7 @@ export declare const api: {
                   systemId: string | null;
                   tempHitPoints: number;
                 }>;
+                automaticCover?: boolean;
                 automationMode: "ASSISTED" | "MANUAL";
                 blueprintChecksum: string;
                 blueprintId: string;
@@ -295223,6 +295281,7 @@ export declare const api: {
             systemId: string | null;
             tempHitPoints: number;
           }>;
+          automaticCover?: boolean;
           automationMode: "ASSISTED" | "MANUAL";
           blueprintChecksum: string;
           blueprintId: string;
@@ -296583,6 +296642,11 @@ export declare const api: {
             | { kind: "DOUBLE" }
             | { kind: "MULTIPLY"; value: number };
         };
+        foldedBonuses?: Array<{
+          amount: number;
+          label: string;
+          operand: "defenseOrDc" | "modifier";
+        }>;
         id: string;
         normalizedExpression: string;
         ruleCheck?:
@@ -296691,6 +296755,11 @@ export declare const api: {
             | { kind: "DOUBLE" }
             | { kind: "MULTIPLY"; value: number };
         };
+        foldedBonuses?: Array<{
+          amount: number;
+          label: string;
+          operand: "defenseOrDc" | "modifier";
+        }>;
         gmCampaignRoll: {
           campaignId: string;
           creature: { actorId: string; encounterId: string } | null;

@@ -16,10 +16,8 @@ import type {
   CompiledEquipment
 } from '@artificer-toolkit/shared/subjects/compilers'
 
-import {
-  requireDnd5eArmorClass,
-  resolveDnd5eCreatureArmorClass
-} from '../systems/dnd5e/armorClass.js'
+import { requireDnd5eArmorClass } from '../systems/dnd5e/armorClass.js'
+import { resolveDnd5eCreatureArmorClass } from '../systems/dnd5e/characterVitals.js'
 import {
   createCharacterDefinitionSourceInstanceId,
   createCharacterSpellSourceKey,
@@ -236,7 +234,7 @@ function assembleCompanions(
         abilityScores: { ...creature.abilityScores },
         armorClass: requireDnd5eArmorClass(
           resolveDnd5eCreatureArmorClass({
-            dexterityScore: creature.abilityScores.DEXTERITY,
+            abilityScores: creature.abilityScores,
             naturalArmorBonus: creature.naturalArmorBonus,
             equipment: (creature.equipmentLoadout ?? []).map((entry) => {
               const equipment = loadoutEquipmentById?.[entry.equipmentId]

@@ -383,6 +383,7 @@ function projectGmFacts(
     automationMode: encounter.automationMode,
     trackAmmunition: encounter.trackAmmunition,
     zoneNoticing: encounter.zoneNoticing,
+    automaticCover: encounter.automaticCover,
     healthDisplayDefault: encounter.healthDisplayDefault,
     initiativePolicy:
       encounter.initiativePolicySnapshot == null

@@ -297,6 +297,17 @@ export function compileCastChoicePlans(
   descriptor: EffectActionCapabilityDescriptor,
   targetPolicy: ReturnType<typeof buildCompiledActionTargetPolicy>
 ) {
+  // Only a contest's initiator check takes an option's influence; elsewhere it would be dropped.
+  const { invocation } = descriptor.compiledEffect
+  if (
+    descriptor.compiledEffect.entries.some(
+      (entry) => 'initiatorCheckInfluence' in entry && entry.initiatorCheckInfluence !== undefined
+    ) &&
+    (invocation.triggerCode !== 'CHECK' || invocation.check.dc.kind !== 'CONTEST')
+  )
+    throw new CharacterRuleActionUnsupportedCompilationError(
+      "Only a contested check's options influence the initiator's check."
+    )
   const compiled = castChoiceOptions(descriptor.compiledEffect)?.map((option) => {
     const optionDescriptor = { ...descriptor, compiledEffect: option.compiledEffect }
     const { hitPointTierPlans, hitPointTiers, rollTableRowPlans, ...plans } = compileActionPlans(

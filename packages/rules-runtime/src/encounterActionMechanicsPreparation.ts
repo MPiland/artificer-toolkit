@@ -42,6 +42,7 @@ import {
 } from './encounterErrors.js'
 import { encounterActorHeldItems } from './encounterHolderDefense.js'
 import { preparedCastsSpell } from './encounterPreparedSpellCast.js'
+import { coverFoldedBonuses, type EncounterCoverFacts } from './encounterCover.js'
 import { refuseUnmetTargetRequirements } from './encounterTargetRequirements.js'
 import {
   characterActionDrawWeapon,
@@ -398,6 +399,15 @@ export async function prepareEncounterActionMechanics<
     targetFacts: MovementTarget<TCharacterFacts>
     capabilityDefinitionId: string
   }) => Promise<EncounterFlankingFacts | null>
+  /**
+   * The target's cover against this action's origin (the attacker, or an area's point), for the
+   * System's cover rules. Called only while the Campaign's automatic cover is on; null when the
+   * action has no Scene or the System judges none.
+   */
+  loadCover?: (input: {
+    sourceFacts: MovementTarget<TCharacterFacts>
+    targetFacts: MovementTarget<TCharacterFacts>
+  }) => Promise<EncounterCoverFacts | null>
   loadSource: (input: EncounterActionSourceRequest) => Promise<NativeEncounterActionSource>
   loadRelationshipFacts: (input: {
     state: EncounterRunState
@@ -767,6 +777,25 @@ export async function prepareEncounterActionMechanics<
           capabilityDefinitionId: flankingCapabilityId
         })
       : null
+  const cover =
+    state.automaticCover && input.loadCover
+      ? await input.loadCover({ sourceFacts, targetFacts })
+      : null
+  if (cover?.tier?.blocksTargeting)
+    throw new EncounterValidationError(`The target has ${cover.tier.label.toLowerCase()}.`)
+  // An attack on a decoy rolls against the decoy's own armor class, which cover does not move.
+  const coveredTest =
+    attackKind !== null
+      ? input.attackDecoy
+        ? null
+        : ({ kind: 'ATTACK' } as const)
+      : compilerSource?.savingThrowAbilityDefinitionId
+        ? ({
+            kind: 'SAVE',
+            abilityDefinitionId: compilerSource.savingThrowAbilityDefinitionId
+          } as const)
+        : null
+  const foldedBonuses = coveredTest ? coverFoldedBonuses(cover, coveredTest) : []
   const contributors = mergeCanonicalD20Contributors(
     await input.loadRelationshipFacts({
       state,
@@ -941,6 +970,7 @@ export async function prepareEncounterActionMechanics<
           ),
       ...(attackDecoy ? { absorbedByDecoy: true } : {}),
       targetConditionIds: heldConditionIds(targetFacts),
+      foldedBonuses,
       conditionOutcomeRules: {
         hitIsCritical:
           attackKind !== null &&

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useMediaQuery } from '@mantine/hooks'
 import { useHydrated } from '@tanstack/react-router'
+import { formatD20FoldedBonus } from '@artificer-toolkit/schema/shared/d20FoldedBonuses'
 import { useDicePresentationPreferences } from '#app/settings/dicePreferences'
 import {
   formatModeChange,
@@ -94,6 +95,9 @@ function StaticDiceResult({
       <div className={diceStyles.staticRollSummary}>
         <strong>Rolled {roll.evidence.total}</strong>
         <span>{formatRollEvidence(roll.evidence)}</span>
+        {roll.foldedBonuses?.map((bonus) => (
+          <span key={`${bonus.operand}:${bonus.label}`}>{formatD20FoldedBonus(bonus)}</span>
+        ))}
       </div>
     </div>
   )

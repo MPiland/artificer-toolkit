@@ -7,7 +7,6 @@ import type {
   HitPointMaximumReductionAuthored,
   ManifestComponentAuthored,
   ManifestDestructionCriterionAuthored,
-  ManifestLightAuthored,
   ManifestOccupantSaveBonusAuthored,
   ManifestProximityRuleAuthored,
   PathLifecycleAuthored,
@@ -103,6 +102,8 @@ import {
   FOLLOW_UP_SAVE_REPEAT_ROLL_INFLUENCE_NODE_MAP,
   FOLLOW_UP_SAVE_REPEAT_TRIGGER_NODE_MAP
 } from './followUpSaveRepeat.js'
+import { MANIFEST_CAMOUFLAGE_NODE_MAP } from './manifestCamouflage.js'
+import { MANIFEST_LIGHT_NODE_MAP } from './manifestLight.js'
 import {
   PATH_LIFECYCLE_ESCAPE_NODE_MAP,
   PATH_LIFECYCLE_ON_END_NODE_MAP,
@@ -206,7 +207,6 @@ const followUpSaveAttempts = buildNodeMap<FollowUpSaveAttemptsNode>()
 const manifestComponent = buildNodeMap<ManifestComponentAuthored>()
 const manifestComponentRegion = buildNodeMap<ManifestComponentRegionNode>()
 const manifestDestructionCriterion = buildNodeMap<ManifestDestructionCriterionNode>()
-const manifestLight = buildNodeMap<ManifestLightAuthored>()
 const manifestProximityRule = buildNodeMap<ManifestProximityRuleNode>()
 const manifestOccupantSaveBonus = buildNodeMap<ManifestOccupantSaveBonusNode>()
 const resultBlock = buildNodeMap<ResultBlockAuthored>()
@@ -692,29 +692,6 @@ const MANIFEST_DESTRUCTION_CRITERION_NODE_MAP: NodeMap<ManifestDestructionCriter
         )
     }
   )
-
-const MANIFEST_LIGHT_NODE_MAP: NodeMap<ManifestLightAuthored> = manifestLight.define(
-  'manifestLight',
-  ({ map, nodes }) => {
-    const { groupObject } = nodes
-
-    map
-      .set(
-        'bright',
-        groupObject(['bright'], 'Bright Light', () => MEASUREMENT_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
-      .set(
-        'dimAdditional',
-        groupObject(['dimAdditional'], 'Additional Dim Light', () => MEASUREMENT_NODE_MAP, {
-          presentation: 'inline',
-          requiredIf: true
-        })
-      )
-  }
-)
 
 const MANIFEST_OCCUPANT_SAVE_BONUS_NODE_MAP: NodeMap<ManifestOccupantSaveBonusNode> =
   manifestOccupantSaveBonus.define('manifestOccupantSaveBonus', ({ map, nodes, cond, data }) => {
@@ -2302,6 +2279,16 @@ function registerOutcomeFields(
       )
     )
     .set(
+      'camouflage',
+      groupObject(['camouflage'], 'Camouflage', () => MANIFEST_CAMOUFLAGE_NODE_MAP, {
+        presentation: 'inline',
+        showIf: and([
+          local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST),
+          local.field(['manifestKind']).eq(MANIFEST_KIND.ZONE)
+        ])
+      })
+    )
+    .set(
       'destructionMustResolveInOrder',
       toggle(['destructionMustResolveInOrder'], 'Destroy Components in Order', {
         showIf: local.field(['effectKind']).eq(EFFECT_KIND.MANIFEST)
@@ -2692,27 +2679,20 @@ const NON_MANIFEST_HIT_POINT_TIER_ROW_NODE_MAP: NodeMap<
 
 const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.define(
   'choiceOption',
-  ({ map, nodes }) => {
-    const { text, richText, number, groupObject } = nodes
+  ({ map, nodes, data }) => {
+    const { text, richText, number, selectSingle, groupObject } = nodes
+    const { table } = data
 
     map
       .set('id', text(['id'], 'ID'))
+      .set('order', number(['order'], 'Order', { requiredIf: true }))
+      .set('label', text(['label'], 'Label', { requiredIf: true }))
+      .set('description', richText(['description'], 'Description', { requiredIf: true }))
       .set(
-        'order',
-        number(['order'], 'Order', {
-          requiredIf: true
-        })
-      )
-      .set(
-        'label',
-        text(['label'], 'Label', {
-          requiredIf: true
-        })
-      )
-      .set(
-        'description',
-        richText(['description'], 'Description', {
-          requiredIf: true
+        'initiatorCheckInfluence',
+        selectSingle(['initiatorCheckInfluence'], 'Initiator check influence', {
+          kind: 'DATA',
+          relationship: table('roll_influences', { selectColumns: ['id', 'label', 'description'] })
         })
       )
       .set(
@@ -2736,27 +2716,20 @@ const CHOICE_OPTION_NODE_MAP: NodeMap<PathChoiceOptionAuthored> = choiceOption.d
 
 const NON_MANIFEST_CHOICE_OPTION_NODE_MAP: NodeMap<
   PathChoiceOptionAuthored<NonManifestOutcomeAuthored>
-> = nonManifestChoiceOption.define('nonManifestChoiceOption', ({ map, nodes }) => {
-  const { text, richText, number, groupObject } = nodes
+> = nonManifestChoiceOption.define('nonManifestChoiceOption', ({ map, nodes, data }) => {
+  const { text, richText, number, selectSingle, groupObject } = nodes
+  const { table } = data
 
   map
     .set('id', text(['id'], 'ID'))
+    .set('order', number(['order'], 'Order', { requiredIf: true }))
+    .set('label', text(['label'], 'Label', { requiredIf: true }))
+    .set('description', richText(['description'], 'Description', { requiredIf: true }))
     .set(
-      'order',
-      number(['order'], 'Order', {
-        requiredIf: true
-      })
-    )
-    .set(
-      'label',
-      text(['label'], 'Label', {
-        requiredIf: true
-      })
-    )
-    .set(
-      'description',
-      richText(['description'], 'Description', {
-        requiredIf: true
+      'initiatorCheckInfluence',
+      selectSingle(['initiatorCheckInfluence'], 'Initiator check influence', {
+        kind: 'DATA',
+        relationship: table('roll_influences', { selectColumns: ['id', 'label', 'description'] })
       })
     )
     .set(

@@ -257,6 +257,30 @@ function holderKindCondition(
   }
 }
 
+const SOURCE_PREDICATE_CODES: ReadonlySet<string> = new Set([
+  'SOURCE_CREATURE_TYPE',
+  'SOURCE_TRAIT',
+  'WHILE_SOURCE_CARRIED',
+  'WHILE_SOURCE_EQUIPPED',
+  'WHILE_SOURCE_ATTUNED'
+])
+
+/**
+ * A context whose conditions only name the source or its state (an item's "while equipped")
+ * describes no holder, so any holder qualifies (D152, amended for ATTACK-6.T4a).
+ */
+function describesOnlySource(conditions: readonly object[]): boolean {
+  return (
+    conditions.length > 0 &&
+    conditions.every(
+      (condition) =>
+        'predicateCode' in condition &&
+        typeof condition.predicateCode === 'string' &&
+        SOURCE_PREDICATE_CODES.has(condition.predicateCode)
+    )
+  )
+}
+
 /** An Equipment context names the attacking item; its conditions are evaluated against that item. */
 function normalizeItemContext(
   context: Extract<FacetContextAuthored, { subject: 'EQUIPMENT' }>
@@ -318,27 +342,21 @@ export function normalizeCharacterGrantRestrictions(
   return (facet?.groups ?? []).map((group) => ({
     conditions: group.contexts.flatMap((context): RestrictionCondition[] => {
       switch (context.subject) {
-        case 'CHARACTER':
+        case 'CHARACTER': {
+          const conditions = context.conditions ?? []
           return [
-            holderKindCondition(context, 'CHARACTER'),
-            ...(context.conditions ?? []).map((condition) =>
+            ...(describesOnlySource(conditions) ? [] : [holderKindCondition(context, 'CHARACTER')]),
+            ...conditions.map((condition) =>
               normalizeCondition(condition, normalizeProficiencyTarget)
             )
           ]
+        }
         case 'EQUIPMENT':
           return normalizeItemContext(context)
         case 'CREATURE': {
           const conditions = context.conditions ?? []
-          // A context that only names the source describes no holder, so any holder qualifies.
-          const sourceOnly =
-            conditions.length > 0 &&
-            conditions.every(
-              (condition) =>
-                condition.predicateCode === 'SOURCE_CREATURE_TYPE' ||
-                condition.predicateCode === 'SOURCE_TRAIT'
-            )
           return [
-            ...(sourceOnly ? [] : [holderKindCondition(context, 'CREATURE')]),
+            ...(describesOnlySource(conditions) ? [] : [holderKindCondition(context, 'CREATURE')]),
             ...conditions.map(normalizeCreatureCondition)
           ]
         }

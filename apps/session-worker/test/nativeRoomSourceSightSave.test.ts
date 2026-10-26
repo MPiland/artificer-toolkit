@@ -42,6 +42,8 @@ afterEach(() => {
 function sightSaveRoom(options: { walled: boolean }) {
   return actionRoom({
     ...(options.walled ? { sceneOverrides: { barriers: [wall] } } : {}),
+    // These tests are about source sight; the wall's cover has its own proof.
+    automaticCover: false,
     playerControlledActorIds: [HOLDER_ID],
     actors: [
       srdCreatureActor({ id: CASTER_ID, creature: fireballWolf() }),

@@ -311,6 +311,8 @@ export const encounterGmProjectionDtoSchema = lazySchema(() =>
     trackAmmunition: z._default(z.boolean(), false),
     /** Frozen from the Campaign at Run start: how concealed zones are noticed (MOVE-3.5). */
     zoneNoticing: z._default(zoneNoticingModeDtoSchema, 'GM_PROMPT'),
+    /** Frozen from the Campaign at Run start: cover is worked out from the Scene for attacks and area saves. */
+    automaticCover: z._default(z.boolean(), true),
     /** What players see of enemies' and NPCs' health unless an actor overrides it. */
     healthDisplayDefault: healthDisplayLevelDtoSchema,
     initiativePolicy: z._default(z.nullable(encounterInitiativePolicySummaryDtoSchema), null),

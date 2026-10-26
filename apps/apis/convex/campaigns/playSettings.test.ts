@@ -262,6 +262,7 @@ describe('native Campaign play settings', () => {
       automationMode: 'MANUAL',
       trackAmmunition: true,
       zoneNoticing: 'SEARCH_ONLY',
+      automaticCover: false,
       initiativePolicyDefinitionId: policy.id,
       initiativeTieDefinitionId: score.id,
       optionalCombatRuleDefinitionIds: [optional.id]
@@ -271,6 +272,7 @@ describe('native Campaign play settings', () => {
       automationMode: 'MANUAL',
       trackAmmunition: true,
       zoneNoticing: 'SEARCH_ONLY',
+      automaticCover: false,
       initiativePolicySnapshot: {
         gameSystemId: campaign.gameSystemId,
         policy: {
@@ -311,17 +313,20 @@ describe('native Campaign play settings', () => {
       ...input(saved),
       automationMode: 'ASSISTED',
       trackAmmunition: false,
-      zoneNoticing: 'GM_PROMPT'
+      zoneNoticing: 'GM_PROMPT',
+      automaticCover: true
     })
     expect(await read()).toMatchObject({
       automationMode: 'ASSISTED',
       trackAmmunition: false,
-      zoneNoticing: 'GM_PROMPT'
+      zoneNoticing: 'GM_PROMPT',
+      automaticCover: true
     })
     expect(frozen).toMatchObject({
       automationMode: 'MANUAL',
       trackAmmunition: true,
-      zoneNoticing: 'SEARCH_ONLY'
+      zoneNoticing: 'SEARCH_ONLY',
+      automaticCover: false
     })
     await t.run(async (ctx) => {
       const graph = await ctx.db
@@ -758,13 +763,13 @@ describe('native Campaign play settings', () => {
     const disarm = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
       (definition) => definition.document.kind === 'DISARM'
     )
-    const mark = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
-      (definition) => definition.document.kind === 'MARK'
+    const climb = SRD_OPTIONAL_COMBAT_DEFINITIONS.find(
+      (definition) => definition.document.kind === 'CLIMB_ONTO_LARGER_CREATURE'
     )
-    if (!disarm || !mark) throw new Error('Missing optional combat fixtures.')
+    if (!disarm || !climb) throw new Error('Missing optional combat fixtures.')
     await t.mutation(internal.content.import.importDefinitions, {
       contentSourceId: SRD_CONTENT_SOURCE.id,
-      definitions: [disarm, mark]
+      definitions: [disarm, climb]
     })
     const saved = await owner.caller.mutation(save, {
       ...input(settings),
@@ -773,7 +778,7 @@ describe('native Campaign play settings', () => {
     expect(saved.optionalCombatRuleDefinitionIds).toEqual([disarm.id])
     const before = await stored(t)
     await expect(
-      owner.caller.mutation(save, { ...input(saved), optionalCombatRuleDefinitionIds: [mark.id] })
+      owner.caller.mutation(save, { ...input(saved), optionalCombatRuleDefinitionIds: [climb.id] })
     ).rejects.toThrow('not available for Encounter execution')
     await expect(
       owner.caller.mutation(save, {
